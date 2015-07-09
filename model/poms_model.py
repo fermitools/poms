@@ -71,7 +71,7 @@ class ServiceDowntime(Base):
 
     service_id = Column(ForeignKey(u'services.service_id'), primary_key=True, nullable=False)
     downtime_started = Column(DateTime(True), primary_key=True, nullable=False)
-    downtime_ended = Column(DateTime(True), nullable=False)
+    downtime_ended = Column(DateTime(True), nullable=True)
 
     service = relationship(u'Service')
 
