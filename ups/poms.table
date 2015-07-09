@@ -10,14 +10,16 @@ Action=setup
    SetupRequired(postgres_client)
    SetupRequired(sqlalchemy)
    SetupRequired(mako)
+   PathPrepend(PYTHONPATH,${UPS_PROD_DIR})
 
 Action=start
-   Execute(cd $UPS_PROD_DIR/webservice, NO_UPS_ENV)
+   Execute(cd ${UPS_PROD_DIR}/webservice, NO_UPS_ENV)
    Execute(nohup python service.py &, NO_UPS_ENV)
-   Execute(echo $! > $HOME/private/logs/poms/poms.pid)
+   Execute(echo $! > $HOME/private/logs/poms/poms.pid, NO_UPS_ENV)
 
 Action=status
-   Execute(ps -wwfp `cat $HOME/private/logs/poms/poms.pid`)
+   Execute(ps -wwfp `cat $HOME/private/logs/poms/poms.pid`, NO_UPS_ENV)
 
 Action=stop
-   Execute(kill `cat $HOME/private/logs/poms/poms.pid`)
+   Execute(kill `cat $HOME/private/logs/poms/poms.pid`, NO_UPS_ENV)
+   Execute(rm $HOME/private/logs/poms/poms.pid, NO_UPS_ENV)
