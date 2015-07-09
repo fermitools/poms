@@ -1,0 +1,23 @@
+File=Table
+Product=poms
+
+Flavor=ANY
+Qualifiers=
+
+Action=setup
+   SetupRequired(python)
+   SetupRequired(cherrypy)
+   SetupRequired(postgres_client)
+   SetupRequired(sqlalchemy)
+   SetupRequired(mako)
+
+Action=start
+   Execute(cd $UPS_PROD_DIR/webservice, NO_UPS_ENV)
+   Execute(nohup python service.py &, NO_UPS_ENV)
+   Execute(echo $! > $HOME/private/logs/poms/poms.pid)
+
+Action=status
+   Execute(ps -wwfp `cat $HOME/private/logs/poms/poms.pid`)
+
+Action=stop
+   Execute(kill `cat $HOME/private/logs/poms/poms.pid`)

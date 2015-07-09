@@ -107,6 +107,7 @@ if __name__ == '__main__':
         sys.argv = sys.argv[2:]
 
     cherrypy.config.update(configfile)
+    cherrypy.config.update("passwd.ini")
 
 
     # normal operating mode:
