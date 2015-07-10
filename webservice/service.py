@@ -16,6 +16,7 @@ class dbparts:
     def __init__(self, dbpath = None) :
         if dbpath == None:
            dbpath = "postgres://cspgsdev.fnal.gov:5437/pomsdev"
+        cherrypy.log("Starting with dbpath of %s" % dbpath)
         dbparts.engine = create_engine(dbpath, echo = True)
         dbparts.SessionMaker = scoped_session(sessionmaker(bind = dbparts.engine))
 
@@ -45,35 +46,44 @@ class poms_service:
     @withsession
     def update_service(self, name, parent, status, host_site, session = None):
         s = session.query(Service).filter(Service.name == name).first()
+
         if not s:
             s = Service()
             s.name = name
-        p = session.query(Service).filter(Service.name == parent).first()
-        if not p:
-            p = Service()
-            p.name = parent
-            p.status = "unknown"
-            p.host_site = "unknown"
-            p.updated = datetime.now()
-            session.add(p)
-        s.parent = p
-        if s.status == "ok" and status == "bad":
+
+        if parent:
+	    p = session.query(Service).filter(Service.name == parent).first()
+	    if not p:
+		p = Service()
+		p.name = parent
+		p.status = "unknown"
+		p.host_site = "unknown"
+		p.updated = datetime.now()
+		session.add(p)
+        else:
+            p = None
+
+        if s.status != status and status == "bad":
             # start downtime
             d = ServiceDowntime()
             d.service = s
             d.downtime_started = datetime.now()
             d.downtime_ended = None
             session.add(d)
-        if s.status == "bad" and status == "ok":
+        if s.status != status and status == "ok":
             # end downtime
             d = session.query(ServiceDowntime).filter(SessionDowntime.service == s,Session.downtime_ended == None).first()
-            d.downtime_ended = datetime.now()
-            session.add(d)
+            if d:
+                d.downtime_ended = datetime.now()
+                session.add(d)
+
+        s.parent = p
         s.status = status
         s.host_site = host_site
         s.updated = datetime.now()
         session.add(s)
         session.commit()
+
         return "Ok."
         
     @cherrypy.expose
@@ -108,7 +118,6 @@ if __name__ == '__main__':
 
     cherrypy.config.update(configfile)
     cherrypy.config.update("passwd.ini")
-
 
     # normal operating mode:
     db = cherrypy.config.get("db")
