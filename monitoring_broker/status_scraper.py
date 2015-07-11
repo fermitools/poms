@@ -6,12 +6,15 @@ import urllib2
 
 class status_scraper():
 
-    def __init__(self,configfile):
+    def __init__(self,configfile, poms_url):
+        self.poms_url = poms_url
         defaults = { "subservices" : "", "scrape_url":"" , "scrape_regex":"", "percent":"100", "scrape_match_1":"", "scrape_bad_match_1":""}
         self.cf = SafeConfigParser(defaults)
         self.cf.read(configfile)
         self.flush_cache()
         self.percents = {}
+        self.parent = {}
+        self.url = {}
         
     def flush_cache(self):
         self.page_cache = {}
@@ -41,6 +44,7 @@ class status_scraper():
             if s == '':
                continue
             s = "service " + s
+            self.parent[s] = section
             rs = self.recurse(s)
             if rs == 'good':
                n_good = n_good + 1
@@ -75,6 +79,7 @@ class status_scraper():
         slist.sort()
         for s in slist:
             scrape_url = self.cf.get(s,'scrape_url')
+            self.url[s] = scrape_url
             scrape_regex = self.cf.get(s,'scrape_regex')
             good = self.cf.get(s,'scrape_match_1')
             bad = self.cf.get(s,'scrape_bad_match_1')
@@ -117,10 +122,26 @@ class status_scraper():
         #
         self.report()
 
+    def poll(self):
+        try:
+            while 1:
+                self.one_pass()
+                time.sleep(300)
+        except:
+            print "Interuppted. Quitting"
+
     def report(self):
         # XXX this needs to actually make a page and post to webservice
         for s in self.cf.sections():
             print "service %s has status %s percent %d kids %s\n" % ( s, self.status[s], self.percents[s], self.cf.get(s, "subservices"))
+            # this should POST, but for now this is easier to debug
+            name = s.replace("service ","")
+            parent = self.parent.get(s,'').replace("service ","")
+            report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s" % (name, self.status[s], parent, self.url.get(s,''))
+            print "trying: " , report_url
+            c = urllib2.urlopen(report_url)
+            print c.read()
+            c.close()
 
-ss = status_scraper("status_scraper.cfg")
+ss = status_scraper("status_scraper.cfg", "http://fermicloud045.fnal.gov:8080/poms")
 ss.one_pass()

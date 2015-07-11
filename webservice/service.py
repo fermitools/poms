@@ -1,12 +1,29 @@
 import cherrypy
 import sys
 import json
-from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null
+from sqlalchemy.orm import sessionmaker, scoped_session, joinedload, aliased
 from model.poms_model import *
 import logging
 import logging.handlers
-from datetime import datetime
+from datetime import datetime, tzinfo,timedelta
+import traceback
+
+ZERO = timedelta(0)
+
+class UTC(tzinfo):
+    """UTC"""
+
+    def utcoffset(self, dt):
+        return ZERO
+
+    def tzname(self, dt):
+        return "UTC"
+
+    def dst(self, dt):
+        return ZERO
+
+utc = UTC()
 
 class dbparts:
     # keep our database connection/session bits here
@@ -27,6 +44,7 @@ def withsession(func):
             session = dbparts.SessionMaker()
             res = func(*args, session = session, **kwargs)
         except Exception as e:
+            cherrypy.log(traceback.format_exc())
             if session:
                 # probably a database error needing rollback
                 session.rollback()
@@ -53,12 +71,13 @@ class poms_service:
 
         if parent:
 	    p = session.query(Service).filter(Service.name == parent).first()
+            cherrypy.log("got parent %s -> %s" % (parent, p))
 	    if not p:
 		p = Service()
 		p.name = parent
 		p.status = "unknown"
 		p.host_site = "unknown"
-		p.updated = datetime.now()
+		p.updated = datetime.now(utc)
 		session.add(p)
         else:
             p = None
@@ -67,20 +86,21 @@ class poms_service:
             # start downtime
             d = ServiceDowntime()
             d.service = s
-            d.downtime_started = datetime.now()
+            d.downtime_started = datetime.now(utc)
             d.downtime_ended = None
             session.add(d)
+
         if s.status != status and status == "ok":
             # end downtime
-            d = session.query(ServiceDowntime).filter(SessionDowntime.service == s,Session.downtime_ended == None).first()
+            d = session.query(ServiceDowntime).filter(SessionDowntime.service_id == s.id , Session.downtime_ended == null()).first()
             if d:
-                d.downtime_ended = datetime.now()
+                d.downtime_ended = datetime.now(utc)
                 session.add(d)
 
-        s.parent = p
+        s.parent_service = p
         s.status = status
         s.host_site = host_site
-        s.updated = datetime.now()
+        s.updated = datetime.now(utc)
         session.add(s)
         session.commit()
 
@@ -88,10 +108,19 @@ class poms_service:
         
     @cherrypy.expose
     @withsession
-    def service_status(self, session = None):
+    def service_status(self, under = 'All', session = None):
         res = ["<ul>"]
-        for s in session.query(Service).all():
-            res.append("<li> %s -- %s" % (s.name,s.status))
+        prev = None
+        prevparent = None
+        p = session.query(Service).filter(Service.name == under).first()
+        for s in session.query(Service).filter(Service.parent_service_id == p.service_id).all():
+
+            if s.host_site:
+                 url = s.host_site
+            else:
+                 url = "./service_status?under=%s" % s.name
+
+            res.append("<li> %s -- %s via <a href='%s'>here</a>" % (s.name,s.status, url))
         res.append("</ul>")
         return "\n".join(res)
 

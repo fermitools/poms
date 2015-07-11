@@ -5,7 +5,6 @@ Flavor=ANY
 Qualifiers=
 
 Action=setup
-   SetupRequired(python)
    SetupRequired(cherrypy)
    SetupRequired(postgres_client)
    SetupRequired(sqlalchemy)
@@ -13,9 +12,14 @@ Action=setup
    PathPrepend(PYTHONPATH,${UPS_PROD_DIR})
 
 Action=start
+   ExeActionRequired(setup)
    Execute(cd ${UPS_PROD_DIR}/webservice, NO_UPS_ENV)
+   Execute(rm -f nohup.out, NO_UPS_ENV)
    Execute(nohup python service.py &, NO_UPS_ENV)
    Execute(echo $! > $HOME/private/logs/poms/poms.pid, NO_UPS_ENV)
+   Execute(sleep 1, NO_UPS_ENV)
+   Execute(cat nohup.out, NO_UPS_ENV)
+   ExeActionRequired(status)
 
 Action=status
    Execute(ps -wwfp `cat $HOME/private/logs/poms/poms.pid`, NO_UPS_ENV)
