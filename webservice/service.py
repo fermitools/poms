@@ -76,7 +76,6 @@ class poms_service:
 		p = Service()
 		p.name = parent
 		p.status = "unknown"
-		p.host_site = "unknown"
 		p.updated = datetime.now(utc)
 		session.add(p)
         else:
@@ -105,7 +104,6 @@ class poms_service:
         session.commit()
 
         return "Ok."
-        
     @cherrypy.expose
     @withsession
     def service_status(self, under = 'All', session = None):
@@ -124,14 +122,44 @@ class poms_service:
         res.append("</ul>")
         return "\n".join(res)
 
+    @cherrypy.expose
+    @withsession
+    def create_task(self, experiment, taskdef, params, input_dataset, output_dataset, waitingfor = None , session = None):
+         td = session.query(TaskDefinition).filter(TaskDefinition.name == taskdef).first()
+         c = session.query(Campaign).filter(Campaign.task_definition_id == td.task_definition_id).first()
+         t = Task()
+         t.task_definition_id = td.task_definition_id
+         t.campaign_id = c.campaign_id
+         t.task_order = 0
+         t.input_datset = input_dataset
+         t.output_dataset = output_datset
+         t.waitingfor = waitingfor
+         session.add(t)
+         session.commit()
+         return str(t.task_id)
+
+    @cherrypy.expose
+    @withsession
+    def update_job(self, task_id, jobsubjobid, slot , cputype, status, session = None):
+         host_site = "%s_on_%s" % (jobsubjobid, slot)
+         j = session.query(Job).filter(Job.host_site==host_site, Job.task_id==task_id).first()
+         if not j:
+             j = Job()
+         j.task_id = task_id
+         j.node_name = slot[slot.find('@')+1:]
+         j.cpu_type = cputype
+         j.host_site = host_site
+         j.status = status
+         j.updated = datetime.now(uct)
+         session.add(j)
+         session.commit()
+
 def set_rotating_log(app):
      ''' recipe  for a rotating log file...'''
      maxBytes=100000000
      keepcount=10
      for x in 'error', 'access':
-         fname = getattr(app.log, '%s_file' % x , None)
-         if not fname:
-             fname = '%s.log' % x
+         fname = '%s.log' % x
          h = logging.handlers.RotatingFileHandler(fname, 'a',maxBytes,keepcount)
          h.setLevel(logging.DEBUG)
          h.setFormatter(cherrypy._cplogging.logfmt)
