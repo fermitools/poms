@@ -1,0 +1,27 @@
+
+<html>
+</html>
+<body>
+
+<pre>
+   {{screendata}}
+</pre>
+<form action="{{action}}" method="POST">
+
+
+   {% for row in screendata %}
+      {% if row.values is sequence %}
+         {{row.name}} <select name={{row.name}}>
+           {% for ov in row.valmap %}
+            <option value="{{ov.key}}" {% if ov.key == row.value%} selected=1 {%endif %} > {{ov.value}} </option>
+           {% endfor %}
+         </select> <br>
+      {% else %}
+         {{row.name}} <input name='{{row.name}}' value='{{row.value}}'> <br>
+      {% endif %}
+   {% endfor %}
+
+   <input type="submit" name="_submit"> 
+</form>
+
+</body>
