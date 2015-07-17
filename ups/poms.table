@@ -8,7 +8,7 @@ Action=setup
    SetupRequired(cherrypy)
    SetupRequired(postgres_client)
    SetupRequired(sqlalchemy)
-   SetupRequired(mako)
+   SetupRequired(jinja)
    PathPrepend(PYTHONPATH,${UPS_PROD_DIR})
 
 Action=start

@@ -8,6 +8,7 @@ import logging
 import logging.handlers
 from datetime import datetime, tzinfo,timedelta
 import traceback
+from jinja2 import Environment, PackageLoader
 
 ZERO = timedelta(0)
 
@@ -42,19 +43,22 @@ def withsession(func):
     def newfunc(*args, **kwargs):
         try:
             session = dbparts.SessionMaker()
-            res = func(*args, session = session, **kwargs)
+            kwargs['session'] = session
+            res = func(*args, **kwargs)
         except Exception as e:
             cherrypy.log(traceback.format_exc())
             if session:
                 # probably a database error needing rollback
                 session.rollback()
-                raise cherrypy.HTTPError(502,"Database error: %s " % e)
+                raise 
         finally:
             dbparts.SessionMaker.remove()
         return res
     return newfunc
 
 class poms_service:
+    def __init__(self):
+        self.jinja_env = Environment(loader=PackageLoader('webservice','templates'))
 
     @cherrypy.expose
     def hello(self):
@@ -82,19 +86,22 @@ class poms_service:
             p = None
 
         if s.status != status and status == "bad":
-            # start downtime
-            d = ServiceDowntime()
-            d.service = s
-            d.downtime_started = datetime.now(utc)
-            d.downtime_ended = None
-            session.add(d)
+            # start downtime, if we aren't in one
+            d = session.query(ServiceDowntime).filter(SessionDowntime.service_id == s.service_id ).order_by(desc(SessionDowntime.downtime_started)).first()
+            if d.downtime_ended != None:
+	        d = ServiceDowntime()
+	        d.service = s
+	        d.downtime_started = datetime.now(utc)
+		d.downtime_ended = None
+		session.add(d)
 
-        if s.status != status and status == "ok":
-            # end downtime
-            d = session.query(ServiceDowntime).filter(SessionDowntime.service_id == s.id , Session.downtime_ended == null()).first()
+        if s.status != status and status == "good":
+            # end downtime, if we're in one
+            d = session.query(ServiceDowntime).filter(SessionDowntime.service_id == s.service_id ).order_by(desc(SessionDowntime.downtime_started)).first()
             if d:
-                d.downtime_ended = datetime.now(utc)
-                session.add(d)
+                if d.downtime_ended == None:
+                    d.downtime_ended = datetime.now(utc)
+                    session.add(d)
 
         s.parent_service = p
         s.status = status
@@ -107,10 +114,10 @@ class poms_service:
     @cherrypy.expose
     @withsession
     def service_status(self, under = 'All', session = None):
-        res = ["<ul>"]
         prev = None
         prevparent = None
         p = session.query(Service).filter(Service.name == under).first()
+        list = []
         for s in session.query(Service).filter(Service.parent_service_id == p.service_id).all():
 
             if s.host_site:
@@ -118,22 +125,103 @@ class poms_service:
             else:
                  url = "./service_status?under=%s" % s.name
 
-            res.append("<li> %s -- %s via <a href='%s'>here</a>" % (s.name,s.status, url))
-        res.append("</ul>")
-        return "\n".join(res)
+            list.append({'name': s.name,'status': s.status, 'url': url})
+
+        template = self.jinja_env.get_template('service_status.html')
+        return template.render(list=list, name=under)
+
+    experimentlist = [ ['nova','nova'],['minerva','minerva']]
 
     @cherrypy.expose
     @withsession
-    def create_task(self, experiment, taskdef, params, input_dataset, output_dataset, waitingfor = None , session = None):
-         td = session.query(TaskDefinition).filter(TaskDefinition.name == taskdef).first()
-         c = session.query(Campaign).filter(Campaign.task_definition_id == td.task_definition_id).first()
+    def edit_screen_experimenter( self, experimenter_id, session = None ):
+        return self.edit_screen_for(Experimenter, 'update_experimenter',  'experimenter_id', experimenter_id, {}, session = session)
+
+    @cherrypy.expose
+    @withsession
+    def update_experimenter( self, *args, **kwargs):
+        return self.update_for(Experimenter, 'experimenter_id', *args, **kwargs)
+
+    @cherrypy.expose
+    @withsession
+    def edit_screen_campaign( self, campaign_id, session = None):
+        return self.edit_screen_for(Campaign, 'update_campaign',  'campaign_id', campaign_id, {}, session = session)
+
+    @cherrypy.expose
+    @withsession
+    def update_campaign( self, *args, **kwargs):
+        return self.update_for(Campaign, 'campaign_id', *args, **kwargs)
+
+    @cherrypy.expose
+    @withsession
+    def update_for( self, eclass, primkey,  *args , **kwargs):
+        session = kwargs.get('session',None)
+        found = None
+        if kwargs.get(primkey,'') != '':
+            found = session.query(eclass).filter(text("%s = %d" % (primkey,int(kwargs.get(primkey,'0'))))).first()
+            cherrypy.log("update_for: found existing %s" % found )
+        if found == None:
+            cherrypy.log("update_for: making new %s" % eclass)
+            found = eclass()
+        columns = found._sa_instance_state.class_.__table__.columns
+        for fieldname in columns.keys():
+            if columns[fieldname].primary_key:
+                continue
+            if columns[fieldname].type == Integer:
+                setattr(found, fieldname, int(kwargs.get(fieldname,'')))
+            else:
+                setattr(found, fieldname, kwargs.get(fieldname,''))
+        cherrypy.log("update_for: found is now %s" % found )
+        session.add(found)
+        session.commit()
+        return "Ok."
+  
+    def edit_screen_for( self, eclass, update_call, primkey, primval, valmap, session ):
+        found = None
+        sample = eclass()
+        if primval != '':
+            cherrypy.log("looking for %s in %s" % (primval, eclass))
+            found = session.query(eclass).filter(text("%s = %d" % (primkey,int(primval)))).first()
+            cherrypy.log("found %s" % found)
+        if not found:
+            found = sample
+        columns =  sample._sa_instance_state.class_.__table__.columns
+        fieldnames = columns.keys()
+        screendata = []
+        for fn in fieldnames:
+             screendata.append({
+                  'name': fn, 
+                  'primary': columns[fn].primary_key, 
+                  'value': getattr(found, fn, ''),
+                  'values' : valmap.get(fn, None)
+              })
+        template = self.jinja_env.get_template('edit_screen.html')
+        return template.render( screendata = screendata, action="./"+update_call )
+
+    @cherrypy.expose
+    @withsession
+    def create_task(self, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor = None , session = None):
+         first,last,email = creator.split(' ')
+         creator = self.get_or_add_experimenter(first, last, email, session = session)
+         exp = self.get_or_add_experiment(experiment,session = session)
+         td = self.get_or_add_taskdef(taskdef, creator, exp, session = session)
+         camp = self.get_or_add_campaign(exp,td,creator, session = session)
          t = Task()
+         t.campaign_id = camp.campaign_id
          t.task_definition_id = td.task_definition_id
-         t.campaign_id = c.campaign_id
          t.task_order = 0
-         t.input_datset = input_dataset
-         t.output_dataset = output_datset
+         t.input_dataset = input_dataset
+         t.output_dataset = output_dataset
          t.waitingfor = waitingfor
+         t.order = 0
+         t.creator = creator.experimenter_id
+         t.created = datetime.now(utc)
+         t.status = "created"
+         t.task_parameters = params
+         t.waiting_threshold = 5
+         t.updater = creator.experimenter_id
+         t.updated = datetime.now(utc)
+
          session.add(t)
          session.commit()
          return str(t.task_id)
@@ -150,7 +238,7 @@ class poms_service:
          j.cpu_type = cputype
          j.host_site = host_site
          j.status = status
-         j.updated = datetime.now(uct)
+         j.updated = datetime.now(utc)
          session.add(j)
          session.commit()
 
