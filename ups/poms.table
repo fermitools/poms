@@ -5,6 +5,8 @@ Flavor=ANY
 Qualifiers=
 
 Action=setup
+   ProdDir()
+   SetupEnv()
    SetupRequired(cherrypy)
    SetupRequired(postgres_client)
    SetupRequired(sqlalchemy)
