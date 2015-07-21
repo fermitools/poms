@@ -134,6 +134,13 @@ class poms_service:
 
     @cherrypy.expose
     @withsession
+    def list_experimenters(self, session):
+        l = self.make_list_for(Experimenter,'experimenter_id',session)
+        template = self.jinja_env.get_template('list_screen.html')
+        return template.render( list = l, edit_screen="edit_screen_experimenter", primary_key='experimenter_id')
+         
+    @cherrypy.expose
+    @withsession
     def edit_screen_experimenter( self, experimenter_id, session = None ):
         return self.edit_screen_for(Experimenter, 'update_experimenter',  'experimenter_id', experimenter_id, {}, session = session)
 
@@ -197,6 +204,11 @@ class poms_service:
               })
         template = self.jinja_env.get_template('edit_screen.html')
         return template.render( screendata = screendata, action="./"+update_call )
+    def make_list_for(self,eclass,primkey,session):
+        res = []
+        for i in session.query(eclass).order_by(primkey).all():
+            res.append( {"key": getattr(i,primkey,''), "value": getattr(i,'name',getattr(i,'email','unknown'))})
+        return res
 
     @cherrypy.expose
     @withsession
