@@ -1,7 +1,7 @@
 import cherrypy
 import sys
 import json
-from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null
+from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc
 from sqlalchemy.orm import sessionmaker, scoped_session, joinedload, aliased
 from model.poms_model import *
 import logging
@@ -87,8 +87,8 @@ class poms_service:
 
         if s.status != status and status == "bad":
             # start downtime, if we aren't in one
-            d = session.query(ServiceDowntime).filter(SessionDowntime.service_id == s.service_id ).order_by(desc(SessionDowntime.downtime_started)).first()
-            if d.downtime_ended != None:
+            d = session.query(ServiceDowntime).filter(ServiceDowntime.service_id == s.service_id ).order_by(desc(ServiceDowntime.downtime_started)).first()
+            if d == None or d.downtime_ended != None:
 	        d = ServiceDowntime()
 	        d.service = s
 	        d.downtime_started = datetime.now(utc)
@@ -97,7 +97,7 @@ class poms_service:
 
         if s.status != status and status == "good":
             # end downtime, if we're in one
-            d = session.query(ServiceDowntime).filter(SessionDowntime.service_id == s.service_id ).order_by(desc(SessionDowntime.downtime_started)).first()
+            d = session.query(ServiceDowntime).filter(ServiceDowntime.service_id == s.service_id ).order_by(desc(ServiceDowntime.downtime_started)).first()
             if d:
                 if d.downtime_ended == None:
                     d.downtime_ended = datetime.now(utc)
