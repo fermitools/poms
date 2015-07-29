@@ -1,3 +1,4 @@
+import argparse
 import cherrypy
 import sys
 import json
@@ -31,10 +32,9 @@ class dbparts:
     engine = None
     SessionMaker = None
 
-    def __init__(self, dbpath = None) :
-        if dbpath == None:
-           dbpath = "postgres://cspgsdev.fnal.gov:5437/pomsdev"
-        cherrypy.log("Starting with dbpath of %s" % dbpath)
+    def __init__(self, db, dbuser, dbpass, dbhost, dbport) :
+        dbpath = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport, db)
+        cherrypy.log("Starting database connection: dbuser: %s dbpass: **** dbhost:%s dbport: %s db: %s" % (dbuser, dbhost, dbport, db))
         dbparts.engine = create_engine(dbpath, echo = True)
         dbparts.SessionMaker = scoped_session(sessionmaker(bind = dbparts.engine))
 
@@ -254,35 +254,54 @@ class poms_service:
          session.add(j)
          session.commit()
 
+def parse_command_line():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', help="Filespec for POMS config file.")
+    parser.add_argument('-d', '--database', help="Filespec for POMS database file.")
+    args = parser.parse_args()
+    return parser,args
+
 def set_rotating_log(app):
      ''' recipe  for a rotating log file...'''
-     maxBytes=100000000
-     keepcount=10
-     for x in 'error', 'access':
-         fname = '%s.log' % x
-         h = logging.handlers.RotatingFileHandler(fname, 'a',maxBytes,keepcount)
+     maxBytes = cherrypy.config.get("log.rot_maxBytes",10000000)
+     backupCount = cherrypy.config.get("log.rot_backupCount", 1000)
+     for x in ['error', 'access']:
+         fname = getattr(cherrypy.log,"rot_%s_file" % x, "error.log")
+         print fname
+         h = logging.handlers.RotatingFileHandler(fname, 'a',maxBytes,backupCount)
          h.setLevel(logging.DEBUG)
          h.setFormatter(cherrypy._cplogging.logfmt)
-         getattr(app.log, '%s_log' % x).addHandler(h)
+         getattr(cherrypy.log, '%s_log' % x).addHandler(h)
 
 if __name__ == '__main__':
 
     configfile = "poms.ini"
+    dbasefile  = "passwd.ini"
+    parser,args = parse_command_line()
+    if args.config:
+        configfile = args.config
+    if args.database:
+        dbasefile = args.database
 
-    if len(sys.argv) > 1 and sys.argv[1] == '-c':
-        configfile = sys.argv[2]
-        sys.argv = sys.argv[2:]
-
-    cherrypy.config.update(configfile)
-    cherrypy.config.update("passwd.ini")
+    try:
+        cherrypy.config.update(configfile)
+        cherrypy.config.update(dbasefile)
+    except IOError, mess:
+        print mess
+        parser.print_help()
+        raise SystemExit
 
     # normal operating mode:
     db = cherrypy.config.get("db")
+    dbuser = cherrypy.config.get("dbuser")
+    dbpass = cherrypy.config.get("dbpass")
+    dbhost = cherrypy.config.get("dbhost")
+    dbport = cherrypy.config.get("dbport")
+    logdir = cherrypy.config.get("logdir")
     path = cherrypy.config.get("path")
     if path == None:
        path = "/poms"
-    dbp = dbparts(db)
-    #print "got db of %s and path of %s" % (db, path)
+    dbp = dbparts(db,dbuser,dbpass,dbhost,dbport)
     app = cherrypy.tree.mount(poms_service(), path , configfile)
     set_rotating_log(app)
     cherrypy.engine.start()
