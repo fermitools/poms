@@ -1,0 +1,16 @@
+<html>
+</html>
+<body>
+
+<pre>
+   {{list}}
+</pre>
+<h1>Admin screen</h1>
+
+Data types:<br>
+<ul>
+   {% for type in list %}
+    <li>  <a href="/poms/list_generic?classname={{type}}">{{type}}</a>
+   {% endfor %}
+</ul>
+</body>

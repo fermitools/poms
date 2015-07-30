@@ -156,6 +156,11 @@ class poms_service:
         cherrypy.log(" ---- pk_map: %s " % repr(self.pk_map))
 
     @cherrypy.expose
+    def admin_screen(self):
+        template = self.jinja_env.get_template('admin_screen.html')
+        return template.render(list = self.admin_map.keys())
+        
+    @cherrypy.expose
     @withsession
     def list_generic(self, classname, session):
         l = self.make_list_for(self.admin_map[classname],self.pk_map[classname],session)
