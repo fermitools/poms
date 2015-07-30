@@ -157,46 +157,22 @@ class poms_service:
 
     @cherrypy.expose
     @withsession
-    def list(self, classname, session):
+    def list_generic(self, classname, session):
         l = self.make_list_for(self.admin_map[classname],self.pk_map[classname],session)
         template = self.jinja_env.get_template('list_screen.html')
-        return template.render( list = l, edit_screen="edit_screen_experimenter", primary_key='experimenter_id')
+        return template.render( classname = classname, list = l, edit_screen="edit_screen_generic", primary_key='experimenter_id')
 
     @cherrypy.expose
     @withsession
-    def edit_screen(self, classname, id = None, session = None):
-        args = {}
-        return self.edit_screen_for(self.admin_map[classname], self.pk_map[classname], id, {}, session = sesson)
+    def edit_screen_generic(self, classname, id = None, session = None):
+        # XXX -- needs to get select lists for foreign key fields...
+        return self.edit_screen_for(classname, self.admin_map[classname], 'update_generic', self.pk_map[classname], id, {}, session = session)
          
     @cherrypy.expose
     @withsession
-    def list_experimenters(self, session):
-        l = self.make_list_for(Experimenter,'experimenter_id',session)
-        template = self.jinja_env.get_template('list_screen.html')
-        return template.render( list = l, edit_screen="edit_screen_experimenter", primary_key='experimenter_id')
-         
-    @cherrypy.expose
-    @withsession
-    def edit_screen_experimenter( self, experimenter_id, session = None ):
-        return self.edit_screen_for(Experimenter, 'update_experimenter',  'experimenter_id', experimenter_id, {}, session = session)
+    def update_generic( self, classname, *args, **kwargs):
+        return self.update_for(self.admin_map[classname], self.pk_map[classname], *args, **kwargs)
 
-    @cherrypy.expose
-    @withsession
-    def update_experimenter( self, *args, **kwargs):
-        return self.update_for(Experimenter, 'experimenter_id', *args, **kwargs)
-
-    @cherrypy.expose
-    @withsession
-    def edit_screen_campaign( self, campaign_id, session = None):
-        return self.edit_screen_for(Campaign, 'update_campaign',  'campaign_id', campaign_id, {}, session = session)
-
-    @cherrypy.expose
-    @withsession
-    def update_campaign( self, *args, **kwargs):
-        return self.update_for(Campaign, 'campaign_id', *args, **kwargs)
-
-    @cherrypy.expose
-    @withsession
     def update_for( self, eclass, primkey,  *args , **kwargs):
         session = kwargs.get('session',None)
         found = None
@@ -219,7 +195,7 @@ class poms_service:
         session.commit()
         return "Ok."
   
-    def edit_screen_for( self, eclass, update_call, primkey, primval, valmap, session ):
+    def edit_screen_for( self, classname, eclass, update_call, primkey, primval, valmap, session ):
         found = None
         sample = eclass()
         if primval != '':
@@ -239,7 +215,8 @@ class poms_service:
                   'values' : valmap.get(fn, None)
               })
         template = self.jinja_env.get_template('edit_screen.html')
-        return template.render( screendata = screendata, action="./"+update_call )
+        return template.render( screendata = screendata, action="./"+update_call , classname = classname )
+
     def make_list_for(self,eclass,primkey,session):
         res = []
         for i in session.query(eclass).order_by(primkey).all():

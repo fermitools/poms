@@ -1,7 +1,8 @@
 <body>
 <ul>
 {% for i in list %}
-   <li> <a href="{{edit_screen}}?{{primary_key}}={{i.key}}">{{i.key}}:{{i.value}}</a>
+   <li> <a href="{{edit_screen}}?classname={{classname}}&id={{i.key}}">{{i.key}}:{{i.value}}</a>
 {% endfor %}
+  <li> <a href="{{edit_screen}}?classname={{classname}}&id=">[[New {{classname}}]]</a>
 <ul>
 </body>

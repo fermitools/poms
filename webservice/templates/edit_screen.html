@@ -8,6 +8,7 @@
 </pre>
 <form action="{{action}}" method="POST">
 
+   <input type="hidden", name="classname" value="{{classname}}">
 
    {% for row in screendata %}
       {% if row.values is sequence %}
