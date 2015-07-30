@@ -142,16 +142,17 @@ class poms_service:
         """
         import model.poms_model
         self.admin_map = {}
+        self.pk_map = {}
         for k in model.poms_model.__dict__.keys():
-            if model.poms_model.__dict__[k].__module__ == mode.poms_model:
+            if hasattr(model.poms_model.__dict__[k],'__module__') and model.poms_model.__dict__[k].__module__ == model.poms_model:
                 self.admin_map[k] = model.poms_model.__dict__[k]
                 found = self.admin_map[k]()
                 columns = found._sa_instance_state.class_.__table__.columns
 		for fieldname in columns.keys():
 		    if columns[fieldname].primary_key:
 			 self.pk_map[k] = fieldname
-        print admin_map
-        print pk_map
+        print self.admin_map
+        print self.pk_map
 
     @cherrypy.expose
     @withsession
