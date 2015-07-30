@@ -59,6 +59,9 @@ def withsession(func):
 class poms_service:
     def __init__(self):
         self.jinja_env = Environment(loader=PackageLoader('webservice','templates'))
+        self.make_admin_map()
+
+        
 
     @cherrypy.expose
     def hello(self):
@@ -132,6 +135,37 @@ class poms_service:
 
     experimentlist = [ ['nova','nova'],['minerva','minerva']]
 
+    def make_admin_map(self):
+        """ 
+            make self.admin_map a map of strings to model class names 
+            and self.pk_map a map of primary keys for that class
+        """
+        import model.poms_model
+        self.admin_map = {}
+        for k in model.poms_model.__dict__.keys():
+            if model.poms_model.__dict__[k].__module__ == mode.poms_model:
+                self.admin_map[k] = model.poms_model.__dict__[k]
+                found = self.admin_map[k]()
+                columns = found._sa_instance_state.class_.__table__.columns
+		for fieldname in columns.keys():
+		    if columns[fieldname].primary_key:
+			 self.pk_map[k] = fieldname
+        print admin_map
+        print pk_map
+
+    @cherrypy.expose
+    @withsession
+    def list(self, classname, session):
+        l = self.make_list_for(admin_map[classname],pk_map[classname],session)
+        template = self.jinja_env.get_template('list_screen.html')
+        return template.render( list = l, edit_screen="edit_screen_experimenter", primary_key='experimenter_id')
+
+    @cherrypy.expose
+    @withsession
+    def edit_screen(self, classname, id = None, session = None):
+        args = {}
+        return self.edit_screen_for(self.admin_map[classname], self.pk_map[classname], id, {}, session = sesson)
+         
     @cherrypy.expose
     @withsession
     def list_experimenters(self, session):
