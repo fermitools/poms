@@ -176,9 +176,9 @@ class poms_service:
     @cherrypy.expose
     @withsession
     def update_generic( self, classname, *args, **kwargs):
-        return self.update_for(self.admin_map[classname], self.pk_map[classname], *args, **kwargs)
+        return self.update_for(classname, self.admin_map[classname], self.pk_map[classname], *args, **kwargs)
 
-    def update_for( self, eclass, primkey,  *args , **kwargs):
+    def update_for( self, classname, eclass, primkey,  *args , **kwargs):
         session = kwargs.get('session',None)
         found = None
         kval = None
@@ -196,7 +196,7 @@ class poms_service:
             found = eclass()
         columns = found._sa_instance_state.class_.__table__.columns
         for fieldname in columns.keys():
-            if columns[fieldname].primary_key and kval == None:
+            if not kwargs.get(fieldname,None):
                 continue
             if columns[fieldname].type == Integer:
                 setattr(found, fieldname, int(kwargs.get(fieldname,'')))
@@ -214,7 +214,7 @@ class poms_service:
         cherrypy.log("update_for: found is now %s" % found )
         session.add(found)
         session.commit()
-        return "Ok."
+        return "Updated %s %s." % (classname, getattr(found,primkey))
   
     def edit_screen_for( self, classname, eclass, update_call, primkey, primval, valmap, session ):
         found = None
