@@ -55,7 +55,7 @@ class ExperimentsExperimenter(Base):
 class Job(Base):
     __tablename__ = 'jobs'
 
-    job_id_ = Column('job_id ', BigInteger, primary_key=True, server_default=text("nextval('jobs_job_id_seq'::regclass)"))
+    job_id_ = Column('job_id', BigInteger, primary_key=True, server_default=text("nextval('jobs_job_id_seq'::regclass)"))
     task_id = Column(ForeignKey(u'tasks.task_id'), nullable=False, index=True)
     node_name = Column(Text, nullable=False)
     cpu_type = Column(Text, nullable=False)
