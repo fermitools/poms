@@ -181,24 +181,36 @@ class poms_service:
     def update_for( self, eclass, primkey,  *args , **kwargs):
         session = kwargs.get('session',None)
         found = None
+        kval = None
         if kwargs.get(primkey,'') != '':
-            found = session.query(eclass).filter(text("%s = %d" % (primkey,int(kwargs.get(primkey,'0'))))).first()
+            kval = kwargs.get(primkey,None)
+            try:
+               kval = int(kval)
+               pred = "%s = %d" % (primkey, kval)
+            except:
+               pred = "%s = '%s'" % (primkey, kval)
+            found = session.query(eclass).filter(text(pred)).first()
             cherrypy.log("update_for: found existing %s" % found )
         if found == None:
             cherrypy.log("update_for: making new %s" % eclass)
             found = eclass()
         columns = found._sa_instance_state.class_.__table__.columns
         for fieldname in columns.keys():
-            if columns[fieldname].primary_key:
+            if columns[fieldname].primary_key and kval == None:
                 continue
             if columns[fieldname].type == Integer:
                 setattr(found, fieldname, int(kwargs.get(fieldname,'')))
             elif columns[fieldname].type == DateTime:
                 setattr(found, fieldname, datetime.strptime(kwargs.get(fieldname,'')), "%Y-%m-%dT%H:%M")
             elif columns[fieldname].type == ForeignKey:
-                setattr(found, fieldname, int(kwargs.get(fieldname,'')))
+                kval = kwargs.get(fieldname,None)
+                try:
+                   kval = int(kval)
+                except:
+                   pass
+                setattr(found, fieldname, kval)
             else:
-                setattr(found, fieldname, kwargs.get(fieldname,''))
+                setattr(found, fieldname, kwargs.get(fieldname,None))
         cherrypy.log("update_for: found is now %s" % found )
         session.add(found)
         session.commit()
@@ -209,7 +221,13 @@ class poms_service:
         sample = eclass()
         if primval != '':
             cherrypy.log("looking for %s in %s" % (primval, eclass))
-            found = session.query(eclass).filter(text("%s = %d" % (primkey,int(primval)))).first()
+            try:
+                primval = int(primval)
+                pred = "%s = %d" % (primkey,primval)
+            except:
+                pred = "%s = '%s'" % (primkey,primval)
+                pass
+            found = session.query(eclass).filter(text(pred)).first()
             cherrypy.log("found %s" % found)
         if not found:
             found = sample
