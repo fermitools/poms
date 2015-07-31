@@ -18,7 +18,7 @@
            {% endfor %}
          </select> <br>
       {% else %}
-         {{row.name}} <input name='{{row.name}}' value='{{row.value}}'> <br>
+         {{row.name}} <input name='{{row.name}}' value='{%if row.value is none %}{%else%}{{row.value}}{%endif%}'> <br>
       {% endif %}
    {% endfor %}
 
