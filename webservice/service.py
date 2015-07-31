@@ -193,6 +193,10 @@ class poms_service:
                 continue
             if columns[fieldname].type == Integer:
                 setattr(found, fieldname, int(kwargs.get(fieldname,'')))
+            elif columns[fieldname].type == DateTime:
+                setattr(found, fieldname, datetime.strptime(kwargs.get(fieldname,'')), "%Y-%m-%dT%H:%M")
+            elif columns[fieldname].type == ForeignKey:
+                setattr(found, fieldname, int(kwargs.get(fieldname,'')))
             else:
                 setattr(found, fieldname, kwargs.get(fieldname,''))
         cherrypy.log("update_for: found is now %s" % found )
