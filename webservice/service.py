@@ -65,7 +65,18 @@ class poms_service:
 
     @cherrypy.expose
     def hello(self):
-        return "<html><body>Hello</body></html>"
+        #return "<html><body>Hello</body></html>"
+        template = self.jinja_env.get_template('layout.html')
+        return template.render()
+
+
+    @cherrypy.expose
+    def hello2(self):
+        #return "<html><body>Hello</body></html>"
+        template = self.jinja_env.get_template('stats.html')
+        return template.render()
+
+
 
     @cherrypy.expose
     @withsession
@@ -326,6 +337,11 @@ if __name__ == '__main__':
     try:
         cherrypy.config.update(configfile)
         cherrypy.config.update(dbasefile)
+
+        import os
+        conf = {'/': {'tools.staticdir.root': os.path.abspath(os.getcwd())},'/static': {'tools.staticdir.on': True,'tools.staticdir.dir': './static'}}
+        #app.merge(conf) 
+
     except IOError, mess:
         print mess
         parser.print_help()
@@ -343,6 +359,7 @@ if __name__ == '__main__':
        path = "/poms"
     dbp = dbparts(db,dbuser,dbpass,dbhost,dbport)
     app = cherrypy.tree.mount(poms_service(), path , configfile)
+    app.merge(conf) #gheith
     set_rotating_log(app)
     cherrypy.engine.start()
     cherrypy.engine.block()
