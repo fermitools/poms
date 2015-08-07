@@ -122,6 +122,13 @@ def set_rotating_log(app):
         h.setFormatter(cherrypy._cplogging.logfmt)
         getattr(cherrypy.log, '%s_log' % x).addHandler(h)
 
+def pidfile():
+    pidfile = cherrypy.config.get("log.pidfile",None)
+    if pidfile:
+        fd = open(pidfile,'w')
+        fd.write("%s" % os.getpid())
+        fd.close()
+
 def parse_command_line():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config', help="Filespec for POMS config file.")
@@ -133,7 +140,7 @@ if __name__ == '__main__':
 
     config = { '/' : {
                       'tools.db.on': True,
-                      'tools.staticdir.root': os.path.abspath(os.getcwd())
+                      'tools.staticdir.root': os.path.abspath(os.getcwd()),
                      },
                '/static' : {
                       'tools.staticdir.on': True,
@@ -159,6 +166,7 @@ if __name__ == '__main__':
     if path == None:
        path = "/poms"
 
+    pidfile()
     SAEnginePlugin(cherrypy.engine).subscribe()
     cherrypy.tools.db = SATool()
     app = cherrypy.tree.mount(poms_service.poms_service(), path, configfile)

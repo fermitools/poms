@@ -1,4 +1,5 @@
 import cherrypy
+import os
 
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text
 from datetime import datetime, tzinfo,timedelta
@@ -29,26 +30,34 @@ def error_response():
 #        if isinstance(value, typ):
 #            do stuff 
     dump = cherrypy._cperror.format_exc()
-    message = '<html><body><b><hl>POMS</h1></b><br><br>Make some nice page for this. <br><br>'
-    message = "%s%s" % (message, '<p>%s</p></body></html>' % dump.replace('\n','<br/>'))
+    message = '<html><body><b><hl>POMS -- Krash!</h1></b><br><br>Make some nice page for this. <br><br>'
+    message = "%s%s" % (message, '<pre>%s</pre></body></html>' % dump.replace('\n','<br/>'))
     cherrypy.response.status = 500
     cherrypy.response.headers['content-type'] = 'text/html'
     cherrypy.response.body = [message]
     cherrypy.log(dump)
 
 class poms_service:
-
-    _cp_config = {'request.error_response': error_response}
+    
+    _cp_config = {'request.error_response': error_response,
+                  'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()),'/templates/page_not_found.html')
+                  }
 
     def __init__(self):
         self.jinja_env = Environment(loader=PackageLoader('webservice','templates'))
         self.make_admin_map()
 
     @cherrypy.expose
-    def hello(self):
-        #return "<html><body>Hello</body></html>"
+    def index(self):
         template = self.jinja_env.get_template('layout.html')
         return template.render()
+
+    @cherrypy.expose
+    def krash(self):
+        cherrypy.response.headers['content-type'] = 'text/plain'
+        #toss exception
+        x = 5/0
+        return "Should never get here" 
 
 
     @cherrypy.expose
