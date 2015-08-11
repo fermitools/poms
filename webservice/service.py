@@ -78,33 +78,6 @@ class SATool(cherrypy.Tool):
         cherrypy.request.db = None
         self.session.remove()
  
-def handle_error():
-# see sams exc.error_response
-#    typ, value, trace = sys.exc_info()
-#    for typ, handler in default_error_map.iteritems():
-#        if isinstance(value, typ):
-#            do stuff 
-    dump = cherrypy._cperror.format_exc()
-    message = '<html><body><b><hl>POMS</h1></b><br><br>Make some nice page for this. <br><br>'
-    message = "%s%s" % (message, '<p>%s</p></body></html>' % dump.replace('\n','<br/>'))
-    cherrypy.response.status = 500
-    cherrypy.response.headers['content-type'] = 'text/html'
-    cherrypy.response.body = [message]
-    cherrypy.log(dump)
-
-class Root(object):
-    _cp_config = {'request.error_response': handle_error}
- 
-    @cherrypy.expose
-    def index(self):
-        #Display developers
-        cherrypy.response.headers['content-type'] = 'text/plain'
-        rows = cherrypy.request.db.execute('select zigblat from experimenters')
-        text = ""
-        for (eid, fname, lname, username,) in rows:
-            text = "%s%s\n" % (text,username)
-        return "Here are your list of jokers: \n%s" % text
- 
 def set_rotating_log(app):
     ''' recipe  for a rotating log file...'''
     # Remove the regular file handlers
@@ -172,5 +145,22 @@ if __name__ == '__main__':
     app = cherrypy.tree.mount(poms_service.poms_service(), path, configfile)
     app.merge(config)
     set_rotating_log(app)
+
+    # Start SSL Server if in config file
+    ssl_host = cherrypy.config.get("server.socket_host",None)
+    ssl_port = cherrypy.config.get("sslserver.socket_port",None)
+    ssl_certificate = cherrypy.config.get("sslserver.ssl_certificate",None)
+    ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key",None)
+    if ssl_port is None or ssl_certificate is None or ssl_private_key is None:
+       cherrypy.log("**** SSL Server is not configured for running.")
+    else:
+        sslserver = cherrypy._cpserver.Server()
+        sslserver.ssl_module = 'builtin'
+        sslserver._socket_host = cherrypy.config.get("server.socket_host",None)
+        sslserver.socket_port = cherrypy.config.get("sslserver.socket_port",None)
+        sslserver.ssl_certificate = cherrypy.config.get("sslserver.ssl_certificate",None)
+        sslserver.ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key",None)
+        sslserver.subscribe()
+    
     cherrypy.engine.start()
     cherrypy.engine.block()
