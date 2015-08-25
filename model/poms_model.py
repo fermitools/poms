@@ -14,6 +14,7 @@ class Campaign(Base):
 
     campaign_id = Column(Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)"))
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
+    name = Column(Text, nullable=False)
     task_definition_id = Column(ForeignKey(u'task_definitions.task_definition_id'), nullable=False, index=True, server_default=text("nextval('campaigns_task_definition_id_seq'::regclass)"))
     creator = Column(ForeignKey(u'experimenters.experimenter_id'), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
@@ -57,6 +58,7 @@ class Job(Base):
 
     job_id = Column(BigInteger, primary_key=True, server_default=text("nextval('jobs_job_id_seq'::regclass)"))
     task_id = Column(ForeignKey(u'tasks.task_id'), nullable=False, index=True)
+    batch_id = Column(Text, nullable=False)
     node_name = Column(Text, nullable=False)
     cpu_type = Column(Text, nullable=False)
     host_site = Column(Text, nullable=False)
