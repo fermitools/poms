@@ -8,13 +8,14 @@ class status_scraper():
 
     def __init__(self,configfile, poms_url):
         self.poms_url = poms_url
-        defaults = { "subservices" : "", "scrape_url":"" , "scrape_regex":"", "percent":"100", "scrape_match_1":"", "scrape_bad_match_1":""}
+        defaults = { "subservices" : "", "scrape_url":"" , "scrape_regex":"", "percent":"100", "scrape_match_1":"", "scrape_bad_match_1":"", "debug":"0"}
         self.cf = SafeConfigParser(defaults)
         self.cf.read(configfile)
         self.flush_cache()
         self.percents = {}
         self.parent = {}
         self.url = {}
+        self.debug = int(self.cf.get('global','debug'))
         
     def flush_cache(self):
         self.page_cache = {}
@@ -87,15 +88,19 @@ class status_scraper():
             n_good = 0
             n_bad = 0
             if scrape_url and scrape_regex:
+	        if self.debug: print "scraping %s for matches" % scrape_url
                 re_obj = re.compile(scrape_regex)
                 lines = self.fetch_page(scrape_url)
                 for line in lines :
+                    if self.debug: print "got:", line
                     m = re_obj.search(line)
                     if m:
                         if m.group(1) == good:
+                             if self.debug: print "good"
                              n_good = n_good + 1 
 
                         if m.group(1) == bad:
+                             if self.debug: print "bad"
                              n_bad = n_bad + 1 
 
                 if n_good + n_bad > 0:
