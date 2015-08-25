@@ -31,7 +31,7 @@ def error_response():
 #            do stuff 
     dump = cherrypy._cperror.format_exc()
     message = '<html><body><b><hl>POMS -- Krash!</h1></b><br><br>Make some nice page for this. <br><br>'
-    message = "%s%s" % (message, '<pre>%s</pre></body></html>' % dump.replace('\n','<br/>'))
+    message = "%s%s" % (message, '<br>%s<br><pre>%s</pre></body></html>' % (cherrypy.url(), dump.replace('\n','<br/>') ))
     cherrypy.response.status = 500
     cherrypy.response.headers['content-type'] = 'text/html'
     cherrypy.response.body = [message]
@@ -53,11 +53,17 @@ class poms_service:
         return template.render()
 
     @cherrypy.expose
-    def krash(self):
+    def test(self):
         cherrypy.response.headers['content-type'] = 'text/plain'
-        #toss exception
-        x = 5/0
-        return "Should never get here" 
+        html = """<html>
+          <head></head>
+          <body>
+          session._id:       %s<br>
+          session.get('id'): %s
+          </body>
+        </html>""" % (cherrypy.session._id,cherrypy.session.get('id'))
+        x=5/0
+        return html
 
 
     @cherrypy.expose
