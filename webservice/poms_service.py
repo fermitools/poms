@@ -50,7 +50,7 @@ class poms_service:
     @cherrypy.expose
     def index(self):
         template = self.jinja_env.get_template('layout.html')
-        return template.render()
+        return template.render(services=self.service_status_hier('All'))
 
     @cherrypy.expose
     def test(self):
@@ -134,6 +134,52 @@ class poms_service:
 
         template = self.jinja_env.get_template('service_status.html')
         return template.render(list=list, name=under)
+
+    def service_status_hier(self, under = 'All', depth = 0):
+        p = cherrypy.request.db.query(Service).filter(Service.name == under).first()
+        if depth == 0:
+            res = '<div class="ui accordion styled">\n'
+        else:
+            res = ''
+        active = ""
+        for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(desc(Service.name)).all():
+             posneg = "positive" if s.status == "good" else "negative" if s.status == "bad" else ""
+             icon =  "checkmark" if s.status == "good" else "remove" if s.status == "bad" else "help circle"
+             if s.host_site:
+                 res = res + """
+                     <div class="title %s">
+		      <i class="dropdown icon"></i>
+                      <button class="ui button %s">
+                         %s
+                       </button>
+                       <i class="icon %s"></i>
+                     </div>
+                     <div  class="content %s">
+                         <a target="_blank" href="%s"</a>
+                         <i class="icon external"></i> 
+                         source webpage
+                         </a>
+                     </div>
+                  """ % (active, posneg, s.name,  icon, active, s.host_site) 
+             else:
+                 res = res + """
+                    <div class="title %s">
+		      <i class="dropdown icon"></i>
+                      <button class="ui button %s">
+                        %s
+                      </button>
+                      <i class="icon %s"></i>
+                    </div>
+                    <div class="content %s">
+                      <p>components:</p>
+                      %s
+                    </div>
+                 """ % (active, posneg, s.name, icon, active,  self.service_status_hier(s.name, depth + 1))
+             active = ""
+           
+        if depth == 0:
+            res = res + "</div>"
+        return res
 
     experimentlist = [ ['nova','nova'],['minerva','minerva']]
 

@@ -250,36 +250,10 @@
                         
                         <h2 class="ui dividing header">Services</h2>
                         
-                        <div class="no example">
-                            
-                            
-                            <table class="ui celled table">
-                                <thead>
-                                    <tr>
-                                        <th>Component</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr class="positive">
-                                        <td>SAM</td>
-                                        <td class="positive"><i class="icon checkmark"></i> </td>
-                                    </tr>
-                                    <tr class="positive">
-                                        <td>dCache</td>
-                                        <td><i class="icon checkmark"></i> </td>
-                                    </tr>
-                                    <tr class="positive">
-                                        <td>BlueArc</td>
-                                        <td class="positive"><i class="icon checkmark"></i> </td>
-                                    </tr>
-                                    <tr class="negative">
-                                        <td>Job Sub</td>
-                                        <td> <i class="icon close"></i></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            
+			<button class="ui button">Component</button> Status
+
+                           {{services}} 
+
                         </div>
                         
                     </div>  <!--ends main ui intro container-->
@@ -323,6 +297,12 @@
                                 
                                 
                                 
+<!-- enable accordions -->
+<script language='javascript'>
+             $(document).ready(function(){
+                $('.ui.accordion').accordion();
+             });
+</script>
                                 
     </body>
     
