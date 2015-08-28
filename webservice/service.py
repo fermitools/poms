@@ -69,7 +69,6 @@ class SATool(cherrypy.Tool):
         cherrypy.request.hooks.attach('on_end_resource',
                                       self.release_session,
                                       priority=80)
- 
     def bind_session(self):
         cherrypy.engine.publish('bind', self.session)
         cherrypy.request.db = self.session
@@ -77,6 +76,17 @@ class SATool(cherrypy.Tool):
     def release_session(self):
         cherrypy.request.db = None
         self.session.remove()
+
+class SessionTool(cherrypy.Tool):
+        # Something must be set in the sessionotherwise a unique session 
+        # will be created for each request. 
+    def __init__(self):
+        cherrypy.Tool.__init__(self, 'before_request_body',
+                               self.force_session,
+                               priority=50)
+        
+    def force_session(self):
+        cherrypy.session['id'] = cherrypy.session._id
  
 def set_rotating_log(app):
     ''' recipe  for a rotating log file...'''
@@ -97,10 +107,13 @@ def set_rotating_log(app):
 
 def pidfile():
     pidfile = cherrypy.config.get("log.pidfile",None)
+    pid = os.getpid()
+    cherrypy.log("PID: %s" % pid)
     if pidfile:
         fd = open(pidfile,'w')
-        fd.write("%s" % os.getpid())
+        fd.write("%s" % pid )
         fd.close()
+        cherrypy.log("Pid File: %s" % pidfile)
 
 def parse_command_line():
     parser = argparse.ArgumentParser()
@@ -113,7 +126,10 @@ if __name__ == '__main__':
 
     config = { '/' : {
                       'tools.db.on': True,
+                      'tools.psess.on': True,
                       'tools.staticdir.root': os.path.abspath(os.getcwd()),
+		      'tools.sessions.on': True,
+                      'tools.sessions.timeout': 60,
                      },
                '/static' : {
                       'tools.staticdir.on': True,
@@ -142,6 +158,10 @@ if __name__ == '__main__':
     pidfile()
     SAEnginePlugin(cherrypy.engine).subscribe()
     cherrypy.tools.db = SATool()
+    cherrypy.tools.psess = SessionTool()
+    print "*"*80
+    print dir(cherrypy.tools)
+    print "*"*80
     app = cherrypy.tree.mount(poms_service.poms_service(), path, configfile)
     app.merge(config)
     set_rotating_log(app)

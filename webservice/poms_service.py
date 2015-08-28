@@ -62,7 +62,6 @@ class poms_service:
           session.get('id'): %s
           </body>
         </html>""" % (cherrypy.session._id,cherrypy.session.get('id'))
-        x=5/0
         return html
 
 

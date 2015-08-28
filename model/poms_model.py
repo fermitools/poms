@@ -126,12 +126,33 @@ class Task(Base):
     created = Column(DateTime(True), nullable=False)
     status = Column(Text, nullable=False)
     task_parameters = Column(JSON)
-    waiting_for = Column(ForeignKey(u'tasks.task_id'), index=True)
-    waiting_threshold = Column(Integer)
+    depends_on = Column(ForeignKey(u'tasks.task_id'), index=True)
+    depend_threshold = Column(Integer)
     updater = Column(ForeignKey(u'experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
+    command_executed = Column(Text)
 
     campaign = relationship(u'Campaign')
     experimenter = relationship(u'Experimenter', primaryjoin='Task.creator == Experimenter.experimenter_id')
     experimenter1 = relationship(u'Experimenter', primaryjoin='Task.updater == Experimenter.experimenter_id')
     parent = relationship(u'Task', remote_side=[task_id])
+
+
+class TaskHistory(Base):
+    __tablename__ = 'task_histories'
+
+    task_id = Column(ForeignKey(u'tasks.task_id'), primary_key=True, nullable=False)
+    created = Column(DateTime(True), primary_key=True, nullable=False)
+    status = Column(Text, nullable=False)
+    
+    task = relationship(u'Task',backref='history')
+
+class JobHistory(Base):
+    __tablename__ = 'job_histories'
+
+    
+    job_id = Column(ForeignKey(u'jobs.job_id'), primary_key=True, nullable=False)
+    created = Column(DateTime(True), primary_key=True, nullable=False)
+    status = Column(Text, nullable=False)
+    
+    job = relationship(u'Job',backref='history')
