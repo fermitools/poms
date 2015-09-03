@@ -1,16 +1,46 @@
-<html>
-</html>
-<body>
 
-<pre>
-   {{list}}
-</pre>
-<h1>Admin screen</h1>
+{%extends "menu_base.html" %}
 
-Data types:<br>
+{%block head%}
+    <title>POMS DB Admin</title>
+{%endblock%}
+
+{%block breadcrumbs%}
+    <div class="item">
+       Dashboard  <!--label of current location on mobile-->
+    </div>
+    <div class="item">
+      POMS DB Admin <!--label of current location on mobile-->
+    </div>
+{%endblock%}
+
+{%block mainpage %}
+
+    <div class="ui masthead vertical segment">
+	<div class="ui container">
+	    <div class="introduction">
+		<h1 class="ui header">
+		    POMS DB Admin
+		    
+		    <div class="sub header">
+			Update database tables directly
+		    </div>
+		</h1>
+	    </div>
+	</div>
+    </div>
+    
+    <div class="main ui intro container">
+	
+	<h2 class="ui dividing header">Data Types:</h2>
+	
 <ul>
    {% for type in list %}
     <li>  <a href="/poms/list_generic?classname={{type}}">{{type}}</a>
    {% endfor %}
 </ul>
-</body>
+	</div>
+	
+    </div>  <!--ends main ui intro container-->
+    
+{%endblock%}

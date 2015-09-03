@@ -49,7 +49,7 @@ class poms_service:
 
     @cherrypy.expose
     def index(self):
-        template = self.jinja_env.get_template('layout.html')
+        template = self.jinja_env.get_template('front.html')
         return template.render(services=self.service_status_hier('All'))
 
     @cherrypy.expose
@@ -245,7 +245,14 @@ class poms_service:
             if columns[fieldname].type == Integer:
                 setattr(found, fieldname, int(kwargs.get(fieldname,'')))
             elif columns[fieldname].type == DateTime:
-                setattr(found, fieldname, datetime.strptime(kwargs.get(fieldname,'')), "%Y-%m-%dT%H:%M")
+                # special case created, updated fields; set created
+                # if its null, and always set updated if we're updating
+                if fieldname == "created" and getattr(found,fieldname,None) == None:
+                    setattr(found, fieldname, datetime.now(utc))
+                if fieldname == "updated" and kwargs.get(fieldname,None) == None:
+                    setattr(found, fieldname, datetime.now(utc))
+                if  kwargs.get(fieldname,None) != None:
+                    setattr(found, fieldname, datetime.strptime(kwargs.get(fieldname,'')), "%Y-%m-%dT%H:%M")
             elif columns[fieldname].type == ForeignKey:
                 kval = kwargs.get(fieldname,None)
                 try:
@@ -258,7 +265,7 @@ class poms_service:
         cherrypy.log("update_for: found is now %s" % found )
         cherrypy.request.db.add(found)
         cherrypy.request.db.commit()
-        return "Updated %s %s." % (classname, getattr(found,primkey))
+        return "%s=%s" % (classname, getattr(found,primkey))
   
     def edit_screen_for( self, classname, eclass, update_call, primkey, primval, valmap):
         found = None

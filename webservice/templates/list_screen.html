@@ -1,8 +1,50 @@
-<body>
+
+{%extends "menu_base.html" %}
+
+{%block head%}
+    <title>POMS DB Admin</title>
+{%endblock%}
+
+{%block breadcrumbs%}
+    <div class="item">
+       Dashboard  <!--label of current location on mobile-->
+    </div>
+    <div class="item">
+      POMS DB Admin <!--label of current location on mobile-->
+    </div>
+    <div class="item">
+      {{classname}} Items
+    </div>
+{%endblock%}
+
+{%block mainpage %}
+
+    <div class="ui masthead vertical segment">
+	<div class="ui container">
+	    <div class="introduction">
+		<h1 class="ui header">
+		    {{clasname}} Items
+		    
+		    <div class="sub header">
+			 View/Edit {{classname}} Items
+		    </div>
+		</h1>
+	    </div>
+	</div>
+    </div>
+    
+    <div class="main ui intro container">
+	
+	<h2 class="ui dividing header">{{classsname}} Items:</h2>
+	
 <ul>
 {% for i in list %}
    <li> <a href="{{edit_screen}}?classname={{classname}}&id={{i.key}}">{{i.key}}:{{i.value}}</a>
 {% endfor %}
   <li> <a href="{{edit_screen}}?classname={{classname}}&id=">[[New {{classname}}]]</a>
 <ul>
-</body>
+	</div>
+	
+    </div>  <!--ends main ui intro container-->
+    
+{%endblock%}

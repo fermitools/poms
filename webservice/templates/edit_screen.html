@@ -1,28 +1,72 @@
+{%extends "menu_base.html" %}
 
-<html>
-</html>
-<body>
+{%block head%}
+    <title>POMS DB Admin</title>
+{%endblock%}
 
-<pre>
-   {{screendata}}
-</pre>
+{%block breadcrumbs%}
+    <div class="item">
+       Dashboard  <!--label of current location on mobile-->
+    </div>
+    <div class="item">
+      POMS DB Admin <!--label of current location on mobile-->
+    </div>
+    <div class="item">
+      {{classname}} Items
+    </div>
+    <div class="item">
+      Edit {{classname}} 
+    </div>
+{%endblock%}
+
+{%block mainpage %}
+
+    <div class="ui masthead vertical segment">
+	<div class="ui container">
+	    <div class="introduction">
+		<h1 class="ui header">
+		    {{clasname}} Items
+		    
+		    <div class="sub header">
+			 Edit {{classname}} Item
+		    </div>
+		</h1>
+	    </div>
+	</div>
+    </div>
+    
+    <div class="main ui intro container">
+	
+	<h2 class="ui dividing header">{{classsname}} Items:</h2>
+	
 <form action="{{action}}" method="POST">
 
    <input type="hidden", name="classname" value="{{classname}}">
 
    {% for row in screendata %}
+      <div style="padding: 2px">
       {% if row.values is sequence %}
-         {{row.name}} <select name={{row.name}}>
+         <div style="text-align: right; width:20em;float: left; padding-right: 1em">
+         {{row.name}}
+         </div>
+         <select name={{row.name}}>
            {% for ov in row.valmap %}
             <option value="{{ov.key}}" {% if ov.key == row.value%} selected=1 {%endif %} > {{ov.value}} </option>
            {% endfor %}
-         </select> <br>
+         </select> 
       {% else %}
-         {{row.name}} <input name='{{row.name}}' value='{%if row.value is none %}{%else%}{{row.value}}{%endif%}'> <br>
+         <div style="text-align: right; width:20em;float: left; padding-right: 1em">
+         {{row.name}} 
+         </div>
+         <input name='{{row.name}}' value='{%if row.value is none %}{%else%}{{row.value}}{%endif%}'> <br>
       {% endif %}
+      </div>
    {% endfor %}
 
    <input type="submit" name="_submit"> 
 </form>
-
-</body>
+	</div>
+	
+    </div>  <!--ends main ui intro container-->
+    
+{%endblock%}
