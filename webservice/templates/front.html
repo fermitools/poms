@@ -1,0 +1,41 @@
+{%extends "menu_base.html" %}
+
+{%block head%}
+    <title>POMS</title>
+{%endblock%}
+
+{%block breadcrumbs%}
+    <div class="item">
+       Dashboard  <!--label of current location on mobile-->
+    </div>
+{%endblock%}
+
+{%block mainpage %}
+
+    <div class="ui masthead vertical segment">
+	<div class="ui container">
+	    <div class="introduction">
+		<h1 class="ui header">
+		    Dashboard
+		    
+		    <div class="sub header">
+			See everything up and running in real time
+		    </div>
+		</h1>
+	    </div>
+	</div>
+    </div>
+    
+    <div class="main ui intro container">
+	
+	<h2 class="ui dividing header">Services</h2>
+	
+	<button class="ui button">Component</button> Status
+
+	   {{services}} 
+
+	</div>
+	
+    </div>  <!--ends main ui intro container-->
+    
+{%endblock%}
