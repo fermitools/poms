@@ -71,6 +71,13 @@ class poms_service:
         template = self.jinja_env.get_template('stats.html')
         return template.render()
 
+
+    @cherrypy.expose
+    def hello3(self):
+        template = self.jinja_env.get_template('grid.html')
+        return template.render()
+
+
     @cherrypy.expose
     def update_service(self, name, parent, status, host_site):
         s = cherrypy.request.db.query(Service).filter(Service.name == name).first()

@@ -1,0 +1,95 @@
+
+{%extends "menu_base.html" %}
+
+
+{%block head%}
+    <title>POMS DB Admin</title>
+{%endblock%}
+
+{%block breadcrumbs%}
+    <div class="item">
+       Dashboard  <!--label of current location on mobile-->
+    </div>
+    <div class="item">
+      POMS DB Admin <!--label of current location on mobile-->
+    </div>
+{%endblock%}
+
+{%block mainpage %}
+
+    <div class="ui masthead vertical segment">
+	<div class="ui container">
+	    <div class="introduction">
+		<h1 class="ui header">
+		    POMS DB Admin
+		    
+		    <div class="sub header">
+			Update database tables directly
+		    </div>
+		</h1>
+	    </div>
+	</div>
+    </div>
+    
+    <div class="main ui intro container">
+	
+	<h2 class="ui dividing header">Data Types:</h2>
+	
+
+<table class="ui sortable celled table">
+  <thead>
+    <tr>
+      <th class="">Name</th>
+      <th class="">Status</th>
+      <!--<th class="sorted ascending">Notes</th>-->
+      <th class="">Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    
+    
+  <tr>
+      <td>Jill</td>
+      <td class="negative">Denied</td>
+      <td>None</td>
+    </tr><tr>
+      <td>John</td>
+      <td>No Action</td>
+      <td>None</td>
+    </tr><tr>
+      <td>Jamie</td>
+      <td class="positive">Approved</td>
+      <td class="warning">Requires call</td>
+    </tr></tbody>
+  <tfoot>
+    <tr><th>3 People</th>
+    <th>2 Approved</th>
+    <th></th>
+  </tr></tfoot>
+</table>
+
+
+	</div>
+	
+    </div>  <!--ends main ui intro container-->
+
+
+
+
+<script language='javascript'>
+//             $(document).ready(function(){
+ //               $('.sortable.table').tablesort();
+  //           });
+</script>
+
+
+
+    
+{%endblock%}
+
+
+
+
+
+
