@@ -1,4 +1,3 @@
---CREATE SCHEMA "public";
 
 CREATE SEQUENCE campaigns_campaign_id_seq START WITH 1;
 
@@ -6,7 +5,7 @@ CREATE SEQUENCE campaigns_task_definition_id_seq START WITH 1;
 
 CREATE SEQUENCE experimenters_experimenter_id_seq START WITH 1;
 
-CREATE SEQUENCE "jobs_job_id _seq" START WITH 1;
+CREATE SEQUENCE jobs_job_id_seq START WITH 1;
 
 CREATE SEQUENCE services_service_id_seq START WITH 1;
 
@@ -70,12 +69,14 @@ COMMENT ON COLUMN task_definitions.experiment IS 'Acroynm for the experiment';
 CREATE TABLE campaigns ( 
 	campaign_id          serial  NOT NULL,
 	experiment           text  NOT NULL,
+	name                 text  NOT NULL,
 	task_definition_id   serial  NOT NULL,
 	creator              integer  NOT NULL,
 	created              timestamptz  NOT NULL,
 	updater              integer  ,
 	updated              timestamptz  ,
-	CONSTRAINT pk_campaigns PRIMARY KEY ( campaign_id )
+	CONSTRAINT pk_campaigns PRIMARY KEY ( campaign_id ),
+	CONSTRAINT idx_campaigns_experiment_name UNIQUE ( experiment, name ) 
  );
 
 CREATE INDEX idx_campaigns ON campaigns ( experiment );
@@ -84,18 +85,66 @@ CREATE INDEX idx_campaigns_creator ON campaigns ( creator );
 
 CREATE INDEX idx_campaigns_task_definition_id ON campaigns ( task_definition_id );
 
+CREATE INDEX idx_campaigns_0 ON campaigns ( updater );
+
+CREATE TABLE tasks ( 
+	task_id              serial  NOT NULL,
+	campaign_id          serial  NOT NULL,
+	task_definition_id   serial  NOT NULL,
+	task_order           integer  NOT NULL,
+	input_dataset        text  NOT NULL,
+	output_dataset       text  NOT NULL,
+	creator              integer  NOT NULL,
+	created              timestamptz  NOT NULL,
+	status               text  NOT NULL,
+	task_parameters      json  ,
+	depends_on           integer  ,
+	depend_threshold     integer  ,
+	updater              integer  ,
+	updated              timestamptz  ,
+	command_executed     text  ,
+	CONSTRAINT pk_tasks PRIMARY KEY ( task_id )
+ );
+
+CREATE INDEX idx_tasks ON tasks ( campaign_id );
+
+CREATE INDEX idx_tasks_depends_on ON tasks ( depends_on );
+
+CREATE INDEX idx_tasks_task_definition_id ON tasks ( task_definition_id );
+
+CREATE INDEX idx_tasks_creator ON tasks ( creator );
+
+CREATE INDEX idx_tasks_updater ON tasks ( updater );
+
+COMMENT ON COLUMN tasks.command_executed IS 'The actual command executed to produce the jobs.';
+
 CREATE TABLE jobs ( 
-	"job_id "            bigserial  NOT NULL,
+	job_id               bigserial  NOT NULL,
 	task_id              integer  NOT NULL,
+	jobsub_job_id        text  NOT NULL,
 	node_name            text  NOT NULL,
 	cpu_type             text  NOT NULL,
 	host_site            text  NOT NULL,
 	status               text  NOT NULL,
 	updated              timestamptz  NOT NULL,
-	CONSTRAINT pk_jobs PRIMARY KEY ( "job_id " )
+	CONSTRAINT pk_jobs PRIMARY KEY ( job_id )
  );
 
 CREATE INDEX idx_jobs_task_id ON jobs ( task_id );
+
+CREATE TABLE task_histories ( 
+	task_id              integer  NOT NULL,
+	created              timestamptz  NOT NULL,
+	status               text  NOT NULL,
+	CONSTRAINT pk_task_histories PRIMARY KEY ( task_id, created )
+ );
+
+CREATE TABLE job_histories ( 
+	job_id               bigint  NOT NULL,
+	created              timestamptz  NOT NULL,
+	status               text  NOT NULL,
+	CONSTRAINT pk_job_histories PRIMARY KEY ( job_id, created )
+ );
 
 CREATE TABLE service_downtimes ( 
 	service_id           integer  NOT NULL,
@@ -118,36 +167,11 @@ CREATE TABLE services (
 
 CREATE INDEX idx_services_parent_service_id ON services ( parent_service_id );
 
-CREATE TABLE tasks ( 
-	task_id              serial  NOT NULL,
-	campaign_id          serial  NOT NULL,
-	task_definition_id   serial  NOT NULL,
-	task_order           integer  NOT NULL,
-	input_dataset        text  NOT NULL,
-	output_dataset       text  NOT NULL,
-	creator              integer  NOT NULL,
-	created              timestamptz  NOT NULL,
-	status               text  NOT NULL,
-	task_parameters      json  ,
-	waiting_for          integer  ,
-	waiting_threshold    integer  ,
-	updater              integer  ,
-	updated              timestamptz  ,
-	CONSTRAINT pk_tasks PRIMARY KEY ( task_id )
- );
+CREATE TRIGGER experiments_lowercase_experiment BEFORE INSERT OR UPDATE ON experiments FOR EACH ROW EXECUTE PROCEDURE experiments_lowercase_experiment();
 
-CREATE INDEX idx_tasks ON tasks ( campaign_id );
+CREATE TRIGGER update_job_history AFTER INSERT OR UPDATE ON jobs FOR EACH ROW EXECUTE PROCEDURE update_job_history();
 
-CREATE INDEX idx_tasks_waiting_for ON tasks ( waiting_for );
-
-CREATE INDEX idx_tasks_task_definition_id ON tasks ( task_definition_id );
-
-CREATE INDEX idx_tasks_creator ON tasks ( creator );
-
-CREATE INDEX idx_tasks_updater ON tasks ( updater );
-
-create trigger experiments_insert_update before insert or update on experiments
-  for each row execute procedure experiments_lowercase_experiment();;
+CREATE TRIGGER update_task_history AFTER INSERT OR UPDATE ON tasks FOR EACH ROW EXECUTE PROCEDURE update_task_history();
 
 CREATE OR REPLACE FUNCTION public.experiments_lowercase_experiment()
  RETURNS trigger
@@ -159,15 +183,44 @@ AS $function$
     END;
 $function$
 
+CREATE OR REPLACE FUNCTION public.update_job_history()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+   
+    IF TG_OP = 'INSERT' or  NEW.status != OLD.status THEN
+        INSERT INTO job_histories SELECT NEW.job_id, now(), NEW.status;
+    END IF;
+    RETURN NULL;
+END;
+$function$
+
+CREATE OR REPLACE FUNCTION public.update_task_history()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF TG_OP = 'INSERT' or NEW.status != OLD.status THEN
+       INSERT INTO task_histories SELECT NEW.task_id, now(), NEW.status;
+    END IF;
+    RETURN NULL;
+END;
+$function$
+
 ALTER TABLE campaigns ADD CONSTRAINT fk_campaigns FOREIGN KEY ( experiment ) REFERENCES experiments( experiment );
 
-ALTER TABLE campaigns ADD CONSTRAINT fk_campaigns_0 FOREIGN KEY ( creator ) REFERENCES experimenters( experimenter_id );
-
 ALTER TABLE campaigns ADD CONSTRAINT fk_campaigns_definitions FOREIGN KEY ( task_definition_id ) REFERENCES task_definitions( task_definition_id );
+
+ALTER TABLE campaigns ADD CONSTRAINT fk_campaigns_updater FOREIGN KEY ( updater ) REFERENCES experimenters( experimenter_id );
+
+ALTER TABLE campaigns ADD CONSTRAINT fk_campaigns_creator FOREIGN KEY ( creator ) REFERENCES experimenters( experimenter_id );
 
 ALTER TABLE experiments_experimenters ADD CONSTRAINT fk_experiment_expermenters FOREIGN KEY ( experiment ) REFERENCES experiments( experiment );
 
 ALTER TABLE experiments_experimenters ADD CONSTRAINT fk_experiment_expermenters_0 FOREIGN KEY ( experimenter_id ) REFERENCES experimenters( experimenter_id );
+
+ALTER TABLE job_histories ADD CONSTRAINT fk_job_histories FOREIGN KEY ( job_id ) REFERENCES jobs( job_id );
 
 ALTER TABLE jobs ADD CONSTRAINT fk_jobs FOREIGN KEY ( task_id ) REFERENCES tasks( task_id );
 
@@ -181,9 +234,9 @@ ALTER TABLE task_definitions ADD CONSTRAINT fk_task_definitions_creator FOREIGN 
 
 ALTER TABLE task_definitions ADD CONSTRAINT fk_task_definitions_updater FOREIGN KEY ( updater ) REFERENCES experimenters( experimenter_id );
 
-ALTER TABLE tasks ADD CONSTRAINT fk_tasks FOREIGN KEY ( campaign_id ) REFERENCES campaigns( campaign_id );
+ALTER TABLE task_histories ADD CONSTRAINT fk_task_histories FOREIGN KEY ( task_id ) REFERENCES tasks( task_id );
 
-ALTER TABLE tasks ADD CONSTRAINT fk_tasks_waiting_for FOREIGN KEY ( waiting_for ) REFERENCES tasks( task_id );
+ALTER TABLE tasks ADD CONSTRAINT fk_tasks FOREIGN KEY ( campaign_id ) REFERENCES campaigns( campaign_id );
 
 ALTER TABLE tasks ADD CONSTRAINT fk_tasks_creator FOREIGN KEY ( creator ) REFERENCES experimenters( experimenter_id );
 
