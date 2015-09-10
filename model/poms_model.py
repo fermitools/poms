@@ -18,12 +18,13 @@ class Campaign(Base):
     task_definition_id = Column(ForeignKey(u'task_definitions.task_definition_id'), nullable=False, index=True, server_default=text("nextval('campaigns_task_definition_id_seq'::regclass)"))
     creator = Column(ForeignKey(u'experimenters.experimenter_id'), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
-    updater = Column(Integer)
+    updater = Column(ForeignKey(u'experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
 
-    experimenter = relationship(u'Experimenter')
-    experiment1 = relationship(u'Experiment')
-    task_definition = relationship(u'TaskDefinition')
+    experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
+    experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')
+    experiment_obj = relationship(u'Experiment')
+    task_definition_obj = relationship(u'TaskDefinition')
 
 
 class Experimenter(Base):
@@ -49,8 +50,8 @@ class ExperimentsExperimenter(Base):
     experimenter_id = Column(ForeignKey(u'experimenters.experimenter_id'), primary_key=True, nullable=False)
     active = Column(Boolean, nullable=False, server_default=text("true"))
 
-    experiment1 = relationship(u'Experiment')
-    experimenter = relationship(u'Experimenter')
+    experiment_obj = relationship(u'Experiment')
+    experimenter_obj = relationship(u'Experimenter')
 
 
 class Job(Base):
@@ -58,14 +59,14 @@ class Job(Base):
 
     job_id = Column(BigInteger, primary_key=True, server_default=text("nextval('jobs_job_id_seq'::regclass)"))
     task_id = Column(ForeignKey(u'tasks.task_id'), nullable=False, index=True)
-    batch_id = Column(Text, nullable=False)
+    jobsub_job_id = Column(Text, nullable=False)
     node_name = Column(Text, nullable=False)
     cpu_type = Column(Text, nullable=False)
     host_site = Column(Text, nullable=False)
     status = Column(Text, nullable=False)
     updated = Column(DateTime(True), nullable=False)
 
-    task = relationship(u'Task')
+    task_obj = relationship(u'Task')
 
 
 class ServiceDowntime(Base):
@@ -75,7 +76,7 @@ class ServiceDowntime(Base):
     downtime_started = Column(DateTime(True), primary_key=True, nullable=False)
     downtime_ended = Column(DateTime(True), nullable=True)
 
-    service = relationship(u'Service')
+    service_obj = relationship(u'Service')
 
 
 class Service(Base):
@@ -90,7 +91,7 @@ class Service(Base):
     parent_service_id = Column(ForeignKey(u'services.service_id'), index=True)
     url = Column(Text)
 
-    parent_service = relationship(u'Service', remote_side=[service_id])
+    parent_service_obj = relationship(u'Service', remote_side=[service_id])
 
 
 class TaskDefinition(Base):
@@ -108,9 +109,9 @@ class TaskDefinition(Base):
     updater = Column(ForeignKey(u'experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
 
-    experimenter = relationship(u'Experimenter', primaryjoin='TaskDefinition.creator == Experimenter.experimenter_id')
-    experiment1 = relationship(u'Experiment')
-    experimenter1 = relationship(u'Experimenter', primaryjoin='TaskDefinition.updater == Experimenter.experimenter_id')
+    experiment_obj = relationship(u'Experiment')
+    experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='TaskDefinition.creator == Experimenter.experimenter_id')
+    experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='TaskDefinition.updater == Experimenter.experimenter_id')
 
 
 class Task(Base):
@@ -132,10 +133,10 @@ class Task(Base):
     updated = Column(DateTime(True))
     command_executed = Column(Text)
 
-    campaign = relationship(u'Campaign')
-    experimenter = relationship(u'Experimenter', primaryjoin='Task.creator == Experimenter.experimenter_id')
-    experimenter1 = relationship(u'Experimenter', primaryjoin='Task.updater == Experimenter.experimenter_id')
-    parent = relationship(u'Task', remote_side=[task_id])
+    campaign_obj = relationship(u'Campaign')
+    experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Task.creator == Experimenter.experimenter_id')
+    experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Task.updater == Experimenter.experimenter_id')
+    parent_obj = relationship(u'Task', remote_side=[task_id])
 
 
 class TaskHistory(Base):
@@ -145,7 +146,7 @@ class TaskHistory(Base):
     created = Column(DateTime(True), primary_key=True, nullable=False)
     status = Column(Text, nullable=False)
     
-    task = relationship(u'Task',backref='history')
+    task_obj = relationship(u'Task',backref='history')
 
 class JobHistory(Base):
     __tablename__ = 'job_histories'
@@ -155,4 +156,4 @@ class JobHistory(Base):
     created = Column(DateTime(True), primary_key=True, nullable=False)
     status = Column(Text, nullable=False)
     
-    job = relationship(u'Job',backref='history')
+    job_obj = relationship(u'Job',backref='history')
