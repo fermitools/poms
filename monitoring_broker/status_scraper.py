@@ -79,6 +79,8 @@ class status_scraper():
         slist = self.cf.sections()
         slist.sort()
         for s in slist:
+            if s == 'global':
+                 continue
             scrape_url = self.cf.get(s,'scrape_url')
             self.url[s] = scrape_url
             scrape_regex = self.cf.get(s,'scrape_regex')
@@ -120,6 +122,8 @@ class status_scraper():
         # to decide if they're bad or good.
         #
         for s in self.cf.sections():
+            if s == 'global':
+                 continue
             self.recurse(s)
 
         #
@@ -138,6 +142,8 @@ class status_scraper():
     def report(self):
         # XXX this needs to actually make a page and post to webservice
         for s in self.cf.sections():
+            if s == 'global':
+                 continue
             print "service %s has status %s percent %d kids %s\n" % ( s, self.status[s], self.percents[s], self.cf.get(s, "subservices"))
             # this should POST, but for now this is easier to debug
             name = s.replace("service ","")

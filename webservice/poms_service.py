@@ -82,9 +82,6 @@ class poms_service:
     def update_service(self, name, parent, status, host_site):
         s = cherrypy.request.db.query(Service).filter(Service.name == name).first()
 
-        if not s:
-            s = Service()
-            s.name = name
 
         if parent:
 	    p = cherrypy.request.db.query(Service).filter(Service.name == parent).first()
@@ -93,17 +90,28 @@ class poms_service:
 		p = Service()
 		p.name = parent
 		p.status = "unknown"
+                p.host_site = "unknown"
 		p.updated = datetime.now(utc)
 		cherrypy.request.db.add(p)
         else:
             p = None
 
-        if s.status != status and status == "bad":
+        if not s:
+            s = Service()
+            s.name = name
+            s.parent = p
+            s.updated =  datetime.now(utc)
+	    s.host_site = host_site
+            s.status = "unknown"
+	    cherrypy.request.db.add(s)
+            s = cherrypy.request.db.query(Service).filter(Service.name == name).first()
+
+        if s.status != status and status == "bad" and s.service_id:
             # start downtime, if we aren't in one
             d = cherrypy.request.db.query(ServiceDowntime).filter(ServiceDowntime.service_id == s.service_id ).order_by(desc(ServiceDowntime.downtime_started)).first()
-            if d == None or d.downtime_ended != None:
+            if (d == None or d.downtime_ended != None):
 	        d = ServiceDowntime()
-	        d.service = s
+	        d.service_id = s.service_id
 	        d.downtime_started = datetime.now(utc)
 		d.downtime_ended = None
 		cherrypy.request.db.add(d)
