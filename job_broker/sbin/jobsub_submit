@@ -1,0 +1,14 @@
+#!/bin/sh
+
+#
+# wrapper to intercept calls to jobsub_client
+#
+# expects POMS_CAMPAIGN_ID in the environment
+#
+POMS_URI=http://...
+
+POMS_TASK_ID=`wget -O - -o $TMPDIR/gettask.out "$POMS_URI/new_task?campaign=$CAMPAIGN_ID&..."`
+
+export POMS_TASK_ID
+
+exec $JOBSUB_CLIENT_DIR/bin/jobsub_submit  -l "+poms_task_id=..." -e POMS_TASK_ID "$@"

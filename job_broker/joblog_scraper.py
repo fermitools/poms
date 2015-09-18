@@ -8,18 +8,18 @@ class joblog_scraper:
     def __init__(self):
         # lots of names for parts of regexps to make it readable(?)
         timestamp_pat ="[-0-9T:]*"
-        hostname_pat="[a-z0-9.]*"
-        idpart_pat"[^[/:]*"
+        hostname_pat="[-A-Za-z0-9.]*"
+        idpart_pat="[^[/:]*"
         user_pat=idpart_pat
         jobid_pat=idpart_pat
         taskid_pat=idpart_pat
         exp_pat=idpart_pat
         ifdh_vers_pat = idpart_pat
-        pid_pat = "[0-9]*]"
-        ifdhline_pat = "%s %s %s/%s:? ?%s/%s/%s/%s\[%s\] ifdh: (.*)" % (
-             timestamp_pat, hostname_pat, user_pat, exp_pat, taskid_pat,
-             jobid_pat, ifdh_vers_pat, exp_pat, pid_pat) 
-        oldifdhline_pat = "%s %s %s/%s/%s\[%s\] ifdh: (.*)" % (
+        pid_pat = "[0-9]*"
+        ifdhline_pat = "(%s) (%s) (%s)/(%s):? ?(%s)/(%s)/(%s)/(%s)\[(%s)\]:.ifdh:(.*)" % (
+		timestamp_pat, hostname_pat, user_pat, exp_pat,taskid_pat,
+                jobid_pat, ifdh_vers_pat,exp_pat, pid_pat )
+        oldifdhline_pat ="(%s) (%s) (%s)/(%s)/(%s)\[(%s)\]:.ifdh:(.*)" % (
 	     timestamp_pat, hostname_pat, exp_pat, ifdh_vers_pat, exp_pat, 
              pid_pat)
         self.ifdhline_re = re.compile(ifdhline_pat)
@@ -36,13 +36,13 @@ class joblog_scraper:
 	experiment = ""
 	pid = ""
 	message  = ""
-        m1 = self.olifdhline.match(line)
-        m2 = self.ifdhline.match(line)
+        m1 = self.oldifdhline_re.match(line)
+        m2 = self.ifdhline_re.match(line)
         if m1:
-            timestamp, hosntame, experiment, ifdh_vers, experiment, pid, message = m.groups()
+            timestamp, hostname, experiment, jobid, ifdh_vers, experiment, pid, message = m1.groups()
             user = experiment
         elif m2:
-            timestamp, hosntame, user, experiment, task, jobid, ifdh_vers, experiment, pid, message = m.groups()
+            timestamp, hostname, user, experiment, task, jobid, ifdh_vers, experiment, pid, message = m2.groups()
         else:
             message = line
         return { 
@@ -53,20 +53,20 @@ class joblog_scraper:
 		'task': task,
 		'jobid': jobid,
 		'ifdh_vers': ifdh_vers,
-		'experiment': experiment,
 		'pid': pid,
-		'message ': message ,
+		'message': message ,
         }
 
     def report_item(self, taskid, jobid, hostname, message):
-        pass
+        print "I would report: task %s jobid %s host %s message %s " % (
+		taskid, jobid, hostname, message)
 
     def scan(self, file):
         for line in file:
              d = self.parse_line(line)
              if d['task'] != '':
-                 self.report_item(d['task'], d['jobid'], d['hostname'],  d['message'],
-     
+                 self.report_item(d['task'], d['jobid'], d['hostname'],  d['message'])
+
 
 if __name__ == '__main__':
     js = joblog_scraper()
