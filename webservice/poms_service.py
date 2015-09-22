@@ -48,6 +48,22 @@ class poms_service:
         self.make_admin_map()
 
     @cherrypy.expose
+    def headers(self):
+        return repr(cherrypy.request.headers)
+
+    def get_current_experimenter(self):
+        experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == cherrypy.request.headers['X-Shib-Email'] ).first()
+        if not experimenter:
+             experimenter = Experimenter(
+		   first_name = cherrypy.request.headers['X-Shib-Name-First'],
+		   last_name =  cherrypy.request.headers['X-Shib-Name-Last'],
+		   email =  cherrypy.request.headers['X-Shib-Email'])
+	     cherrypy.request.db.add(experimenter)
+
+             experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == cherrypy.request.headers['X-Shib-Email'] ).first()
+        return experimenter
+
+    @cherrypy.expose
     def index(self):
         template = self.jinja_env.get_template('front.html')
         return template.render(services=self.service_status_hier('All'))
@@ -357,3 +373,4 @@ class poms_service:
          j.updated = datetime.now(utc)
          cherrypy.request.db.add(j)
          cherrypy.request.db.commit()
+
