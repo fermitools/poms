@@ -52,13 +52,18 @@ class poms_service:
         return repr(cherrypy.request.headers)
 
     def get_current_experimenter(self):
-        experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == cherrypy.request.headers['X-Shib-Email'] ).first()
-        if not experimenter:
+        if cherrypy.request.headers.get('X-Shib-Email',None):
+            experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == cherrypy.request.headers['X-Shib-Email'] ).first()
+        else:
+            experimenter = None
+
+        if not experimenter and cherrypy.request.headers.get('X-Shib-Email',None):
              experimenter = Experimenter(
 		   first_name = cherrypy.request.headers['X-Shib-Name-First'],
 		   last_name =  cherrypy.request.headers['X-Shib-Name-Last'],
 		   email =  cherrypy.request.headers['X-Shib-Email'])
 	     cherrypy.request.db.add(experimenter)
+             cherrypy.request.db.commit()
 
              experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == cherrypy.request.headers['X-Shib-Email'] ).first()
         return experimenter
