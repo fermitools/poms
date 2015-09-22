@@ -13,11 +13,17 @@
 {%block mainpage %}
 
     <div class="ui masthead vertical segment">
+	{% if current_experimenter is defined %}
+	    <div class="ui right floated segment">
+	       <i class="user icon"></i>
+	       {{current_experimenter.first_name}}
+	       {{current_experimenter.last_name}}
+	    </div>
+	{% endif %}
 	<div class="ui container">
 	    <div class="introduction">
 		<h1 class="ui header">
 		    Dashboard
-		    
 		    <div class="sub header">
 			See everything up and running in real time
 		    </div>

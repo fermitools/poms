@@ -4,7 +4,7 @@ import os
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
-from model.poms_model import Service, ServiceDowntime
+from model.poms_model import Service, ServiceDowntime, Experimenter
 
 ZERO = timedelta(0)
 
@@ -48,9 +48,30 @@ class poms_service:
         self.make_admin_map()
 
     @cherrypy.expose
+    def headers(self):
+        return repr(cherrypy.request.headers)
+
+    def get_current_experimenter(self):
+        if cherrypy.request.headers.get('X-Shib-Email',None):
+            experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == cherrypy.request.headers['X-Shib-Email'] ).first()
+        else:
+            experimenter = None
+
+        if not experimenter and cherrypy.request.headers.get('X-Shib-Email',None):
+             experimenter = Experimenter(
+		   first_name = cherrypy.request.headers['X-Shib-Name-First'],
+		   last_name =  cherrypy.request.headers['X-Shib-Name-Last'],
+		   email =  cherrypy.request.headers['X-Shib-Email'])
+	     cherrypy.request.db.add(experimenter)
+             cherrypy.request.db.commit()
+
+             experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == cherrypy.request.headers['X-Shib-Email'] ).first()
+        return experimenter
+
+    @cherrypy.expose
     def index(self):
         template = self.jinja_env.get_template('front.html')
-        return template.render(services=self.service_status_hier('All'))
+        return template.render(services=self.service_status_hier('All'),current_experimenter=self.get_current_experimenter())
 
     @cherrypy.expose
     def test(self):
@@ -357,3 +378,4 @@ class poms_service:
          j.updated = datetime.now(utc)
          cherrypy.request.db.add(j)
          cherrypy.request.db.commit()
+
