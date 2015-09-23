@@ -3,9 +3,16 @@
 import sys
 import os
 import re
+import urllib2
+import json
+
+from job_reporter import job_reporter
 
 class joblog_scraper:
-    def __init__(self):
+    def __init__(self, filehandle, job_reporter):
+        self.filehandle = filehandle
+        self.job_reporter = job_reporter
+
         # lots of names for parts of regexps to make it readable(?)
         timestamp_pat ="[-0-9T:]*"
         hostname_pat="[-A-Za-z0-9.]*"
@@ -16,12 +23,15 @@ class joblog_scraper:
         exp_pat=idpart_pat
         ifdh_vers_pat = idpart_pat
         pid_pat = "[0-9]*"
+
         ifdhline_pat = "(%s) (%s) (%s)/(%s):? ?(%s)/(%s)/(%s)/(%s)\[(%s)\]:.ifdh:(.*)" % (
 		timestamp_pat, hostname_pat, user_pat, exp_pat,taskid_pat,
                 jobid_pat, ifdh_vers_pat,exp_pat, pid_pat )
+
         oldifdhline_pat ="(%s) (%s) (%s)/(%s)/(%s)\[(%s)\]:.ifdh:(.*)" % (
 	     timestamp_pat, hostname_pat, exp_pat, ifdh_vers_pat, exp_pat, 
              pid_pat)
+
         self.ifdhline_re = re.compile(ifdhline_pat)
         self.oldifdhline_re = re.compile(oldifdhline_pat)
 
@@ -58,16 +68,52 @@ class joblog_scraper:
         }
 
     def report_item(self, taskid, jobid, hostname, message):
-        print "I would report: task %s jobid %s host %s message %s " % (
-		taskid, jobid, hostname, message)
+        data = { 
+           "task_id": taskid,
+           "jobsub_job_id": jobid,
+           "node_name": hostname,
+        }
 
-    def scan(self, file):
-        for line in file:
+        if message.find("starting ifdh::cp") > 0:
+            data['status'] = "running: copying files"
+        
+        if message.find("transferred") > 0:
+            data['status'] = "running: copy succeeded"
+            pass
+
+        if message.find("BEGIN EXECUTION") > 0:
+           data['status'] = "running: user code"
+           data['user_script' ] = message[message.find("EXECUTION")+11:]
+
+        if message.find("COMPLETED with") > 0:
+           data['status'] = "running: user code complete"
+           data['exit_code'] = message[message.find("COMPLETED with")+27:]
+ 
+        # pull any fields if it's a json block
+        pos = message.find('{')
+        if pos > 0 and pos < 4:
+           s = message[message.find('{'):]
+           print "unpacking: " , s
+           try:
+              data.update(json.loads(s))
+           except:
+              s = s[0:s.find(', "bogo')] + " }"
+              print "failed, unpacking: " , s
+              try:
+                  data.update(json.loads(s))
+              except:
+                  print "still failed, continuing.."
+                  pass
+
+        self.job_reporter.report(**data)
+
+
+    def scan(self):
+        for line in self.filehandle:
              d = self.parse_line(line)
              if d['task'] != '':
                  self.report_item(d['task'], d['jobid'], d['hostname'],  d['message'])
 
-
 if __name__ == '__main__':
-    js = joblog_scraper()
-    js.scan(sys.stdin)
+    js = joblog_scraper(sys.stdin, job_reporter("http://localhost.fnal.gov:8080/poms/"))
+    js.scan()
