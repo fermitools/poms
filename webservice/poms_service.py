@@ -87,9 +87,8 @@ class poms_service:
 
 
     @cherrypy.expose
-    def hello2(self):
-        #return "<html><body>Hello</body></html>"
-        template = self.jinja_env.get_template('stats.html')
+    def calendar(self):
+        template = self.jinja_env.get_template('calendar.html')
         return template.render()
 
 
