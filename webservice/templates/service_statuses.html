@@ -1,0 +1,43 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>POMS</title>
+{%endblock%}
+
+
+{%block breadcrumbs%}
+    <div class="item">
+       Service Statuses  <!--label of current location on mobile-->
+    </div>
+{%endblock%}
+
+
+
+
+{%block header%}
+<h1 class="ui header">
+    Dashboard                                 
+    <div class="sub header">
+        See everything up and running in real time
+    </div>
+</h1>
+{%endblock%}
+
+
+
+
+
+
+{%block subheader%}
+<h2 class="ui dividing header">Services</h2>
+{%endblock%}
+
+
+
+{%block content%}
+	
+	<button class="ui button">Component</button> Status
+
+	   {{services}} 
+
+{%endblock%}

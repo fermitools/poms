@@ -10,7 +10,7 @@
             
             <!-- Site Properities -->
 
-            <title>POMS</title>
+           {%block title%} {%endblock%}
             
             
           
@@ -24,6 +24,14 @@
             <script src="/poms/static/js/poms.js"></script>
             
             <link rel="stylesheet" type="text/css" href="/poms/static/css/poms.css">
+
+
+
+            <link href='/poms/static/css/fullcalendar.css' rel='stylesheet' />
+            <link href='/poms/static/css/fullcalendar.print.css' rel='stylesheet' media='print' />
+            <script src='/poms/static/js/moment.min.js'></script>
+            <script src='/poms/static/js/fullcalendar.min.js'></script>
+
                         
     </head>
     
@@ -35,9 +43,6 @@
     
     
     <body id="example" class="started" ontouchstart="">
-        
-        
-        
         
         
         
@@ -63,6 +68,11 @@
             <a class="item" href="requests.html">
                 <b>Requests</b>
             </a>
+
+           <a class="item" href="/poms/admin_screen">
+        	<b>DB Admin</b>
+           </a>
+
             
             <div class="item">
                 <div class="header">Jobs</div>
@@ -125,9 +135,7 @@
                     <i class="content icon"></i>  <!--mobile menu button-->
                 </a>
                 
-                <div class="item">
-                    Dashboard  <!--label of current location on mobile-->
-                </div>
+                {%block breadcrumbs%} {%endblock%}
                 
             </div>
         </div>
@@ -169,6 +177,11 @@
                         <a class="item" href="requests.html">
                             <b>Requests</b>
                         </a>
+
+                        <a class="item" href="/poms/admin_screen">
+	                    <b>DB Admin</b>
+                        </a>
+
                         
                         <div class="item">
                             <div class="header">Jobs</div>
@@ -227,17 +240,19 @@
                 <div class="article">  <!--header of page-->
                     
                     <div class="ui masthead vertical segment">
+
+                    {% if current_experimenter is defined %}
+                       <div class="ui right floated segment">
+                       <i class="user icon"></i>
+                       {{current_experimenter.first_name}} {{current_experimenter.last_name}}
+                       </div>
+                    {% endif %}
                         <div class="ui container">
                             <div class="introduction">
                                 
-                                <h1 class="ui header">
-                                    Dashboard
-                                    
-                                    <div class="sub header">
-                                        See everything up and running in real time
-                                    </div>
-                                </h1>
+                                {%block header%} {%endblock%}
                             </div>
+
                         </div>
                     </div>
                     
@@ -248,19 +263,16 @@
                     
                     
                     <div class="main ui intro container">
-                        
-                        <h2 class="ui dividing header">Services</h2>
-                        
-			<button class="ui button">Component</button> Status
+                       
+                        {%block subheader%} {%endblock%} 
 
-                           {{services}} 
-
+                        <div class="no example">
+                        {%block content%} {%endblock%}
                         </div>
                         
                     </div>  <!--ends main ui intro container-->
                     
                     
-                    {% block my_stats %} {% endblock%}                    
                     
                     
                     
@@ -276,11 +288,7 @@
                 
             </div>  <!--ends full height-->
             
-            
-            
-            
-            
-            
+                        
             
             
         
@@ -308,3 +316,4 @@
     </body>
     
 </html>
+

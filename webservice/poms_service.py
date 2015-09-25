@@ -70,7 +70,7 @@ class poms_service:
 
     @cherrypy.expose
     def index(self):
-        template = self.jinja_env.get_template('front.html')
+        template = self.jinja_env.get_template('service_statuses.html')
         return template.render(services=self.service_status_hier('All'),current_experimenter=self.get_current_experimenter())
 
     @cherrypy.expose

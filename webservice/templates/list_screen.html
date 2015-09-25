@@ -1,9 +1,9 @@
+{%extends "layout.html"%}
 
-{%extends "menu_base.html" %}
-
-{%block head%}
+{%block title%}
     <title>POMS DB Admin</title>
 {%endblock%}
+
 
 {%block breadcrumbs%}
     <div class="item">
@@ -17,25 +17,34 @@
     </div>
 {%endblock%}
 
-{%block mainpage %}
 
-    <div class="ui masthead vertical segment">
-	<div class="ui container">
-	    <div class="introduction">
-		<h1 class="ui header">
-		    {{clasname}} Items
-		    
-		    <div class="sub header">
-			 View/Edit {{classname}} Items
-		    </div>
-		</h1>
-	    </div>
-	</div>
-    </div>
-    
-    <div class="main ui intro container">
-	
-	<h2 class="ui dividing header">{{classsname}} Items:</h2>
+
+
+
+
+{%block header%}
+<h1 class="ui header">
+     {{clasname}} Items
+                    
+     <div class="sub header">
+         View/Edit {{classname}} Items
+      </div>
+</h1>
+{%endblock%}
+
+
+
+
+
+
+{%block subheader%}
+<h2 class="ui dividing header">{{classsname}} Items:</h2>
+{%endblock%}
+
+
+
+
+{%block content%}
 	
 <ul>
 {% for i in list %}
@@ -43,8 +52,5 @@
 {% endfor %}
   <li> <a href="{{edit_screen}}?classname={{classname}}&id=">[[New {{classname}}]]</a>
 <ul>
-	</div>
 	
-    </div>  <!--ends main ui intro container-->
-    
 {%endblock%}
