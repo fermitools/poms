@@ -93,9 +93,10 @@ class poms_service:
 
 
     @cherrypy.expose
-    def hello3(self):
-        template = self.jinja_env.get_template('grid.html')
-        return template.render()
+    def service_downtimes(self):
+        template = self.jinja_env.get_template('service_downtimes.html')
+        rows = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).all()
+        return template.render(rows=rows)
 
 
     @cherrypy.expose
