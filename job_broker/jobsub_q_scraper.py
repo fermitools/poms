@@ -5,6 +5,7 @@ import os
 import re
 import urllib2
 import json
+import time
 from job_reporter import job_reporter
 
 class jobsub_q_scraper:
@@ -14,7 +15,6 @@ class jobsub_q_scraper:
        at the fifebatchhead nodes.
     """
     def __init__(self, job_reporter):
-        self.filehandle = filehandle
         self.job_reporter = job_reporter
         self.map = {
            "0": "Unexplained",
@@ -32,7 +32,7 @@ class jobsub_q_scraper:
         # like just another environment variable JOBSTATUS
         # for now we have a for loop and use condor_q, in future
         # we hope to be able to use jobsub_q with -format...
-        f = os.popen("for n in 1 2; do condor_q -pool fifebatchgpvmhead$n.fnal.gov -name fifebatch$n.fnal.gov -format '%s;JOBSTATUS=' Env -format '%d\n' Jobstatus; done", "r")
+        f = os.popen("for n in 1 2; do condor_q -pool fifebatchgpvmhead$n.fnal.gov -name fifebatch$n.fnal.gov -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d\n' ProcessID ; done", "r")
         for line in f:
             if line.find('POMS_TASK_ID=') > 0:
                 
@@ -43,11 +43,21 @@ class jobsub_q_scraper:
 		    name,val = evv.split("=",1)
 		    jobenv[name] = val
             
-                self.job_reporter.report(
-                  jobid = jobenv['JOBSUBJOBID'],
-                  taskid = jobenv['POMS_TASK_ID'],
-                  jobstatus = jobenv['JOBSTATUS']
-                )
+                print "reporting: ", jobenv
+
+                if jobenv.has_key("JOBSUBJOBID"):
+                    jobsubjobid = jobenv["JOBSUBJOBID"];
+                else:
+		    jobsubjobid = '%s.%s@%s' % (
+			jobenv['PROCESS'],
+			jobenv['CLUSTER'],
+			jobenv['SCHEDD']
+		      )
+                self.job_reporter.report_status(
+                    jobid = jobsubjobid,
+                    taskid = jobenv['POMS_TASK_ID'],
+                    status = self.map[jobenv['JOBSTATUS']]
+                  )
 
     def poll(self):
         while(1):
@@ -55,5 +65,5 @@ class jobsub_q_scraper:
             time.sleep(120)
 
 if __name__ == '__main__':
-    js = jobsub_q_scraper(job_reporter("http://localhost.fnal.gov:8080/poms/"))
+    js = jobsub_q_scraper(job_reporter("http://localhost.fnal.gov:8080/poms"))
     js.poll()

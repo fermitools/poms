@@ -1,10 +1,11 @@
 import cherrypy
 import os
+import time_grid
 
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
-from model.poms_model import Service, ServiceDowntime, Experimenter
+from model.poms_model import Service, ServiceDowntime, Experimenter, Job, Task
 
 ZERO = timedelta(0)
 
@@ -365,17 +366,21 @@ class poms_service:
          return str(t.task_id)
 
     @cherrypy.expose
-    def update_job(self, task_id, jobsubjobid, slot , cputype, status):
+    def update_job(self, task_id, jobsubjobid, slot='', cputype='', status='', cpu_type = ''):
          host_site = "%s_on_%s" % (jobsubjobid, slot)
-         j = cherrypy.request.db.query(Job).filter(Job.host_site==host_site, Job.task_id==task_id).first()
+         j = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id==jobsubjobid, Job.task_id==task_id).first()
          if not j:
              j = Job()
+             j.created = datetime.now(utc)
          j.task_id = task_id
-         j.node_name = slot[slot.find('@')+1:]
-         j.cpu_type = cputype
+         j.jobsub_job_id = jobsubjobid
+         j.node_name = ''
+         j.cpu_type = cpu_type
          j.host_site = host_site
          j.status = status
-         j.updated = datetime.now(utc)
+         j.updated =  datetime.now(utc)
+
          cherrypy.request.db.add(j)
          cherrypy.request.db.commit()
+
 

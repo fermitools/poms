@@ -49,7 +49,7 @@ class joblog_scraper:
         m1 = self.oldifdhline_re.match(line)
         m2 = self.ifdhline_re.match(line)
         if m1:
-            timestamp, hostname, experiment, jobid, ifdh_vers, experiment, pid, message = m1.groups()
+            timestamp, hostname, experiment,  ifdh_vers, experiment, pid, message = m1.groups()
             user = experiment
         elif m2:
             timestamp, hostname, user, experiment, task, jobid, ifdh_vers, experiment, pid, message = m2.groups()
@@ -70,8 +70,8 @@ class joblog_scraper:
     def report_item(self, taskid, jobid, hostname, message):
         data = { 
            "task_id": taskid,
-           "jobsub_job_id": jobid,
-           "node_name": hostname,
+           "jobid": jobid,
+           "slot": hostname,
         }
 
         if message.find("starting ifdh::cp") > 0:
