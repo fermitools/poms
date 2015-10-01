@@ -135,6 +135,7 @@ class poms_service:
 	        d.service_id = s.service_id
 	        d.downtime_started = datetime.now(utc)
 		d.downtime_ended = None
+                d.downtime_type = 'actual'
 		cherrypy.request.db.add(d)
 
         if s.status != status and status == "good":
