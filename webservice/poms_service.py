@@ -410,4 +410,4 @@ class poms_service:
         screendata = tg.render_query(tmin, tmax, jl, 'job_id')
          
         template = self.jinja_env.get_template('job_grid.html')
-        return template.render( taskid = task_id, screendata = screendata, tmin = tmin, tmax = tmax )
+        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16])
