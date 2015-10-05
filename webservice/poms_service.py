@@ -88,6 +88,20 @@ class poms_service:
 
 
     @cherrypy.expose
+    def calendar_json(self, start, end, _):
+        cherrypy.response.headers['Content-Type'] = "application/json"
+        import json
+        list = []
+        rows = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).filter(ServiceDowntime.downtime_started.between(start, end)).all()
+        for row in rows:
+            #print row.Service.name
+            #print row.ServiceDowntime.downtime_started
+            #print row.ServiceDowntime.downtime_ended
+            list.append({'title': row.Service.name, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended)}) 
+        return json.dumps(list)
+
+
+    @cherrypy.expose
     def calendar(self):
         template = self.jinja_env.get_template('calendar.html')
         return template.render()
