@@ -5,7 +5,7 @@ import time_grid
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
-from model.poms_model import Service, ServiceDowntime, Experimenter, Job, Task
+from model.poms_model import Service, ServiceDowntime, Experimenter, Job, JobHistory, Task, TaskHistory
 
 ZERO = timedelta(0)
 
@@ -385,3 +385,15 @@ class poms_service:
          cherrypy.request.db.commit()
 
 
+    @cherrypy.expose
+    def show_jobs(self, task_id, tmin, tmax ):
+        tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S")
+        tmin= tmin.replace(tzinfo = utc)
+        tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
+        tmax= tmax.replace(tzinfo = utc)
+        jl = cherrypy.request.db.query(JobHistory).join(Job).filter(Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
+        tg = time_grid.time_grid(); 
+        screendata = tg.render_query(tmin, tmax, jl, 'job_id')
+         
+        template = self.jinja_env.get_template('job_grid.html')
+        return template.render( taskid = task_id, screendata = screendata )

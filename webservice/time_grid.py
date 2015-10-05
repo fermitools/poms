@@ -23,16 +23,28 @@ class time_grid:
           return result
 
      def status_color(self,str):
+          if str.find("started") >= 0:
+              return "#335533"
+          if str.find("UserProcessStarted") >= 0:
+              return "#335533"
+          if str.find("UserExecutable") >= 0:
+              return "#11ff11"
+          if str.find("Starting") >= 0:
+              return "#11ff11"
           if str.find("running") >= 0:
               return "#11ff11"
+          if str.find("FileTransfer") >= 0:
+              return "#ddffdd"
           if str.find("ifdh::cp") >= 0:
               return "#ddffdd"
           if str.find("idle") >= 0:
               return "#888888"
+          if str.find("Finished") >= 0:
+              return "#ffffff"
           return "#ffffff"
 
      def pwidth(self, t0, t1):
-          return (t1 - t0) * 99 / (self.tdelta)
+          return (t1 - t0).total_seconds() * 99 / (self.tdelta.total_seconds())
 
      def add_time_data(self, tmin, tmax, dlistmap):
           self.tmin = tmin
@@ -70,14 +82,14 @@ class time_grid:
          rlist = []
          for id,plist in self.pmap.items():
              rlist.append("""
-               <div class='row' style='margin:5px 5px;'>
-                 <div class='label' style='text-align: right; width: 9%%; float:left'>%s</div>
-                   <div clas='rowdata'  style='width: 90%%; float:left; clear: right;'>
+               <div class='row' style='margin:5px 5px; padding:0px 0px;'>
+                 <div class='mwm_label' style='text-align: right; width: 9%%; float:left; '>%s</div>
+                   <div clas='mwm_rowdata'  style='width: 90%%; float:left; clear: right; margin: 0px 0px'>
                 """ % id)
              for p in plist:
                  rlist.append("""
                        <a href='%s' title='%s'>
-                         <div class='tbox' style='width: %d%%; background-color: %s; float:left;'>
+                         <div class='tbox' style='width: %d%%; background-color: %s !important; float:left; '>
                            &nbsp;
                          </div>
                        </a>
