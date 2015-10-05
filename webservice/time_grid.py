@@ -1,8 +1,10 @@
 class time_grid:
 
      def render_query(self, tmin, tmax, rows, group_key):
-         dlmap = self.group_time_data(self, rows, group_key)
+         dlmap = self.group_time_data( rows, group_key)
+         print "got dlmap:", dlmap
          self.add_time_data(tmin, tmax, dlmap)
+         print "self.pmap is: ", self.pmap
          return self.draw_boxes()
 
      def group_time_data( self, rows, group_key ):
@@ -12,6 +14,7 @@ class time_grid:
               key = getattr(row, group_key)
               if key != lastkey:
                   result[key] = []
+                  lastkey = key
               result[key].append( {'time':row.created, 
                                    'status': row.status, 
                                    'txt':  row.status,
@@ -85,62 +88,90 @@ class time_grid:
                </div>
                  """)
          return "\n".join(rlist)
-tg = time_grid()
-tg.add_time_data(1, 12, {
-    'a': [  
-           {'time': 2,
-            'status': 'idle',
-            'url': '',
-            'txt': 'idle'},
-           {'time': 4,
-            'status': 'running',
-            'url': '',
-            'txt': 'running'},
-           {'time': 6,
-            'status': 'ifdh::cp foo bar',
-            'url': '',
-            'txt': 'ifdh::cp foo bar'},
-           {'time': 8,
-            'status': 'complete',
-            'url': '',
-            'txt': 'complete'}, 
-        ],
-    'b': [  
-           {'time': 3,
-            'status': 'idle',
-            'url': '',
-            'txt': 'idle'},
-           {'time': 5,
-            'status': 'running',
-            'url': '',
-            'txt': 'running'},
-           {'time': 7,
-            'status': 'ifdh::cp foo bar',
-            'url': '',
-            'txt': 'ifdh::cp foo bar'},
-           {'time': 9,
-            'status': 'complete',
-            'url': '',
-            'txt': 'complete'}, 
-        ],
-    'c': [  
-           {'time': 2,
-            'status': 'idle',
-            'url': '',
-            'txt': 'idle'},
-           {'time': 4,
-            'status': 'running',
-            'url': '',
-            'txt': 'running'},
-           {'time': 8,
-            'status': 'ifdh::cp foo bar',
-            'url': '',
-            'txt': 'ifdh::cp foo bar'},
-           {'time': 10,
-            'status': 'complete',
-            'url': '',
-            'txt': 'complete'}, 
-        ],
-  }
-)
-print tg.draw_boxes()
+
+if __name__ == '__main__':
+
+    tg = time_grid()
+    tg.add_time_data(1, 12, {
+	'a': [  
+	       {'time': 2,
+		'status': 'idle',
+		'url': '',
+		'txt': 'idle'},
+	       {'time': 4,
+		'status': 'running',
+		'url': '',
+		'txt': 'running'},
+	       {'time': 6,
+		'status': 'ifdh::cp foo bar',
+		'url': '',
+		'txt': 'ifdh::cp foo bar'},
+	       {'time': 8,
+		'status': 'complete',
+		'url': '',
+		'txt': 'complete'}, 
+	    ],
+	'b': [  
+	       {'time': 3,
+		'status': 'idle',
+		'url': '',
+		'txt': 'idle'},
+	       {'time': 5,
+		'status': 'running',
+		'url': '',
+		'txt': 'running'},
+	       {'time': 7,
+		'status': 'ifdh::cp foo bar',
+		'url': '',
+		'txt': 'ifdh::cp foo bar'},
+	       {'time': 9,
+		'status': 'complete',
+		'url': '',
+		'txt': 'complete'}, 
+	    ],
+	'c': [  
+	       {'time': 2,
+		'status': 'idle',
+		'url': '',
+		'txt': 'idle'},
+	       {'time': 4,
+		'status': 'running',
+		'url': '',
+		'txt': 'running'},
+	       {'time': 8,
+		'status': 'ifdh::cp foo bar',
+		'url': '',
+		'txt': 'ifdh::cp foo bar'},
+	       {'time': 10,
+		'status': 'complete',
+		'url': '',
+		'txt': 'complete'}, 
+	    ],
+      }
+    )
+    print tg.draw_boxes()
+
+    class fakerow:
+        def __init__(self, **kwargs):
+             self.__dict__.update(kwargs)
+
+    print '<hr>'
+    testrows = [ 
+         fakerow( jobid= 'job1', created = 1, status = "idle"),
+         fakerow( jobid= 'job1', created = 6, status = "ifdh::cp whatever"),
+         fakerow( jobid= 'job1', created = 3, status = "running"),
+         fakerow( jobid= 'job1', created = 9, status = "completed"),
+         fakerow( jobid= 'job2', created = 2, status = "idle"),
+         fakerow( jobid= 'job2', created = 4, status = "running"),
+         fakerow( jobid= 'job2', created = 6, status = "ifdh::cp whatever"),
+         fakerow( jobid= 'job2', created = 10, status = "completed"),
+         fakerow( jobid= 'job3', created = 2, status = "idle"),
+         fakerow( jobid= 'job3', created = 4, status = "running"),
+         fakerow( jobid= 'job3', created = 7, status = "ifdh::cp whatever"),
+         fakerow( jobid= 'job3', created = 10, status = "completed"),
+         fakerow( jobid= 'job4', created = 3, status = "idle"),
+         fakerow( jobid= 'job4', created = 5, status = "running"),
+         fakerow( jobid= 'job4', created = 9, status = "ifdh::cp whatever"),
+         fakerow( jobid= 'job4', created = 11, status = "completed"),
+        ]
+    print tg.render_query(0,12,testrows,'jobid')

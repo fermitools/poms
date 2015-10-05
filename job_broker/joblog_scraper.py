@@ -69,7 +69,7 @@ class joblog_scraper:
 
     def report_item(self, taskid, jobid, hostname, message):
         data = { 
-           "task_id": taskid,
+           "taskid": taskid,
            "jobid": jobid,
            "slot": hostname,
         }
@@ -105,7 +105,7 @@ class joblog_scraper:
                   print "still failed, continuing.."
                   pass
 
-        self.job_reporter.report(**data)
+        self.job_reporter.report_status(**data)
 
 
     def scan(self):
