@@ -82,9 +82,9 @@ class time_grid:
          rlist = []
          for id,plist in self.pmap.items():
              rlist.append("""
-               <div class='row' style='margin:5px 5px; padding:0px 0px;'>
-                 <div class='mwm_label' style='text-align: right; width: 9%%; float:left; '>%s</div>
-                   <div clas='mwm_rowdata'  style='width: 90%%; float:left; clear: right; margin: 0px 0px'>
+               <div class='row' style='margin:0px 0px; padding:0px 0px;'>
+                 <div class='mwm_label' style='text-align: right; width: 9%%; float:left; padding: 5px 5px; border-right: 1px solid black; '>%s</div>
+                   <div clas='mwm_rowdata'  style='width: 85%%; float:left; clear: right; border-right: 1px solid black; padding: 5px 0px'>
                 """ % id)
              for p in plist:
                  rlist.append("""
