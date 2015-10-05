@@ -17,7 +17,7 @@ class time_grid:
                   lastkey = key
               result[key].append( {'time':row.created, 
                                    'status': row.status, 
-                                   'txt':  row.status,
+                                   'txt':  "%s@%s: %s" % (key, row.created, row.status),
                                    'url':  getattr(row, 'url','') 
                                   })
           return result
