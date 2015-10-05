@@ -1,3 +1,4 @@
+CREATE SCHEMA "public";
 
 CREATE SEQUENCE campaigns_campaign_id_seq START WITH 1;
 
@@ -148,10 +149,13 @@ CREATE TABLE job_histories (
 
 CREATE TABLE service_downtimes ( 
 	service_id           integer  NOT NULL,
+	downtime_type        text  NOT NULL,
 	downtime_started     timestamptz  NOT NULL,
 	downtime_ended       timestamptz  ,
 	CONSTRAINT pk_service_downtimes PRIMARY KEY ( service_id, downtime_started )
  );
+
+ALTER TABLE service_downtimes ADD CONSTRAINT ck_downtime_type CHECK ( downtime_type::text = ANY (ARRAY['actual'::character varying, 'scheduled'::character varying]::text[]) );
 
 CREATE TABLE services ( 
 	service_id           serial  NOT NULL,
