@@ -41,17 +41,150 @@
 <script>
 
 	$(document).ready(function() {
+
+
+
+
+
+		/* initialize the external events
+		-----------------------------------------------------------------*/
+		$('#external-events .fc-event').each(function() {
+			// store data so the calendar knows to render an event upon drop
+			$(this).data('event', {
+				title: $.trim($(this).text()), // use the element's text as the event title
+				stick: true // maintain when user navigates (see docs on the renderEvent method)
+			});
+			// make the event draggable using jQuery UI
+			$(this).draggable({
+				zIndex: 999,
+				revert: true,      // will cause the event to go back to its
+				revertDuration: 0  //  original position after the drag
+			});
+		});
+
+
+
+
+
+
+
+
+
+
+
+
+                var date = new Date();
+                var d = date.getDate();
+                var m = date.getMonth();
+                var y = date.getFullYear();
+
 		
-		$('#calendar').fullCalendar({
+		var calendar = $('#calendar').fullCalendar({
 			header: {
 				left: 'prev,next today',
 				center: 'title',
-				right: 'month,basicWeek,basicDay'
+				//right: 'month,basicWeek,basicDay'
+                                right: 'month,basicWeek,agendaDay'
 			},
-			defaultDate: '2015-02-12',
+			//defaultDate: '2015-02-12',
+                        defaultDate: date,
 			editable: true,
 			eventLimit: true, // allow "more" link when too many events
-                        events:'/poms/calendar_json'
+                        events:'/poms/calendar_json',
+                
+
+
+			selectable: true,
+			selectHelper: true,
+                        slotMinutes: 5,
+
+                        timezone: 'UTC',
+                        droppable: true, //this allows things to be dropped onto the calendar
+                        drop: function() {
+				// is the "remove after drop" checkbox checked?
+				if ($('#drop-remove').is(':checked')) {
+					// if so, remove the element from the "Draggable Events" list
+					$(this).remove();
+				}
+			},
+
+                        //CREATE EVENT HERE
+			select: function(start, end, allDay) {
+				var title = prompt('Event Title:');
+				if (title) {
+                                        alert(start);
+                                        alert(end);
+                                        alert(allDay);
+
+
+
+                                        $.post("/poms/add_event", {title: title, start: start/1000, end: end/1000}, 
+                                                  function(data){
+                                                      alert(data);
+                                                      if(data == "Ok.")
+                                                      {
+                                                          calendar.fullCalendar('renderEvent',
+                                                                  {
+                                                                          title: title,
+                                                                          start: start,
+                                                                          end: end,
+//                                                                          allDay: allDay
+                                                                  },
+                                                                  true // make the event "stick"
+                                                          );
+
+                                             
+                                                      }
+                            
+                                                      else
+                                                      {
+                                                        alert("Something went wrong, please try again.");
+                                                      }
+
+
+                                                  });  //ends post
+
+
+
+				}  //ends if title statement
+				calendar.fullCalendar('unselect');
+			},  //ends function(
+
+
+
+
+
+
+
+
+
+                        //EDIT EVENT HERE
+
+			eventClick: function(event, element) {
+                           alert(event.id);
+     			   event.title = "CLICKED!";
+                           calendar.fullCalendar('updateEvent', event);
+			},
+
+
+
+
+
+
+
+//events:
+//[
+//  {
+//  id: 777,
+//  title: 'Long Event',
+//  start: '2015-10-07',
+//  end: '2015-10-08',
+//  color: 'red',
+//  allDay: false
+//  },
+//]
+
+
 			//events: [
 				//{
 					//title: 'All Day Event',
@@ -121,6 +254,101 @@
 	}
 
 </style>
+
+
+
+
+
+
+
+
+
+
+
+<style>
+	#wrap {
+		width: 1100px;
+		margin: 0 auto;
+	}
+		
+	#external-events {
+		float: left;
+		width: 150px;
+		padding: 0 10px;
+		border: 1px solid #ccc;
+		background: #eee;
+		text-align: left;
+	}
+		
+	#external-events h4 {
+		font-size: 16px;
+		margin-top: 0;
+		padding-top: 1em;
+	}
+		
+	#external-events .fc-event {
+		margin: 10px 0;
+		cursor: pointer;
+	}
+		
+	#external-events p {
+		margin: 1.5em 0;
+		font-size: 11px;
+		color: #666;
+	}
+		
+	#external-events p input {
+		margin: 0;
+		vertical-align: middle;
+	}
+        /*
+	#calendar {
+		float: right;
+		width: 900px;
+	}
+        */
+</style>
+
+
+
+
+
+<!--
+	<div id='wrap'>
+
+		<div id='external-events'>
+			<h4>Draggable Events</h4>
+			<div class='fc-event'>My Event 1</div>
+			<div class='fc-event'>My Event 2</div>
+			<div class='fc-event'>My Event 3</div>
+			<div class='fc-event'>My Event 4</div>
+			<div class='fc-event'>My Event 5</div>
+			<p>
+				<input type='checkbox' id='drop-remove' />
+				<label for='drop-remove'>remove after drop</label>
+			</p>
+		</div>
+
+		<div id='calendar'></div>
+
+		<div style='clear:both'></div>
+
+	</div>
+-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	<div id='calendar'></div>
 
