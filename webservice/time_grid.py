@@ -1,4 +1,8 @@
 class time_grid:
+     
+     def __init__(self):
+         # you can't see boxes less than 4% wide...
+         self.minwidth = 4
 
      def render_query(self, tmin, tmax, rows, group_key):
          dlmap = self.group_time_data( rows, group_key)
@@ -23,6 +27,8 @@ class time_grid:
           return result
 
      def status_color(self,str):
+          if str.find("Finished") >= 0:
+              return "#ffffff"
           if str.find("started") >= 0:
               return "#335533"
           if str.find("UserProcessStarted") >= 0:
@@ -39,8 +45,6 @@ class time_grid:
               return "#ddffdd"
           if str.find("idle") >= 0:
               return "#888888"
-          if str.find("Finished") >= 0:
-              return "#ffffff"
           return "#ffffff"
 
      def pwidth(self, t0, t1):
@@ -78,7 +82,33 @@ class time_grid:
                   i = i + 1
               self.pmap[id] = plist
 
+     def min_box_sizes(self):
+         '''
+             make sure all boxes are at least min box size
+             this makes the large boxes smaller to not
+             overflow the row
+         '''
+         for id,plist in self.pmap.items():
+             n_items=0
+             n_too_small=0
+             fudge = 0.0
+             for p in plist:
+                 n_items = n_items + 1
+                 if p['width'] < self.minwidth:
+                    n_too_small = n_too_small + 1
+                    fudge = fudge + self.minwidth - p['width']
+             delta = int(fudge / (n_items - n_too_small) + 0.9)
+             for p in plist:
+                 if p['width'] < self.minwidth:
+                     p['width'] = self.minwidth
+                 else:
+                     if fudge < delta:
+                        delta = fudge
+                     p['width'] = p['width'] - delta
+                     fudge = fudge - delta
+             
      def draw_boxes(self):
+         self.min_box_sizes()
          rlist = []
          for id,plist in self.pmap.items():
              rlist.append("""

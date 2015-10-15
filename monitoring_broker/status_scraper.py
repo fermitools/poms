@@ -1,8 +1,17 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 from ConfigParser import SafeConfigParser
 import re
 import urllib2
+import httplib
+import traceback
+import os
+import sys
+import ssl,socket
+
+import pycurl
+from StringIO import StringIO
+
 
 class status_scraper():
 
@@ -23,12 +32,26 @@ class status_scraper():
 
     def fetch_page(self, url):
         if not self.page_cache.has_key(url):
+            if self.debug: print "fetching page: ", url
             try:
                 lines = []
-                f = urllib2.urlopen(url)
-                self.page_cache[url] = f.readlines()
-                f.close()
-            except:
+                c = pycurl.Curl()
+                buffer = StringIO()
+                c.setopt(c.URL, url)
+                c.setopt(c.WRITEFUNCTION, buffer.write)
+                c.setopt(c.SSLCERT,"/tmp/x509up_u%d" % os.getuid())
+                c.setopt(c.SSLKEY,"/tmp/x509up_u%d" % os.getuid())
+                c.setopt(c.SSL_VERIFYHOST, 0)
+                c.setopt(c.HTTPHEADER, ['Accept: application/json','Accept: text/plain','Accept: text/html'])
+                c.perform()
+                c.close()
+                self.page_cache[url] = buffer.getvalue().split("\n")
+                buffer.close()
+                if self.debug: print "Fetched."
+                if self.debug: print self.page_cache[url]
+            except Exception as e:
+                print "Ouch! "
+                print traceback.format_exc()
                 if self.page_cache.has_key(url):
                     del self.page_cache[url]
                 return None
@@ -93,6 +116,8 @@ class status_scraper():
 	        if self.debug: print "scraping %s for matches" % scrape_url
                 re_obj = re.compile(scrape_regex)
                 lines = self.fetch_page(scrape_url)
+                if not lines:
+                    continue
                 for line in lines :
                     if self.debug: print "got:", line
                     m = re_obj.search(line)

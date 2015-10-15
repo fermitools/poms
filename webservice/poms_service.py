@@ -2,10 +2,10 @@ import cherrypy
 import os
 import time_grid
 
-from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text
+from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
-from model.poms_model import Service, ServiceDowntime, Experimenter, Job, JobHistory, Task, TaskHistory
+from model.poms_model import Service, ServiceDowntime, Experimenter, Job, JobHistory, Task, TaskHistory, Campaign
 
 ZERO = timedelta(0)
 
@@ -194,7 +194,7 @@ class poms_service:
         else:
             res = ''
         active = ""
-        for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(desc(Service.name)).all():
+        for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(Service.name).all():
              posneg = "positive" if s.status == "good" else "negative" if s.status == "bad" else ""
              icon =  "checkmark" if s.status == "good" else "remove" if s.status == "bad" else "help circle"
              if s.host_site:
@@ -400,7 +400,7 @@ class poms_service:
 
 
     @cherrypy.expose
-    def show_jobs(self, task_id, tmin, tmax ):
+    def show_task_jobs(self, task_id, tmin, tmax ):
         tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S")
         tmin= tmin.replace(tzinfo = utc)
         tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
@@ -408,6 +408,25 @@ class poms_service:
         jl = cherrypy.request.db.query(JobHistory).join(Job).filter(Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = time_grid.time_grid(); 
         screendata = tg.render_query(tmin, tmax, jl, 'job_id')
+         
+        template = self.jinja_env.get_template('job_grid.html')
+        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16])
+
+    @cherrypy.expose
+    def show_campaign_tasks(self, campaign_id, tmin, tmax ):
+        tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S")
+        tmin= tmin.replace(tzinfo = utc)
+        tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
+        tmax= tmax.replace(tzinfo = utc)
+        
+        tl = cherrypy.request.db.query(Task.task_id, func.max(JobHistory.created), func.min(JobHistory.created)).join(Job,JobHistory).filter(Task.campaign_id == campaign_id, Job.task_id==Task.task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).group_by(Task.task_id).all()
+        for item in tl:
+            print item
+        tg = time_grid.time_grid(); 
+        print tl
+
+        return "hmm..."
+        screendata = tg.render_query(tmin, tmax, tl, 'task_id')
          
         template = self.jinja_env.get_template('job_grid.html')
         return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16])
