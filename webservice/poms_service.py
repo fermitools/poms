@@ -88,7 +88,7 @@ class poms_service:
 
 
     @cherrypy.expose
-    def calendar_json(self, start, end, _):
+    def calendar_json(self, start, end, timezone, _):
         cherrypy.response.headers['Content-Type'] = "application/json"
         import json
         list = []
@@ -105,6 +105,49 @@ class poms_service:
     def calendar(self):
         template = self.jinja_env.get_template('calendar.html')
         return template.render()
+
+
+
+    @cherrypy.expose
+    def add_event(self, title, start, end):
+        import time
+        from datetime import datetime
+        print "+++++title+++++", title  #like minos_sam:27 DCache:12 All:11 ...
+        print "+++++start+++++", start
+        print "+++++end+++++", end
+        print time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(float(start)))
+        print "editable = true"  #user generated events should be editable default is false
+
+        #convert the inputs from epoch like 1445817600 to a string
+        start_str = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(float(start)))
+        end_str = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(float(end)))
+
+        #now convert them to datetime objects
+        start_dt = datetime.strptime(start_str, "%Y-%m-%d %H:%M:%S")
+        end_dt = datetime.strptime(end_str, "%Y-%m-%d %H:%M:%S")
+
+        #lastly we overwrite the datetime objects to include the time zone
+        start_dt = datetime(start_dt.year, start_dt.month, start_dt.day, start_dt.hour, start_dt.minute, tzinfo=utc)
+        end_dt = datetime(end_dt.year, end_dt.month, end_dt.day, end_dt.hour, end_dt.minute, tzinfo=utc)
+
+        print "+++++++++++++++++++++++++++++++++++"
+        print start_dt
+        print end_dt
+        print "+++++++++++++++++++++++++++++++++++"
+        s = cherrypy.request.db.query(Service).filter(Service.name == title).first()
+        if s:
+            print "+++++WE GOT A SERVICE ID!+++++", s.service_id
+            d = ServiceDowntime()
+            d.service_id = s.service_id
+            d.downtime_started = start_dt
+            d.downtime_ended = end_dt
+            d.downtime_type = 'scheduled'
+            cherrypy.request.db.add(d)
+            cherrypy.request.db.commit()
+        else:
+            print "+++++NO SERVICE ID+++++"
+
+        return "Ok."
 
 
     @cherrypy.expose
