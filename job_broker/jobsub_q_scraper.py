@@ -32,7 +32,7 @@ class jobsub_q_scraper:
         # like just another environment variable JOBSTATUS
         # for now we have a for loop and use condor_q, in future
         # we hope to be able to use jobsub_q with -format...
-        f = os.popen("for n in 1 2; do condor_q -pool fifebatchgpvmhead$n.fnal.gov -name fifebatch$n.fnal.gov -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d\n' ProcessID ; done", "r")
+        f = os.popen("for n in 1 2; do condor_q -pool fifebatchgpvmhead$n.fnal.gov -name fifebatch$n.fnal.gov -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format \"%d;SCHEDD=fifebatch$n.fnal.gov\\n\" ProcID ; done", "r")
         for line in f:
             if line.find('POMS_TASK_ID=') > 0:
                 
@@ -58,6 +58,8 @@ class jobsub_q_scraper:
                     taskid = jobenv['POMS_TASK_ID'],
                     status = self.map[jobenv['JOBSTATUS']]
                   )
+            else:
+                print "skipping:" , line
 
     def poll(self):
         while(1):
