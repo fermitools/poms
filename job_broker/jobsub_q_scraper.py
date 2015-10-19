@@ -59,7 +59,8 @@ class jobsub_q_scraper:
                     status = self.map[jobenv['JOBSTATUS']]
                   )
             else:
-                print "skipping:" , line
+                #print "skipping:" , line
+                pass
 
     def poll(self):
         while(1):
@@ -68,4 +69,6 @@ class jobsub_q_scraper:
 
 if __name__ == '__main__':
     js = jobsub_q_scraper(job_reporter("http://localhost.fnal.gov:8080/poms"))
-    js.poll()
+    # js.poll()
+    # for testing, just do one pass...
+    js.scan()

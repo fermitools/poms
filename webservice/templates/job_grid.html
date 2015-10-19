@@ -1,0 +1,44 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>POMS:Jobs in Task {{taskid}} </title>
+{%endblock%}
+
+
+{%block breadcrumbs%}
+    <div class="item">
+       Dashboard  <!--label of current location on mobile-->
+    </div>
+    <div class="item">
+      Campaigns
+    </div>
+    <div class="item">
+      Jobs in Task {{taskid}}
+    </div>
+{%endblock%}
+
+
+{%block header%}
+<h1 class="ui header">
+     Task {{taskid}} Jobs
+</h1>
+{%endblock%}
+
+
+
+{%block subheader%}
+<h2 class="ui dividing header">Task {{taskid}} jobs:</h2>
+{%endblock%}
+
+
+
+
+{%block content%}
+  <div class="ui grid">
+    {{screendata}}
+    <div class=row>
+     <div class="left floated left aligned six wide column">{{tmin}}</div>
+     <div class="right floated right aligned six wide column">{{tmax}}</div>
+   </div>
+  </div>
+{%endblock%}

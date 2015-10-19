@@ -424,21 +424,28 @@ class poms_service:
          return str(t.task_id)
 
     @cherrypy.expose
-    def update_job(self, task_id, jobsubjobid, slot='', cputype='', status='', cpu_type = ''):
+    def update_job(self, task_id, jobsubjobid,  **kwargs):
          host_site = "%s_on_%s" % (jobsubjobid, slot)
-         j = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id==jobsubjobid, Job.task_id==task_id).first()
+         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsubjobid, Job.task_id==task_id).first()
          if not j:
              j = Job()
              j.created = datetime.now(utc)
          j.task_id = task_id
          j.jobsub_job_id = jobsubjobid
          j.node_name = ''
-         j.cpu_type = cpu_type
-         j.host_site = host_site
-         j.status = status
+         if kwargs.get('cpu_type', None):
+            j.cpu_type = kwargs['cpu_type']
+         if kwargs.get('host_site', None):
+             j.host_site = kwargs['host_site']
+         if kwargs.get('status', None):
+             j.status = kwargs['status']
+         if kwargs.get('user_exc_exit_code', None):
+             j.user_exc_exit_code = kwargs['user_exc_exit_code']
          j.updated =  datetime.now(utc)
+         j.task_obj.updated =  datetime.now(utc)
 
          cherrypy.request.db.add(j)
+         cherrypy.request.db.add(j.task_obj)
          cherrypy.request.db.commit()
 
 
