@@ -1,0 +1,41 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>Jobs in Task {{taskid}} </title>
+{%endblock%}
+
+
+{%block breadcrumbs%}
+    <div class="item">
+       Dashboard  <!--label of current location on mobile-->
+    </div>
+    <div class="item">
+      Campaigns
+    </div>
+{%endblock%}
+
+
+{%block header%}
+<h1 class="ui header">
+     Campaigns
+</h1>
+{%endblock%}
+
+
+
+{%block subheader%}
+<h2 class="ui dividing header">Active Campaigns as of {{tmin}}</h2>
+{%endblock%}
+
+
+
+
+{%block content%}
+  <div class="ui grid">
+    {{screendata}}
+    <div class=row>
+     <div class="left floated left aligned six wide column">{{tmin}}</div>
+     <div class="right floated right aligned six wide column">{{tmax}}</div>
+   </div>
+  </div>
+{%endblock%}
