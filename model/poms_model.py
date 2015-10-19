@@ -94,7 +94,6 @@ class Service(Base):
     active = Column(Boolean, nullable=False, server_default=text("true"))
     parent_service_id = Column(ForeignKey(u'services.service_id'), index=True)
     url = Column(Text)
-    color = Column(Text)
     items = Column(Integer)
     failed_items = Column(Integer)
 
