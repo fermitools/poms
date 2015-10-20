@@ -3,12 +3,8 @@ import os
 import time_grid
 import json
 
-<<<<<<< HEAD
-from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, exc
-=======
-from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func 
+from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func, exc 
 from sqlalchemy.orm  import subqueryload
->>>>>>> f297458758281da01c2739a36c61c72078120c19
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 from model.poms_model import Service, ServiceDowntime, Experimenter, Job, JobHistory, Task, TaskHistory, Campaign
