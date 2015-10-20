@@ -1,8 +1,9 @@
 import cherrypy
 import os
 import time_grid
+import json
 
-from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text
+from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, exc
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 from model.poms_model import Service, ServiceDowntime, Experimenter, Job, JobHistory, Task, TaskHistory
@@ -90,14 +91,27 @@ class poms_service:
     @cherrypy.expose
     def calendar_json(self, start, end, timezone, _):
         cherrypy.response.headers['Content-Type'] = "application/json"
-        import json
         list = []
-        rows = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).filter(ServiceDowntime.downtime_started.between(start, end)).all()
+        rows = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).filter(ServiceDowntime.downtime_started.between(start, end)).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(~Service.name.endswith("sam")).all()
         for row in rows:
-            #print row.Service.name
-            #print row.ServiceDowntime.downtime_started
-            #print row.ServiceDowntime.downtime_ended
-            list.append({'title': row.Service.name, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended)}) 
+
+            if row.ServiceDowntime.downtime_type == 'scheduled':
+                editable = 'true'
+            else:
+                editable = 'false'
+
+            if row.Service.name.lower().find("sam") != -1:
+                color = "#92D3F3"
+            elif row.Service.name.lower().find("fts") != -1:
+                color = "#92D3F3"
+            elif row.Service.name.lower().find("dcache") != -1:
+                color = "#1BA8DD"
+            elif row.Service.name.lower().find("enstore") != -1:
+                color = "#2C7BE0"
+            else:
+                color = "red"
+
+            list.append({'start_key': str(row.ServiceDowntime.downtime_started), 'title': row.Service.name, 'id': row.ServiceDowntime.service_id, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended), 'editable': editable, 'color': color}) 
         return json.dumps(list)
 
 
@@ -110,44 +124,50 @@ class poms_service:
 
     @cherrypy.expose
     def add_event(self, title, start, end):
-        import time
-        from datetime import datetime
-        print "+++++title+++++", title  #like minos_sam:27 DCache:12 All:11 ...
-        print "+++++start+++++", start
-        print "+++++end+++++", end
-        print time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(float(start)))
-        print "editable = true"  #user generated events should be editable default is false
+        #title should be something like minos_sam:27 DCache:12 All:11 ...
 
-        #convert the inputs from epoch like 1445817600 to a string
-        start_str = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(float(start)))
-        end_str = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(float(end)))
+        start_dt = datetime.fromtimestamp(float(start), tz=utc)
+        end_dt = datetime.fromtimestamp(float(end), tz=utc)
 
-        #now convert them to datetime objects
-        start_dt = datetime.strptime(start_str, "%Y-%m-%d %H:%M:%S")
-        end_dt = datetime.strptime(end_str, "%Y-%m-%d %H:%M:%S")
-
-        #lastly we overwrite the datetime objects to include the time zone
-        start_dt = datetime(start_dt.year, start_dt.month, start_dt.day, start_dt.hour, start_dt.minute, tzinfo=utc)
-        end_dt = datetime(end_dt.year, end_dt.month, end_dt.day, end_dt.hour, end_dt.minute, tzinfo=utc)
-
-        print "+++++++++++++++++++++++++++++++++++"
-        print start_dt
-        print end_dt
-        print "+++++++++++++++++++++++++++++++++++"
         s = cherrypy.request.db.query(Service).filter(Service.name == title).first()
         if s:
-            print "+++++WE GOT A SERVICE ID!+++++", s.service_id
-            d = ServiceDowntime()
-            d.service_id = s.service_id
-            d.downtime_started = start_dt
-            d.downtime_ended = end_dt
-            d.downtime_type = 'scheduled'
-            cherrypy.request.db.add(d)
-            cherrypy.request.db.commit()
-        else:
-            print "+++++NO SERVICE ID+++++"
+            try:
+                #we got a service id
+                d = ServiceDowntime()
+                d.service_id = s.service_id
+                d.downtime_started = start_dt
+                d.downtime_ended = end_dt
+                d.downtime_type = 'scheduled'
+                cherrypy.request.db.add(d)
+                cherrypy.request.db.commit()
+                return "Ok."
+            except exc.IntegrityError:
+                return "This item already exists."
 
-        return "Ok."
+        else:
+            #no service id
+            return "Oops."
+
+
+
+    @cherrypy.expose
+    def edit_event(self, title, start, new_start, end, s_id):  #even though we pass in the s_id we should not rely on it because they can and will change the service name
+
+        s = cherrypy.request.db.query(Service).filter(Service.name == title).first()
+
+        new_start_dt = datetime.fromtimestamp(float(new_start), tz=utc)
+        end_dt = datetime.fromtimestamp(float(end), tz=utc)
+
+        record = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.downtime_started==start).filter(ServiceDowntime.service_id == s_id).first()
+        if record and record.ServiceDowntime.downtime_type == 'scheduled':
+            record.ServiceDowntime.service_id = s.service_id
+            record.ServiceDowntime.downtime_started = new_start_dt
+            record.ServiceDowntime.downtime_ended = end_dt
+            cherrypy.request.db.commit()
+            return "Ok."
+        else:
+            return "Oops."
+
 
 
     @cherrypy.expose

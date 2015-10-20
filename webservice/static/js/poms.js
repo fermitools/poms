@@ -438,15 +438,15 @@ semantic.ready = function() {
         //.prepend($advertisement)
         .prepend('<h4 class="ui header">' + title + '</h4>')
       ;
-      $rail = $('<div />')
-        .addClass('ui dividing right rail')
-        .html($sticky)
-        .prependTo($container)
-      ;
-      $sticky.sticky({
-        context: $container,
-        offset: 30
-      });
+     // $rail = $('<div />')
+       // .addClass('ui dividing right rail')
+       // .html($sticky)
+       // .prependTo($container)
+     // ;
+  //    $sticky.sticky({
+  //      context: $container,
+  //      offset: 30
+ //     });
       $followMenu
         .accordion({
           exclusive: false,
