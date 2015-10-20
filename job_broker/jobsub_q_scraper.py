@@ -85,6 +85,7 @@ class jobsub_q_scraper:
                 pass
 
         res = f.close()
+
         if res == 0 or res == None:
 	    for jobid in self.jobmap.keys():
 		if self.jobmap[jobid] == 0:
@@ -93,7 +94,7 @@ class jobsub_q_scraper:
 		    # we could get a false alarm here if condor_q fails...
 		    # thats why we only do this if our close() returned 0/None.
 		    self.job_reporter.report_status(
-			jobid = jobsubjobid,
+			jobid = jobid,
 			status = "Completed")
 
     def poll(self):
