@@ -87,7 +87,7 @@ class joblog_scraper:
         }
 
         if message.find("starting ifdh::cp") > 0:
-	    if self.copyin_re.match(message)
+	    if self.copyin_re.match(message):
                 dir = "in"
             else:
                 dir = "out"
