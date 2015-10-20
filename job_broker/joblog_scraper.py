@@ -136,5 +136,12 @@ class joblog_scraper:
                  self.report_item(d['task'], d['jobid'], d['hostname'],  d['message'])
 
 if __name__ == '__main__':
-    js = joblog_scraper(sys.stdin, job_reporter("http://fermicloud045.fnal.gov:8080/poms/"))
-    js.scan()
+   while 1:
+      try:
+          h = open("/fife/local/data/ifmon/joblog_fifo","r")
+          js = joblog_scraper(h, job_reporter("http://fermicloud045.fnal.gov:8080/poms/"))
+          js.scan()
+      except KeyboardInterrupt:
+          os.exit(1)
+      except:
+          pass
