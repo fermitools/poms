@@ -1,13 +1,17 @@
 class time_grid:
+     
+     def __init__(self):
+         # you can't see boxes less than 4% wide...
+         self.minwidth = 4
 
-     def render_query(self, tmin, tmax, rows, group_key):
-         dlmap = self.group_time_data( rows, group_key)
+     def render_query(self, tmin, tmax, rows, group_key, url_template=""):
+         dlmap = self.group_time_data( rows, group_key, url_template)
          print "got dlmap:", dlmap
          self.add_time_data(tmin, tmax, dlmap)
          print "self.pmap is: ", self.pmap
          return self.draw_boxes()
 
-     def group_time_data( self, rows, group_key ):
+     def group_time_data( self, rows, group_key, url_template="" ):
           result = {}
           lastkey = None
           for row in rows:
@@ -18,12 +22,20 @@ class time_grid:
               result[key].append( {'time':row.created, 
                                    'status': row.status, 
                                    'txt':  "%s@%s: %s" % (key, row.created, row.status),
-                                   'url':  getattr(row, 'url','') 
+                                   'url':  (url_template % row.__dict__) if url_template else getattr(row, 'url', '') 
                                   })
           return result
 
      def status_color(self,str):
+          if str.find("Finished") >= 0:
+              return "#ffffff"
+          if str.find("Idle") >= 0:
+              return "#808080"
+          if str.find("new") >= 0:
+              return "#035533"
           if str.find("started") >= 0:
+              return "#335533"
+          if str.find("Started") >= 0:
               return "#335533"
           if str.find("UserProcessStarted") >= 0:
               return "#335533"
@@ -33,14 +45,14 @@ class time_grid:
               return "#11ff11"
           if str.find("running") >= 0:
               return "#11ff11"
+          if str.find("Running") >= 0:
+              return "#11ff11"
           if str.find("FileTransfer") >= 0:
               return "#ddffdd"
           if str.find("ifdh::cp") >= 0:
               return "#ddffdd"
           if str.find("idle") >= 0:
               return "#888888"
-          if str.find("Finished") >= 0:
-              return "#ffffff"
           return "#ffffff"
 
      def pwidth(self, t0, t1):
@@ -78,7 +90,33 @@ class time_grid:
                   i = i + 1
               self.pmap[id] = plist
 
+     def min_box_sizes(self):
+         '''
+             make sure all boxes are at least min box size
+             this makes the large boxes smaller to not
+             overflow the row
+         '''
+         for id,plist in self.pmap.items():
+             n_items=0
+             n_too_small=0
+             fudge = 0.0
+             for p in plist:
+                 n_items = n_items + 1
+                 if p['width'] < self.minwidth:
+                    n_too_small = n_too_small + 1
+                    fudge = fudge + self.minwidth - p['width']
+             delta = int(fudge / (n_items - n_too_small) + 0.9)
+             for p in plist:
+                 if p['width'] < self.minwidth:
+                     p['width'] = self.minwidth
+                 else:
+                     if fudge < delta:
+                        delta = fudge
+                     p['width'] = p['width'] - delta
+                     fudge = fudge - delta
+             
      def draw_boxes(self):
+         self.min_box_sizes()
          rlist = []
          for id,plist in self.pmap.items():
              rlist.append("""

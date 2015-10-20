@@ -65,6 +65,9 @@ class Job(Base):
     host_site = Column(Text, nullable=False)
     status = Column(Text, nullable=False)
     updated = Column(DateTime(True), nullable=False)
+    output_files_declared = Column(Boolean, nullable=False)
+    output_file_names = Column(Text)
+    user_exe_exit_code = Column(Integer)
 
     task_obj = relationship(u'Task')
 
@@ -91,6 +94,8 @@ class Service(Base):
     active = Column(Boolean, nullable=False, server_default=text("true"))
     parent_service_id = Column(ForeignKey(u'services.service_id'), index=True)
     url = Column(Text)
+    items = Column(Integer)
+    failed_items = Column(Integer)
 
     parent_service_obj = relationship(u'Service', remote_side=[service_id])
 
@@ -133,6 +138,7 @@ class Task(Base):
     updater = Column(ForeignKey(u'experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
     command_executed = Column(Text)
+    project = Column(Text)
 
     campaign_obj = relationship(u'Campaign')
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Task.creator == Experimenter.experimenter_id')

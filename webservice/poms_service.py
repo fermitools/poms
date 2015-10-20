@@ -3,10 +3,15 @@ import os
 import time_grid
 import json
 
+<<<<<<< HEAD
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, exc
+=======
+from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func 
+from sqlalchemy.orm  import subqueryload
+>>>>>>> f297458758281da01c2739a36c61c72078120c19
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
-from model.poms_model import Service, ServiceDowntime, Experimenter, Job, JobHistory, Task, TaskHistory
+from model.poms_model import Service, ServiceDowntime, Experimenter, Job, JobHistory, Task, TaskHistory, Campaign
 
 ZERO = timedelta(0)
 
@@ -257,7 +262,7 @@ class poms_service:
         else:
             res = ''
         active = ""
-        for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(desc(Service.name)).all():
+        for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(Service.name).all():
              posneg = "positive" if s.status == "good" else "negative" if s.status == "bad" else ""
              icon =  "checkmark" if s.status == "good" else "remove" if s.status == "bad" else "help circle"
              if s.host_site:
@@ -444,33 +449,127 @@ class poms_service:
          return str(t.task_id)
 
     @cherrypy.expose
-    def update_job(self, task_id, jobsubjobid, slot='', cputype='', status='', cpu_type = ''):
-         host_site = "%s_on_%s" % (jobsubjobid, slot)
-         j = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id==jobsubjobid, Job.task_id==task_id).first()
-         if not j:
+    def active_jobs(self):
+         cherrypy.response.headers['Content-Type']= 'application/json'
+         res = [ "[" ]
+         sep=""
+         for job in cherrypy.request.db.query(Job).filter(Job.status != "Completed").all():
+              if job.jobsub_job_id == "unknown":
+                   continue
+              res.append( '%s "%s"' % (sep, job.jobsub_job_id))
+              sep = ","
+         res.append( "]" )
+         return "".join(res)
+         
+    @cherrypy.expose
+    def update_job(self, task_id = None, jobsubjobid = 'unknown',  **kwargs):
+         if task_id:
+             task_id = int(task_id)
+         host_site = "%s_on_%s" % (jobsubjobid, kwargs.get('slot','unknown'))
+         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsubjobid).first()
+
+         if not j and task_id:
              j = Job()
+             j.jobsub_job_id = jobsubjobid
              j.created = datetime.now(utc)
-         j.task_id = task_id
-         j.jobsub_job_id = jobsubjobid
-         j.node_name = ''
-         j.cpu_type = cpu_type
-         j.host_site = host_site
-         j.status = status
-         j.updated =  datetime.now(utc)
+             j.task_id = task_id
+             j.output_files_declared = False
+             j.node_name = ''
 
-         cherrypy.request.db.add(j)
-         cherrypy.request.db.commit()
+         if j:
+	     for field in ['cpu_type', 'host_site', 'status', 'user_exe_exit_code']:
+		 if kwargs.get(field, None):
+		    setattr(j,field,kwargs[field])
+		 if not getattr(j,field, None):
+		    if field == 'user_exe_exit_code':
+			setattr(j,field,0)
+		    else:
+			setattr(j,field,'unknown')
+     
+	     j.updated =  datetime.now(utc)
 
+	     if j.task_obj:
+		 j.task_obj.updated =  datetime.now(utc)
+		 cherrypy.request.db.add(j.task_obj)
+
+	     cherrypy.request.db.add(j)
+	     cherrypy.request.db.commit()
 
     @cherrypy.expose
-    def show_jobs(self, task_id, tmin, tmax ):
+    def show_task_jobs(self, task_id, tmin, tmax = None ):
+        tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S")
+        tmin= tmin.replace(tzinfo = utc)
+        if tmax != None:
+            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
+            tmax= tmax.replace(tzinfo = utc)
+        else:
+            tmax = tmin + timedelta(days=1)
+
+        jl = cherrypy.request.db.query(JobHistory).join(Job).filter(Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
+        tg = time_grid.time_grid(); 
+        screendata = tg.render_query(tmin, tmax, jl, 'job_id', url_template='/poms/triage_job?job_id="%(job_id)s"')
+         
+        template = self.jinja_env.get_template('job_grid.html')
+        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16])
+
+    @cherrypy.expose
+    def show_campaigns(self,tmin = None,tmax = None):
+
+        tg = time_grid.time_grid()
+
+	class fakerow:
+	    def __init__(self, **kwargs):
+	        self.__dict__.update(kwargs)
+
+        if tmin == None:
+            tminscreen = datetime.now(utc) - timedelta(days=1)
+            tmin = datetime.now(utc) - timedelta(days=2)
+        else:
+            tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S")
+            tmin= tmin.replace(tzinfo = utc)
+            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
+            tmax= tmax.replace(tzinfo = utc)
+            tminscreen = tmin
+            tmin = tmin - timedelta(days=1)
+
+        if tmax == None:
+            tmax = datetime.now(utc)
+
+        sl = []
+        cl = cherrypy.request.db.query(Campaign).join(Task).filter(Task.campaign_id == Campaign.campaign_id , Task.created > tmin, Task.created < tmax ).all()
+        
+        for c in cl:
+              sl.append('<h2 class="ui dividing header">%s Tasks</h2>' % c.name )
+              tl =  cherrypy.request.db.query(Task).filter(Task.campaign_id == c.campaign_id, Task.created > tmin, Task.created < tmax ).all()
+              items = []
+              for t in tl:
+                   s = fakerow(task_id = t.task_id,  created = t.created, status="Started")
+                   e = fakerow(task_id = t.task_id,  created = t.updated, status=t.status )
+                   items.append(s)
+                   items.append(e)
+              sl.append( tg.render_query(tmin, tmax, tl, 'task_id', url_template = '/poms/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
+
+        screendata = "\n".join(sl)
+              
+        template = self.jinja_env.get_template('campaign_grid.html')
+        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16])
+                 
+
+    @cherrypy.expose
+    def show_campaign_tasks(self, campaign_id, tmin, tmax ):
         tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S")
         tmin= tmin.replace(tzinfo = utc)
         tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
         tmax= tmax.replace(tzinfo = utc)
-        jl = cherrypy.request.db.query(JobHistory).join(Job).filter(Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
+        
+        tl = cherrypy.request.db.query(Task.task_id, func.max(JobHistory.created), func.min(JobHistory.created)).join(Job,JobHistory).filter(Task.campaign_id == campaign_id, Job.task_id==Task.task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).group_by(Task.task_id).all()
+        for item in tl:
+            print item
         tg = time_grid.time_grid(); 
-        screendata = tg.render_query(tmin, tmax, jl, 'job_id')
+        print tl
+
+        return "hmm..."
+        screendata = tg.render_query(tmin, tmax, tl, 'task_id',url_template = '/poms/show_task_jobs?task_id=%(task_id)s&tmin=%(created)s' )
          
         template = self.jinja_env.get_template('job_grid.html')
         return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16])

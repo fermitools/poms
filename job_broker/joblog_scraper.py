@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 import sys
 import os
@@ -34,6 +34,7 @@ class joblog_scraper:
 
         self.ifdhline_re = re.compile(ifdhline_pat)
         self.oldifdhline_re = re.compile(oldifdhline_pat)
+        self.copyin_re = re.compile(".*ifdh::cp\( (--force=[a-z]* )?(-D )?(/pnfs|/nova|/minerva|/grid|/cvmfs|/mu2e|/uboone|/lbne|/dune|/argoneut|/minos|/gm2|/miniboone|/coupp|/d0|/lariat|/e906|gsiftp:|s3:)")
 
     def parse_line(self, line):
 	timestamp = ""
@@ -67,7 +68,18 @@ class joblog_scraper:
 		'message': message ,
         }
 
-    def report_item(self, taskid, jobid, hostname, message):
+    def find_output_files(self, message):
+        file_map = {}
+        message = message[message.find("ifdh::cp(")+9:]
+        list = message.split(" ")
+        for item in list:
+            item = item[item.rfind("/")+1:]
+            # pretty much all actual output files are .root or .art ...
+            if item.endswith(".root") or item.endswith(".art"):
+               file_map[item] = 1
+        return file_map.keys()
+
+    def report_item(self, taskid, jobid, hostname, message, experiment = "none"):
         data = { 
            "taskid": taskid,
            "jobid": jobid,
@@ -75,10 +87,19 @@ class joblog_scraper:
         }
 
         if message.find("starting ifdh::cp") > 0:
-            data['status'] = "running: copying files"
+	    if self.copyin_re.match(message):
+                dir = "in"
+            else:
+                dir = "out"
+
+            if dir == "out":
+                data['output_files'] = self.find_output_files(message)
+             
+            data['status'] = "running: copying files " + dir
         
         if message.find("transferred") > 0:
-            data['status'] = "running: copy succeeded"
+            # don't actually log copy completed status, can't tell where it is
+            # data['status'] = "running: copy succeeded"
             pass
 
         if message.find("BEGIN EXECUTION") > 0:
@@ -87,7 +108,7 @@ class joblog_scraper:
 
         if message.find("COMPLETED with") > 0:
            data['status'] = "running: user code complete"
-           data['exit_code'] = message[message.find("COMPLETED with")+27:]
+           data['user_exe_exit_code'] = message[message.find("COMPLETED with")+27:]
  
         # pull any fields if it's a json block
         pos = message.find('{')
@@ -115,5 +136,12 @@ class joblog_scraper:
                  self.report_item(d['task'], d['jobid'], d['hostname'],  d['message'])
 
 if __name__ == '__main__':
-    js = joblog_scraper(sys.stdin, job_reporter("http://localhost.fnal.gov:8080/poms/"))
-    js.scan()
+   while 1:
+      try:
+          h = open("/fife/local/data/ifmon/joblog_fifo","r")
+          js = joblog_scraper(h, job_reporter("http://fermicloud045.fnal.gov:8080/poms/"))
+          js.scan()
+      except KeyboardInterrupt:
+          os.exit(1)
+      except:
+          pass
