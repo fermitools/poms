@@ -1,4 +1,4 @@
-CREATE SCHEMA "public";
+--CREATE SCHEMA "public";
 
 CREATE SEQUENCE campaigns_campaign_id_seq START WITH 1;
 
@@ -104,6 +104,7 @@ CREATE TABLE tasks (
 	updater              integer  ,
 	updated              timestamptz  ,
 	command_executed     text  ,
+	project              text  ,
 	CONSTRAINT pk_tasks PRIMARY KEY ( task_id )
  );
 
@@ -128,6 +129,9 @@ CREATE TABLE jobs (
 	host_site            text  NOT NULL,
 	status               text  NOT NULL,
 	updated              timestamptz  NOT NULL,
+	output_files_declared bool DEFAULT false NOT NULL,
+	output_file_names    text  ,
+	user_exe_exit_code   integer  ,
 	CONSTRAINT pk_jobs PRIMARY KEY ( job_id )
  );
 
@@ -164,8 +168,11 @@ CREATE TABLE services (
 	status               text  NOT NULL,
 	updated              timestamptz  NOT NULL,
 	active               bool DEFAULT true NOT NULL,
+	description          text  ,
 	parent_service_id    integer  ,
 	url                  text  ,
+	items                integer  ,
+	failed_items         integer  ,
 	CONSTRAINT pk_services PRIMARY KEY ( service_id )
  );
 
