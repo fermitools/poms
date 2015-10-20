@@ -87,7 +87,7 @@ class joblog_scraper:
         }
 
         if message.find("starting ifdh::cp") > 0:
-	    if self.copyin_re.match(message)
+	    if self.copyin_re.match(message):
                 dir = "in"
             else:
                 dir = "out"
@@ -136,5 +136,5 @@ class joblog_scraper:
                  self.report_item(d['task'], d['jobid'], d['hostname'],  d['message'])
 
 if __name__ == '__main__':
-    js = joblog_scraper(sys.stdin, job_reporter("http://localhost.fnal.gov:8080/poms/"))
+    js = joblog_scraper(sys.stdin, job_reporter("http://fermicloud045.fnal.gov:8080/poms/"))
     js.scan()

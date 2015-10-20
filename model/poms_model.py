@@ -67,7 +67,7 @@ class Job(Base):
     updated = Column(DateTime(True), nullable=False)
     output_files_declared = Column(Boolean, nullable=False)
     output_file_names = Column(Text)
-    user_exc_exit_code = Column(Integer)
+    user_exe_exit_code = Column(Integer)
 
     task_obj = relationship(u'Task')
 

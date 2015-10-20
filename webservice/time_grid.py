@@ -29,6 +29,8 @@ class time_grid:
      def status_color(self,str):
           if str.find("Finished") >= 0:
               return "#ffffff"
+          if str.find("Idle") >= 0:
+              return "#808080"
           if str.find("new") >= 0:
               return "#035533"
           if str.find("started") >= 0:
@@ -42,6 +44,8 @@ class time_grid:
           if str.find("Starting") >= 0:
               return "#11ff11"
           if str.find("running") >= 0:
+              return "#11ff11"
+          if str.find("Running") >= 0:
               return "#11ff11"
           if str.find("FileTransfer") >= 0:
               return "#ddffdd"

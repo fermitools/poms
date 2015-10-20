@@ -2,7 +2,8 @@ import cherrypy
 import os
 import time_grid
 
-from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func
+from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func 
+from sqlalchemy.orm  import subqueryload
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 from model.poms_model import Service, ServiceDowntime, Experimenter, Job, JobHistory, Task, TaskHistory, Campaign
@@ -425,27 +426,33 @@ class poms_service:
 
     @cherrypy.expose
     def update_job(self, task_id, jobsubjobid,  **kwargs):
-         host_site = "%s_on_%s" % (jobsubjobid, slot)
+         task_id = int(task_id)
+         host_site = "%s_on_%s" % (jobsubjobid, kwargs.get('slot','unknown'))
          j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsubjobid, Job.task_id==task_id).first()
          if not j:
              j = Job()
              j.created = datetime.now(utc)
-         j.task_id = task_id
+             j.task_id = task_id
+             j.output_files_declared = False
          j.jobsub_job_id = jobsubjobid
          j.node_name = ''
-         if kwargs.get('cpu_type', None):
-            j.cpu_type = kwargs['cpu_type']
-         if kwargs.get('host_site', None):
-             j.host_site = kwargs['host_site']
-         if kwargs.get('status', None):
-             j.status = kwargs['status']
-         if kwargs.get('user_exc_exit_code', None):
-             j.user_exc_exit_code = kwargs['user_exc_exit_code']
+
+         for field in ['cpu_type', 'host_site', 'status', 'user_exe_exit_code']:
+	     if kwargs.get(field, None):
+		setattr(j,field,kwargs[field])
+             if not getattr(j,field, None):
+                if field == 'user_exe_exit_code':
+		    setattr(j,field,0)
+                else:
+		    setattr(j,field,'unknown')
+ 
          j.updated =  datetime.now(utc)
-         j.task_obj.updated =  datetime.now(utc)
+
+         if j.task_obj:
+             j.task_obj.updated =  datetime.now(utc)
+             cherrypy.request.db.add(j.task_obj)
 
          cherrypy.request.db.add(j)
-         cherrypy.request.db.add(j.task_obj)
          cherrypy.request.db.commit()
 
 
