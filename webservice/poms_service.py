@@ -425,36 +425,51 @@ class poms_service:
          return str(t.task_id)
 
     @cherrypy.expose
-    def update_job(self, task_id, jobsubjobid,  **kwargs):
-         task_id = int(task_id)
+    def active_jobs(self):
+         cherrypy.response.headers['Content-Type']= 'application/json'
+         res = [ "[" ]
+         sep=""
+         for job in cherrypy.request.db.query(Job).filter(Job.status != "Completed").all():
+              if job.jobsub_job_id == "unknown":
+                   continue
+              res.append( '%s "%s"' % (sep, job.jobsub_job_id))
+              sep = ","
+         res.append( "]" )
+         return "".join(res)
+         
+    @cherrypy.expose
+    def update_job(self, task_id = None, jobsubjobid = 'unknown',  **kwargs):
+         if task_id:
+             task_id = int(task_id)
          host_site = "%s_on_%s" % (jobsubjobid, kwargs.get('slot','unknown'))
-         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsubjobid, Job.task_id==task_id).first()
-         if not j:
+         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsubjobid).first()
+
+         if not j and task_id:
              j = Job()
+             j.jobsub_job_id = jobsubjobid
              j.created = datetime.now(utc)
              j.task_id = task_id
              j.output_files_declared = False
-         j.jobsub_job_id = jobsubjobid
-         j.node_name = ''
+             j.node_name = ''
 
-         for field in ['cpu_type', 'host_site', 'status', 'user_exe_exit_code']:
-	     if kwargs.get(field, None):
-		setattr(j,field,kwargs[field])
-             if not getattr(j,field, None):
-                if field == 'user_exe_exit_code':
-		    setattr(j,field,0)
-                else:
-		    setattr(j,field,'unknown')
- 
-         j.updated =  datetime.now(utc)
+         if j:
+	     for field in ['cpu_type', 'host_site', 'status', 'user_exe_exit_code']:
+		 if kwargs.get(field, None):
+		    setattr(j,field,kwargs[field])
+		 if not getattr(j,field, None):
+		    if field == 'user_exe_exit_code':
+			setattr(j,field,0)
+		    else:
+			setattr(j,field,'unknown')
+     
+	     j.updated =  datetime.now(utc)
 
-         if j.task_obj:
-             j.task_obj.updated =  datetime.now(utc)
-             cherrypy.request.db.add(j.task_obj)
+	     if j.task_obj:
+		 j.task_obj.updated =  datetime.now(utc)
+		 cherrypy.request.db.add(j.task_obj)
 
-         cherrypy.request.db.add(j)
-         cherrypy.request.db.commit()
-
+	     cherrypy.request.db.add(j)
+	     cherrypy.request.db.commit()
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmin, tmax = None ):
