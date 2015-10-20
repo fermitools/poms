@@ -103,9 +103,9 @@ class jobsub_q_scraper:
 
 if __name__ == '__main__':
     # for testing, just do one pass...
-    js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms"))
-    js.scan()
-
-    #js = jobsub_q_scraper(job_reporter("http://fermicloud045.fnal.gov:8080/poms"))
-    #js.poll()
+    #js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms"))
     #js.scan()
+
+    js = jobsub_q_scraper(job_reporter("http://fermicloud045.fnal.gov:8080/poms"))
+    js.poll()
+    js.scan()
