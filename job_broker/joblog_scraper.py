@@ -93,7 +93,7 @@ class joblog_scraper:
                 dir = "out"
 
             if dir == "out":
-                data['output_files'] = self.find_output_files(message)
+                data['output_file_names'] = self.find_output_files(message)
              
             data['status'] = "running: copying files " + dir
         

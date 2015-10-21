@@ -505,7 +505,15 @@ class poms_service:
 			setattr(j,field,0)
 		    else:
 			setattr(j,field,'unknown')
-     
+
+             if kwargs.get('output_file_names'):
+                 files =  j.output_file_names.split(' ')
+                 newfiles = kwargs['output_file_names'].split(' ')
+                 for f in newfiles:
+                     if not f in files:
+                         files.append(f)
+                 j.output_file_names = ' '.join(files)
+    
 	     j.updated =  datetime.now(utc)
 
 	     if j.task_obj:
