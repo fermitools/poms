@@ -9,9 +9,10 @@ import json
 from job_reporter import job_reporter
 
 class joblog_scraper:
-    def __init__(self, filehandle, job_reporter):
+    def __init__(self, filehandle, job_reporter, debug = 0):
         self.filehandle = filehandle
         self.job_reporter = job_reporter
+        self.debug = debug
 
         # lots of names for parts of regexps to make it readable(?)
         timestamp_pat ="[-0-9T:]*"
@@ -69,6 +70,8 @@ class joblog_scraper:
         }
 
     def find_output_files(self, message):
+        if self.debug:
+            print "looking for output files in: " , message
         file_map = {}
         message = message[message.find("ifdh::cp(")+9:]
         list = message.split(" ")
@@ -77,6 +80,10 @@ class joblog_scraper:
             # pretty much all actual output files are .root or .art ...
             if item.endswith(".root") or item.endswith(".art"):
                file_map[item] = 1
+
+        if self.debug:
+            print "found files: " , file_map
+
         return file_map.keys()
 
     def report_item(self, taskid, jobid, hostname, message, experiment = "none"):
@@ -126,6 +133,9 @@ class joblog_scraper:
                   print "still failed, continuing.."
                   pass
 
+        if self.debug:
+            print "reporting: " , data
+
         self.job_reporter.report_status(**data)
 
 
@@ -136,12 +146,24 @@ class joblog_scraper:
                  self.report_item(d['task'], d['jobid'], d['hostname'],  d['message'])
 
 if __name__ == '__main__':
+   debug = 0
+   if len(sys.argv) > 1 and sys.argv[1] == "-d":
+        debug=1
+
    while 1:
       try:
           h = open("/fife/local/data/ifmon/joblog_fifo","r")
-          js = joblog_scraper(h, job_reporter("http://fermicloud045.fnal.gov:8080/poms/"))
+          if debug:
+             print "re-reading...";
+
+          #h = open("/tmp/mengel_jobs","r")
+          js = joblog_scraper(h, job_reporter("http://fermicloud045.fnal.gov:8080/poms/"), debug)
           js.scan()
+
       except KeyboardInterrupt:
-          os.exit(1)
+          sys.exit(1)
+
       except:
+          print "Exception!"
+          print sys.exc_info()
           pass
