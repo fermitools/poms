@@ -483,6 +483,7 @@ class poms_service:
          
     @cherrypy.expose
     def update_job(self, task_id = None, jobsubjobid = 'unknown',  **kwargs):
+	 cherrypy.log("update_job( %s, %s,  %s )" % (task_id, jobsubjobid, repr(kwargs)))
          if task_id:
              task_id = int(task_id)
          host_site = "%s_on_%s" % (jobsubjobid, kwargs.get('slot','unknown'))

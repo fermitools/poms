@@ -23,6 +23,7 @@ class job_reporter:
         data['cpu_type'] = cpu_type
         data['slot'] = slot
         data['status'] = status
+        data.update(kwargs)
           
         uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
         res = uh.read()
