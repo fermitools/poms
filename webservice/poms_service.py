@@ -109,17 +109,21 @@ class poms_service:
                 color = "#1BA8DD"
             elif row.Service.name.lower().find("enstore") != -1:
                 color = "#2C7BE0"
+            elif row.Service.name.lower().find("fifebatch") != -1:
+                color = "#21A8BD"
             else:
                 color = "red"
 
-            list.append({'start_key': str(row.ServiceDowntime.downtime_started), 'title': row.Service.name, 'id': row.ServiceDowntime.service_id, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended), 'editable': editable, 'color': color}) 
+
+            list.append({'start_key': str(row.ServiceDowntime.downtime_started), 'title': row.Service.name, 's_id': row.ServiceDowntime.service_id, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended), 'editable': editable, 'color': color}) 
         return json.dumps(list)
 
 
     @cherrypy.expose
     def calendar(self):
         template = self.jinja_env.get_template('calendar.html')
-        return template.render()
+        rows = cherrypy.request.db.query(Service).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(Service.name != "FifeBatch").filter(~Service.name.endswith("sam")).all()
+        return template.render(rows=rows)
 
 
 
