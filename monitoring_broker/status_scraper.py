@@ -42,6 +42,7 @@ class status_scraper():
                 c.setopt(c.SSLCERT,"/tmp/x509up_u%d" % os.getuid())
                 c.setopt(c.SSLKEY,"/tmp/x509up_u%d" % os.getuid())
                 c.setopt(c.SSL_VERIFYHOST, 0)
+                c.setopt(c.SSL_VERIFYPEER, 0)
                 c.setopt(c.HTTPHEADER, ['Accept: application/json','Accept: text/plain','Accept: text/html'])
                 c.perform()
                 c.close()

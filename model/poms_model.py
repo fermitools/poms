@@ -144,6 +144,7 @@ class Task(Base):
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Task.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Task.updater == Experimenter.experimenter_id')
     parent_obj = relationship(u'Task', remote_side=[task_id])
+    jobs = relationship(u'Job', order_by = "Job.job_id")
 
 
 class TaskHistory(Base):

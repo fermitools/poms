@@ -460,9 +460,34 @@ class poms_service:
               sep = ","
          res.append( "]" )
          return "".join(res)
+
+    @cherrypy.expose
+    def wrapup_tasks(self):
+        cherrypy.response.headers['Content-Type'] = "application/json"
+        now =  datetime.now(utc)
+        res = ["wrapping up:"]
+        for task in cherrypy.request.db.query(Task).options(subqueryload(Task.jobs)).filter(Task.status != "Completed", Task.status != "Located").all():
+             total = 0
+             running = 0
+             for j in task.jobs:
+                 total = total + 1
+                 if j.status != "Completed":
+                     running = running + 1    
+
+             res.append("Task %d total %d running %d " % (task.task_id, total, running))
+
+             if (total > 0 and running == 0) or (total == 0 and  now - task.created > timedelta(days= 2)):
+                 task.status = "Completed"
+                 task.updated = datetime.now(utc)
+	         cherrypy.request.db.add(task)
+
+        cherrypy.request.db.commit()
+                 
+        return "\n".join(res)
          
     @cherrypy.expose
     def update_job(self, task_id = None, jobsubjobid = 'unknown',  **kwargs):
+	 cherrypy.log("update_job( %s, %s,  %s )" % (task_id, jobsubjobid, repr(kwargs)))
          if task_id:
              task_id = int(task_id)
          host_site = "%s_on_%s" % (jobsubjobid, kwargs.get('slot','unknown'))
@@ -485,7 +510,16 @@ class poms_service:
 			setattr(j,field,0)
 		    else:
 			setattr(j,field,'unknown')
-     
+
+             if kwargs.get('output_file_names', None):
+                 cherrypy.log("saw output_file_names: %s" % kwargs['output_file-nams'])
+                 files =  j.output_file_names.split(' ')
+                 newfiles = kwargs['output_file_names'].split(' ')
+                 for f in newfiles:
+                     if not f in files:
+                         files.append(f)
+                 j.output_file_names = ' '.join(files)
+    
 	     j.updated =  datetime.now(utc)
 
 	     if j.task_obj:
@@ -547,7 +581,7 @@ class poms_service:
                    e = fakerow(task_id = t.task_id,  created = t.updated, status=t.status )
                    items.append(s)
                    items.append(e)
-              sl.append( tg.render_query(tmin, tmax, tl, 'task_id', url_template = '/poms/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
+              sl.append( tg.render_query(tmin, tmax, items, 'task_id', url_template = '/poms/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
 
         screendata = "\n".join(sl)
               

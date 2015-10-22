@@ -5,13 +5,15 @@ import os
 import re
 import urllib2
 import json
+import traceback
 
 from job_reporter import job_reporter
 
 class joblog_scraper:
-    def __init__(self, filehandle, job_reporter):
+    def __init__(self, filehandle, job_reporter, debug = 0):
         self.filehandle = filehandle
         self.job_reporter = job_reporter
+        self.debug = debug
 
         # lots of names for parts of regexps to make it readable(?)
         timestamp_pat ="[-0-9T:]*"
@@ -69,6 +71,8 @@ class joblog_scraper:
         }
 
     def find_output_files(self, message):
+        if self.debug:
+            print "looking for output files in: " , message
         file_map = {}
         message = message[message.find("ifdh::cp(")+9:]
         list = message.split(" ")
@@ -77,7 +81,11 @@ class joblog_scraper:
             # pretty much all actual output files are .root or .art ...
             if item.endswith(".root") or item.endswith(".art"):
                file_map[item] = 1
-        return file_map.keys()
+
+        if self.debug:
+            print "found files: " , file_map
+
+        return ' '.join(file_map.keys())
 
     def report_item(self, taskid, jobid, hostname, message, experiment = "none"):
         data = { 
@@ -86,14 +94,19 @@ class joblog_scraper:
            "slot": hostname,
         }
 
+        if self.debug:
+           print "report_item: message:" , message
+
         if message.find("starting ifdh::cp") > 0:
+            if self.debug:
+                print "saw copy"
 	    if self.copyin_re.match(message):
                 dir = "in"
             else:
                 dir = "out"
 
             if dir == "out":
-                data['output_files'] = self.find_output_files(message)
+                data['output_file_names'] = self.find_output_files(message)
              
             data['status'] = "running: copying files " + dir
         
@@ -126,6 +139,9 @@ class joblog_scraper:
                   print "still failed, continuing.."
                   pass
 
+        if self.debug:
+            print "reporting: " , data
+
         self.job_reporter.report_status(**data)
 
 
@@ -136,12 +152,28 @@ class joblog_scraper:
                  self.report_item(d['task'], d['jobid'], d['hostname'],  d['message'])
 
 if __name__ == '__main__':
+   debug = 0
+   if len(sys.argv) > 1 and sys.argv[1] == "-d":
+        debug=1
+
    while 1:
       try:
           h = open("/fife/local/data/ifmon/joblog_fifo","r")
-          js = joblog_scraper(h, job_reporter("http://fermicloud045.fnal.gov:8080/poms/"))
+          # for testing
+          #h = open("/tmp/mengel_jobs","r")
+          if debug:
+             print "re-reading...";
+
+          js = joblog_scraper(h, job_reporter("http://fermicloud045.fnal.gov:8080/poms/"), debug)
           js.scan()
+          # for testing
+          #break
+
       except KeyboardInterrupt:
-          os.exit(1)
+          break
+
       except:
+          print "Exception!"
+          traceback.print_exc()
+          raise
           pass

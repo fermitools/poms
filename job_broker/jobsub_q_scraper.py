@@ -41,6 +41,17 @@ class jobsub_q_scraper:
             print  "Ouch!", sys.exc_info()
             pass
 
+    def call_wrapup_tasks(self):
+        try:
+            conn = urllib2.urlopen(self.job_reporter.report_url + '/wrapup_tasks')
+            text = conn.read()
+            conn.close()
+
+            print "got: ", text
+        except:
+            print  "Ouch!", sys.exc_info()
+            pass
+
     def scan(self):
 
         self.get_open_jobs()
@@ -97,10 +108,12 @@ class jobsub_q_scraper:
 			jobid = jobid,
 			status = "Completed")
 
+        self.call_wrapup_tasks()
+
     def poll(self):
         while(1):
             self.scan()
-            time.sleep(120)
+            time.sleep(60)
 
 if __name__ == '__main__':
     # for testing, just do one pass...
