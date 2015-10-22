@@ -515,7 +515,7 @@ class poms_service:
                  cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
                  if j.output_file_names:
                      files =  j.output_file_names.split(' ')
-                 else
+                 else:
                      files = []
 
                  newfiles = kwargs['output_file_names'].split(' ')
