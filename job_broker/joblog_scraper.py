@@ -5,6 +5,7 @@ import os
 import re
 import urllib2
 import json
+import traceback
 
 from job_reporter import job_reporter
 
@@ -84,7 +85,7 @@ class joblog_scraper:
         if self.debug:
             print "found files: " , file_map
 
-        return file_map.keys()
+        return ' '.join(file_map.keys())
 
     def report_item(self, taskid, jobid, hostname, message, experiment = "none"):
         data = { 
@@ -93,7 +94,12 @@ class joblog_scraper:
            "slot": hostname,
         }
 
+        if self.debug:
+           print "report_item: message:" , message
+
         if message.find("starting ifdh::cp") > 0:
+            if self.debug:
+                print "saw copy"
 	    if self.copyin_re.match(message):
                 dir = "in"
             else:
@@ -153,17 +159,21 @@ if __name__ == '__main__':
    while 1:
       try:
           h = open("/fife/local/data/ifmon/joblog_fifo","r")
+          # for testing
+          #h = open("/tmp/mengel_jobs","r")
           if debug:
              print "re-reading...";
 
-          #h = open("/tmp/mengel_jobs","r")
           js = joblog_scraper(h, job_reporter("http://fermicloud045.fnal.gov:8080/poms/"), debug)
           js.scan()
+          # for testing
+          #break
 
       except KeyboardInterrupt:
-          sys.exit(1)
+          break
 
       except:
           print "Exception!"
-          print sys.exc_info()
+          traceback.print_exc()
+          raise
           pass
