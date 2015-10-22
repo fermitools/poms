@@ -508,8 +508,12 @@ class poms_service:
 			setattr(j,field,'unknown')
 
              if kwargs.get('output_file_names', None):
-                 cherrypy.log("saw output_file_names: %s" % kwargs['output_file-nams'])
-                 files =  j.output_file_names.split(' ')
+                 cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
+                 if j.output_file_names:
+                     files =  j.output_file_names.split(' ')
+                 else
+                     files = []
+
                  newfiles = kwargs['output_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
