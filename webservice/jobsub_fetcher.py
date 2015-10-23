@@ -1,20 +1,25 @@
 #!/usr/bin/env python
 
 import os
+import thread
 
 class jobsub_fetcher():
     def __init__(self):
-         self.workdir = "%s/jf%d" % (
+         self.workdir = "%s/jf%d%s" % (
                           os.environ.get("TMPDIR","/var/tmp"),
-                          os.getpid())
-         os.mkdir(self.workdir)
+                          os.getpid(),
+                          thread.get_ident())
+         try:
+             os.mkdir(self.workdir)
+         except:
+             pass
          self.fetchmax = 10
          self.fetchcount = 0
          self.tarfiles = []
 
     def __del__(self):
          if self.workdir:
-              os.system("rm -rf %s & " % self.workdir)
+              os.system("rm -rf %s" % self.workdir)
 
     def fetch(self, jobsubjobid, group, role):
          thistar = "%s/%s.tgz" % (self.workdir, jobsubjobid)
@@ -29,7 +34,7 @@ class jobsub_fetcher():
              self.tarfiles = self.tarfiles[1:]
              self.fetchcount = self.fetchcount - 1   
                  
-         os.system("cd %s && /bin/pwd && jobsub_fetchlog --group=%s --role=%s --jobid=%s" %(
+         os.system("cd %s && /bin/pwd && /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_fetchlog --group=%s --role=%s --jobid=%s" %(
                      self.workdir,
                      group,
                      role,
