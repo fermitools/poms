@@ -486,16 +486,16 @@ class poms_service:
         return "\n".join(res)
          
     @cherrypy.expose
-    def update_job(self, task_id = None, jobsubjobid = 'unknown',  **kwargs):
-	 cherrypy.log("update_job( %s, %s,  %s )" % (task_id, jobsubjobid, repr(kwargs)))
+    def update_job(self, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
+	 cherrypy.log("update_job( %s, %s,  %s )" % (task_id, jobsub_job_id, repr(kwargs)))
          if task_id:
              task_id = int(task_id)
-         host_site = "%s_on_%s" % (jobsubjobid, kwargs.get('slot','unknown'))
-         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsubjobid).first()
+         host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
+         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).first()
 
          if not j and task_id:
              j = Job()
-             j.jobsub_job_id = jobsubjobid
+             j.jobsub_job_id = jobsub_job_id
              j.created = datetime.now(utc)
              j.task_id = task_id
              j.output_files_declared = False
@@ -611,3 +611,20 @@ class poms_service:
          
         template = self.jinja_env.get_template('job_grid.html')
         return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16])
+
+    
+    @cherrypy.expose
+    def job_file_list(self, job_id):
+        j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
+        #role = j.task_obj.campain_obj.role
+        role = "Production"
+        cherrypy.response.headers['Content-Type'] = "application/json"
+        return json.dumps(cherrypy.request.jobsub_fetcher.index(j.jobsub_job_id,j.task_obj.campaign_obj.experiment ,role))
+
+    @cherrypy.expose
+    def job_file_contents(self, job_id, file):
+        j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
+        #role = j.task_obj.campain_obj.role
+        role = "Production"
+        cherrypy.response.headers['Content-Type'] = "application/json"
+        return json.dumps(cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role))
