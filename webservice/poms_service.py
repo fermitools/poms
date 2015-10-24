@@ -109,17 +109,21 @@ class poms_service:
                 color = "#1BA8DD"
             elif row.Service.name.lower().find("enstore") != -1:
                 color = "#2C7BE0"
+            elif row.Service.name.lower().find("fifebatch") != -1:
+                color = "#21A8BD"
             else:
                 color = "red"
 
-            list.append({'start_key': str(row.ServiceDowntime.downtime_started), 'title': row.Service.name, 'id': row.ServiceDowntime.service_id, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended), 'editable': editable, 'color': color}) 
+
+            list.append({'start_key': str(row.ServiceDowntime.downtime_started), 'title': row.Service.name, 's_id': row.ServiceDowntime.service_id, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended), 'editable': editable, 'color': color}) 
         return json.dumps(list)
 
 
     @cherrypy.expose
     def calendar(self):
         template = self.jinja_env.get_template('calendar.html')
-        return template.render()
+        rows = cherrypy.request.db.query(Service).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(Service.name != "FifeBatch").filter(~Service.name.endswith("sam")).all()
+        return template.render(rows=rows)
 
 
 
@@ -483,6 +487,7 @@ class poms_service:
          
     @cherrypy.expose
     def update_job(self, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
+	 cherrypy.log("update_job( %s, %s,  %s )" % (task_id, jobsub_job_id, repr(kwargs)))
          if task_id:
              task_id = int(task_id)
          host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
@@ -506,8 +511,13 @@ class poms_service:
 		    else:
 			setattr(j,field,'unknown')
 
-             if kwargs.get('output_file_names'):
-                 files =  j.output_file_names.split(' ')
+             if kwargs.get('output_file_names', None):
+                 cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
+                 if j.output_file_names:
+                     files =  j.output_file_names.split(' ')
+                 else:
+                     files = []
+
                  newfiles = kwargs['output_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
