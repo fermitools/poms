@@ -11,10 +11,13 @@ Action=setup
    SetupRequired(postgres_client)
    SetupRequired(sqlalchemy)
    SetupRequired(jinja)
+   SetupRequired(-j jobsub_client)
    PathPrepend(PYTHONPATH,${UPS_PROD_DIR})
 
 Action=start
    ExeActionRequired(setup)
+   EnvSet(X509_USER_CERT, $HOME/private/gsi/pomscert.pem)
+   EnvSet(X509_USER_KEY, $HOME/private/gsi/pomskey.pem)
    Execute(cd ${UPS_PROD_DIR}/webservice, NO_UPS_ENV)
    Execute(rm -f nohup.out, NO_UPS_ENV)
    Execute(nohup python service.py &, NO_UPS_ENV)
