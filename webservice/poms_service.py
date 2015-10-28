@@ -183,7 +183,7 @@ class poms_service:
 
 
     @cherrypy.expose
-    def update_service(self, name, parent, status, host_site):
+    def update_service(self, name, parent, status, host_site, total, failed, description):
         s = cherrypy.request.db.query(Service).filter(Service.name == name).first()
 
 

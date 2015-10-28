@@ -3,6 +3,7 @@
 from ConfigParser import SafeConfigParser
 import re
 import urllib2
+import urllib
 import httplib
 import traceback
 import os
@@ -22,6 +23,8 @@ class status_scraper():
         self.cf.read(configfile)
         self.flush_cache()
         self.percents = {}
+        self.totals = {}
+        self.failed = {}
         self.parent = {}
         self.url = {}
         self.debug = int(self.cf.get('global','debug'))
@@ -77,18 +80,28 @@ class status_scraper():
                n_bad = n_bad + 1
 
         percent = int(self.cf.get(section,'percent'))
+        if self.cf.has_option(section,'warnpercent'):
+            warnpercent = int(self.cf.get(section,'warnpercent'))
+        else:
+            warnpercent = 0
+
+        self.totals[section] = n_good + n_bad
+        self.failed[section] = n_bad
 
         if n_good + n_bad > 0:
             self.percents[section] = ((n_good ) * 100.0 / (n_good+n_bad)) 
         else:
             self.percents[section] = -1
 
-        #print "recurse: ", s , self.percents[s] , "%"
+        if self.debug:
+           print "recurse: ", s , self.percents[s] , "%"
 
 	if n_good == 0 and n_bad == 0:
             self.status[section] = 'unknown'
 	elif (self.percents[section] < percent):
             self.status[section] = 'bad'
+	elif (self.percents[section] < warnpercent):
+            self.status[section] = 'degraded'
         else:
             self.status[section] = 'good'
 
@@ -174,11 +187,16 @@ class status_scraper():
             # this should POST, but for now this is easier to debug
             name = s.replace("service ","")
             parent = self.parent.get(s,'').replace("service ","")
-            report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s" % (name, self.status[s], parent, self.url.get(s,''))
+            if self.cf.has_option(s,'description'):
+                description = self.config.get(s,'description')
+            else:
+                description = s
+            report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.url.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.quote_plus(description))
             print "trying: " , report_url
             c = urllib2.urlopen(report_url)
             print c.read()
             c.close()
 
-ss = status_scraper("status_scraper.cfg", "http://fermicloud045.fnal.gov:8080/poms")
+#ss = status_scraper("status_scraper.cfg", "http://fermicloud045.fnal.gov:8080/poms")
+ss = status_scraper("status_scraper.cfg", "http://localhost:8080/poms")
 ss.one_pass()
