@@ -490,10 +490,12 @@ class poms_service:
 	 cherrypy.log("update_job( %s, %s,  %s )" % (task_id, jobsub_job_id, repr(kwargs)))
          if task_id:
              task_id = int(task_id)
+
          host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
          j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).first()
 
          if not j and task_id:
+	     cherrypy.log("update_job: creating new job") 
              j = Job()
              j.jobsub_job_id = jobsub_job_id
              j.created = datetime.now(utc)
@@ -502,6 +504,7 @@ class poms_service:
              j.node_name = ''
 
          if j:
+	     cherrypy.log("update_job: updating job") 
 	     for field in ['cpu_type', 'host_site', 'status', 'user_exe_exit_code']:
 		 if kwargs.get(field, None):
 		    setattr(j,field,kwargs[field])

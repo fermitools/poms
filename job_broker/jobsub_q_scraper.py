@@ -122,4 +122,4 @@ if __name__ == '__main__':
 
     js = jobsub_q_scraper(job_reporter("http://fermicloud045.fnal.gov:8080/poms"))
     js.poll()
-    js.scan()
+    #js.scan()
