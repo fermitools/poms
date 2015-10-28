@@ -533,8 +533,10 @@ class poms_service:
 		 j.task_obj.updated =  datetime.now(utc)
 		 cherrypy.request.db.add(j.task_obj)
 
+	     cherrypy.log("update_job: db add/commit job") 
 	     cherrypy.request.db.add(j)
 	     cherrypy.request.db.commit()
+	     cherrypy.log("update_job: done") 
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmin, tmax = None ):
