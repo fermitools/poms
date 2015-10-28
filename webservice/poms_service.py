@@ -545,10 +545,19 @@ class poms_service:
 
         jl = cherrypy.request.db.query(JobHistory).join(Job).filter(Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = time_grid.time_grid(); 
-        screendata = tg.render_query(tmin, tmax, jl, 'job_id', url_template='/poms/triage_job?job_id="%(job_id)s"')
-         
+        screendata = tg.render_query(tmin, tmax, jl, 'job_id', url_template='/poms/triage_job?job_id=%(job_id)s')         
+
         template = self.jinja_env.get_template('job_grid.html')
         return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16])
+
+
+
+    @cherrypy.expose
+    def triage_job(self, job_id):
+        template = self.jinja_env.get_template('triage_job.html')
+        return template.render(job_id = job_id)
+
+
 
     @cherrypy.expose
     def show_campaigns(self,tmin = None,tmax = None):
