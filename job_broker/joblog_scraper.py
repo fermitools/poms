@@ -175,5 +175,4 @@ if __name__ == '__main__':
       except:
           print "Exception!"
           traceback.print_exc()
-          raise
           pass
