@@ -13,8 +13,9 @@ class job_reporter:
        could pass -format...  instead we call condor_q directly to look
        at the fifebatchhead nodes.
     """
-    def __init__(self, report_url):
+    def __init__(self, report_url, debug = 0):
         self.report_url = report_url
+        self.debug = debug
 
     def report_status(self, jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
         data = {}
@@ -27,5 +28,7 @@ class job_reporter:
           
         uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
         res = uh.read()
+        if self.debug:
+           print "reporting: ",  data, "status:", res.getcode()
         uh.close()
         return res
