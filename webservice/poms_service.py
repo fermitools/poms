@@ -74,7 +74,7 @@ class poms_service:
     @cherrypy.expose
     def index(self):
         template = self.jinja_env.get_template('service_statuses.html')
-        return template.render(services=self.service_status_hier('All'),current_experimenter=self.get_current_experimenter())
+        return template.render(services=self.service_status_hier('All'),current_experimenter=self.get_current_experimenter(), do_refresh = 1)
 
     @cherrypy.expose
     def test(self):
@@ -601,7 +601,7 @@ class poms_service:
         screendata = screendata +  tg.render_query(tmin, tmax, jl, 'job_id', url_template='/poms/triage_job?job_id=%(job_id)s')         
 
         template = self.jinja_env.get_template('job_grid.html')
-        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter())
+        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter(), do_refresh = 1)
 
 
 
@@ -657,27 +657,7 @@ class poms_service:
         allcounts =  self.format_job_counts()
               
         template = self.jinja_env.get_template('campaign_grid.html')
-        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter())
-                 
-
-    @cherrypy.expose
-    def show_campaign_tasks(self, campaign_id, tmin, tmax ):
-        tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S")
-        tmin= tmin.replace(tzinfo = utc)
-        tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
-        tmax= tmax.replace(tzinfo = utc)
-        
-        tl = cherrypy.request.db.query(Task.task_id, func.max(JobHistory.created), func.min(JobHistory.created)).join(Job,JobHistory).filter(Task.campaign_id == campaign_id, Job.task_id==Task.task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).group_by(Task.task_id).all()
-        for item in tl:
-            print item
-        tg = time_grid.time_grid(); 
-        print tl
-
-        return "hmm..."
-        screendata = tg.render_query(tmin, tmax, tl, 'task_id',url_template = '/poms/show_task_jobs?task_id=%(task_id)s&tmin=%(created)s' )
-         
-        template = self.jinja_env.get_template('job_grid.html')
-        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter())
+        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter(), do_refresh = 1)
 
     
     @cherrypy.expose
