@@ -115,17 +115,23 @@ class jobsub_q_scraper:
 
     def poll(self):
         while(1):
-            self.scan()
+            try:
+                self.scan()
+			 
+	    except KeyboardInterrupt:
+	        break
+
+	     except:
+	        print "Exception!"
+	        traceback.print_exc()
+	        pass
+
             time.sleep(60)
 
 if __name__ == '__main__':
     debug = 0
     if sys.argv[1] == "-d":
         debug=1
-    # for testing, just do one pass...
-    #js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms"))
-    #js.scan()
 
     js = jobsub_q_scraper(job_reporter("http://fermicloud045.fnal.gov:8080/poms"), debug = debug)
     js.poll()
-    #js.scan()
