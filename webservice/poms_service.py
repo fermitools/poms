@@ -95,10 +95,10 @@ class poms_service:
         xff = cherrypy.request.headers.get('X-Forwarded-For', None)
         ra =  cherrypy.request.headers.get('Remote-Addr', None)
         user = cherrypy.request.headers.get('X-Shib-Userid', None)
-        if ra == '127.0.0.1' and xff.startswith('131.225.67'):
+        if ra == '127.0.0.1' and xff and xff.startswith('131.225.67'):
              # case for fifelog agent..
              return 1
-        if ra == '127.0.0.1' and xff.startswith('131.225.80'):
+        if ra == '127.0.0.1' and xff and xff.startswith('131.225.80'):
              # case for jobsub_q agent (currently on bel-kwinith...)
              return 1
         if ra == '127.0.0.1' and xff == None:
@@ -263,6 +263,7 @@ class poms_service:
         s.status = status
         s.host_site = host_site
         s.updated = datetime.now(utc)
+        s.description = description
         cherrypy.request.db.add(s)
         cherrypy.request.db.commit()
 
@@ -293,13 +294,13 @@ class poms_service:
             res = ''
         active = ""
         for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(Service.name).all():
-             posneg = "positive" if s.status == "good" else "negative" if s.status == "bad" else ""
-             icon =  "checkmark" if s.status == "good" else "remove" if s.status == "bad" else "help circle"
+             posneg = {"good": "positive", "degraded": "orange", "bad": "negative"}.get(s.status, "")
+             icon = {"good": "checkmark", "bad": "remove", "degraded": "warning sign"}.get(s.status,"help circle")
              if s.host_site:
                  res = res + """
                      <div class="title %s">
 		      <i class="dropdown icon"></i>
-                      <button class="ui button %s">
+                      <button class="ui button %s" title=%s>
                          %s
                        </button>
                        <i class="icon %s"></i>
@@ -310,12 +311,12 @@ class poms_service:
                          source webpage
                          </a>
                      </div>
-                  """ % (active, posneg, s.name,  icon, active, s.host_site) 
+                  """ % (active, posneg, s.description, s.name,  icon, active, s.host_site) 
              else:
                  res = res + """
                     <div class="title %s">
 		      <i class="dropdown icon"></i>
-                      <button class="ui button %s">
+                      <button class="ui button %s" title=%s>
                         %s
                       </button>
                       <i class="icon %s"></i>
@@ -324,7 +325,7 @@ class poms_service:
                       <p>components:</p>
                       %s
                     </div>
-                 """ % (active, posneg, s.name, icon, active,  self.service_status_hier(s.name, depth + 1))
+                 """ % (active, posneg, s.description, s.name, icon, active,  self.service_status_hier(s.name, depth + 1))
              active = ""
            
         if depth == 0:
@@ -666,8 +667,7 @@ class poms_service:
         # find the job with the logs -- minimum jobsub_job_id for this task
         j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
         cherrypy.log("found job: %s " % j.jobsub_job_id)
-        #role = j.task_obj.campain_obj.role
-        role = "Production"
+        role = j.task_obj.campaign_obj.vo_role
         cherrypy.response.headers['Content-Type'] = "application/json"
         return json.dumps(cherrypy.request.jobsub_fetcher.index(j.jobsub_job_id,j.task_obj.campaign_obj.experiment ,role))
 
@@ -677,8 +677,7 @@ class poms_service:
         # find the job with the logs -- minimum jobsub_job_id for this task
         j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
         cherrypy.log("found job: %s " % j.jobsub_job_id)
-        #role = j.task_obj.campain_obj.role
-        role = "Production"
+        role = j.task_obj.campaign_obj.vo_role
         cherrypy.response.headers['Content-Type'] = "application/json"
         return json.dumps(cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role))
 
