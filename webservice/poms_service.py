@@ -490,10 +490,12 @@ class poms_service:
 	 cherrypy.log("update_job( %s, %s,  %s )" % (task_id, jobsub_job_id, repr(kwargs)))
          if task_id:
              task_id = int(task_id)
+
          host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
          j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).first()
 
          if not j and task_id:
+	     cherrypy.log("update_job: creating new job") 
              j = Job()
              j.jobsub_job_id = jobsub_job_id
              j.created = datetime.now(utc)
@@ -502,6 +504,7 @@ class poms_service:
              j.node_name = ''
 
          if j:
+	     cherrypy.log("update_job: updating job %d" % j.job_id) 
 	     for field in ['cpu_type', 'host_site', 'status', 'user_exe_exit_code']:
 		 if kwargs.get(field, None):
 		    setattr(j,field,kwargs[field])
@@ -530,8 +533,10 @@ class poms_service:
 		 j.task_obj.updated =  datetime.now(utc)
 		 cherrypy.request.db.add(j.task_obj)
 
+	     cherrypy.log("update_job: db add/commit job %d" % j.job_id) 
 	     cherrypy.request.db.add(j)
 	     cherrypy.request.db.commit()
+	     cherrypy.log("update_job: done") 
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmin, tmax = None ):
@@ -545,10 +550,19 @@ class poms_service:
 
         jl = cherrypy.request.db.query(JobHistory).join(Job).filter(Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = time_grid.time_grid(); 
-        screendata = tg.render_query(tmin, tmax, jl, 'job_id', url_template='/poms/triage_job?job_id="%(job_id)s"')
-         
+        screendata = tg.render_query(tmin, tmax, jl, 'job_id', url_template='/poms/triage_job?job_id=%(job_id)s')         
+
         template = self.jinja_env.get_template('job_grid.html')
         return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16])
+
+
+
+    @cherrypy.expose
+    def triage_job(self, job_id):
+        template = self.jinja_env.get_template('triage_job.html')
+        return template.render(job_id = job_id)
+
+
 
     @cherrypy.expose
     def show_campaigns(self,tmin = None,tmax = None):
