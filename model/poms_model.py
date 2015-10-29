@@ -20,6 +20,7 @@ class Campaign(Base):
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey(u'experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
+    vo_role = Column(Text, nullable = False)
 
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')
@@ -96,6 +97,7 @@ class Service(Base):
     url = Column(Text)
     items = Column(Integer)
     failed_items = Column(Integer)
+    description = Column(Text)
 
     parent_service_obj = relationship(u'Service', remote_side=[service_id])
 

@@ -95,10 +95,10 @@ class poms_service:
         xff = cherrypy.request.headers.get('X-Forwarded-For', None)
         ra =  cherrypy.request.headers.get('Remote-Addr', None)
         user = cherrypy.request.headers.get('X-Shib-Userid', None)
-        if ra == '127.0.0.1' and xff.startswith('131.225.67'):
+        if ra == '127.0.0.1' and xff and xff.startswith('131.225.67'):
              # case for fifelog agent..
              return 1
-        if ra == '127.0.0.1' and xff.startswith('131.225.80'):
+        if ra == '127.0.0.1' and xff and xff.startswith('131.225.80'):
              # case for jobsub_q agent (currently on bel-kwinith...)
              return 1
         if ra == '127.0.0.1' and xff == None:
@@ -666,8 +666,7 @@ class poms_service:
         # find the job with the logs -- minimum jobsub_job_id for this task
         j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
         cherrypy.log("found job: %s " % j.jobsub_job_id)
-        #role = j.task_obj.campain_obj.role
-        role = "Production"
+        role = j.task_obj.campaign_obj.vo_role
         cherrypy.response.headers['Content-Type'] = "application/json"
         return json.dumps(cherrypy.request.jobsub_fetcher.index(j.jobsub_job_id,j.task_obj.campaign_obj.experiment ,role))
 
@@ -677,8 +676,7 @@ class poms_service:
         # find the job with the logs -- minimum jobsub_job_id for this task
         j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
         cherrypy.log("found job: %s " % j.jobsub_job_id)
-        #role = j.task_obj.campain_obj.role
-        role = "Production"
+        role = j.task_obj.campaign_obj.vo_role
         cherrypy.response.headers['Content-Type'] = "application/json"
         return json.dumps(cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role))
 
