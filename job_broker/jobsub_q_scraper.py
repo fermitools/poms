@@ -70,15 +70,15 @@ class jobsub_q_scraper:
 		jobenv[name] = val
 
 	    if jobenv.has_key("JOBSUBJOBID"):
-		jobsubjobid = jobenv["JOBSUBJOBID"];
+		jobsub_job_id = jobenv["JOBSUBJOBID"];
 	    else:
-		jobsubjobid = '%s.%s@%s' % (
+		jobsub_job_id = '%s.%s@%s' % (
 		    jobenv['PROCESS'],
 		    jobenv['CLUSTER'],
 		    jobenv['SCHEDD']
 		  )
 
-            self.jobmap[jobsubjobid] = 1
+            self.jobmap[jobsub_job_id] = 1
             
             # only look at it if it has a POMS_TASK_ID in the environment
 
@@ -87,7 +87,7 @@ class jobsub_q_scraper:
                 print "reporting: ", jobenv
 
                 self.job_reporter.report_status(
-                    jobid = jobsubjobid,
+                    jobsub_job_id = jobsub_job_id,
                     taskid = jobenv['POMS_TASK_ID'],
                     status = self.map[jobenv['JOBSTATUS']]
                   )

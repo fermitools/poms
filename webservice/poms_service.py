@@ -504,7 +504,7 @@ class poms_service:
              j.node_name = ''
 
          if j:
-	     cherrypy.log("update_job: updating job") 
+	     cherrypy.log("update_job: updating job %d" % j.job_id) 
 	     for field in ['cpu_type', 'host_site', 'status', 'user_exe_exit_code']:
 		 if kwargs.get(field, None):
 		    setattr(j,field,kwargs[field])
@@ -533,7 +533,7 @@ class poms_service:
 		 j.task_obj.updated =  datetime.now(utc)
 		 cherrypy.request.db.add(j.task_obj)
 
-	     cherrypy.log("update_job: db add/commit job") 
+	     cherrypy.log("update_job: db add/commit job %d" % j.job_id) 
 	     cherrypy.request.db.add(j)
 	     cherrypy.request.db.commit()
 	     cherrypy.log("update_job: done") 

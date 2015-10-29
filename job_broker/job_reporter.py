@@ -16,10 +16,10 @@ class job_reporter:
     def __init__(self, report_url):
         self.report_url = report_url
 
-    def report_status(self, jobid = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
+    def report_status(self, jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
         data = {}
         data['task_id'] = taskid
-        data['jobsubjobid'] = jobid
+        data['jobsub_job_id'] = jobsub_job_id
         data['cpu_type'] = cpu_type
         data['slot'] = slot
         data['status'] = status

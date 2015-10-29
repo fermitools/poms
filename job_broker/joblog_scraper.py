@@ -20,7 +20,7 @@ class joblog_scraper:
         hostname_pat="[-A-Za-z0-9.]*"
         idpart_pat="[^[/:]*"
         user_pat=idpart_pat
-        jobid_pat=idpart_pat
+        jobsub_job_id_pat=idpart_pat
         taskid_pat=idpart_pat
         exp_pat=idpart_pat
         ifdh_vers_pat = idpart_pat
@@ -28,7 +28,7 @@ class joblog_scraper:
 
         ifdhline_pat = "(%s) (%s) (%s)/(%s):? ?(%s)/(%s)/(%s)/(%s)\[(%s)\]:.ifdh:(.*)" % (
 		timestamp_pat, hostname_pat, user_pat, exp_pat,taskid_pat,
-                jobid_pat, ifdh_vers_pat,exp_pat, pid_pat )
+                jobsub_job_id_pat, ifdh_vers_pat,exp_pat, pid_pat )
 
         oldifdhline_pat ="(%s) (%s) (%s)/(%s)/(%s)\[(%s)\]:.ifdh:(.*)" % (
 	     timestamp_pat, hostname_pat, exp_pat, ifdh_vers_pat, exp_pat, 
@@ -44,7 +44,7 @@ class joblog_scraper:
 	user = ""
 	experiment = ""
 	task = ""
-	jobid = ""
+	jobsub_job_id = ""
 	ifdh_vers = ""
 	experiment = ""
 	pid = ""
@@ -55,7 +55,7 @@ class joblog_scraper:
             timestamp, hostname, experiment,  ifdh_vers, experiment, pid, message = m1.groups()
             user = experiment
         elif m2:
-            timestamp, hostname, user, experiment, task, jobid, ifdh_vers, experiment, pid, message = m2.groups()
+            timestamp, hostname, user, experiment, task, jobsub_job_id, ifdh_vers, experiment, pid, message = m2.groups()
         else:
             message = line
         return { 
@@ -64,7 +64,7 @@ class joblog_scraper:
 		'user': user,
 		'experiment': experiment,
 		'task': task,
-		'jobid': jobid,
+		'jobsub_job_id': jobsub_job_id,
 		'ifdh_vers': ifdh_vers,
 		'pid': pid,
 		'message': message ,
@@ -87,10 +87,10 @@ class joblog_scraper:
 
         return ' '.join(file_map.keys())
 
-    def report_item(self, taskid, jobid, hostname, message, experiment = "none"):
+    def report_item(self, taskid, jobsub_job_id, hostname, message, experiment = "none"):
         data = { 
            "taskid": taskid,
-           "jobid": jobid,
+           "jobsub_job_id": jobsub_job_id,
            "slot": hostname,
         }
 
@@ -149,7 +149,7 @@ class joblog_scraper:
         for line in self.filehandle:
              d = self.parse_line(line)
              if d['task'] != '':
-                 self.report_item(d['task'], d['jobid'], d['hostname'],  d['message'])
+                 self.report_item(d['task'], d['jobsub_job_id'], d['hostname'],  d['message'])
 
 if __name__ == '__main__':
    debug = 0
