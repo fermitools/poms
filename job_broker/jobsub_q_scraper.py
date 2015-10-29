@@ -14,7 +14,7 @@ class jobsub_q_scraper:
        could pass -format...  instead we call condor_q directly to look
        at the fifebatchhead nodes.
     """
-    def __init__(self, job_reporter):
+    def __init__(self, job_reporter, debug = 0):
         self.job_reporter = job_reporter
         self.map = {
            "0": "Unexplained",
@@ -26,6 +26,7 @@ class jobsub_q_scraper:
            "6": "Submission_error",
         }
         self.jobmap = {}
+        self.debug = 1
 
     def get_open_jobs(self):
 	self.jobmap = {}
@@ -64,6 +65,8 @@ class jobsub_q_scraper:
         f = os.popen("for n in 1 2; do condor_q -pool fifebatchgpvmhead$n.fnal.gov -name fifebatch$n.fnal.gov -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format \"%d;SCHEDD=fifebatch$n.fnal.gov\\n\" ProcID ; done", "r")
         for line in f:
                 
+            if self.debug:
+                print "saw line: " , line
 	    jobenv={}
 	    for evv in line.split(";"):
 		name,val = evv.split("=",1)
@@ -116,10 +119,13 @@ class jobsub_q_scraper:
             time.sleep(60)
 
 if __name__ == '__main__':
+    debug = 0
+    if sys.argv[1] == "-d":
+        debug=1
     # for testing, just do one pass...
     #js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms"))
     #js.scan()
 
-    js = jobsub_q_scraper(job_reporter("http://fermicloud045.fnal.gov:8080/poms"))
+    js = jobsub_q_scraper(job_reporter("http://fermicloud045.fnal.gov:8080/poms"), debug = debug)
     js.poll()
     js.scan()

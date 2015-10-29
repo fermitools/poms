@@ -164,7 +164,7 @@ if __name__ == '__main__':
           if debug:
              print "re-reading...";
 
-          js = joblog_scraper(h, job_reporter("http://fermicloud045.fnal.gov:8080/poms/"), debug)
+          js = joblog_scraper(h, job_reporter("http://fermicloud045.fnal.gov:8080/poms/", debug), debug)
           js.scan()
           # for testing
           #break
