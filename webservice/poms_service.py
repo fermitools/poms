@@ -109,17 +109,21 @@ class poms_service:
                 color = "#1BA8DD"
             elif row.Service.name.lower().find("enstore") != -1:
                 color = "#2C7BE0"
+            elif row.Service.name.lower().find("fifebatch") != -1:
+                color = "#21A8BD"
             else:
                 color = "red"
 
-            list.append({'start_key': str(row.ServiceDowntime.downtime_started), 'title': row.Service.name, 'id': row.ServiceDowntime.service_id, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended), 'editable': editable, 'color': color}) 
+
+            list.append({'start_key': str(row.ServiceDowntime.downtime_started), 'title': row.Service.name, 's_id': row.ServiceDowntime.service_id, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended), 'editable': editable, 'color': color}) 
         return json.dumps(list)
 
 
     @cherrypy.expose
     def calendar(self):
         template = self.jinja_env.get_template('calendar.html')
-        return template.render()
+        rows = cherrypy.request.db.query(Service).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(Service.name != "FifeBatch").filter(~Service.name.endswith("sam")).all()
+        return template.render(rows=rows)
 
 
 
@@ -179,7 +183,7 @@ class poms_service:
 
 
     @cherrypy.expose
-    def update_service(self, name, parent, status, host_site):
+    def update_service(self, name, parent, status, host_site, total, failed, description):
         s = cherrypy.request.db.query(Service).filter(Service.name == name).first()
 
 
@@ -482,22 +486,25 @@ class poms_service:
         return "\n".join(res)
          
     @cherrypy.expose
-    def update_job(self, task_id = None, jobsubjobid = 'unknown',  **kwargs):
-	 cherrypy.log("update_job( %s, %s,  %s )" % (task_id, jobsubjobid, repr(kwargs)))
+    def update_job(self, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
+	 cherrypy.log("update_job( %s, %s,  %s )" % (task_id, jobsub_job_id, repr(kwargs)))
          if task_id:
              task_id = int(task_id)
-         host_site = "%s_on_%s" % (jobsubjobid, kwargs.get('slot','unknown'))
-         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsubjobid).first()
+
+         host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
+         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).first()
 
          if not j and task_id:
+	     cherrypy.log("update_job: creating new job") 
              j = Job()
-             j.jobsub_job_id = jobsubjobid
+             j.jobsub_job_id = jobsub_job_id
              j.created = datetime.now(utc)
              j.task_id = task_id
              j.output_files_declared = False
              j.node_name = ''
 
          if j:
+	     cherrypy.log("update_job: updating job %d" % j.job_id) 
 	     for field in ['cpu_type', 'host_site', 'status', 'user_exe_exit_code']:
 		 if kwargs.get(field, None):
 		    setattr(j,field,kwargs[field])
@@ -508,8 +515,12 @@ class poms_service:
 			setattr(j,field,'unknown')
 
              if kwargs.get('output_file_names', None):
-                 cherrypy.log("saw output_file_names: %s" % kwargs['output_file-nams'])
-                 files =  j.output_file_names.split(' ')
+                 cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
+                 if j.output_file_names:
+                     files =  j.output_file_names.split(' ')
+                 else:
+                     files = []
+
                  newfiles = kwargs['output_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
@@ -522,8 +533,10 @@ class poms_service:
 		 j.task_obj.updated =  datetime.now(utc)
 		 cherrypy.request.db.add(j.task_obj)
 
+	     cherrypy.log("update_job: db add/commit job %d" % j.job_id) 
 	     cherrypy.request.db.add(j)
 	     cherrypy.request.db.commit()
+	     cherrypy.log("update_job: done") 
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmin, tmax = None ):
@@ -537,10 +550,19 @@ class poms_service:
 
         jl = cherrypy.request.db.query(JobHistory).join(Job).filter(Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = time_grid.time_grid(); 
-        screendata = tg.render_query(tmin, tmax, jl, 'job_id', url_template='/poms/triage_job?job_id="%(job_id)s"')
-         
+        screendata = tg.render_query(tmin, tmax, jl, 'job_id', url_template='/poms/triage_job?job_id=%(job_id)s')         
+
         template = self.jinja_env.get_template('job_grid.html')
         return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16])
+
+
+
+    @cherrypy.expose
+    def triage_job(self, job_id):
+        template = self.jinja_env.get_template('triage_job.html')
+        return template.render(job_id = job_id)
+
+
 
     @cherrypy.expose
     def show_campaigns(self,tmin = None,tmax = None):
@@ -603,3 +625,20 @@ class poms_service:
          
         template = self.jinja_env.get_template('job_grid.html')
         return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16])
+
+    
+    @cherrypy.expose
+    def job_file_list(self, job_id):
+        j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
+        #role = j.task_obj.campain_obj.role
+        role = "Production"
+        cherrypy.response.headers['Content-Type'] = "application/json"
+        return json.dumps(cherrypy.request.jobsub_fetcher.index(j.jobsub_job_id,j.task_obj.campaign_obj.experiment ,role))
+
+    @cherrypy.expose
+    def job_file_contents(self, job_id, file):
+        j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
+        #role = j.task_obj.campain_obj.role
+        role = "Production"
+        cherrypy.response.headers['Content-Type'] = "application/json"
+        return json.dumps(cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role))

@@ -9,6 +9,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 import poms_service
+
+import jobsub_fetcher
  
 class SAEnginePlugin(plugins.SimplePlugin):
     def __init__(self, bus):
@@ -63,6 +65,7 @@ class SATool(cherrypy.Tool):
                                priority=20)
         self.session = scoped_session(sessionmaker(autoflush=True,
                                                   autocommit=False))
+        self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher()
  
     def _setup(self):
         cherrypy.Tool._setup(self)
@@ -72,9 +75,11 @@ class SATool(cherrypy.Tool):
     def bind_session(self):
         cherrypy.engine.publish('bind', self.session)
         cherrypy.request.db = self.session
+        cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
  
     def release_session(self):
         cherrypy.request.db = None
+        cherrypy.request.jobsub_fetcher = None
         self.session.remove()
 
 class SessionTool(cherrypy.Tool):
