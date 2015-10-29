@@ -101,14 +101,14 @@ class jobsub_q_scraper:
         res = f.close()
 
         if res == 0 or res == None:
-	    for jobid in self.jobmap.keys():
-		if self.jobmap[jobid] == 0:
+	    for jobsub_job_id in self.jobmap.keys():
+		if self.jobmap[jobsub_job_id] == 0:
 		    # it is in the database, but not in our output, 
                     # so it's dead.
 		    # we could get a false alarm here if condor_q fails...
 		    # thats why we only do this if our close() returned 0/None.
 		    self.job_reporter.report_status(
-			jobid = jobid,
+			jobsub_job_id = jobsub_job_id,
 			status = "Completed")
 
         self.call_wrapup_tasks()
