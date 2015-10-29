@@ -487,7 +487,8 @@ class poms_service:
          
     @cherrypy.expose
     def update_job(self, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
-	 cherrypy.log("update_job( %s, %s,  %s )" % (task_id, jobsub_job_id, repr(kwargs)))
+	 cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
+
          if task_id:
              task_id = int(task_id)
 
@@ -504,7 +505,7 @@ class poms_service:
              j.node_name = ''
 
          if j:
-	     cherrypy.log("update_job: updating job %d" % j.job_id) 
+	     cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1)) 
 	     for field in ['cpu_type', 'host_site', 'status', 'user_exe_exit_code']:
 		 if kwargs.get(field, None):
 		    setattr(j,field,kwargs[field])
@@ -533,10 +534,10 @@ class poms_service:
 		 j.task_obj.updated =  datetime.now(utc)
 		 cherrypy.request.db.add(j.task_obj)
 
-	     cherrypy.log("update_job: db add/commit job %d" % j.job_id) 
+	     cherrypy.log("update_job: db add/commit job ") 
 	     cherrypy.request.db.add(j)
 	     cherrypy.request.db.commit()
-	     cherrypy.log("update_job: done") 
+	     cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmin, tmax = None ):
