@@ -74,7 +74,7 @@ class poms_service:
     @cherrypy.expose
     def index(self):
         template = self.jinja_env.get_template('service_statuses.html')
-        return template.render(services=self.service_status_hier('All'),current_experimenter=self.get_current_experimenter())
+        return template.render(services=self.service_status_hier('All'),current_experimenter=self.get_current_experimenter(), do_refresh = 1)
 
     @cherrypy.expose
     def test(self):
@@ -88,6 +88,36 @@ class poms_service:
         </html>""" % (cherrypy.session._id,cherrypy.session.get('id'))
         return html
 
+    def can_create_task(self):
+        return self.can_report_data()
+
+    def can_report_data(self):
+        xff = cherrypy.request.headers.get('X-Forwarded-For', None)
+        ra =  cherrypy.request.headers.get('Remote-Addr', None)
+        user = cherrypy.request.headers.get('X-Shib-Userid', None)
+        if ra == '127.0.0.1' and xff.startswith('131.225.67'):
+             # case for fifelog agent..
+             return 1
+        if ra == '127.0.0.1' and xff.startswith('131.225.80'):
+             # case for jobsub_q agent (currently on bel-kwinith...)
+             return 1
+        if ra == '127.0.0.1' and xff == None:
+             # case for local agents
+             return 1
+        if user in ['mengel','illingwo','mgheith','swhite']:
+             # special admins
+             return 1
+
+    def can_db_admin(self):
+        xff = cherrypy.request.headers.get('X-Forwarded-For', None)
+        ra =  cherrypy.request.headers.get('Remote-Addr', None)
+        user = cherrypy.request.headers.get('X-Shib-Userid', None)
+        if ra == '127.0.0.1' and xff == None:
+             # case for local agents
+             return 1
+        if user in ['mengel','illingwo','mgheith','swhite']:
+             # special admins
+             return 1
 
     @cherrypy.expose
     def calendar_json(self, start, end, timezone, _):
@@ -123,7 +153,7 @@ class poms_service:
     def calendar(self):
         template = self.jinja_env.get_template('calendar.html')
         rows = cherrypy.request.db.query(Service).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(Service.name != "FifeBatch").filter(~Service.name.endswith("sam")).all()
-        return template.render(rows=rows)
+        return template.render(rows=rows,current_experimenter=self.get_current_experimenter())
 
 
 
@@ -179,7 +209,7 @@ class poms_service:
     def service_downtimes(self):
         template = self.jinja_env.get_template('service_downtimes.html')
         rows = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).all()
-        return template.render(rows=rows)
+        return template.render(rows=rows,current_experimenter=self.get_current_experimenter())
 
 
     @cherrypy.expose
@@ -253,7 +283,7 @@ class poms_service:
             list.append({'name': s.name,'status': s.status, 'url': url})
 
         template = self.jinja_env.get_template('service_status.html')
-        return template.render(list=list, name=under)
+        return template.render(list=list, name=under,current_experimenter=self.get_current_experimenter())
 
     def service_status_hier(self, under = 'All', depth = 0):
         p = cherrypy.request.db.query(Service).filter(Service.name == under).first()
@@ -325,22 +355,30 @@ class poms_service:
 
     @cherrypy.expose
     def admin_screen(self):
+        if not self.can_db_admin():
+             return "Not allowed"
         template = self.jinja_env.get_template('admin_screen.html')
-        return template.render(list = self.admin_map.keys())
+        return template.render(list = self.admin_map.keys(),current_experimenter=self.get_current_experimenter())
         
     @cherrypy.expose
     def list_generic(self, classname):
+        if not self.can_db_admin():
+             return "Not allowed"
         l = self.make_list_for(self.admin_map[classname],self.pk_map[classname])
         template = self.jinja_env.get_template('list_screen.html')
-        return template.render( classname = classname, list = l, edit_screen="edit_screen_generic", primary_key='experimenter_id')
+        return template.render( classname = classname, list = l, edit_screen="edit_screen_generic", primary_key='experimenter_id',current_experimenter=self.get_current_experimenter())
 
     @cherrypy.expose
     def edit_screen_generic(self, classname, id = None):
+        if not self.can_db_admin():
+             return "Not allowed"
         # XXX -- needs to get select lists for foreign key fields...
         return self.edit_screen_for(classname, self.admin_map[classname], 'update_generic', self.pk_map[classname], id, {})
          
     @cherrypy.expose
     def update_generic( self, classname, *args, **kwargs):
+        if not self.can_report_data():
+             return "Not allowed"
         return self.update_for(classname, self.admin_map[classname], self.pk_map[classname], *args, **kwargs)
 
     def update_for( self, classname, eclass, primkey,  *args , **kwargs):
@@ -388,6 +426,9 @@ class poms_service:
         return "%s=%s" % (classname, getattr(found,primkey))
   
     def edit_screen_for( self, classname, eclass, update_call, primkey, primval, valmap):
+        if not self.can_db_admin():
+             return "Not Allowed"
+
         found = None
         sample = eclass()
         if primval != '':
@@ -413,7 +454,7 @@ class poms_service:
                   'values' : valmap.get(fn, None)
               })
         template = self.jinja_env.get_template('edit_screen.html')
-        return template.render( screendata = screendata, action="./"+update_call , classname = classname )
+        return template.render( screendata = screendata, action="./"+update_call , classname = classname ,current_experimenter=self.get_current_experimenter())
 
     def make_list_for(self,eclass,primkey):
         res = []
@@ -423,6 +464,8 @@ class poms_service:
 
     @cherrypy.expose
     def create_task(self, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor = None ):
+         if not can_create_task():
+             return "Not Allowed"
          first,last,email = creator.split(' ')
          creator = self.get_or_add_experimenter(first, last, email)
          exp = self.get_or_add_experiment(experiment)
@@ -489,6 +532,9 @@ class poms_service:
     def update_job(self, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
 	 cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
 
+         if not self.can_report_data():
+              return "Not Allowed"
+
          if task_id:
              task_id = int(task_id)
 
@@ -550,19 +596,19 @@ class poms_service:
             tmax = tmin + timedelta(days=1)
 
         jl = cherrypy.request.db.query(JobHistory).join(Job).filter(Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
-        tg = time_grid.time_grid(); 
-        screendata = tg.render_query(tmin, tmax, jl, 'job_id', url_template='/poms/triage_job?job_id=%(job_id)s')         
+        tg = time_grid.time_grid()
+        screendata = self.format_job_counts(task_id = task_id)
+        screendata = screendata +  tg.render_query(tmin, tmax, jl, 'job_id', url_template='/poms/triage_job?job_id=%(job_id)s')         
 
         template = self.jinja_env.get_template('job_grid.html')
-        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16])
+        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter(), do_refresh = 1)
 
 
 
     @cherrypy.expose
     def triage_job(self, job_id):
         template = self.jinja_env.get_template('triage_job.html')
-        return template.render(job_id = job_id)
-
+        return template.render(job_id = job_id,current_experimenter=self.get_current_experimenter())
 
 
     @cherrypy.expose
@@ -589,10 +635,14 @@ class poms_service:
             tmax = datetime.now(utc)
 
         sl = []
+        sl.append(self.format_job_counts())
+
         cl = cherrypy.request.db.query(Campaign).join(Task).filter(Task.campaign_id == Campaign.campaign_id , Task.created > tmin, Task.created < tmax ).all()
         
         for c in cl:
               sl.append('<h2 class="ui dividing header">%s Tasks</h2>' % c.name )
+              sl.append(self.format_job_counts(campaign_id = c.campaign_id))
+
               tl =  cherrypy.request.db.query(Task).filter(Task.campaign_id == c.campaign_id, Task.created > tmin, Task.created < tmax ).all()
               items = []
               for t in tl:
@@ -603,34 +653,19 @@ class poms_service:
               sl.append( tg.render_query(tmin, tmax, items, 'task_id', url_template = '/poms/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
 
         screendata = "\n".join(sl)
+
+        allcounts =  self.format_job_counts()
               
         template = self.jinja_env.get_template('campaign_grid.html')
-        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16])
-                 
-
-    @cherrypy.expose
-    def show_campaign_tasks(self, campaign_id, tmin, tmax ):
-        tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S")
-        tmin= tmin.replace(tzinfo = utc)
-        tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
-        tmax= tmax.replace(tzinfo = utc)
-        
-        tl = cherrypy.request.db.query(Task.task_id, func.max(JobHistory.created), func.min(JobHistory.created)).join(Job,JobHistory).filter(Task.campaign_id == campaign_id, Job.task_id==Task.task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).group_by(Task.task_id).all()
-        for item in tl:
-            print item
-        tg = time_grid.time_grid(); 
-        print tl
-
-        return "hmm..."
-        screendata = tg.render_query(tmin, tmax, tl, 'task_id',url_template = '/poms/show_task_jobs?task_id=%(task_id)s&tmin=%(created)s' )
-         
-        template = self.jinja_env.get_template('job_grid.html')
-        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16])
+        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter(), do_refresh = 1)
 
     
     @cherrypy.expose
     def job_file_list(self, job_id):
         j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
+        # find the job with the logs -- minimum jobsub_job_id for this task
+        j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
+        cherrypy.log("found job: %s " % j.jobsub_job_id)
         #role = j.task_obj.campain_obj.role
         role = "Production"
         cherrypy.response.headers['Content-Type'] = "application/json"
@@ -639,7 +674,46 @@ class poms_service:
     @cherrypy.expose
     def job_file_contents(self, job_id, file):
         j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
+        # find the job with the logs -- minimum jobsub_job_id for this task
+        j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
+        cherrypy.log("found job: %s " % j.jobsub_job_id)
         #role = j.task_obj.campain_obj.role
         role = "Production"
         cherrypy.response.headers['Content-Type'] = "application/json"
         return json.dumps(cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role))
+
+    @cherrypy.expose
+    def test_job_counts(self, task_id = None, campaign_id = None):
+        res = self.job_counts(task_id, campaign_id)
+        return repr(res) + self.format_job_counts(task_id, campaign_id)
+
+    def format_job_counts(self, task_id = None, campaign_id = None):
+        counts = self.job_counts(task_id, campaign_id)
+        ck = counts.keys()
+        ck.sort()
+        res = [ '<table class="ui celled table unstackable"><tr><td span=4>Job states</td></tr><tr>' ]
+        for k in ck:
+            res.append( "<th>%s</th>" % k )
+        res.append("</tr><tr>")
+        for k in ck:
+            res.append( "<td>%d</td>" % counts[k] )
+        res.append("</tr></table>")
+        return "".join(res)
+
+    def job_counts(self, task_id = None, campaign_id = None):
+        q = cherrypy.request.db.query(func.count(Job.status),Job.status).group_by(Job.status) 
+        if task_id:
+            q = q.filter(Job.task_id == task_id)
+
+        if campaign_id:
+            q = q.join(Task,Job.task_id == Task.task_id).filter( Task.campaign_id == campaign_id)
+
+        out = {"Idle":0, "Running":0, "Held":0, "Completed":0}
+        for row in  q.all():
+            if row[1][1:7] == "unning":
+                short = "Running"
+            else:
+                short = row[1]
+            out[short] = out.get(short,0) + int(row[0])
+        return out
+            
