@@ -630,6 +630,9 @@ class poms_service:
     @cherrypy.expose
     def job_file_list(self, job_id):
         j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
+        # find the job with the logs -- minimum jobsub_job_id for this task
+        j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
+        cherrypy.log("found job: %s " % j.jobsub_job_id)
         #role = j.task_obj.campain_obj.role
         role = "Production"
         cherrypy.response.headers['Content-Type'] = "application/json"
@@ -638,6 +641,9 @@ class poms_service:
     @cherrypy.expose
     def job_file_contents(self, job_id, file):
         j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
+        # find the job with the logs -- minimum jobsub_job_id for this task
+        j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
+        cherrypy.log("found job: %s " % j.jobsub_job_id)
         #role = j.task_obj.campain_obj.role
         role = "Production"
         cherrypy.response.headers['Content-Type'] = "application/json"

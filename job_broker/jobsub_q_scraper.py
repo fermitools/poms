@@ -121,7 +121,7 @@ class jobsub_q_scraper:
 	    except KeyboardInterrupt:
 	        break
 
-	     except:
+	    except:
 	        print "Exception!"
 	        traceback.print_exc()
 	        pass
@@ -130,7 +130,7 @@ class jobsub_q_scraper:
 
 if __name__ == '__main__':
     debug = 0
-    if sys.argv[1] == "-d":
+    if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
 
     js = jobsub_q_scraper(job_reporter("http://fermicloud045.fnal.gov:8080/poms"), debug = debug)
