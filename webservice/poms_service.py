@@ -264,6 +264,8 @@ class poms_service:
         s.host_site = host_site
         s.updated = datetime.now(utc)
         s.description = description
+        s.items = total
+        s.failed_items = failed
         cherrypy.request.db.add(s)
         cherrypy.request.db.commit()
 
@@ -301,7 +303,7 @@ class poms_service:
                      <div class="title %s">
 		      <i class="dropdown icon"></i>
                       <button class="ui button %s" title="%s">
-                         %s
+                         %s (%d/%d)
                        </button>
                        <i class="icon %s"></i>
                      </div>
@@ -311,13 +313,13 @@ class poms_service:
                          source webpage
                          </a>
                      </div>
-                  """ % (active, posneg, s.description, s.name,  icon, active, s.host_site) 
+                  """ % (active, posneg, s.description, s.name, s.failed_items, s.items, icon, active, s.host_site) 
              else:
                  res = res + """
                     <div class="title %s">
 		      <i class="dropdown icon"></i>
                       <button class="ui button %s" title="%s">
-                        %s
+                        %s (%d/%d)
                       </button>
                       <i class="icon %s"></i>
                     </div>
@@ -325,7 +327,7 @@ class poms_service:
                       <p>components:</p>
                       %s
                     </div>
-                 """ % (active, posneg, s.description, s.name, icon, active,  self.service_status_hier(s.name, depth + 1))
+                 """ % (active, posneg, s.description, s.name, s.failed_items, s.items, icon, active,  self.service_status_hier(s.name, depth + 1))
              active = ""
            
         if depth == 0:
