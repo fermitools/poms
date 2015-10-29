@@ -263,6 +263,7 @@ class poms_service:
         s.status = status
         s.host_site = host_site
         s.updated = datetime.now(utc)
+        s.description = description
         cherrypy.request.db.add(s)
         cherrypy.request.db.commit()
 
@@ -293,13 +294,13 @@ class poms_service:
             res = ''
         active = ""
         for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(Service.name).all():
-             posneg = "positive" if s.status == "good" else "negative" if s.status == "bad" else ""
-             icon =  "checkmark" if s.status == "good" else "remove" if s.status == "bad" else "help circle"
+             posneg = {"good": "positive", "degraded": "orange", "bad": "negative"}.get(s.status, "")
+             icon = {"good": "checkmark", "bad": "remove", "degraded": "warning sign"}.get(s.status,"help circle")
              if s.host_site:
                  res = res + """
                      <div class="title %s">
 		      <i class="dropdown icon"></i>
-                      <button class="ui button %s">
+                      <button class="ui button %s" title=%s>
                          %s
                        </button>
                        <i class="icon %s"></i>
@@ -310,12 +311,12 @@ class poms_service:
                          source webpage
                          </a>
                      </div>
-                  """ % (active, posneg, s.name,  icon, active, s.host_site) 
+                  """ % (active, posneg, s.description, s.name,  icon, active, s.host_site) 
              else:
                  res = res + """
                     <div class="title %s">
 		      <i class="dropdown icon"></i>
-                      <button class="ui button %s">
+                      <button class="ui button %s" title=%s>
                         %s
                       </button>
                       <i class="icon %s"></i>
@@ -324,7 +325,7 @@ class poms_service:
                       <p>components:</p>
                       %s
                     </div>
-                 """ % (active, posneg, s.name, icon, active,  self.service_status_hier(s.name, depth + 1))
+                 """ % (active, posneg, s.description, s.name, icon, active,  self.service_status_hier(s.name, depth + 1))
              active = ""
            
         if depth == 0:
