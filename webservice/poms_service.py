@@ -300,7 +300,7 @@ class poms_service:
                  res = res + """
                      <div class="title %s">
 		      <i class="dropdown icon"></i>
-                      <button class="ui button %s" title=%s>
+                      <button class="ui button %s" title="%s">
                          %s
                        </button>
                        <i class="icon %s"></i>
@@ -316,7 +316,7 @@ class poms_service:
                  res = res + """
                     <div class="title %s">
 		      <i class="dropdown icon"></i>
-                      <button class="ui button %s" title=%s>
+                      <button class="ui button %s" title="%s">
                         %s
                       </button>
                       <i class="icon %s"></i>

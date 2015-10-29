@@ -94,7 +94,7 @@ class status_scraper():
             self.percents[section] = -1
 
         if self.debug:
-           print "recurse: ", s , self.percents[s] , "%"
+           print "recurse: ", s , self.percents.get(s,0), "%"
 
 	if n_good == 0 and n_bad == 0:
             self.status[section] = 'unknown'
@@ -188,7 +188,7 @@ class status_scraper():
             name = s.replace("service ","")
             parent = self.parent.get(s,'').replace("service ","")
             if self.cf.has_option(s,'description'):
-                description = self.config.get(s,'description')
+                description = self.cf.get(s,'description')
             else:
                 description = s
             report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.url.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.quote_plus(description))
