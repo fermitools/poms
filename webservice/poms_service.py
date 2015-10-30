@@ -610,8 +610,9 @@ class poms_service:
 
     @cherrypy.expose
     def triage_job(self, job_id):
+        job_file_list = self.job_file_list(job_id)
         template = self.jinja_env.get_template('triage_job.html')
-        return template.render(job_id = job_id,current_experimenter=self.get_current_experimenter())
+        return template.render(job_id = job_id, job_file_list = job_file_list, current_experimenter=self.get_current_experimenter())
 
 
     @cherrypy.expose
@@ -663,15 +664,13 @@ class poms_service:
         return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter(), do_refresh = 1)
 
     
-    @cherrypy.expose
     def job_file_list(self, job_id):
         j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
         cherrypy.log("found job: %s " % j.jobsub_job_id)
         role = j.task_obj.campaign_obj.vo_role
-        cherrypy.response.headers['Content-Type'] = "application/json"
-        return json.dumps(cherrypy.request.jobsub_fetcher.index(j.jobsub_job_id,j.task_obj.campaign_obj.experiment ,role))
+        return cherrypy.request.jobsub_fetcher.index(j.jobsub_job_id,j.task_obj.campaign_obj.experiment ,role)
 
     @cherrypy.expose
     def job_file_contents(self, job_id, file):
@@ -680,8 +679,9 @@ class poms_service:
         j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
         cherrypy.log("found job: %s " % j.jobsub_job_id)
         role = j.task_obj.campaign_obj.vo_role
-        cherrypy.response.headers['Content-Type'] = "application/json"
-        return json.dumps(cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role))
+        job_file_contents = cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role)
+        template = self.jinja_env.get_template('job_file_contents.html')
+        return template.render(file=file, job_file_contents=job_file_contents)
 
     @cherrypy.expose
     def test_job_counts(self, task_id = None, campaign_id = None):
