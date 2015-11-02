@@ -90,7 +90,8 @@ class poms_service:
 
     def can_create_task(self):
         ra =  cherrypy.request.headers.get('Remote-Addr', None)
-        if ra and ra.startswith('131.225.67'):
+        cherrypy.log("can_create_task: Remote-addr: %s" %  ra)
+        if ra.startswith('131.225.67.'):
             return 1
         return 0
 
@@ -98,6 +99,9 @@ class poms_service:
         xff = cherrypy.request.headers.get('X-Forwarded-For', None)
         ra =  cherrypy.request.headers.get('Remote-Addr', None)
         user = cherrypy.request.headers.get('X-Shib-Userid', None)
+        cherrypy.log("can_report_data: Remote-addr: %s" %  ra)
+        if ra.startswith('131.225.67.'):
+            return 1
         if ra == '127.0.0.1' and xff and xff.startswith('131.225.67'):
              # case for fifelog agent..
              return 1
