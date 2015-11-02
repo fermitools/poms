@@ -9,7 +9,7 @@
        Dashboard  <!--label of current location on mobile-->
     </div>
     <div class="item">
-      Job Triage <!--label of current location on mobile-->
+      Job Triage Job File Contents <!--label of current location on mobile-->
     </div>
 {%endblock%}
 
@@ -32,7 +32,7 @@
 
 
 {%block subheader%}
-<h2 class="ui dividing header">Job Triage:</h2>
+<h2 class="ui dividing header">{{file}}</h2>
 {%endblock%}
 
 
@@ -40,12 +40,8 @@
 {%block content %}
 
 
-{% for item in job_file_list %}
-
-<a href="/poms/job_file_contents?job_id={{job_id}}&file={{item}}">{{ item }}</a>
-
+{% for item in job_file_contents %}
+     {{item}} </br>
 {% endfor %}
-
 	
 {%endblock%}
-

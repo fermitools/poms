@@ -269,6 +269,8 @@ class poms_service:
         s.host_site = host_site
         s.updated = datetime.now(utc)
         s.description = description
+        s.items = total
+        s.failed_items = failed
         cherrypy.request.db.add(s)
         cherrypy.request.db.commit()
 
@@ -305,8 +307,8 @@ class poms_service:
                  res = res + """
                      <div class="title %s">
 		      <i class="dropdown icon"></i>
-                      <button class="ui button %s" title=%s>
-                         %s
+                      <button class="ui button %s" title="%s">
+                         %s (%d/%d)
                        </button>
                        <i class="icon %s"></i>
                      </div>
@@ -316,13 +318,13 @@ class poms_service:
                          source webpage
                          </a>
                      </div>
-                  """ % (active, posneg, s.description, s.name,  icon, active, s.host_site) 
+                  """ % (active, posneg, s.description, s.name, s.failed_items, s.items, icon, active, s.host_site) 
              else:
                  res = res + """
                     <div class="title %s">
 		      <i class="dropdown icon"></i>
-                      <button class="ui button %s" title=%s>
-                        %s
+                      <button class="ui button %s" title="%s">
+                        %s (%d/%d)
                       </button>
                       <i class="icon %s"></i>
                     </div>
@@ -330,7 +332,7 @@ class poms_service:
                       <p>components:</p>
                       %s
                     </div>
-                 """ % (active, posneg, s.description, s.name, icon, active,  self.service_status_hier(s.name, depth + 1))
+                 """ % (active, posneg, s.description, s.name, s.failed_items, s.items, icon, active,  self.service_status_hier(s.name, depth + 1))
              active = ""
            
         if depth == 0:
@@ -536,11 +538,11 @@ class poms_service:
          
     @cherrypy.expose
     def update_job(self, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
+	 cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
 
          if not self.can_report_data():
               return "Not Allowed"
 
-	 cherrypy.log("update_job( %s, %s,  %s )" % (task_id, jobsub_job_id, repr(kwargs)))
          if task_id:
              task_id = int(task_id)
 
@@ -557,7 +559,7 @@ class poms_service:
              j.node_name = ''
 
          if j:
-	     cherrypy.log("update_job: updating job %d" % j.job_id) 
+	     cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1)) 
 	     for field in ['cpu_type', 'host_site', 'status', 'user_exe_exit_code']:
 		 if kwargs.get(field, None):
 		    setattr(j,field,kwargs[field])
@@ -586,10 +588,10 @@ class poms_service:
 		 j.task_obj.updated =  datetime.now(utc)
 		 cherrypy.request.db.add(j.task_obj)
 
-	     cherrypy.log("update_job: db add/commit job %d" % j.job_id) 
+	     cherrypy.log("update_job: db add/commit job ") 
 	     cherrypy.request.db.add(j)
 	     cherrypy.request.db.commit()
-	     cherrypy.log("update_job: done") 
+	     cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmin, tmax = None ):
@@ -613,8 +615,9 @@ class poms_service:
 
     @cherrypy.expose
     def triage_job(self, job_id):
+        job_file_list = self.job_file_list(job_id)
         template = self.jinja_env.get_template('triage_job.html')
-        return template.render(job_id = job_id,current_experimenter=self.get_current_experimenter())
+        return template.render(job_id = job_id, job_file_list = job_file_list, current_experimenter=self.get_current_experimenter())
 
 
     @cherrypy.expose
@@ -666,15 +669,13 @@ class poms_service:
         return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter(), do_refresh = 1)
 
     
-    @cherrypy.expose
     def job_file_list(self, job_id):
         j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
         cherrypy.log("found job: %s " % j.jobsub_job_id)
         role = j.task_obj.campaign_obj.vo_role
-        cherrypy.response.headers['Content-Type'] = "application/json"
-        return json.dumps(cherrypy.request.jobsub_fetcher.index(j.jobsub_job_id,j.task_obj.campaign_obj.experiment ,role))
+        return cherrypy.request.jobsub_fetcher.index(j.jobsub_job_id,j.task_obj.campaign_obj.experiment ,role)
 
     @cherrypy.expose
     def job_file_contents(self, job_id, file):
@@ -683,8 +684,9 @@ class poms_service:
         j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
         cherrypy.log("found job: %s " % j.jobsub_job_id)
         role = j.task_obj.campaign_obj.vo_role
-        cherrypy.response.headers['Content-Type'] = "application/json"
-        return json.dumps(cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role))
+        job_file_contents = cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role)
+        template = self.jinja_env.get_template('job_file_contents.html')
+        return template.render(file=file, job_file_contents=job_file_contents)
 
     @cherrypy.expose
     def test_job_counts(self, task_id = None, campaign_id = None):
