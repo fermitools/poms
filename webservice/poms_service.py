@@ -102,6 +102,8 @@ class poms_service:
         cherrypy.log("can_report_data: Remote-addr: %s" %  ra)
         if ra.startswith('131.225.67.'):
             return 1
+        if ra.startswith('131.225.80.'):
+            return 1
         if ra == '127.0.0.1' and xff and xff.startswith('131.225.67'):
              # case for fifelog agent..
              return 1
