@@ -225,4 +225,4 @@ class status_scraper():
 
 #ss = status_scraper("status_scraper.cfg", "http://fermicloud045.fnal.gov:8080/poms")
 ss = status_scraper("status_scraper.cfg", "http://localhost:8080/poms")
-ss.one_pass()
+ss.poll()
