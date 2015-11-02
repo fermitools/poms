@@ -28,6 +28,9 @@ class status_scraper():
         self.parent = {}
         self.url = {}
         self.debug = int(self.cf.get('global','debug'))
+        if self.cf.has_option('global','cert'):
+            os.environ['X509_USER_CERT'] = self.cf.get('global','cert')
+            os.environ['X509_USER_KEY'] = self.cf.get('global','key')
         
     def flush_cache(self):
         self.page_cache = {}
@@ -42,11 +45,21 @@ class status_scraper():
                 buffer = StringIO()
                 c.setopt(c.URL, url)
                 c.setopt(c.WRITEFUNCTION, buffer.write)
-                c.setopt(c.SSLCERT,"/tmp/x509up_u%d" % os.getuid())
-                c.setopt(c.SSLKEY,"/tmp/x509up_u%d" % os.getuid())
+
+                if os.environ.has_key('X509_USER_CERT'):
+                    c.setopt(c.SSLCERT, os.environ['X509_USER_CERT'])
+                else:
+                    c.setopt(c.SSLCERT,"/tmp/x509up_u%d" % os.getuid())
+
+                if os.environ.has_key('X509_USER_KEY'):
+                    c.setopt(c.SSLKEY, os.environ['X509_USER_KEY'])
+                else:
+                    c.setopt(c.SSLKEY,"/tmp/x509up_u%d" % os.getuid())
+
                 c.setopt(c.SSL_VERIFYHOST, 0)
                 c.setopt(c.SSL_VERIFYPEER, 0)
                 c.setopt(c.HTTPHEADER, ['Accept: application/json','Accept: text/plain','Accept: text/html'])
+                c.setopt(c.FOLLOWLOCATION, 1)
                 c.perform()
                 c.close()
                 self.page_cache[url] = buffer.getvalue().split("\n")
@@ -76,6 +89,9 @@ class status_scraper():
             rs = self.recurse(s)
             if rs == 'good':
                n_good = n_good + 1
+            if rs == 'degraded':
+               n_good = n_good + 0.5
+               n_bad = n_bad + 0.5
             if rs == 'bad':
                n_bad = n_bad + 1
 
@@ -85,8 +101,8 @@ class status_scraper():
         else:
             warnpercent = 0
 
-        self.totals[section] = n_good + n_bad
-        self.failed[section] = n_bad
+        self.totals[section] = int(n_good + n_bad)
+        self.failed[section] = int(n_bad)
 
         if n_good + n_bad > 0:
             self.percents[section] = ((n_good ) * 100.0 / (n_good+n_bad)) 
@@ -124,6 +140,10 @@ class status_scraper():
             good = self.cf.get(s,'scrape_match_1')
             bad = self.cf.get(s,'scrape_bad_match_1')
             percent = int(self.cf.get(s,'percent'))
+	    if self.cf.has_option(s,'warnpercent'):
+		warnpercent = int(self.cf.get(s,'warnpercent'))
+	    else:
+		warnpercent = 0
             n_good = 0
             n_bad = 0
             if scrape_url and scrape_regex:
@@ -144,6 +164,7 @@ class status_scraper():
                              if self.debug: print "bad"
                              n_bad = n_bad + 1 
 
+
                 if n_good + n_bad > 0:
                     self.percents[s] = (n_good ) * 100.0 / (n_good+n_bad) 
                 else:
@@ -154,8 +175,13 @@ class status_scraper():
 	        else:
                     if n_good == 0 or self.percents[s] < percent:
 	 	        self.status[s] = 'bad'
+                    elif  self.percents[s] < warnpercent:
+	 	        self.status[s] = 'degraded'
 	            else:
 		        self.status[s] = 'good'
+
+                self.totals[s] = n_good + n_bad
+                self.failed[s] = n_bad
         #
         # next check the ones that have sub-sections
         # to decide if they're bad or good.
