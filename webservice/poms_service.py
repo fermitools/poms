@@ -89,7 +89,10 @@ class poms_service:
         return html
 
     def can_create_task(self):
-        return self.can_report_data()
+        ra =  cherrypy.request.headers.get('Remote-Addr', None)
+        if ra and ra.startswith('131.225.67'):
+            return 1
+        return 0
 
     def can_report_data(self):
         xff = cherrypy.request.headers.get('X-Forwarded-For', None)
@@ -98,7 +101,7 @@ class poms_service:
         if ra == '127.0.0.1' and xff and xff.startswith('131.225.67'):
              # case for fifelog agent..
              return 1
-        if ra == '127.0.0.1' and xff and xff.startswith('131.225.80'):
+        if ra != '127.0.0.1' and xff and xff.startswith('131.225.80'):
              # case for jobsub_q agent (currently on bel-kwinith...)
              return 1
         if ra == '127.0.0.1' and xff == None:
@@ -107,6 +110,7 @@ class poms_service:
         if user in ['mengel','illingwo','mgheith','swhite']:
              # special admins
              return 1
+        return 0
 
     def can_db_admin(self):
         xff = cherrypy.request.headers.get('X-Forwarded-For', None)
@@ -118,6 +122,7 @@ class poms_service:
         if user in ['mengel','illingwo','mgheith','swhite']:
              # special admins
              return 1
+        return 0
 
     @cherrypy.expose
     def calendar_json(self, start, end, timezone, _):
