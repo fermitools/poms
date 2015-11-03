@@ -6,6 +6,7 @@ import re
 import urllib2
 import json
 import time
+import traceback
 from job_reporter import job_reporter
 
 class jobsub_q_scraper:
