@@ -1,4 +1,17 @@
-import os, os.path
+#!/usr/bin/env python
+
+import sys
+import os
+
+# make sure poms is setup...
+if os.environ.get("POMS_DIR","") == "":
+    sys.path.insert(0,os.environ['SETUPS_DIR'])
+    import setups
+    print "setting up poms..."
+    ups = setups.setups()
+    ups.use_package("poms","","SETUP_POMS")
+
+import os.path
 import argparse
 from logging import handlers, DEBUG
 
