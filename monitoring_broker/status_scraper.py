@@ -9,6 +9,7 @@ import traceback
 import os
 import sys
 import ssl,socket
+import time
 
 import pycurl
 from StringIO import StringIO
@@ -197,12 +198,19 @@ class status_scraper():
         self.report()
 
     def poll(self):
-        try:
-            while 1:
+        while 1:
+            try:
                 self.one_pass()
-                time.sleep(300)
-        except:
-            print "Interuppted. Quitting"
+
+	    except KeyboardInterrupt:
+		print "Interupted. Quitting"
+
+	    except:
+	        print "Exception!"
+	        traceback.print_exc()
+	        pass
+	    time.sleep(300)
+
 
     def report(self):
         # XXX this needs to actually make a page and post to webservice
@@ -225,4 +233,4 @@ class status_scraper():
 
 #ss = status_scraper("status_scraper.cfg", "http://fermicloud045.fnal.gov:8080/poms")
 ss = status_scraper("status_scraper.cfg", "http://localhost:8080/poms")
-ss.one_pass()
+ss.poll()
