@@ -29,6 +29,6 @@ class job_reporter:
         uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
         res = uh.read()
         if self.debug:
-           print "reporting: ",  data, "status:", res.getcode()
+           print "reporting: ",  data, "status:", uh.getcode()
         uh.close()
         return res
