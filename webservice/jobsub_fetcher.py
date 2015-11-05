@@ -43,7 +43,7 @@ class jobsub_fetcher():
 
     def index(self, jobsubjobid, group, role = "Production"):
         self.fetch(jobsubjobid, group, role)
-        f = os.popen( "tar tzf %s/%s.tgz" % (self.workdir, jobsubjobid.rstrip("\n")), "r"))
+        f = os.popen( "tar tzf %s/%s.tgz" % (self.workdir, jobsubjobid.rstrip("\n")), "r")
         res = []
         for line in f:
              res.append(line.rstrip('\n'))
@@ -52,7 +52,7 @@ class jobsub_fetcher():
 
     def contents(self, filename, jobsubjobid, group, role = "Production"):
         self.fetch(jobsubjobid, group, role)
-        f = os.popen( "tar --to-stdout -xzf %s/%s.tgz %s" % (self.workdir, jobsubjobid, filename), "r")
+        f = os.popen( "tar --to-stdout -xzf %s/%s.tgz %s" % (self.workdir, jobsubjobid.rstrip("\n"), filename), "r")
         res = []
         for line in f:
             res.append(line.rstrip('\n'))
