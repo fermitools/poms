@@ -6,6 +6,7 @@ import re
 import urllib2
 import json
 import time
+import traceback
 from job_reporter import job_reporter
 
 class jobsub_q_scraper:
@@ -26,7 +27,7 @@ class jobsub_q_scraper:
            "6": "Submission_error",
         }
         self.jobmap = {}
-        self.debug = 1
+        self.debug = debug
 
     def get_open_jobs(self):
 	self.jobmap = {}
@@ -76,8 +77,8 @@ class jobsub_q_scraper:
 		jobsub_job_id = jobenv["JOBSUBJOBID"];
 	    else:
 		jobsub_job_id = '%s.%s@%s' % (
-		    jobenv['PROCESS'],
 		    jobenv['CLUSTER'],
+		    jobenv['PROCESS'],
 		    jobenv['SCHEDD']
 		  )
 
