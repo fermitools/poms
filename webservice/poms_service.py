@@ -558,7 +558,7 @@ class poms_service:
          if not j and task_id:
 	     cherrypy.log("update_job: creating new job") 
              j = Job()
-             j.jobsub_job_id = jobsub_job_id
+             j.jobsub_job_id = jobsub_job_id.rstrip("\n")
              j.created = datetime.now(utc)
              j.task_id = task_id
              j.output_files_declared = False
@@ -568,7 +568,7 @@ class poms_service:
 	     cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1)) 
 	     for field in ['cpu_type', 'host_site', 'status', 'user_exe_exit_code']:
 		 if kwargs.get(field, None):
-		    setattr(j,field,kwargs[field])
+		    setattr(j,field,kwargs[field].rstrip("\n"))
 		 if not getattr(j,field, None):
 		    if field == 'user_exe_exit_code':
 			setattr(j,field,0)
