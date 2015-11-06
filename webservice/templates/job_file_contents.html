@@ -39,9 +39,21 @@
 
 {%block content %}
 
+
+<style>
+pre
+{
+line-height: 12px;
+}
+</style>
+
+
+<div class="ui existing segment">
 <pre>
 {% for item in job_file_contents %}
-     {{item}} </br>
+{{item}}
 {% endfor %}
-</pre>	
+</pre>
+</div>
+
 {%endblock%}
