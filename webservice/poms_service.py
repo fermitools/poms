@@ -519,6 +519,19 @@ class poms_service:
          return "".join(res)
 
     @cherrypy.expose
+    def output_pending_jobs(self):
+         cherrypy.response.headers['Content-Type']= 'application/json'
+         res = [ "{" ]
+         sep=""
+         for job in cherrypy.request.db.query(Job).filter(Job.status == "Completed", Job.output_file_names != "").all():
+              if job.jobsub_job_id == "unknown":
+                   continue
+              res.append( '%s "%s" : {"output_file_names":"%s", "experiment":"%s"}' % (sep, job.jobsub_job_id, job.output_file_names, job.task_obj.campaign_obj.experiment))
+              sep = ","
+         res.append( "}" )
+         return "".join(res)
+
+    @cherrypy.expose
     def wrapup_tasks(self):
         cherrypy.response.headers['Content-Type'] = "application/json"
         now =  datetime.now(utc)
@@ -597,6 +610,9 @@ class poms_service:
 		 if kwargs.get("task_%s" % field, None) and j.task_obj:
 		    setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
                   
+             if kwargs.get('output_files_declared', None) == "True":
+                 j.output_files_declared = True
+
              if kwargs.get('output_file_names', None):
                  cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
                  if j.output_file_names:
@@ -623,6 +639,26 @@ class poms_service:
 	     cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
          return "Ok."
 
+    @cherrypy.expose
+    def check_output_files_declared(self):
+        #
+        # Completed means jobs are done
+        # Declared means all output files are declared
+        # we try to make this transition here.
+        # we just got there if our output_files_per_job == 0
+        #
+        tl = cherrypy.request.db.query(Task).filter(Task.status == "Completed").all()
+        for t in tl:
+            if t.campaign_obj.task_definition_obj.output_files_per_job == 0:
+                t.status = "Located"
+            else:
+                all_all_declared = 1
+                for j in task.jobs():
+                    if not j.output_files_declared:
+                        all_all_declared = 0
+                        break
+                if all_all-declared:
+                    t.status = "Located"
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmin, tmax = None ):

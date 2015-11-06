@@ -139,5 +139,5 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
 
-    js = jobsub_q_scraper(job_reporter("http://fermicloud045.fnal.gov:8080/poms"), debug = debug)
+    js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms"), debug = debug)
     js.poll()

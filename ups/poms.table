@@ -12,6 +12,7 @@ Action=setup
    SetupRequired(sqlalchemy)
    SetupRequired(jinja)
    SetupRequired(-j jobsub_client)
+   SetupRequired(-j sam_web_client)
    PathPrepend(PYTHONPATH,${UPS_PROD_DIR})
 
 Action=start
