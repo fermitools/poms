@@ -541,6 +541,24 @@ class poms_service:
         cherrypy.request.db.commit()
                  
         return "\n".join(res)
+
+    def compute_status(self, task):
+        st = self.job_counts(task_id = task.task_id)
+        if task.status == "Located":
+            return st.status
+        res = "Idle"
+        if (st['Held'] > 0):
+            res = "Held"
+        if (st['Running'] > 0):
+            res = "Running"
+        if (st['Completed'] > 0 and st['Idle'] == 0 and st['Held'] == 0):
+            res = "Completed"
+        if res == "Completed":
+            dcount = cherrypy.request.db.query(func.count(Job.job_id)).filter(Job.output_files_declared).scalar()
+            if dcount == st["Completed"]:
+                #all completed jobs have files declared
+                res = "Located"
+        return res
          
     @cherrypy.expose
     def update_job(self, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
@@ -558,7 +576,7 @@ class poms_service:
          if not j and task_id:
 	     cherrypy.log("update_job: creating new job") 
              j = Job()
-             j.jobsub_job_id = jobsub_job_id
+             j.jobsub_job_id = jobsub_job_id.rstrip("\n")
              j.created = datetime.now(utc)
              j.task_id = task_id
              j.output_files_declared = False
@@ -568,13 +586,17 @@ class poms_service:
 	     cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1)) 
 	     for field in ['cpu_type', 'host_site', 'status', 'user_exe_exit_code']:
 		 if kwargs.get(field, None):
-		    setattr(j,field,kwargs[field])
+		    setattr(j,field,kwargs[field].rstrip("\n"))
 		 if not getattr(j,field, None):
 		    if field == 'user_exe_exit_code':
 			setattr(j,field,0)
 		    else:
 			setattr(j,field,'unknown')
 
+	     for field in ['project', ]:
+		 if kwargs.get("task_%s" % field, None) and j.task_obj:
+		    setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
+                  
              if kwargs.get('output_file_names', None):
                  cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
                  if j.output_file_names:
@@ -591,6 +613,7 @@ class poms_service:
 	     j.updated =  datetime.now(utc)
 
 	     if j.task_obj:
+                 j.task_obj.status = self.compute_status(j.task_obj)
 		 j.task_obj.updated =  datetime.now(utc)
 		 cherrypy.request.db.add(j.task_obj)
 
@@ -598,6 +621,8 @@ class poms_service:
 	     cherrypy.request.db.add(j)
 	     cherrypy.request.db.commit()
 	     cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
+         return "Ok."
+
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmin, tmax = None ):
