@@ -41,6 +41,7 @@ class jobsub_q_scraper:
                 self.jobmap[j] = 0
         except:
             print  "Ouch!", sys.exc_info()
+	    traceback.print_exc()
             pass
 
     def call_wrapup_tasks(self):
@@ -52,6 +53,7 @@ class jobsub_q_scraper:
             print "got: ", text
         except:
             print  "Ouch!", sys.exc_info()
+	    traceback.print_exc()
             pass
 
     def scan(self):
@@ -81,6 +83,8 @@ class jobsub_q_scraper:
 		    jobenv['PROCESS'],
 		    jobenv['SCHEDD']
 		  )
+
+            jobsub_job_id = jobsub_job_id.strip()
 
             self.jobmap[jobsub_job_id] = 1
             
