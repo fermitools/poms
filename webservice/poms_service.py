@@ -685,38 +685,11 @@ class poms_service:
         job_file_list = self.job_file_list(job_id)
         template = self.jinja_env.get_template('triage_job.html')
 
-        #job_info = cherrypy.request.db.query(Job).filter(Job.job_id==job_id).first()
-
         job_info = cherrypy.request.db.query(Job, Task, TaskDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Task.task_definition_id==TaskDefinition.task_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
 
-        print "++++++++++++++Job+++++++++++++++"
-        print "cpu_type: ", job_info.Job.cpu_type
-        #print "task_id: ", job_info.Job.task_id
-        print "node_name: ", job_info.Job.node_name
-        print "host_site: ", job_info.Job.host_site
-        print "status: ", job_info.Job.status
-        print "updated: ", job_info.Job.updated
-        print "jobsub_job_id: ", job_info.Job.jobsub_job_id
-        print "user_exe_exit_code: ", job_info.Job.user_exe_exit_code
-        print "+++++++++++++++++++++++++++++"
-
-
-        print "++++++++++++++Task+++++++++++++++"
-        print "command_executed: ", job_info.Task.command_executed     
-        print "+++++++++++++++++++++++++++++"
-
-        print "+++++++++++Campaign+++++++++++++"
-        print "Experiment: ", job_info.Campaign.experiment
-        print "Name: ", job_info.Campaign.name
-        print "+++++++++++++++++++++++++++++"
-
-
-        print "+++++++++Task Definitions+++++++++"
-        print "Task Def Name: ", job_info.TaskDefinition.name
-        print "+++++++++++++++++++++++++++++"
-
-
-        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, current_experimenter=self.get_current_experimenter())
+        job_history = cherrypy.request.db.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
+        
+        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, current_experimenter=self.get_current_experimenter())
 
 
     @cherrypy.expose
