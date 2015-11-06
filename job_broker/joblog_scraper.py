@@ -59,15 +59,15 @@ class joblog_scraper:
         else:
             message = line
         return { 
-		'timestamp': timestamp,
-		'hostname': hostname,
-		'user': user,
-		'experiment': experiment,
-		'task': task,
-		'jobsub_job_id': jobsub_job_id,
-		'ifdh_vers': ifdh_vers,
-		'pid': pid,
-		'message': message ,
+		'timestamp': timestamp.strip(),
+		'hostname': hostname.strip(),
+		'user': user.strip(),
+		'experiment': experiment.strip(),
+		'task': task.strip(),
+		'jobsub_job_id': jobsub_job_id.strip(),
+		'ifdh_vers': ifdh_vers.strip(),
+		'pid': pid.strip(),
+		'message': message.strip() ,
         }
 
     def find_output_files(self, message):
