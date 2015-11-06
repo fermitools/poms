@@ -93,7 +93,8 @@ class jobsub_q_scraper:
                 self.job_reporter.report_status(
                     jobsub_job_id = jobsub_job_id,
                     taskid = jobenv['POMS_TASK_ID'],
-                    status = self.map[jobenv['JOBSTATUS']]
+                    status = self.map[jobenv['JOBSTATUS']],
+                    task_project = self.jobenv.get('SAM_PROJECT',None)
                   )
             else:
                 #print "skipping:" , line

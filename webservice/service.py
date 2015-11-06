@@ -10,6 +10,8 @@ if os.environ.get("POMS_DIR","") == "":
     print "setting up poms..."
     ups = setups.setups()
     ups.use_package("poms","","SETUP_POMS")
+else:
+    print "already setup"
 
 import os.path
 import argparse

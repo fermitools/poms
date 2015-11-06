@@ -593,6 +593,10 @@ class poms_service:
 		    else:
 			setattr(j,field,'unknown')
 
+	     for field in ['project', ]:
+		 if kwargs.get("task_%s" % field, None) and j.task_obj:
+		    setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
+                  
              if kwargs.get('output_file_names', None):
                  cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
                  if j.output_file_names:
