@@ -10,13 +10,13 @@ if os.environ.get("POMS_DIR","") == "":
     ups.use_package("poms","","SETUP_POMS")
 else:
     print "already setup"
+
 import re
 import urllib2
 import json
 import time
 import traceback
 from job_reporter import job_reporter
-
 import samweb_client
 
 class declared_files_watcher:
