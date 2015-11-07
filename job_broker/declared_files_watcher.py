@@ -57,6 +57,21 @@ class declared_files_watcher:
              if all_located:
                  self.job_reporter.report_status(jobsub_job_id,output_files_declared = "True")
 
+    def poll(self):
+        while(1):
+            try:
+                self.one_pass()
+			 
+	    except KeyboardInterrupt:
+	        break
+
+	    except:
+	        print "Exception!"
+	        traceback.print_exc()
+	        pass
+
+            time.sleep(60)
+
 if __name__ == "__main__":
      dfw = declared_files_watcher(job_reporter("http://localhost:8080/poms"))
-     dfw.one_pass()
+     dfw.poll()
