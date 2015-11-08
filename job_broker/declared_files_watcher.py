@@ -1,12 +1,19 @@
+#!/usr/bin/env python
 import sys
 import os
+# make sure poms is setup...
+sys.path.insert(0,os.environ['SETUPS_DIR'])
+import setups
+print "setting up poms..."
+ups = setups.setups()
+ups.use_package("poms","","SETUP_POMS")
+
 import re
 import urllib2
 import json
 import time
 import traceback
 from job_reporter import job_reporter
-
 import samweb_client
 
 class declared_files_watcher:

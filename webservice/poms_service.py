@@ -558,7 +558,7 @@ class poms_service:
     def compute_status(self, task):
         st = self.job_counts(task_id = task.task_id)
         if task.status == "Located":
-            return st.status
+            return task.status
         res = "Idle"
         if (st['Held'] > 0):
             res = "Held"
