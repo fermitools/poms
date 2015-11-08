@@ -657,7 +657,7 @@ class poms_service:
                     if not j.output_files_declared:
                         all_all_declared = 0
                         break
-                if all_all-declared:
+                if all_all_declared:
                     t.status = "Located"
 
     @cherrypy.expose
