@@ -653,7 +653,7 @@ class poms_service:
                 t.status = "Located"
             else:
                 all_all_declared = 1
-                for j in t.jobs():
+                for j in t.jobs:
                     if not j.output_files_declared:
                         all_all_declared = 0
                         break
