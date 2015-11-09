@@ -1,23 +1,5 @@
 --CREATE SCHEMA "public";
 
-CREATE SEQUENCE campaigns_campaign_id_seq START WITH 1;
-
-CREATE SEQUENCE campaigns_task_definition_id_seq START WITH 1;
-
-CREATE SEQUENCE experimenters_experimenter_id_seq START WITH 1;
-
-CREATE SEQUENCE jobs_job_id_seq START WITH 1;
-
-CREATE SEQUENCE services_service_id_seq START WITH 1;
-
-CREATE SEQUENCE task_definitions_task_definition_id_seq START WITH 1;
-
-CREATE SEQUENCE tasks_campaign_id_seq START WITH 1;
-
-CREATE SEQUENCE tasks_task_definition_id_seq START WITH 1;
-
-CREATE SEQUENCE tasks_task_id_seq START WITH 1;
-
 CREATE TABLE experimenters ( 
 	experimenter_id      serial  NOT NULL,
 	first_name           text  NOT NULL,
@@ -72,6 +54,7 @@ CREATE TABLE campaigns (
 	experiment           text  NOT NULL,
 	name                 text  NOT NULL,
 	task_definition_id   serial  NOT NULL,
+	vo_role              text NOT NULL,
 	creator              integer  NOT NULL,
 	created              timestamptz  NOT NULL,
 	updater              integer  ,
@@ -178,13 +161,7 @@ CREATE TABLE services (
 
 CREATE INDEX idx_services_parent_service_id ON services ( parent_service_id );
 
-CREATE TRIGGER experiments_lowercase_experiment BEFORE INSERT OR UPDATE ON experiments FOR EACH ROW EXECUTE PROCEDURE experiments_lowercase_experiment();
-
-CREATE TRIGGER update_job_history AFTER INSERT OR UPDATE ON jobs FOR EACH ROW EXECUTE PROCEDURE update_job_history();
-
-CREATE TRIGGER update_task_history AFTER INSERT OR UPDATE ON tasks FOR EACH ROW EXECUTE PROCEDURE update_task_history();
-
-CREATE OR REPLACE FUNCTION public.experiments_lowercase_experiment()
+CREATE OR REPLACE FUNCTION experiments_lowercase_experiment()
  RETURNS trigger
  LANGUAGE plpgsql
 AS $function$
@@ -192,9 +169,9 @@ AS $function$
         NEW.experiment = LOWER(NEW.experiment);
         RETURN NEW;
     END;
-$function$
+$function$;
 
-CREATE OR REPLACE FUNCTION public.update_job_history()
+CREATE OR REPLACE FUNCTION update_job_history()
  RETURNS trigger
  LANGUAGE plpgsql
 AS $function$
@@ -205,9 +182,9 @@ BEGIN
     END IF;
     RETURN NULL;
 END;
-$function$
+$function$;
 
-CREATE OR REPLACE FUNCTION public.update_task_history()
+CREATE OR REPLACE FUNCTION update_task_history()
  RETURNS trigger
  LANGUAGE plpgsql
 AS $function$
@@ -217,7 +194,13 @@ BEGIN
     END IF;
     RETURN NULL;
 END;
-$function$
+$function$;
+
+CREATE TRIGGER experiments_lowercase_experiment BEFORE INSERT OR UPDATE ON experiments FOR EACH ROW EXECUTE PROCEDURE experiments_lowercase_experiment();
+
+CREATE TRIGGER update_job_history AFTER INSERT OR UPDATE ON jobs FOR EACH ROW EXECUTE PROCEDURE update_job_history();
+
+CREATE TRIGGER update_task_history AFTER INSERT OR UPDATE ON tasks FOR EACH ROW EXECUTE PROCEDURE update_task_history();
 
 ALTER TABLE campaigns ADD CONSTRAINT fk_campaigns FOREIGN KEY ( experiment ) REFERENCES experiments( experiment );
 
