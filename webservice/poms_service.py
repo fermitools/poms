@@ -795,4 +795,66 @@ class poms_service:
                 short = row[1]
             out[short] = out.get(short,0) + int(row[0])
         return out
-            
+
+
+
+
+
+    
+    @cherrypy.expose
+    def job_table(self, tmax =  None, tdays = 1, exitcode = None ):
+        if tmax == None:
+            tmax = datetime.now(utc)
+        else:
+            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
+        tdays = int(tdays)
+        tmin = tmax - timedelta(days = tdays)
+        tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
+        tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
+        tmins =  tmin.strftime("%Y-%m-%d %H:%M:%S")
+        tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
+        prevlink="/poms/job_table?tmax=%s&tdays=%d" % (tsprev, tdays)
+        nextlink="/poms/job_table?tmax=%s&tdays=%d" % (tsnext, tdays)
+        extra = ""
+
+        q = cherrypy.request.db.query(Job).filter(Job.updated >= tmin, Job.updated <= tmax)
+        if exitcode != None:
+            q = q.filter(Job.user_exe_exit_code == int(exitcode))
+            extra = "with exit code %s" % exitcode
+
+        jl = q.all()
+
+        if jl:
+            columns = jl[0]._sa_instance_state.class_.__table__.columns.keys()
+        else:
+            columns = []
+        
+        template = self.jinja_env.get_template('job_table.html')
+        return template.render(joblist=jl, columns = columns, current_experimenter=self.get_current_experimenter(), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra)
+
+    @cherrypy.expose
+    def jobs_by_exitcode(self, tmax =  None, tdays = 1 ):
+
+        if tmax == None:
+            tmax = datetime.now(utc)
+        else:
+            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
+
+        tdays = int(tdays)
+        tmin = tmax - timedelta(days = tdays)
+        tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
+        tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
+        tmins =  tmin.strftime("%Y-%m-%d %H:%M:%S")
+        tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
+        prevlink="/poms/job_table?tmax=%s&tdays=%d" % (tsprev, tdays)
+        nextlink="/poms/job_table?tmax=%s&tdays=%d" % (tsnext, tdays)
+
+        q = cherrypy.request.db.query(Job.user_exe_exit_code,func.count(Job.job_id)).filter(Job.updated >= tmin, Job.updated <= tmax).group_by(Job.user_exe_exit_code)
+
+        jl = q.all()
+        cherrypy.log( "got jobtable %s " % repr( jl[0].__dict__) )
+        columns = [ "exit_code","count"]
+        
+        template = self.jinja_env.get_template('job_count_table.html')
+        return template.render(joblist=jl, columns = columns, current_experimenter=self.get_current_experimenter(), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays)
+
