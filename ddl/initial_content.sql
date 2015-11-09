@@ -1,6 +1,4 @@
 
-set role pomsdev;
-
 insert into experiments (experiment, name) values ('root', 'root');
 
 insert into experimenters (first_name, last_name, email) values ('Mike', 'Diesburg', 'diesburg@fnal.gov');
