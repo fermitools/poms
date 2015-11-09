@@ -21,13 +21,16 @@ class jobsub_fetcher():
          if self.workdir:
               os.system("rm -rf %s" % self.workdir)
 
-    def fetch(self, jobsubjobid, group, role):
+    def fetch(self, jobsubjobid, group, role, force_reload = False):
          thistar = "%s/%s.tgz" % (self.workdir, jobsubjobid.rstrip("\n"))
          if os.path.exists(thistar):
-             return
-
-         self.fetchcount = self.fetchcount + 1
-         self.tarfiles.append(thistar)
+             if force_reload:
+                 os.unlink(thistar)
+             else:
+                 return
+         else:
+             self.fetchcount = self.fetchcount + 1
+             self.tarfiles.append(thistar)
 
          if self.fetchcount > self.fetchmax:
              os.unlink(self.tarfiles[0])
@@ -41,8 +44,8 @@ class jobsub_fetcher():
                      jobsubjobid))
          os.system("ls -l %s " % self.workdir)
 
-    def index(self, jobsubjobid, group, role = "Production"):
-        self.fetch(jobsubjobid, group, role)
+    def index(self, jobsubjobid, group, role = "Production", force_reload = False):
+        self.fetch(jobsubjobid, group, role, force_reload)
         f = os.popen( "tar tzf %s/%s.tgz" % (self.workdir, jobsubjobid.rstrip("\n")), "r")
         res = []
         for line in f:
