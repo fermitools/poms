@@ -681,8 +681,8 @@ class poms_service:
 
 
     @cherrypy.expose
-    def triage_job(self, job_id):
-        job_file_list = self.job_file_list(job_id)
+    def triage_job(self, job_id,force_reload = False):
+        job_file_list = self.job_file_list(job_id, force_reload)
         template = self.jinja_env.get_template('triage_job.html')
 
         job_info = cherrypy.request.db.query(Job, Task, TaskDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Task.task_definition_id==TaskDefinition.task_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
@@ -741,13 +741,14 @@ class poms_service:
         return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter(), do_refresh = 1)
 
     
-    def job_file_list(self, job_id):
+    @cherrypy.expose
+    def job_file_list(self, job_id,force_reload = False):
         j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
         cherrypy.log("found job: %s " % j.jobsub_job_id)
         role = j.task_obj.campaign_obj.vo_role
-        return cherrypy.request.jobsub_fetcher.index(j.jobsub_job_id,j.task_obj.campaign_obj.experiment ,role)
+        return cherrypy.request.jobsub_fetcher.index(j.jobsub_job_id,j.task_obj.campaign_obj.experiment ,role, force_reload)
 
     @cherrypy.expose
     def job_file_contents(self, job_id, file):
