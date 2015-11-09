@@ -88,11 +88,26 @@
       Logs
 </h4>
 
+<button class="ui button">Refetch &nbsp;&nbsp;&nbsp;<i class="refresh icon"></i></button>
+<br/>
+<br/>
+
+
+
+{% set jobsub_job_id_digits = job_info.Job.jobsub_job_id.split('@')[0] %}
+
+
 
 {% for item in job_file_list %}
 
+{% if item.find(jobsub_job_id_digits) > -1 %}
+<mark> <a href="/poms/job_file_contents?job_id={{job_id}}&file={{item}}">{{ item }}</a> </mark>
+<br/>
+{% else %}
 <a href="/poms/job_file_contents?job_id={{job_id}}&file={{item}}">{{ item }}</a>
 <br/>
+{% endif %}
+
 
 {% endfor %}
 
