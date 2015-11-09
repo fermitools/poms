@@ -38,7 +38,7 @@
 
 {%block content%}
 
-
+<div id='loading' class="ui small text loader">Loading</div>
 
 <script>
 
@@ -66,7 +66,16 @@
                         slotDuration: '00:05:00',
                         timezone: 'UTC',
 
-
+                        loading: function(isLoading){
+                          if (isLoading)
+                          {
+                            $('#loading').show();
+                          }
+                          else
+                          {
+                            $('#loading').hide();
+                          }
+                        },
 
 
                         //CREATE EVENT HERE
