@@ -76,7 +76,13 @@
 
 
 
-
+{% if job_info.Task.project %}
+<h4 class="ui horizontal divider header">
+      <i class="linkify icon"></i>
+      SAM Project
+</h4>
+<a target="_blank" href="http://samweb.fnal.gov:8480/station_monitor/{{job_info.Campaign.experiment}}/stations/{{job_info.Campaign.experiment}}/projects/{{job_info.Task.project}}">http://samweb.fnal.gov:8480/station_monitor/{{job_info.Campaign.experiment}}/stations/{{job_info.Campaign.experiment}}/projects/{{job_info.Task.project}}</a>
+{% endif %}
 
 
 
