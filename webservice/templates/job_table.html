@@ -36,11 +36,11 @@
 
 
 {%block content%}
-<table class="ui sortable celled collapsing table">
+<table class="ui sortable celled compact table">
   <thead>
     <tr>
     {%for col in columns%}
-       <th class="">{{col}}</th>
+       <th class="">{{col|replace("_","<br>")}}</th>
     {%endfor%}
     </tr>
   </thead>

@@ -98,7 +98,7 @@ class jobsub_q_scraper:
                     jobsub_job_id = jobsub_job_id,
                     taskid = jobenv['POMS_TASK_ID'],
                     status = self.map[jobenv['JOBSTATUS']],
-                    task_project = self.jobenv.get('SAM_PROJECT',None)
+                    task_project = self.jobenv.get('SAM_PROJECT_NAME',None)
                   )
             else:
                 #print "skipping:" , line
