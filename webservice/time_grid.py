@@ -6,9 +6,9 @@ class time_grid:
 
      def render_query(self, tmin, tmax, rows, group_key, url_template=""):
          dlmap = self.group_time_data( rows, group_key, url_template)
-         print "got dlmap:", dlmap
+         #print "got dlmap:", dlmap
          self.add_time_data(tmin, tmax, dlmap)
-         print "self.pmap is: ", self.pmap
+         #print "self.pmap is: ", self.pmap
          return self.draw_boxes()
 
      def group_time_data( self, rows, group_key, url_template="" ):

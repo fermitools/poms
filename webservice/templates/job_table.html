@@ -1,0 +1,62 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>POMS</title>
+{%endblock%}
+
+
+{%block breadcrumbs%}
+    <div class="item">
+       Service Statuses  <!--label of current location on mobile-->
+    </div>
+{%endblock%}
+
+
+
+{%block header%}
+<h1 class="ui header">
+    Jobs
+</h1>
+<div class="ui subheader">
+{{days}} Days of Jobs ending {{tmax}} {{extra}}
+</div>
+
+<a href="{{prev}}">&lt;previous {{days}} days</a> | 
+<a href="{{next}}">next {{days}} days &gt;</a>
+{%endblock%}
+
+
+
+
+
+
+{%block subheader%}
+{%endblock%}
+
+
+
+{%block content%}
+<table class="ui sortable celled collapsing table">
+  <thead>
+    <tr>
+    {%for col in columns%}
+       <th class="">{{col}}</th>
+    {%endfor%}
+    </tr>
+  </thead>
+  <tbody>
+    {%for job in joblist %}
+      <tr>
+         {%for col in columns%}
+            {% if loop.first %}
+              <td><a href="/poms/triage_job?job_id={{job[col]}}">{{job[col]}}</a></td>
+            {% else %}
+              <td>{{job[col]}}</td>
+            {% endif %}
+         {%endfor%}
+      </tr>
+    {%endfor%}
+  </tbody>
+</table>
+
+{%endblock%}
