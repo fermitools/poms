@@ -26,6 +26,8 @@ class jobsub_q_scraper:
            "5": "Held",
            "6": "Submission_error",
         }
+        self.cur_report = {}
+        self.prev_report = {}
         self.jobmap = {}
         self.debug = debug
 
@@ -57,6 +59,9 @@ class jobsub_q_scraper:
             pass
 
     def scan(self):
+        # roll our previous/current status
+        self.prev_report = self.cur_report
+        self.cur_report = {}
 
         self.get_open_jobs()
 
@@ -65,7 +70,7 @@ class jobsub_q_scraper:
         # for now we have a for loop and use condor_q, in future
         # we hope to be able to use jobsub_q with -format...
 
-        f = os.popen("for n in 1 2; do condor_q -pool fifebatchgpvmhead$n.fnal.gov -name fifebatch$n.fnal.gov -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format \"%d;SCHEDD=fifebatch$n.fnal.gov\\n\" ProcID ; done", "r")
+        f = os.popen("for n in 1 2; do condor_q -pool fifebatchgpvmhead$n.fnal.gov -name fifebatch$n.fnal.gov -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format \"%d;SCHEDD=fifebatch$n.fnal.gov;REMOTEHOST=\" ProcID -format '%s' RemoteHost -format '\\n' ProcID ; done", "r")
         for line in f:
                 
             if self.debug:
@@ -90,16 +95,28 @@ class jobsub_q_scraper:
             
             # only look at it if it has a POMS_TASK_ID in the environment
 
+            host = jobenv.get('REMOTEHOST','')
+            host = host[host.find('@')+1:]
+
             if jobenv.has_key("POMS_TASK_ID") > 0:
 
                 print "reporting: ", jobenv
+                args = {
+                    'jobsub_job_id' : jobsub_job_id,
+                    'taskid' : jobenv['POMS_TASK_ID'],
+                    'status' : self.map[jobenv['JOBSTATUS']],
+                    'node_name' : host, 
+                    'task_project' : jobenv.get('SAM_PROJECT_NAME',None)
+                }
 
-                self.job_reporter.report_status(
-                    jobsub_job_id = jobsub_job_id,
-                    taskid = jobenv['POMS_TASK_ID'],
-                    status = self.map[jobenv['JOBSTATUS']],
-                    task_project = self.jobenv.get('SAM_PROJECT_NAME',None)
-                  )
+                prev = self.prev_report.get(jobsub_job_id, None)
+	        self.cur_report[jobsub_job_id] = args
+
+                #
+                # only report status if its different
+                #
+                if prev and prev['taskid'] != args:
+                    self.job_reporter.report_status(**args)
             else:
                 #print "skipping:" , line
                 pass

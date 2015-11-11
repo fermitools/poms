@@ -597,7 +597,7 @@ class poms_service:
 
          if j:
 	     cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1)) 
-	     for field in ['cpu_type', 'host_site', 'status', 'user_exe_exit_code']:
+	     for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
 		 if kwargs.get(field, None):
 		    setattr(j,field,kwargs[field].rstrip("\n"))
 		 if not getattr(j,field, None):
