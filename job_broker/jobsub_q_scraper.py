@@ -72,6 +72,8 @@ class jobsub_q_scraper:
 
         f = os.popen("for n in 1 2; do condor_q -pool fifebatchgpvmhead$n.fnal.gov -name fifebatch$n.fnal.gov -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format \"%d;SCHEDD=fifebatch$n.fnal.gov;REMOTEHOST=\" ProcID -format '%s' RemoteHost -format '\\n' ProcID ; done", "r")
         for line in f:
+
+            line = line.rstrip('\n')
                 
             if self.debug:
                 print "saw line: " , line
