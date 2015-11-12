@@ -47,7 +47,7 @@
   </thead>
   <tbody>
     {%for job in joblist %}
-      <tr>
+      <tr {% if loop.first %} class="positive" {%else%} class="negative" {%endif%} >
          {%for col in range(0, columns|count) %}
             {% if loop.first %}
               <td><a href="/poms/job_table?tdays={{days}}&tmax={{tmax}}&exitcode={{job[col]}}">{{job[col]}}</a></td>

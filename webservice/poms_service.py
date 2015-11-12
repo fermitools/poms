@@ -846,10 +846,10 @@ class poms_service:
         tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
         tmins =  tmin.strftime("%Y-%m-%d %H:%M:%S")
         tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
-        prevlink="/poms/job_table?tmax=%s&tdays=%d" % (tsprev, tdays)
-        nextlink="/poms/job_table?tmax=%s&tdays=%d" % (tsnext, tdays)
+        prevlink="/poms/jobs_by_exitcode?tmax=%s&tdays=%d" % (tsprev, tdays)
+        nextlink="/poms/jobs_by_exitcode?tmax=%s&tdays=%d" % (tsnext, tdays)
 
-        q = cherrypy.request.db.query(Job.user_exe_exit_code,func.count(Job.job_id)).filter(Job.updated >= tmin, Job.updated <= tmax).group_by(Job.user_exe_exit_code)
+        q = cherrypy.request.db.query(Job.user_exe_exit_code,func.count(Job.job_id)).filter(Job.updated >= tmin, Job.updated <= tmax).group_by(Job.user_exe_exit_code).order_by(Job.user_exe_exit_code)
 
         jl = q.all()
         cherrypy.log( "got jobtable %s " % repr( jl[0].__dict__) )
