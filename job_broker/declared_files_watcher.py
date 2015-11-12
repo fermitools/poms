@@ -20,6 +20,20 @@ class declared_files_watcher:
     def __init__(self, job_reporter):
         self.job_reporter = job_reporter
 
+    def call_wrapup_tasks(self):
+	self.jobmap = {}
+        try:
+            conn = urllib2.urlopen(self.job_reporter.report_url + '/wrapup_tasks'
+)
+            output = conn.read()
+            conn.close()
+
+            print "got: ", output
+        except:
+            print  "Ouch!", sys.exc_info()
+	    traceback.print_exc()
+            pass
+
     def get_pending_jobs(self):
 	self.jobmap = {}
         try:
@@ -63,6 +77,8 @@ class declared_files_watcher:
                      
              if all_located:
                  self.job_reporter.report_status(jobsub_job_id,output_files_declared = "True")
+
+         self.call_wrapup_tasks()
 
     def poll(self):
         while(1):
