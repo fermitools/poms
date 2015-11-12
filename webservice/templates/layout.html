@@ -54,16 +54,18 @@
         <div class="ui vertical inverted sidebar menu" id="toc">
             
             <div class="item">
+                <div style="cursor: default;">
                 <i class="rocket icon"></i>
               <!--
                 <a class="ui logo icon image" href="">
                     <img src="/poms/static/images/logo.png">
                 </a>
               -->
-                <a href=""><b>POMS</b></a>
+                <b>POMS</b>
+                </div>
             </div>
             
-            <a class="item" href="dashboard.html">
+            <a class="item" href="/poms">
                 <b>Dashboard</b>
             </a>
             
@@ -71,7 +73,7 @@
                 <b>Calendar</b>
             </a>
 
-            <a class="item" href="requests.html">
+            <a class="item requests"  href="#">
                 <b>Requests</b>
             </a>
 
@@ -121,9 +123,6 @@
                 <a class="launch icon item">
                     <i class="content icon"></i>  <!--mobile menu button-->
                 </a>
-                
-                {%block breadcrumbs%} {%endblock%}
-                
             </div>
         </div>
         
@@ -151,13 +150,13 @@
                                 <img src="/poms/static/images/logo.png">
                             </a>
                         -->
-                            <a href="">
-                              <i class="rocket icon"></i>
-                              <b>POMS</b>
-                            </a>
+                              <div style="cursor: default;">
+                                <i class="rocket icon"></i>
+                                <b>POMS</b>
+                              </div>
                         </div>
                         
-                        <a class="item" href="dashboard.html">
+                        <a class="item" href="/poms">
                             <b>Dashboard</b>
                         </a>
 
@@ -165,7 +164,7 @@
                             <b>Calendar</b>
                         </a>
                         
-                        <a class="item" href="requests.html">
+                        <a class="item requests" href="#">
                             <b>Requests</b>
                         </a>
 
@@ -222,7 +221,7 @@
                     {% endif %}
                         <div class="ui container">
                             <div class="introduction">
-                                
+                                {%block breadcrumbs%} {%endblock%}                                
                                 {%block header%} {%endblock%}
                             </div>
 
@@ -241,6 +240,16 @@
 
                         <div class="no example">
                         {%block content%} {%endblock%}
+
+
+                         <div class="ui small basic test modal">
+                            <div class="ui icon header">
+                              <i class="warning sign icon"></i>
+                              Under Construction
+                            </div>
+                         </div>
+
+
                         </div>
                         
                     </div>  <!--ends main ui intro container-->
@@ -285,6 +294,28 @@
                 $('.ui.accordion').accordion();
              });
 </script>
+
+
+
+<script>
+$( ".requests" ).click(function() {
+  $('.ui.basic.modal').modal('show');
+});
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                                 
     </body>
     
