@@ -51,7 +51,7 @@
       <tr>
          {%for col in columns%}
             {% if loop.first %}
-              <td><a href="/poms/triage_job?job_id={{job[col]}}">{{job[col]}}</a></td>
+              <td><a href="/poms/triage_job?job_id={{job[col]}}&tmin={{tmin}}">{{job[col]}}</a></td>
             {% else %}
               <td>{{job[col]}}</td>
             {% endif %}
