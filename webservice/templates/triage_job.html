@@ -10,7 +10,7 @@
   <div class="divider"> / </div>
   <a href="/poms/show_campaigns/" class="section">Campaigns</a>
   <div class="divider"> / </div>
-  <a href="javascript:window.history.go(-1);" class="section">Jobs in task {{job_info.Job.task_id}}</a>
+  <a href="/poms/show_task_jobs?task_id={{job_info.Job.task_id}}&tmin={{tmin}}" class="section">Jobs in task {{job_info.Job.task_id}}</a>
   <div class="divider"> / </div>
   <div class="section">Triage job {{job_id}}</div>
 </div>
@@ -110,10 +110,10 @@
 {% for item in job_file_list %}
 
 {% if item.find(jobsub_job_id_digits) > -1 %}
-<mark> <a href="/poms/job_file_contents?job_id={{job_id}}&task_id={{job_info.Job.task_id}}&file={{item}}">{{ item }}</a> </mark>
+<mark> <a href="/poms/job_file_contents?job_id={{job_id}}&task_id={{job_info.Job.task_id}}&tmin={{tmin}}file={{item}}">{{ item }}</a> </mark>
 <br/>
 {% else %}
-<a href="/poms/job_file_contents?job_id={{job_id}}&task_id={{job_info.Job.task_id}}&file={{item}}">{{ item }}</a>
+<a href="/poms/job_file_contents?job_id={{job_id}}&task_id={{job_info.Job.task_id}}&tmin={{tmin}}&file={{item}}">{{ item }}</a>
 <br/>
 {% endif %}
 
