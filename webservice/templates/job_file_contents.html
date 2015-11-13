@@ -5,12 +5,18 @@
 {%endblock%}
 
 {%block breadcrumbs%}
-    <div class="item">
-       Dashboard  <!--label of current location on mobile-->
-    </div>
-    <div class="item">
-      Job Triage Job File Contents <!--label of current location on mobile-->
-    </div>
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="/poms/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <a href="/poms/show_campaigns/" class="section">Campaigns</a>
+  <div class="divider"> / </div>
+  <a href="javascript:window.history.go(-1);" class="section">Jobs in task {{task_id}}</a>
+  <div class="divider"> / </div>
+  <a href= "/poms/triage_job?job_id={{job_id}}" class="section">Triage job {{job_id}}</a>
+  <div class="divider"> / </div>
+  <div class="section">File contents</div>
+</div>
+
 {%endblock%}
 
 

@@ -751,7 +751,7 @@ class poms_service:
         return cherrypy.request.jobsub_fetcher.index(j.jobsub_job_id,j.task_obj.campaign_obj.experiment ,role, force_reload)
 
     @cherrypy.expose
-    def job_file_contents(self, job_id, file):
+    def job_file_contents(self, job_id, task_id, file):
         j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
@@ -759,7 +759,7 @@ class poms_service:
         role = j.task_obj.campaign_obj.vo_role
         job_file_contents = cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role)
         template = self.jinja_env.get_template('job_file_contents.html')
-        return template.render(file=file, job_file_contents=job_file_contents)
+        return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id)
 
     @cherrypy.expose
     def test_job_counts(self, task_id = None, campaign_id = None):
