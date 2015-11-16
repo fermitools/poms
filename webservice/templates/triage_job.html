@@ -67,7 +67,6 @@
       <td>{{job_info.Job.node_name}}</td>
       <td>{{job_info.Job.cpu_type}}</td>
       <td>{{job_info.Job.jobsub_job_id}}</td>
-     <!-- <td><a href="/poms/task_info?task_id={{job_info.Job.task_id}}">{{job_info.Job.task_id}}</a></td> -->
       <td>{{job_info.Job.task_id}}</td>
       <td>{{job_info.Job.user_exe_exit_code}}</td>
       <td>{{job_info.Job.updated}}</td>
@@ -97,7 +96,7 @@
       Logs
 </h4>
 
-<button onclick="location.href='/poms/triage_job?job_id={{job_id}}&force_reload=True';" class="ui button">Refetch &nbsp;&nbsp;&nbsp;<i class="refresh icon"></i></button>
+<button onclick="location.href='/poms/triage_job?job_id={{job_id}}&tmin={{tmin}}&force_reload=True';" class="ui button">Refetch &nbsp;&nbsp;&nbsp;<i class="refresh icon"></i></button>
 <br/>
 <br/>
 
