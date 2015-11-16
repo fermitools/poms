@@ -55,8 +55,13 @@ class time_grid:
               return "#888888"
           return "#ffffff"
 
-     def pwidth(self, t0, t1):
+     def pwidth(self, t0, t1, tmin, tmax):
+          if t0 < tmin:
+             t0 = tmin
+          if t1 > tmax:
+             t1 = tmax
           return (t1 - t0).total_seconds() * 99 / (self.tdelta.total_seconds())
+
 
      def add_time_data(self, tmin, tmax, dlistmap):
           self.tmin = tmin
@@ -66,16 +71,16 @@ class time_grid:
           for id,dlist in dlistmap.items():
               plist = []
               if dlist[0]['time'] > self.tmin:
-                  plist.append( {'width': self.pwidth(self.tmin, dlist[0]['time']),
+                  plist.append( {'width': self.pwidth(self.tmin, dlist[0]['time'],tmin, tmax),
                              'color': '', 'txt': '', 'url': ''})
                   stime = dlist[0]['time']
                   i = 0
               else:
                   i = 0 
-                  while dlist[i]['time'] < self.tmin:
+                  while i < len(dlist) and dlist[i]['time'] < self.tmin:
                      i = i + 1
-                  plist.append({ 'width': self.pwidth(self.tmin, dlist[i-1]['time']),
-                                'color': self.status_color(dlist[i-1].status),
+                  plist.append({ 'width': self.pwidth(self.tmin, dlist[i-1]['time'],tmin, tmax),
+                                'color': self.status_color(dlist[i-1]['status']),
                                 'txt': dlist[i-1]['txt'],
                                 'url': dlist[i-1]['url']})
               while i < len(dlist) and dlist[i]['time'] < self.tmax:
@@ -83,7 +88,8 @@ class time_grid:
                       tend = self.tmax
                   else:
                       tend = dlist[i+1]['time']
-                  plist.append({ 'width' : self.pwidth(dlist[i]['time'], tend),
+
+                  plist.append({ 'width' : self.pwidth(dlist[i]['time'], tend, tmin,tmax),
                                 'color' : self.status_color(dlist[i]['status']),
                                 'txt' : dlist[i]['txt'],
                                 'url' : dlist[i]['url']})
@@ -105,7 +111,8 @@ class time_grid:
                  if p['width'] < self.minwidth:
                     n_too_small = n_too_small + 1
                     fudge = fudge + self.minwidth - p['width']
-             delta = int(fudge / (n_items - n_too_small) + 0.9)
+             delta = int(fudge / (n_items - n_too_small + 1))
+
              for p in plist:
                  if p['width'] < self.minwidth:
                      p['width'] = self.minwidth
@@ -114,6 +121,9 @@ class time_grid:
                         delta = fudge
                      p['width'] = p['width'] - delta
                      fudge = fudge - delta
+
+                 if p['width'] >= 100:
+                    p['width'] = 99
              
      def draw_boxes(self):
          self.min_box_sizes()

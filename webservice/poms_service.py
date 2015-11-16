@@ -424,7 +424,8 @@ class poms_service:
                 if fieldname == "updated" and kwargs.get(fieldname,None) == None:
                     setattr(found, fieldname, datetime.now(utc))
                 if  kwargs.get(fieldname,None) != None:
-                    setattr(found, fieldname, datetime.strptime(kwargs.get(fieldname,'')), "%Y-%m-%dT%H:%M")
+                    setattr(found, fieldname, datetime.strptime(kwargs.get(fieldname,'')).replace(tzinfo = utc), "%Y-%m-%dT%H:%M")
+                    
             elif columns[fieldname].type == ForeignKey:
                 kval = kwargs.get(fieldname,None)
                 try:
@@ -662,11 +663,9 @@ class poms_service:
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmin, tmax = None ):
-        tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S")
-        tmin= tmin.replace(tzinfo = utc)
+        tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
         if tmax != None:
-            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
-            tmax= tmax.replace(tzinfo = utc)
+            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
         else:
             tmax = tmin + timedelta(days=1)
 
@@ -693,27 +692,29 @@ class poms_service:
 
 
     @cherrypy.expose
-    def show_campaigns(self,tmin = None,tmax = None):
+    def show_campaigns(self,tmax = None, tdays = 1):
+
+        if tmax == None:
+            tmax = datetime.now(utc)
+        else:
+            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
+
+        tdays = int(tdays)
+        tminscreen = tmax - timedelta(days = tdays)
+        tmin = tminscreen - timedelta(days = 1)
+        tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
+        tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
+        tminscreens =  tmin.strftime("%Y-%m-%d %H:%M:%S")
+        tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
+        prevlink="/poms/show_campaigns?tmax=%s&tdays=%d" % (tsprev, tdays)
+        nextlink="/poms/show_campaigns?tmax=%s&tdays=%d" % (tsnext, tdays)
+
 
         tg = time_grid.time_grid()
 
 	class fakerow:
 	    def __init__(self, **kwargs):
 	        self.__dict__.update(kwargs)
-
-        if tmin == None:
-            tminscreen = datetime.now(utc) - timedelta(days=1)
-            tmin = datetime.now(utc) - timedelta(days=2)
-        else:
-            tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S")
-            tmin= tmin.replace(tzinfo = utc)
-            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
-            tmax= tmax.replace(tzinfo = utc)
-            tminscreen = tmin
-            tmin = tmin - timedelta(days=1)
-
-        if tmax == None:
-            tmax = datetime.now(utc)
 
         sl = []
         sl.append(self.format_job_counts())
@@ -731,14 +732,14 @@ class poms_service:
                    e = fakerow(task_id = t.task_id,  created = t.updated, status=t.status )
                    items.append(s)
                    items.append(e)
-              sl.append( tg.render_query(tmin, tmax, items, 'task_id', url_template = '/poms/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
+              sl.append( tg.render_query(tminscreen, tmax, items, 'task_id', url_template = '/poms/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
 
         screendata = "\n".join(sl)
 
         allcounts =  self.format_job_counts()
               
         template = self.jinja_env.get_template('campaign_grid.html')
-        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter(), do_refresh = 1)
+        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter(), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays)
 
     
     @cherrypy.expose
@@ -806,7 +807,7 @@ class poms_service:
         if tmax == None:
             tmax = datetime.now(utc)
         else:
-            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
+            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
         tdays = int(tdays)
         tmin = tmax - timedelta(days = tdays)
         tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
@@ -838,7 +839,7 @@ class poms_service:
         if tmax == None:
             tmax = datetime.now(utc)
         else:
-            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S")
+            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
 
         tdays = int(tdays)
         tmin = tmax - timedelta(days = tdays)
