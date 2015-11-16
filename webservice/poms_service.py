@@ -370,14 +370,14 @@ class poms_service:
     @cherrypy.expose
     def admin_screen(self):
         if not self.can_db_admin():
-             return "Not allowed"
+             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('admin_screen.html')
         return template.render(list = self.admin_map.keys(),current_experimenter=self.get_current_experimenter())
         
     @cherrypy.expose
     def list_generic(self, classname):
         if not self.can_db_admin():
-             return "Not allowed"
+             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         l = self.make_list_for(self.admin_map[classname],self.pk_map[classname])
         template = self.jinja_env.get_template('list_screen.html')
         return template.render( classname = classname, list = l, edit_screen="edit_screen_generic", primary_key='experimenter_id',current_experimenter=self.get_current_experimenter())
@@ -385,7 +385,7 @@ class poms_service:
     @cherrypy.expose
     def edit_screen_generic(self, classname, id = None):
         if not self.can_db_admin():
-             return "Not allowed"
+             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         # XXX -- needs to get select lists for foreign key fields...
         return self.edit_screen_for(classname, self.admin_map[classname], 'update_generic', self.pk_map[classname], id, {})
          
@@ -442,7 +442,7 @@ class poms_service:
   
     def edit_screen_for( self, classname, eclass, update_call, primkey, primval, valmap):
         if not self.can_db_admin():
-             return "Not Allowed"
+             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
 
         found = None
         sample = eclass()
