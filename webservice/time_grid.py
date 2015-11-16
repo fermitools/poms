@@ -1,8 +1,8 @@
 class time_grid:
      
      def __init__(self):
-         # you can't see boxes less than 4% wide...
-         self.minwidth = 4
+         # you can't see boxes less than 2% wide...
+         self.minwidth = 2
 
      def render_query(self, tmin, tmax, rows, group_key, url_template=""):
          dlmap = self.group_time_data( rows, group_key, url_template)
