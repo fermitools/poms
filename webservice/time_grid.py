@@ -111,7 +111,7 @@ class time_grid:
                  if p['width'] < self.minwidth:
                     n_too_small = n_too_small + 1
                     fudge = fudge + self.minwidth - p['width']
-             fudge = int(fudge + 0.4)
+             fudge = int(fudge + n_too_small)
              delta = int(0.6 + fudge / (n_items - n_too_small + 1))
 
              for p in plist:
