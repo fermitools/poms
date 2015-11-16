@@ -370,7 +370,8 @@ class poms_service:
     @cherrypy.expose
     def admin_screen(self):
         if not self.can_db_admin():
-             return "Not allowed"
+             #return "Not allowed"
+             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('admin_screen.html')
         return template.render(list = self.admin_map.keys(),current_experimenter=self.get_current_experimenter())
         
