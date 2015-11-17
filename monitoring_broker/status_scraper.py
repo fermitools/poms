@@ -156,7 +156,7 @@ class status_scraper():
             n_good = 0
             n_bad = 0
             if scrape_url and scrape_regex:
-	        if self.debug: print "scraping %s for matches" % scrape_url
+	        if self.debug: print "scraping %s for matches of ruleset %s" % (scrape_url, s)
                 re_obj = re.compile(scrape_regex)
                 lines = self.fetch_page(scrape_url)
                 if not lines:
