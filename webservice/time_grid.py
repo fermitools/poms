@@ -27,14 +27,14 @@ class time_grid:
           return result
 
      def status_color(self,str):
+          if str.find("started") >= 0:
+              return "#303030"
           if str.find("Finished") >= 0:
               return "#ffffff"
           if str.find("Idle") >= 0:
               return "#808080"
           if str.find("new") >= 0:
               return "#035533"
-          if str.find("started") >= 0:
-              return "#335533"
           if str.find("Started") >= 0:
               return "#335533"
           if str.find("UserProcessStarted") >= 0:

@@ -725,13 +725,7 @@ class poms_service:
               sl.append('<h2 class="ui dividing header">%s Tasks</h2>' % c.name )
               sl.append(self.format_job_counts(campaign_id = c.campaign_id))
 
-              tl =  cherrypy.request.db.query(Task).filter(Task.campaign_id == c.campaign_id, Task.created > tmin, Task.created < tmax ).all()
-              items = []
-              for t in tl:
-                   s = fakerow(task_id = t.task_id,  created = t.created, status="Started")
-                   e = fakerow(task_id = t.task_id,  created = t.updated, status=t.status )
-                   items.append(s)
-                   items.append(e)
+              items = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == c.campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin, Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
               sl.append( tg.render_query(tminscreen, tmax, items, 'task_id', url_template = '/poms/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
 
         screendata = "\n".join(sl)
