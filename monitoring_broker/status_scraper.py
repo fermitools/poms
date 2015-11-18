@@ -139,7 +139,15 @@ class status_scraper():
             self.url[s] = scrape_url
             scrape_regex = self.cf.get(s,'scrape_regex')
             good = self.cf.get(s,'scrape_match_1')
+            if self.cf.has_option(s,'scrape_match_2'):
+                good2 = self.cf.get(s,'scrape_match_2')
+            else:
+                good2 = None
             bad = self.cf.get(s,'scrape_bad_match_1')
+            if self.cf.has_option(s,'scrape_bad_match_2'):
+                bad2 = self.cf.get(s,'scrape_bad_match_2')
+            else:
+                bad2 = None
             percent = int(self.cf.get(s,'percent'))
 	    if self.cf.has_option(s,'warnpercent'):
 		warnpercent = int(self.cf.get(s,'warnpercent'))
@@ -148,7 +156,7 @@ class status_scraper():
             n_good = 0
             n_bad = 0
             if scrape_url and scrape_regex:
-	        if self.debug: print "scraping %s for matches" % scrape_url
+	        if self.debug: print "scraping %s for matches of ruleset %s" % (scrape_url, s)
                 re_obj = re.compile(scrape_regex)
                 lines = self.fetch_page(scrape_url)
                 if not lines:
@@ -157,11 +165,11 @@ class status_scraper():
                     if self.debug: print "got:", line
                     m = re_obj.search(line)
                     if m:
-                        if m.group(1) == good:
+                        if m.group(1) == good or (good2 and m.group(1) == good2):
                              if self.debug: print "good"
                              n_good = n_good + 1 
 
-                        if m.group(1) == bad:
+                        if m.group(1) == bad or (bad2 and m.group(1) == bad2):
                              if self.debug: print "bad"
                              n_bad = n_bad + 1 
 
