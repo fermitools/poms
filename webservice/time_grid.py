@@ -137,8 +137,8 @@ class time_grid:
                 """ % id)
              for p in plist:
                  rlist.append("""
-                       <a href='%s' title='%s'>
-                         <div class='tbox' style='width: %d%%; background-color: %s !important; float:left; '>
+                       <a href='%s'>
+                         <div class='tbox' data-content='%s' data-variation="very wide" style='width: %d%%; background-color: %s !important; float:left; '>
                            &nbsp;
                          </div>
                        </a>
