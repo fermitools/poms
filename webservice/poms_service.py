@@ -319,7 +319,7 @@ class poms_service:
                        <i class="icon %s"></i>
                      </div>
                      <div  class="content %s">
-                         <a target="_blank" href="%s"</a>
+                         <a target="_blank" href="%s">
                          <i class="icon external"></i> 
                          source webpage
                          </a>
