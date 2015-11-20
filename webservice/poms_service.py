@@ -853,3 +853,10 @@ class poms_service:
         template = self.jinja_env.get_template('job_count_table.html')
         return template.render(joblist=jl, columns = columns, current_experimenter=self.get_current_experimenter(), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays)
 
+
+
+
+    @cherrypy.expose
+    def quick_search(self, jobsub_job_id):
+        job_info = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
+        raise cherrypy.HTTPRedirect("/poms/triage_job?job_id=%s&tmin=%s" % (str(job_info.job_id), "somekindofdate"))
