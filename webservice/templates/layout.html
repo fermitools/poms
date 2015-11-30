@@ -106,7 +106,18 @@
                     </a>
                 </div>
             </div>
-            
+
+
+            <a class="item requests"  href="#">
+                <b>Filter</b>
+            </a>
+
+<div class="item">
+  <div class="ui inverted transparent left icon input">
+    <input type="text" placeholder="Search...">
+    <i class="search icon"></i>
+  </div>
+</div>    
             
         </div>  <!--ends mobile menu-->
         
@@ -198,6 +209,21 @@
 				</div>
                         </div>
                         
+
+
+
+            <a class="item requests"  href="#">
+                <b>Filter</b>
+            </a>
+
+<div class="item">
+  <div class="ui inverted transparent left icon input">
+         <form method="get" action="/poms/quick_search">
+    <input type="text" name="jobsub_job_id" placeholder="Search...">
+         </form>
+    <i class="search icon"></i>
+  </div>
+</div>
                         
                         
                     </div>   <!--ends ui vertical inverted sticky menu-->
@@ -305,12 +331,17 @@ $( ".requests" ).click(function() {
 
 
 
-
-
-
-
-
-
+<script>
+$('.tbox')
+  .popup({
+    position : 'top left',
+    delay: {
+      show: 2,
+      hide: 2
+    }
+  })
+;
+</script>
 
 
 

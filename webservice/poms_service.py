@@ -319,7 +319,7 @@ class poms_service:
                        <i class="icon %s"></i>
                      </div>
                      <div  class="content %s">
-                         <a target="_blank" href="%s"</a>
+                         <a target="_blank" href="%s">
                          <i class="icon external"></i> 
                          source webpage
                          </a>
@@ -854,6 +854,11 @@ class poms_service:
         return template.render(joblist=jl, columns = columns, current_experimenter=self.get_current_experimenter(), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays)
 
     @cherrypy.expose
+    def quick_search(self, jobsub_job_id):
+        job_info = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
+        raise cherrypy.HTTPRedirect("/poms/triage_job?job_id=%s&tmin=%s" % (str(job_info.job_id), "somekindofdate"))
+
+    @cherrypy.expose
     def json_project_summary_for_task(self, task_id):
         cherrypy.response.headers['Content-Type'] = "application/json"
         return json.dumps(self.project_summary_for_task( task_id))
@@ -861,3 +866,4 @@ class poms_service:
     def project_summary_for_task(self, task_id):
         t = cherrypy.request.db.query(Task).filter(Task.task_id == task_id).first()
         return cherrypy.request.project_fetcher.fetch_info( t.campaign_obj.experiment, t.project)
+
