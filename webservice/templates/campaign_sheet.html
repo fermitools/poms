@@ -1,0 +1,56 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>POMS</title>
+{%endblock%}
+
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="/poms/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">Info sheet for campaign {{name}}</div>
+</div>
+{%endblock%}
+
+
+
+
+{%block header%}
+<h1 class="ui header">
+  Info by day
+</h1>
+<div class="ui subheader">
+{{days}} Days ending  {{tmax}}
+</div>
+
+<a href="{{prev}}">&lt;previous {{days}} days</a> | 
+<a href="{{next}}">next {{days}} days &gt;</a>
+{%endblock%}
+
+
+{%block subheader%}
+{%endblock%}
+
+
+{%block content%}
+<table class="ui sortable celled collapsing table">
+  <thead>
+    <tr>
+    {%for col in columns%}
+       <th class="">{{col}}</th>
+    {%endfor%}
+    </tr>
+  </thead>
+  <tbody>
+    {%for row in datarows %}
+      <tr>
+         {%for col in range(0, columns|count) %}
+            <td>{{row[col]}}</td>
+         {%endfor%}
+      </tr>
+    {%endfor%}
+  </tbody>
+</table>
+
+{%endblock%}
