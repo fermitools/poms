@@ -39,13 +39,19 @@ class project_fetcher:
      def do_totals(self, info):
          tot_consumed = 0
          tot_failed = 0
+         tot_jobs = 0
+         tot_jobfails = 0
          for proc in info["processes"]:
               tot_consumed = tot_consumed + proc["counts"]["consumed"]
               tot_failed = tot_failed + proc["counts"]["failed"]
+              tot_jobs = tot_jobs + 1
+              if proc["status"] != "completed":
+                  tot_jobfails = tot_jobfails + 1
 
          info["tot_consumed"] = tot_consumed
          info["tot_failed"] = tot_failed
-
+         info["tot_jobs"] = tot_jobs
+         info["tot_jobfails"] = tot_jobfails
 
 if __name__ == "__main__":
     pf = project_fetcher()
