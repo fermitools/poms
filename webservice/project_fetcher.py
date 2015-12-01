@@ -22,19 +22,25 @@ class project_fetcher:
 
      def fetch_info(self, experiment, projid):
 
+         if not experiment or not projid:
+             return {}
+
          if self.have_cache(experiment,projid):
              return self.proj_cache[experiment+projid]
 
          base = "http://samweb.fnal.gov:8480"
          url="%s/sam/%s/api/projects/name/%s/summary?format=json" % (base,experiment, projid)
-         res = urllib2.urlopen(url)
-         text = res.read()
-         info = json.loads(text)
-         res.close()
-         self.do_totals(info)
-         self.proj_cache[experiment+projid] = info
-         self.proj_cache_time[experiment+projid] = time.time()
-         return info
+         try:
+	     res = urllib2.urlopen(url)
+	     text = res.read()
+	     info = json.loads(text)
+	     res.close()
+	     self.do_totals(info)
+	     self.proj_cache[experiment+projid] = info
+	     self.proj_cache_time[experiment+projid] = time.time()
+	     return info
+         except:
+             return {}
 
      def do_totals(self, info):
          tot_consumed = 0

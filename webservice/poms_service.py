@@ -871,6 +871,8 @@ class poms_service:
     @cherrypy.expose
     def campaign_sheet(self, campaign_id, tmax = None , tdays = 14):
 
+        daynames=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"]
+
         if tmax == None:
             tmax = datetime.now(utc)
         else:
@@ -879,23 +881,31 @@ class poms_service:
         tdays = int(tdays)
         tmin = tmax - timedelta(days = tdays+1)  # extra day, see below...
 
-        tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id , Task.created > tmin, Task.created < tmax ).order_by(Task.created).all()
+        tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id , Task.created > tmin, Task.created < tmax ).order_by(desc(Task.created)).all()
+        el = cherrypy.request.db.query(Job.user_exe_exit_code).filter(Job.updated >= tmin, Job.updated <= tmax).all()
 
-        day = None
+        exitcodes = []
+        for e in el:
+            exitcodes.append(e[0])
+
+        cherrypy.log("got exitcodes: " + repr(exitcodes))
+
+        day = -1
         date = None
         first = 1
         columns = ['day','date','files','jobs','failed','outfiles','pending']
 	for e in exitcodes:
-            colunms.append(str(e))
+            columns.append(str(e))
         outrows = []
+        exitcounts = {}
 
         for task in tl:
-            if day != tl.created.weekday():
+            if day != task.created.weekday():
                 if not first:
                      # add a row to the table on the day boundary
                      outrow = []
                      outrow.append(daynames[day])
-                     outrow.append(date.isodate())
+                     outrow.append(date.isoformat())
                      outrow.append(str(totfiles))
                      outrow.append(str(totjobs))
                      outrow.append(str(totjobfails))
@@ -913,24 +923,26 @@ class poms_service:
                 pendfiles = 0
 		for e in exitcodes:
 		    exitcounts[e] = 0
-            #
-            # now counts stuff for this set...
+
+            day = task.created.weekday()
+            date = task.created
             #
             ps = self.project_summary_for_task(task.task_id)
-            totfiles = totfiles + ps['tot_consumed'] + ps['tot_failed']
-            totjobs = totjobs + len(task.jobs)
-            totjobfails = totjobfails + ps['totjobfails']
-            for job in task.jobs:
-                if job.outfiles:
-                    nout = len(job.outfiles.split(' '))
-                    outfiles += nout
-                    if not job.output_files_delcared:
-                        # a bit of a lie, we don't know they're *all* pending, just some of them
-                        # but its close, and we don't want to re-poll SAM here..
-                        pendingfiles += nout
+            if ps:
+		totfiles = totfiles + ps['tot_consumed'] + ps['tot_failed']
+		totjobs = totjobs + len(task.jobs)
+		totjobfails = totjobfails + ps['totjobfails']
+		for job in task.jobs:
+		    if job.outfiles:
+			nout = len(job.outfiles.split(' '))
+			outfiles += nout
+			if not job.output_files_delcared:
+			    # a bit of a lie, we don't know they're *all* pending, just some of them
+			    # but its close, and we don't want to re-poll SAM here..
+			    pendingfiles += nout
 
         # it looks like we should add another row here for the last set of totals, but
         # instead we added a day to the query range, so we compute a row of totals we don't use..
     
         template = self.jinja_env.get_template('campaign_sheet.html')
-        return template.render(name = task.campaign_obj.name ,columns = columns, datarows = outrows)
+        return template.render(name = tl[0].campaign_obj.name ,columns = columns, datarows = outrows)
