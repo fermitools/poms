@@ -931,7 +931,7 @@ class poms_service:
             if ps:
 		totfiles = totfiles + ps['tot_consumed'] + ps['tot_failed']
 		totjobs = totjobs + len(task.jobs)
-		totjobfails = totjobfails + ps['totjobfails']
+		totjobfails = totjobfails + ps['tot_jobfails']
 		for job in task.jobs:
 		    if job.outfiles:
 			nout = len(job.outfiles.split(' '))
