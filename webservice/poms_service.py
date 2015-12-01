@@ -822,11 +822,11 @@ class poms_service:
             extra = extra + "with exit code %s" % exitcode
 
         if campaign_id != None:
-            q = q.filter( Job.task_obj.campaign_id == int(campaign_id))
-            extra = extra + "in campaign id %d" % campaign_id
+            q = q.filter( Task.campaign_id == int(campaign_id))
+            extra = extra + "in campaign id %s" % campaign_id
 
         if experiment != None:
-            q = q.filter( task_obj.campaign_obj.experiment == experiment)
+            q = q.filter( Campaign.experiment == experiment)
             extra = extra + "in experiment %s" % experiment
 
         jl = q.all()
@@ -840,7 +840,7 @@ class poms_service:
             taskcolumns = []
             campcolumns = []
 
-        hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_definition_id', 'task_parameters']
+        hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_definition_id', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
         
         template = self.jinja_env.get_template('job_table.html')
         return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=self.get_current_experimenter(), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns)
