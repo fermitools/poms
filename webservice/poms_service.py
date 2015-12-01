@@ -3,7 +3,7 @@ import os
 import time_grid
 import json
 
-from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func, exc 
+from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func, exc, distinct
 from sqlalchemy.orm  import subqueryload
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
@@ -882,7 +882,7 @@ class poms_service:
         tmin = tmax - timedelta(days = tdays+1)  # extra day, see below...
 
         tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id , Task.created > tmin, Task.created < tmax ).order_by(desc(Task.created)).all()
-        el = cherrypy.request.db.query(Job.user_exe_exit_code).filter(Job.updated >= tmin, Job.updated <= tmax).all()
+        el = cherrypy.request.db.query(distinct(Job.user_exe_exit_code)).filter(Job.updated >= tmin, Job.updated <= tmax).all()
 
         exitcodes = []
         for e in el:
@@ -893,9 +893,9 @@ class poms_service:
         day = -1
         date = None
         first = 1
-        columns = ['day','date','files','jobs','failed','outfiles','pending']
+        columns = ['day','date','requested files','delivered files','jobs','failed','outfiles','pending']
 	for e in exitcodes:
-            columns.append(str(e))
+            columns.append('exit(%d)'%e)
         outrows = []
         exitcounts = {}
 
@@ -907,6 +907,7 @@ class poms_service:
                      outrow.append(daynames[day])
                      outrow.append(date.isoformat())
                      outrow.append(str(totfiles))
+                     outrow.append(str(totdfiles))
                      outrow.append(str(totjobs))
                      outrow.append(str(totjobfails))
                      outrow.append(str(outfiles))
@@ -917,6 +918,7 @@ class poms_service:
                 # clear counters for next days worth
                 first = 0
 		totfiles = 0
+		totdfiles = 0
 		totjobs = 0       
 		totjobfails = 0
                 outfiles = 0
@@ -929,12 +931,14 @@ class poms_service:
             #
             ps = self.project_summary_for_task(task.task_id)
             if ps:
-		totfiles = totfiles + ps['tot_consumed'] + ps['tot_failed']
+		totdfiles = totdfiles + ps['tot_consumed'] + ps['tot_failed']
+		totfiles = totfiles + ps['files_in_snapshot']
 		totjobs = totjobs + len(task.jobs)
 		totjobfails = totjobfails + ps['tot_jobfails']
 		for job in task.jobs:
-		    if job.outfiles:
-			nout = len(job.outfiles.split(' '))
+                    exitcounts[job.user_exe_exit_code] = exitcounts[job.user_exe_exit_code] + 1
+		    if job.output_file_names:
+			nout = len(job.output_file_names.split(' '))
 			outfiles += nout
 			if not job.output_files_delcared:
 			    # a bit of a lie, we don't know they're *all* pending, just some of them
