@@ -4,7 +4,7 @@ import time_grid
 import json
 
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func, exc, distinct
-from sqlalchemy.orm  import subqueryload
+from sqlalchemy.orm  import subqueryload, contains_eager
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 from model.poms_model import Service, ServiceDowntime, Experimenter, Job, JobHistory, Task, TaskDefinition, TaskHistory, Campaign
@@ -797,7 +797,7 @@ class poms_service:
 
     
     @cherrypy.expose
-    def job_table(self, tmax =  None, tdays = 1, exitcode = None ):
+    def job_table(self, tmax =  None, tdays = 1, exitcode = None, campaign_id = None , experiment = None):
         if tmax == None:
             tmax = datetime.now(utc)
         else:
@@ -812,20 +812,38 @@ class poms_service:
         nextlink="/poms/job_table?tmax=%s&tdays=%d" % (tsnext, tdays)
         extra = ""
 
-        q = cherrypy.request.db.query(Job).filter(Job.updated >= tmin, Job.updated <= tmax)
+        q = cherrypy.request.db.query(Job,Task,Campaign)
+        q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == Campaign.campaign_id)
+        q = q.filter(Job.updated >= tmin, Job.updated <= tmax)
+
+        extra = ""
         if exitcode != None:
             q = q.filter(Job.user_exe_exit_code == int(exitcode))
-            extra = "with exit code %s" % exitcode
+            extra = extra + "with exit code %s" % exitcode
+
+        if campaign_id != None:
+            q = q.filter( Job.task_obj.campaign_id == int(campaign_id))
+            extra = extra + "in campaign id %d" % campaign_id
+
+        if experiment != None:
+            q = q.filter( task_obj.campaign_obj.experiment == experiment)
+            extra = extra + "in experiment %s" % experiment
 
         jl = q.all()
 
         if jl:
-            columns = jl[0]._sa_instance_state.class_.__table__.columns.keys()
+            jobcolumns = jl[0][0]._sa_instance_state.class_.__table__.columns.keys() 
+            taskcolumns = jl[0][1]._sa_instance_state.class_.__table__.columns.keys() 
+            campcolumns = jl[0][2]._sa_instance_state.class_.__table__.columns.keys() 
         else:
-            columns = []
+            jobcolumns = []
+            taskcolumns = []
+            campcolumns = []
+
+        hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_definition_id', 'task_parameters']
         
         template = self.jinja_env.get_template('job_table.html')
-        return template.render(joblist=jl, columns = columns, current_experimenter=self.get_current_experimenter(), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra)
+        return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=self.get_current_experimenter(), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns)
 
     @cherrypy.expose
     def jobs_by_exitcode(self, tmax =  None, tdays = 1 ):
@@ -877,9 +895,16 @@ class poms_service:
             tmax = datetime.now(utc)
         else:
             tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
-
         tdays = int(tdays)
         tmin = tmax - timedelta(days = tdays+1)  # extra day, see below...
+
+        tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
+        tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
+        tmins =  tmin.strftime("%Y-%m-%d %H:%M:%S")
+        tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
+        prevlink="/poms/campaign_sheet?campaign_id=%s&tmax=%s&tdays=%d" % (campaign_id,tsprev, tdays)
+        nextlink="/poms/campaign_sheet?campaign_id=%s&tmax=%s&tdays=%d" % (campaign_id,tsnext, tdays)
+
 
         tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id , Task.created > tmin, Task.created < tmax ).order_by(desc(Task.created)).all()
         el = cherrypy.request.db.query(distinct(Job.user_exe_exit_code)).filter(Job.updated >= tmin, Job.updated <= tmax).all()
@@ -949,4 +974,5 @@ class poms_service:
         # instead we added a day to the query range, so we compute a row of totals we don't use..
     
         template = self.jinja_env.get_template('campaign_sheet.html')
-        return template.render(name = tl[0].campaign_obj.name ,columns = columns, datarows = outrows)
+        return template.render(name = tl[0].campaign_obj.name ,columns = columns, datarows = outrows, prevlink=prevlink, nextlink=nextlink,current_experimenter=self.get_current_experimenter())
+

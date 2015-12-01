@@ -41,20 +41,48 @@
 <table class="ui sortable celled compact table">
   <thead>
     <tr>
-    {%for col in columns%}
+    {%for col in jobcolumns%}
+      {% if loop.first %}
+       <th class="">info</th>
+      {% else %}
+        {% if not col in hidecolumns %}
+         <th class="">{{col|replace("_","<br>")}}</th>
+        {% endif %}
+      {% endif %}
+    {%endfor%}
+    {%for col in taskcolumns%}
+      {% if not col in hidecolumns %}
        <th class="">{{col|replace("_","<br>")}}</th>
+      {% endif %}
+    {%endfor%}
+    {%for col in campcolumns%}
+      {% if not col in hidecolumns %}
+       <th class="">{{col|replace("_","<br>")}}</th>
+      {% endif %}
     {%endfor%}
     </tr>
   </thead>
   <tbody>
-    {%for job in joblist %}
+    {%for job,task,campaign in joblist %}
       <tr>
-         {%for col in columns%}
+         {%for col in jobcolumns%}
             {% if loop.first %}
-              <td><a href="/poms/triage_job?job_id={{job[col]}}&tmin={{tmin}}">{{job[col]}}</a></td>
+              <td><a href="/poms/triage_job?job_id={{job[col]}}&tmin={{tmin}}"><i class="level down icon"></i> </a></td>
             {% else %}
+             {% if not col in hidecolumns %}
               <td>{{job[col]}}</td>
+             {% endif %}
             {% endif %}
+         {%endfor%}
+         {%for col in taskcolumns%}
+             {% if not col in hidecolumns %}
+              <td>{{task[col]}}</td>
+             {% endif %}
+         {%endfor%}
+         {%for col in campcolumns%}
+             {% if not col in hidecolumns %}
+              <td>{{campaign[col]}}</td>
+             {% endif %}
          {%endfor%}
       </tr>
     {%endfor%}
