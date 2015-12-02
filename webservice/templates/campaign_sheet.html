@@ -14,8 +14,6 @@
 {%endblock%}
 
 
-
-
 {%block header%}
 <h1 class="ui header">
   Info by day
@@ -46,7 +44,11 @@
     {%for row in datarows %}
       <tr>
          {%for col in range(0, columns|count) %}
-            <td>{{row[col]}}</td>
+            {% if columns[col][:4] == 'exit' %}
+              <td><a href="/poms/job_table?exitcode={{columns[col][5:-1]}}&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
+            {% else %}
+              <td>{{row[col]}}</td>
+            {% endif %}
          {%endfor%}
       </tr>
     {%endfor%}

@@ -973,6 +973,11 @@ class poms_service:
         # it looks like we should add another row here for the last set of totals, but
         # instead we added a day to the query range, so we compute a row of totals we don't use..
     
+
         template = self.jinja_env.get_template('campaign_sheet.html')
-        return template.render(name = tl[0].campaign_obj.name ,columns = columns, datarows = outrows, prevlink=prevlink, nextlink=nextlink,current_experimenter=self.get_current_experimenter())
+        if tl and tl[0]:
+            name = tl[0].campaign_obj.name 
+        else:
+            name = ''
+        return template.render(name = name,columns = columns, datarows = outrows, prevlink=prevlink, nextlink=nextlink,current_experimenter=self.get_current_experimenter(), campaign_id = campaign_id)
 
