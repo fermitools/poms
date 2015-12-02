@@ -722,7 +722,9 @@ class poms_service:
         cl = cherrypy.request.db.query(Campaign).join(Task).filter(Task.campaign_id == Campaign.campaign_id , Task.created > tmin, Task.created < tmax ).all()
         
         for c in cl:
-              sl.append('<h2 class="ui dividing header">%s Tasks</h2>' % c.name )
+              sl.append('<h2 class="ui dividing header">%s Tasks' % c.name )
+              sl.append('<a href="/poms/campaign_sheet?campaign_id=%d&tmax=%s"><i class="external share icon"></i></a>' % ( c.campaign_id, tmaxs))
+              sl.append('</h2>' )
               sl.append(self.format_job_counts(campaign_id = c.campaign_id))
 
               items = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == c.campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin, Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
