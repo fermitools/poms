@@ -98,7 +98,7 @@ class jobsub_q_scraper:
             # only look at it if it has a POMS_TASK_ID in the environment
 
             host = jobenv.get('REMOTEHOST','')
-            host = host[host.find('@')+1:]
+            host = host[host.rfind('@')+1:]
 
             if jobenv.has_key("POMS_TASK_ID") > 0:
 
@@ -118,7 +118,7 @@ class jobsub_q_scraper:
                 #
                 # only report status if its different
                 #
-                if prev and prev['taskid'] != args:
+                if not prev or prev['status'] != args['status'] or prev['node_name'] != args['node_name']:
                     self.job_reporter.report_status(**args)
             else:
                 #print "skipping:" , line
