@@ -961,17 +961,18 @@ class poms_service:
             if ps:
 		totdfiles = totdfiles + ps['tot_consumed'] + ps['tot_failed']
 		totfiles = totfiles + ps['files_in_snapshot']
-		totjobs = totjobs + len(task.jobs)
 		totjobfails = totjobfails + ps['tot_jobfails']
-		for job in task.jobs:
-                    exitcounts[job.user_exe_exit_code] = exitcounts[job.user_exe_exit_code] + 1
-		    if job.output_file_names:
-			nout = len(job.output_file_names.split(' '))
-			outfiles += nout
-			if not job.output_files_delcared:
-			    # a bit of a lie, we don't know they're *all* pending, just some of them
-			    # but its close, and we don't want to re-poll SAM here..
-			    pendingfiles += nout
+
+	    totjobs = totjobs + len(task.jobs)
+	    for job in task.jobs:
+		exitcounts[job.user_exe_exit_code] = exitcounts[job.user_exe_exit_code] + 1
+		if job.output_file_names:
+		    nout = len(job.output_file_names.split(' '))
+		    outfiles += nout
+		    if not job.output_files_delcared:
+			# a bit of a lie, we don't know they're *all* pending, just some of them
+			# but its close, and we don't want to re-poll SAM here..
+			pendingfiles += nout
 
         # it looks like we should add another row here for the last set of totals, but
         # instead we added a day to the query range, so we compute a row of totals we don't use..
