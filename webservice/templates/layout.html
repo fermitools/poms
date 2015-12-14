@@ -216,12 +216,34 @@
                 <b>Filter</b>
             </a>
 
+
+<script>
+function validateQuickSearchForm()
+{
+    var jobsub_job_id = $( "[name='jobsub_job_id']" ).val();
+    if (jobsub_job_id == null || jobsub_job_id == "")
+    {
+        alert("jobsub_job_id must be filled out.");
+        return false;
+    }
+    else if( jobsub_job_id.search(".fnal.gov") > -1  && jobsub_job_id.search("@") > -1  && jobsub_job_id.search(".") > -1 )
+    {
+        return true;
+    }
+    else
+    {
+        alert("Not a valid jobsub_job_id.  Try something like 5301637.1@fifebatch2.fnal.gov");
+        return false;
+    }
+}
+</script>
+
+
 <div class="item">
   <div class="ui inverted transparent left icon input">
-         <form method="get" action="/poms/quick_search">
-    <input type="text" name="jobsub_job_id" placeholder="Search...">
+         <form  method="get" action="/poms/quick_search" onsubmit="return validateQuickSearchForm()">
+             <input type="text" name="jobsub_job_id" placeholder="Search...">
          </form>
-    <i class="search icon"></i>
   </div>
 </div>
                         
