@@ -875,8 +875,9 @@ class poms_service:
 
     @cherrypy.expose
     def quick_search(self, jobsub_job_id):
-        job_info = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
-        raise cherrypy.HTTPRedirect("/poms/triage_job?job_id=%s&tmin=%s" % (str(job_info.job_id), "somekindofdate"))
+        if jobsub_job_id.endswith(".fnal.gov") == True and jobsub_job_id.find("@") > -1 and jobsub_job_id.find(".") > -1:
+            job_info = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
+            raise cherrypy.HTTPRedirect("/poms/triage_job?job_id=%s&tmin=%s" % (str(job_info.job_id), "somekindofdate"))
 
     @cherrypy.expose
     def json_project_summary_for_task(self, task_id):
