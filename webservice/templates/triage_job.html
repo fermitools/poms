@@ -78,7 +78,7 @@
 
 
 
-{% if job_info.Task.project %}
+{% if job_info.Task.project is not none %}
 <h4 class="ui horizontal divider header">
       <i class="linkify icon"></i>
       SAM Project
