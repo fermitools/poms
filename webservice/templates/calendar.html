@@ -5,12 +5,11 @@
 {%endblock%}
 
 {%block breadcrumbs%}
-    <div class="item">
-       Dashboard  <!--label of current location on mobile-->
-    </div>
-    <div class="item">
-      POMS Downtime Calendar <!--label of current location on mobile-->
-    </div>
+<div class="ui breadcrumb" style="margin-top:-45px;">
+  <a href="/poms/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">Calendar</div>
+</div>
 {%endblock%}
 
 
@@ -19,7 +18,7 @@
 
 {%block header%}
 <h1 class="ui header">
-     POMS Downtime Calendar                               
+     Downtime Calendar                               
     <div class="sub header">
         view service downtimes
     </div>
@@ -30,7 +29,7 @@
 
 
 {%block subheader%}
-<h2 class="ui dividing header">Downtimes:</h2>
+<h2 class="ui dividing header">Downtimes</h2>
 {%endblock%}
 
 
@@ -38,7 +37,7 @@
 
 {%block content%}
 
-
+<div id='loading' class="ui small text loader">Loading</div>
 
 <script>
 
@@ -66,7 +65,16 @@
                         slotDuration: '00:05:00',
                         timezone: 'UTC',
 
-
+                        loading: function(isLoading){
+                          if (isLoading)
+                          {
+                            $('#loading').show();
+                          }
+                          else
+                          {
+                            $('#loading').hide();
+                          }
+                        },
 
 
                         //CREATE EVENT HERE

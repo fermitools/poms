@@ -188,7 +188,7 @@ blockquote .author {
     position: relative;
     z-index: 1;
     margin: 0em;
-    min-height: 185px;
+    min-height: 160px;
     padding: 3em 0em;
     background-color: #FFFFFF;
     border-bottom: 1px solid #DDDDDD;
@@ -2361,8 +2361,8 @@ code .chunk {
     }
 }
 
-/* Remove Rail */
-@media only screen and (max-width: 992px) {
+/* Remove Rail IMPORTANT FOR GETTING RID OF THIRD COLUMN */
+@media only screen and (max-width: 11992px) {
 
     /* Remove Rail */
     #example .main.container > .right.rail,

@@ -5,12 +5,11 @@
 {%endblock%}
 
 {%block breadcrumbs%}
-    <div class="item">
-       Dashboard  <!--label of current location on mobile-->
-    </div>
-    <div class="item">
-      POMS DB Admin <!--label of current location on mobile-->
-    </div>
+<div class="ui breadcrumb" style="margin-top:-45px;">
+  <a href= "/poms/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">DB Admin</div>
+</div>
 {%endblock%}
 
 
@@ -19,7 +18,7 @@
 
 {%block header%}
 <h1 class="ui header">
-     POMS DB ADMIN                                 
+     DB Admin
     <div class="sub header">
         update database tables directly
     </div>

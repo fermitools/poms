@@ -6,15 +6,13 @@
 
 
 {%block breadcrumbs%}
-    <div class="item">
-       Dashboard  <!--label of current location on mobile-->
-    </div>
-    <div class="item">
-      Campaigns
-    </div>
-    <div class="item">
-      Jobs in Task {{taskid}}
-    </div>
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="/poms/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <a href="/poms/show_campaigns/" class="section">Campaigns</a>
+  <div class="divider"> / </div>
+  <div class="section">Jobs in task {{taskid}}</div>
+</div>
 {%endblock%}
 
 

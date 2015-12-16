@@ -33,7 +33,10 @@ class jobsub_fetcher():
              self.tarfiles.append(thistar)
 
          if self.fetchcount > self.fetchmax:
-             os.unlink(self.tarfiles[0])
+             try:
+                 os.unlink(self.tarfiles[0])
+             except:
+                 pass
              self.tarfiles = self.tarfiles[1:]
              self.fetchcount = self.fetchcount - 1   
                  

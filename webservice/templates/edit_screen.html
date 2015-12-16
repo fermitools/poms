@@ -5,18 +5,15 @@
 {%endblock%}
 
 {%block breadcrumbs%}
-    <div class="item">
-       Dashboard  <!--label of current location on mobile-->
-    </div>
-    <div class="item">
-      POMS DB Admin <!--label of current location on mobile-->
-    </div>
-    <div class="item">
-      {{classname}} Items
-    </div>
-    <div class="item">
-      Edit {{classname}} 
-    </div>
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="/poms/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <a class="section">DB Admin</a>
+  <div class="divider"> / </div>
+  <a href="/poms/list_generic?classname={{classname}}" class="section">{{classname}}</a>
+  <div class="divider"> / </div>
+  <div class="section">edit {{classname}}</div>
+</div>
 {%endblock%}
 
 
