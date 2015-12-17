@@ -2,6 +2,7 @@
 
 import sys
 import os
+from model.poms_model import Experimenter
 
 # make sure poms is setup...
 if os.environ.get("POMS_DIR","") == "":
@@ -106,12 +107,35 @@ class SessionTool(cherrypy.Tool):
         # will be created for each request. 
     def __init__(self):
         cherrypy.Tool.__init__(self, 'before_request_body',
-                               self.force_session,
+                               self.establish_session,
                                priority=50)
         
-    def force_session(self):
+    def _setup(self):
+        cherrypy.Tool._setup(self)
+        cherrypy.request.hooks.attach('before_request_body',
+                                      self.get_current_experimenter,
+                                      priority=90)
+    def establish_session(self):
         cherrypy.session['id'] = cherrypy.session._id
- 
+
+    def get_current_experimenter(self):
+        experimenter = cherrypy.session.get('experimenter')
+        if cherrypy.request.headers.get('X-Shib-Email',None):
+            experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == cherrypy.request.headers['X-Shib-Email'] ).first()
+        else:
+            experimenter = None
+
+        if not experimenter and cherrypy.request.headers.get('X-Shib-Email',None):
+             experimenter = Experimenter(
+		   first_name = cherrypy.request.headers['X-Shib-Name-First'],
+		   last_name =  cherrypy.request.headers['X-Shib-Name-Last'],
+		   email =  cherrypy.request.headers['X-Shib-Email'])
+	     cherrypy.request.db.add(experimenter)
+             cherrypy.request.db.commit()
+
+             experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == cherrypy.request.headers['X-Shib-Email'] ).first()
+        cherrypy.session['experimenter'] = experimenter
+
 def set_rotating_log(app):
     ''' recipe  for a rotating log file...'''
     # Remove the regular file handlers
@@ -183,9 +207,6 @@ if __name__ == '__main__':
     SAEnginePlugin(cherrypy.engine).subscribe()
     cherrypy.tools.db = SATool()
     cherrypy.tools.psess = SessionTool()
-    print "*"*80
-    print dir(cherrypy.tools)
-    print "*"*80
     app = cherrypy.tree.mount(poms_service.poms_service(), path, configfile)
     app.merge(config)
     set_rotating_log(app)

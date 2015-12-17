@@ -124,7 +124,7 @@ class joblog_scraper:
            data['user_exe_exit_code'] = message[message.find("COMPLETED with")+27:]
  
         # pull any fields if it's a json block
-        pos = message.find('{')
+        pos = message.find('poms_data={')
         if pos > 0 and pos < 4:
            s = message[message.find('{'):]
            print "unpacking: " , s
