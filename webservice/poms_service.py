@@ -54,27 +54,10 @@ class poms_service:
     def headers(self):
         return repr(cherrypy.request.headers)
 
-    def get_current_experimenter(self):
-        if cherrypy.request.headers.get('X-Shib-Email',None):
-            experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == cherrypy.request.headers['X-Shib-Email'] ).first()
-        else:
-            experimenter = None
-
-        if not experimenter and cherrypy.request.headers.get('X-Shib-Email',None):
-             experimenter = Experimenter(
-		   first_name = cherrypy.request.headers['X-Shib-Name-First'],
-		   last_name =  cherrypy.request.headers['X-Shib-Name-Last'],
-		   email =  cherrypy.request.headers['X-Shib-Email'])
-	     cherrypy.request.db.add(experimenter)
-             cherrypy.request.db.commit()
-
-             experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == cherrypy.request.headers['X-Shib-Email'] ).first()
-        return experimenter
-
     @cherrypy.expose
     def index(self):
         template = self.jinja_env.get_template('service_statuses.html')
-        return template.render(services=self.service_status_hier('All'),current_experimenter=self.get_current_experimenter(), do_refresh = 1)
+        return template.render(services=self.service_status_hier('All'),current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1)
 
     @cherrypy.expose
     def test(self):
@@ -83,9 +66,10 @@ class poms_service:
           <head></head>
           <body>
           session._id:       %s<br>
-          session.get('id'): %s
+          session.get('id'): %s<br>
+          session.get('experimenter'): %s<br>
           </body>
-        </html>""" % (cherrypy.session._id,cherrypy.session.get('id'))
+        </html>""" % (cherrypy.session._id,cherrypy.session.get('id'),cherrypy.session.get('experimenter'))
         return html
 
     def can_create_task(self):
@@ -164,7 +148,7 @@ class poms_service:
     def calendar(self):
         template = self.jinja_env.get_template('calendar.html')
         rows = cherrypy.request.db.query(Service).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(Service.name != "FifeBatch").filter(~Service.name.endswith("sam")).all()
-        return template.render(rows=rows,current_experimenter=self.get_current_experimenter())
+        return template.render(rows=rows,current_experimenter=cherrypy.session.get('experimenter'))
 
 
 
@@ -220,7 +204,7 @@ class poms_service:
     def service_downtimes(self):
         template = self.jinja_env.get_template('service_downtimes.html')
         rows = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).all()
-        return template.render(rows=rows,current_experimenter=self.get_current_experimenter())
+        return template.render(rows=rows,current_experimenter=cherrypy.session.get('experimenter'))
 
 
     @cherrypy.expose
@@ -297,7 +281,7 @@ class poms_service:
             list.append({'name': s.name,'status': s.status, 'url': url})
 
         template = self.jinja_env.get_template('service_status.html')
-        return template.render(list=list, name=under,current_experimenter=self.get_current_experimenter())
+        return template.render(list=list, name=under,current_experimenter=cherrypy.session.get('experimenter'))
 
     def service_status_hier(self, under = 'All', depth = 0):
         p = cherrypy.request.db.query(Service).filter(Service.name == under).first()
@@ -372,7 +356,7 @@ class poms_service:
         if not self.can_db_admin():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('admin_screen.html')
-        return template.render(list = self.admin_map.keys(),current_experimenter=self.get_current_experimenter())
+        return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'))
         
     @cherrypy.expose
     def list_generic(self, classname):
@@ -380,7 +364,7 @@ class poms_service:
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         l = self.make_list_for(self.admin_map[classname],self.pk_map[classname])
         template = self.jinja_env.get_template('list_screen.html')
-        return template.render( classname = classname, list = l, edit_screen="edit_screen_generic", primary_key='experimenter_id',current_experimenter=self.get_current_experimenter())
+        return template.render( classname = classname, list = l, edit_screen="edit_screen_generic", primary_key='experimenter_id',current_experimenter=cherrypy.session.get('experimenter'))
 
     @cherrypy.expose
     def edit_screen_generic(self, classname, id = None):
@@ -469,7 +453,7 @@ class poms_service:
                   'values' : valmap.get(fn, None)
               })
         template = self.jinja_env.get_template('edit_screen.html')
-        return template.render( screendata = screendata, action="./"+update_call , classname = classname ,current_experimenter=self.get_current_experimenter())
+        return template.render( screendata = screendata, action="./"+update_call , classname = classname ,current_experimenter=cherrypy.session.get('experimenter'))
 
     def make_list_for(self,eclass,primkey):
         res = []
@@ -675,7 +659,7 @@ class poms_service:
         screendata = screendata +  tg.render_query(tmin, tmax, jl, 'job_id', url_template='/poms/triage_job?job_id=%(job_id)s&tmin='+str(tmin).split('+')[0])         
 
         template = self.jinja_env.get_template('job_grid.html')
-        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter(), do_refresh = 1)
+        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1)
 
 
 
@@ -688,7 +672,7 @@ class poms_service:
 
         job_history = cherrypy.request.db.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
         
-        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, tmin=tmin, current_experimenter=self.get_current_experimenter())
+        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'))
 
 
     @cherrypy.expose
@@ -735,7 +719,7 @@ class poms_service:
         allcounts =  self.format_job_counts()
               
         template = self.jinja_env.get_template('campaign_grid.html')
-        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=self.get_current_experimenter(), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays)
+        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays)
 
     
     @cherrypy.expose
@@ -845,7 +829,7 @@ class poms_service:
         hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_definition_id', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
         
         template = self.jinja_env.get_template('job_table.html')
-        return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=self.get_current_experimenter(), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns)
+        return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns)
 
     @cherrypy.expose
     def jobs_by_exitcode(self, tmax =  None, tdays = 1 ):
@@ -871,7 +855,7 @@ class poms_service:
         columns = [ "exit_code","count"]
         
         template = self.jinja_env.get_template('job_count_table.html')
-        return template.render(joblist=jl, columns = columns, current_experimenter=self.get_current_experimenter(), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays)
+        return template.render(joblist=jl, columns = columns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays)
 
     @cherrypy.expose
     def quick_search(self, jobsub_job_id):
@@ -984,5 +968,5 @@ class poms_service:
             name = tl[0].campaign_obj.name 
         else:
             name = ''
-        return template.render(name = name,columns = columns, datarows = outrows, prevlink=prevlink, nextlink=nextlink,current_experimenter=self.get_current_experimenter(), campaign_id = campaign_id)
+        return template.render(name = name,columns = columns, datarows = outrows, prevlink=prevlink, nextlink=nextlink,current_experimenter=cherrypy.session.get('experimenter'), campaign_id = campaign_id)
 
