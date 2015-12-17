@@ -687,8 +687,25 @@ class poms_service:
         job_info = cherrypy.request.db.query(Job, Task, TaskDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Task.task_definition_id==TaskDefinition.task_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
 
         job_history = cherrypy.request.db.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
+
+        #begins service downtimes
+        first = job_history[0].created
+        last = job_history[len(job_history)-1].created
+
+        downtimes1 = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id)\
+        .filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(~Service.name.endswith("sam"))\
+        .filter(first >= ServiceDowntime.downtime_started).filter(first < ServiceDowntime.downtime_ended)\
+        .filter(last >= ServiceDowntime.downtime_started).filter(last < ServiceDowntime.downtime_ended).all()
+
+        downtimes2 = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id)\
+        .filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(~Service.name.endswith("sam"))\
+        .filter(ServiceDowntime.downtime_started >= first).filter(ServiceDowntime.downtime_started < last)\
+        .filter(ServiceDowntime.downtime_ended >= first).filter(ServiceDowntime.downtime_ended < last).all()
+
+        downtimes = downtimes1 + downtimes2
+        #ends service downtimes
         
-        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, tmin=tmin, current_experimenter=self.get_current_experimenter())
+        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, tmin=tmin, current_experimenter=self.get_current_experimenter())
 
 
     @cherrypy.expose
