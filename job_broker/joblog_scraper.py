@@ -36,7 +36,7 @@ class joblog_scraper:
 
         self.ifdhline_re = re.compile(ifdhline_pat)
         self.oldifdhline_re = re.compile(oldifdhline_pat)
-        self.copyin_re = re.compile(".*ifdh::cp\( (--force=[a-z]* )?(-D )?(/pnfs|/nova|/minerva|/grid|/cvmfs|/mu2e|/uboone|/lbne|/dune|/argoneut|/minos|/gm2|/miniboone|/coupp|/d0|/lariat|/e906|gsiftp:|s3:)")
+        self.copyin_re = re.compile(".*ifdh::cp\( (--force=[a-z]* )?(-D )?(/pnfs|/nova|/minerva|/grid|/cvmfs|/mu2e|/uboone|/lbne|/dune|/argoneut|/minos|/gm2|/miniboone|/coupp|/d0|/lariat|/e906|gsiftp:|s3:|http:)")
 
     def parse_line(self, line):
 	timestamp = ""
@@ -70,9 +70,9 @@ class joblog_scraper:
 		'message': message.strip() ,
         }
 
-    def find_output_files(self, message):
+    def find_files(self, message):
         if self.debug:
-            print "looking for output files in: " , message
+            print "looking for input/output files in: " , message
         file_map = {}
         message = message[message.find("ifdh::cp(")+9:]
         list = message.split(" ")
@@ -91,22 +91,21 @@ class joblog_scraper:
         data = { 
            "taskid": taskid,
            "jobsub_job_id": jobsub_job_id,
-           "slot": hostname,
+           "node_name": hostname,
         }
 
         if self.debug:
            print "report_item: message:" , message
 
-        if message.find("starting ifdh::cp") > 0:
+        if message.find("starting ifdh::cp") >= 0:
             if self.debug:
                 print "saw copy"
 	    if self.copyin_re.match(message):
                 dir = "in"
+                data['input_file_names'] = self.find_files(message)
             else:
                 dir = "out"
-
-            if dir == "out":
-                data['output_file_names'] = self.find_output_files(message)
+                data['output_file_names'] = self.find_files(message)
              
             data['status'] = "running: copying files " + dir
         
@@ -125,11 +124,19 @@ class joblog_scraper:
  
         # pull any fields if it's a json block
         pos = message.find('poms_data={')
-        if pos > 0 and pos < 4:
+        if pos > 0 and pos < 8:
            s = message[message.find('{'):]
            print "unpacking: " , s
            try:
-              data.update(json.loads(s))
+              newdata = json.loads(s)
+              for k in newdata.keys():
+                  if newdata[k] == '':
+                      del newdata[k]
+
+              if newdata.has_key('vendor_id'):
+                  newdata['cpu_type'] = newdata['vendor_id']
+
+              data.update(newdata)
            except:
               s = s[0:s.find(', "bogo')] + " }"
               print "failed, unpacking: " , s
@@ -157,6 +164,8 @@ if __name__ == '__main__':
         debug=1
 
    while 1:
+      if debug:
+           print "Starting..."
       try:
           h = open("/home/poms/private/rsyslogd/joblog_fifo","r")
           # for testing
@@ -176,3 +185,4 @@ if __name__ == '__main__':
           print "Exception!"
           traceback.print_exc()
           pass
+
