@@ -220,5 +220,35 @@
 
 
 
-{%endblock%}
 
+
+{% if downtimes %}
+<h4 class="ui horizontal divider header">
+      <i class="warning sign icon"></i>
+      Downtimes
+</h4>
+
+
+
+
+<table class="ui very basic collapsing celled table">
+        <tbody>
+          <tr>
+            <td class="six wide">Service</td>
+            <td class="six wide">Downtime Started</td>
+            <td class="six wide">Downtime Ended</td>
+          </tr>
+          {% for item in downtimes %}
+          <tr>
+            <td><code>{{item.Service.name}}</code></td>
+            <td>{{item.ServiceDowntime.downtime_started}}</td>
+            <td>{{item.ServiceDowntime.downtime_ended}}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+</table>
+{% endif %}
+
+
+
+{%endblock%}
