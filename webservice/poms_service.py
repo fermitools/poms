@@ -971,7 +971,7 @@ class poms_service:
 		    if job.output_file_names:
 			nout = len(job.output_file_names.split(' '))
 			outfiles += nout
-			if not job.output_files_delcared:
+			if not job.output_files_declared:
 			    # a bit of a lie, we don't know they're *all* pending, just some of them
 			    # but its close, and we don't want to re-poll SAM here..
 			    pendingfiles += nout
