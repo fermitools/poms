@@ -109,7 +109,7 @@ class jobsub_q_scraper:
                     'jobsub_job_id' : jobsub_job_id,
                     'taskid' : jobenv['POMS_TASK_ID'],
                     'status' : self.map[jobenv['JOBSTATUS']],
-                    'restarts' : jobenv['NumRestarts']
+                    'restarts' : jobenv['NumRestarts'],
                     'node_name' : host, 
                     'host_site' : jobenv.get('GLIDEIN_SITE', ''),
                     'task_project' : jobenv.get('SAM_PROJECT_NAME',None)
@@ -131,7 +131,7 @@ class jobsub_q_scraper:
 
         if res == 0 or res == None:
 	    for jobsub_job_id in self.jobmap.keys():
-		if self.jobmap[jobsub_job_id] == 0 && self.prevjobmap.get(jobsub_job_id,0) == 0:
+		if self.jobmap[jobsub_job_id] == 0 and self.prevjobmap.get(jobsub_job_id,0) == 0:
 		    # it is in the database, but not in our output, 
                     # nor in the previous output, we conclude it's completed.
 		    # we could get a false alarm here if condor_q fails...

@@ -47,11 +47,15 @@ class time_grid:
               if str.find("user code") >= 0:
                   return "#118811"
               if str.find("copying files in") >= 0:
-                  return "#a0f0f0"
+                  return "#80f080"
               if str.find("copying files out") >= 0:
-                  return "#00e0e0"
-              if str.find("user code complete") >= 0:
+                  return "#00c0b0"
+              if str.find("user code completed") >= 0:
                   return "#208010"
+              if str.find("user code succeeded") >= 0:
+                  return "#20e010"
+              if str.find("user code failed") >= 0:
+                  return "#e01010"
               return "#11ff11"
           if str.find("Running") >= 0:
               return "#11ff11"
@@ -72,8 +76,7 @@ class time_grid:
              t0 = tmin
           if t1 > tmax:
              t1 = tmax
-          return (t1 - t0).total_seconds() * 99 / (self.tdelta.total_seconds())
-
+          return int( 0.5 + (t1 - t0).total_seconds() * 95.0 / (self.tdelta.total_seconds()))
 
      def add_time_data(self, tmin, tmax, dlistmap):
           self.tmin = tmin
@@ -123,11 +126,11 @@ class time_grid:
                  if p['width'] < self.minwidth:
                     n_too_small = n_too_small + 1
                     fudge = fudge + self.minwidth - p['width']
-             fudge = int(fudge + n_too_small)
-             delta = int(0.6 + fudge / (n_items - n_too_small + 1))
+
+             delta = fudge / (n_items - n_too_small + 1)
 
              for p in plist:
-                 if p['width'] < self.minwidth:
+                 if p['width'] <= self.minwidth:
                      p['width'] = self.minwidth
                  else:
                      if fudge < delta:
@@ -136,7 +139,7 @@ class time_grid:
                      fudge = fudge - delta
 
                  if p['width'] >= 100:
-                    p['width'] = 99
+                    p['width'] = 95
              
      def draw_boxes(self):
          self.min_box_sizes()
