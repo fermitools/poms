@@ -44,6 +44,14 @@ class time_grid:
           if str.find("Starting") >= 0:
               return "#11ff11"
           if str.find("running") >= 0:
+              if str.find("user code") >= 0:
+                  return "#118811"
+              if str.find("copying files in") >= 0:
+                  return "#a0f0f0"
+              if str.find("copying files out") >= 0:
+                  return "#00e0e0"
+              if str.find("user code complete") >= 0:
+                  return "#208010"
               return "#11ff11"
           if str.find("Running") >= 0:
               return "#11ff11"
@@ -53,6 +61,10 @@ class time_grid:
               return "#ddffdd"
           if str.find("idle") >= 0:
               return "#888888"
+          if str.find("Completed") >= 0:
+              return "#eeeeee"
+          if str.find("Located") >= 0:
+              return "#f8f8f8"
           return "#ffffff"
 
      def pwidth(self, t0, t1, tmin, tmax):
