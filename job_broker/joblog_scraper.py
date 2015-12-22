@@ -124,27 +124,30 @@ class joblog_scraper:
  
         # pull any fields if it's a json block
         pos = message.find('poms_data={')
-        if pos > 0 and pos < 8:
+        if pos >= 0:
            s = message[message.find('{'):]
-           print "unpacking: " , s
+           if self.debug: print "unpacking: " , s
            try:
               newdata = json.loads(s)
-              for k in newdata.keys():
-                  if newdata[k] == '':
-                      del newdata[k]
-
-              if newdata.has_key('vendor_id'):
-                  newdata['cpu_type'] = newdata['vendor_id']
-
-              data.update(newdata)
            except:
               s = s[0:s.find(', "bogo')] + " }"
               print "failed, unpacking: " , s
               try:
-                  data.update(json.loads(s))
+                  newdata = json.loads(s)
               except:
+                  newdata = {}
                   print "still failed, continuing.."
                   pass
+
+	   for k in newdata.keys():
+	       if newdata[k] == '':
+		   del newdata[k]
+
+	   if newdata.has_key('vendor_id'):
+	       newdata['cpu_type'] = "%s@%s" % (
+                       newdata['vendor_id'], newdata.get('bogomips',''))
+
+	   data.update(newdata)
 
         if self.debug:
             print "reporting: " , data
