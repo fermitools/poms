@@ -6,6 +6,7 @@ import re
 import urllib2
 import json
 import traceback
+import time
 
 from job_reporter import job_reporter
 
@@ -185,7 +186,7 @@ if __name__ == '__main__':
           break
 
       except:
-          print "Exception!"
+          print time.asctime(), "Exception!"
           traceback.print_exc()
           pass
 

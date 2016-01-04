@@ -572,11 +572,17 @@ class poms_service:
          j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).first()
 
          if not j and task_id:
+             t = cherrypy.request.db.query(Task).filter(Task.task_id==task_id).first() 
+             if t == None:
+                 cherrypy.log("update_job -- no such task yet")
+                 cherrypy.response.status="404 Task Not Found"
+                 return "No such task"
 	     cherrypy.log("update_job: creating new job") 
              j = Job()
              j.jobsub_job_id = jobsub_job_id.rstrip("\n")
              j.created = datetime.now(utc)
              j.task_id = task_id
+             j.task_obj = t
              j.output_files_declared = False
              j.node_name = ''
 
