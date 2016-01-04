@@ -668,9 +668,14 @@ class poms_service:
         job_file_list = self.job_file_list(job_id, force_reload)
         template = self.jinja_env.get_template('triage_job.html')
 
+        output_file_names_list = []
+
         job_info = cherrypy.request.db.query(Job, Task, TaskDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Task.task_definition_id==TaskDefinition.task_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
 
         job_history = cherrypy.request.db.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
+
+        if job_info.Job.output_file_names:
+            output_file_names_list = job_info.Job.output_file_names.split(" ")
 
         #begins service downtimes
         first = job_history[0].created
@@ -689,7 +694,7 @@ class poms_service:
         downtimes = downtimes1 + downtimes2
         #ends service downtimes
         
-        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'))
+        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'))
 
 
     @cherrypy.expose
