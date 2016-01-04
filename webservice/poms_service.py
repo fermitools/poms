@@ -49,6 +49,7 @@ class poms_service:
     def __init__(self):
         self.jinja_env = Environment(loader=PackageLoader('webservice','templates'))
         self.make_admin_map()
+        self.task_min_job_cache = {}
 
     @cherrypy.expose
     def headers(self):
@@ -738,13 +739,21 @@ class poms_service:
         template = self.jinja_env.get_template('campaign_grid.html')
         return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays)
 
+    def task_min_job(self, task_id):
+        # find the job with the logs -- minimum jobsub_job_id for this task
+        # also will be nickname for the task...
+        if [ self.task_min_job_cache.has_key(task_id) ]
+           return self.task_min_job_cache.get(task_id) 
+        j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
+        if j:
+            self.task_min_job_cache.[task_id] = j
+        return j
     
     @cherrypy.expose
     def job_file_list(self, job_id,force_reload = False):
         j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
-        j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
-        cherrypy.log("found job: %s " % j.jobsub_job_id)
+        j = self.task_min_job(j.task_id)
         role = j.task_obj.campaign_obj.vo_role
         return cherrypy.request.jobsub_fetcher.index(j.jobsub_job_id,j.task_obj.campaign_obj.experiment ,role, force_reload)
 
@@ -752,7 +761,7 @@ class poms_service:
     def job_file_contents(self, job_id, task_id, file, tmin):
         j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
-        j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
+        j = self.task_min_job(j.task_id)
         cherrypy.log("found job: %s " % j.jobsub_job_id)
         role = j.task_obj.campaign_obj.vo_role
         job_file_contents = cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role)

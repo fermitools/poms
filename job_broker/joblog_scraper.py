@@ -112,7 +112,7 @@ class joblog_scraper:
         
         if message.find("transferred") > 0:
             # don't actually log copy completed status, can't tell where it is
-            # data['status'] = "running: copy succeeded"
+            data['status'] = "running"
             pass
 
         if message.find("BEGIN EXECUTION") > 0:
@@ -120,7 +120,10 @@ class joblog_scraper:
            data['user_script' ] = message[message.find("EXECUTION")+11:]
 
         if message.find("COMPLETED with") > 0:
-           data['status'] = "running: user code complete"
+           if message[-1] == '0':
+               data['status'] = "running: user code succeeded"
+           else:
+               data['status'] = "running: user code failed"
            data['user_exe_exit_code'] = message[message.find("COMPLETED with")+27:]
  
         # pull any fields if it's a json block
