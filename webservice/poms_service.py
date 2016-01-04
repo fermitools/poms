@@ -473,7 +473,7 @@ class poms_service:
          camp = self.get_or_add_campaign(exp,td,creator)
          t = Task()
          t.campaign_id = camp.campaign_id
-         t.task_definition_id = td.task_definition_id
+         #t.task_definition_id = td.task_definition_id
          t.task_order = 0
          t.input_dataset = input_dataset
          t.output_dataset = output_dataset
@@ -573,11 +573,17 @@ class poms_service:
          j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).first()
 
          if not j and task_id:
+             t = cherrypy.request.db.query(Task).filter(Task.task_id==task_id).first() 
+             if t == None:
+                 cherrypy.log("update_job -- no such task yet")
+                 cherrypy.response.status="404 Task Not Found"
+                 return "No such task"
 	     cherrypy.log("update_job: creating new job") 
              j = Job()
              j.jobsub_job_id = jobsub_job_id.rstrip("\n")
              j.created = datetime.now(utc)
              j.task_id = task_id
+             j.task_obj = t
              j.output_files_declared = False
              j.node_name = ''
 
@@ -597,7 +603,9 @@ class poms_service:
 		    setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
                   
              if kwargs.get('output_files_declared', None) == "True":
-                 j.output_files_declared = True
+                 if j.status == "Completed":
+                     j.output_files_declared = True
+                     j.status = "Located"
 
              if kwargs.get('output_file_names', None):
                  cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
@@ -669,9 +677,14 @@ class poms_service:
         job_file_list = self.job_file_list(job_id, force_reload)
         template = self.jinja_env.get_template('triage_job.html')
 
-        job_info = cherrypy.request.db.query(Job, Task, TaskDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Task.task_definition_id==TaskDefinition.task_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
+        output_file_names_list = []
+
+        job_info = cherrypy.request.db.query(Job, Task, TaskDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Campaign.task_definition_id==TaskDefinition.task_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
 
         job_history = cherrypy.request.db.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
+
+        if job_info.Job.output_file_names:
+            output_file_names_list = job_info.Job.output_file_names.split(" ")
 
         #begins service downtimes
         first = job_history[0].created
@@ -690,7 +703,7 @@ class poms_service:
         downtimes = downtimes1 + downtimes2
         #ends service downtimes
         
-        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'))
+        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'))
 
 
     @cherrypy.expose
@@ -852,7 +865,7 @@ class poms_service:
             taskcolumns = []
             campcolumns = []
 
-        hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_definition_id', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
+        hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
         
         template = self.jinja_env.get_template('job_table.html')
         return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns)
@@ -989,7 +1002,6 @@ class poms_service:
         # it looks like we should add another row here for the last set of totals, but
         # instead we added a day to the query range, so we compute a row of totals we don't use..
     
-
         template = self.jinja_env.get_template('campaign_sheet.html')
         if tl and tl[0]:
             name = tl[0].campaign_obj.name 

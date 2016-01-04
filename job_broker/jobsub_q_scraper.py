@@ -29,9 +29,11 @@ class jobsub_q_scraper:
         self.cur_report = {}
         self.prev_report = {}
         self.jobmap = {}
+        self.prevjobmap = {}
         self.debug = debug
 
     def get_open_jobs(self):
+        self.prevjobmap = self.jobmap
 	self.jobmap = {}
         try:
             conn = urllib2.urlopen(self.job_reporter.report_url + '/active_jobs')
@@ -70,7 +72,7 @@ class jobsub_q_scraper:
         # for now we have a for loop and use condor_q, in future
         # we hope to be able to use jobsub_q with -format...
 
-        f = os.popen("for n in 1 2; do condor_q -pool fifebatchgpvmhead$n.fnal.gov -name fifebatch$n.fnal.gov -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format \"%d;SCHEDD=fifebatch$n.fnal.gov;\" ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'xxx=%d\\n' ProcID ; done", "r")
+        f = os.popen("for n in 1 2; do condor_q -pool fifebatchgpvmhead$n.fnal.gov -name fifebatch$n.fnal.gov -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format \"%d;SCHEDD=fifebatch$n.fnal.gov;\" ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'xxx=%d\\n' ProcID ; done", "r")
         for line in f:
 
             line = line.rstrip('\n')
@@ -107,6 +109,7 @@ class jobsub_q_scraper:
                     'jobsub_job_id' : jobsub_job_id,
                     'taskid' : jobenv['POMS_TASK_ID'],
                     'status' : self.map[jobenv['JOBSTATUS']],
+                    'restarts' : jobenv['NumRestarts'],
                     'node_name' : host, 
                     'host_site' : jobenv.get('GLIDEIN_SITE', ''),
                     'task_project' : jobenv.get('SAM_PROJECT_NAME',None)
@@ -128,11 +131,12 @@ class jobsub_q_scraper:
 
         if res == 0 or res == None:
 	    for jobsub_job_id in self.jobmap.keys():
-		if self.jobmap[jobsub_job_id] == 0:
+		if self.jobmap[jobsub_job_id] == 0 and self.prevjobmap.get(jobsub_job_id,0) == 0:
 		    # it is in the database, but not in our output, 
-                    # so it's dead.
+                    # nor in the previous output, we conclude it's completed.
 		    # we could get a false alarm here if condor_q fails...
 		    # thats why we only do this if our close() returned 0/None.
+                    # and we make sure we didn't see it two runs in a row...
 		    self.job_reporter.report_status(
 			jobsub_job_id = jobsub_job_id,
 			status = "Completed")

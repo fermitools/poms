@@ -30,7 +30,7 @@ class declared_files_watcher:
 
             print "got: ", output
         except:
-            print  "Ouch!", sys.exc_info()
+            print time.asctime(), "Ouch!", sys.exc_info()
 	    traceback.print_exc()
             pass
 
@@ -45,7 +45,7 @@ class declared_files_watcher:
             print "got: ", jobs
             return jobs
         except:
-            print  "Ouch!", sys.exc_info()
+            print  time.asctime(), "Ouch!", sys.exc_info()
 	    traceback.print_exc()
             pass
 
@@ -71,7 +71,7 @@ class declared_files_watcher:
                           # xxx debug
                           print "located file %s %s" % (f, repr(loclist))
                   except:
-		      print "exception %s locating %s in experiment %s" % (sys.exc_info(), f, experiment)
+		      print time.asctime(), "exception %s locating %s in experiment %s" % (sys.exc_info(), f, experiment)
 		      all_located = 0
                       pass
                      
@@ -89,7 +89,7 @@ class declared_files_watcher:
 	        break
 
 	    except:
-	        print "Exception!"
+	        print time.asctime(), "Exception!"
 	        traceback.print_exc()
 	        pass
 
