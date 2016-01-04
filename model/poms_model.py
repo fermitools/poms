@@ -21,6 +21,9 @@ class Campaign(Base):
     updater = Column(ForeignKey(u'experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
     vo_role = Column(Text, nullable = False)
+    cs_last_split = Column(DateTime(True), nullable=True)
+    cs_split_type = Column(Text, nullable = True)
+    cs_split_dimensions = Column(Text, nullable = True)
 
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')
@@ -69,6 +72,7 @@ class Job(Base):
     output_files_declared = Column(Boolean, nullable=False)
     output_file_names = Column(Text)
     user_exe_exit_code = Column(Integer)
+    input_file_names = Column(Text)
 
     task_obj = relationship(u'Task')
 
