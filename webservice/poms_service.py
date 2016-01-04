@@ -619,6 +619,19 @@ class poms_service:
                      if not f in files:
                          files.append(f)
                  j.output_file_names = ' '.join(files)
+
+             if kwargs.get('input_file_names', None):
+                 cherrypy.log("saw input_file_names: %s" % kwargs['input_file_names'])
+                 if j.input_file_names:
+                     files =  j.input_file_names.split(' ')
+                 else:
+                     files = []
+
+                 newfiles = kwargs['input_file_names'].split(' ')
+                 for f in newfiles:
+                     if not f in files:
+                         files.append(f)
+                 j.input_file_names = ' '.join(files)
     
 	     j.updated =  datetime.now(utc)
 
@@ -959,7 +972,7 @@ class poms_service:
                      outrow = []
                      outrow.append(daynames[day])
                      outrow.append(date.isoformat())
-                     outrow.append(str(totfiles))
+                     outrow.append(str(max(totfiles if totfiles > 0 else infiles)))
                      outrow.append(str(totdfiles))
                      outrow.append(str(totjobs))
                      outrow.append(str(totjobfails))
@@ -975,6 +988,7 @@ class poms_service:
 		totjobs = 0       
 		totjobfails = 0
                 outfiles = 0
+                infiles = 0
                 pendfiles = 0
 		for e in exitcodes:
 		    exitcounts[e] = 0
@@ -998,6 +1012,10 @@ class poms_service:
 			# a bit of a lie, we don't know they're *all* pending, just some of them
 			# but its close, and we don't want to re-poll SAM here..
 			pendingfiles += nout
+
+		if job.input_file_names:
+		    nin = len(job.output_file_names.split(' '))
+		    infiles += nin
 
         # it looks like we should add another row here for the last set of totals, but
         # instead we added a day to the query range, so we compute a row of totals we don't use..
