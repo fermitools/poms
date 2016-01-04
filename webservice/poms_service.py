@@ -768,11 +768,11 @@ class poms_service:
     def task_min_job(self, task_id):
         # find the job with the logs -- minimum jobsub_job_id for this task
         # also will be nickname for the task...
-        if [ self.task_min_job_cache.has_key(task_id) ]
+        if ( self.task_min_job_cache.has_key(task_id) ):
            return self.task_min_job_cache.get(task_id) 
         j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
         if j:
-            self.task_min_job_cache.[task_id] = j
+            self.task_min_job_cache[task_id] = j
         return j
     
     @cherrypy.expose
@@ -972,7 +972,7 @@ class poms_service:
                      outrow = []
                      outrow.append(daynames[day])
                      outrow.append(date.isoformat())
-                     outrow.append(str(max(totfiles if totfiles > 0 else infiles)))
+                     outrow.append(str(totfiles if totfiles > 0 else infiles))
                      outrow.append(str(totdfiles))
                      outrow.append(str(totjobs))
                      outrow.append(str(totjobfails))
@@ -1008,10 +1008,10 @@ class poms_service:
 		if job.output_file_names:
 		    nout = len(job.output_file_names.split(' '))
 		    outfiles += nout
-		    if not job.output_files_delcared:
+		    if not job.output_files_declared:
 			# a bit of a lie, we don't know they're *all* pending, just some of them
 			# but its close, and we don't want to re-poll SAM here..
-			pendingfiles += nout
+			pendfiles += nout
 
 		if job.input_file_names:
 		    nin = len(job.output_file_names.split(' '))
