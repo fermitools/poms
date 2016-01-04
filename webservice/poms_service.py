@@ -472,7 +472,7 @@ class poms_service:
          camp = self.get_or_add_campaign(exp,td,creator)
          t = Task()
          t.campaign_id = camp.campaign_id
-         t.task_definition_id = td.task_definition_id
+         #t.task_definition_id = td.task_definition_id
          t.task_order = 0
          t.input_dataset = input_dataset
          t.output_dataset = output_dataset
@@ -678,7 +678,7 @@ class poms_service:
 
         output_file_names_list = []
 
-        job_info = cherrypy.request.db.query(Job, Task, TaskDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Task.task_definition_id==TaskDefinition.task_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
+        job_info = cherrypy.request.db.query(Job, Task, TaskDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Campaign.task_definition_id==TaskDefinition.task_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
 
         job_history = cherrypy.request.db.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
 
@@ -856,7 +856,7 @@ class poms_service:
             taskcolumns = []
             campcolumns = []
 
-        hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_definition_id', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
+        hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
         
         template = self.jinja_env.get_template('job_table.html')
         return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns)
