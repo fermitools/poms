@@ -770,7 +770,7 @@ class poms_service:
         # also will be nickname for the task...
         if ( self.task_min_job_cache.has_key(task_id) ):
            return self.task_min_job_cache.get(task_id) 
-        j = cherrypy.request.db.query(Job).filter( Job.task_id == j.task_id ).order_by(Job.jobsub_job_id).first()
+        j = cherrypy.request.db.query(Job).filter( Job.task_id == task_id ).order_by(Job.jobsub_job_id).first()
         if j:
             self.task_min_job_cache[task_id] = j
         return j
