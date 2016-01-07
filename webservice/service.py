@@ -120,13 +120,14 @@ class SessionTool(cherrypy.Tool):
         cherrypy.session['id'] = cherrypy.session._id
 
     def get_current_experimenter(self):
-        email = cherrypy.request.headers['X-Shib-Email']
         if cherrypy.request.headers.get('X-Shib-Email',None):
+            email = cherrypy.request.headers['X-Shib-Email']
             experimenter = cherrypy.request.db.query(Experimenter).filter(ExperimentsExperimenters.active == True).filter(Experimenter.email == email ).first()
         else:
             experimenter = None
 
         if not experimenter and cherrypy.request.headers.get('X-Shib-Email',None):
+            email = cherrypy.request.headers['X-Shib-Email']
             experimenter = Experimenter(
                 first_name = cherrypy.request.headers['X-Shib-Name-First'],
                 last_name =  cherrypy.request.headers['X-Shib-Name-Last'],
