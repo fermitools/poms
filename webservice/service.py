@@ -2,7 +2,7 @@
 
 import sys
 import os
-from model.poms_model import Experimenter
+from model.poms_model import Experimenter, ExperimentsExperimenters
 
 # make sure poms is setup...
 if os.environ.get("POMS_DIR","") == "":
@@ -53,7 +53,8 @@ class SAEnginePlugin(plugins.SimplePlugin):
         dbhost = cherrypy.config.get("dbhost")
         dbport = cherrypy.config.get("dbport")
         db_path = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport, db)
-        self.sa_engine = create_engine(db_path, echo=True)
+        sa_echo = cherrypy.config.get("sa_echo",True)
+        self.sa_engine = create_engine(db_path, echo=sa_echo)
  
     def stop(self):
         if self.sa_engine:
@@ -119,21 +120,27 @@ class SessionTool(cherrypy.Tool):
         cherrypy.session['id'] = cherrypy.session._id
 
     def get_current_experimenter(self):
-        experimenter = cherrypy.session.get('experimenter')
+        email = cherrypy.request.headers['X-Shib-Email']
         if cherrypy.request.headers.get('X-Shib-Email',None):
-            experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == cherrypy.request.headers['X-Shib-Email'] ).first()
+            experimenter = cherrypy.request.db.query(Experimenter).filter(ExperimentsExperimenters.active == True).filter(Experimenter.email == email ).first()
         else:
             experimenter = None
 
         if not experimenter and cherrypy.request.headers.get('X-Shib-Email',None):
-             experimenter = Experimenter(
-		   first_name = cherrypy.request.headers['X-Shib-Name-First'],
-		   last_name =  cherrypy.request.headers['X-Shib-Name-Last'],
-		   email =  cherrypy.request.headers['X-Shib-Email'])
-	     cherrypy.request.db.add(experimenter)
-             cherrypy.request.db.commit()
+            experimenter = Experimenter(
+                first_name = cherrypy.request.headers['X-Shib-Name-First'],
+                last_name =  cherrypy.request.headers['X-Shib-Name-Last'],
+                email =  email)
+            cherrypy.request.db.add(experimenter)
+            cherrypy.request.db.flush()
+            e2e = ExperimentsExperimenters(
+                experimenter_id = experimenter.experimenter_id,
+                experiment = 'public',
+                active = True)
+            cherrypy.request.db.add(e2e)
+            cherrypy.request.db.commit()
+            experimenter = cherrypy.request.db.query(Experimenter).filter(ExperimentsExperimenters.active == True).filter(Experimenter.email == email ).first()
 
-             experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == cherrypy.request.headers['X-Shib-Email'] ).first()
         cherrypy.session['experimenter'] = experimenter
 
 def set_rotating_log(app):

@@ -98,7 +98,7 @@ class poms_service:
         if ra == '127.0.0.1' and xff == None:
              # case for local agents
              return 1
-        if user in ['mengel','illingwo','mgheith','swhite']:
+        if (cherrypy.session.get('experimenter')).is_root():
              # special admins
              return 1
         return 0
@@ -110,7 +110,7 @@ class poms_service:
         if ra == '127.0.0.1' and xff == None:
              # case for local agents
              return 1
-        if user in ['mengel','illingwo','mgheith','swhite']:
+        if (cherrypy.session.get('experimenter')).is_root():
              # special admins
              return 1
         return 0
