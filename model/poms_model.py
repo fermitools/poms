@@ -1,5 +1,5 @@
 # coding: utf-8
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text
+from sqlalchemy import Table, BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql.json import JSON
 from sqlalchemy.ext.declarative import declarative_base
@@ -39,24 +39,34 @@ class Experimenter(Base):
     last_name = Column(Text)
     email = Column(Text, nullable=False)
 
+    def is_authorized(self,experiment):
+        # Root is authorized for all experiments
+        for row in self.exp_expers:
+            if row.experiment == experiment or row.experiment == 'root':
+                return True
+        return False
+
+    def is_root(self):
+        return self.is_authorized('root')
+            
+
+class ExperimentsExperimenters(Base):
+    __tablename__ = 'experiments_experimenters'
+
+    experimenter_id = Column(Integer, ForeignKey('experimenters.experimenter_id'), primary_key=True)
+    experiment = Column(Text, ForeignKey('experiments.experiment'), primary_key=True)
+    active = Column(Boolean, nullable=False, server_default=text("true"))
+
+    experimenter_obj = relationship(Experimenter, backref="exp_expers")
+    experiment_obj   = relationship("Experiment", backref="exp_expers")
+
 
 class Experiment(Base):
     __tablename__ = 'experiments'
 
     experiment = Column(String(10), primary_key=True)
     name = Column(Text, nullable=False)
-
-
-class ExperimentsExperimenter(Base):
-    __tablename__ = 'experiments_experimenters'
-
-    experiment = Column(ForeignKey(u'experiments.experiment'), primary_key=True, nullable=False, index=True)
-    experimenter_id = Column(ForeignKey(u'experimenters.experimenter_id'), primary_key=True, nullable=False)
-    active = Column(Boolean, nullable=False, server_default=text("true"))
-
-    experiment_obj = relationship(u'Experiment')
-    experimenter_obj = relationship(u'Experimenter')
-
+    
 
 class Job(Base):
     __tablename__ = 'jobs'
