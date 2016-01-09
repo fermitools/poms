@@ -2,6 +2,16 @@
 
 {%block title%}
     <title>POMS</title>
+
+    <style type="text/css">
+    div.scrollable {
+        width: 100%;
+        overflow-x: scroll;
+    }
+    div.scrollable table {
+        width: 300%;
+    }
+    </style>
 {%endblock%}
 
 
@@ -38,8 +48,9 @@
 
 
 {%block content%}
-<table class="ui compact celled sortable table" style="display: block; width:100%; overflow-x: scroll;">
-  <thead style="width:300em; overflow-x: visible;">
+<div class="scrollable">
+<table id="jobtable" class="ui celled sortable table compact">
+  <thead>
     <tr>
       {%set span1 = [] %}
       {%for col in jobcolumns %}
@@ -82,7 +93,7 @@
     {%endfor%}
     </tr>
   </thead>
-  <tbody style="width:300em; overflow-x: visible;">
+  <tbody>
     {%for job,task,campaign in joblist %}
       <tr>
          {%for col in jobcolumns%}
@@ -108,4 +119,7 @@
     {%endfor%}
   </tbody>
 </table>
+</div>
+</script>
+
 {%endblock%}
