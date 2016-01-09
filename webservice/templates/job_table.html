@@ -41,6 +41,26 @@
 <table class="ui sortable celled compact table">
   <thead>
     <tr>
+      {%for col in jobcolumns%}
+        {% if not col in hidecolumns %}
+           {% set tspan = loop.index %}
+        {% endif %}
+      {%endfor%}
+      <th class="" span="{{tspan}}">Job fields</th>
+      {%for col in taskcolumns%}
+        {% if not col in hidecolumns %}
+           {% set tspan = loop.index %}
+        {% endif %}
+      {%endfor%}
+      <th class="" span="{{tspan}}">Task fields</th>
+      {%for col in jobcolumns%}
+        {% if not col in hidecolumns %}
+           {% set tspan = loop.index %}
+        {% endif %}
+      {%endfor%}
+      <th class="" span="{{tspan}}>Campaign fields</th>
+    </tr>
+    <tr>
     {%for col in jobcolumns%}
       {% if loop.first %}
        <th class="">info</th>
