@@ -38,8 +38,8 @@
 
 
 {%block content%}
-<table class="ui sortable celled compact table">
-  <thead>
+<table class="ui compact celled sortable table" style="display: block; width:100%; overflow-x: scroll;">
+  <thead style="width:300em; overflow-x: visible;">
     <tr>
       {%set span1 = [] %}
       {%for col in jobcolumns %}
@@ -50,7 +50,7 @@
       <!-- span1 {{span1}} -->
       <th class="" colspan="{{span1|length}}">Job fields</th>
       {%set span2 = [] %}
-      {%for col in jobcolumns %}
+      {%for col in taskcolumns %}
         {% if not col in hidecolumns %}
           <!--{{span2.append(1)}}-->
         {% endif %}
@@ -82,7 +82,7 @@
     {%endfor%}
     </tr>
   </thead>
-  <tbody>
+  <tbody style="width:300em; overflow-x: visible;">
     {%for job,task,campaign in joblist %}
       <tr>
          {%for col in jobcolumns%}
@@ -108,5 +108,4 @@
     {%endfor%}
   </tbody>
 </table>
-
 {%endblock%}
