@@ -526,7 +526,7 @@ html {
 body {
   margin: 0px;
   padding: 0px;
-  overflow-x: hidden;
+  // overflow-x: hidden;
   min-width: 320px;
   background: #FFFFFF;
   font-family: 'Lato', 'Helvetica Neue', Arial, Helvetica, sans-serif;
@@ -32111,7 +32111,7 @@ a.ui.nag {
 
 .pushable {
   height: 100%;
-  overflow-x: hidden;
+  #overflow-x: hidden;
   padding: 0em !important;
 }
 
@@ -32289,7 +32289,7 @@ body.pushable > .pusher {
 */
 
 html.ios {
-  overflow-x: hidden;
+  //overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
