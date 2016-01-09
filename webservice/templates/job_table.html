@@ -7,7 +7,7 @@
 
 {%block breadcrumbs%}
 <div class="ui breadcrumb" style="margin-top: -45px;">
-  <a href="/poms" class="section">Home</a>
+  <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
   <div class="section">All Jobs</div>
 </div>
@@ -87,7 +87,7 @@
       <tr>
          {%for col in jobcolumns%}
             {% if loop.first %}
-              <td><a href="/poms/triage_job?job_id={{job[col]}}&tmin={{tmin}}"><i class="level down icon"></i> </a></td>
+              <td><a href="{{pomspath}}/triage_job?job_id={{job[col]}}&tmin={{tmin}}"><i class="level down icon"></i> </a></td>
             {% else %}
              {% if not col in hidecolumns %}
               <td>{{job[col]}}</td>

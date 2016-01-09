@@ -7,7 +7,7 @@
 
 {%block breadcrumbs%}
 <div class="ui breadcrumb" style="margin-top: -45px;">
-  <a href="/poms/" class="section">Home</a>
+  <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
   <div class="section">Jobs by exit code {% if days == 7 %} (weekly) {% elif days == 1 %} (daily) {% endif %}</div>
 </div>
@@ -52,7 +52,7 @@
       <tr {% if job[0] == 0 %} class="positive" {%else%} class="negative" {%endif%} >
          {%for col in range(0, columns|count) %}
             {% if loop.first %}
-              <td><a href="/poms/job_table?tdays={{days}}&tmax={{tmax}}&exitcode={{job[col]}}">{{job[col]}}</a></td>
+              <td><a href="{{pomspath}}/job_table?tdays={{days}}&tmax={{tmax}}&exitcode={{job[col]}}">{{job[col]}}</a></td>
             {% else %}
               <td>{{job[col]}}</td>
             {% endif %}

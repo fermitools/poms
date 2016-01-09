@@ -7,7 +7,7 @@
 
 {%block breadcrumbs%}
 <div class="ui breadcrumb" style="margin-top: -45px;">
-  <a href="/poms/" class="section">Home</a>
+  <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
   <div class="section">Info sheet for campaign {{name}}</div>
 </div>
@@ -45,7 +45,7 @@
       <tr>
          {%for col in range(0, columns|count) %}
             {% if columns[col][:4] == 'exit' %}
-              <td><a href="/poms/job_table?exitcode={{columns[col][5:-1]}}&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
+              <td><a href="{{pomspath}}/job_table?exitcode={{columns[col][5:-1]}}&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
             {% else %}
               <td>{{row[col]}}</td>
             {% endif %}

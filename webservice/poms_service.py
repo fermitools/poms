@@ -50,6 +50,7 @@ class poms_service:
         self.jinja_env = Environment(loader=PackageLoader('webservice','templates'))
         self.make_admin_map()
         self.task_min_job_cache = {}
+        self.path = cherrypy.config.get("pomspath","/poms")
 
     @cherrypy.expose
     def headers(self):
@@ -58,7 +59,7 @@ class poms_service:
     @cherrypy.expose
     def index(self):
         template = self.jinja_env.get_template('service_statuses.html')
-        return template.render(services=self.service_status_hier('All'),current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1)
+        return template.render(services=self.service_status_hier('All'),current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, pomspath=self.path)
 
     @cherrypy.expose
     def test(self):
@@ -149,7 +150,7 @@ class poms_service:
     def calendar(self):
         template = self.jinja_env.get_template('calendar.html')
         rows = cherrypy.request.db.query(Service).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(Service.name != "FifeBatch").filter(~Service.name.endswith("sam")).all()
-        return template.render(rows=rows,current_experimenter=cherrypy.session.get('experimenter'))
+        return template.render(rows=rows,current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
 
 
 
@@ -205,7 +206,7 @@ class poms_service:
     def service_downtimes(self):
         template = self.jinja_env.get_template('service_downtimes.html')
         rows = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).all()
-        return template.render(rows=rows,current_experimenter=cherrypy.session.get('experimenter'))
+        return template.render(rows=rows,current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
 
 
     @cherrypy.expose
@@ -282,7 +283,7 @@ class poms_service:
             list.append({'name': s.name,'status': s.status, 'url': url})
 
         template = self.jinja_env.get_template('service_status.html')
-        return template.render(list=list, name=under,current_experimenter=cherrypy.session.get('experimenter'))
+        return template.render(list=list, name=under,current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
 
     def service_status_hier(self, under = 'All', depth = 0):
         p = cherrypy.request.db.query(Service).filter(Service.name == under).first()
@@ -357,7 +358,7 @@ class poms_service:
         if not self.can_db_admin():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('admin_screen.html')
-        return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'))
+        return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
         
     @cherrypy.expose
     def list_generic(self, classname):
@@ -365,7 +366,7 @@ class poms_service:
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         l = self.make_list_for(self.admin_map[classname],self.pk_map[classname])
         template = self.jinja_env.get_template('list_screen.html')
-        return template.render( classname = classname, list = l, edit_screen="edit_screen_generic", primary_key='experimenter_id',current_experimenter=cherrypy.session.get('experimenter'))
+        return template.render( classname = classname, list = l, edit_screen="edit_screen_generic", primary_key='experimenter_id',current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
 
     @cherrypy.expose
     def edit_screen_generic(self, classname, id = None):
@@ -454,7 +455,7 @@ class poms_service:
                   'values' : valmap.get(fn, None)
               })
         template = self.jinja_env.get_template('edit_screen.html')
-        return template.render( screendata = screendata, action="./"+update_call , classname = classname ,current_experimenter=cherrypy.session.get('experimenter'))
+        return template.render( screendata = screendata, action="./"+update_call , classname = classname ,current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
 
     def make_list_for(self,eclass,primkey):
         res = []
@@ -678,10 +679,10 @@ class poms_service:
         jl = cherrypy.request.db.query(JobHistory).join(Job).filter(Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = time_grid.time_grid()
         screendata = self.format_job_counts(task_id = task_id)
-        screendata = screendata +  tg.render_query(tmin, tmax, jl, 'job_id', url_template='/poms/triage_job?job_id=%(job_id)s&tmin='+str(tmin).split('+')[0])         
+        screendata = screendata +  tg.render_query(tmin, tmax, jl, 'job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+str(tmin).split('+')[0])         
 
         template = self.jinja_env.get_template('job_grid.html')
-        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1)
+        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, pomspath=self.path)
 
 
 
@@ -716,7 +717,7 @@ class poms_service:
         downtimes = downtimes1 + downtimes2
         #ends service downtimes
         
-        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'))
+        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
 
 
     @cherrypy.expose
@@ -734,8 +735,8 @@ class poms_service:
         tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
         tminscreens =  tmin.strftime("%Y-%m-%d %H:%M:%S")
         tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
-        prevlink="/poms/show_campaigns?tmax=%s&tdays=%d" % (tsprev, tdays)
-        nextlink="/poms/show_campaigns?tmax=%s&tdays=%d" % (tsnext, tdays)
+        prevlink="%s/show_campaigns?tmax=%s&tdays=%d" % (self.path,tsprev, tdays)
+        nextlink="%s/show_campaigns?tmax=%s&tdays=%d" % (self.path,tsnext, tdays)
 
 
         tg = time_grid.time_grid()
@@ -751,19 +752,19 @@ class poms_service:
         
         for c in cl:
               sl.append('<h2 class="ui dividing header">%s Tasks' % c.name )
-              sl.append('<a href="/poms/campaign_sheet?campaign_id=%d&tmax=%s"><i class="external share icon"></i></a>' % ( c.campaign_id, tmaxs))
+              sl.append('<a href="%s/campaign_sheet?campaign_id=%d&tmax=%s"><i class="external share icon"></i></a>' % ( self.path, c.campaign_id, tmaxs))
               sl.append('</h2>' )
               sl.append(self.format_job_counts(campaign_id = c.campaign_id))
 
               items = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == c.campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin, Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
-              sl.append( tg.render_query(tminscreen, tmax, items, 'task_id', url_template = '/poms/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
+              sl.append( tg.render_query(tminscreen, tmax, items, 'task_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
 
         screendata = "\n".join(sl)
 
         allcounts =  self.format_job_counts()
               
         template = self.jinja_env.get_template('campaign_grid.html')
-        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays)
+        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, pomspath=self.path)
 
     def task_min_job(self, task_id):
         # find the job with the logs -- minimum jobsub_job_id for this task
@@ -792,7 +793,7 @@ class poms_service:
         role = j.task_obj.campaign_obj.vo_role
         job_file_contents = cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role)
         template = self.jinja_env.get_template('job_file_contents.html')
-        return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin)
+        return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path)
 
     @cherrypy.expose
     def test_job_counts(self, task_id = None, campaign_id = None):
@@ -846,8 +847,8 @@ class poms_service:
         tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
         tmins =  tmin.strftime("%Y-%m-%d %H:%M:%S")
         tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
-        prevlink="/poms/job_table?tmax=%s&tdays=%d" % (tsprev, tdays)
-        nextlink="/poms/job_table?tmax=%s&tdays=%d" % (tsnext, tdays)
+        prevlink="%s/job_table?tmax=%s&tdays=%d" % (self.path, tsprev, tdays)
+        nextlink="%s/job_table?tmax=%s&tdays=%d" % (self.path, tsnext, tdays)
         extra = ""
 
         q = cherrypy.request.db.query(Job,Task,Campaign)
@@ -881,7 +882,7 @@ class poms_service:
         hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
         
         template = self.jinja_env.get_template('job_table.html')
-        return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns)
+        return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns, pomspath=self.path)
 
     @cherrypy.expose
     def jobs_by_exitcode(self, tmax =  None, tdays = 1 ):
@@ -897,8 +898,8 @@ class poms_service:
         tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
         tmins =  tmin.strftime("%Y-%m-%d %H:%M:%S")
         tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
-        prevlink="/poms/jobs_by_exitcode?tmax=%s&tdays=%d" % (tsprev, tdays)
-        nextlink="/poms/jobs_by_exitcode?tmax=%s&tdays=%d" % (tsnext, tdays)
+        prevlink="%s/jobs_by_exitcode?tmax=%s&tdays=%d" % (self.path, tsprev, tdays)
+        nextlink="%s/jobs_by_exitcode?tmax=%s&tdays=%d" % (self.path, tsnext, tdays)
 
         q = cherrypy.request.db.query(Job.user_exe_exit_code,func.count(Job.job_id)).filter(Job.updated >= tmin, Job.updated <= tmax).group_by(Job.user_exe_exit_code).order_by(Job.user_exe_exit_code)
 
@@ -907,15 +908,15 @@ class poms_service:
         columns = [ "exit_code","count"]
         
         template = self.jinja_env.get_template('job_count_table.html')
-        return template.render(joblist=jl, columns = columns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays)
+        return template.render(joblist=jl, columns = columns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, pomspath=self.path)
 
     @cherrypy.expose
     def quick_search(self, jobsub_job_id):
         job_info = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
         if job_info:
-            raise cherrypy.HTTPRedirect("/poms/triage_job?job_id=%s&tmin=%s" % (str(job_info.job_id), "somekindofdate"))
+            raise cherrypy.HTTPRedirect("%s/triage_job?job_id=%s&tmin=%s" % (self.path,str(job_info.job_id), "somekindofdate"))
         else:
-            raise cherrypy.HTTPRedirect("/poms/")
+            raise cherrypy.HTTPRedirect(self.path + "/")
 
     @cherrypy.expose
     def json_project_summary_for_task(self, task_id):
@@ -943,8 +944,8 @@ class poms_service:
         tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
         tmins =  tmin.strftime("%Y-%m-%d %H:%M:%S")
         tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
-        prevlink="/poms/campaign_sheet?campaign_id=%s&tmax=%s&tdays=%d" % (campaign_id,tsprev, tdays)
-        nextlink="/poms/campaign_sheet?campaign_id=%s&tmax=%s&tdays=%d" % (campaign_id,tsnext, tdays)
+        prevlink="%s/campaign_sheet?campaign_id=%s&tmax=%s&tdays=%d" % (self.path, campaign_id,tsprev, tdays)
+        nextlink="%s/campaign_sheet?campaign_id=%s&tmax=%s&tdays=%d" % (self.path, campaign_id,tsnext, tdays)
 
 
         tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id , Task.created > tmin, Task.created < tmax ).order_by(desc(Task.created)).all()
@@ -1025,5 +1026,5 @@ class poms_service:
             name = tl[0].campaign_obj.name 
         else:
             name = ''
-        return template.render(name = name,columns = columns, datarows = outrows, prevlink=prevlink, nextlink=nextlink,current_experimenter=cherrypy.session.get('experimenter'), campaign_id = campaign_id)
+        return template.render(name = name,columns = columns, datarows = outrows, prevlink=prevlink, nextlink=nextlink,current_experimenter=cherrypy.session.get('experimenter'), campaign_id = campaign_id, pomspath=self.path)
 

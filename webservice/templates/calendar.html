@@ -6,7 +6,7 @@
 
 {%block breadcrumbs%}
 <div class="ui breadcrumb" style="margin-top:-45px;">
-  <a href="/poms/" class="section">Home</a>
+  <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
   <div class="section">Calendar</div>
 </div>
@@ -58,7 +58,7 @@
                         defaultDate: date,
 			editable: true,
 			eventLimit: true, // allow "more" link when too many events
-                        events:'/poms/calendar_json',
+                        events:'{{pomspath}}/calendar_json',
                         allDaySlot: false,
 			selectable: true,
 			selectHelper: true,
@@ -86,7 +86,7 @@
 				if (title) {
 
 
-                                        $.post("/poms/add_event", {title: title, start: start/1000, end: end/1000}, 
+                                        $.post("{{pomspath}}/add_event", {title: title, start: start/1000, end: end/1000}, 
                                                   function(data){
                                                       alert(data);
                                                       if(data == "Ok.")
@@ -153,7 +153,7 @@
                                   //remember that we are using starttime and serviceid as primary key
                                   //so be sure to pass in the original start key
 
-                                  $.post("/poms/edit_event", {title: title, start: event.start_key, new_start: new_start_epoch, end: end_epoch, s_id:event.s_id}, 
+                                  $.post("{{pomspath}}/edit_event", {title: title, start: event.start_key, new_start: new_start_epoch, end: end_epoch, s_id:event.s_id}, 
                                             function(data){
                                                 alert(data);
                                                 if(data == "Ok.")
@@ -207,7 +207,7 @@
                                        var new_start_epoch = moment(event.start).unix();
                                        var end_epoch = moment(event.end).unix();
 
-                                       $.post("/poms/edit_event", {title: event.title, start: event.start_key, new_start: new_start_epoch, end: end_epoch, s_id:event.s_id}, 
+                                       $.post("{{pomspath}}/edit_event", {title: event.title, start: event.start_key, new_start: new_start_epoch, end: end_epoch, s_id:event.s_id}, 
                                                function(data){
                                                    alert(data);
                                                    if(data == "Ok.")
@@ -268,7 +268,7 @@ $('#calendar').fullCalendar('unselect');
                                    var new_start_epoch = moment(event.start).unix();
                                    var end_epoch = moment(event.end).unix();
 
-                                   $.post("/poms/edit_event", {title: event.title, start: event.start_key, new_start: new_start_epoch, end: end_epoch, s_id:event.s_id},
+                                   $.post("{{pomspath}}/edit_event", {title: event.title, start: event.start_key, new_start: new_start_epoch, end: end_epoch, s_id:event.s_id},
                                            function(data){
                                                alert(data);
                                                if(data == "Ok.")

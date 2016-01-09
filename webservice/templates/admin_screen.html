@@ -6,7 +6,7 @@
 
 {%block breadcrumbs%}
 <div class="ui breadcrumb" style="margin-top:-45px;">
-  <a href= "/poms/" class="section">Home</a>
+  <a href= "{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
   <div class="section">DB Admin</div>
 </div>
@@ -38,7 +38,7 @@
 {%block content%}
 <ul>
    {% for type in list %}
-    <li> <a href="/poms/list_generic?classname={{type}}">{{type}}</a> </li>
+    <li> <a href="{{pomspath}}/list_generic?classname={{type}}">{{type}}</a> </li>
    {% endfor %}
 </ul>
 {%endblock%}
