@@ -679,10 +679,11 @@ class poms_service:
         jl = cherrypy.request.db.query(JobHistory).join(Job).filter(Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = time_grid.time_grid()
         screendata = self.format_job_counts(task_id = task_id)
+        key = tg.key(fancy=1)
         screendata = screendata +  tg.render_query(tmin, tmax, jl, 'job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+str(tmin).split('+')[0])         
 
         template = self.jinja_env.get_template('job_grid.html')
-        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, pomspath=self.path)
+        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, key = key, pomspath=self.path)
 
 
 
@@ -741,6 +742,8 @@ class poms_service:
 
         tg = time_grid.time_grid()
 
+        key = tg.key()
+
 	class fakerow:
 	    def __init__(self, **kwargs):
 	        self.__dict__.update(kwargs)
@@ -764,7 +767,7 @@ class poms_service:
         allcounts =  self.format_job_counts()
               
         template = self.jinja_env.get_template('campaign_grid.html')
-        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, pomspath=self.path)
+        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path)
 
     def task_min_job(self, task_id):
         # find the job with the logs -- minimum jobsub_job_id for this task

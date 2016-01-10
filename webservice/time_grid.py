@@ -26,6 +26,22 @@ class time_grid:
                                   })
           return result
 
+     def key(self, fancy = 0):
+          res = ['<div style="border: 1px solid black">']
+          list = [ "new", "Idle", "Held", "Running", "Completed", "Located"]
+          if fancy:
+                list = list + ["running: user code",
+              		"running: copying files in",
+              		"running: copying files out",
+              		"running: user code completed",
+              		"running: user code succeeded",
+              		"running: user code failed"]
+
+          for s in list:
+              res.append( "<div style='float:left; width:20em'><span style='min-width:3em; background: %s'>&nbsp;&nbsp;</span>%s</div>" % (self.status_color(s), s))
+          return '\n'.join(res)
+             
+          res.append('</div>')
      def status_color(self,str):
           if str.find("started") >= 0:
               return "#303030"
@@ -43,6 +59,8 @@ class time_grid:
               return "#11ff11"
           if str.find("Starting") >= 0:
               return "#11ff11"
+          if str.find("Held") >= 0:
+              return "#ee2211"
           if str.find("running") >= 0:
               if str.find("user code") >= 0:
                   return "#118811"
