@@ -1,5 +1,6 @@
 {%extends "layout.html"%}
 
+
 {%block title%}
     <title>POMS</title>
 
@@ -48,6 +49,178 @@
 
 
 {%block content%}
+
+
+<div class="ui small basic test modal">
+
+ <h3>Filter</h3>
+
+
+ <div class="ui styled accordion">
+    
+    <div class="title active">
+        <i class="dropdown icon"></i>
+        Campaings
+    </div>
+    
+    <div class="content active">
+       
+        <div class="ui small form">
+            <div class="field">
+                <label>Experiment</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+            <div class="field">
+                <label>Name</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+            <div class="field">
+                <label>Task Definition ID</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+            <div class="field">
+                <label>VO Role</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+        
+    
+    <div class="title">
+        <i class="dropdown icon"></i>
+        Tasks
+    </div>
+    
+    <div class="content">
+        <div class="ui small form">
+            <div class="field">
+                <label>Input Dataset</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+            <div class="field">
+                <label>Output Dataset</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+            <div class="field">
+                <label>Status</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+            <div class="field">
+                <label>Project</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+    
+    
+    <div class="title">
+        <i class="dropdown icon"></i>
+        Jobs
+    </div>
+    
+    
+    <div class="content">
+        <div class="ui small form">
+            <div class="field">
+                <label>Jobsub Job ID</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+            <div class="field">
+                <label>Node Name</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+            <div class="field">
+                <label>CPU Type</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+            <div class="field">
+                <label>Host Site</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+            <div class="field">
+                <label>Status</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+            <div class="field">
+                <label>User Exe. Exit Code</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+            <div class="field">
+                <label>Output Files Declared</label>
+                <div class="ui input">
+                    <input type="text" placeholder="">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+ </div>  <!--ends accordian-->
+<br/>
+<br/>
+
+<b>Fields:</b>
+<br/>
+<br/>
+<div class="ui checked checkbox" style="padding-bottom:5px;">
+  <input type="checkbox" name="campaign" checked="">
+  <label style="color:white;"><b>Campaign</b></label>
+</div>
+
+<br/>
+
+<div class="ui checked checkbox" style="padding-bottom:5px;">
+  <input type="checkbox" name="task" checked="">
+  <label style="color:white;"><b>Task</b></label>
+</div>
+
+<br/>
+
+<div class="ui checked checkbox" style="padding-bottom:5px;">
+  <input type="checkbox" name="job" checked="">
+  <label style="color:white;"><b>Job</b></label>
+</div>
+
+<br/>
+<br/>
+<div class="ui blue submit small button">Search</div>
+</div>  <!--ends modal-->
+
+
+
+
 <div class="scrollable">
 <table id="jobtable" class="ui celled sortable table compact">
   <thead>
