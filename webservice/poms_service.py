@@ -731,11 +731,9 @@ class poms_service:
             tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
 
         tdays = int(tdays)
-        tminscreen = tmax - timedelta(days = tdays)
-        tmin = tminscreen
+        tmin = tmax - timedelta(days = tdays)
         tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
         tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
-        tminscreens =  tmin.strftime("%Y-%m-%d %H:%M:%S")
         tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
         prevlink="%s/show_campaigns?tmax=%s&tdays=%d" % (self.path,tsprev, tdays)
         nextlink="%s/show_campaigns?tmax=%s&tdays=%d" % (self.path,tsnext, tdays)
@@ -761,14 +759,14 @@ class poms_service:
               sl.append(self.format_job_counts(campaign_id = c.campaign_id))
 
               items = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == c.campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin, Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
-              sl.append( tg.render_query(tminscreen, tmax, items, 'task_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
+              sl.append( tg.render_query(tmin, tmax, items, 'task_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
 
         screendata = "\n".join(sl)
 
         allcounts =  self.format_job_counts()
               
         template = self.jinja_env.get_template('campaign_grid.html')
-        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path)
+        return template.render(  screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path)
 
     def task_min_job(self, task_id):
         # find the job with the logs -- minimum jobsub_job_id for this task
