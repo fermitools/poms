@@ -732,7 +732,7 @@ class poms_service:
 
         tdays = int(tdays)
         tminscreen = tmax - timedelta(days = tdays)
-        tmin = tminscreen - timedelta(days = 1)
+        tmin = tminscreen
         tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
         tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
         tminscreens =  tmin.strftime("%Y-%m-%d %H:%M:%S")
