@@ -52,6 +52,7 @@ class poms_service:
         self.task_min_job_cache = {}
         self.path = cherrypy.config.get("pomspath","/poms")
 
+
     @cherrypy.expose
     def headers(self):
         return repr(cherrypy.request.headers)
@@ -354,10 +355,10 @@ class poms_service:
         cherrypy.log(" ---- pk_map: %s " % repr(self.pk_map))
 
     @cherrypy.expose
-    def admin_screen(self):
+    def raw_tables(self):
         if not self.can_db_admin():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-        template = self.jinja_env.get_template('admin_screen.html')
+        template = self.jinja_env.get_template('raw_tables.html')
         return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
         
     @cherrypy.expose

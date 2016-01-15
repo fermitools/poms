@@ -210,6 +210,7 @@ if __name__ == '__main__':
     path = cherrypy.config.get("path")
     if path == None:
        path = "/poms"
+    cherrypy.log("POMSPATH: %s" % path)
 
     pidfile()
     SAEnginePlugin(cherrypy.engine).subscribe()
