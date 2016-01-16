@@ -22,8 +22,9 @@
 
 
 
+
 {%block subheader%}
-<h2 class="ui dividing header">Active Campaigns as of {{tmin}}</h2>
+<h2 class="ui dividing header">Active Campaigns as of <p class="tmin" style="display:inline;"></p></h2>
 <a href="{{prev}}">&lt;previous {{days}} days</a> | 
 <a href="{{next}}">next {{days}} days &gt;</a>
 {%endblock%}
@@ -32,11 +33,33 @@
 
 
 {%block content%}
+
+
+
+
+
   <div class="ui grid">
     {{screendata}}
     <div class=row>
-     <div class="left floated left aligned six wide column">{{tmin}}</div>
-     <div class="right floated right aligned six wide column">{{tmax}}</div>
+     <div class="left floated left aligned six wide column tmin"></div>
+     <div class="right floated right aligned six wide column tmax"></div>
    </div>
   </div>
+
+
+
+
+
+<script>
+var tmin_local_time = moment.utc('{{tmin}}').toDate();
+tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmin" ).html( tmin_local_time );
+
+var tmax_local_time = moment.utc('{{tmax}}').toDate();
+tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmax" ).html( tmax_local_time );
+</script>
+
+
+
 {%endblock%}
