@@ -838,7 +838,8 @@ class poms_service:
 
     
     @cherrypy.expose
-    def job_table(self, tmax =  None, tdays = 1, exitcode = None, campaign_id = None , experiment = None):
+    def job_table(self, tmax =  None, tdays = 1, campaign_id = None , experiment = None, sift=False, campaign_name=None, task_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None):
+           
         if tmax == None:
             tmax = datetime.now(utc)
         else:
@@ -857,18 +858,76 @@ class poms_service:
         q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == Campaign.campaign_id)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax)
 
+        filtered_fields = {"campaign_checkbox": "checked", "task_checkbox": "checked", "job_checkbox": "checked"}
         extra = ""
-        if exitcode != None:
-            q = q.filter(Job.user_exe_exit_code == int(exitcode))
-            extra = extra + "with exit code %s" % exitcode
 
-        if campaign_id != None:
+
+        if campaign_id:
             q = q.filter( Task.campaign_id == int(campaign_id))
             extra = extra + "in campaign id %s" % campaign_id
 
-        if experiment != None:
+        if experiment:
             q = q.filter( Campaign.experiment == experiment)
             extra = extra + "in experiment %s" % experiment
+            filtered_fields['experiment'] = experiment
+
+        if campaign_name:
+            q = q.filter(Campaign.name == campaign_name)
+            filtered_fields['campaign_name'] = campaign_name
+
+        if task_def_id:
+            q = q.filter(Campaign.task_definition_id == task_def_id)
+            filtered_fields['task_def_id'] = task_def_id
+
+        if vo_role:
+            q = q.filter(Campaign.vo_role == vo_role)
+            filtered_fields['vo_role'] = vo_role
+
+        if input_dataset:
+            q = q.filter(Task.input_dataset == input_dataset)
+            filtered_fields['input_dataset'] = input_dataset
+
+        if output_dataset:
+            q = q.filter(Task.output_dataset == output_dataset)
+            filtered_fields['output_dataset'] = output_dataset
+
+        if task_status:
+            q = q.filter(Task.status == task_status)
+            filtered_fields['task_status'] = task_status
+
+        if project:
+            q = q.filter(Task.project == project)
+            filtered_fields['project'] = project
+
+        if jobsub_job_id:
+            q = q.filter(Job.jobsub_job_id == jobsub_job_id)
+            filtered_fields['jobsub_job_id'] = jobsub_job_id
+
+        if node_name:
+            q = q.filter(Job.node_name == node_name)
+            filtered_fields['node_name'] = node_name
+
+        if cpu_type:
+            q = q.filter(Job.cpu_type == cpu_type)
+            filtered_fields['cpu_type'] = cpu_type
+
+        if host_site:
+            q = q.filter(Job.host_site == host_site)
+            filtered_fields['host_site'] = host_site
+
+        if job_status:
+            q = q.filter(Job.status == job_status)
+            filtered_fields['job_status'] = job_status
+
+        if user_exe_exit_code:
+            q = q.filter(Job.user_exe_exit_code == int(user_exe_exit_code))
+            extra = extra + "with exit code %s" % user_exe_exit_code
+            filtered_fields['user_exe_exit_code'] = user_exe_exit_code
+
+        if output_files_declared:
+            q = q.filter(Job.output_files_declared == output_files_declared)
+            filtered_fields['output_files_declared'] = output_files_declared
+
 
         jl = q.all()
 
@@ -881,10 +940,21 @@ class poms_service:
             taskcolumns = []
             campcolumns = []
 
+        if campaign_checkbox != "on":
+            campcolumns = []
+            filtered_fields["campaign_checkbox"] = ""
+        if task_checkbox != "on":
+            taskcolumns = []
+            filtered_fields["task_checkbox"] = ""
+        if job_checkbox != "on":
+            jobcolumns = []
+            filtered_fields["job_checkbox"] = ""
+        
+
         hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
         
         template = self.jinja_env.get_template('job_table.html')
-        return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns, pomspath=self.path)
+        return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns, filtered_fields=filtered_fields, pomspath=self.path)
 
     @cherrypy.expose
     def jobs_by_exitcode(self, tmax =  None, tdays = 1 ):
