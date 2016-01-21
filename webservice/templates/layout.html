@@ -76,12 +76,28 @@
             <a class="item requests"  href="#">
                 <b>Requests</b>
             </a>
-
+	    
+	    <!--
            <a class="item" href="{{pomspath}}/admin_screen">
         	<b>DB Admin</b>
            </a>
-
+	   -->
             
+            <div class="item">
+                <div class="header">DB Admin</div>
+                <div class="menu">
+                    <a class="item" href="{{pomspath}}/experiment_auth">
+                        Experiments
+                    </a>
+                    <a class="item" href="{{pomspath}}/user_auth">
+                        Users
+                    </a>
+                    <a class="item" href="{{pomspath}}/raw_tables">
+                        Raw Tables
+                    </a>
+                </div>
+            </div>
+
             <div class="item">
                 <div class="header">Campaigns</div>
                 <div class="menu">
@@ -179,9 +195,20 @@
                             <b>Requests</b>
                         </a>
 
-                        <a class="item" href="{{pomspath}}/admin_screen">
-	                    <b>DB Admin</b>
-                        </a>
+            <div class="item">
+                <div class="header">DB Admin</div>
+                <div class="menu">
+                    <a class="item" href="{{pomspath}}/experiment_auth">
+                        Experiments
+                    </a>
+                    <a class="item" href="{{pomspath}}/user_auth">
+                        Users
+                    </a>
+                    <a class="item" href="{{pomspath}}/raw_tables">
+                        Raw Tables
+                    </a>
+                </div>
+            </div>
 
             <div class="item">
                 <div class="header">Campaigns</div>
@@ -290,11 +317,11 @@ function validateQuickSearchForm()
                         {%block content%} {%endblock%}
 
 
-                         <div class="ui small basic test modal">
+                         <!--<div class="ui small basic test modal">
                             <div class="ui icon header">
                               <i class="warning sign icon"></i>
                               Under Construction
-                            </div>
+                            </div>-->
                          </div>
 
 

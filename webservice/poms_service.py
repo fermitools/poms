@@ -53,6 +53,7 @@ class poms_service:
         self.task_min_job_cache = {}
         self.path = cherrypy.config.get("pomspath","/poms")
 
+
     @cherrypy.expose
     def headers(self):
         return repr(cherrypy.request.headers)
@@ -355,10 +356,10 @@ class poms_service:
         cherrypy.log(" ---- pk_map: %s " % repr(self.pk_map))
 
     @cherrypy.expose
-    def admin_screen(self):
+    def raw_tables(self):
         if not self.can_db_admin():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-        template = self.jinja_env.get_template('admin_screen.html')
+        template = self.jinja_env.get_template('raw_tables.html')
         return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
         
     @cherrypy.expose
@@ -731,11 +732,9 @@ class poms_service:
             tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
 
         tdays = int(tdays)
-        tminscreen = tmax - timedelta(days = tdays)
-        tmin = tminscreen - timedelta(days = 1)
+        tmin = tmax - timedelta(days = tdays)
         tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
         tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
-        tminscreens =  tmin.strftime("%Y-%m-%d %H:%M:%S")
         tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
         prevlink="%s/show_campaigns?tmax=%s&tdays=%d" % (self.path,tsprev, tdays)
         nextlink="%s/show_campaigns?tmax=%s&tdays=%d" % (self.path,tsnext, tdays)
@@ -761,14 +760,14 @@ class poms_service:
               sl.append(self.format_job_counts(campaign_id = c.campaign_id))
 
               items = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == c.campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin, Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
-              sl.append( tg.render_query(tminscreen, tmax, items, 'task_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
+              sl.append( tg.render_query(tmin, tmax, items, 'task_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
 
         screendata = "\n".join(sl)
 
         allcounts =  self.format_job_counts()
               
         template = self.jinja_env.get_template('campaign_grid.html')
-        return template.render(  screendata = screendata, tmin = str(tminscreen)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path)
+        return template.render(  screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path)
 
     def task_min_job(self, task_id):
         # find the job with the logs -- minimum jobsub_job_id for this task
@@ -851,7 +850,8 @@ class poms_service:
 
     
     @cherrypy.expose
-    def job_table(self, tmax =  None, tdays = 1, exitcode = None, campaign_id = None , experiment = None):
+    def job_table(self, tmax =  None, tdays = 1, campaign_id = None , experiment = None, sift=False, campaign_name=None, task_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None):
+           
         if tmax == None:
             tmax = datetime.now(utc)
         else:
@@ -865,23 +865,79 @@ class poms_service:
         prevlink="%s/job_table?tmax=%s&tdays=%d" % (self.path, tsprev, tdays)
         nextlink="%s/job_table?tmax=%s&tdays=%d" % (self.path, tsnext, tdays)
         extra = ""
+        filtered_fields = {}
 
         q = cherrypy.request.db.query(Job,Task,Campaign)
         q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == Campaign.campaign_id)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax)
 
-        extra = ""
-        if exitcode != None:
-            q = q.filter(Job.user_exe_exit_code == int(exitcode))
-            extra = extra + "with exit code %s" % exitcode
 
-        if campaign_id != None:
+        if campaign_id:
             q = q.filter( Task.campaign_id == int(campaign_id))
             extra = extra + "in campaign id %s" % campaign_id
 
-        if experiment != None:
+        if experiment:
             q = q.filter( Campaign.experiment == experiment)
             extra = extra + "in experiment %s" % experiment
+            filtered_fields['experiment'] = experiment
+
+        if campaign_name:
+            q = q.filter(Campaign.name == campaign_name)
+            filtered_fields['campaign_name'] = campaign_name
+
+        if task_def_id:
+            q = q.filter(Campaign.task_definition_id == task_def_id)
+            filtered_fields['task_def_id'] = task_def_id
+
+        if vo_role:
+            q = q.filter(Campaign.vo_role == vo_role)
+            filtered_fields['vo_role'] = vo_role
+
+        if input_dataset:
+            q = q.filter(Task.input_dataset == input_dataset)
+            filtered_fields['input_dataset'] = input_dataset
+
+        if output_dataset:
+            q = q.filter(Task.output_dataset == output_dataset)
+            filtered_fields['output_dataset'] = output_dataset
+
+        if task_status:
+            q = q.filter(Task.status == task_status)
+            filtered_fields['task_status'] = task_status
+
+        if project:
+            q = q.filter(Task.project == project)
+            filtered_fields['project'] = project
+
+        if jobsub_job_id:
+            q = q.filter(Job.jobsub_job_id == jobsub_job_id)
+            filtered_fields['jobsub_job_id'] = jobsub_job_id
+
+        if node_name:
+            q = q.filter(Job.node_name == node_name)
+            filtered_fields['node_name'] = node_name
+
+        if cpu_type:
+            q = q.filter(Job.cpu_type == cpu_type)
+            filtered_fields['cpu_type'] = cpu_type
+
+        if host_site:
+            q = q.filter(Job.host_site == host_site)
+            filtered_fields['host_site'] = host_site
+
+        if job_status:
+            q = q.filter(Job.status == job_status)
+            filtered_fields['job_status'] = job_status
+
+        if user_exe_exit_code:
+            q = q.filter(Job.user_exe_exit_code == int(user_exe_exit_code))
+            extra = extra + "with exit code %s" % user_exe_exit_code
+            filtered_fields['user_exe_exit_code'] = user_exe_exit_code
+
+        if output_files_declared:
+            q = q.filter(Job.output_files_declared == output_files_declared)
+            filtered_fields['output_files_declared'] = output_files_declared
+
 
         jl = q.all()
 
@@ -894,10 +950,33 @@ class poms_service:
             taskcolumns = []
             campcolumns = []
 
+
+        if bool(sift):
+            campaign_box = task_box = job_box = ""
+
+            if campaign_checkbox == "on":
+                campaign_box = "checked"
+            else:
+                campcolumns = []
+            if task_checkbox == "on":
+                task_box = "checked"
+            else:
+                taskcolumns = []
+            if job_checkbox == "on":
+                job_box = "checked"
+            else:
+                jobcolumns = []
+
+            filtered_fields_checkboxes = {"campaign_checkbox": campaign_box, "task_checkbox": task_box, "job_checkbox": job_box}
+            filtered_fields.update(filtered_fields_checkboxes)
+        else:
+            filtered_fields_checkboxes = {"campaign_checkbox": "checked", "task_checkbox": "checked", "job_checkbox": "checked"}  #setting this for initial page visit
+            filtered_fields.update(filtered_fields_checkboxes)
+
         hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
         
         template = self.jinja_env.get_template('job_table.html')
-        return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns, pomspath=self.path)
+        return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns, filtered_fields=filtered_fields, pomspath=self.path)
 
     @cherrypy.expose
     def jobs_by_exitcode(self, tmax =  None, tdays = 1 ):
