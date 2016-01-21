@@ -2,6 +2,7 @@ import cherrypy
 import os
 import time_grid
 import json
+from collections import OrderedDict
 
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func, exc, distinct
 from sqlalchemy.orm  import subqueryload, contains_eager
@@ -803,34 +804,45 @@ class poms_service:
         res = self.job_counts(task_id, campaign_id)
         return repr(res) + self.format_job_counts(task_id, campaign_id)
 
-    def format_job_counts(self, task_id = None, campaign_id = None):
-        counts = self.job_counts(task_id, campaign_id)
+    def format_job_counts(self, task_id = None, campaign_id = None, tmax = None, twidth = None, range_string = None):
+        if tmax == None:
+            tmax =  datetime.now(utc)
+            twidth = timedelta(days = 7)
+            range_string = "the Last Week"
+        counts = self.job_counts(task_id, campaign_id, tmax, twidth)
         ck = counts.keys()
-        ck.sort()
-        res = [ '<table class="ui celled table unstackable"><tr><td span=4>Job states</td></tr><tr>' ]
+        res = [ '<div><b>Job States</b><br>',
+                '<table class="ui celled table unstackable">',
+                '<tr><th colspan=3>Active</th><th colspan=2>In %s</th></tr>' % range_string,
+                '<tr>' ]
         for k in ck:
             res.append( "<th>%s</th>" % k )
-        res.append("</tr><tr>")
+        res.append("</tr>")
+        res.append("<tr>")
         for k in ck:
             res.append( "<td>%d</td>" % counts[k] )
-        res.append("</tr></table>")
+        res.append("</tr></table></div><br>")
         return "".join(res)
 
-    def job_counts(self, task_id = None, campaign_id = None):
-        q = cherrypy.request.db.query(func.count(Job.status),Job.status).group_by(Job.status) 
+    def job_counts(self, task_id = None, campaign_id = None, tmax = None, twidth = None):
+        q = cherrypy.request.db.query(func.count(Job.status),Job.status). group_by(Job.status) 
+        if tmax != None:
+            q = q.filter(Job.updated <= tmax, Job.updated >= (tmax - twidth))
+
         if task_id:
             q = q.filter(Job.task_id == task_id)
 
         if campaign_id:
             q = q.join(Task,Job.task_id == Task.task_id).filter( Task.campaign_id == campaign_id)
 
-        out = {"Idle":0, "Running":0, "Held":0, "Completed":0}
+        out = OrderedDict([("Idle",0),( "Running",0),( "Held",0),( "Completed",0), ("Located",0)])
         for row in  q.all():
             if row[1][1:7] == "unning":
                 short = "Running"
             else:
                 short = row[1]
             out[short] = out.get(short,0) + int(row[0])
+
         return out
 
 
