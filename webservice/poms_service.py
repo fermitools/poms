@@ -955,10 +955,11 @@ class poms_service:
             else:
                 jobcolumns = []
 
-            filtered_fields = {"campaign_checkbox": campaign_box, "task_checkbox": task_box, "job_checkbox": job_box}
+            filtered_fields_checkboxes = {"campaign_checkbox": campaign_box, "task_checkbox": task_box, "job_checkbox": job_box}
+            filtered_fields.update(filtered_fields_checkboxes)
         else:
-            filtered_fields = {"campaign_checkbox": "checked", "task_checkbox": "checked", "job_checkbox": "checked"}  #setting this for initial page visit
-
+            filtered_fields_checkboxes = {"campaign_checkbox": "checked", "task_checkbox": "checked", "job_checkbox": "checked"}  #setting this for initial page visit
+            filtered_fields.update(filtered_fields_checkboxes)
 
         hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
         

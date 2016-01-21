@@ -240,13 +240,14 @@ $( "#search_button" ).click(function() {
   <thead>
     <tr>
       {%set span1 = [] %}
+
       {%for col in jobcolumns %}
         {% if not col in hidecolumns %}
           <!--{{span1.append(1)}}-->
         {% endif %}
       {% endfor %}
       <!-- span1 {{span1}} -->
-      <th class="" colspan="{{span1|length}}">Job fields</th>
+      {%if filtered_fields.get("job_checkbox") == 'checked'%}  <th class="" colspan="{{span1|length}}">Job fields</th>  {%endif%}
       {%set span2 = [] %}
       {%for col in taskcolumns %}
         {% if not col in hidecolumns %}
@@ -254,9 +255,9 @@ $( "#search_button" ).click(function() {
         {% endif %}
       {% endfor %}
       <!-- span2 {{span2}} -->
-      <th class="" colspan="{{span2|length}}">Task fields</th>
+      {%if filtered_fields.get("task_checkbox") == 'checked'%}  <th class="" colspan="{{span2|length}}">Task fields</th>  {%endif%}
       {%set span3 = campcolumns|length %}
-      <th class="" colspan="{{span3}}">Campaign fields</th>
+      {%if filtered_fields.get("campaign_checkbox") == 'checked'%}  <th class="" colspan="{{span3}}">Campaign fields</th>  {%endif%}
     </tr>
     <tr>
     {%for col in jobcolumns%}
