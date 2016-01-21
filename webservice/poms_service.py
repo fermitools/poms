@@ -853,13 +853,11 @@ class poms_service:
         prevlink="%s/job_table?tmax=%s&tdays=%d" % (self.path, tsprev, tdays)
         nextlink="%s/job_table?tmax=%s&tdays=%d" % (self.path, tsnext, tdays)
         extra = ""
+        filtered_fields = {}
 
         q = cherrypy.request.db.query(Job,Task,Campaign)
         q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == Campaign.campaign_id)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax)
-
-        filtered_fields = {"campaign_checkbox": "checked", "task_checkbox": "checked", "job_checkbox": "checked"}
-        extra = ""
 
 
         if campaign_id:
@@ -940,16 +938,27 @@ class poms_service:
             taskcolumns = []
             campcolumns = []
 
-        if campaign_checkbox != "on":
-            campcolumns = []
-            filtered_fields["campaign_checkbox"] = ""
-        if task_checkbox != "on":
-            taskcolumns = []
-            filtered_fields["task_checkbox"] = ""
-        if job_checkbox != "on":
-            jobcolumns = []
-            filtered_fields["job_checkbox"] = ""
-        
+
+        if bool(sift):
+            campaign_box = task_box = job_box = ""
+
+            if campaign_checkbox == "on":
+                campaign_box = "checked"
+            else:
+                campcolumns = []
+            if task_checkbox == "on":
+                task_box = "checked"
+            else:
+                taskcolumns = []
+            if job_checkbox == "on":
+                job_box = "checked"
+            else:
+                jobcolumns = []
+
+            filtered_fields = {"campaign_checkbox": campaign_box, "task_checkbox": task_box, "job_checkbox": job_box}
+        else:
+            filtered_fields = {"campaign_checkbox": "checked", "task_checkbox": "checked", "job_checkbox": "checked"}  #setting this for initial page visit
+
 
         hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
         

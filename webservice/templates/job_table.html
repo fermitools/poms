@@ -192,29 +192,27 @@
 <b>Fields:</b>
 <br/>
 <br/>
-<div class="ui checked checkbox" style="padding-bottom:5px;">
-  <input type="hidden" name="campaign_checkbox" value="off" />
+<div class="ui checkbox" style="padding-bottom:5px;">
   <input type="checkbox" name="campaign_checkbox" {{filtered_fields.get("campaign_checkbox")}}>
   <label style="color:white;"><b>Campaign</b></label>
 </div>
 
 <br/>
 
-<div class="ui checked checkbox" style="padding-bottom:5px;">
-  <input type="hidden" name="task_checkbox" value="off" />
-  <input type="checkbox" name="task_checkbox" {{filtered_fields.get("campaign_checkbox")}}>
+<div class="ui checkbox" style="padding-bottom:5px;">
+  <input type="checkbox" name="task_checkbox" {{filtered_fields.get("task_checkbox")}}>
   <label style="color:white;"><b>Task</b></label>
 </div>
 
 <br/>
 
-<div class="ui checked checkbox" style="padding-bottom:5px;">
-  <input type="hidden" name="job_checkbox" value="off" />
-  <input type="checkbox" name="job_checkbox" {{filtered_fields.get("campaign_checkbox")}}>
+<div class="ui checkbox" style="padding-bottom:5px;">
+  <input type="checkbox" name="job_checkbox" {{filtered_fields.get("job_checkbox")}}>
   <label style="color:white;"><b>Job</b></label>
 </div>
 
 <br/>
+<input type="hidden" name="sift" value="True" />
 <br/>
 <div class="ui blue submit small button" id="search_button">Search</div>
 </form>
