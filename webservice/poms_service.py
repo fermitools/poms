@@ -1155,7 +1155,7 @@ class poms_service:
 			pendfiles += nout
 
 		if job.input_file_names:
-		    nin = len(job.output_file_names.split(' '))
+		    nin = len(job.input_file_names.split(' '))
 		    infiles += nin
 
         # it looks like we should add another row here for the last set of totals, but
