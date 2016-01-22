@@ -864,8 +864,16 @@ class poms_service:
             res.append( "<th>%s</th>" % k )
         res.append("</tr>")
         res.append("<tr>")
+        var = 'ignore_me'
+        val = ''
+        if campaign_id != None:
+             var = 'campaign_id'
+             val = campaign_id
+        if task_id != None:
+             var = 'task_id'
+             val = task_id
         for k in ck:
-            res.append( "<td>%d</td>" % counts[k] )
+            res.append( '<td><a href="job_table?job_status=%s&%s=%s">%d</a></td>' % (k, var, val,  counts[k] ))
         res.append("</tr></table></div><br>")
         return "".join(res)
 
@@ -896,7 +904,7 @@ class poms_service:
 
     
     @cherrypy.expose
-    def job_table(self, tmax =  None, tdays = 1, campaign_id = None , experiment = None, sift=False, campaign_name=None, task_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None):
+    def job_table(self, tmax =  None, tdays = 1, campaign_id = None , experiment = None, sift=False, campaign_name=None, task_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None):
            
         if tmax == None:
             tmax = datetime.now(utc)
