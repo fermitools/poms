@@ -678,11 +678,26 @@ class poms_service:
         else:
             tmax = tmin + timedelta(days=1)
 
-        jl = cherrypy.request.db.query(JobHistory).join(Job).filter(Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
+        jl = cherrypy.request.db.query(JobHistory,Job).filter(Job.job_id == JobHistory.job_id, Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = time_grid.time_grid()
+	class fakerow:
+	    def __init__(self, **kwargs):
+	        self.__dict__.update(kwargs)
+	items = []
+	for jh, j in jl:
+	    if j.jobsub_job_id: 
+		jjid= j.jobsub_job_id.replace('fifebatch','').replace('.fnal.gov','')
+	    else: 
+		jjid= 'j' + str(jh.job_id)
+
+	    items.append(fakerow(job_id = jh.job_id,
+				  created = jh.created,
+				  status = jh.status,
+				  jobsub_job_id = jjid))
+
         screendata = self.format_job_counts(task_id = task_id)
         key = tg.key(fancy=1)
-        screendata = screendata +  tg.render_query(tmin, tmax, jl, 'job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+str(tmin).split('+')[0])         
+        screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+str(tmin).split('+')[0])         
 
         template = self.jinja_env.get_template('job_grid.html')
         return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, key = key, pomspath=self.path)
@@ -807,9 +822,20 @@ class poms_service:
 	      sl.append(key)
 	      sl.append('</div>')
 
-              items = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == c.campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin, Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
-              sl.append( tg.render_query(tmin, tmax, items, 'task_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
+              qr = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == c.campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin, Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
+              items = []
+              for th in qr:
+                  mj = self.task_min_job(th.task_id)
+                  if mj: 
+                      jjid= mj.jobsub_job_id.replace('fifebatch','').replace('.fnal.gov','')
+                  else: 
+                      jjid= 't' + str(th.task_id)
+                  items.append(fakerow(task_id = th.task_id,
+ 					created = th.created,
+ 					status = th.status,
+                 			jobsub_job_id = jjid))
 
+              sl.append( tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
         screendata = "\n".join(sl)
               
         template = self.jinja_env.get_template('campaign_bars.html')
@@ -827,7 +853,7 @@ class poms_service:
     
     @cherrypy.expose
     def job_file_list(self, job_id,force_reload = False):
-        j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
+        j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         j = self.task_min_job(j.task_id)
         role = j.task_obj.campaign_obj.vo_role
@@ -835,7 +861,7 @@ class poms_service:
 
     @cherrypy.expose
     def job_file_contents(self, job_id, task_id, file, tmin):
-        j = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).first()
+        j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         j = self.task_min_job(j.task_id)
         cherrypy.log("found job: %s " % j.jobsub_job_id)

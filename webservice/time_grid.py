@@ -164,10 +164,12 @@ class time_grid:
          #self.min_box_sizes()
          rlist = []
          for id,plist in self.pmap.items():
+             if len(plist) == 0:
+                 continue
              rlist.append("""
                <div class='row' style='margin:0px 0px; padding:0px 0px;'>
-                 <div class='mwm_label' style='text-align: right; width: 9%%; float:left; padding: 5px 5px; border-right: 1px solid black; '>%s</div>
-                   <div clas='mwm_rowdata'  style='width: 85%%; float:left; clear: right; border-right: 1px solid black; padding: 5px 0px'>
+                 <div class='mwm_label' style='text-align: right; width: 11%%; float:left; padding: 5px 5px; border-right: 1px solid black; '>%s</div>
+                   <div clas='mwm_rowdata'  style='width: 84%%; float:left; clear: right; border-right: 1px solid black; padding: 5px 0px'>
                 """ % id)
              for p in plist:
                  rlist.append("""
