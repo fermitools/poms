@@ -39,9 +39,10 @@ class time_grid:
 
           for s in list:
               res.append( "<div style='float:left; width:20em'><span style='min-width:3em; background: %s'>&nbsp;&nbsp;</span>%s</div>" % (self.status_color(s), s))
+          res.append('</div>')
           return '\n'.join(res)
              
-          res.append('</div>')
+
      def status_color(self,str):
           if str.find("started") >= 0:
               return "#303030"
