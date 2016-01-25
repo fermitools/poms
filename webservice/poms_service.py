@@ -672,12 +672,8 @@ class poms_service:
                     t.status = "Located"
 
     @cherrypy.expose
-    def show_task_jobs(self, task_id, tmin, tmax = None ):
-        tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
-        if tmax != None:
-            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
-        else:
-            tmax = tmin + timedelta(days=1)
+    def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ):
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'show_campaigns?')
 
         jl = cherrypy.request.db.query(JobHistory,Job).filter(Job.job_id == JobHistory.job_id, Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = time_grid.time_grid()
@@ -696,7 +692,7 @@ class poms_service:
 				  status = jh.status,
 				  jobsub_job_id = jjid))
 
-        screendata = self.format_job_counts(task_id = task_id)
+        screendata = self.format_job_counts(task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
         key = tg.key(fancy=1)
         screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+str(tmin).split('+')[0])         
 
@@ -738,23 +734,46 @@ class poms_service:
         
         return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
 
-
-    @cherrypy.expose
-    def show_campaigns(self,tmax = None, tdays = 1):
+    def handle_dates(self,tmin, tmax, tdays, baseurl):
+        """
+            tmin,tmax,tmins,tmaxs,nextlink,prevlink,tranges = self.handle_dates(tmax, tdays, name)
+            assuming tmin, tmax, are date strings or None, and tdays is
+            an integer width in days, come up with real datetimes for
+            tmin, tmax, and string versions, and next ane previous links
+            and a string describing the date range.  Use everywhere.
+        """
+        if tdays == None:  # default to today
+            tdays = 1
 
         if tmax == None:
             tmax = datetime.now(utc)
-        else:
+        elif isinstance(tmax, basestring):
             tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
 
-        tdays = int(tdays)
-        tmin = tmax - timedelta(days = tdays)
+        tdays = float(tdays)
+
+        if tmin == None:
+            tmin = tmax - timedelta(days = tdays)
+        elif isinstance(tmin, basestring):
+            tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
+
         tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
         tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
         tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
-        prevlink="%s/show_campaigns?tmax=%s&tdays=%d" % (self.path,tsprev, tdays)
-        nextlink="%s/show_campaigns?tmax=%s&tdays=%d" % (self.path,tsnext, tdays)
-        time_range_string="%d days ending %s" % (tdays, tmaxs)
+        tmins =  tmin.strftime("%Y-%m-%d %H:%M:%S")
+        prevlink="%s/%stmax=%s&tdays=%d" % (self.path,baseurl,tsprev, tdays)
+        nextlink="%s/%stmax=%s&tdays=%d" % (self.path,baseurl,tsnext, tdays)
+        # if we want to handle hours / weeks nicely, we should do
+        # it here.
+        plural =  's' if tdays > 1.0 else ''
+        tranges = '%d day%s ending <span class="tmax">%s</span>' % (tdays, plural, tmaxs)
+
+        return tmin,tmax,tmins,tmaxs,nextlink,prevlink,tranges
+
+    @cherrypy.expose
+    def show_campaigns(self,tmin = None, tmax = None, tdays = 1):
+
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
         cl = cherrypy.request.db.query(Campaign).filter(Task.campaign_id == Campaign.campaign_id).order_by(Campaign.experiment).all()
 
@@ -770,7 +789,7 @@ class poms_service:
             res.append('<a href="%s/campaign_sheet?campaign_id=%d&tmax=%s"><i class="external share icon"></i></a>' % ( self.path, c.campaign_id, tmaxs))
             res.append('<a href="%s/campaign_time_bars?campaign_id=%d&tmax=%s"><i class="external graph icon"></i></a>' % ( self.path, c.campaign_id, tmaxs))
             res.append('</td>')
-            counts = self.job_counts(tmax = tmax, twidth = timedelta(days = tdays), campaign_id = c.campaign_id)
+            counts = self.job_counts(tmax = tmax, tdays = tdays, campaign_id = c.campaign_id)
             for k in counts.keys():
                 res.append('<td><a href="job_table?campaign_id=%s&job_status=%s">%d</a></td>' % (c.campaign_id, k, counts[k]))
             res.append("</tr>")
@@ -779,23 +798,11 @@ class poms_service:
         screendata = "\n".join(res)
               
         template = self.jinja_env.get_template('campaign_grid.html')
-        return template.render(  screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = '', pomspath=self.path)
+        return template.render(  screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path)
 
     @cherrypy.expose
-    def campaign_time_bars(self, campaign_id, tmax = None, tdays = 1):
-        if tmax == None:
-            tmax = datetime.now(utc)
-        else:
-            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
-
-        tdays = int(tdays)
-        tmin = tmax - timedelta(days = tdays)
-        tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
-        tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
-        tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
-        prevlink="%s/campaign_time_bars?campaign_id=%s&tmax=%s&tdays=%d" % (campaign_id, self.path,tsprev, tdays)
-        nextlink="%s/campaign_time_bars?campaign_id=%s&tmax=%s&tdays=%d" % (campaign_id, self.path,tsnext, tdays)
-
+    def campaign_time_bars(self, campaign_id, tmin = None, tmax = None, tdays = 1):
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaing_id=%s&'% campaign_id)
 
         tg = time_grid.time_grid()
 
@@ -829,6 +836,8 @@ class poms_service:
                   jjid = self.task_min_job(th.task_id)
                   if not jjid: 
                       jjid= 't' + str(th.task_id)
+                  else:
+                      jjid = jjid.replace('fifebatch','').replace('.fnal.gov','')
                   items.append(fakerow(task_id = th.task_id,
  					created = th.created,
  					status = th.status,
@@ -876,12 +885,8 @@ class poms_service:
         res = self.job_counts(task_id, campaign_id)
         return repr(res) + self.format_job_counts(task_id, campaign_id)
 
-    def format_job_counts(self, task_id = None, campaign_id = None, tmax = None, twidth = None, range_string = None):
-        if tmax == None:
-            tmax =  datetime.now(utc)
-            twidth = timedelta(days = 7)
-            range_string = "the Last Week"
-        counts = self.job_counts(task_id, campaign_id, tmax, twidth)
+    def format_job_counts(self, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = 7, range_string = None):
+        counts = self.job_counts(task_id, campaign_id, tmin, tmax, tdays)
         ck = counts.keys()
         res = [ '<div><b>Job States</b><br>',
                 '<table class="ui celled table unstackable">',
@@ -904,10 +909,12 @@ class poms_service:
         res.append("</tr></table></div><br>")
         return "".join(res)
 
-    def job_counts(self, task_id = None, campaign_id = None, tmax = None, twidth = None):
+    def job_counts(self, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = None):
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'job_counts')
+
         q = cherrypy.request.db.query(func.count(Job.status),Job.status). group_by(Job.status) 
         if tmax != None:
-            q = q.filter(Job.updated <= tmax, Job.updated >= (tmax - twidth))
+            q = q.filter(Job.updated <= tmax, Job.updated >= tmin)
 
         if task_id:
             q = q.filter(Job.task_id == task_id)
@@ -925,26 +932,11 @@ class poms_service:
 
         return out
 
-
-
-
-
     
     @cherrypy.expose
-    def job_table(self, tmax =  None, tdays = 1, campaign_id = None , experiment = None, sift=False, campaign_name=None, task_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None):
+    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, task_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None):
            
-        if tmax == None:
-            tmax = datetime.now(utc)
-        else:
-            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
-        tdays = int(tdays)
-        tmin = tmax - timedelta(days = tdays)
-        tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
-        tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
-        tmins =  tmin.strftime("%Y-%m-%d %H:%M:%S")
-        tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
-        prevlink="%s/job_table?tmax=%s&tdays=%d" % (self.path, tsprev, tdays)
-        nextlink="%s/job_table?tmax=%s&tdays=%d" % (self.path, tsnext, tdays)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'job_table?')
         extra = ""
         filtered_fields = {}
 
@@ -952,10 +944,15 @@ class poms_service:
         q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == Campaign.campaign_id)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax)
 
+        if keyword:
+            q = q.filter( Task.project.like("%%%s%%" % keyword) )
+            extra = extra + "with keyword %s" % keyword
+            filtered_fields['keyword'] = keyword
 
         if campaign_id:
             q = q.filter( Task.campaign_id == int(campaign_id))
             extra = extra + "in campaign id %s" % campaign_id
+            filtered_fields['campaign_id'] = campaign_id
 
         if experiment:
             q = q.filter( Campaign.experiment == experiment)
@@ -989,6 +986,10 @@ class poms_service:
         if project:
             q = q.filter(Task.project == project)
             filtered_fields['project'] = project
+
+        if jobsub_job_id:
+            q = q.filter(Job.task_id == task_id)
+            filtered_fields['task_id'] = task_id
 
         if jobsub_job_id:
             q = q.filter(Job.jobsub_job_id == jobsub_job_id)
@@ -1060,33 +1061,7 @@ class poms_service:
         hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
 
         template = self.jinja_env.get_template('job_table.html')
-        return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns, filtered_fields=filtered_fields, pomspath=self.path)
-
-    @cherrypy.expose
-    def jobs_by_exitcode(self, tmax =  None, tdays = 1 ):
-
-        if tmax == None:
-            tmax = datetime.now(utc)
-        else:
-            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
-
-        tdays = int(tdays)
-        tmin = tmax - timedelta(days = tdays)
-        tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
-        tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
-        tmins =  tmin.strftime("%Y-%m-%d %H:%M:%S")
-        tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
-        prevlink="%s/jobs_by_exitcode?tmax=%s&tdays=%d" % (self.path, tsprev, tdays)
-        nextlink="%s/jobs_by_exitcode?tmax=%s&tdays=%d" % (self.path, tsnext, tdays)
-
-        q = cherrypy.request.db.query(Job.user_exe_exit_code,func.count(Job.job_id)).filter(Job.updated >= tmin, Job.updated <= tmax).group_by(Job.user_exe_exit_code).order_by(Job.user_exe_exit_code)
-
-        jl = q.all()
-        cherrypy.log( "got jobtable %s " % repr( jl[0].__dict__) )
-        columns = [ "exit_code","count"]
-        
-        template = self.jinja_env.get_template('job_count_table.html')
-        return template.render(joblist=jl, columns = columns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, pomspath=self.path)
+        return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns, filtered_fields=filtered_fields, time_range_string = time_range_string, pomspath=self.path)
 
     @cherrypy.expose
     def quick_search(self, jobsub_job_id):
