@@ -1,0 +1,58 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>POMS:Campaign {{name}}</title>
+{%endblock%}
+
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="{{pomspath}}/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">Campaigns</div>
+</div>
+{%endblock%}
+
+
+{%block header%}
+<h1 class="ui header">
+     Campaign {{name}}
+</h1>
+{%endblock%}
+
+
+
+
+{%block subheader%}
+<h2 class="ui dividing header"> Campaign {{name}} as of <p class="tmin" style="display:inline;"></p></h2>
+<a href="{{prev}}">&lt;previous {{days}} days</a> | 
+<a href="{{next}}">next {{days}} days &gt;</a>
+{%endblock%}
+
+
+{%block content%}
+  <div class="ui grid">
+    {{screendata}}
+    <div class='ui row'>
+     <div class="left floated left aligned six wide column tmin"></div>
+     <div class="right floated right aligned six wide column tmax"></div>
+   </div>
+  </div>
+
+
+
+
+
+<script>
+var tmin_local_time = moment.utc('{{tmin}}').toDate();
+tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmin" ).html( tmin_local_time );
+
+var tmax_local_time = moment.utc('{{tmax}}').toDate();
+tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmax" ).html( tmax_local_time );
+</script>
+
+
+
+{%endblock%}
