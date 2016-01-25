@@ -21,7 +21,7 @@
     Jobs by Exitcode
 </h1>
 <div class="ui subheader">
-{{days}} Days of Jobs ending {{tmax}}
+Jobs by exitcode for {{time_range_string}}
 </div>
 
 <a href="{{prev}}">&lt;previous {{days}} days</a> | 
@@ -52,7 +52,7 @@
       <tr {% if job[0] == 0 %} class="positive" {%else%} class="negative" {%endif%} >
          {%for col in range(0, columns|count) %}
             {% if loop.first %}
-              <td><a href="{{pomspath}}/job_table?tdays={{days}}&tmax={{tmax}}&exitcode={{job[col]}}">{{job[col]}}</a></td>
+              <td><a href="{{pomspath}}/job_table?tdays={{days}}&tmax={{tmax}}&user_exe_exit_code={{job[col]}}">{{job[col]}}</a></td>
             {% else %}
               <td>{{job[col]}}</td>
             {% endif %}

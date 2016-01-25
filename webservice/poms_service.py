@@ -1075,6 +1075,22 @@ class poms_service:
         return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns, filtered_fields=filtered_fields, time_range_string = time_range_string, pomspath=self.path)
 
     @cherrypy.expose
+    def jobs_by_exitcode(self, tmin = None, tmax =  None, tdays = 1 ):
+
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'jobs_by_exitcode?')
+ 
+        q = cherrypy.request.db.query(Job.user_exe_exit_code,func.count(Job.job_id)).filter(Job.updated >= tmin, Job.updated <= tmax).group_by(Job.user_exe_exit_code).order_by(Job.user_exe_exit_code)
+ 
+        jl = q.all()
+        cherrypy.log( "got jobtable %s " % repr( jl[0].__dict__) )
+        columns = [ "exit_code","count"]
+        
+        template = self.jinja_env.get_template('job_count_table.html')
+
+        return template.render(joblist=jl, columns = columns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, time_range_string = time_range_string, days = tdays, pomspath=self.path)
+
+
+    @cherrypy.expose
     def quick_search(self, jobsub_job_id):
         job_info = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
         if job_info:
