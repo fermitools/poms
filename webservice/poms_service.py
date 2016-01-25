@@ -826,10 +826,8 @@ class poms_service:
               qr = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == c.campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin, Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
               items = []
               for th in qr:
-                  mj = self.task_min_job(th.task_id)
-                  if mj: 
-                      jjid= mj.jobsub_job_id.replace('fifebatch','').replace('.fnal.gov','')
-                  else: 
+                  jjid = self.task_min_job(th.task_id)
+                  if not jjid: 
                       jjid= 't' + str(th.task_id)
                   items.append(fakerow(task_id = th.task_id,
  					created = th.created,
@@ -849,23 +847,25 @@ class poms_service:
            return self.task_min_job_cache.get(task_id) 
         j = cherrypy.request.db.query(Job).filter( Job.task_id == task_id ).order_by(Job.jobsub_job_id).first()
         if j:
-            self.task_min_job_cache[task_id] = j
-        return j
+            self.task_min_job_cache[task_id] = j.jobsub_job_id
+            return j.jobsub_job_id
+        else:
+            return None
     
     @cherrypy.expose
     def job_file_list(self, job_id,force_reload = False):
         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
-        j = self.task_min_job(j.task_id)
+        jobsub_job_id = self.task_min_job(j.task_id)
         role = j.task_obj.campaign_obj.vo_role
-        return cherrypy.request.jobsub_fetcher.index(j.jobsub_job_id,j.task_obj.campaign_obj.experiment ,role, force_reload)
+        return cherrypy.request.jobsub_fetcher.index(jobsub_job_id,j.task_obj.campaign_obj.experiment ,role, force_reload)
 
     @cherrypy.expose
     def job_file_contents(self, job_id, task_id, file, tmin):
         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
-        j = self.task_min_job(j.task_id)
-        cherrypy.log("found job: %s " % j.jobsub_job_id)
+        jobsub_job_id = self.task_min_job(j.task_id)
+        cherrypy.log("found job: %s " % jobsub_job_id)
         role = j.task_obj.campaign_obj.vo_role
         job_file_contents = cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role)
         template = self.jinja_env.get_template('job_file_contents.html')
