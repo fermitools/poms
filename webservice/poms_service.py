@@ -673,7 +673,8 @@ class poms_service:
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'show_campaigns?')
+
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=' % task_id)
 
         jl = cherrypy.request.db.query(JobHistory,Job).filter(Job.job_id == JobHistory.job_id, Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = time_grid.time_grid()
@@ -702,7 +703,12 @@ class poms_service:
 
 
     @cherrypy.expose
-    def triage_job(self, job_id, tmin, force_reload = False):
+    def triage_job(self, job_id, tmin = None, tmax = None, tdays = None, force_reload = False):
+
+	# we don't really use these for anything but we might want to
+        # pass them into a template to set time ranges...
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'show_campaigns?')
+ 
         job_file_list = self.job_file_list(job_id, force_reload)
         template = self.jinja_env.get_template('triage_job.html')
 
@@ -870,7 +876,12 @@ class poms_service:
         return cherrypy.request.jobsub_fetcher.index(jobsub_job_id,j.task_obj.campaign_obj.experiment ,role, force_reload)
 
     @cherrypy.expose
-    def job_file_contents(self, job_id, task_id, file, tmin):
+    def job_file_contents(self, job_id, task_id, file, tmin = None, tmax = None, tdays = None):
+
+	# we don't really use these for anything but we might want to
+        # pass them into a template to set time ranges...
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'show_campaigns?')
+ 
         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         jobsub_job_id = self.task_min_job(j.task_id)
