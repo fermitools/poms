@@ -31,17 +31,12 @@
     Jobs
 </h1>
 <div class="ui subheader">
-{{days}} Days of Jobs ending {{tmax}} {{extra}}
+Jobs for {{time_range_string}}
 </div>
 
 <a href="{{prev}}">&lt;previous {{days}} days</a> | 
 <a href="{{next}}">next {{days}} days &gt;</a>
 {%endblock%}
-
-
-
-
-
 
 {%block subheader%}
 {%endblock%}
@@ -52,12 +47,11 @@
 
 
 <div class="ui small basic test modal">
-
+<form id="search_form" method="get" action="{{pomspath}}/job_table">
  <h3>Filter</h3>
 
 
  <div class="ui styled accordion">
-    
     <div class="title active">
         <i class="dropdown icon"></i>
         Campaings
@@ -69,25 +63,25 @@
             <div class="field">
                 <label>Experiment</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="experiment" value="{{filtered_fields.get("experiment", "")}}" placeholder="">
                 </div>
             </div>
             <div class="field">
                 <label>Name</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="campaign_name" value="{{filtered_fields.get("campaign_name", "")}}" placeholder="">
                 </div>
             </div>
             <div class="field">
                 <label>Task Definition ID</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="task_def_id" value="{{filtered_fields.get("task_def_id", "")}}" placeholder="">
                 </div>
             </div>
             <div class="field">
                 <label>VO Role</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="vo_role" value="{{filtered_fields.get("vo_role", "")}}"placeholder="">
                 </div>
             </div>
         </div>
@@ -106,25 +100,25 @@
             <div class="field">
                 <label>Input Dataset</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="input_dataset" value="{{filtered_fields.get("input_dataset", "")}}" placeholder="">
                 </div>
             </div>
             <div class="field">
                 <label>Output Dataset</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="output_dataset" value="{{filtered_fields.get("output_dataset", "")}}" placeholder="">
                 </div>
             </div>
             <div class="field">
                 <label>Status</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="task_status" value="{{filtered_fields.get("task_status", "")}}" placeholder="">
                 </div>
             </div>
             <div class="field">
                 <label>Project</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="project" value="{{filtered_fields.get("project", "")}}" placeholder="">
                 </div>
             </div>
         </div>
@@ -144,48 +138,47 @@
             <div class="field">
                 <label>Jobsub Job ID</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="jobsub_job_id" value="{{filtered_fields.get("jobsub_job_id", "")}}" placeholder="">
                 </div>
             </div>
             <div class="field">
                 <label>Node Name</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="node_name" value="{{filtered_fields.get("node_name", "")}}" placeholder="">
                 </div>
             </div>
             <div class="field">
                 <label>CPU Type</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="cpu_type" value="{{filtered_fields.get("cpu_type", "")}}" placeholder="">
                 </div>
             </div>
             <div class="field">
                 <label>Host Site</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="host_site" value="{{filtered_fields.get("host_site", "")}}" placeholder="">
                 </div>
             </div>
             <div class="field">
                 <label>Status</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="job_status" value="{{filtered_fields.get("job_status", "")}}" placeholder="">
                 </div>
             </div>
             <div class="field">
                 <label>User Exe. Exit Code</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="user_exe_exit_code" value="{{filtered_fields.get("user_exe_exit_code", "")}}" placeholder="">
                 </div>
             </div>
             <div class="field">
                 <label>Output Files Declared</label>
                 <div class="ui input">
-                    <input type="text" placeholder="">
+                    <input type="text" name="output_files_declared" value="{{filtered_fields.get("output_files_declared", "")}}" placeholder="">
                 </div>
             </div>
         </div>
     </div>
-    
     
  </div>  <!--ends accordian-->
 <br/>
@@ -194,29 +187,45 @@
 <b>Fields:</b>
 <br/>
 <br/>
-<div class="ui checked checkbox" style="padding-bottom:5px;">
-  <input type="checkbox" name="campaign" checked="">
+<div class="ui checkbox" style="padding-bottom:5px;">
+  <input type="checkbox" name="campaign_checkbox" {{filtered_fields.get("campaign_checkbox")}}>
   <label style="color:white;"><b>Campaign</b></label>
 </div>
 
 <br/>
 
-<div class="ui checked checkbox" style="padding-bottom:5px;">
-  <input type="checkbox" name="task" checked="">
+<div class="ui checkbox" style="padding-bottom:5px;">
+  <input type="checkbox" name="task_checkbox" {{filtered_fields.get("task_checkbox")}}>
   <label style="color:white;"><b>Task</b></label>
 </div>
 
 <br/>
 
-<div class="ui checked checkbox" style="padding-bottom:5px;">
-  <input type="checkbox" name="job" checked="">
+<div class="ui checkbox" style="padding-bottom:5px;">
+  <input type="checkbox" name="job_checkbox" {{filtered_fields.get("job_checkbox")}}>
   <label style="color:white;"><b>Job</b></label>
 </div>
 
 <br/>
+<input type="hidden" name="sift" value="True" />
 <br/>
-<div class="ui blue submit small button">Search</div>
+<div class="ui blue submit small button" id="search_button">Search</div>
+</form>
 </div>  <!--ends modal-->
+
+
+
+<script>
+$( "#search_button" ).click(function() {
+  $( "#search_form" ).submit();
+});
+</script>
+
+
+
+
+
+
 
 
 
@@ -226,13 +235,14 @@
   <thead>
     <tr>
       {%set span1 = [] %}
+
       {%for col in jobcolumns %}
         {% if not col in hidecolumns %}
           <!--{{span1.append(1)}}-->
         {% endif %}
       {% endfor %}
       <!-- span1 {{span1}} -->
-      <th class="" colspan="{{span1|length}}">Job fields</th>
+      {%if filtered_fields.get("job_checkbox") == 'checked'%}  <th class="" colspan="{{span1|length}}">Job fields</th>  {%endif%}
       {%set span2 = [] %}
       {%for col in taskcolumns %}
         {% if not col in hidecolumns %}
@@ -240,9 +250,9 @@
         {% endif %}
       {% endfor %}
       <!-- span2 {{span2}} -->
-      <th class="" colspan="{{span2|length}}">Task fields</th>
+      {%if filtered_fields.get("task_checkbox") == 'checked'%}  <th class="" colspan="{{span2|length}}">Task fields</th>  {%endif%}
       {%set span3 = campcolumns|length %}
-      <th class="" colspan="{{span3}}">Campaign fields</th>
+      {%if filtered_fields.get("campaign_checkbox") == 'checked'%}  <th class="" colspan="{{span3}}">Campaign fields</th>  {%endif%}
     </tr>
     <tr>
     {%for col in jobcolumns%}

@@ -1,7 +1,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS:Active Campaigns</title>
+    <title>POMS:Campaign {{name}}</title>
 {%endblock%}
 
 
@@ -16,7 +16,7 @@
 
 {%block header%}
 <h1 class="ui header">
-     Campaigns
+     Campaign {{name}}
 </h1>
 {%endblock%}
 
@@ -24,18 +24,24 @@
 
 
 {%block subheader%}
-<h2 class="ui dividing header">Active Campaigns for {{time_range_string}}</h2>
+<h2 class="ui dividing header"> Campaign {{name}} as of <p class="tmin" style="display:inline;"></p></h2>
 <a href="{{prev}}">&lt;previous {{days}} days</a> | 
 <a href="{{next}}">next {{days}} days &gt;</a>
 {%endblock%}
 
 
-
-
 {%block content%}
-  <div class="ui">
+  <div class="ui grid">
     {{screendata}}
+    <div class='ui row'>
+     <div class="left floated left aligned six wide column tmin"></div>
+     <div class="right floated right aligned six wide column tmax"></div>
+   </div>
   </div>
+
+
+
+
 
 <script>
 var tmin_local_time = moment.utc('{{tmin}}').toDate();
@@ -46,5 +52,7 @@ var tmax_local_time = moment.utc('{{tmax}}').toDate();
 tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
 $( ".tmax" ).html( tmax_local_time );
 </script>
+
+
 
 {%endblock%}
