@@ -850,8 +850,9 @@ class poms_service:
             res.append('<tr>')
             res.append('<td>%s</td>' % c.experiment)
             res.append('<td>%s' % c.name)
-            res.append('<a href="%s/campaign_sheet?campaign_id=%d&tmax=%s"><i class="external share icon"></i></a>' % ( self.path, c.campaign_id, tmaxs))
-            res.append('<a href="%s/campaign_time_bars?campaign_id=%d&tmax=%s"><i class="external graph icon"></i></a>' % ( self.path, c.campaign_id, tmaxs))
+            res.append('<a href="%s/campaign_sheet?campaign_id=%d&tmax=%s"><i class="external table icon" title="Campaign Spreadsheet"></i></a>' % ( self.path, c.campaign_id, tmaxs))
+            res.append('<a href="%s/campaign_time_bars?campaign_id=%d&tmax=%s"><i class="external tasks icon" title="Tasks in Campaign Time Bars"></i></a>' % ( self.path, c.campaign_id, tmaxs))
+            res.append('<a href="%s/campaign_info?campaign_id=%d"><i class="external info circle icon" title="Campaign Information"></i></a>' % ( self.path, c.campaign_id ))
             res.append('</td>')
             counts = self.job_counts(tmax = tmax, tdays = tdays, campaign_id = c.campaign_id)
             for k in counts.keys():
@@ -864,6 +865,15 @@ class poms_service:
         template = self.jinja_env.get_template('campaign_grid.html')
         return template.render(  screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path)
 
+    @cherrypy.expose
+    def campaign_info(self, campaign_id ):
+
+        c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        td =  cherrypy.request.db.query(TaskDefinition).filter(TaskDefinition.task_definition_id == c.task_definition_id ).first()
+
+        template = self.jinja_env.get_template('campaign_info.html')
+        return template.render(  campaign = c, taskdefinition = td, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path)
+        
     @cherrypy.expose
     def campaign_time_bars(self, campaign_id, tmin = None, tmax = None, tdays = 1):
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
