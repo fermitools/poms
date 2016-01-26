@@ -1,0 +1,170 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>POMS</title>
+
+    <style type="text/css">
+    div.scrollable {
+        width: 100%;
+        overflow-x: scroll;
+    }
+    div.scrollable table {
+        width: 300%;
+    }
+    </style>
+{%endblock%}
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="{{pomspath}}/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">Experiment Authorization</div>
+</div>
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+    Experiment Authorization
+</h1>
+{%endblock%}
+
+{%block subheader%}
+{%endblock%}
+
+{%block content%}
+
+<script type="text/javascript">
+function pop_confirm_modal() {
+    mod_form = $("#confirm_modal").modal('show');  
+}
+
+function submit_exp_form() {
+  document.getElementById("exp_form").submit();
+}
+
+function pop_add_experiment_modal() {
+    mod_form = $("#add_experiment_modal").modal('show');  
+}
+</script>
+
+<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button"onclick="pop_add_experiment_modal()" >Add Experiment</div>
+<div class="ui hidden divider"></div>
+<form id="exp_form" class="ui form" action="experiment_authorize" method="POST">
+  <table class="ui celled table">
+    <thead>
+      <tr>
+	<th>Delete</th>
+	<th>Short Name</th>
+	<th>Full Name</th>
+      </tr>
+    </thead>
+    <tbody>
+     {% for row in experiments %}
+      <tr>
+	<td class="collapsing">
+	  {% if row.experiment != 'root' and row.experiment != 'public' %} 
+	  <div class="ui checkbox">
+	    <input type="checkbox" name="{{row.experiment}}">
+	    <label></label>
+	  </div>
+	  {% else %}
+	    &nbsp
+	  {% endif %}
+	</td>
+	<td>{{row.experiment}}</td>
+	<td>{{row.name}}</td>
+      </tr>
+     {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+	<th colspan="3">
+	  <input id="exp_btn_submit" type="button" class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" value="Submit" 
+                 onclick="pop_confirm_modal()">
+	</th>
+      </tr>
+    </tfoot>
+  </table>
+</form>
+
+<div class="ui modal" id="confirm_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Delete Experiment
+  </div>
+  <div class="image content">
+    <div class="image">
+      <i class="delete icon"></i>
+    </div>
+    <div class="description">
+      <div class="ui header">You want to delete the selected experiments?</div>
+    </div>
+  </div>
+  <div class="actions">
+    <div class="two fluid ui buttons">
+      <button class="ui red deny button">
+	No
+      </button>
+      <button id="approved_btn" class="ui positive right labeled icon button" onclick="submit_exp_form()">
+	<i class="checkmark icon"></i>
+	Yes
+      </button>
+    </div>
+  </div>
+</div> <!-- Ends Modal -->
+
+<div class="ui modal" id="add_experiment_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Add Experiment
+  </div>
+  <form id="add_form" class="ui form" action="experiment_authorize" method="POST">
+    <div class="two fields">
+      <div class="field">
+	<label></label>
+	<input type="text" name="experiment" placeholder="Short Name (max: 10 char)" maxlength="10">
+      </div>
+      <div class="field">
+	<label></label>
+	<input type="text" name="name" placeholder="Full Name">
+      </div>
+    </div>
+    <input type="submit" class="ui teal button" value="Submit">
+    <div class="ui hidden divider"></div>
+  </form>
+</div> <!-- Ends Modal -->
+
+<div class="ui modal" id="display_message_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Message
+  </div>
+    <div class="one field">
+      <div class="field">
+	<label>{{message}}</label>
+      </div>
+    </div>
+    <div class="ui hidden divider"></div>
+</div> <!-- Ends Modal -->
+
+<script>
+$('.ui.form')
+  .form({
+    fields: {
+      experiment : ['maxLength[10]', 'empty'],
+      name     : 'empty'
+    }
+  })
+;
+
+setTimeout(function(){
+  if ("{{ message }}" != "None") {
+    mod_form = $("#display_message_modal").modal('show');  
+  }
+}, 1000);
+
+
+</script>
+
+{%endblock%}
+

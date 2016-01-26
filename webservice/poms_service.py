@@ -7,9 +7,10 @@ from collections import OrderedDict
 
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func, exc, distinct
 from sqlalchemy.orm  import subqueryload, contains_eager
+from sqlalchemy.orm.exc import NoResultFound
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
-from model.poms_model import Service, ServiceDowntime, Experimenter, Job, JobHistory, Task, TaskDefinition, TaskHistory, Campaign
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, Job, JobHistory, Task, TaskDefinition, TaskHistory, Campaign
 
 ZERO = timedelta(0)
 
@@ -363,6 +364,44 @@ class poms_service:
         template = self.jinja_env.get_template('raw_tables.html')
         return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
         
+    @cherrypy.expose
+    def experiment_edit(self, message=None):
+        experiments = cherrypy.request.db.query(Experiment).order_by(Experiment.experiment)
+        template = self.jinja_env.get_template('experiment_edit.html')
+        return template.render(message=message, experiments=experiments, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
+        
+    @cherrypy.expose
+    def experiment_authorize(self, *args, **kwargs):
+        if not self.can_db_admin():
+             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
+
+        message = None
+        # Add new experiment, if any
+        try:
+            experiment = kwargs.pop('experiment')
+            name = kwargs.pop('name')
+            try:
+                cherrypy.request.db.query(Experiment).filter(Experiment.experiment==experiment).one()
+                message = "Experiment, %s,  already exists." % experiment
+            except NoResultFound:
+                exp = Experiment(experiment=experiment, name=name)
+                cherrypy.request.db.add(exp)
+                cherrypy.request.db.commit()
+        except KeyError:
+            pass
+        # Delete experiment(s), if any were selected
+        try:
+            experiment = None
+            for experiment in kwargs:
+                cherrypy.request.db.query(Experiment).filter(Experiment.experiment==experiment).delete()
+                pass
+            cherrypy.request.db.commit()
+        except:
+            cherrypy.request.db.rollback()
+            message = "The experiment, %s, is used and may not be deleted." % experiment
+
+        return self.experiment_edit(message)
+
     @cherrypy.expose
     def list_generic(self, classname):
         if not self.can_db_admin():
