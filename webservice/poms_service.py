@@ -7,9 +7,10 @@ from collections import OrderedDict
 
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func, exc, distinct
 from sqlalchemy.orm  import subqueryload, contains_eager
+from sqlalchemy.orm.exc import NoResultFound
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
-from model.poms_model import Service, ServiceDowntime, Experimenter, Job, JobHistory, Task, TaskDefinition, TaskHistory, Campaign
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, Job, JobHistory, Task, TaskDefinition, TaskHistory, Campaign
 
 ZERO = timedelta(0)
 
@@ -304,8 +305,8 @@ class poms_service:
 		      <i class="dropdown icon"></i>
                       <button class="ui button %s tbox_delayed" data-content="%s" data-variation="basic">
                          %s (%d/%d)
+                         <i class="icon %s"></i>
                        </button>
-                       <i class="icon %s"></i>
                      </div>
                      <div  class="content %s">
                          <a target="_blank" href="%s">
@@ -319,9 +320,9 @@ class poms_service:
                     <div class="title %s">
 		      <i class="dropdown icon"></i>
                       <button class="ui button %s tbox_delayed" data-content="%s" data-variation="basic">
-                        %s (%d/%d)
-                      </button>
+                       %s (%d/%d)
                       <i class="icon %s"></i>
+                      </button>
                     </div>
                     <div class="content %s">
                       <p>components:</p>
@@ -363,6 +364,44 @@ class poms_service:
         template = self.jinja_env.get_template('raw_tables.html')
         return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
         
+    @cherrypy.expose
+    def experiment_edit(self, message=None):
+        experiments = cherrypy.request.db.query(Experiment).order_by(Experiment.experiment)
+        template = self.jinja_env.get_template('experiment_edit.html')
+        return template.render(message=message, experiments=experiments, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
+        
+    @cherrypy.expose
+    def experiment_authorize(self, *args, **kwargs):
+        if not self.can_db_admin():
+             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
+
+        message = None
+        # Add new experiment, if any
+        try:
+            experiment = kwargs.pop('experiment')
+            name = kwargs.pop('name')
+            try:
+                cherrypy.request.db.query(Experiment).filter(Experiment.experiment==experiment).one()
+                message = "Experiment, %s,  already exists." % experiment
+            except NoResultFound:
+                exp = Experiment(experiment=experiment, name=name)
+                cherrypy.request.db.add(exp)
+                cherrypy.request.db.commit()
+        except KeyError:
+            pass
+        # Delete experiment(s), if any were selected
+        try:
+            experiment = None
+            for experiment in kwargs:
+                cherrypy.request.db.query(Experiment).filter(Experiment.experiment==experiment).delete()
+                pass
+            cherrypy.request.db.commit()
+        except:
+            cherrypy.request.db.rollback()
+            message = "The experiment, %s, is used and may not be deleted." % experiment
+
+        return self.experiment_edit(message)
+
     @cherrypy.expose
     def list_generic(self, classname):
         if not self.can_db_admin():
@@ -593,7 +632,15 @@ class poms_service:
 
          if j:
 	     cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1)) 
+             if kwargs.get('output_files_declared', None) == "True":
+                 if j.status == "Completed":
+                     j.output_files_declared = True
+                     j.status = "Located"
+
 	     for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
+                 if field == 'status' and j.status == "Located":
+                     # stick at Located, don't roll back to Completed,etc.
+                     continue
 		 if kwargs.get(field, None):
 		    setattr(j,field,kwargs[field].rstrip("\n"))
 		 if not getattr(j,field, None):
@@ -606,11 +653,6 @@ class poms_service:
 		 if kwargs.get("task_%s" % field, None) and j.task_obj:
 		    setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
                   
-             if kwargs.get('output_files_declared', None) == "True":
-                 if j.status == "Completed":
-                     j.output_files_declared = True
-                     j.status = "Located"
-
              if kwargs.get('output_file_names', None):
                  cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
                  if j.output_file_names:
@@ -674,9 +716,9 @@ class poms_service:
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ):
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=' % task_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=%s' % task_id)
 
-        jl = cherrypy.request.db.query(JobHistory,Job).filter(Job.job_id == JobHistory.job_id, Job.task_id==task_id, JobHistory.created >= tmin, JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
+        jl = cherrypy.request.db.query(JobHistory,Job).filter(Job.job_id == JobHistory.job_id, Job.task_id==task_id, JobHistory.created >= tmin - timedelta(hours=4), JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = time_grid.time_grid()
 	class fakerow:
 	    def __init__(self, **kwargs):
@@ -689,13 +731,13 @@ class poms_service:
 		jjid= 'j' + str(jh.job_id)
 
 	    items.append(fakerow(job_id = jh.job_id,
-				  created = jh.created,
+				  created = jh.created.replace(tzinfo=utc),
 				  status = jh.status,
 				  jobsub_job_id = jjid))
 
         screendata = self.format_job_counts(task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
         key = tg.key(fancy=1)
-        screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+str(tmin).split('+')[0])         
+        screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins)         
 
         template = self.jinja_env.get_template('job_grid.html')
         return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, key = key, pomspath=self.path)
@@ -748,20 +790,28 @@ class poms_service:
             tmin, tmax, and string versions, and next ane previous links
             and a string describing the date range.  Use everywhere.
         """
-        if tdays == None:  # default to today
+
+        # set a flag to remind us to set tdays from max and min if
+        # they are both set coming in.
+        set_tdays =  tmax != None and tmin != None
+          
+
+        if tdays == None:  # default to one day
             tdays = 1
 
         if tmax == None:
+            # if we're not given a max, pick now
             tmax = datetime.now(utc)
         elif isinstance(tmax, basestring):
-            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
-
+            tmax = datetime.strptime(tmax[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
+        
         tdays = float(tdays)
 
         if tmin == None:
             tmin = tmax - timedelta(days = tdays)
+
         elif isinstance(tmin, basestring):
-            tmin = datetime.strptime(tmin, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
+            tmin = datetime.strptime(tmin[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
 
         tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
         tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
@@ -773,6 +823,14 @@ class poms_service:
         # it here.
         plural =  's' if tdays > 1.0 else ''
         tranges = '%d day%s ending <span class="tmax">%s</span>' % (tdays, plural, tmaxs)
+
+        # redundant, but trying to rule out tz woes here...
+        tmin = tmin.replace(tzinfo = utc)
+        tmax = tmax.replace(tzinfo = utc)
+
+        if set_tdays:
+            # if we're given tmax and tmin, compute tdays
+            tdays = (tmax - tmin).total_seconds() / 86400.0
 
         return tmin,tmax,tmins,tmaxs,nextlink,prevlink,tranges
 
@@ -808,7 +866,7 @@ class poms_service:
 
     @cherrypy.expose
     def campaign_time_bars(self, campaign_id, tmin = None, tmax = None, tdays = 1):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaing_id=%s&'% campaign_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
 
         tg = time_grid.time_grid()
 
@@ -824,19 +882,20 @@ class poms_service:
         cp = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
         name = cp.name
 
-        cl = cherrypy.request.db.query(Campaign).join(Task).filter(Campaign.campaign_id == campaign_id, Task.campaign_id == Campaign.campaign_id , Task.created > tmin, Task.created < tmax ).all()
+        cl = cherrypy.request.db.query(Campaign).join(Task).filter(Campaign.campaign_id == campaign_id, Task.campaign_id == Campaign.campaign_id , Task.created > tmin - timedelta(hours= 12), Task.created < tmax ).all()
         
         for c in cl:
               sl.append('<h2 class="ui row dividing header">%s Tasks' % c.name )
               sl.append('</h2>' )
               sl.append('<div class="ui row">')
-              sl.append(self.format_job_counts(campaign_id = c.campaign_id))
+              sl.append(self.format_job_counts(campaign_id = c.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string))
               sl.append('</div>')
 	      sl.append('<div class="ui row">')
+              sl.append('<b>Key</b>')
 	      sl.append(key)
 	      sl.append('</div>')
 
-              qr = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == c.campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin, Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
+              qr = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == c.campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin - timedelta(hours=12), Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
               items = []
               for th in qr:
                   jjid = self.task_min_job(th.task_id)
@@ -845,7 +904,7 @@ class poms_service:
                   else:
                       jjid = jjid.replace('fifebatch','').replace('.fnal.gov','')
                   items.append(fakerow(task_id = th.task_id,
- 					created = th.created,
+ 					created = th.created.replace(tzinfo = utc),
  					status = th.status,
                  			jobsub_job_id = jjid))
 
@@ -960,6 +1019,11 @@ class poms_service:
             extra = extra + "with keyword %s" % keyword
             filtered_fields['keyword'] = keyword
 
+        if task_id:
+            q = q.filter( Task.task_id == int(task_id))
+            extra = extra + "in task id %s" % task_id
+            filtered_fields['task_id'] = task_id
+
         if campaign_id:
             q = q.filter( Task.campaign_id == int(campaign_id))
             extra = extra + "in campaign id %s" % campaign_id
@@ -997,10 +1061,6 @@ class poms_service:
         if project:
             q = q.filter(Task.project == project)
             filtered_fields['project'] = project
-
-        if jobsub_job_id:
-            q = q.filter(Job.task_id == task_id)
-            filtered_fields['task_id'] = task_id
 
         if jobsub_job_id:
             q = q.filter(Job.jobsub_job_id == jobsub_job_id)
@@ -1109,24 +1169,11 @@ class poms_service:
 
 
     @cherrypy.expose
-    def campaign_sheet(self, campaign_id, tmax = None , tdays = 14):
+    def campaign_sheet(self, campaign_id, tmin = None, tmax = None , tdays = 14):
 
         daynames=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"]
 
-        if tmax == None:
-            tmax = datetime.now(utc)
-        else:
-            tmax = datetime.strptime(tmax, "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
-        tdays = int(tdays)
-        tmin = tmax - timedelta(days = tdays+1)  # extra day, see below...
-
-        tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
-        tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
-        tmins =  tmin.strftime("%Y-%m-%d %H:%M:%S")
-        tmaxs =  tmax.strftime("%Y-%m-%d %H:%M:%S")
-        prevlink="%s/campaign_sheet?campaign_id=%s&tmax=%s&tdays=%d" % (self.path, campaign_id,tsprev, tdays)
-        nextlink="%s/campaign_sheet?campaign_id=%s&tmax=%s&tdays=%d" % (self.path, campaign_id,tsnext, tdays)
-
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'campaign_sheet?campaign_id=%s' % campaign_id)
 
         tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id , Task.created > tmin, Task.created < tmax ).order_by(desc(Task.created)).all()
         el = cherrypy.request.db.query(distinct(Job.user_exe_exit_code)).filter(Job.updated >= tmin, Job.updated <= tmax).all()
@@ -1141,6 +1188,7 @@ class poms_service:
         date = None
         first = 1
         columns = ['day','date','requested files','delivered files','jobs','failed','outfiles','pending']
+        exitcodes.sort()
 	for e in exitcodes:
             columns.append('exit(%d)'%e)
         outrows = []
@@ -1152,7 +1200,7 @@ class poms_service:
                      # add a row to the table on the day boundary
                      outrow = []
                      outrow.append(daynames[day])
-                     outrow.append(date.isoformat())
+                     outrow.append(date.isoformat()[:10])
                      outrow.append(str(totfiles if totfiles > 0 else infiles))
                      outrow.append(str(totdfiles))
                      outrow.append(str(totjobs))

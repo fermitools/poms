@@ -38,7 +38,7 @@ class time_grid:
               		"running: user code failed"]
 
           for s in list:
-              res.append( "<div style='float:left; width:20em'><span style='min-width:3em; background: %s'>&nbsp;&nbsp;</span>%s</div>" % (self.status_color(s), s))
+              res.append( "<div style='float:left; width:10em'><span style='min-width:3em; background: %s'>&nbsp;&nbsp;</span>%s</div>" % (self.status_color(s), s))
           res.append('</div>')
           return '\n'.join(res)
              
@@ -85,7 +85,7 @@ class time_grid:
           if str.find("idle") >= 0:
               return "#888888"
           if str.find("Completed") >= 0:
-              return "#eeeeee"
+              return "#f0f0f0"
           if str.find("Located") >= 0:
               return "#f8f8f8"
           return "#ffffff"
@@ -95,7 +95,10 @@ class time_grid:
              t0 = tmin
           if t1 > tmax:
              t1 = tmax
-          return (t1 - t0).total_seconds() * 95.0 / (self.tdelta.total_seconds())
+          d1 = (t1 - t0)
+          d2 = (tmax - tmin)
+          pw = d1.total_seconds() * 100.0 / d2.total_seconds()
+          return pw
 
      def add_time_data(self, tmin, tmax, dlistmap):
           self.tmin = tmin
@@ -104,16 +107,18 @@ class time_grid:
           self.pmap = {}
           for id,dlist in dlistmap.items():
               plist = []
-              if dlist[0]['time'] > self.tmin:
+              # somehow this if is never false?!?
+              # if dlist[0]['time'] > self.tmin:
+              if int(dlist[0]['time'].strftime("%s")) > int(self.tmin.strftime("%s")):
                   plist.append( {'width': self.pwidth(self.tmin, dlist[0]['time'],tmin, tmax),
                              'color': '', 'txt': '', 'url': ''})
-                  stime = dlist[0]['time']
                   i = 0
               else:
                   i = 0 
                   while i < len(dlist) and dlist[i]['time'] < self.tmin:
                      i = i + 1
-                  plist.append({ 'width': self.pwidth(self.tmin, dlist[i-1]['time'],tmin, tmax),
+                  if i < len(dlist):
+                      plist.append({ 'width': self.pwidth(self.tmin, dlist[i]['time'],tmin, tmax),
                                 'color': self.status_color(dlist[i-1]['status']),
                                 'txt': dlist[i-1]['txt'],
                                 'url': dlist[i-1]['url']})
@@ -163,18 +168,20 @@ class time_grid:
      def draw_boxes(self):
          #self.min_box_sizes()
          rlist = []
-         for id,plist in self.pmap.items():
+         displaylist = self.pmap.items()
+         displaylist.sort(key=lambda x: x[0])
+         for id,plist in displaylist:
              if len(plist) == 0:
                  continue
              rlist.append("""
                <div class='row' style='margin:0px 0px; padding:0px 0px;'>
                  <div class='mwm_label' style='text-align: right; width: 11%%; float:left; padding: 5px 5px; border-right: 1px solid black; '>%s</div>
-                   <div clas='mwm_rowdata'  style='width: 84%%; float:left; clear: right; border-right: 1px solid black; padding: 5px 0px'>
+                   <div clas='mwm_rowdata'  style='position: relative; width: 88%%; float:left; clear: right; border-right: 1px solid black; border-left: 1px solid black; padding: 5px 0px'>
                 """ % id)
              for p in plist:
                  rlist.append("""
                        <a href='%s'>
-                         <div class='tbox' data-content='%s' data-variation="very wide" style='width: %d%%; background-color: %s !important; float:left; '>
+                         <div class='tbox' data-content='%s' data-variation="very wide" style='width: %f%%; background-color: %s !important; float:left; '>
                            &nbsp;
                          </div>
                        </a>

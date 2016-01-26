@@ -76,7 +76,7 @@ class declared_files_watcher:
                       pass
                      
              if all_located:
-                 self.job_reporter.report_status(jobsub_job_id,output_files_declared = "True")
+                 self.job_reporter.report_status(jobsub_job_id,output_files_declared = "True",status="Located")
 
          self.call_wrapup_tasks()
 
