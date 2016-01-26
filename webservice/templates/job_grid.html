@@ -32,13 +32,14 @@
 
 
 {%block content%}
-  <div class="ui grid">
+  <div class="ui">
     {{screendata}}
-    <div class=row>
-     <div class="left floated left aligned six wide column">{{tmin}}</div>
-     <div class="right floated right aligned six wide column">{{tmax}}</div>
+    <div style="width: 100%">
+     <div style="float:left;">{{tmin}}</div>
+     <div style="float:right;">{{tmax}}</div>
+   </div>
    </div>
   </div>
-  <h4>Key</h4>
+  <h4 style="clear: both;">Key</h4>
   {{key}}
 {%endblock%}
