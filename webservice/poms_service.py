@@ -593,7 +593,15 @@ class poms_service:
 
          if j:
 	     cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1)) 
+             if kwargs.get('output_files_declared', None) == "True":
+                 if j.status == "Completed":
+                     j.output_files_declared = True
+                     j.status = "Located"
+
 	     for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
+                 if field == 'status' and j.status == "Located":
+                     # stick at Located, don't roll back to Completed,etc.
+                     continue
 		 if kwargs.get(field, None):
 		    setattr(j,field,kwargs[field].rstrip("\n"))
 		 if not getattr(j,field, None):
@@ -606,11 +614,6 @@ class poms_service:
 		 if kwargs.get("task_%s" % field, None) and j.task_obj:
 		    setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
                   
-             if kwargs.get('output_files_declared', None) == "True":
-                 if j.status == "Completed":
-                     j.output_files_declared = True
-                     j.status = "Located"
-
              if kwargs.get('output_file_names', None):
                  cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
                  if j.output_file_names:
@@ -849,6 +852,7 @@ class poms_service:
               sl.append(self.format_job_counts(campaign_id = c.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string))
               sl.append('</div>')
 	      sl.append('<div class="ui row">')
+              sl.append('<b>Key</b>')
 	      sl.append(key)
 	      sl.append('</div>')
 
@@ -1145,6 +1149,7 @@ class poms_service:
         date = None
         first = 1
         columns = ['day','date','requested files','delivered files','jobs','failed','outfiles','pending']
+        exitcodes.sort()
 	for e in exitcodes:
             columns.append('exit(%d)'%e)
         outrows = []
@@ -1156,7 +1161,7 @@ class poms_service:
                      # add a row to the table on the day boundary
                      outrow = []
                      outrow.append(daynames[day])
-                     outrow.append(date.isoformat())
+                     outrow.append(date.isoformat()[:10])
                      outrow.append(str(totfiles if totfiles > 0 else infiles))
                      outrow.append(str(totdfiles))
                      outrow.append(str(totjobs))

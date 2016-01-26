@@ -45,7 +45,7 @@
       <tr>
          {%for col in range(0, columns|count) %}
             {% if columns[col][:4] == 'exit' %}
-              <td><a href="{{pomspath}}/job_table?exitcode={{columns[col][5:-1]}}&tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
+              <td><a href="{{pomspath}}/job_table?user_exe_exit_code={{columns[col][5:-1]}}&tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
             {% elif columns[col][:4] == 'jobs' %}
               <td><a href="{{pomspath}}/job_table?tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
             {% else %}

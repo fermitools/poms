@@ -38,7 +38,7 @@ class time_grid:
               		"running: user code failed"]
 
           for s in list:
-              res.append( "<div style='float:left; width:20em'><span style='min-width:3em; background: %s'>&nbsp;&nbsp;</span>%s</div>" % (self.status_color(s), s))
+              res.append( "<div style='float:left; width:10em'><span style='min-width:3em; background: %s'>&nbsp;&nbsp;</span>%s</div>" % (self.status_color(s), s))
           res.append('</div>')
           return '\n'.join(res)
              
