@@ -35,6 +35,10 @@
             <script src='{{pomspath}}/static/js/moment-timezone.min.js'></script>
             <script src='{{pomspath}}/static/js/moment-timezone-with-data.js'></script>
             <script src='{{pomspath}}/static/js/fullcalendar.min.js'></script>
+
+
+            <script src='{{pomspath}}/static/js/jquery-ui.js'></script>
+            <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/datepicker.css">
     </head>
     
     
@@ -298,6 +302,8 @@ function validateQuickSearchForm()
                             <div class="introduction">
                                 {%block breadcrumbs%} {%endblock%}                                
                                 {%block header%} {%endblock%}
+
+                                {% include 'datepicker_block.html' %}
                             </div>
 
                         </div>
