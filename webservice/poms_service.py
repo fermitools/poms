@@ -843,8 +843,32 @@ class poms_service:
 
         res = []
         res.append( '<table class="ui celled table unstackable">')
-        res.append( '<tr><th colspan=2></th><th colspan=3>Active Jobs</th><th colspan=2>Jobs in %s</th></tr>' % time_range_string),
-        res.append( '<tr><th>Exp</th><th>Name</th><th>Idle</th><th>Running</th><th>Held</th><th>Completed</th><th>Located</th></tr>')
+        res.append( '<tr><th colspan=2> Campaign ')
+        res.append( '<a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Campaign"><i style="float: none" class="grey help circle link icon"></i></a>')
+        res.append( '</th>')
+        res.append( '<th colspan=3>Active Jobs')
+        res.append( '</th>')
+        res.append( '<th colspan=2>Jobs in %s</th></tr>' % time_range_string),
+        res.append( '<tr><th>Experiment')
+        res.append( '</th>')
+        res.append( '<th>Name')
+        res.append( '</th>')
+        res.append( '<th>Idle')
+        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
+        res.append( '</th>')
+        res.append( '<th>Running')
+        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
+        res.append( '</th>')
+        res.append( '<th>Held')
+        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
+        res.append( '</th>')
+        res.append( '<th>Completed')
+        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
+        res.append( '</th>')
+        res.append( '<th>Located')
+        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
+        res.append( '</th>')
+        res.append( '</tr>')
 
         for c in cl:
             res.append('<tr>')
@@ -1004,6 +1028,9 @@ class poms_service:
 
         out = OrderedDict([("Idle",0),( "Running",0),( "Held",0),( "Completed",0), ("Located",0)])
         for row in  q.all():
+            # this rather bizzare hoseyness is because we want
+            # "Running" to also match "running: copying files in", etc.
+            # so we ignore the first character and do a match
             if row[1][1:7] == "unning":
                 short = "Running"
             else:
@@ -1089,7 +1116,11 @@ class poms_service:
             filtered_fields['host_site'] = host_site
 
         if job_status:
-            q = q.filter(Job.status == job_status)
+            # this rather bizzare hoseyness is because we want
+            # "Running" to also match "running: copying files in", etc.
+            # so we ignore the first character and do a "like" match
+            # on the rest...
+            q = q.filter(Job.status.like('%' + job_status[1:] + '%'))
             filtered_fields['job_status'] = job_status
 
         if user_exe_exit_code:

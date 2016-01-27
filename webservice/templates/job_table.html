@@ -260,18 +260,25 @@ $( "#search_button" ).click(function() {
        <th class="">info</th>
       {% else %}
         {% if not col in hidecolumns %}
-         <th class="">{{col|replace("_","<br>")}}</th>
+         <th class="">{{col|replace("_","<br>")}}
+<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/JobTableHelp#{{col|replace('_','-')}}"><i class="small icon grey help circle link"></i></a>
+
+         </th>
         {% endif %}
       {% endif %}
     {%endfor%}
     {%for col in taskcolumns%}
       {% if not col in hidecolumns %}
-       <th class="">{{col|replace("_","<br>")}}</th>
+       <th class="">{{col|replace("_","<br>")}}
+<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/JobTableHelp#{{col|replace('_','-')}}"><i class="small icon grey help circle link"></i></a>
+       </th>
       {% endif %}
     {%endfor%}
     {%for col in campcolumns%}
       {% if not col in hidecolumns %}
-       <th class="">{{col|replace("_","<br>")}}</th>
+       <th class="">{{col|replace("_","<br>")}}
+<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/JobTableHelp#{{col|replace('_','-')}}"><i class="small icon grey help circle link"></i></a>
+       </th>
       {% endif %}
     {%endfor%}
     </tr>

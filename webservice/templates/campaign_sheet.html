@@ -36,7 +36,17 @@
   <thead>
     <tr>
     {%for col in columns%}
-       <th class="">{{col}}</th>
+       <th class="">
+         {% if col[:4] == 'exit' %}
+             {% if col|length > 8  %}
+                {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit_signal"><i class="small icon grey help circle  link"></i>
+             {% else  %}
+                {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit"><i class="small icon grey help circle link"></i>
+             {% endif %}
+         {% else %}
+             {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#{{col|replace(' ','_')}}"><i class="small icon grey help circle link"></i>
+         {% endif %}
+       </th>
     {%endfor%}
     </tr>
   </thead>
