@@ -27,7 +27,7 @@ class time_grid:
           return result
 
      def key(self, fancy = 0):
-          res = ['<div style="border: 1px solid black">']
+          res = ['<div style="border: 1px solid black; padding: 0.5em;">']
           list = [ "new", "Idle", "Held", "Running", "Completed", "Located"]
           if fancy:
                 list = list + ["running: user code",
