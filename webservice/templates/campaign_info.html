@@ -1,0 +1,48 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>POMS:Campaign {{campaign.name}}</title>
+{%endblock%}
+
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="{{pomspath}}/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">Campaigns</div>
+  <div class="section">{{campaign.name}}</div>
+</div>
+{%endblock%}
+
+
+{%block header%}
+<h1 class="ui header">
+     Campaigns
+</h1>
+{%endblock%}
+
+{%block subheader%}
+<h2 class="ui dividing header">Campaign {{campaign.name}}</h2>
+{%endblock%}
+
+
+{%block content%}
+  <div class="ui">
+    <h3>campaign</h3>
+
+    <b>name</b>: {{campaign.name}}<br>
+    <b>experiment</b>: {{campaign.experiment}}<br>
+    <b>created</b>: {{campaign.created}}<br>
+    <b>vo_role</b>: {{campaign.vo_role}}<br>
+    <b>cs_split_type</b>: {{campaign.cs_split_type}}<br>
+    <b>cs_split_dimensions</b>: {{campaign.cs_split_dimensions}}<br>
+
+    <h3>taskdefinition</h3>
+
+    <b>name</b>: {{taskdefinition.name}}<br>
+    <b>experiment</b>: {{taskdefinition.experiment}}<br>
+    <b>created</b>: {{taskdefinition.created}}<br>
+    <b>launch_script</b>: {{taskdefinition.launch_script}}<br>
+    <b>definition_parameters</b>: {{taskdefinition.definition_parameters}}<br>
+  </div>
+{%endblock%}
