@@ -1,3 +1,4 @@
+<div id="global_datepicker_container" style="display:none">
 <br/>
 <div class="ui small basic icon buttons">
  <button class="ui button" id="opener"><i class="calendar icon"></i></button>
@@ -59,8 +60,10 @@ if ( $( "#datepicker_content" ).is( ":hidden" ) ) {
             showOtherMonths: true,
             dayNamesMin: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
             dateFormat: "yy-mm-dd",
+            constrainInput: true
         });
   });
 </script>
 
 
+</div>
