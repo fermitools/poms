@@ -21,11 +21,17 @@
     Jobs by Exitcode
 </h1>
 <div class="ui subheader">
-Jobs by exitcode for {{time_range_string}}
+<!-- Jobs by exitcode for {{time_range_string}} -->
+    <div class="ui basic label">
+      <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
+    </div>
 </div>
 
+
+<br/>
 <a href="{{prev}}">&lt;previous {{days}} days</a> | 
 <a href="{{next}}">next {{days}} days &gt;</a>
+<br/>
 {%endblock%}
 
 
@@ -61,6 +67,21 @@ Jobs by exitcode for {{time_range_string}}
     {%endfor%}
   </tbody>
 </table>
+
+
+
+
+
+<script>
+
+var tmin_local_time = moment.utc('{{tmin}}').toDate();
+tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmin" ).html( tmin_local_time );
+var tmax_local_time = moment.utc('{{tmax}}').toDate();
+tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmax" ).html( tmax_local_time );
+
+</script>
 
 
 
