@@ -29,21 +29,23 @@ class UTC(tzinfo):
 utc = UTC()
 
 def error_response():
-# We should be able to make a better page for errors with this handle
-# see sams exc.error_response
-#    typ, value, trace = sys.exc_info()
-#    for typ, handler in default_error_map.iteritems():
-#        if isinstance(value, typ):
-#            do stuff 
-    dump = cherrypy._cperror.format_exc()
-    message = '<html><body><b><hl>POMS -- Krash!</h1></b><br><br>Make some nice page for this. <br><br>'
-    message = "%s%s" % (message, '<br>%s<br><pre>%s</pre></body></html>' % (cherrypy.url(), dump.replace('\n','<br/>') ))
+    dump = ""
+    if cherrypy.config.get("dump",True):
+        dump = cherrypy._cperror.format_exc()
+    message = dump.replace('\n','<br/>')
+
+    jinja_env = Environment(loader=PackageLoader('webservice','templates'))
+    template = jinja_env.get_template('error_response.html')
+    path = cherrypy.config.get("pomspath","/poms")
+    body = template.render(current_experimenter=cherrypy.session.get('experimenter'),message=message,pomspath=path,dump=dump)
+
     cherrypy.response.status = 500
     cherrypy.response.headers['content-type'] = 'text/html'
-    cherrypy.response.body = [message]
+    cherrypy.response.body = body
     cherrypy.log(dump)
 
 class poms_service:
+
     
     _cp_config = {'request.error_response': error_response,
                   'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()),'/templates/page_not_found.html')
@@ -54,8 +56,7 @@ class poms_service:
         self.make_admin_map()
         self.task_min_job_cache = {}
         self.path = cherrypy.config.get("pomspath","/poms")
-
-
+    
     @cherrypy.expose
     def headers(self):
         return repr(cherrypy.request.headers)

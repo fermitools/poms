@@ -1,0 +1,63 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>POMS</title>
+
+    <style type="text/css">
+    div.scrollable {
+        width: 100%;
+        overflow-x: scroll;
+    }
+    div.scrollable table {
+        width: 300%;
+    }
+    </style>
+{%endblock%}
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="{{pomspath}}/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">OOPS!</div>
+</div>
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+    OOPS!
+</h1>
+{%endblock%}
+
+{%block subheader%}
+{%endblock%}
+
+{%block content%}
+<div class="ui" id="oops">
+  <div class="ui label">
+   <i class="huge frown icon"></i>   
+   Unknown Error
+  </div>
+  <div class="ui hidden divider"></div>
+    <div class="one field">
+      <div class="field">
+	<label>An internal error occurred, data has been logged. Please report the occurrance to POMS administrators.</label>
+      </div>
+    </div>
+    {% if dump != "" %}
+    <div class="ui hidden divider"></div>
+    <div class="one field">
+      <div class="field">
+	<label>{{message}}</label>
+      </div>
+    </div>
+    <div class="ui hidden divider"></div>
+    <div class="one field">
+      <div class="field">
+	<label>Developers: the displayed stack trace can be stopped by setting dump = false in poms.ini.  It will still appear in the log.</label>
+      </div>
+    </div>
+    {% endif %}
+    <div class="ui hidden divider"></div>
+</div> 
+{%endblock%}
+
