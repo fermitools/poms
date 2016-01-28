@@ -633,7 +633,15 @@ class poms_service:
 
          if j:
 	     cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1)) 
+             if kwargs.get('output_files_declared', None) == "True":
+                 if j.status == "Completed":
+                     j.output_files_declared = True
+                     j.status = "Located"
+
 	     for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
+                 if field == 'status' and j.status == "Located":
+                     # stick at Located, don't roll back to Completed,etc.
+                     continue
 		 if kwargs.get(field, None):
 		    setattr(j,field,kwargs[field].rstrip("\n"))
 		 if not getattr(j,field, None):
@@ -646,11 +654,6 @@ class poms_service:
 		 if kwargs.get("task_%s" % field, None) and j.task_obj:
 		    setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
                   
-             if kwargs.get('output_files_declared', None) == "True":
-                 if j.status == "Completed":
-                     j.output_files_declared = True
-                     j.status = "Located"
-
              if kwargs.get('output_file_names', None):
                  cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
                  if j.output_file_names:
@@ -841,15 +844,40 @@ class poms_service:
 
         res = []
         res.append( '<table class="ui celled table unstackable">')
-        res.append( '<tr><th colspan=2></th><th colspan=3>Active Jobs</th><th colspan=2>Jobs in %s</th></tr>' % time_range_string),
-        res.append( '<tr><th>Exp</th><th>Name</th><th>Idle</th><th>Running</th><th>Held</th><th>Completed</th><th>Located</th></tr>')
+        res.append( '<tr><th colspan=2> Campaign ')
+        res.append( '<a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Campaign"><i style="float: none" class="grey help circle link icon"></i></a>')
+        res.append( '</th>')
+        res.append( '<th colspan=3>Active Jobs')
+        res.append( '</th>')
+        res.append( '<th colspan=2>Jobs in %s</th></tr>' % time_range_string),
+        res.append( '<tr><th>Experiment')
+        res.append( '</th>')
+        res.append( '<th>Name')
+        res.append( '</th>')
+        res.append( '<th>Idle')
+        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
+        res.append( '</th>')
+        res.append( '<th>Running')
+        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
+        res.append( '</th>')
+        res.append( '<th>Held')
+        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
+        res.append( '</th>')
+        res.append( '<th>Completed')
+        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
+        res.append( '</th>')
+        res.append( '<th>Located')
+        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
+        res.append( '</th>')
+        res.append( '</tr>')
 
         for c in cl:
             res.append('<tr>')
             res.append('<td>%s</td>' % c.experiment)
             res.append('<td>%s' % c.name)
-            res.append('<a href="%s/campaign_sheet?campaign_id=%d&tmax=%s"><i class="external share icon"></i></a>' % ( self.path, c.campaign_id, tmaxs))
-            res.append('<a href="%s/campaign_time_bars?campaign_id=%d&tmax=%s"><i class="external graph icon"></i></a>' % ( self.path, c.campaign_id, tmaxs))
+            res.append('<a href="%s/campaign_sheet?campaign_id=%d&tmax=%s"><i class="external table icon" title="Campaign Spreadsheet"></i></a>' % ( self.path, c.campaign_id, tmaxs))
+            res.append('<a href="%s/campaign_time_bars?campaign_id=%d&tmax=%s"><i class="external tasks icon" title="Tasks in Campaign Time Bars"></i></a>' % ( self.path, c.campaign_id, tmaxs))
+            res.append('<a href="%s/campaign_info?campaign_id=%d"><i class="external info circle icon" title="Campaign Information"></i></a>' % ( self.path, c.campaign_id ))
             res.append('</td>')
             counts = self.job_counts(tmax = tmax, tdays = tdays, campaign_id = c.campaign_id)
             for k in counts.keys():
@@ -862,6 +890,15 @@ class poms_service:
         template = self.jinja_env.get_template('campaign_grid.html')
         return template.render(  screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path)
 
+    @cherrypy.expose
+    def campaign_info(self, campaign_id ):
+
+        c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        td =  cherrypy.request.db.query(TaskDefinition).filter(TaskDefinition.task_definition_id == c.task_definition_id ).first()
+
+        template = self.jinja_env.get_template('campaign_info.html')
+        return template.render(  campaign = c, taskdefinition = td, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path)
+        
     @cherrypy.expose
     def campaign_time_bars(self, campaign_id, tmin = None, tmax = None, tdays = 1):
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
@@ -889,6 +926,7 @@ class poms_service:
               sl.append(self.format_job_counts(campaign_id = c.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string))
               sl.append('</div>')
 	      sl.append('<div class="ui row">')
+              sl.append('<b>Key</b>')
 	      sl.append(key)
 	      sl.append('</div>')
 
@@ -991,6 +1029,9 @@ class poms_service:
 
         out = OrderedDict([("Idle",0),( "Running",0),( "Held",0),( "Completed",0), ("Located",0)])
         for row in  q.all():
+            # this rather bizzare hoseyness is because we want
+            # "Running" to also match "running: copying files in", etc.
+            # so we ignore the first character and do a match
             if row[1][1:7] == "unning":
                 short = "Running"
             else:
@@ -1076,7 +1117,11 @@ class poms_service:
             filtered_fields['host_site'] = host_site
 
         if job_status:
-            q = q.filter(Job.status == job_status)
+            # this rather bizzare hoseyness is because we want
+            # "Running" to also match "running: copying files in", etc.
+            # so we ignore the first character and do a "like" match
+            # on the rest...
+            q = q.filter(Job.status.like('%' + job_status[1:] + '%'))
             filtered_fields['job_status'] = job_status
 
         if user_exe_exit_code:
@@ -1185,6 +1230,7 @@ class poms_service:
         date = None
         first = 1
         columns = ['day','date','requested files','delivered files','jobs','failed','outfiles','pending']
+        exitcodes.sort()
 	for e in exitcodes:
             columns.append('exit(%d)'%e)
         outrows = []
@@ -1196,7 +1242,7 @@ class poms_service:
                      # add a row to the table on the day boundary
                      outrow = []
                      outrow.append(daynames[day])
-                     outrow.append(date.isoformat())
+                     outrow.append(date.isoformat()[:10])
                      outrow.append(str(totfiles if totfiles > 0 else infiles))
                      outrow.append(str(totdfiles))
                      outrow.append(str(totjobs))

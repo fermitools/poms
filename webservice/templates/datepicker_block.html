@@ -1,0 +1,69 @@
+<div id="global_datepicker_container" style="display:none">
+<br/>
+<div class="ui small basic icon buttons">
+ <button class="ui button" id="opener"><i class="calendar icon"></i></button>
+</div>
+
+
+
+<div id="datepicker_content" style="display: none;">
+
+<b>From:</b>
+</br>
+<div class="ui corner labeled input">
+      <input type="text" placeholder="" id="from_datepicker">
+      <div class="ui corner label">
+            <i class="calendar outline icon"></i>
+      </div>
+</div>
+<br/>
+
+<b>To:</b>
+</br>
+<div class="ui corner labeled input">
+      <input type="text" placeholder="" id="to_datepicker">
+      <div class="ui corner label">
+            <i class="calendar outline icon"></i>
+      </div>
+</div>
+
+<br/>
+<br/>
+<button class="ui teal small button">Go</button>
+
+</div>   <!--ends datepicker_content-->
+
+
+
+
+<script>
+$( "#opener" ).click(function() {
+
+if ( $( "#datepicker_content" ).is( ":hidden" ) ) {
+    $( "#datepicker_content" ).slideDown( "slow" );
+  } else {
+    $( "#datepicker_content").slideUp( "slow", function() {$( "#datepicker_content" ).hide();} );
+  }
+
+});
+</script>
+
+
+
+
+
+
+<script>
+  $(function() {
+    $( "#from_datepicker, #to_datepicker" ).datepicker({
+            inline: true,
+            showOtherMonths: true,
+            dayNamesMin: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            dateFormat: "yy-mm-dd",
+            constrainInput: true
+        });
+  });
+</script>
+
+
+</div>

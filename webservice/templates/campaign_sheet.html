@@ -36,7 +36,17 @@
   <thead>
     <tr>
     {%for col in columns%}
-       <th class="">{{col}}</th>
+       <th class="">
+         {% if col[:4] == 'exit' %}
+             {% if col|length > 8  %}
+                {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit_signal"><i class="small icon grey help circle  link"></i>
+             {% else  %}
+                {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit"><i class="small icon grey help circle link"></i>
+             {% endif %}
+         {% else %}
+             {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#{{col|replace(' ','_')}}"><i class="small icon grey help circle link"></i>
+         {% endif %}
+       </th>
     {%endfor%}
     </tr>
   </thead>
@@ -45,7 +55,7 @@
       <tr>
          {%for col in range(0, columns|count) %}
             {% if columns[col][:4] == 'exit' %}
-              <td><a href="{{pomspath}}/job_table?exitcode={{columns[col][5:-1]}}&tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
+              <td><a href="{{pomspath}}/job_table?user_exe_exit_code={{columns[col][5:-1]}}&tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
             {% elif columns[col][:4] == 'jobs' %}
               <td><a href="{{pomspath}}/job_table?tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
             {% else %}
@@ -57,4 +67,13 @@
   </tbody>
 </table>
 
+
+
+
+
+<script>
+$(function() {
+    $('#global_datepicker_container').show();
+});
+</script>
 {%endblock%}
