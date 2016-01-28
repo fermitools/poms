@@ -1,17 +1,18 @@
-<div id="global_datepicker_container" style="display:none">
-<br/>
+<div id="global_datepicker_container" style="display:none; padding-top:5px;">
+
+
 <div class="ui small basic icon buttons">
  <button class="ui button" id="opener"><i class="calendar icon"></i></button>
 </div>
 
 
-
 <div id="datepicker_content" style="display: none;">
-
+<form id="datepicker_form" action="">
 <b>From:</b>
 </br>
 <div class="ui corner labeled input">
       <input type="text" placeholder="" id="from_datepicker">
+      <input type="hidden" name="tmin" id="from_datepicker_to_send">
       <div class="ui corner label">
             <i class="calendar outline icon"></i>
       </div>
@@ -22,6 +23,7 @@
 </br>
 <div class="ui corner labeled input">
       <input type="text" placeholder="" id="to_datepicker">
+      <input type="hidden" name="tmax" id="to_datepicker_to_send">
       <div class="ui corner label">
             <i class="calendar outline icon"></i>
       </div>
@@ -29,10 +31,9 @@
 
 <br/>
 <br/>
-<button class="ui teal small button">Go</button>
-
+<button class="ui teal small button" id="form_submit_button">Go</button>
+</form>
 </div>   <!--ends datepicker_content-->
-
 
 
 
@@ -50,9 +51,6 @@ if ( $( "#datepicker_content" ).is( ":hidden" ) ) {
 
 
 
-
-
-
 <script>
   $(function() {
     $( "#from_datepicker, #to_datepicker" ).datepicker({
@@ -60,10 +58,58 @@ if ( $( "#datepicker_content" ).is( ":hidden" ) ) {
             showOtherMonths: true,
             dayNamesMin: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
             dateFormat: "yy-mm-dd",
-            constrainInput: true
+            constrainInput: false
         });
   });
 </script>
+
+
+
+<script>
+$( "#from_datepicker, #to_datepicker" ).change(function() {
+
+  if(  $(this).val().length == 10  )
+  {
+       $(this).val(  $(this).val() + 'T00:00:00'  );
+  }
+
+});
+
+</script>
+
+
+
+<script>
+$( "#form_submit_button" ).click(function(event) {
+  event.preventDefault();
+
+  var from_local_time = $('#from_datepicker').val();
+  var m_from_local_time_utc = moment(from_local_time).utc().format('YYYY-MM-DD HH:mm:ss');
+  //alert(m_from_local_time_utc);
+  if(m_from_local_time_utc == "Invalid date")
+  {
+     alert("Invalid date");
+     return;
+  }
+  $("#from_datepicker_to_send").val(m_from_local_time_utc);
+  
+  var to_local_time = $('#to_datepicker').val();
+  var m_to_local_time_utc = moment(to_local_time).utc().format('YYYY-MM-DD HH:mm:ss');
+  //alert(m_to_local_time_utc);
+  if(m_to_local_time_utc == "Invalid date")
+  {
+     alert("Invalid date");
+     return;
+  }
+  $("#to_datepicker_to_send").val(m_to_local_time_utc);
+
+
+  $( "#datepicker_form" ).submit();
+
+});
+
+</script>
+
 
 
 </div>
