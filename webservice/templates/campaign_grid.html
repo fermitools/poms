@@ -24,9 +24,14 @@
 
 
 {%block subheader%}
-<h2 class="ui dividing header">Active Campaigns for {{time_range_string}}</h2>
+<h2 class="ui dividing header">Active Campaigns <!--for {{time_range_string}}--></h2>
 <a href="{{prev}}">&lt;previous {{days}} days</a> | 
 <a href="{{next}}">next {{days}} days &gt;</a>
+
+<div class="ui basic label">
+  <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
+</div>
+
 {%endblock%}
 
 

@@ -840,7 +840,7 @@ class poms_service:
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
-        cl = cherrypy.request.db.query(Campaign).filter(Task.campaign_id == Campaign.campaign_id).order_by(Campaign.experiment).all()
+        cl = cherrypy.request.db.query(Campaign).filter(Task.campaign_id == Campaign.campaign_id, Campaign.active == True ).order_by(Campaign.experiment).all()
 
         res = []
         res.append( '<table class="ui celled table unstackable">')
@@ -879,7 +879,7 @@ class poms_service:
             res.append('<a href="%s/campaign_time_bars?campaign_id=%d&tmax=%s"><i class="external tasks icon" data-content="Tasks in Campaign Time Bars" data-variation="basic"></i></a>' % ( self.path, c.campaign_id, tmaxs))
             res.append('<a href="%s/campaign_info?campaign_id=%d"><i class="external info circle icon" data-content="Campaign Information" data-variation="basic"></i></a>' % ( self.path, c.campaign_id ))
             res.append('</td>')
-            counts = self.job_counts(tmax = tmax, tdays = tdays, campaign_id = c.campaign_id)
+            counts = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
             for k in counts.keys():
                 res.append('<td><a href="job_table?campaign_id=%s&job_status=%s">%d</a></td>' % (c.campaign_id, k, counts[k]))
             res.append("</tr>")
