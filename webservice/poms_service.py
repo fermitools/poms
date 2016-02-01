@@ -881,7 +881,7 @@ class poms_service:
             res.append('</td>')
             counts = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
             for k in counts.keys():
-                res.append('<td><a href="job_table?campaign_id=%s&job_status=%s">%d</a></td>' % (c.campaign_id, k, counts[k]))
+                res.append('<td><a href="job_table?campaign_id=%s&job_status=%s&tmin=%s&tmax=%s&tdays=%s">%d</a></td>' % (c.campaign_id, k, tmin, tmax, tdays, counts[k]))
             res.append("</tr>")
             
         res.append("</table>")
