@@ -183,3 +183,11 @@ class status_scraper():
 #ss = status_scraper("status_scraper.cfg", "http://fermicloud045.fnal.gov:8080/poms")
 ss = status_scraper("status_scraper.cfg", "http://localhost:8080/poms")
 ss.poll()
+
+notes = """
+<bel-kwinith>$ curl --data user=mengel --data password="xxxx" --cookie-jar /tmp/tcookies https://fifemon.fnal.gov/monitor/login
+{"message":"Logged in"}
+<bel-kwinith>$ curl --cookie /tmp/tcookies --data target=urls.samweb-nova.http-code --data from=-10min --data until=-5min --data format=json   https://fifemon.fnal.gov/monitor/api/datasources/proxy/1/render 
+[{"target": "urls.samweb-nova.http-code", "datapoints": [[200.0, 1454444100]]}]
+"""
+
