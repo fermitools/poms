@@ -134,9 +134,9 @@ class poms_service:
                 editable = 'false'
 
             if row.Service.name.lower().find("sam") != -1:
-                color = "#92D3F3"
+                color = "#73ADA2"
             elif row.Service.name.lower().find("fts") != -1:
-                color = "#92D3F3"
+                color = "#5D8793"
             elif row.Service.name.lower().find("dcache") != -1:
                 color = "#1BA8DD"
             elif row.Service.name.lower().find("enstore") != -1:
