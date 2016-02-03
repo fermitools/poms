@@ -134,9 +134,9 @@ class poms_service:
                 editable = 'false'
 
             if row.Service.name.lower().find("sam") != -1:
-                color = "#92D3F3"
+                color = "#73ADA2"
             elif row.Service.name.lower().find("fts") != -1:
-                color = "#92D3F3"
+                color = "#5D8793"
             elif row.Service.name.lower().find("dcache") != -1:
                 color = "#1BA8DD"
             elif row.Service.name.lower().find("enstore") != -1:
@@ -876,12 +876,12 @@ class poms_service:
             res.append('<td>%s</td>' % c.experiment)
             res.append('<td>%s' % c.name)
             res.append('<a href="%s/campaign_sheet?campaign_id=%d&tmax=%s"><i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i></a>' % ( self.path, c.campaign_id, tmaxs))
-            res.append('<a href="%s/campaign_time_bars?campaign_id=%d&tmax=%s"><i class="external tasks icon" data-content="Tasks in Campaign Time Bars" data-variation="basic"></i></a>' % ( self.path, c.campaign_id, tmaxs))
+            res.append('<a href="%s/campaign_time_bars?campaign_id=%d&tmin=%s&tmax=%s"><i class="external tasks icon" data-content="Tasks in Campaign Time Bars" data-variation="basic"></i></a>' % ( self.path, c.campaign_id, tmins, tmaxs))
             res.append('<a href="%s/campaign_info?campaign_id=%d"><i class="external info circle icon" data-content="Campaign Information" data-variation="basic"></i></a>' % ( self.path, c.campaign_id ))
             res.append('</td>')
             counts = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
             for k in counts.keys():
-                res.append('<td><a href="job_table?campaign_id=%s&job_status=%s">%d</a></td>' % (c.campaign_id, k, counts[k]))
+                res.append('<td><a href="job_table?campaign_id=%s&job_status=%s&tmin=%s&tmax=%s&tdays=%s">%d</a></td>' % (c.campaign_id, k, tmin, tmax, tdays, counts[k]))
             res.append("</tr>")
             
         res.append("</table>")

@@ -18,13 +18,17 @@
 <h1 class="ui header">
      Campaign {{name}}
 </h1>
+
+<div class="ui basic label">
+  <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
+</div>
 {%endblock%}
 
 
 
 
 {%block subheader%}
-<h2 class="ui dividing header"> Campaign {{name}} as of <p class="tmin" style="display:inline;"></p></h2>
+<h2 class="ui dividing header"> Campaign {{name}} <!--as of <p class="tmin" style="display:inline;"></p>--></h2>
 <a href="{{prev}}">&lt;previous {{days}} days</a> | 
 <a href="{{next}}">next {{days}} days &gt;</a>
 {%endblock%}
