@@ -233,6 +233,14 @@ $( "#search_button" ).click(function() {
 
 
 
+<div class="ui icon input">
+  <input type="text" id="filter-search" placeholder="Search...">
+  <i class="search icon"></i>
+</div>
+<br/>
+<br/>
+
+
 <div class="scrollable">
 <table id="jobtable" class="ui celled sortable table compact">
   <thead>
@@ -332,12 +340,49 @@ $( ".tmax" ).html( tmax_local_time );
 
 
 
-
-
-
 <script>
 $(function() {
     $('#global_datepicker_container').show();
 });
 </script>
+
+
+
+<script>
+(function() {
+  var $rows = $('tbody tr');
+  var $search = $('#filter-search');
+  var cache = [];
+
+  $rows.each(function() {
+    cache.push({
+      element: this,
+      text: this.innerText.trim().toLowerCase()
+    });
+  });
+
+
+  function filter() {
+    var query = this.value.trim().toLowerCase();
+    cache.forEach(function(row) {
+      var index = 0;
+
+      if (query) {
+        index = row.text.indexOf(query);
+      }
+
+      row.element.style.display = index === -1 ? 'none' : '';
+    });
+  }
+
+
+  if ('oninput' in $search[0]) {
+    $search.on('input', filter);
+  } else {
+    $search.on('keyup', filter);
+  }
+
+}());
+</script>
+
 {%endblock%}
