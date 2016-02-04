@@ -14,11 +14,12 @@ import json
 import time
 import traceback
 from job_reporter import job_reporter
-import samweb_client
+from samweb_client import *
 
 class declared_files_watcher:
     def __init__(self, job_reporter):
         self.job_reporter = job_reporter
+        self.old_experiment = None
 
     def call_wrapup_tasks(self):
 	self.jobmap = {}
@@ -43,38 +44,58 @@ class declared_files_watcher:
             conn.close()
 
             print "got: ", jobs
+            sys.stdout.flush()
             return jobs
         except:
             print  time.asctime(), "Ouch!", sys.exc_info()
+            sys.stdout.flush()
 	    traceback.print_exc()
             pass
 
+    def find_located_files(self, experiment, flist):
+	if self.old_experiment != experiment:
+	    self.samweb = SAMWebClient(experiment = experiment)
+            print "got samweb handle for ", experiment
+	    self.old_experiment = experiment
+
+        res = []
+        while len(flist) > 0:
+            batch = flist[:500]
+            flist = flist[500:]
+            dims = "file_name %s" % ','.join(batch)
+            print "trying dimensions: ", dims
+            sys.stdout.flush()
+            found = self.samweb.listFiles(dims)
+            print "got: ", found
+            sys.stdout.flush()
+            res = res + found
+        return res
 
     def one_pass(self):
          map = self.get_pending_jobs()
          old_experiment = ""
          samweb = None
+         total_flist = {}
          for jobsub_job_id in  map.keys():
+             job_flist = map[jobsub_job_id]["output_file_names"].split(" ")
+             experiment  = map[jobsub_job_id]["experiment"]
+             if not total_flist.has_key(experiment):
+                  total_flist[experiment] = []
+	     total_flist[experiment] = total_flist[experiment] + job_flist
+
+         for experiment in total_flist.keys():
+             present_files[experiment] = self.find_located_files(experiment, total_flist[experiment])
+          
+         for jobsub_job_id in  map.keys():
+
              flist = map[jobsub_job_id]["output_file_names"].split(" ")
              experiment  = map[jobsub_job_id]["experiment"]
-             if old_experiment != experiment:
-                  samweb = samweb_client.SAMWebClient(experiment=experiment)
+
              all_located = 1
              for f in flist:
-                  try:
-                      loclist = samweb.locateFile(f)
-                      print "got: ", loclist
-                      if loclist == []:
-                          print "file: %s not located" % f
-                          all_located = 0
-                      else:
-                          # xxx debug
-                          print "located file %s %s" % (f, repr(loclist))
-                  except:
-		      print time.asctime(), "exception %s locating %s in experiment %s" % (sys.exc_info(), f, experiment)
+                  if not f in present_files[experiment]:
 		      all_located = 0
-                      pass
-                     
+
              if all_located:
                  self.job_reporter.report_status(jobsub_job_id,output_files_declared = "True",status="Located")
 
