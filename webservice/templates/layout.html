@@ -126,9 +126,9 @@
             </div>
 
 
-            <a class="item requests"  href="#">
+            <!--<a class="item requests"  href="#">
                 <b>Filter</b>
-            </a>
+            </a>-->
 
 <div class="item">
   <div class="ui inverted transparent left icon input">
@@ -241,9 +241,9 @@
 
 
 
-            <a class="item requests"  href="#">
+            <!--<a class="item requests"  href="#">
                 <b>Filter</b>
-            </a>
+            </a>-->
 
 
 <script>
@@ -321,11 +321,11 @@ function validateQuickSearchForm()
                         {%block content%} {%endblock%}
 
 
-                         <!--<div class="ui small basic test modal">
+                         <div class="ui small basic test modal" id="under_construction">
                             <div class="ui icon header">
                               <i class="warning sign icon"></i>
                               Under Construction
-                            </div>-->
+                            </div>
                          </div>
 
 
@@ -378,7 +378,7 @@ function validateQuickSearchForm()
 
 <script>
 $( ".requests" ).click(function() {
-  $('.ui.basic.modal').modal('show');
+  $('#under_construction').modal('show');
 });
 </script>
 
