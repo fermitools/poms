@@ -140,9 +140,11 @@ class status_scraper():
                 data = self.fetch_item(path)
                 if data: 
 		    self.status[s] = 'good'
-		    if high and data[0]["datapoints"][0][0] > high:
+		    if high and data[0]["datapoints"][0][0] > float(high):
+                        print "bad because ", data[0]["datapoints"][0][0], "above", high
 			self.status[s] = 'bad'
-		    if low and data[0]["datapoints"][0][0] < low:
+		    if low and data[0]["datapoints"][0][0] < float(low):
+                        print "bad because ", data[0]["datapoints"][0][0], "below", low
 			self.status[s] = 'bad'
                 else:
 		    self.status[s] = "unknown"
