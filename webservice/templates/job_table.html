@@ -48,6 +48,22 @@
 
 {%block content%}
 
+<button class="ui compact labeled icon button" id="filter_jobs_button" style="margin-top: -35px;">
+  <i class="filter icon"></i>
+  Filter Jobs
+</button>
+<br/>
+<br/>
+
+<script>
+$(function() {
+    $( "#filter_jobs_button" ).click(function() {
+      $('.ui.basic.modal').modal('show');
+    });
+});
+</script>
+
+
 
 <div class="ui small basic test modal">
 <form id="search_form" method="get" action="{{pomspath}}/job_table">
