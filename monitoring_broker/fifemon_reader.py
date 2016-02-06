@@ -21,26 +21,31 @@ class status_scraper():
 
     def __init__(self,configfile, poms_url):
         self.poms_url = poms_url
-        defaults = { "subservices" : "", "target_path", "percent":"100", "upper": 90, "lower":80, "debug":"0"}
+        defaults = { "subservices" : "", "path":"", "percent":"100", "upper": 90, "lower":80, "debug":"0", "above":None, "below":None, 'source_url': ''}
         self.cf = SafeConfigParser(defaults)
         self.cf.read(configfile)
+        pcfg = self.cf.get('global', 'passwdcfg')
+        self.cf.read(pcfg)
         self.flush_cache()
         self.percents = {}
         self.totals = {}
         self.failed = {}
         self.parent = {}
         self.paths = {}
-        self.url = self.cfg.get('global', 'fifemon_url')
+        self.source_urls = {}
+        self.url = self.cf.get('global', 'fifemon_url')
         self.debug = int(self.cf.get('global','debug'))
 
         #
         # login initially...
         #
-        self.cj = cookielib.CookieJar()
-        self.opener = urllib2.build_opener(urllib2.HTTPCookeiProccessor(self.cj))
+        self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
         login = self.cf.get('global','login')
         pw = self.cf.get('global','password')
-        self.opener.open(self.url + "/login", {'login':login, 'password':pw})
+        print "trying ",self.url + "/login" 
+        res = self.opener.open(self.url + "/login", urllib.urlencode({'user':login, 'password':pw, 'email':''}))
+        print "login gives: ", res.read()
+        res.close()
         
     def flush_cache(self):
         self.page_cache = {}
@@ -50,14 +55,16 @@ class status_scraper():
             
         if not self.page_cache.has_key(path):
             try:
-                res = self.opener.open(self.url, {'target':path, 'from': '-10min', 'until':'-5min', 'format':'json'})
-                self.page_cache[path] = json.loads(res.read())
+                res = self.opener.open(self.url+'/api/datasources/proxy/1/render', urllib.urlencode({'target':path, 'from': '-10min', 'until':'-5min', 'format':'json'}))
+                jdata = res.read()
+                print "fetch for ", path, " yeilds: ", jdata
+                self.page_cache[path] = json.loads(jdata)
                 res.close()
             except Exception as e:
                 print "Ouch! "
                 print traceback.format_exc()
-                if self.page_cache.has_key(url):
-                    del self.page_cache[url]
+                if self.page_cache.has_key(path):
+                    del self.page_cache[path]
                 return None
         return self.page_cache[path]
 
@@ -81,6 +88,7 @@ class status_scraper():
                n_bad = n_bad + 0.5
             if rs == 'bad':
                n_bad = n_bad + 1
+
 
         percent = int(self.cf.get(section,'percent'))
         if self.cf.has_option(section,'warnpercent'):
@@ -122,16 +130,24 @@ class status_scraper():
             if s == 'global':
                  continue
             path = self.cf.get(s,'path')
-            self.paths[s] = path
-            low = self.cf.get(s,'low')
-            high = self.cf.get(s,'high')
+            surl = self.cf.get(s,'source_url')
+            self.source_urls[s] = surl
 
             if path:
-                data = self.fetch_page(path)
-                if data["datapoints"][0][0] > high:
-                    self.status[s] = 'bad'
-                if data["datapoints"][0][0] < low:
-                    self.status[s] = 'good'
+		self.paths[s] = path
+		low = self.cf.get(s,'above')
+		high = self.cf.get(s,'below')
+                data = self.fetch_item(path)
+                if data: 
+		    self.status[s] = 'good'
+		    if high and data[0]["datapoints"][0][0] > float(high):
+                        print "bad because ", data[0]["datapoints"][0][0], "above", high
+			self.status[s] = 'bad'
+		    if low and data[0]["datapoints"][0][0] < float(low):
+                        print "bad because ", data[0]["datapoints"][0][0], "below", low
+			self.status[s] = 'bad'
+                else:
+		    self.status[s] = "unknown"
         #
         # next check the ones that have sub-sections
         # to decide if they're bad or good.
@@ -166,7 +182,7 @@ class status_scraper():
         for s in self.cf.sections():
             if s == 'global':
                  continue
-            print "service %s has status %s percent %d kids %s\n" % ( s, self.status[s], self.percents[s], self.cf.get(s, "subservices"))
+            print "service %s has status %s percent %d kids %s\n" % ( s, self.status[s], self.percents.get(s,100), self.cf.get(s, "subservices"))
             # this should POST, but for now this is easier to debug
             name = s.replace("service ","")
             parent = self.parent.get(s,'').replace("service ","")
@@ -174,14 +190,13 @@ class status_scraper():
                 description = self.cf.get(s,'description')
             else:
                 description = s
-            report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.url.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.quote_plus(description))
+            report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.source_urls.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.quote_plus(description))
             print "trying: " , report_url
             c = urllib2.urlopen(report_url)
             print c.read()
             c.close()
 
-#ss = status_scraper("status_scraper.cfg", "http://fermicloud045.fnal.gov:8080/poms")
-ss = status_scraper("status_scraper.cfg", "http://localhost:8080/poms")
+ss = status_scraper("fifemon_reader.cfg", "http://localhost:8080/poms")
 ss.poll()
 
 notes = """

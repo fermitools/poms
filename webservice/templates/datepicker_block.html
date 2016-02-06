@@ -80,8 +80,39 @@ $( "#from_datepicker, #to_datepicker" ).change(function() {
 
 
 <script>
+function addVarsToDatepickerComponentForm()
+{
+    var query = window.location.search.substring(1);
+    var vars = query.split("&");
+    vars_dict = {}
+
+    for(var i=0; i<vars.length; i++)
+    {
+        var kv = vars[i].split("=");
+        vars_dict[kv[0]] = kv[1]
+    }
+
+    delete vars_dict["tmax"];
+    delete vars_dict["tmin"];
+
+    for(var key in vars_dict)
+    {
+      $('<input>').attr({
+      type: 'hidden',
+      name: key,
+      value: vars_dict[key]
+      }).appendTo('#datepicker_form');
+    }
+}
+</script>
+
+
+
+<script>
 $( "#form_submit_button" ).click(function(event) {
   event.preventDefault();
+
+  addVarsToDatepickerComponentForm();
 
   var from_local_time = $('#from_datepicker').val();
   var m_from_local_time_utc = moment(from_local_time).utc().format('YYYY-MM-DD HH:mm:ss');

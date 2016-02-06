@@ -32,8 +32,6 @@
             <link href='{{pomspath}}/static/css/fullcalendar.css' rel='stylesheet' />
             <link href='{{pomspath}}/static/css/fullcalendar.print.css' rel='stylesheet' media='print' />
             <script src='{{pomspath}}/static/js/moment.min.js'></script>
-            <script src='{{pomspath}}/static/js/moment-timezone.min.js'></script>
-            <script src='{{pomspath}}/static/js/moment-timezone-with-data.js'></script>
             <script src='{{pomspath}}/static/js/fullcalendar.min.js'></script>
 
 
@@ -128,9 +126,9 @@
             </div>
 
 
-            <a class="item requests"  href="#">
+            <!--<a class="item requests"  href="#">
                 <b>Filter</b>
-            </a>
+            </a>-->
 
 <div class="item">
   <div class="ui inverted transparent left icon input">
@@ -243,9 +241,9 @@
 
 
 
-            <a class="item requests"  href="#">
+            <!--<a class="item requests"  href="#">
                 <b>Filter</b>
-            </a>
+            </a>-->
 
 
 <script>
@@ -292,6 +290,10 @@ function validateQuickSearchForm()
                     
                     <div class="ui masthead vertical segment">
 
+                       <div class="ui right floated segment">
+                           <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/{{help_page}}"><i class="icon grey help circle link"></i></a>
+                    </div>
+
                     {% if current_experimenter is defined %}
                        <div class="ui right floated segment">
                        <i class="user icon"></i>
@@ -302,6 +304,7 @@ function validateQuickSearchForm()
                             <div class="introduction">
                                 {%block breadcrumbs%} {%endblock%}                                
                                 {%block header%} {%endblock%}
+
 
                                 {% include 'datepicker_block.html' %}
                             </div>
@@ -323,11 +326,11 @@ function validateQuickSearchForm()
                         {%block content%} {%endblock%}
 
 
-                         <!--<div class="ui small basic test modal">
+                         <div class="ui small basic test modal" id="under_construction">
                             <div class="ui icon header">
                               <i class="warning sign icon"></i>
                               Under Construction
-                            </div>-->
+                            </div>
                          </div>
 
 
@@ -380,7 +383,7 @@ function validateQuickSearchForm()
 
 <script>
 $( ".requests" ).click(function() {
-  $('.ui.basic.modal').modal('show');
+  $('#under_construction').modal('show');
 });
 </script>
 
