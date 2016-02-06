@@ -256,7 +256,7 @@ $( "#search_button" ).click(function() {
 <br/>
 <br/>
 
-{{joblist|length}} records
+<div id="record_count">{{joblist|length}} records</div>
 
 <div class="scrollable">
 <table id="jobtable" class="ui celled sortable table compact">
@@ -381,6 +381,7 @@ $(function() {
 
   function filter() {
     var query = this.value.trim().toLowerCase();
+    var matches = 0;
     cache.forEach(function(row) {
       var index = 0;
 
@@ -388,8 +389,19 @@ $(function() {
         index = row.text.indexOf(query);
       }
 
-      row.element.style.display = index === -1 ? 'none' : '';
+      //row.element.style.display = index === -1 ? 'none' : '';
+      if(index === -1)
+      {
+           row.element.style.display = 'none';
+      }
+      else
+      {
+           row.element.style.display = '';
+           matches ++;
+      }
+
     });
+          $( "#record_count" ).html( matches.toString() + " records" );
   }
 
 
