@@ -9,14 +9,16 @@
 <div class="ui breadcrumb" style="margin-top: -45px;">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
-  <div class="section">Campaigns</div>
+  <div class="section"><a href="{{pomspath}}/show_campaigns">Campaigns</a></div>
+  <div class="divider"> / </div>
+  <div class="section">{{name}}</div>
 </div>
 {%endblock%}
 
 
 {%block header%}
 <h1 class="ui header">
-     Campaign {{name}}
+     Campaign {{name}}{%include 'help_button.html'%}
 </h1>
 
 <div class="ui basic label">
