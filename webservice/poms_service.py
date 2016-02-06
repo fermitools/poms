@@ -1136,6 +1136,7 @@ class poms_service:
 
         jl = q.all()
 
+
         if jl:
             jobcolumns = jl[0][0]._sa_instance_state.class_.__table__.columns.keys() 
             taskcolumns = jl[0][1]._sa_instance_state.class_.__table__.columns.keys() 
@@ -1144,7 +1145,6 @@ class poms_service:
             jobcolumns = []
             taskcolumns = []
             campcolumns = []
-
 
         if bool(sift):
             campaign_box = task_box = job_box = ""
@@ -1186,6 +1186,7 @@ class poms_service:
         jl = q.all()
         cherrypy.log( "got jobtable %s " % repr( jl[0].__dict__) )
         columns = [ "exit_code","count"]
+
         
         template = self.jinja_env.get_template('job_count_table.html')
 

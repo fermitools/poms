@@ -1,6 +1,4 @@
 {%extends "layout.html"%}
-
-
 {%block title%}
     <title>POMS</title>
 
@@ -47,6 +45,8 @@
 
 
 {%block content%}
+
+
 
 <button class="ui compact labeled icon button" id="filter_jobs_button" style="margin-top: -35px;">
   <i class="filter icon"></i>
@@ -256,6 +256,7 @@ $( "#search_button" ).click(function() {
 <br/>
 <br/>
 
+{{joblist|length}} records
 
 <div class="scrollable">
 <table id="jobtable" class="ui celled sortable table compact">
