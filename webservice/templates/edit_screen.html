@@ -8,7 +8,7 @@
 <div class="ui breadcrumb" style="margin-top: -45px;">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
-  <a class="section">DB Admin</a>
+  <a class="section" href="{{pomspath}}/raw_tables">Raw Tables</a>
   <div class="divider"> / </div>
   <a href="{{pomspath}}/list_generic?classname={{classname}}" class="section">{{classname}}</a>
   <div class="divider"> / </div>
@@ -23,7 +23,7 @@
 
 {%block header%}
 <h1 class="ui header">
-         {{clasname}} Items
+         {{clasname}} Items{%include 'help_button.html'%}
                     
           <div class="sub header">
               Edit {{classname}} Item

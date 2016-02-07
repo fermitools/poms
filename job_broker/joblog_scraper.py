@@ -148,8 +148,10 @@ class joblog_scraper:
 		   del newdata[k]
 
 	   if newdata.has_key('vendor_id'):
+               # round off bogomips so rounding errors do not give us
+               # fake distinctions in bogomips
 	       newdata['cpu_type'] = "%s@%s" % (
-                       newdata['vendor_id'], newdata.get('bogomips',''))
+                       newdata['vendor_id'], str(round(float(newdata.get('bogomips','0')))))
 
 	   data.update(newdata)
 

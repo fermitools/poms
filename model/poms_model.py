@@ -24,6 +24,7 @@ class Campaign(Base):
     cs_last_split = Column(DateTime(True), nullable=True)
     cs_split_type = Column(Text, nullable = True)
     cs_split_dimensions = Column(Text, nullable = True)
+    active = Column(Boolean, nullable=False, server_default=text("true"))
 
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')

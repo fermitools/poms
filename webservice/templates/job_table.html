@@ -1,6 +1,4 @@
 {%extends "layout.html"%}
-
-
 {%block title%}
     <title>POMS</title>
 
@@ -28,10 +26,13 @@
 
 {%block header%}
 <h1 class="ui header">
-    Jobs
+    Jobs{%include 'help_button.html'%}
 </h1>
 <div class="ui subheader">
-Jobs for {{time_range_string}}
+<!-- Jobs for {{time_range_string}} -->
+    <div class="ui basic label">
+      <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
+    </div>
 </div>
 
 <a href="{{prev}}">&lt;previous {{days}} days</a> | 
@@ -44,6 +45,24 @@ Jobs for {{time_range_string}}
 
 
 {%block content%}
+
+
+
+<button class="ui compact labeled icon button" id="filter_jobs_button" style="margin-top: -35px;">
+  <i class="filter icon"></i>
+  Filter Jobs
+</button>
+<br/>
+<br/>
+
+<script>
+$(function() {
+    $( "#filter_jobs_button" ).click(function() {
+      $('.ui.basic.modal').modal('show');
+    });
+});
+</script>
+
 
 
 <div class="ui small basic test modal">
@@ -230,6 +249,15 @@ $( "#search_button" ).click(function() {
 
 
 
+<div class="ui icon input">
+  <input type="text" id="filter-search" placeholder="Search...">
+  <i class="search icon"></i>
+</div>
+<br/>
+<br/>
+
+<div id="record_count">{{joblist|length}} records</div>
+
 <div class="scrollable">
 <table id="jobtable" class="ui celled sortable table compact">
   <thead>
@@ -310,9 +338,22 @@ $( "#search_button" ).click(function() {
   </tbody>
 </table>
 </div>
+
+
+
+
+
+
+<script>
+
+var tmin_local_time = moment.utc('{{tmin}}').toDate();
+tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmin" ).html( tmin_local_time );
+var tmax_local_time = moment.utc('{{tmax}}').toDate();
+tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmax" ).html( tmax_local_time );
+
 </script>
-
-
 
 
 
@@ -321,4 +362,56 @@ $(function() {
     $('#global_datepicker_container').show();
 });
 </script>
+
+
+
+<script>
+(function() {
+  var $rows = $('tbody tr');
+  var $search = $('#filter-search');
+  var cache = [];
+
+  $rows.each(function() {
+    cache.push({
+      element: this,
+      text: this.innerText.trim().toLowerCase()
+    });
+  });
+
+
+  function filter() {
+    var query = this.value.trim().toLowerCase();
+    var matches = 0;
+    cache.forEach(function(row) {
+      var index = 0;
+
+      if (query) {
+        index = row.text.indexOf(query);
+      }
+
+      //row.element.style.display = index === -1 ? 'none' : '';
+      if(index === -1)
+      {
+           row.element.style.display = 'none';
+      }
+      else
+      {
+           row.element.style.display = '';
+           matches ++;
+      }
+
+    });
+          $( "#record_count" ).html( matches.toString() + " records" );
+  }
+
+
+  if ('oninput' in $search[0]) {
+    $search.on('input', filter);
+  } else {
+    $search.on('keyup', filter);
+  }
+
+}());
+</script>
+
 {%endblock%}

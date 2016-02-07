@@ -18,7 +18,7 @@
 
 {%block header%}
 <h1 class="ui header">
-     Downtime Calendar                               
+     Downtime Calendar {%include 'help_button.html'%}
     <div class="sub header">
         view service downtimes
     </div>
@@ -313,7 +313,6 @@ $('#calendar').fullCalendar('unselect');
 
 
 <style>
-
 	#calendar {
 		max-width: 900px;
 		margin: 0 auto;
@@ -321,10 +320,67 @@ $('#calendar').fullCalendar('unselect');
 </style>
 
 
+<style>
+.sam
+{
+  background-color: #73ADA2 !important;
+  color: white !important;
+}
+.fts
+{
+  background-color: #5D8793 !important;
+  color: white !important;
+}
+.dcache
+{
+  background-color: #1BA8DD !important;
+  color: white !important;
+}
+.enstore
+{
+  background-color: #2C7BE0 !important;
+  color: white !important;
+}
+.fifebatch
+{
+  background-color: #21A8BD !important;
+  color: white !important;
+}
+.other
+{
+  background-color: red !important;
+  color: white !important;
+}
+</style>
+
+
+
+<div class="ui compact segment" style="margin-top: -30px; margin-bottom:30px;">Legend &nbsp;&nbsp;
+<div class="ui tiny sam label">
+    SAM
+</div>
+<div class="ui tiny fts label">
+    FTS
+</div>
+<div class="ui tiny dcache label">
+    dCache
+</div>
+<div class="ui tiny enstore label">
+    Enstore
+</div>
+<div class="ui tiny fifebatch label">
+    FifeBatch
+</div>
+</div>
 
 
 
 	<div id='calendar'></div>
+
+
+
+
+
 
 
 

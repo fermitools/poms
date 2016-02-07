@@ -10,9 +10,11 @@
   <div class="divider"> / </div>
   <a href="{{pomspath}}/show_campaigns/" class="section">Campaigns</a>
   <div class="divider"> / </div>
-  <a href="{{pomspath}}/show_task_jobs?task_id={{job_info.Job.task_id}}&tmin={{tmin}}" class="section">Jobs in task {{job_info.Job.task_id}}</a>
+  <a href="{{pomspath}}/campaign_time_bars/campaign_id=?{{job_info.Campaign.campaign_id}}" class="section">Campaign {{job_info.Campaign.name}}</a>
   <div class="divider"> / </div>
-  <div class="section">Triage job {{job_id}}</div>
+  <a href="{{pomspath}}/show_task_jobs?task_id={{job_info.Job.task_id}}&tmin={{tmin}}" class="section">Jobs in task {{task_jobsub_jobid}}</a>
+  <div class="divider"> / </div>
+  <div class="section">Triage job {{job_info.Job.jobsub_job_id}}</div>
 </div>
 {%endblock%}
 
@@ -23,7 +25,7 @@
 
 {%block header%}
 <h1 class="ui header">
-         Job Triage
+         Job Triage{%include 'help_button.html'%}
                     
           <div class="sub header">
               triage your jobs
