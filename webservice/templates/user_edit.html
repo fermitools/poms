@@ -1,0 +1,207 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>POMS</title>
+
+    <style type="text/css">
+    div.scrollable {
+        width: 100%;
+        overflow-x: scroll;
+    }
+    div.scrollable table {
+        width: 300%;
+    }
+    </style>
+{%endblock%}
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="{{pomspath}}/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">User Authorization</div>
+</div>
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+    User Authorization
+</h1>
+{%endblock%}
+
+{%block subheader%}
+{%endblock%}
+
+{%block content%}
+
+<script type="text/javascript">
+function user_action(action) {
+  var email = $("#search_email").val();
+  if (action=='edit_user' && email) {
+    $("#user_email").val(email);
+    $("#user_first_name").val($("#search_first_name").val());
+    $("#user_last_name").val($("#search_last_name").val());
+    $("#user_experimenter_id").val($("#search_experimenter_id").val());
+    $("#user_action").val("edit");
+    $("#user_header").text("Edit User");
+  } else {
+    $("#user_email").val("");
+    $("#user_first_name").val("");
+    $("#user_last_name").val("");
+    $("#user_experimenter_id").val("");
+    $("#user_action").val("add");
+    $("#user_header").text("Add User");
+  }
+  mod_form = $("#user_add_edit_modal").modal('show');
+}
+</script>
+
+<form id="user_form" class="ui form" action="user_authorize" method="POST">
+  <div class="three fields">
+    {% if data.experimenter is defined %} 
+    <div class="field">
+      <label></label>
+      <input type="text" id="search_email" name="email" placeholder="Email Address" value="{{data.experimenter.email}}">
+    </div>
+    <div class="field">
+      <label></label>
+      <input type="text" id="search_first_name" name="first_name" placeholder="First Name" value="{{data.experimenter.first_name}}">
+    </div>
+    <div class="field">
+      <label></label>
+      <input type="text" id="search_last_name" name="last_name" placeholder="Last Name" value="{{data.experimenter.last_name}}">
+    </div>
+    {% else %}
+    <div class="field">
+      <label></label>
+      <input type="text" name="email" placeholder="Email Address">
+    </div>
+    <div class="field">
+      <label></label>
+      <input type="text" name="first_name" placeholder="First Name">
+    </div>
+    <div class="field">
+      <label></label>
+      <input type="text" name="last_name" placeholder="Last Name">
+    </div>
+    {% endif %}
+  </div>
+  <div class="ui three fields">
+    <input type="submit" value="Find" class="ui teal button" />
+    <div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="user_action('add_user')" >Add</div>
+    <div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="user_action('edit_user')" >Edit</div>
+  </div>
+  <input type="hidden" name="action" value="find">
+ {% if data.experimenter is defined %} 
+  <input type="hidden" id="search_experimenter_id" name="experimenter_id" value="{{data.experimenter.experimenter_id}}">
+ {% else %}
+  <input type="hidden" id="search_experimenter_id" name="experimenter_id">
+ {% endif %}
+</form>
+
+<div class="ui hidden divider"></div>
+<form id="exp_form" class="ui form" action="user_authorize" method="POST">
+  {% if data.member_of_exp is defined %}
+  <table class="ui celled table">
+    <thead>
+      <tr>
+	<th>Experiment</th>
+	<th>Active</th>
+      </tr>
+    </thead>
+    <tbody>
+     {% for row in data.member_of_exp %}
+      <tr>
+	<td>{{row.experiment}}</td>
+	<td class="collapsing">
+	  <div class="ui toggle checkbox">
+	    <input type="checkbox" name="{{row.experiment}}_active:{{row.experiment}}" value="{{row.experiment}}" {{ 'checked' if (row.active) }} {{ 'disabled' if (not current_experimenter.is_root()) }}>
+	    <label></label>
+	  </div>
+	</td>
+      </tr>
+     {% endfor %}
+     {% for row in data.not_member_of_exp %}
+      <tr>
+	<td>{{row.experiment}}</td>
+	<td class="collapsing">
+	  <div class="ui toggle checkbox">
+	    <input type="checkbox" name="{{row.experiment}}_active:{{row.experiment}}" value="{{row.experiment}}" {{ 'disabled' if (not current_experimenter.is_root()) }}>
+	    <label></label>
+	  </div>
+	</td>
+      </tr>
+     {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+	<th colspan="2">
+	  <input type="submit" class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" value="Submit">
+	</th>
+      </tr>
+    </tfoot>
+  </table>
+  <input type="hidden" name="action" value="membership">
+  <input type="hidden" name="email" value="{{data.experimenter.email}}">
+  <input type="hidden" name="experimenter_id" value="{{data.experimenter.experimenter_id}}">
+  {% endif %}
+</form>
+
+<div class="ui modal" id="display_message_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Message
+  </div>
+    <div class="one field">
+      <div class="field">
+	<label>{{data.message}}</label>
+      </div>
+    </div>
+    <div class="ui hidden divider"></div>
+</div> <!-- Ends Modal -->
+
+<div class="ui modal" id="user_add_edit_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    <label id="user_header"></label>
+  <form id="user_add_edit_form" class="ui form" method="POST">
+    <div class="three fields">
+      <div class="field">
+        <label></label>
+        <input type="text" id="user_email" name="email" placeholder="Email Address">
+      </div>
+      <div class="field">
+        <label></label>
+        <input type="text" id="user_first_name" name="first_name" placeholder="First Name">
+      </div>
+      <div class="field">
+        <label></label>
+        <input type="text" id="user_last_name" name="last_name" placeholder="Last Name">
+      </div>
+    </div>
+    <input type="submit" value="Submit" class="ui teal button" />
+    <input type="hidden" id="user_action" name="action" value="add">
+    <input type="hidden" id="user_experimenter_id" name="experimenter_id">
+  </form>
+</div> <!-- Ends Modal -->
+
+<script>
+$('#user_add_edit_form')
+  .form({
+    fields: {
+      email      : 'empty',
+      first_name : 'empty',
+      last_name  : 'empty'
+    }
+  })
+;
+
+setTimeout(function(){
+  if ("{{ data.message }}" != "None") {
+    mod_form = $("#display_message_modal").modal('show');  
+  }
+}, 1000);
+
+</script>
+
+{%endblock%}
+

@@ -34,6 +34,11 @@ class Campaign(Base):
 class Experimenter(Base):
     __tablename__ = 'experimenters'
 
+    def __init__(self,first_name=None, last_name=None, email=None):
+        self.first_name = first_name
+        self.last_name = last_name
+        self.email = email
+
     experimenter_id = Column(Integer, primary_key=True, server_default=text("nextval('experimenters_experimenter_id_seq'::regclass)"))
     first_name = Column(Text, nullable=False)
     last_name = Column(Text)
@@ -42,7 +47,7 @@ class Experimenter(Base):
     def is_authorized(self,experiment):
         # Root is authorized for all experiments
         for row in self.exp_expers:
-            if row.experiment == experiment or row.experiment == 'root':
+            if (row.experiment == experiment and row.active) or (row.experiment == 'root' and row.active):
                 return True
         return False
 
@@ -52,6 +57,11 @@ class Experimenter(Base):
 
 class ExperimentsExperimenters(Base):
     __tablename__ = 'experiments_experimenters'
+
+    def __init__(self, experimenter_id=None, experiment=None, active=None):
+        self.experimenter_id = experimenter_id
+        self.experiment = experiment
+        self.active = active
 
     experimenter_id = Column(Integer, ForeignKey('experimenters.experimenter_id'), primary_key=True)
     experiment = Column(Text, ForeignKey('experiments.experiment'), primary_key=True)
