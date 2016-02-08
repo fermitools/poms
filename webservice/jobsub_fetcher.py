@@ -40,9 +40,10 @@ class jobsub_fetcher():
              self.tarfiles = self.tarfiles[1:]
              self.fetchcount = self.fetchcount - 1   
                  
-         os.system("cd %s && /bin/pwd && /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_fetchlog --group=%s --role=%s --jobid=%s" %(
+         os.system("cd %s && /bin/pwd && /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_fetchlog --group=%s --role=%s --user=%spro --jobid=%s" %(
                      self.workdir,
                      group,
+                     role,
                      role,
                      jobsubjobid))
          os.system("ls -l %s " % self.workdir)
