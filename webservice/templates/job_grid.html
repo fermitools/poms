@@ -11,6 +11,8 @@
   <div class="divider"> / </div>
   <a href="{{pomspath}}/show_campaigns/" class="section">Campaigns</a>
   <div class="divider"> / </div>
+  <a href="{{pomspath}}/campaign_time_bars?campaign_id={{campaign_id}}" class="section">Campaign {{cname}}</a>
+  <div class="divider"> / </div>
   <div class="section">Jobs in task {{taskid}}</div>
 </div>
 {%endblock%}
@@ -18,14 +20,14 @@
 
 {%block header%}
 <h1 class="ui header">
-     Task {{taskid}} Jobs
+     Task {{task_jobsub_id}} Jobs{%include 'help_button.html'%}
 </h1>
 {%endblock%}
 
 
 
 {%block subheader%}
-<h2 class="ui dividing header">Task {{taskid}} jobs:</h2>
+<h2 class="ui dividing header">Task {{task_jobsub_id}} jobs:</h2>
 {%endblock%}
 
 
@@ -39,7 +41,8 @@
      <div style="float:right;">{{tmax}}</div>
    </div>
    </div>
-  </div>
+  <div>
   <h4 style="clear: both;">Key</h4>
   {{key}}
+  </div>
 {%endblock%}

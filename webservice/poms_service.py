@@ -10,7 +10,7 @@ from sqlalchemy.orm  import subqueryload, contains_eager
 from sqlalchemy.orm.exc import NoResultFound
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, Job, JobHistory, Task, TaskDefinition, TaskHistory, Campaign
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, TaskDefinition, TaskHistory, Campaign
 
 ZERO = timedelta(0)
 
@@ -365,6 +365,59 @@ class poms_service:
         template = self.jinja_env.get_template('raw_tables.html')
         return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="RawTablesHelp")
         
+    @cherrypy.expose
+    def user_edit(self, data={'message':None}):
+        template = self.jinja_env.get_template('user_edit.html')
+        return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
+
+    @cherrypy.expose
+    def user_authorize(self, *args, **kwargs):
+        message = None
+        data = {}
+        email = kwargs.pop('email',None)
+        action = kwargs.pop('action',None)
+
+        if action !='find' and (not self.can_db_admin()):
+             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
+
+        if action == 'membership':
+            e_id = kwargs.pop('experimenter_id',None)
+            cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e_id).update({"active":False})
+            for key,exp in kwargs.items():
+                updated = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e_id).filter(ExperimentsExperimenters.experiment==exp).update({"active":True})
+                if updated==0:
+                    cherrypy.request.db.add( ExperimentsExperimenters(e_id,exp,True) )
+            cherrypy.request.db.commit()
+
+        elif action == "add":
+            if cherrypy.request.db.query(Experimenter).filter(Experimenter.email==email).one():
+                message = "An experimenter with the email %s already exists" %  email
+            else:
+                cherrypy.request.db.add( Experimenter(kwargs.get('first_name'), kwargs.get('last_name'), email ))
+                cherrypy.request.db.commit()
+
+        elif action == "edit":
+            values = {"first_name" : kwargs.get('first_name'), 
+                      "last_name"  : kwargs.get('last_name'),
+                      "email"      : email}
+            cherrypy.request.db.query(Experimenter).filter(Experimenter.experimenter_id==kwargs.get('experimenter_id')).update(values)
+            cherrypy.request.db.commit()
+
+        if email:
+            experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == email ).first()
+            if experimenter == None:
+                message = "There is no experimenter with the email %s" % email
+            else:
+                data['experimenter'] = experimenter
+                data['member_of_exp'] = cherrypy.request.db.query(ExperimentsExperimenters).filter(
+                    ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
+                subquery = cherrypy.request.db.query(ExperimentsExperimenters.experiment).filter(
+                    ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
+                data['not_member_of_exp'] = cherrypy.request.db.query(Experiment).filter(~Experiment.experiment.in_(subquery))
+
+        data['message'] = message
+        return self.user_edit(data)
+
     @cherrypy.expose
     def experiment_edit(self, message=None):
         experiments = cherrypy.request.db.query(Experiment).order_by(Experiment.experiment)
@@ -738,11 +791,15 @@ class poms_service:
 
         screendata = self.format_job_counts(task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
         key = tg.key(fancy=1)
+
         screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins)         
 
-        template = self.jinja_env.get_template('job_grid.html')
-        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, key = key, pomspath=self.path,help_page="ShowTaskJobsHelp")
+        campaign_id = jl[0][1].task_obj.campaign_id
+        cname = jl[0][1].task_obj.campaign_obj.name
+        task_jobsub_id = self.task_min_job(task_id)
 
+        template = self.jinja_env.get_template('job_grid.html')
+        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, key = key, pomspath=self.path,help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id, campaign_id = campaign_id,cname = cname)
 
 
     @cherrypy.expose
@@ -781,7 +838,9 @@ class poms_service:
         downtimes = downtimes1 + downtimes2
         #ends service downtimes
         
-        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp")
+        task_jobsub_jobid = self.task_min_job(job_info.Job.task_id)
+
+        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_jobid = task_jobsub_jobid)
 
     def handle_dates(self,tmin, tmax, tdays, baseurl):
         """
@@ -1136,6 +1195,7 @@ class poms_service:
 
         jl = q.all()
 
+
         if jl:
             jobcolumns = jl[0][0]._sa_instance_state.class_.__table__.columns.keys() 
             taskcolumns = jl[0][1]._sa_instance_state.class_.__table__.columns.keys() 
@@ -1144,7 +1204,6 @@ class poms_service:
             jobcolumns = []
             taskcolumns = []
             campcolumns = []
-
 
         if bool(sift):
             campaign_box = task_box = job_box = ""
@@ -1186,6 +1245,7 @@ class poms_service:
         jl = q.all()
         cherrypy.log( "got jobtable %s " % repr( jl[0].__dict__) )
         columns = [ "exit_code","count"]
+
         
         template = self.jinja_env.get_template('job_count_table.html')
 

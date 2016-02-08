@@ -91,7 +91,7 @@
                     <a class="item" href="{{pomspath}}/experiment_edit">
                         Experiments
                     </a>
-                    <a class="item" href="{{pomspath}}/user_auth">
+                    <a class="item" href="{{pomspath}}/user_edit">
                         Users
                     </a>
                     <a class="item" href="{{pomspath}}/raw_tables">
@@ -203,7 +203,7 @@
                     <a class="item" href="{{pomspath}}/experiment_edit">
                         Experiments
                     </a>
-                    <a class="item" href="{{pomspath}}/user_auth">
+                    <a class="item" href="{{pomspath}}/user_edit">
                         Users
                     </a>
                     <a class="item" href="{{pomspath}}/raw_tables">
@@ -290,9 +290,6 @@ function validateQuickSearchForm()
                     
                     <div class="ui masthead vertical segment">
 
-                       <div class="ui right floated segment">
-                           <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/{{help_page}}"><i class="icon grey help circle link"></i></a>
-                    </div>
 
                     {% if current_experimenter is defined %}
                        <div class="ui right floated segment">
@@ -303,10 +300,12 @@ function validateQuickSearchForm()
                         <div class="ui container">
                             <div class="introduction">
                                 {%block breadcrumbs%} {%endblock%}                                
+
                                 {%block header%} {%endblock%}
 
 
                                 {% include 'datepicker_block.html' %}
+
                             </div>
 
                         </div>

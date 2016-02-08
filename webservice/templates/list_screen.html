@@ -9,20 +9,16 @@
 <div class="ui breadcrumb" style="margin-top:-45px;">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
-  <a href="{{pomspath}}/admin_screen" class="section">DB Admin</a>
+  <a href="{{pomspath}}/raw_tables" class="section">Raw Tables</a>
   <div class="divider"> / </div>
   <div class="section">{{classname}}</div>
 </div>
 {%endblock%}
 
 
-
-
-
-
 {%block header%}
 <h1 class="ui header">
-     {{clasname}} Items
+     {{clasname}} Items{%include 'help_button.html'%}
                     
      <div class="sub header">
          View/Edit {{classname}} Items

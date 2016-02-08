@@ -27,7 +27,7 @@ class time_grid:
           return result
 
      def key(self, fancy = 0):
-          res = ['<div style="border: 1px solid black; padding: 0.5em;">']
+          res = ['<div class="ui raised padded container segment" style="height: %sem">' % (7 if fancy else 5)]
           list = [ "new", "Idle", "Held", "Running", "Completed", "Located"]
           if fancy:
                 list = list + ["running: user code",
@@ -38,7 +38,7 @@ class time_grid:
               		"running: user code failed"]
 
           for s in list:
-              res.append( "<div style='float:left; width:10em'><span style='min-width:3em; background: %s'>&nbsp;&nbsp;</span>%s</div>" % (self.status_color(s), s))
+              res.append( "<div style='float:left; width:15em'><span style='min-width:3em; background: %s'>&nbsp;&nbsp;</span>%s</div>" % (self.status_color(s), s))
           res.append('</div>')
           return '\n'.join(res)
              
