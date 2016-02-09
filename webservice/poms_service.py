@@ -419,6 +419,16 @@ class poms_service:
         return self.user_edit(data)
 
     @cherrypy.expose
+    def experiment_members(self, *args, **kwargs):
+        exp = kwargs['experiment']
+        query = cherrypy.request.db.query(Experiment,ExperimentsExperimenters,Experimenter).join(ExperimentsExperimenters).join(Experimenter).filter(Experiment.name==exp).order_by(Experimenter.last_name)
+        trows=""
+        for experiment, e2e, experimenter in query:
+            trow = """<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>""" % (experimenter.first_name, experimenter.last_name, experimenter.email, e2e.active)
+            trows = "%s%s" % (trows,trow)
+        return json.dumps(trows)        
+
+    @cherrypy.expose
     def experiment_edit(self, message=None):
         experiments = cherrypy.request.db.query(Experiment).order_by(Experiment.experiment)
         template = self.jinja_env.get_template('experiment_edit.html')
