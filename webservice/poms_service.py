@@ -121,6 +121,17 @@ class poms_service:
              return 1
         return 0
 
+
+    @cherrypy.expose
+    def jump_to_job(self, jobsub_jobid):
+        
+        job = cherrypy.request.db.query(Job).filter(Job.jobsub_jobid == jobsub_jobid).first():
+        if job:
+            tmaxs =  datetime.now(utc).strftime("%Y-%m-%d %H:%M:%S")
+            raise HTTPRedirect("triage_job?jobid=%d&tmax=%s" % (job.job_id, tmaxs))
+        else
+            raise HTTPRedirect("." % (job.job_id, tmaxs))
+
     @cherrypy.expose
     def calendar_json(self, start, end, timezone, _):
         cherrypy.response.headers['Content-Type'] = "application/json"
@@ -417,6 +428,16 @@ class poms_service:
 
         data['message'] = message
         return self.user_edit(data)
+
+    @cherrypy.expose
+    def experiment_members(self, *args, **kwargs):
+        exp = kwargs['experiment']
+        query = cherrypy.request.db.query(Experiment,ExperimentsExperimenters,Experimenter).join(ExperimentsExperimenters).join(Experimenter).filter(Experiment.name==exp).order_by(Experimenter.last_name)
+        trows=""
+        for experiment, e2e, experimenter in query:
+            trow = """<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>""" % (experimenter.first_name, experimenter.last_name, experimenter.email, e2e.active)
+            trows = "%s%s" % (trows,trow)
+        return json.dumps(trows)        
 
     @cherrypy.expose
     def experiment_edit(self, message=None):
