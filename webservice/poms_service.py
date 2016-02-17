@@ -123,14 +123,14 @@ class poms_service:
 
 
     @cherrypy.expose
-    def jump_to_job(self, jobsub_jobid):
+    def jump_to_job(self, jobsub_job_id, **kwargs ):
         
-        job = cherrypy.request.db.query(Job).filter(Job.jobsub_jobid == jobsub_jobid).first():
-        if job:
-            tmaxs =  datetime.now(utc).strftime("%Y-%m-%d %H:%M:%S")
-            raise HTTPRedirect("triage_job?jobid=%d&tmax=%s" % (job.job_id, tmaxs))
-        else
-            raise HTTPRedirect("." % (job.job_id, tmaxs))
+        job = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
+        if job != None:
+            tmins =  datetime.now(utc).strftime("%Y-%m-%d %H:%M:%S")
+            raise cherrypy.HTTPRedirect("triage_job?job_id=%d&tmin=%s" % (job.job_id, tmins))
+        else:
+            raise cherrypy.HTTPRedirect(".")
 
     @cherrypy.expose
     def calendar_json(self, start, end, timezone, _):
@@ -859,9 +859,9 @@ class poms_service:
         downtimes = downtimes1 + downtimes2
         #ends service downtimes
         
-        task_jobsub_jobid = self.task_min_job(job_info.Job.task_id)
+        task_jobsub_job_id = self.task_min_job(job_info.Job.task_id)
 
-        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_jobid = task_jobsub_jobid)
+        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id)
 
     def handle_dates(self,tmin, tmax, tdays, baseurl):
         """
