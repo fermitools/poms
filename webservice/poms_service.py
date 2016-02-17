@@ -1335,7 +1335,11 @@ class poms_service:
 
 	    totjobs = totjobs + len(task.jobs)
 	    for job in task.jobs:
-		exitcounts[job.user_exe_exit_code] = exitcounts[job.user_exe_exit_code] + 1
+                # dont consider jobs outside of our window even if the task is
+                if job.updated < tmin or job.updated > tmax:
+                    continue
+
+		exitcounts[job.user_exe_exit_code] = exitcounts.get(job.user_exe_exit_code,0) + 1
 		if job.output_file_names:
 		    nout = len(job.output_file_names.split(' '))
 		    outfiles += nout
