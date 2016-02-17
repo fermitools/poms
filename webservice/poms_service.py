@@ -121,6 +121,17 @@ class poms_service:
              return 1
         return 0
 
+
+    @cherrypy.expose
+    def jump_to_job(self, jobsub_jobid):
+        
+        job = cherrypy.request.db.query(Job).filter(Job.jobsub_jobid == jobsub_jobid).first():
+        if job:
+            tmaxs =  datetime.now(utc).strftime("%Y-%m-%d %H:%M:%S")
+            raise HTTPRedirect("triage_job?jobid=%d&tmax=%s" % (job.job_id, tmaxs))
+        else
+            raise HTTPRedirect("." % (job.job_id, tmaxs))
+
     @cherrypy.expose
     def calendar_json(self, start, end, timezone, _):
         cherrypy.response.headers['Content-Type'] = "application/json"
