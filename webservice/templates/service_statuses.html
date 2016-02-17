@@ -26,20 +26,33 @@
 
 
 {%block subheader%}
+<div class="ui attached stackable menu">
+ <div class="right item">
+  <form action="jump_to_job" method="GET">
+    <span class="label">Jump to job:</span>
+    <input type="text" name="jobsub_job_id">
+    <input type="submit" name="Jump To Job">
+ </form>
+</div>
+</div>
 <h2 class="ui dividing header">Services</h2>
 {%endblock%}
 
 
 
 {%block content%}
-	
-	<!--<button class="ui button">Component(failed/total)<i class="link help circle icon"></i></button>-->
-<div class="ui black label">
-  Component &nbsp; (failed/total) <i class="link help circle icon"></i>
-</div>
-<br/>
-<br/>
-
 	   {{services}} 
-
+<h3> Key:</h3>
+<div class="ui green label">
+  Good Component &nbsp; (0/total) <i class="link check icon"></i>
+</div>
+<div class="ui orange label">
+  Warn Component &nbsp; (num_failed/total) <i class="link warning sign icon"></i>
+</div>
+<div class="ui red label">
+  Failed Component &nbsp; (num_failed/total) <i class="link remove icon"></i>
+</div>
+<div class="ui label">
+  Unknown Component &nbsp; (0/total) <i class="link help circle icon"></i>
+</div>
 {%endblock%}

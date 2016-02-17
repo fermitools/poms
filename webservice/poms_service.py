@@ -108,6 +108,17 @@ class poms_service:
              return 1
         return 0
 
+
+    @cherrypy.expose
+    def jump_to_job(self, jobsub_job_id, **kwargs ):
+        
+        job = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
+        if job != None:
+            tmins =  datetime.now(utc).strftime("%Y-%m-%d %H:%M:%S")
+            raise cherrypy.HTTPRedirect("triage_job?job_id=%d&tmin=%s" % (job.job_id, tmins))
+        else:
+            raise cherrypy.HTTPRedirect(".")
+
     @cherrypy.expose
     def calendar_json(self, start, end, timezone, _):
         cherrypy.response.headers['Content-Type'] = "application/json"
@@ -594,7 +605,7 @@ class poms_service:
          cherrypy.response.headers['Content-Type']= 'application/json'
          res = [ "[" ]
          sep=""
-         for job in cherrypy.request.db.query(Job).filter(Job.status != "Completed").all():
+         for job in cherrypy.request.db.query(Job).filter(Job.status != "Completed", job.status != "Located").all():
               if job.jobsub_job_id == "unknown":
                    continue
               res.append( '%s "%s"' % (sep, job.jobsub_job_id))
@@ -839,9 +850,9 @@ class poms_service:
         downtimes = downtimes1 + downtimes2
         #ends service downtimes
         
-        task_jobsub_jobid = self.task_min_job(job_info.Job.task_id)
+        task_jobsub_job_id = self.task_min_job(job_info.Job.task_id)
 
-        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_jobid = task_jobsub_jobid)
+        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id)
 
     def handle_dates(self,tmin, tmax, tdays, baseurl):
         """
@@ -1336,7 +1347,11 @@ class poms_service:
 
 	    totjobs = totjobs + len(task.jobs)
 	    for job in task.jobs:
-		exitcounts[job.user_exe_exit_code] = exitcounts[job.user_exe_exit_code] + 1
+                # dont consider jobs outside of our window even if the task is
+                if job.updated < tmin or job.updated > tmax:
+                    continue
+
+		exitcounts[job.user_exe_exit_code] = exitcounts.get(job.user_exe_exit_code,0) + 1
 		if job.output_file_names:
 		    nout = len(job.output_file_names.split(' '))
 		    outfiles += nout
