@@ -66,19 +66,6 @@ class poms_service:
         template = self.jinja_env.get_template('service_statuses.html')
         return template.render(services=self.service_status_hier('All'),current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, pomspath=self.path,help_page="DashboardHelp")
 
-    @cherrypy.expose
-    def test(self):
-        cherrypy.response.headers['content-type'] = 'text/plain'
-        html = """<html>
-          <head></head>
-          <body>
-          session._id:       %s<br>
-          session.get('id'): %s<br>
-          session.get('experimenter'): %s<br>
-          </body>
-        </html>""" % (cherrypy.session._id,cherrypy.session.get('id'),cherrypy.session.get('experimenter'))
-        return html
-
     def can_create_task(self):
         ra =  cherrypy.request.headers.get('Remote-Addr', None)
         cherrypy.log("can_create_task: Remote-addr: %s" %  ra)
@@ -421,11 +408,15 @@ class poms_service:
     @cherrypy.expose
     def experiment_members(self, *args, **kwargs):
         exp = kwargs['experiment']
-        query = cherrypy.request.db.query(Experiment,ExperimentsExperimenters,Experimenter).join(ExperimentsExperimenters).join(Experimenter).filter(Experiment.name==exp).order_by(Experimenter.last_name)
+        query = cherrypy.request.db.query(Experiment,ExperimentsExperimenters,Experimenter).join(ExperimentsExperimenters).join(Experimenter).filter(Experiment.name==exp).order_by(ExperimentsExperimenters.active.desc(),Experimenter.last_name)
         trows=""
         for experiment, e2e, experimenter in query:
-            trow = """<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>""" % (experimenter.first_name, experimenter.last_name, experimenter.email, e2e.active)
+            active = "No"
+            if e2e.active:
+                active="Yes"
+            trow = """<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>""" % (experimenter.first_name, experimenter.last_name, experimenter.email, active)
             trows = "%s%s" % (trows,trow)
+        print trows
         return json.dumps(trows)        
 
     @cherrypy.expose
