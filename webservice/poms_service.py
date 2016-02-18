@@ -127,7 +127,7 @@ class poms_service:
         
         job = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
         if job != None:
-            tmins =  datetime.now(utc).strftime("%Y-%m-%d %H:%M:%S")
+            tmins =  datetime.now(utc).strftime("%Y-%m-%d+%H:%M:%S")
             raise cherrypy.HTTPRedirect("triage_job?job_id=%d&tmin=%s" % (job.job_id, tmins))
         else:
             raise cherrypy.HTTPRedirect(".")
@@ -1277,7 +1277,8 @@ class poms_service:
     def quick_search(self, jobsub_job_id):
         job_info = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
         if job_info:
-            raise cherrypy.HTTPRedirect("%s/triage_job?job_id=%s&tmin=%s" % (self.path,str(job_info.job_id), "somekindofdate"))
+            tmins =  datetime.now(utc).strftime("%Y-%m-%d+%H:%M:%S")
+            raise cherrypy.HTTPRedirect("%s/triage_job?job_id=%s&tmin=%s" % (self.path,str(job_info.job_id),tmins))
         else:
             raise cherrypy.HTTPRedirect(self.path + "/")
 

@@ -2,11 +2,10 @@
 
 import sys
 import os
-from model.poms_model import Experimenter, ExperimentsExperimenters
 
 # make sure poms is setup...
-if os.environ.get("POMS_DIR","") == "":
-    sys.path.insert(0,os.environ['SETUPS_DIR'])
+if os.environ.get("SETUP_POMS","") == "":
+    sys.path.insert(0,os.environ.get('SETUPS_DIR',os.environ.get('HOME')+'/products'))
     import setups
     print "setting up poms..."
     ups = setups.setups()
@@ -14,6 +13,7 @@ if os.environ.get("POMS_DIR","") == "":
 else:
     print "already setup"
 
+from model.poms_model import Experimenter, ExperimentsExperimenters
 import os.path
 import argparse
 from logging import handlers, DEBUG
