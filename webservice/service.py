@@ -111,16 +111,19 @@ class SessionTool(cherrypy.Tool):
         cherrypy.Tool.__init__(self, 'before_request_body',
                                self.establish_session,
                                priority=50)
-        
-    def _setup(self):
-        cherrypy.Tool._setup(self)
-        cherrypy.request.hooks.attach('before_request_body',
-                                      self.get_current_experimenter,
-                                      priority=90)
-    def establish_session(self):
-        cherrypy.session['id'] = cherrypy.session._id
 
-    def get_current_experimenter(self):
+    # Here is how to add aditional hooks. Left as example
+    #def _setup(self):
+    #    cherrypy.Tool._setup(self)
+    #    cherrypy.request.hooks.attach('before_request_body',
+    #                                  self.your_method,
+    #                                  priority=90)
+
+    def establish_session(self):
+        if cherrypy.session.get('id',None):
+            return
+        cherrypy.session['id'] = cherrypy.session.originalid  #The session ID from the users cookie.
+        
         if cherrypy.request.headers.get('X-Shib-Email',None):
             email = cherrypy.request.headers['X-Shib-Email']
             experimenter = cherrypy.request.db.query(Experimenter).filter(ExperimentsExperimenters.active == True).filter(Experimenter.email == email ).first()
@@ -143,7 +146,9 @@ class SessionTool(cherrypy.Tool):
             cherrypy.request.db.commit()
             experimenter = cherrypy.request.db.query(Experimenter).filter(ExperimentsExperimenters.active == True).filter(Experimenter.email == email ).first()
 
-        cherrypy.session['experimenter'] = experimenter
+        cherrypy.session['experimenter'] = experimenter        
+        cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For','Unknown'), cherrypy.session['id'], 
+                                                      experimenter.email, experimenter.first_name, experimenter.last_name))
 
 def set_rotating_log(app):
     ''' recipe  for a rotating log file...'''
