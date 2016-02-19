@@ -15,7 +15,7 @@ class Campaign(Base):
     campaign_id = Column(Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)"))
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
     name = Column(Text, nullable=False)
-    task_definition_id = Column(ForeignKey(u'task_definitions.task_definition_id'), nullable=False, index=True, server_default=text("nextval('campaigns_task_definition_id_seq'::regclass)"))
+    campaign_definition_id = Column(ForeignKey(u'campaign_definitions.campaign_definition_id'), nullable=False, index=True, server_default=text("nextval('campaigns_campaign_definition_id_seq'::regclass)"))
     creator = Column(ForeignKey(u'experimenters.experimenter_id'), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey(u'experimenters.experimenter_id'), index=True)
@@ -29,7 +29,7 @@ class Campaign(Base):
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')
     experiment_obj = relationship(u'Experiment')
-    task_definition_obj = relationship(u'TaskDefinition')
+    campaign_definition_obj = relationship(u'CampaignDefinition')
 
 
 class Experimenter(Base):
@@ -127,10 +127,10 @@ class Service(Base):
     parent_service_obj = relationship(u'Service', remote_side=[service_id])
 
 
-class TaskDefinition(Base):
-    __tablename__ = 'task_definitions'
+class CampaignDefinition(Base):
+    __tablename__ = 'campaign_definitions'
 
-    task_definition_id = Column(Integer, primary_key=True, server_default=text("nextval('task_definitions_task_definition_id_seq'::regclass)"))
+    campaign_definition_id = Column(Integer, primary_key=True, server_default=text("nextval('campaign_definitions_campaign_definition_id_seq'::regclass)"))
     name = Column(Text, nullable=False, unique=True)
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
     launch_script = Column(Text)
@@ -143,8 +143,8 @@ class TaskDefinition(Base):
     updated = Column(DateTime(True))
 
     experiment_obj = relationship(u'Experiment')
-    experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='TaskDefinition.creator == Experimenter.experimenter_id')
-    experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='TaskDefinition.updater == Experimenter.experimenter_id')
+    experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='CampaignDefinition.creator == Experimenter.experimenter_id')
+    experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='CampaignDefinition.updater == Experimenter.experimenter_id')
 
 
 class Task(Base):
@@ -152,7 +152,7 @@ class Task(Base):
 
     task_id = Column(Integer, primary_key=True, server_default=text("nextval('tasks_task_id_seq'::regclass)"))
     campaign_id = Column(ForeignKey(u'campaigns.campaign_id'), nullable=False, index=True, server_default=text("nextval('tasks_campaign_id_seq'::regclass)"))
-    #task_definition_id = Column(Integer, nullable=False, index=True, server_default=text("nextval('tasks_task_definition_id_seq'::regclass)"))
+    #campaign_definition_id = Column(Integer, nullable=False, index=True, server_default=text("nextval('tasks_campaign_definition_id_seq'::regclass)"))
     task_order = Column(Integer, nullable=False)
     input_dataset = Column(Text, nullable=False)
     output_dataset = Column(Text, nullable=False)

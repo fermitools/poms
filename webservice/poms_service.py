@@ -10,7 +10,7 @@ from sqlalchemy.orm  import subqueryload, contains_eager
 from sqlalchemy.orm.exc import NoResultFound
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, TaskDefinition, TaskHistory, Campaign
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign
 
 ZERO = timedelta(0)
 
@@ -582,7 +582,7 @@ class poms_service:
          camp = self.get_or_add_campaign(exp,td,creator)
          t = Task()
          t.campaign_id = camp.campaign_id
-         #t.task_definition_id = td.task_definition_id
+         #t.campaign_definition_id = td.campaign_definition_id
          t.task_order = 0
          t.input_dataset = input_dataset
          t.output_dataset = output_dataset
@@ -768,7 +768,7 @@ class poms_service:
         #
         tl = cherrypy.request.db.query(Task).filter(Task.status == "Completed").all()
         for t in tl:
-            if t.campaign_obj.task_definition_obj.output_files_per_job == 0:
+            if t.campaign_obj.campaign_definition_obj.output_files_per_job == 0:
                 t.status = "Located"
             else:
                 all_all_declared = 1
@@ -826,7 +826,7 @@ class poms_service:
 
         output_file_names_list = []
 
-        job_info = cherrypy.request.db.query(Job, Task, TaskDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Campaign.task_definition_id==TaskDefinition.task_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
+        job_info = cherrypy.request.db.query(Job, Task, CampaignDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Campaign.campaign_definition_id==CampaignDefinition.campaign_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
 
         job_history = cherrypy.request.db.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
 
@@ -965,7 +965,7 @@ class poms_service:
     def campaign_info(self, campaign_id ):
 
         c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-        td =  cherrypy.request.db.query(TaskDefinition).filter(TaskDefinition.task_definition_id == c.task_definition_id ).first()
+        td =  cherrypy.request.db.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id == c.campaign_definition_id ).first()
 
         template = self.jinja_env.get_template('campaign_info.html')
         return template.render(  campaign = c, taskdefinition = td, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp")
@@ -1113,7 +1113,7 @@ class poms_service:
 
     
     @cherrypy.expose
-    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, task_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None):
+    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None):
            
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'job_table?')
         extra = ""
@@ -1147,9 +1147,9 @@ class poms_service:
             q = q.filter(Campaign.name == campaign_name)
             filtered_fields['campaign_name'] = campaign_name
 
-        if task_def_id:
-            q = q.filter(Campaign.task_definition_id == task_def_id)
-            filtered_fields['task_def_id'] = task_def_id
+        if campaign_def_id:
+            q = q.filter(Campaign.campaign_definition_id == campaign_def_id)
+            filtered_fields['campaign_def_id'] = campaign_def_id
 
         if vo_role:
             q = q.filter(Campaign.vo_role == vo_role)
