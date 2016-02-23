@@ -605,7 +605,7 @@ class poms_service:
          cherrypy.response.headers['Content-Type']= 'application/json'
          res = [ "[" ]
          sep=""
-         for job in cherrypy.request.db.query(Job).filter(Job.status != "Completed", job.status != "Located").all():
+         for job in cherrypy.request.db.query(Job).filter(Job.status != "Completed", Job.status != "Located").all():
               if job.jobsub_job_id == "unknown":
                    continue
               res.append( '%s "%s"' % (sep, job.jobsub_job_id))

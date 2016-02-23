@@ -147,7 +147,7 @@ class SessionTool(cherrypy.Tool):
 
         cherrypy.session['experimenter'] = experimenter        
         cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For','Unknown'), cherrypy.session['id'], 
-                                                      experimenter.email, experimenter.first_name, experimenter.last_name))
+                                                      experimenter.email if experimenter else 'none', experimenter.first_name if experimenter else 'none' , experimenter.last_name if experimenter else 'none'))
 
 def set_rotating_log(app):
     ''' recipe  for a rotating log file...'''
