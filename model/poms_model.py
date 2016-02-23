@@ -24,6 +24,8 @@ class Campaign(Base):
     cs_last_split = Column(DateTime(True), nullable=True)
     cs_split_type = Column(Text, nullable = True)
     cs_split_dimensions = Column(Text, nullable = True)
+    dataset = Column(Text, nullable = False)
+    software_version = Column(Text, nullable = False)
     active = Column(Boolean, nullable=False, server_default=text("true"))
 
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
@@ -94,6 +96,8 @@ class Job(Base):
     output_file_names = Column(Text)
     user_exe_exit_code = Column(Integer)
     input_file_names = Column(Text)
+    reason_held = Column(Text)
+    consumer_id = Column(Text)
 
     task_obj = relationship(u'Task')
 
