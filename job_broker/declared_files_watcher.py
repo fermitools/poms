@@ -2,11 +2,13 @@
 import sys
 import os
 # make sure poms is setup...
-sys.path.insert(0,os.environ['SETUPS_DIR'])
-import setups
-print "setting up poms..."
-ups = setups.setups()
-ups.use_package("poms","","SETUP_POMS")
+if os.environ.get("SETUP_POMS","") == "":
+    sys.path.insert(0,os.environ.get('SETUPS_DIR', os.environ.get('HOME')+'/products'))
+    import setups
+    print "setting up poms..."
+    ups = setups.setups()
+    ups.use_package("poms","","SETUP_POMS")
+
 
 import re
 import urllib2
