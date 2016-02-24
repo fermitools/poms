@@ -1405,7 +1405,7 @@ class poms_service:
         f.close()
         
         template = self.jinja_env.get_template('killed_jobs.html')
-        return template.render(ouput = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="KilledJobsHelp")
+        return template.render(output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="KilledJobsHelp")
 
     @cherrypy.expose
     def launch_jobs(self, campaign_id):
@@ -1419,7 +1419,11 @@ class poms_service:
         # look up the user, host, etc. there, not use an experiment generic
         cmdl =  [
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/`hostname`@FNAL.GOV || true",
+            "echo here1",
             "ssh -tx %spro@%sgpvm01.fnal.gov <<EOF" % (c.experiment, c.experiment),
+            "set -x",
+            "echo here2",
+            "exec 2>&1",
             "setup_%s" % c.experiment,
             "setup -t poms_jobsub_wrapper -z /grid/fermiapp/products/common/db",
             "export JOBSUB_GROUP=%s" % group,
@@ -1428,13 +1432,13 @@ class poms_service:
         params = json.loads(cd.definition_parameters)  # do we need this?
         print "got params of: %s" % params
         # params.update(json.loads(c.param_overrides)) 
-        cmd = cd.launch_script + " " + ' '.join(' '.join(x) for x in params.items())
-        cmd = cmd % {
+        lcmd = cd.launch_script + " " + ' '.join(' '.join(x) for x in params.items())
+        lcmd = lcmd % {
               "dataset":c.dataset, 
               "version":c.software_version,
               "group": group,
         }
-        cmdl.append(cmd)
+        cmdl.append(lcmd)
         cmdl.append('exit')
         cmdl.append('EOF')
         
@@ -1442,9 +1446,12 @@ class poms_service:
         print "Running: ", cmd
 
         f = os.popen(cmd,'r')
-        output = f.read()
+        outlist = []
+        for line in f:
+            outlist.append(line)
         f.close()
+        output = ''.join(outlist)
         
         template = self.jinja_env.get_template('launched_jobs.html')
-        return template.render(ouput = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="KilledJobsHelp")
+        return template.render(command = lcmd, output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="LaunchedJobsHelp")
 
