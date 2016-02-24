@@ -1375,3 +1375,76 @@ class poms_service:
             name = ''
         return template.render(name = name,columns = columns, datarows = outrows, prevlink=prevlink, nextlink=nextlink,current_experimenter=cherrypy.session.get('experimenter'), campaign_id = campaign_id, pomspath=self.path,help_page="CampaignSheetHelp")
 
+   
+    @cherrypy.expose
+    def kill_jobs(self, campaign_id=None, task_id=None, job_id=None):
+        jjil = []
+        if campaign_id != None or task_id != None:
+            if campaign_id != None:
+                tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id).all()
+            else:
+                tl = cherrypy.request.db.query(Task).filter(Task.task_id == task_id).all()
+            c = tl[0].campaign_obj
+            for t in tl:
+                tjid = self.task_min_job(task_id)
+                # for tasks/campaigns, kill the whole group of jobs
+                # by getting the leader's jobsub_job_id and taking off
+                # the '.0'.
+                jjil.append(tjid.replace('.0',''))
+        else:
+            jql = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).all()  
+            c = jql[0].task_obj.campaign_obj
+            for j in jql:
+                jjil.append(j.jobsub_job_id)
+        
+        group = c.experiment
+        if group == 'samdev': group = 'fermilab'
+       
+        f = os.popen("jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vvo_role, ','.join(jjil)), "r")
+        output = f.read()
+        f.close()
+        
+        template = self.jinja_env.get_template('killed_jobs.html')
+        return template.render(ouput = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="KilledJobsHelp")
+
+    @cherrypy.expose
+    def launch_jobs(self, campaign_id):
+	c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        cd = c.campaign_definition_obj
+
+        group = c.experiment
+        if group == 'samdev': group = 'fermilab'
+
+        # XXX when we have a job launch environment table, we should
+        # look up the user, host, etc. there, not use an experiment generic
+        cmdl =  [
+            "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/`hostname`@FNAL.GOV || true",
+            "ssh -tx %spro@%sgpvm01.fnal.gov <<EOF" % (c.experiment, c.experiment),
+            "setup_%s" % c.experiment,
+            "setup -t poms_jobsub_wrapper -z /grid/fermiapp/products/common/db",
+            "export JOBSUB_GROUP=%s" % group,
+	]
+        # end of XXX
+        params = json.loads(cd.definition_parameters)  # do we need this?
+        print "got params of: %s" % params
+        # params.update(json.loads(c.param_overrides)) 
+        cmd = cd.launch_script + " " + ' '.join(' '.join(x) for x in params.items())
+        cmd = cmd % {
+              "dataset":c.dataset, 
+              "version":c.software_version,
+              "group": group,
+        }
+        cmdl.append(cmd)
+        cmdl.append('exit')
+        cmdl.append('EOF')
+        
+        cmd = '\n'.join(cmdl)
+        print "Running: ", cmd
+
+        f = os.popen(cmd,'r')
+        output = f.read()
+        f.close()
+        
+        template = self.jinja_env.get_template('launched_jobs.html')
+        return template.render(ouput = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="KilledJobsHelp")
+

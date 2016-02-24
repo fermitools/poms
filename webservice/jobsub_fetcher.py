@@ -22,6 +22,7 @@ class jobsub_fetcher():
               os.system("rm -rf %s" % self.workdir)
 
     def fetch(self, jobsubjobid, group, role, force_reload = False):
+         if group == "samdev": group = "fermilab"
          thistar = "%s/%s.tgz" % (self.workdir, jobsubjobid.rstrip("\n"))
          if os.path.exists(thistar):
              if force_reload:
@@ -49,6 +50,8 @@ class jobsub_fetcher():
          os.system("ls -l %s " % self.workdir)
 
     def index(self, jobsubjobid, group, role = "Production", force_reload = False):
+
+        if group == "samdev": group = "fermilab"
         self.fetch(jobsubjobid, group, role, force_reload)
         f = os.popen( "tar tzf %s/%s.tgz" % (self.workdir, jobsubjobid.rstrip("\n")), "r")
         res = []
