@@ -27,11 +27,13 @@ class Campaign(Base):
     dataset = Column(Text, nullable = False)
     software_version = Column(Text, nullable = False)
     active = Column(Boolean, nullable=False, server_default=text("true"))
+    launch_id = Column(ForeignKey(u'launch_templates.launch_id'), nullable=False)
 
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')
     experiment_obj = relationship(u'Experiment')
     campaign_definition_obj = relationship(u'CampaignDefinition')
+    launch_template_obj = relationship(u'LaunchTemplate')
 
 
 class Experimenter(Base):
@@ -130,6 +132,24 @@ class Service(Base):
 
     parent_service_obj = relationship(u'Service', remote_side=[service_id])
 
+
+class LaunchTemplate(Base):
+    __tablename__ = 'launch_templates'
+
+    launch_id = Column(Integer, primary_key=True, server_default=text("nextval('launch_templates_launch_id_seq'::regclass)"))
+    experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
+    launch_host = Column(Text, nullable=False)
+    launch_account = Column(Text, nullable=False)
+    launch_setup = Column(Text, nullable=False)
+    creator = Column(ForeignKey(u'experimenters.experimenter_id'), nullable=False, index=True)
+    created = Column(DateTime(True), nullable=False)
+    updater = Column(ForeignKey(u'experimenters.experimenter_id'), index=True)
+    updated = Column(DateTime(True))
+
+    experiment_obj = relationship(u'Experiment')
+    experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='LaunchTemplate.creator == Experimenter.experimenter_id')
+    experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='LaunchTemplate.updater == Experimenter.experimenter_id')
+    
 
 class CampaignDefinition(Base):
     __tablename__ = 'campaign_definitions'
