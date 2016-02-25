@@ -6,7 +6,7 @@ import urllib
 from collections import OrderedDict
 
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func, exc, distinct
-from sqlalchemy.orm  import subqueryload, contains_eager
+from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy.orm.exc import NoResultFound
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
@@ -427,7 +427,6 @@ class poms_service:
                 active="Yes"
             trow = """<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>""" % (experimenter.first_name, experimenter.last_name, experimenter.email, active)
             trows = "%s%s" % (trows,trow)
-        print trows
         return json.dumps(trows)        
 
     @cherrypy.expose
@@ -1365,8 +1364,22 @@ class poms_service:
 		    nin = len(job.input_file_names.split(' '))
 		    infiles += nin
 
-        # it looks like we should add another row here for the last set of totals, but
-        # instead we added a day to the query range, so we compute a row of totals we don't use..
+        # we *should* add another row here for the last set of totals, but
+        # initially we just added a day to the query range, so we compute a row of totals we don't use..
+        # --- but that doesn't work on new projects...
+	# add a row to the table on the day boundary
+	outrow = []
+	outrow.append(daynames[day])
+	outrow.append(date.isoformat()[:10])
+	outrow.append(str(totfiles if totfiles > 0 else infiles))
+	outrow.append(str(totdfiles))
+	outrow.append(str(totjobs))
+	outrow.append(str(totjobfails))
+	outrow.append(str(outfiles))
+	outrow.append(str(pendfiles))
+	for e in exitcodes:
+	    outrow.append(exitcounts[e])
+	outrows.append(outrow)
     
         template = self.jinja_env.get_template('campaign_sheet.html')
         if tl and tl[0]:
@@ -1409,30 +1422,29 @@ class poms_service:
 
     @cherrypy.expose
     def launch_jobs(self, campaign_id):
-	c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+	c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).options(joinedload(Campaign.launch_template_obj),joinedload(Campaign.campaign_definition_obj)).first()
         cd = c.campaign_definition_obj
+        lt = c.launch_template_obj
 
         group = c.experiment
         if group == 'samdev': group = 'fermilab'
 
-        # XXX when we have a job launch environment table, we should
-        # look up the user, host, etc. there, not use an experiment generic
         cmdl =  [
-            "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/`hostname`@FNAL.GOV || true",
-            "echo here1",
-            "ssh -tx %spro@%sgpvm01.fnal.gov <<EOF" % (c.experiment, c.experiment),
-            "set -x",
-            "echo here2",
             "exec 2>&1",
-            "setup_%s" % c.experiment,
+            "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/`hostname`@FNAL.GOV || true",
+            "ssh -tx %s@%s <<EOF" % (lt.launch_account, lt.launch_host),
+            lt.launch_setup % {
+              "dataset":c.dataset, 
+              "version":c.software_version,
+              "group": group,
+            },
             "setup -t poms_jobsub_wrapper -z /grid/fermiapp/products/common/db",
             "export JOBSUB_GROUP=%s" % group,
 	]
-        # end of XXX
-        params = json.loads(cd.definition_parameters)  # do we need this?
-        print "got params of: %s" % params
+        params = json.loads(cd.definition_parameters) 
         # params.update(json.loads(c.param_overrides)) 
-        lcmd = cd.launch_script + " " + ' '.join(' '.join(x) for x in params.items())
+        
+        lcmd = cd.launch_script + " " + ' '.join(x + params[1][x] for x in params[0])
         lcmd = lcmd % {
               "dataset":c.dataset, 
               "version":c.software_version,
@@ -1443,7 +1455,6 @@ class poms_service:
         cmdl.append('EOF')
         
         cmd = '\n'.join(cmdl)
-        print "Running: ", cmd
 
         f = os.popen(cmd,'r')
         outlist = []
