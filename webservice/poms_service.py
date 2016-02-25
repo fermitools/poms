@@ -948,6 +948,7 @@ class poms_service:
             res.append('<a href="%s/campaign_sheet?campaign_id=%d&tmax=%s"><i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i></a>' % ( self.path, c.campaign_id, tmaxs))
             res.append('<a href="%s/campaign_time_bars?campaign_id=%d&tmin=%s&tmax=%s"><i class="external tasks icon" data-content="Tasks in Campaign Time Bars" data-variation="basic"></i></a>' % ( self.path, c.campaign_id, tmins, tmaxs))
             res.append('<a href="%s/campaign_info?campaign_id=%d"><i class="external info circle icon" data-content="Campaign Information" data-variation="basic"></i></a>' % ( self.path, c.campaign_id ))
+            res.append('<a href="%s/kill_jobs?campaign_id=%d"><i class="trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i></a>' % ( self.path, c.campaign_id))
             res.append('</td>')
             counts = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
             for k in counts.keys():
@@ -1390,35 +1391,43 @@ class poms_service:
 
    
     @cherrypy.expose
-    def kill_jobs(self, campaign_id=None, task_id=None, job_id=None):
+    def kill_jobs(self, campaign_id=None, task_id=None, job_id=None, confirm=None):
+
         jjil = []
+        jql = None
         if campaign_id != None or task_id != None:
             if campaign_id != None:
-                tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id).all()
+                tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id, Task.status != 'Completed', Task.status != 'Located').all()
             else:
                 tl = cherrypy.request.db.query(Task).filter(Task.task_id == task_id).all()
             c = tl[0].campaign_obj
             for t in tl:
-                tjid = self.task_min_job(task_id)
+                tjid = self.task_min_job(t.task_id)
+                cherrypy.log("kill_jobs: task_id %s -> tjid %s" % (t.task_id, tjid))
                 # for tasks/campaigns, kill the whole group of jobs
                 # by getting the leader's jobsub_job_id and taking off
                 # the '.0'.
-                jjil.append(tjid.replace('.0',''))
+                if tjid:
+                    jjil.append(tjid.replace('.0',''))
         else:
-            jql = cherrypy.request.db.query(Job).filter(Job.job_id == job_id).all()  
+            jql = cherrypy.request.db.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Located').all()  
             c = jql[0].task_obj.campaign_obj
             for j in jql:
                 jjil.append(j.jobsub_job_id)
-        
-        group = c.experiment
-        if group == 'samdev': group = 'fermilab'
-       
-        f = os.popen("jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
-        output = f.read()
-        f.close()
-        
-        template = self.jinja_env.get_template('killed_jobs.html')
-        return template.render(output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="KilledJobsHelp")
+
+        if confirm == None:
+            template = self.jinja_env.get_template('confirm_kill_jobs.html')
+            return template.render(current_experimenter=cherrypy.session.get('experimenter'), jjil = jjil, task = t, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="KilledJobsHelp")
+        else:        
+	    group = c.experiment
+	    if group == 'samdev': group = 'fermilab'
+	   
+	    f = os.popen("jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
+	    output = f.read()
+	    f.close()
+	    
+	    template = self.jinja_env.get_template('killed_jobs.html')
+	    return template.render(output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="KilledJobsHelp")
 
     @cherrypy.expose
     def launch_jobs(self, campaign_id):
@@ -1438,13 +1447,13 @@ class poms_service:
               "version":c.software_version,
               "group": group,
             },
-            "setup -t poms_jobsub_wrapper -z /grid/fermiapp/products/common/db",
+            "setup poms_jobsub_wrapper v0_3 -z /grid/fermiapp/products/common/db",
             "export JOBSUB_GROUP=%s" % group,
 	]
         params = json.loads(cd.definition_parameters) 
         # params.update(json.loads(c.param_overrides)) 
         
-        lcmd = cd.launch_script + " " + ' '.join(x + params[1][x] for x in params[0])
+        lcmd = cd.launch_script + " " + ' '.join(x + params[1].get(x,'') for x in params[0])
         lcmd = lcmd % {
               "dataset":c.dataset, 
               "version":c.software_version,
