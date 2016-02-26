@@ -15,6 +15,7 @@ else:
 
 
 from model.poms_model import Experimenter, ExperimentsExperimenters
+from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 import os.path
 import argparse
 from logging import handlers, DEBUG
@@ -144,7 +145,7 @@ class SessionTool(cherrypy.Tool):
                 active = True)
             cherrypy.request.db.add(e2e)
             cherrypy.request.db.commit()
-            experimenter = cherrypy.request.db.query(Experimenter).filter(ExperimentsExperimenters.active == True).filter(Experimenter.email == email ).first()
+            experimenter = cherrypy.request.db.query(Experimenter).filter(ExperimentsExperimenters.active == True).options(subqueryload(Experimenter.exp_exprs),subqueryload(ExperimentExperimenters.experiment_obj)).filter(Experimenter.email == email ).first()
 
         cherrypy.session['experimenter'] = experimenter        
         cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For','Unknown'), cherrypy.session['id'], 
