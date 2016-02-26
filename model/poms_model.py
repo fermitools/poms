@@ -137,6 +137,7 @@ class LaunchTemplate(Base):
     __tablename__ = 'launch_templates'
 
     launch_id = Column(Integer, primary_key=True, server_default=text("nextval('launch_templates_launch_id_seq'::regclass)"))
+    name = Column(Text, nullable=False, index=True, unique=True)
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
     launch_host = Column(Text, nullable=False)
     launch_account = Column(Text, nullable=False)
