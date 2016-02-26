@@ -4,12 +4,12 @@ class time_grid:
          # you can't see boxes less than 2% wide...
          self.minwidth = 2
 
-     def render_query(self, tmin, tmax, rows, group_key, url_template=""):
+     def render_query(self, tmin, tmax, rows, group_key, url_template="", extramap={}):
          dlmap = self.group_time_data( rows, group_key, url_template)
          #print "got dlmap:", dlmap
          self.add_time_data(tmin, tmax, dlmap)
          #print "self.pmap is: ", self.pmap
-         return self.draw_boxes()
+         return self.draw_boxes(extramap)
 
      def group_time_data( self, rows, group_key, url_template="" ):
           result = {}
@@ -165,7 +165,7 @@ class time_grid:
                  if p['width'] >= 100:
                     p['width'] = 95
              
-     def draw_boxes(self):
+     def draw_boxes(self, extramap = {}):
          #self.min_box_sizes()
          rlist = []
          displaylist = self.pmap.items()
@@ -175,9 +175,10 @@ class time_grid:
                  continue
              rlist.append("""
                <div class='row' style='margin:0px 0px; padding:0px 0px;'>
-                 <div class='mwm_label' style='text-align: right; width: 11%%; float:left; padding: 5px 5px; border-right: 1px solid black; '>%s</div>
-                   <div clas='mwm_rowdata'  style='position: relative; width: 88%%; float:left; clear: right; border-right: 1px solid black; border-left: 1px solid black; padding: 5px 0px'>
-                """ % id)
+                 <div class='mwm_label' style='text-align: right; width: 14%%; float:left; padding: 5px 5px; border-right: 1px solid black; '>%s</div>
+                   <div clas='mwm_rowdata'  style='position: relative; width: 85%%; float:left; clear: right; border-right: 1px solid black; border-left: 1px solid black; padding: 5px 0px'>
+                """ % (id + extramap.get(id,''))
+)
              for p in plist:
                  rlist.append("""
                        <a href='%s'>

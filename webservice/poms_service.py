@@ -789,12 +789,14 @@ class poms_service:
 	    def __init__(self, **kwargs):
 	        self.__dict__.update(kwargs)
 	items = []
+        extramap = {}
 	for jh, j in jl:
 	    if j.jobsub_job_id: 
 		jjid= j.jobsub_job_id.replace('fifebatch','').replace('.fnal.gov','')
 	    else: 
 		jjid= 'j' + str(jh.job_id)
 
+            extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d"><i class="ui trash icon"></i></a>' % (self.path, jh.job_id)
 	    items.append(fakerow(job_id = jh.job_id,
 				  created = jh.created.replace(tzinfo=utc),
 				  status = jh.status,
@@ -803,7 +805,7 @@ class poms_service:
         screendata = self.format_job_counts(task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
         key = tg.key(fancy=1)
 
-        screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins)         
+        screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)         
 
         campaign_id = jl[0][1].task_obj.campaign_id
         cname = jl[0][1].task_obj.campaign_obj.name
@@ -1004,18 +1006,21 @@ class poms_service:
 
               qr = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == c.campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin - timedelta(hours=12), Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
               items = []
+              extramap = {}
               for th in qr:
                   jjid = self.task_min_job(th.task_id)
                   if not jjid: 
                       jjid= 't' + str(th.task_id)
                   else:
                       jjid = jjid.replace('fifebatch','').replace('.fnal.gov','')
+                  extramap[jjid] = '<a href="%s/kill_jobs?task_id=%d"><i class="ui trash icon"></i></a>' % (self.path, th.task_id)
+
                   items.append(fakerow(task_id = th.task_id,
  					created = th.created.replace(tzinfo = utc),
  					status = th.status,
                  			jobsub_job_id = jjid))
 
-              sl.append( tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s' ))
+              sl.append( tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s',extramap = extramap ))
         screendata = "\n".join(sl)
               
         template = self.jinja_env.get_template('campaign_bars.html')
@@ -1466,11 +1471,33 @@ class poms_service:
 	    template = self.jinja_env.get_template('killed_jobs.html')
 	    return template.render(output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="KilledJobsHelp")
 
+	    # no split to do, it is a rolling datset, etc.
+            return camp.dataset
+        if camp.cs_split_type == 'list':
+            j# we were given a list of datasets..
+            l = camp.dataset.split(',')
+            if camp.cs_last_split == '':
+                camp.cs_last_split = -1
+            camp.cs_last_split += 1
+            
+            return l[camp.cs_last_split]
+        if camp.cs_split_type.starts_with('mod_'):
+            m = int(camp.cs_split_type[4:])
+            if camp.cs_last_split == '':
+                camp.cs_last_split = -1 
+            camp.cs_last_split += 1
+            new = dataset + "_slice%d" % camp.cs_last_split
+            define_dataset(new, "defname: %s stride %d skip %d")
+        return dataset  
+       
+
     @cherrypy.expose
     def launch_jobs(self, campaign_id):
 	c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).options(joinedload(Campaign.launch_template_obj),joinedload(Campaign.campaign_definition_obj)).first()
         cd = c.campaign_definition_obj
         lt = c.launch_template_obj
+
+        dataset = self.get_dataset_for(c)
 
         group = c.experiment
         if group == 'samdev': group = 'fermilab'
@@ -1480,7 +1507,7 @@ class poms_service:
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/`hostname`@FNAL.GOV || true",
             "ssh -tx %s@%s <<EOF" % (lt.launch_account, lt.launch_host),
             lt.launch_setup % {
-              "dataset":c.dataset, 
+              "dataset":dataset, 
               "version":c.software_version,
               "group": group,
             },
@@ -1492,7 +1519,7 @@ class poms_service:
         
         lcmd = cd.launch_script + " " + ' '.join(x + params[1].get(x,'') for x in params[0])
         lcmd = lcmd % {
-              "dataset":c.dataset, 
+              "dataset":dataset, 
               "version":c.software_version,
               "group": group,
         }
