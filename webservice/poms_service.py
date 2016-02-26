@@ -799,7 +799,7 @@ class poms_service:
             if j.status != "Completed" and j.status != "Located":
                 extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d"><i class="ui trash icon"></i></a>' % (self.path, jh.job_id)
             else:
-                extramap[jjid] = '&nbsp;' % (self.path, jh.job_id)
+                extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
 	    items.append(fakerow(job_id = jh.job_id,
 				  created = jh.created.replace(tzinfo=utc),
 				  status = jh.status,
@@ -1019,7 +1019,7 @@ class poms_service:
                   if th.status != "Completed" and th.status != "Located":
                       extramap[jjid] = '<a href="%s/kill_jobs?task_id=%d"><i class="ui trash icon"></i></a>' % (self.path, th.task_id)
                   else:
-                      extramap[jjid] = '&nbsp;' % (self.path, jh.job_id)
+                      extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
 
                   items.append(fakerow(task_id = th.task_id,
  					created = th.created.replace(tzinfo = utc),
