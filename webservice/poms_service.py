@@ -796,7 +796,10 @@ class poms_service:
 	    else: 
 		jjid= 'j' + str(jh.job_id)
 
-            extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d"><i class="ui trash icon"></i></a>' % (self.path, jh.job_id)
+            if j.status != "Completed" and j.status != "Located":
+                extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d"><i class="ui trash icon"></i></a>' % (self.path, jh.job_id)
+            else:
+                extramap[jjid] = '&nbsp;' % (self.path, jh.job_id)
 	    items.append(fakerow(job_id = jh.job_id,
 				  created = jh.created.replace(tzinfo=utc),
 				  status = jh.status,
@@ -1013,7 +1016,10 @@ class poms_service:
                       jjid= 't' + str(th.task_id)
                   else:
                       jjid = jjid.replace('fifebatch','').replace('.fnal.gov','')
-                  extramap[jjid] = '<a href="%s/kill_jobs?task_id=%d"><i class="ui trash icon"></i></a>' % (self.path, th.task_id)
+                  if th.status != "Completed" and th.status != "Located":
+                      extramap[jjid] = '<a href="%s/kill_jobs?task_id=%d"><i class="ui trash icon"></i></a>' % (self.path, th.task_id)
+                  else:
+                      extramap[jjid] = '&nbsp;' % (self.path, jh.job_id)
 
                   items.append(fakerow(task_id = th.task_id,
  					created = th.created.replace(tzinfo = utc),
