@@ -45,7 +45,7 @@ class declared_files_watcher:
             jobs = json.load(conn)
             conn.close()
 
-            print "got: ", jobs
+            #print "got: ", jobs
             sys.stdout.flush()
             return jobs
         except:
@@ -65,33 +65,37 @@ class declared_files_watcher:
             batch = flist[:500]
             flist = flist[500:]
             dims = "file_name %s" % ','.join(batch)
-            print "trying dimensions: ", dims
+            #print "trying dimensions: ", dims
             sys.stdout.flush()
             found = self.samweb.listFiles(dims)
-            print "got: ", found
+            #print "got: ", found
             sys.stdout.flush()
             res = res + found
+        print "found %d located files for %s" % (len(res), experiment)
         return res
 
     def one_pass(self):
-         map = self.get_pending_jobs()
+         jobmap = self.get_pending_jobs()
          old_experiment = ""
          samweb = None
          total_flist = {}
-         for jobsub_job_id in  map.keys():
-             job_flist = map[jobsub_job_id]["output_file_names"].split(" ")
-             experiment  = map[jobsub_job_id]["experiment"]
+         present_files = {}
+         for jobsub_job_id in  jobmap.keys():
+             job_flist = jobmap[jobsub_job_id]["output_file_names"].split(" ")
+             experiment  = jobmap[jobsub_job_id]["experiment"]
              if not total_flist.has_key(experiment):
                   total_flist[experiment] = []
 	     total_flist[experiment] = total_flist[experiment] + job_flist
 
+         print "got total file lists for experiments..."
+
          for experiment in total_flist.keys():
              present_files[experiment] = self.find_located_files(experiment, total_flist[experiment])
           
-         for jobsub_job_id in  map.keys():
+         for jobsub_job_id in  jobmap.keys():
 
-             flist = map[jobsub_job_id]["output_file_names"].split(" ")
-             experiment  = map[jobsub_job_id]["experiment"]
+             flist = jobmap[jobsub_job_id]["output_file_names"].split(" ")
+             experiment  = jobmap[jobsub_job_id]["experiment"]
 
              all_located = 1
              for f in flist:
@@ -100,6 +104,8 @@ class declared_files_watcher:
 
              if all_located:
                  self.job_reporter.report_status(jobsub_job_id,output_files_declared = "True",status="Located")
+
+         print "Looked through files.."
 
          self.call_wrapup_tasks()
 
@@ -119,5 +125,5 @@ class declared_files_watcher:
             time.sleep(60)
 
 if __name__ == "__main__":
-     dfw = declared_files_watcher(job_reporter("http://localhost:8080/poms"))
+     dfw = declared_files_watcher(job_reporter("http://localhost:8080/poms", debug=1))
      dfw.poll()

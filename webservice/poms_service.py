@@ -1305,8 +1305,12 @@ class poms_service:
         
         c = lastj.task_obj.campaign_obj
 
-        dims="file_name %s" % ",".join(flist)
-        located_list = cherrypy.request.project_fetcher.list_files(c.experiment, dims)
+        if len(flist) > 0:
+            dims="file_name %s" % ",".join(flist)
+            located_list = cherrypy.request.project_fetcher.list_files(c.experiment, dims)
+        else:
+            located_list = []
+
         outlist = []
         for f in flist:
              if not f in located_list:
