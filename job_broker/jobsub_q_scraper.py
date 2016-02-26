@@ -122,7 +122,12 @@ class jobsub_q_scraper:
                 # only report status if its different
                 #
                 if not prev or prev['status'] != args['status'] or prev['node_name'] != args['node_name']:
-                    self.job_reporter.report_status(**args)
+                    try: 
+                        self.job_reporter.report_status(**args)
+                    except:
+	                print "Reporting Exception!"
+	                traceback.print_exc()
+                        pass
             else:
                 #print "skipping:" , line
                 pass

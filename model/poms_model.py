@@ -167,6 +167,7 @@ class CampaignDefinition(Base):
     updater = Column(ForeignKey(u'experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
 
+
     experiment_obj = relationship(u'Experiment')
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='CampaignDefinition.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='CampaignDefinition.updater == Experimenter.experimenter_id')
