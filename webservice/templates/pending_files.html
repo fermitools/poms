@@ -1,0 +1,51 @@
+{%extends "layout.html" %}
+
+{%block title%}
+    <title>Pending files for Jobs</title>
+{%endblock%}
+
+{%block breadcrumbs%}
+    <div class="item">
+       Dashboard  <!--label of current location on mobile-->
+    </div>
+    <div class="item">
+      Pending Files<!--label of current location on mobile-->
+    </div>
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+         Pending Files {%include 'help_button.html'%}
+</h1>
+{%endblock%}
+
+
+
+
+{%block subheader%}
+{%endblock%}
+
+
+
+{%block content %}
+
+Pending files for:
+
+     {% if campaign_id is not none %}
+        Campaign {{c.name}}
+     {% elif task_id is not none %}
+       Task(s) {{jjid}}
+     {% elif job_id is not none %}
+       Job(s) {{jjid}}
+     {% endif %}
+<br>
+
+<div class="ui raised padded text container segment">
+
+{% for f in flist %}
+{{f}} <br>
+{%endfor%}
+
+</div>
+	
+{%endblock%}

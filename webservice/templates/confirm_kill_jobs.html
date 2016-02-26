@@ -1,0 +1,60 @@
+{%extends "layout.html" %}
+
+{%block title%}
+    <title>Confirm Kill Jobs</title>
+{%endblock%}
+
+{%block breadcrumbs%}
+    <div class="item">
+       Dashboard  <!--label of current location on mobile-->
+    </div>
+    <div class="item">
+      Kill jobs result<!--label of current location on mobile-->
+    </div>
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+         Confirm request {%include 'help_button.html'%}
+</h1>
+{%endblock%}
+
+
+
+
+{%block subheader%}
+{%endblock%}
+
+
+
+{%block content %}
+
+<div class="ui raised padded text container segment">
+
+   Are you sure you want to kill the jobs for 
+     {% if campaign_id is not none %}
+        Campaign {{task.campaign_obj.name}}, task(s) {{jjil|join(', ')}}
+     {% elif task_id is not none %}
+       Task(s) {{jjil}}
+     {% elif job_id is not none %}
+       Job(s) {{jjil}}
+     {% endif %}
+    ? <br>
+
+   <button class="ui button">
+     {% if campaign_id is not none %}
+       <a href="{{pomspath}}/kill_jobs?confirm=y&campaign_id={{campaign_id}}">Yes, Kill Them</a>  
+     {% elif task_id is not none %}
+       <a href="{{pomspath}}/kill_jobs?confirm=y&task_id={{task_id}}">Yes, Kill Them</a>  
+     {% elif job_id is not none %}
+       <a href="{{pomspath}}/kill_jobs?confirm=y&job_id={{job_id}}">Yes, Kill Them</a>  
+     {% endif %}
+   </button>
+
+   <button class="ui button">
+      <a onclick="window.history.back()">No! go back</a>
+   </button>
+
+</div>
+	
+{%endblock%}

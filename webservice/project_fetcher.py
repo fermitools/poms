@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import urllib2
+import urllib
 import json
 import time
 
@@ -10,9 +11,9 @@ class project_fetcher:
          self.proj_cache_time = {}
          self.valid = 60
 
-     def have_cache(self, experiment, projid):
-         t = self.proj_cache_time.get(experiment+projid, 0)
-         p = self.proj_cache.get(experiment+projid, None)
+     def have_cache(self,experiment,projid):
+         t = self.proj_cache_time.get(experiment+projid,0)
+         p = self.proj_cache.get(experiment+projid,None)
 
          if p and (time.time() - t < self.valid or 
                     p['project_status'] == "completed"):
@@ -20,7 +21,7 @@ class project_fetcher:
 
          return 0
 
-     def fetch_info(self, experiment, projid):
+     def fetch_info(self,experiment,projid):
 
          if not experiment or not projid:
              return {}
@@ -29,7 +30,7 @@ class project_fetcher:
              return self.proj_cache[experiment+projid]
 
          base = "http://samweb.fnal.gov:8480"
-         url="%s/sam/%s/api/projects/name/%s/summary?format=json" % (base,experiment, projid)
+         url="%s/sam/%s/api/projects/name/%s/summary?format=json" % (base,experiment,projid)
          try:
 	     res = urllib2.urlopen(url)
 	     text = res.read()
@@ -42,7 +43,7 @@ class project_fetcher:
          except:
              return {}
 
-     def do_totals(self, info):
+     def do_totals(self,info):
          tot_consumed = 0
          tot_failed = 0
          tot_jobs = 0
@@ -59,9 +60,25 @@ class project_fetcher:
          info["tot_jobs"] = tot_jobs
          info["tot_jobfails"] = tot_jobfails
 
+     def list_files(self,experiment,dims):
+         base = "http://samweb.fnal.gov:8480"
+         url="%s/sam/%s/api/files/list" % (base,experiment)
+         try:
+	     res = urllib2.urlopen(url,urllib.urlencode({"dims":dims,"format":"json"}))
+	     text = res.read()
+             fl = json.loads(text)
+	     res.close()
+         except:
+             raise
+             fl = []
+         return fl 
+
 if __name__ == "__main__":
     pf = project_fetcher()
     i = pf.fetch_info("nova","brebel-AnalysisSkimmer-20151120_0126")
     i2 = pf.fetch_info("nova","brebel-AnalysisSkimmer-20151120_0126")
-    print "got:", i
-    print "got:", i2
+    print "got:",i
+    print "got:",i2
+
+    l = pf.list_files("nova","file_name neardet_r00011388_s00_t00_S15-12-07_v1_data_keepup.caf.root,neardet_r00011388_s00_t00_S15-12-07_v1_data_keepup.reco.rootneardet_r00011388_s05_t00_S15-12-07_v1_data_keepup.reco.root,neardet_r00011388_s05_t00_S15-12-07_v1_data_keepup.caf.root,neardet_r00011388_s01_t00_S15-12-07_v1_data_keepup.reco.root,neardet_r00011388_s01_t00_S15-12-07_v1_data_keepup.caf.root,neardet_r00011388_s10_t00_S15-12-07_v1_data_keepup.reco.root")
+    print "got list:", l

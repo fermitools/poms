@@ -1285,6 +1285,38 @@ class poms_service:
 
 
     @cherrypy.expose
+    def pending_files(self, campaign_id=None, task_id=None, job_id = None ):
+        q = cherrypy.request.db.query(Job).join(Job.task_obj).join(Task.campaign_obj)
+        if campaign_id != None: 
+	    q = q.filter(Task.campaign_id == campaign_id)
+        if task_id != None: 
+	    q = q.filter(Job.task_id == task_id)
+        if job_id != None: 
+	    q = q.filter(Job.job_id == job_id)
+	q = q.filter(Job.output_files_declared == False)
+        flist = []
+        jjid = "xxxxx"
+        for j in q.all():
+            if j.output_file_names:
+                flist = flist + j.output_file_names.split(' ')
+            if j.jobsub_job_id < jjid:
+                jjid = j.jobsub_job_id
+            lastj = j
+        
+        c = lastj.task_obj.campaign_obj
+
+        dims="file_name %s" % ",".join(flist)
+        located_list = cherrypy.request.project_fetcher.list_files(c.experiment, dims)
+        outlist = []
+        for f in flist:
+             if not f in located_list:
+                  outlist.append(f)
+
+	template = self.jinja_env.get_template('pending_files.html')
+	return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  jjid = jjid, c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
+
+
+    @cherrypy.expose
     def campaign_sheet(self, campaign_id, tmin = None, tmax = None , tdays = 14):
 
         daynames=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"]

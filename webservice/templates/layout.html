@@ -132,8 +132,11 @@
 
 <div class="item">
   <div class="ui inverted transparent left icon input">
-    <input type="text" placeholder="Search...">
-    <i class="search icon"></i>
+         <form  method="get" action="{{pomspath}}/quick_search" onsubmit="return validateQuickSearchForm()">
+             <input type="text" name="jobsub_job_id" placeholder="Search...">
+             <i class="search icon"></i>
+             <!--input type="submit" name="."-->
+         </form>
   </div>
 </div>    
             
@@ -255,7 +258,7 @@ function validateQuickSearchForm()
         alert("jobsub_job_id must be filled out.");
         return false;
     }
-    else if( jobsub_job_id.search(".fnal.gov") > -1  && jobsub_job_id.search("@") > -1  && jobsub_job_id.search(".") > -1 )
+    else if( jobsub_job_id.search(".fnal.gov") > -1  && jobsub_job_id.search("@") > -1 )
     {
         return true;
     }
@@ -272,6 +275,8 @@ function validateQuickSearchForm()
   <div class="ui inverted transparent left icon input">
          <form  method="get" action="{{pomspath}}/quick_search" onsubmit="return validateQuickSearchForm()">
              <input type="text" name="jobsub_job_id" placeholder="Search...">
+             <i class="search icon"></i>
+             <!--input type="submit" name="."-->
          </form>
   </div>
 </div>
