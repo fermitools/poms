@@ -64,4 +64,10 @@ grant select, insert, update, delete on all tables in schema public to pomsdbs;
 grant usage on all sequences in schema public to pomsdbs;
 
 
+ALTER TABLE campaigns ADD param_overrides json  ;
+
+ALTER TABLE jobs ADD cpu_time float8  ;
+
+ALTER TABLE jobs ADD wall_time float8  ;
+
 
