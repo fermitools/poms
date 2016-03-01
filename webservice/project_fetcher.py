@@ -73,6 +73,17 @@ class project_fetcher:
              fl = []
          return fl 
 
+     def create_definition(self,experiment,name, dims):
+         base = "http://samweb.fnal.gov:8480"
+         url="%s/sam/%s/api/definitions/create" % (base,experiment)
+         try:
+	     res = urllib2.urlopen(url,urllib.urlencode({"name": name, "dims":dims,"user":os.environ.get("USER",os.environ.get("GRID_USER","sam"))}))
+	     text = res.read()
+	     res.close()
+         except:
+             raise
+         return "Ok."
+
 if __name__ == "__main__":
     pf = project_fetcher()
     i = pf.fetch_info("nova","brebel-AnalysisSkimmer-20151120_0126")

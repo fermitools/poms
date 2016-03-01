@@ -12,21 +12,7 @@ from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign
 
-ZERO = timedelta(0)
-
-class UTC(tzinfo):
-    """UTC"""
-
-    def utcoffset(self, dt):
-        return ZERO
-
-    def tzname(self, dt):
-        return "UTC"
-
-    def dst(self, dt):
-        return ZERO
-
-utc = UTC()
+from utc import utc
 
 def error_response():
     dump = ""
@@ -604,7 +590,7 @@ class poms_service:
          cherrypy.response.headers['Content-Type']= 'application/json'
          res = [ "[" ]
          sep=""
-         for job in cherrypy.request.db.query(Job).filter(Job.status != "Completed", Job.status != "Located").all():
+         for job in cherrypy.request.db.query(Job).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").all():
               if job.jobsub_job_id == "unknown":
                    continue
               res.append( '%s "%s"' % (sep, job.jobsub_job_id))
@@ -810,8 +796,13 @@ class poms_service:
 
         screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)         
 
-        campaign_id = jl[0][1].task_obj.campaign_id
-        cname = jl[0][1].task_obj.campaign_obj.name
+        if len(jl) > 0:
+            campaign_id = jl[0][1].task_obj.campaign_id
+            cname = jl[0][1].task_obj.campaign_obj.name
+        else:
+            campaign_id = 'unknown'
+            cname = 'unknown'
+
         task_jobsub_id = self.task_min_job(task_id)
 
         template = self.jinja_env.get_template('job_grid.html')
@@ -942,6 +933,9 @@ class poms_service:
         res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
         res.append( '</th>')
         res.append( '<th>Located')
+        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
+        res.append( '</th>')
+        res.append( '<th>Removed')
         res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
         res.append( '</th>')
         res.append( '</tr>')
@@ -1110,7 +1104,7 @@ class poms_service:
         if campaign_id:
             q = q.join(Task,Job.task_id == Task.task_id).filter( Task.campaign_id == campaign_id)
 
-        out = OrderedDict([("Idle",0),( "Running",0),( "Held",0),( "Completed",0), ("Located",0)])
+        out = OrderedDict([("Idle",0),( "Running",0),( "Held",0),( "Completed",0), ("Located",0),("Removed",0)])
         for row in  q.all():
             # this rather bizzare hoseyness is because we want
             # "Running" to also match "running: copying files in", etc.
@@ -1477,24 +1471,35 @@ class poms_service:
 	    template = self.jinja_env.get_template('killed_jobs.html')
 	    return template.render(output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="KilledJobsHelp")
 
-	    # no split to do, it is a rolling datset, etc.
-            return camp.dataset
-        if camp.cs_split_type == 'list':
+    def get_dataset_for(self, camp):
+        res = None
+
+        if camp.cs_split_type == None or camp.cs_split_type in [ '', 'draining']:
+	    # no split to do, it is a draining datset, etc.
+            res =  camp.dataset
+
+        elif camp.cs_split_type == 'list':
             j# we were given a list of datasets..
             l = camp.dataset.split(',')
             if camp.cs_last_split == '':
                 camp.cs_last_split = -1
             camp.cs_last_split += 1
             
-            return l[camp.cs_last_split]
-        if camp.cs_split_type.starts_with('mod_'):
+            res = l[camp.cs_last_split]
+
+        elif camp.cs_split_type.starts_with('mod_'):
             m = int(camp.cs_split_type[4:])
             if camp.cs_last_split == '':
                 camp.cs_last_split = -1 
             camp.cs_last_split += 1
             new = dataset + "_slice%d" % camp.cs_last_split
-            define_dataset(new, "defname: %s stride %d skip %d")
-        return dataset  
+            self.project_fetcher.create_definition(new, "defname: %s stride %d skip %d" % (camp.dataset, m, camp.cs_last_split))
+            res = new
+        
+        if res != camp.dataset:
+	    cherrypy.request.db.add(camp)
+
+        return res
        
 
     @cherrypy.expose

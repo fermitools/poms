@@ -1,3 +1,6 @@
+from datetime import datetime
+from utc import utc
+
 class time_grid:
      
      def __init__(self):
@@ -97,7 +100,7 @@ class time_grid:
              t1 = tmax
           d1 = (t1 - t0)
           d2 = (tmax - tmin)
-          pw = d1.total_seconds() * 100.0 / d2.total_seconds()
+          pw = d1.total_seconds() * 99.9 / d2.total_seconds()
           return pw
 
      def add_time_data(self, tmin, tmax, dlistmap):
@@ -105,10 +108,12 @@ class time_grid:
           self.tmax = tmax
           self.tdelta = tmax - tmin
           self.pmap = {}
+          justnow = datetime.now(utc)
           for id,dlist in dlistmap.items():
               plist = []
-              # somehow this if is never false?!?
+              # somehow this is is never false?!?
               # if dlist[0]['time'] > self.tmin:
+              # so compare second conversions...
               if int(dlist[0]['time'].strftime("%s")) > int(self.tmin.strftime("%s")):
                   plist.append( {'width': self.pwidth(self.tmin, dlist[0]['time'],tmin, tmax),
                              'color': '', 'txt': '', 'url': ''})
@@ -122,9 +127,14 @@ class time_grid:
                                 'color': self.status_color(dlist[i-1]['status']),
                                 'txt': dlist[i-1]['txt'],
                                 'url': dlist[i-1]['url']})
+
               while i < len(dlist) and dlist[i]['time'] < self.tmax:
                   if i == len(dlist) - 1:
-                      tend = self.tmax
+                      # don't draw boxes past current time...
+                      if justnow > self.tmin:
+                          tend = min(self.tmax, justnow)
+                      else:
+                          tend = self.tmax
                   else:
                       tend = dlist[i+1]['time']
 
@@ -133,6 +143,7 @@ class time_grid:
                                 'txt' : dlist[i]['txt'],
                                 'url' : dlist[i]['url']})
                   i = i + 1
+                 
               self.pmap[id] = plist
 
      def min_box_sizes(self):
@@ -197,64 +208,6 @@ class time_grid:
 if __name__ == '__main__':
 
     tg = time_grid()
-    tg.add_time_data(1, 12, {
-	'a': [  
-	       {'time': 2,
-		'status': 'idle',
-		'url': '',
-		'txt': 'idle'},
-	       {'time': 4,
-		'status': 'running',
-		'url': '',
-		'txt': 'running'},
-	       {'time': 6,
-		'status': 'ifdh::cp foo bar',
-		'url': '',
-		'txt': 'ifdh::cp foo bar'},
-	       {'time': 8,
-		'status': 'complete',
-		'url': '',
-		'txt': 'complete'}, 
-	    ],
-	'b': [  
-	       {'time': 3,
-		'status': 'idle',
-		'url': '',
-		'txt': 'idle'},
-	       {'time': 5,
-		'status': 'running',
-		'url': '',
-		'txt': 'running'},
-	       {'time': 7,
-		'status': 'ifdh::cp foo bar',
-		'url': '',
-		'txt': 'ifdh::cp foo bar'},
-	       {'time': 9,
-		'status': 'complete',
-		'url': '',
-		'txt': 'complete'}, 
-	    ],
-	'c': [  
-	       {'time': 2,
-		'status': 'idle',
-		'url': '',
-		'txt': 'idle'},
-	       {'time': 4,
-		'status': 'running',
-		'url': '',
-		'txt': 'running'},
-	       {'time': 8,
-		'status': 'ifdh::cp foo bar',
-		'url': '',
-		'txt': 'ifdh::cp foo bar'},
-	       {'time': 10,
-		'status': 'complete',
-		'url': '',
-		'txt': 'complete'}, 
-	    ],
-      }
-    )
-    print tg.draw_boxes()
 
     class fakerow:
         def __init__(self, **kwargs):
@@ -262,21 +215,21 @@ if __name__ == '__main__':
 
     print '<hr>'
     testrows = [ 
-         fakerow( jobid= 'job1', created = 1, status = "idle"),
-         fakerow( jobid= 'job1', created = 6, status = "ifdh::cp whatever"),
-         fakerow( jobid= 'job1', created = 3, status = "running"),
-         fakerow( jobid= 'job1', created = 9, status = "completed"),
-         fakerow( jobid= 'job2', created = 2, status = "idle"),
-         fakerow( jobid= 'job2', created = 4, status = "running"),
-         fakerow( jobid= 'job2', created = 6, status = "ifdh::cp whatever"),
-         fakerow( jobid= 'job2', created = 10, status = "completed"),
-         fakerow( jobid= 'job3', created = 2, status = "idle"),
-         fakerow( jobid= 'job3', created = 4, status = "running"),
-         fakerow( jobid= 'job3', created = 7, status = "ifdh::cp whatever"),
-         fakerow( jobid= 'job3', created = 10, status = "completed"),
-         fakerow( jobid= 'job4', created = 3, status = "idle"),
-         fakerow( jobid= 'job4', created = 5, status = "running"),
-         fakerow( jobid= 'job4', created = 9, status = "ifdh::cp whatever"),
-         fakerow( jobid= 'job4', created = 11, status = "completed"),
+         fakerow( jobid= 'job1', created = datetime(2016,2,29,13,1,0,0,utc), status = "Idle"),
+         fakerow( jobid= 'job1', created = datetime(2016,2,29,13,6,0,0,utc), status = "ifdh::cp whatever"),
+         fakerow( jobid= 'job1', created = datetime(2016,2,29,13,3,0,0,utc), status = "Running"),
+         fakerow( jobid= 'job1', created = datetime(2016,2,29,13,9,0,0,utc), status = "Completed"),
+         fakerow( jobid= 'job2', created = datetime(2016,2,29,13,2,0,0,utc), status = "Idle"),
+         fakerow( jobid= 'job2', created = datetime(2016,2,29,13,4,0,0,utc), status = "Running"),
+         fakerow( jobid= 'job2', created = datetime(2016,2,29,13,6,0,0,utc), status = "ifdh::cp whatever"),
+         fakerow( jobid= 'job2', created = datetime(2016,2,29,13,10,0,0,utc), status = "Completed"),
+         fakerow( jobid= 'job3', created = datetime(2016,2,29,13,2,0,0,utc), status = "Idle"),
+         fakerow( jobid= 'job3', created = datetime(2016,2,29,13,4,0,0,utc), status = "Running"),
+         fakerow( jobid= 'job3', created = datetime(2016,2,29,13,7,0,0,utc), status = "ifdh::cp whatever"),
+         fakerow( jobid= 'job3', created = datetime(2016,2,29,13,10,0,0,utc), status = "Completed"),
+         fakerow( jobid= 'job4', created = datetime(2016,2,29,13,3,0,0,utc), status = "Idle"),
+         fakerow( jobid= 'job4', created = datetime(2016,2,29,13,5,0,0,utc), status = "Running"),
+         fakerow( jobid= 'job4', created = datetime(2016,2,29,13,9,0,0,utc), status = "ifdh::cp whatever"),
+         fakerow( jobid= 'job4', created = datetime(2016,2,29,13,11,0,0,utc), status = "Completed"),
         ]
-    print tg.render_query(0,12,testrows,'jobid')
+    print tg.render_query( datetime(2016,2,29,13,0,0,0,utc), datetime(2016,2,29,13,30,0,0,utc), testrows,'jobid')
