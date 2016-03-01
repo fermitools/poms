@@ -41,11 +41,14 @@ Pending files for:
 <br>
 
 <div class="ui raised padded text container segment">
-
+<div class="ui list">
 {% for f in flist %}
-{{f}} <br>
+<div class="item"> {{f}}  <br>
+   {% if statusmap[f] != '' %} 
+     <div class="ui pointing label">{{statusmap[f]}}</div>
+   {% endif %}
+</div>
 {%endfor%}
-
 </div>
 	
 {%endblock%}

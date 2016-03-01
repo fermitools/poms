@@ -11,6 +11,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign
+import shelve
 
 from utc import utc
 
@@ -946,9 +947,10 @@ class poms_service:
             res.append('<td>%s' % c.name)
             res.append('<a href="%s/campaign_sheet?campaign_id=%d&tmax=%s"><i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i></a>' % ( self.path, c.campaign_id, tmaxs))
             res.append('<a href="%s/campaign_time_bars?campaign_id=%d&tmin=%s&tmax=%s"><i class="external tasks icon" data-content="Tasks in Campaign Time Bars" data-variation="basic"></i></a>' % ( self.path, c.campaign_id, tmins, tmaxs))
+            res.append('<a href="%s/pending_files?campaign_id=%d"><i class="external file icon" data-content="Pending File Information" data-variation="basic"></i></a>' % ( self.path, c.campaign_id ))
             res.append('<a href="%s/campaign_info?campaign_id=%d"><i class="external info circle icon" data-content="Campaign Information" data-variation="basic"></i></a>' % ( self.path, c.campaign_id ))
-            res.append('<a href="%s/launch_jobs?campaign_id=%d"><i class="rocket icon" data-content="Launch Tasks for Campaign" data-variation="basic"></i></a>' % ( self.path, c.campaign_id))
-            res.append('<a href="%s/kill_jobs?campaign_id=%d"><i class="trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i></a>' % ( self.path, c.campaign_id))
+            res.append('<a target="_blank" href="%s/launch_jobs?campaign_id=%d"><i class="external rocket icon" data-content="Launch Tasks for Campaign" data-variation="basic"></i></a>' % ( self.path, c.campaign_id))
+            res.append('<a target="_blank" href="%s/kill_jobs?campaign_id=%d"><i class="external trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i></a>' % ( self.path, c.campaign_id))
             res.append('</td>')
             counts = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
             for k in counts.keys():
@@ -1321,16 +1323,19 @@ class poms_service:
              if not f in located_list:
                   outlist.append(f)
 
-        statmap = {}
-        fss_file = cherrypy.config.get("ftsscandir")
-        if os.path.exists(file_status_file):
-            fss = shelve.open(file_status_file, 'r')
+        statusmap = {}
+        fss_file = "%s/%s_files.db" % (cherrypy.config.get("ftsscandir"), c.experiment)
+        if os.path.exists(fss_file):
+            fss = shelve.open(fss_file, 'r')
             for f in outlist:
-                statmap[f] = fss.get(f,'')
-            fs.close()
+                try:
+                    statusmap[f] = fss.get(f.encode('ascii','ignore'),'')
+                except KeyError:
+                    statusmap[f] = ''
+            fss.close()
 
 	template = self.jinja_env.get_template('pending_files.html')
-	return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  statmap = statmap, jjid = jjid, c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
+	return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = statusmap, jjid = jjid, c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
 
 
     @cherrypy.expose
