@@ -690,6 +690,7 @@ class poms_service:
                      j.status = "Located"
 
 	     for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
+
                  if field == 'status' and j.status == "Located":
                      # stick at Located, don't roll back to Completed,etc.
                      continue
@@ -704,6 +705,9 @@ class poms_service:
 	     for field in ['project', ]:
 		 if kwargs.get("task_%s" % field, None) and j.task_obj:
 		    setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
+	     for field in [ 'cpu_time', 'wall_time']:
+		 if kwargs.get(field, None) and kwargs[field] != "None":
+		    setattr(j,field,float(kwargs[field].rstrip("\n")))
                   
              if kwargs.get('output_file_names', None):
                  cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
