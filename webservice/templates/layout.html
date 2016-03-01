@@ -101,12 +101,21 @@
             </div>
 
             <div class="item">
-                <div class="header">Campaigns</div>
-                <div class="menu">
+              <div class="header">Campaigns</div>
+              <div class="menu">
                 <a class="item" href="{{pomspath}}/show_campaigns">
                   Active
                 </a>
-                </div>
+                <a class="item" href="{{pomspath}}/campaign_edit">
+                  Compose Campaign
+                </a>
+                <a class="item" href="{{pomspath}}/campaign_definition_edit">
+                  Compose Definition
+                </a>
+                <a class="item" href="{{pomspath}}/launch_template_edit">
+                  Compose Launch Template
+                </a>
+              </div>
             </div>
 
             <div class="item">
@@ -216,34 +225,35 @@
             </div>
 
             <div class="item">
-                <div class="header">Campaigns</div>
-                <div class="menu">
+              <div class="header">Campaigns</div>
+              <div class="menu">
                 <a class="item" href="{{pomspath}}/show_campaigns">
                   Active
                 </a>
-                </div>
+                <a class="item" href="{{pomspath}}/campaign_edit">
+                  Compose Campaign
+                </a>
+                <a class="item" href="{{pomspath}}/campaign_definition_edit">
+                  Compose Definition
+                </a>
+	      </div>
             </div>
                         
-                        <div class="item">
-                            <div class="header">Jobs</div>
-				<div class="menu">
-				    <a class="item" href="{{pomspath}}/job_table?tdays=1">
-					All (Last Day)
-				    </a>
-				    <a class="item" href="{{pomspath}}/jobs_by_exitcode?tdays=1">
-					By Exit Code (Last Day)
-				    </a>
-				    <a class="item" href="{{pomspath}}/jobs_by_exitcode?tdays=7">
+            <div class="item">
+              <div class="header">Jobs</div>
+	      <div class="menu">
+		<a class="item" href="{{pomspath}}/job_table?tdays=1">
+		  All (Last Day)
+		</a>
+		<a class="item" href="{{pomspath}}/jobs_by_exitcode?tdays=1">
+		  By Exit Code (Last Day)
+		</a>
+		<a class="item" href="{{pomspath}}/jobs_by_exitcode?tdays=7">
 					By Exit Code (Last Week)
-				    </a>
-				    
-				    
-				</div>
-                        </div>
+		</a>
+	      </div>
+            </div>
                         
-
-
-
             <!--<a class="item requests"  href="#">
                 <b>Filter</b>
             </a>-->

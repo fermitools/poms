@@ -1,5 +1,5 @@
 # coding: utf-8
-from sqlalchemy import Table, BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text
+from sqlalchemy import Table, BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql.json import JSON
 from sqlalchemy.ext.declarative import declarative_base
@@ -28,6 +28,7 @@ class Campaign(Base):
     software_version = Column(Text, nullable = False)
     active = Column(Boolean, nullable=False, server_default=text("true"))
     launch_id = Column(ForeignKey(u'launch_templates.launch_id'), nullable=False)
+    param_overrides = Column(JSON)
 
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')
@@ -100,6 +101,8 @@ class Job(Base):
     input_file_names = Column(Text)
     reason_held = Column(Text)
     consumer_id = Column(Text)
+    cpu_time = Column(Float)
+    wall_time = Column(Float)
 
     task_obj = relationship(u'Task')
 
@@ -137,6 +140,7 @@ class LaunchTemplate(Base):
     __tablename__ = 'launch_templates'
 
     launch_id = Column(Integer, primary_key=True, server_default=text("nextval('launch_templates_launch_id_seq'::regclass)"))
+    name = Column(Text, nullable=False, index=True, unique=True)
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
     launch_host = Column(Text, nullable=False)
     launch_account = Column(Text, nullable=False)
