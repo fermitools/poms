@@ -1321,8 +1321,16 @@ class poms_service:
              if not f in located_list:
                   outlist.append(f)
 
+        statmap = {}
+        fss_file = cherrypy.config.get("ftsscandir")
+        if os.path.exists(file_status_file):
+            fss = shelve.open(file_status_file, 'r')
+            for f in outlist:
+                statmap[f] = fss.get(f,'')
+            fs.close()
+
 	template = self.jinja_env.get_template('pending_files.html')
-	return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  jjid = jjid, c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
+	return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  statmap = statmap, jjid = jjid, c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
 
 
     @cherrypy.expose
