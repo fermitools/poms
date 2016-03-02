@@ -763,8 +763,8 @@ class poms_service:
             else:
                 all_all_declared = 1
                 for j in t.jobs:
-                    if not j.output_file_names and not j.output_files_declared:
-                        j.output_files_declared = 1
+                    if (j.output_file_names == '' or j.output_file_names == None) and not j.output_files_declared:
+                        j.output_files_declared = True
                         cherrypy.request.db.add(j)                      
                     if not j.output_files_declared:
                         all_all_declared = 0
