@@ -865,13 +865,13 @@ class poms_service:
 
         # set a flag to remind us to set tdays from max and min if
         # they are both set coming in.
-        set_tdays =  tmax != None and tmin != None
+        set_tdays =  (tmax != None and tmax != '') and (tmin != None and tmin!= '')
           
 
-        if tdays == None:  # default to one day
+        if tdays == None or tdays == '':  # default to one day
             tdays = 1
 
-        if tmax == None:
+        if tmax == None or tmax == '':
             # if we're not given a max, pick now
             tmax = datetime.now(utc)
         elif isinstance(tmax, basestring):
@@ -879,7 +879,7 @@ class poms_service:
         
         tdays = float(tdays)
 
-        if tmin == None:
+        if tmin == None or tmin == '':
             tmin = tmax - timedelta(days = tdays)
 
         elif isinstance(tmin, basestring):
@@ -1261,19 +1261,62 @@ class poms_service:
 
     @cherrypy.expose
     def jobs_by_exitcode(self, tmin = None, tmax =  None, tdays = 1 ):
+        raise cherrypy.HTTPRedirect("%s/failed_jobs_by_whatever?f=user_exe_exit_code&tdays=%s" % (self.path, tdays))
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'jobs_by_exitcode?')
- 
-        q = cherrypy.request.db.query(Job.user_exe_exit_code,func.count(Job.job_id)).filter(Job.updated >= tmin, Job.updated <= tmax).group_by(Job.user_exe_exit_code).order_by(Job.user_exe_exit_code)
+    @cherrypy.expose
+    def failed_jobs_by_whatever(self, tmin = None, tmax =  None, tdays = 1 , f = [], go = None):
+        # deal with single/multiple argument silliness
+        if isinstance(f, basestring):
+            f = [f]
+
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'failed_jobs_by_whatever?%s&' % ('&'.join(['f=%s'%x for x in f] )))
+
+        #
+        # build up:
+        # * a group-by-list (gbl)
+        # * a query-args-list (quargs)
+        # * a columns list
+        #
+        gbl = []
+        qargs = []
+        columns = []
+
+
+        for field in f:
+            if f == None:
+                continue
+            columns.append(field)
+            if hasattr(Job,field):
+               gbl.append(getattr(Job, field))
+               qargs.append(getattr(Job, field))
+            elif hasattr(Campaign,field):
+               gbl.append(getattr(Campaign, field))
+               qargs.append(getattr(Campaign, field))
+
+        possible_columns = [ 
+          # job fields
+          'node_name', 'cpu_type', 'host_site', 'user_exe_exit_code',
+          # campaign fields
+          'name', 'vo_role', 'dataset', 'software_version',
+        ]
+         
+        qargs.append(func.count(Job.job_id))
+        columns.append("count")
+
+        #
+        #
+        #
+        q = cherrypy.request.db.query(*qargs)
+        q = q.join(Task,Campaign)
+        q = q.filter(Job.updated >= tmin, Job.updated <= tmax, Job.user_exe_exit_code != 0)
+        q = q.group_by(*gbl).order_by(*gbl)
  
         jl = q.all()
         cherrypy.log( "got jobtable %s " % repr( jl[0].__dict__) )
-        columns = [ "exit_code","count"]
-
         
         template = self.jinja_env.get_template('job_count_table.html')
 
-        return template.render(joblist=jl, columns = columns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, time_range_string = time_range_string, days = tdays, pomspath=self.path,help_page="JobsByExitcodeHelp")
+        return template.render(joblist=jl, possible_columns = possible_columns, columns = columns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, time_range_string = time_range_string, days = tdays, pomspath=self.path,help_page="JobsByExitcodeHelp")
 
 
     @cherrypy.expose

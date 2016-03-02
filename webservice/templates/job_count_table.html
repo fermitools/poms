@@ -18,7 +18,7 @@
 
 {%block header%}
 <h1 class="ui header">
-    Jobs by Exitcode{%include 'help_button.html'%}
+    Jobs by {{columns[:-1]|join(',')}} {%include 'help_button.html'%}
 </h1>
 <div class="ui subheader">
 <!-- Jobs by exitcode for {{time_range_string}} -->
@@ -36,15 +36,32 @@
 
 
 
-
-
-
 {%block subheader%}
 {%endblock%}
 
 
 
 {%block content%}
+
+<form action="failed_jobs_by_whatever" method="GET">
+  <input type="hidden" name=tmin value="{{tmins}}">
+  <input type="hidden" name=tmax value="{{tmaxs}}">
+  <select multiple name="f">
+
+  {% for c in possible_columns%}
+    <option value="{{c}}"
+      {%if c in columns %}
+         selected="1"
+      {%endif%}
+    >
+    {{c}}
+   </option>
+  {% endfor %}
+  <input type="submit" name="go">
+
+  </select>
+
+</form>
 <table class="ui sortable celled collapsing table">
   <thead>
     <tr>
