@@ -622,7 +622,7 @@ class poms_service:
              running = 0
              for j in task.jobs:
                  total = total + 1
-                 if j.status != "Completed":
+                 if j.status != "Completed" and j.status != "Located":
                      running = running + 1    
 
              res.append("Task %d total %d running %d " % (task.task_id, total, running))
@@ -763,6 +763,9 @@ class poms_service:
             else:
                 all_all_declared = 1
                 for j in t.jobs:
+                    if not j.output_file_names and not j.output_files_declared:
+                        j.output_files_declared = 1
+                        cherrypy.request.db.add(j)                      
                     if not j.output_files_declared:
                         all_all_declared = 0
                         break
