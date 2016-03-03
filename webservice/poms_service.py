@@ -1128,7 +1128,7 @@ class poms_service:
 
     
     @cherrypy.expose
-    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None):
+    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None):
            
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'job_table?')
         extra = ""
@@ -1157,6 +1157,11 @@ class poms_service:
             q = q.filter( Campaign.experiment == experiment)
             extra = extra + "in experiment %s" % experiment
             filtered_fields['experiment'] = experiment
+
+        if dataset:
+            q = q.filter( Campaign.dataset == dataset)
+            extra = extra + "in dataset %s" % dataset
+            filtered_fields['dataset'] = dataset
 
         if campaign_name:
             q = q.filter(Campaign.name == campaign_name)
@@ -1300,7 +1305,7 @@ class poms_service:
           # job fields
           'node_name', 'cpu_type', 'host_site', 'user_exe_exit_code',
           # campaign fields
-          'name', 'vo_role', 'dataset', 'software_version',
+          'name', 'vo_role', 'dataset', 'software_version', 'experiment'
         ]
          
         qargs.append(func.count(Job.job_id))
