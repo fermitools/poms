@@ -1049,7 +1049,7 @@ class poms_service:
     
     @cherrypy.expose
     def job_file_list(self, job_id,force_reload = False):
-        j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
+        j = cherrypy.request.db.query(Job).options(joinedload(Job.task_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         jobsub_job_id = self.task_min_job(j.task_id)
         role = j.task_obj.campaign_obj.vo_role
