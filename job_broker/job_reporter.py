@@ -25,10 +25,18 @@ class job_reporter:
         data['slot'] = slot
         data['status'] = status
         data.update(kwargs)
-          
-        uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
-        res = uh.read()
+
         if self.debug:
-           print "reporting: ",  data, "status:", uh.getcode()
+           print "reporting: ",  data 
+          
+        try:
+            uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
+            res = uh.read()
+        except:
+            errtext = uh.read()
+            sys.stderr.write("HTTP fetch status %d" %  uh.getcode())
+            sys.stderr.write(errtext)
+            sys.stderr.write("--------")
+
         uh.close()
         return res
