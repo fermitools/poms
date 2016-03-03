@@ -1026,10 +1026,12 @@ class poms_service:
 
                   items.append(fakerow(task_id = th.task_id,
  					created = th.created.replace(tzinfo = utc),
+                                        tmin = th.task_obj.created - timedelta(minutes=15),
+                                        tmax = th.task_obj.updated + timedelta(hours=6.5),
  					status = th.status,
                  			jobsub_job_id = jjid))
 
-              sl.append( tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s',extramap = extramap ))
+              sl.append( tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(tmin)19.19s&tmax=%(tmax)19.19s',extramap = extramap ))
         screendata = "\n".join(sl)
               
         template = self.jinja_env.get_template('campaign_bars.html')
@@ -1049,7 +1051,7 @@ class poms_service:
     
     @cherrypy.expose
     def job_file_list(self, job_id,force_reload = False):
-        j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj),subqueryload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
+        j = cherrypy.request.db.query(Job).options(joinedload(Job.task_obj).joinedload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         jobsub_job_id = self.task_min_job(j.task_id)
         role = j.task_obj.campaign_obj.vo_role
