@@ -1,9 +1,10 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python
 import urllib2
 import urllib
 import httplib
 import json
 import shelve
+import os
 
 class fts_status_watcher:
     def __init__(self, debug=0):
@@ -47,7 +48,7 @@ class fts_status_watcher:
                    fs = shelve.open("%s/%s_files.db.new" % (self.workdir, item["experiment"]),flag="c")
                status = self.fetch_json(item["uris"]["service"] + "/status?format=json")
                print "staus.keys() is: " , status.keys()
-               for t in status.get("errorstates",[]) + status.get("pendingstates",[]):
+               for t in status.get("errorstates",[]) + status.get("pendingstates",[]) + status.get("newstates",[]):
                    k = t["name"].encode('ascii','ignore')
                    v = t["msg"].encode('ascii','ignore')
                    fs[k] = "%s:%s" % (item["name"], v)
