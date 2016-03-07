@@ -33,9 +33,7 @@ CREATE TABLE launch_templates (
 	CONSTRAINT pk_launch_templates PRIMARY KEY ( launch_id )
  );
 
-CREATE UNIQUE INDEX idx_launch_templates_name ON launch_templates ( name );
-
-CREATE INDEX idx_launch_templates_experiment ON launch_templates ( experiment );
+CREATE UNIQUE INDEX idx_launch_templates_experiment_name ON launch_templates ( experiment, name );
 
 CREATE INDEX idx_launch_templates_creator ON launch_templates ( creator );
 

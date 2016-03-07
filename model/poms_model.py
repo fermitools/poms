@@ -50,17 +50,7 @@ class Experimenter(Base):
     last_name = Column(Text)
     email = Column(Text, nullable=False)
 
-    def is_authorized(self,experiment):
-        # Root is authorized for all experiments
-        for row in self.exp_expers:
-            if (row.experiment == experiment and row.active) or (row.experiment == 'root' and row.active):
-                return True
-        return False
-
-    def is_root(self):
-        return self.is_authorized('root')
             
-
 class ExperimentsExperimenters(Base):
     __tablename__ = 'experiments_experimenters'
 
@@ -138,7 +128,20 @@ class Service(Base):
 
 class LaunchTemplate(Base):
     __tablename__ = 'launch_templates'
-
+    
+    def __init__(self,launch_id=None, name=None, experiment=None, launch_host=None, launch_account=None, launch_setup=None,
+                 creator=None, created=None, updater=None, updated=None):
+        self.launch_id = launch_id
+        self.name = name
+        self.experiment = experiment
+        self.launch_host = launch_host
+        self.launch_account = launch_account
+        self.launch_setup = launch_setup
+        self.creator = creator
+        self.created = created
+        self.updater = updater
+        self.updated = updated
+        
     launch_id = Column(Integer, primary_key=True, server_default=text("nextval('launch_templates_launch_id_seq'::regclass)"))
     name = Column(Text, nullable=False, index=True, unique=True)
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)

@@ -10,8 +10,8 @@ from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy.orm.exc import NoResultFound
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign
 import shelve
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate
 
 from utc import utc
 
@@ -453,6 +453,58 @@ class poms_service:
             message = "The experiment, %s, is used and may not be deleted." % experiment
 
         return self.experiment_edit(message)
+
+    @cherrypy.expose
+    def launch_template_edit(self, *args, **kwargs):
+        db = cherrypy.request.db
+        data = {}
+        message = None
+        data['exp_selections'] = db.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
+        
+        action = kwargs.pop('action',None)
+        exp = kwargs.pop('experiment',None)
+
+        if action == 'delete':
+            name = kwargs.pop('name')
+            try:
+                db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).delete()
+                db.commit()
+            except:
+                db.rollback()
+                message = "The template, %s, is in use and may not be deleted." % name
+
+        if action == 'add' or action == 'edit':
+            ae_launch_id = kwargs.pop('ae_launch_id')
+            ae_launch_name = kwargs.pop('ae_launch_name')
+            ae_launch_host = kwargs.pop('ae_launch_host')
+            ae_launch_account = kwargs.pop('ae_launch_account')
+            ae_launch_setup = kwargs.pop('ae_launch_setup')
+            experimenter_id = kwargs.pop('experimenter_id')
+            if action == 'add':
+                template = LaunchTemplate(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host, launch_account=ae_launch_account, 
+                                          launch_setup=ae_launch_setup,creator = experimenter_id, created = datetime.now(utc))
+                db.add(template)
+            else:
+                columns = {"name":           ae_launch_name,
+                           "launch_host":    ae_launch_host,
+                           "launch_account": ae_launch_account,
+                           "launch_setup":   ae_launch_setup,
+                           "updated":        datetime.now(utc),
+                           "updater":        experimenter_id
+                           }
+                template = db.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).update(columns)
+            db.commit();
+
+        # Find experiments layout templates
+        if exp: # cuz the default is find
+            data['curr_experiment'] = exp
+            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            data['templates'] = db.query(LaunchTemplate,Experiment).join(Experiment).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
+
+        data['message'] = message
+        template = self.jinja_env.get_template('launch_template_edit.html')
+        return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
+                               pomspath=self.path,help_page="LaunchTemplateEditHelp")
 
     @cherrypy.expose
     def list_generic(self, classname):

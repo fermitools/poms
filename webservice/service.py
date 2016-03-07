@@ -121,10 +121,27 @@ class SessionTool(cherrypy.Tool):
     #                                  priority=90)
 
     def establish_session(self):
+
+        class SessionExperimenter():
+            def __init__(self, experimenter_id=None, first_name=None, last_name=None, email=None, authorized_for=None):
+                self.experimenter_id = experimenter_id
+                self.first_name = first_name
+                self.last_name = last_name
+                self.email = email
+                self.authorized_for = authorized_for
+            def is_authorized(self,experiment):
+                # Root is authorized for all experiments
+                if self.is_root():
+                    return True
+                return self.authorized_for.get(experiment,False)
+            def is_root(self):
+                return self.authorized_for.get('root',False)
+
         if cherrypy.session.get('id',None):
             return
         cherrypy.session['id'] = cherrypy.session.originalid  #The session ID from the users cookie.
         
+        email = None
         if cherrypy.request.headers.get('X-Shib-Email',None):
             email = cherrypy.request.headers['X-Shib-Email']
             experimenter = cherrypy.request.db.query(Experimenter).filter(ExperimentsExperimenters.active == True).filter(Experimenter.email == email ).first()
@@ -145,11 +162,17 @@ class SessionTool(cherrypy.Tool):
                 active = True)
             cherrypy.request.db.add(e2e)
             cherrypy.request.db.commit()
-            experimenter = cherrypy.request.db.query(Experimenter).filter(ExperimentsExperimenters.active == True).options(subqueryload(Experimenter.exp_exprs)).options(subqueryload(ExperimentExperimenters.experiment_obj)).filter(Experimenter.email == email ).first()
 
-        cherrypy.session['experimenter'] = experimenter        
+        e   = cherrypy.request.db.query(Experimenter).filter(Experimenter.email==email).one()
+        e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e.experimenter_id)
+        exps = {}
+        for row in e2e:
+            exps[row.experiment] = row.active
+        cherrypy.session['experimenter'] = SessionExperimenter(e.experimenter_id, e.first_name, e.last_name, e.email, exps)
         cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For','Unknown'), cherrypy.session['id'], 
-                                                      experimenter.email if experimenter else 'none', experimenter.first_name if experimenter else 'none' , experimenter.last_name if experimenter else 'none'))
+                                                      experimenter.email if experimenter else 'none', 
+                                                      experimenter.first_name if experimenter else 'none' , 
+                                                      experimenter.last_name if experimenter else 'none'))
 
 def set_rotating_log(app):
     ''' recipe  for a rotating log file...'''

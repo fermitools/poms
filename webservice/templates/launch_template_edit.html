@@ -1,0 +1,229 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>POMS</title>
+
+    <style type="text/css">
+    div.scrollable {
+        width: 100%;
+        overflow-x: scroll;
+    }
+    div.scrollable table {
+        width: 300%;
+    }
+    </style>
+{%endblock%}
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="{{pomspath}}/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">Launch Templates</div>
+</div>
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+    Launch Templates
+</h1>
+{%endblock%}
+
+{%block subheader%}
+{%endblock%}
+
+{%block content%}
+
+<form id="launch_template_form" class="ui form" action="launch_template_edit" method="POST">
+
+  <select class="ui dropdown" name="experiment" id="experiment">
+    <option value="">Choose Experiment</option>
+    {% for row in data.exp_selections %}
+    <option value="{{row.experiment}}" {{ 'selected="selected"' if (data.curr_experiment == row.experiment) }}>{{row.name}}</option>
+    {% endfor %}
+  </select>
+
+  {% if data.curr_experiment is defined %} 
+  <table class="ui celled table">
+    <thead>
+      <tr>
+	<th></th>
+	<th>Name</th>
+	<th>Host</th>
+	<th>Account</th>
+	<th>Setup</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in data.templates %}
+      <tr>
+	<td class="collapsing">
+          {% if data.authorized==True %}
+	  <i class="large edit link teal icon"  onclick="edit_template('{{row.LaunchTemplate.launch_id}}','{{row.LaunchTemplate.name}}','{{row.LaunchTemplate.launch_host}}','{{row.LaunchTemplate.launch_account}}','{{row.LaunchTemplate.launch_setup}}');"></i>
+	  <i class="large trash link teal icon" onclick="delete_template('{{row.LaunchTemplate.name}}'); "></i>
+	  {% else %}
+	  <i class="disabled large edit link teal icon">
+	  <i class="disabled large trash link teal icon">
+	  {% endif %}
+        </td>
+	<td>{{row.LaunchTemplate.name}}</td>
+	<td>{{row.LaunchTemplate.launch_host}}</td>
+	<td>{{row.LaunchTemplate.launch_account}}</td>
+	<td>{{row.LaunchTemplate.launch_setup}}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+	<th colspan="5">
+	  <button class="ui labled teal icon button" onclick="add_template();return false;") {{ 'disabled' if (data.authorized==False) }}>
+	    <i class="icon add square"></i>
+	    Add 
+	  </button>
+	</th>
+      </tr>
+    </tfoot>
+  </table>
+  {% endif %}
+  <input type="hidden" id="action" name="action" value="find">
+</form>
+
+<div class="ui modal" id="confirm_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Delete Experiment
+  </div>
+  <div class="image content">
+    <div class="image">
+      <i class="delete icon"></i>
+    </div>
+    <div class="description">
+      <div class="ui header"><label id="confirm_modal_message">Message Goes Here</label></div>
+    </div>
+  </div>
+  <div class="actions">
+    <div class="two fluid ui buttons">
+      <button class="ui pink deny button">
+	No
+      </button>
+      <button id="approved_btn" class="ui teal approve button">
+	<i class="checkmark icon"></i>
+	Yes
+      </button>
+    </div>
+  </div>
+</div> <!-- Ends confirm_modal -->
+
+<div class="ui modal" id="display_message_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Message
+  </div>
+    <div class="one field">
+      <div class="field">
+	<label>{{data.message}}</label>
+      </div>
+    </div>
+    <div class="ui hidden divider"></div>
+</div> <!-- Ends display_message_modal  -->
+
+<div class="ui modal" id="template_add_edit_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    <label id="template_header">Layout Template Editor</label>
+  <form id="template_add_edit_form" class="ui form" method="POST" action="launch_template_edit">
+    <div class="one field">
+      <div class="field">
+        <label>Experiment</label>
+        <input type="text" id="ae_experiment" name="ae_experiment" value="SPUD" disabled>
+      </div>
+    </div>
+    <div class="three fields">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" id="ae_launch_name" name="ae_launch_name" placeholder="Template Name">
+      </div>
+      <div class="field">
+        <label>Host</label>
+        <input type="text" id="ae_launch_host" name="ae_launch_host" placeholder="Launch Host">
+      </div>
+      <div class="field">
+        <label>Account</label>
+        <input type="text" id="ae_launch_account" name="ae_launch_account" placeholder="Launch Account">
+      </div>
+    </div>
+    <div class="one field">
+      <div class="field">
+        <label>Setup</label>
+        <textarea id="ae_launch_setup" name="ae_launch_setup" placeholder="Launch Setup"></textarea>
+      </div>
+    </div>
+    <div class="actions">
+      <div class="ui button deny pink">Cancel</div>
+      <input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
+    </div>
+    <input type="hidden" name="experiment" id="ae_experiment" value="{{data.curr_experiment}}">
+    <input type="hidden" name="action" id="ae_launch_action" value="add">
+    <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id}}">
+    <input type="hidden" id="ae_launch_id" name="ae_launch_id" value="0">
+  </form>
+</div> <!-- Ends template_add_edit_modal -->
+
+<script>
+
+$('#template_add_edit_form')
+  .form({
+    fields: {
+      ae_launch_name      : 'empty',
+      ae_launch_host      : 'empty',
+      ae_launch_account   : 'empty',
+      ae_launch_setup     : 'empty'
+    }
+  })
+;
+
+$("#experiment").change(function() {
+    $("#launch_template_form").submit();
+  });
+
+  function delete_template(name) {
+    var template = name; 
+    $("#confirm_modal_message").text("Delete the layout template named " +name+" ?")
+    mod_form = $("#confirm_modal").modal({
+    closable  : false,
+    onApprove : function(){
+      $("#action").val('delete');
+      $("<input>").attr({'type':'hidden','name': 'name', 'value': template}).appendTo("#launch_template_form");
+      $("#launch_template_form").submit();
+    },
+    }).modal('show');
+  }
+
+  function edit_template(launch_id, name, launch_host, launch_account, launch_setup) {
+    $("#ae_launch_action").val("edit")
+    $("#ae_launch_id").val(launch_id)
+    $("#ae_launch_name").val(name)
+    $("#ae_launch_host").val(launch_host)
+    $("#ae_launch_account").val(launch_account)
+    $("#ae_launch_setup").val(launch_setup)
+    mod_form = $("#template_add_edit_modal").modal({
+    }).modal('show');
+  }
+
+  function add_template() {
+    $("#template_add_edit_modal").form('reset');
+    $("#ae_experiment").val("{{ data.curr_experiment if data.curr_experiment is defined}}");
+    mod_form = $("#template_add_edit_modal").modal({
+    }).modal('show');
+  }
+
+setTimeout(function(){
+  if ("{{ data.message }}" != "None") {
+    mod_form = $("#display_message_modal").modal('show');  
+  }
+}, 1000);
+
+</script>
+
+
+{%endblock%}
+
