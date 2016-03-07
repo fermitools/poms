@@ -14,6 +14,13 @@ class time_grid:
          #print "self.pmap is: ", self.pmap
          return self.draw_boxes(extramap)
 
+     def render_query_blob(self, tmin, tmax, rows, group_key, url_template="", extramap={}):
+         dlmap = self.group_time_data( rows, group_key, url_template)
+         #print "got dlmap:", dlmap
+         self.add_time_data(tmin, tmax, dlmap)
+         #print "self.pmap is: ", self.pmap
+         return self.blobdata(extramap)
+
      def group_time_data( self, rows, group_key, url_template="" ):
           result = {}
           lastkey = None
@@ -176,8 +183,11 @@ class time_grid:
                  if p['width'] >= 100:
                     p['width'] = 95
              
+     def blobdata(self, extramap = {}):
+         blob = {"pmap": self.pmap, "extramap": extramap}
+         return blob
+
      def draw_boxes(self, extramap = {}):
-         #self.min_box_sizes()
          rlist = []
          displaylist = self.pmap.items()
          displaylist.sort(key=lambda x: x[0])
