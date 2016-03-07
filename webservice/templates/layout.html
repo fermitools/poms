@@ -141,8 +141,8 @@
 
 <div class="item">
   <div class="ui inverted transparent left icon input">
-         <form  method="get" action="{{pomspath}}/quick_search" onsubmit="return validateQuickSearchForm()">
-             <input type="text" name="jobsub_job_id" placeholder="Search...">
+         <form id="f1" method="get" action="{{pomspath}}/quick_search" onsubmit="return validateQuickSearchForm('f1')">
+             <input type="text" id=jobsub_job_id_f1 name="jobsub_job_id" placeholder="Search...">
              <i class="search icon"></i>
              <!--input type="submit" name="."-->
          </form>
@@ -260,12 +260,13 @@
 
 
 <script>
-function validateQuickSearchForm()
+function validateQuickSearchForm(formid)
 {
-    var jobsub_job_id = $( "[name='jobsub_job_id']" ).val();
+    var inputid="#jobsub_job_id_"+formid 
+    var jobsub_job_id = $( inputid ).val();
     if (jobsub_job_id == null || jobsub_job_id == "")
     {
-        alert("jobsub_job_id must be filled out.");
+        alert( id + " must be filled out in form:" + formid + ".");
         return false;
     }
     else if( jobsub_job_id.search(".fnal.gov") > -1  && jobsub_job_id.search("@") > -1 )
@@ -283,8 +284,8 @@ function validateQuickSearchForm()
 
 <div class="item">
   <div class="ui inverted transparent left icon input">
-         <form  method="get" action="{{pomspath}}/quick_search" onsubmit="return validateQuickSearchForm()">
-             <input type="text" name="jobsub_job_id" placeholder="Search...">
+         <form id="f2" method="GET" action="{{pomspath}}/quick_search" onsubmit="return validateQuickSearchForm('f2')">
+             <input type="text" id=jobsub_job_id_f2 name="jobsub_job_id" placeholder="Search...">
              <i class="search icon"></i>
              <!--input type="submit" name="."-->
          </form>
