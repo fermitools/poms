@@ -7,12 +7,13 @@ class time_grid:
          # you can't see boxes less than 2% wide...
          self.minwidth = 2
 
-     def render_query(self, tmin, tmax, rows, group_key, url_template="", extramap={}):
+
+     def render_query_blob(self, tmin, tmax, rows, group_key, url_template="", extramap={}):
          dlmap = self.group_time_data( rows, group_key, url_template)
          #print "got dlmap:", dlmap
          self.add_time_data(tmin, tmax, dlmap)
          #print "self.pmap is: ", self.pmap
-         return self.draw_boxes(extramap)
+         return self.blobdata(extramap)
 
      def group_time_data( self, rows, group_key, url_template="" ):
           result = {}
@@ -176,34 +177,9 @@ class time_grid:
                  if p['width'] >= 100:
                     p['width'] = 95
              
-     def draw_boxes(self, extramap = {}):
-         #self.min_box_sizes()
-         rlist = []
-         displaylist = self.pmap.items()
-         displaylist.sort(key=lambda x: x[0])
-         for id,plist in displaylist:
-             if len(plist) == 0:
-                 continue
-             rlist.append("""
-               <div class='row' style='margin:0px 0px; padding:0px 0px;'>
-                 <div class='mwm_label' style='text-align: right; width: 14%%; float:left; padding: 5px 5px; border-right: 1px solid black; '>%s</div>
-                   <div clas='mwm_rowdata'  style='position: relative; width: 85%%; float:left; clear: right; border-right: 1px solid black; border-left: 1px solid black; padding: 5px 0px'>
-                """ % (id + extramap.get(id,''))
-)
-             for p in plist:
-                 rlist.append("""
-                       <a href='%s'>
-                         <div class='tbox' data-content='%s' data-variation="very wide" style='width: %f%%; background-color: %s !important; float:left; '>
-                           &nbsp;
-                         </div>
-                       </a>
-                   """ % ( p['url'], p['txt'], p['width'], p['color']))
-             rlist.append("""
-                    </div>
-                    &nbsp;
-               </div>
-                 """)
-         return "\n".join(rlist)
+     def blobdata(self, extramap = {}):
+         blob = {"pmap": self.pmap, "extramap": extramap}
+         return blob
 
 if __name__ == '__main__':
 
@@ -232,4 +208,4 @@ if __name__ == '__main__':
          fakerow( jobid= 'job4', created = datetime(2016,2,29,13,9,0,0,utc), status = "ifdh::cp whatever"),
          fakerow( jobid= 'job4', created = datetime(2016,2,29,13,11,0,0,utc), status = "Completed"),
         ]
-    print tg.render_query( datetime(2016,2,29,13,0,0,0,utc), datetime(2016,2,29,13,30,0,0,utc), testrows,'jobid')
+    print tg.render_query_blob( datetime(2016,2,29,13,0,0,0,utc), datetime(2016,2,29,13,30,0,0,utc), testrows,'jobid')

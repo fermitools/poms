@@ -105,6 +105,7 @@ class SATool(cherrypy.Tool):
         cherrypy.request.project_fetcher = None
         self.session.remove()
 
+
 class SessionTool(cherrypy.Tool):
         # Something must be set in the sessionotherwise a unique session 
         # will be created for each request. 

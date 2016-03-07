@@ -75,7 +75,7 @@
       <tr {% if job[0] == 0 %} class="positive" {%else%} class="negative" {%endif%} >
          {%for col in range(0, columns|count) %}
             {% if loop.first %}
-              <td><a href="{{pomspath}}/job_table?tdays={{days}}&tmax={{tmax}}&user_exe_exit_code={{job[col]}}">{{job[col]}}</a></td>
+              <td><a href="{{pomspath}}/job_table?tdays={{days}}&tmax={{tmax}}{%for c2 in range(0,columns|count-1)%}&{{columns[c2]}}={{job[c2]}}{%endfor%}">{{job[col]}}</a></td>
             {% else %}
               <td>{{job[col]}}</td>
             {% endif %}

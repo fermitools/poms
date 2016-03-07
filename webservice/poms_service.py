@@ -87,7 +87,7 @@ class poms_service:
         xff = cherrypy.request.headers.get('X-Forwarded-For', None)
         ra =  cherrypy.request.headers.get('Remote-Addr', None)
         user = cherrypy.request.headers.get('X-Shib-Userid', None)
-        if ra == '127.0.0.1' and xff == None:
+        if ra in ['127.0.0.1','131.225.80.97'] and xff == None:
              # case for local agents
              return 1
         if (cherrypy.session.get('experimenter')).is_root():
@@ -851,10 +851,11 @@ class poms_service:
 				  status = jh.status,
 				  jobsub_job_id = jjid))
 
-        screendata = self.format_job_counts(task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
+        job_counts = self.format_job_counts(task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
         key = tg.key(fancy=1)
 
-        screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)         
+        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)         
+        #screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)         
 
         if len(jl) > 0:
             campaign_id = jl[0][1].task_obj.campaign_id
@@ -866,7 +867,7 @@ class poms_service:
         task_jobsub_id = self.task_min_job(task_id)
 
         template = self.jinja_env.get_template('job_grid.html')
-        return template.render( taskid = task_id, screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, key = key, pomspath=self.path,help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id, campaign_id = campaign_id,cname = cname)
+        return template.render( blob=blob, job_counts = job_counts,  taskid = task_id, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, key = key, pomspath=self.path,help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id, campaign_id = campaign_id,cname = cname)
 
 
     @cherrypy.expose
@@ -921,17 +922,21 @@ class poms_service:
         # set a flag to remind us to set tdays from max and min if
         # they are both set coming in.
         set_tdays =  (tmax != None and tmax != '') and (tmin != None and tmin!= '')
-          
-
-        if tdays == None or tdays == '':  # default to one day
-            tdays = 1
 
         if tmax == None or tmax == '':
-            # if we're not given a max, pick now
-            tmax = datetime.now(utc)
+            if tmin != None and tmin != '' and tdays != None and tdays != '':
+                if isinstance(tmin, basestring):
+                    tmin = datetime.strptime(tmin[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
+                tmax = tmin + timedelta(days=float(tdays))
+            else:
+                # if we're not given a max, pick now
+                tmax = datetime.now(utc)
         elif isinstance(tmax, basestring):
             tmax = datetime.strptime(tmax[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
         
+        if tdays == None or tdays == '':  # default to one day
+            tdays = 1
+
         tdays = float(tdays)
 
         if tmin == None or tmin == '':
@@ -939,6 +944,10 @@ class poms_service:
 
         elif isinstance(tmin, basestring):
             tmin = datetime.strptime(tmin[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo = utc)
+
+        if set_tdays:
+            # if we're given tmax and tmin, compute tdays
+            tdays = (tmax - tmin).total_seconds() / 86400.0
 
         tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
         tsnext = (tmax + timedelta(days = tdays)).strftime("%Y-%m-%d+%H:%M:%S")
@@ -949,15 +958,12 @@ class poms_service:
         # if we want to handle hours / weeks nicely, we should do
         # it here.
         plural =  's' if tdays > 1.0 else ''
-        tranges = '%d day%s ending <span class="tmax">%s</span>' % (tdays, plural, tmaxs)
+        tranges = '%f day%s ending <span class="tmax">%s</span>' % (tdays, plural, tmaxs)
 
         # redundant, but trying to rule out tz woes here...
         tmin = tmin.replace(tzinfo = utc)
         tmax = tmax.replace(tzinfo = utc)
 
-        if set_tdays:
-            # if we're given tmax and tmin, compute tdays
-            tdays = (tmax - tmin).total_seconds() / 86400.0
 
         return tmin,tmax,tmins,tmaxs,nextlink,prevlink,tranges
 
@@ -1048,44 +1054,35 @@ class poms_service:
 
         cp = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
         name = cp.name
-
-        cl = cherrypy.request.db.query(Campaign).join(Task).filter(Campaign.campaign_id == campaign_id, Task.campaign_id == Campaign.campaign_id , Task.created > tmin - timedelta(hours= 12), Task.created < tmax ).all()
         
-        for c in cl:
-              sl.append('<h2 class="ui row dividing header">%s Tasks' % c.name )
-              sl.append('</h2>' )
-              sl.append('<div class="ui row">')
-              sl.append(self.format_job_counts(campaign_id = c.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string))
-              sl.append('</div>')
-	      sl.append('<div class="ui row">')
-              sl.append('<b>Key</b>')
-	      sl.append(key)
-	      sl.append('</div>')
-
-              qr = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == c.campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin - timedelta(hours=12), Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
-              items = []
-              extramap = {}
-              for th in qr:
-                  jjid = self.task_min_job(th.task_id)
-                  if not jjid: 
-                      jjid= 't' + str(th.task_id)
-                  else:
-                      jjid = jjid.replace('fifebatch','').replace('.fnal.gov','')
-                  if th.status != "Completed" and th.status != "Located":
-                      extramap[jjid] = '<a href="%s/kill_jobs?task_id=%d"><i class="ui trash icon"></i></a>' % (self.path, th.task_id)
-                  else:
-                      extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
-
-                  items.append(fakerow(task_id = th.task_id,
- 					created = th.created.replace(tzinfo = utc),
- 					status = th.status,
-                 			jobsub_job_id = jjid))
-
-              sl.append( tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(created)19.19s',extramap = extramap ))
-        screendata = "\n".join(sl)
-              
         template = self.jinja_env.get_template('campaign_bars.html')
-        return template.render(  screendata = screendata, name = name, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, help_page="CampaignTimeBarsHelp")
+
+	job_counts = self.format_job_counts(campaign_id = cp.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string)
+
+	qr = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin - timedelta(hours=12), Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
+	items = []
+	extramap = {}
+	for th in qr:
+	    jjid = self.task_min_job(th.task_id)
+	    if not jjid: 
+		jjid= 't' + str(th.task_id)
+	    else:
+		jjid = jjid.replace('fifebatch','').replace('.fnal.gov','')
+	    if th.status != "Completed" and th.status != "Located":
+		extramap[jjid] = '<a href="%s/kill_jobs?task_id=%d"><i class="ui trash icon"></i></a>' % (self.path, th.task_id)
+	    else:
+		extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
+
+	    items.append(fakerow(task_id = th.task_id,
+				  created = th.created.replace(tzinfo = utc),
+				  tmin = th.task_obj.created - timedelta(minutes=15),
+				  tmax = th.task_obj.updated + timedelta(hours=6.5),
+				  status = th.status,
+				  jobsub_job_id = jjid))
+
+	blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(tmin)19.19s&tmax=%(tmax)19.19s',extramap = extramap )
+              
+        return template.render( job_counts = job_counts, blob = blob, name = name, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, help_page="CampaignTimeBarsHelp")
 
     def task_min_job(self, task_id):
         # find the job with the logs -- minimum jobsub_job_id for this task
@@ -1101,7 +1098,7 @@ class poms_service:
     
     @cherrypy.expose
     def job_file_list(self, job_id,force_reload = False):
-        j = cherrypy.request.db.query(Job).options(joinedload(Job.task_obj)).filter(Job.job_id == job_id).first()
+        j = cherrypy.request.db.query(Job).options(joinedload(Job.task_obj).joinedload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         jobsub_job_id = self.task_min_job(j.task_id)
         role = j.task_obj.campaign_obj.vo_role
@@ -1180,7 +1177,7 @@ class poms_service:
 
     
     @cherrypy.expose
-    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None):
+    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None):
            
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'job_table?')
         extra = ""
@@ -1209,6 +1206,11 @@ class poms_service:
             q = q.filter( Campaign.experiment == experiment)
             extra = extra + "in experiment %s" % experiment
             filtered_fields['experiment'] = experiment
+
+        if dataset:
+            q = q.filter( Campaign.dataset == dataset)
+            extra = extra + "in dataset %s" % dataset
+            filtered_fields['dataset'] = dataset
 
         if campaign_name:
             q = q.filter(Campaign.name == campaign_name)
@@ -1352,7 +1354,7 @@ class poms_service:
           # job fields
           'node_name', 'cpu_type', 'host_site', 'user_exe_exit_code',
           # campaign fields
-          'name', 'vo_role', 'dataset', 'software_version',
+          'name', 'vo_role', 'dataset', 'software_version', 'experiment'
         ]
          
         qargs.append(func.count(Job.job_id))
