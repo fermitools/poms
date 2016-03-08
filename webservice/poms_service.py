@@ -974,59 +974,14 @@ class poms_service:
 
         cl = cherrypy.request.db.query(Campaign).filter(Task.campaign_id == Campaign.campaign_id, Campaign.active == True ).order_by(Campaign.experiment).all()
 
-        res = []
-        res.append( '<table class="ui celled table unstackable">')
-        res.append( '<tr><th colspan=2> Campaign ')
-        res.append( '<a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Campaign"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '<th colspan=3>Active Jobs')
-        res.append( '</th>')
-        res.append( '<th colspan=2>Jobs in %s</th></tr>' % time_range_string),
-        res.append( '<tr><th>Experiment')
-        res.append( '</th>')
-        res.append( '<th>Name')
-        res.append( '</th>')
-        res.append( '<th>Idle')
-        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '<th>Running')
-        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '<th>Held')
-        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '<th>Completed')
-        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '<th>Located')
-        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '<th>Removed')
-        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '</tr>')
-
+        counts = {}
+        counts_keys = {}
         for c in cl:
-            res.append('<tr>')
-            res.append('<td>%s</td>' % c.experiment)
-            res.append('<td>%s' % c.name)
-            res.append('<a href="%s/campaign_sheet?campaign_id=%d&tmax=%s"><i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i></a>' % ( self.path, c.campaign_id, tmaxs))
-            res.append('<a href="%s/campaign_time_bars?campaign_id=%d&tmin=%s&tmax=%s"><i class="external tasks icon" data-content="Tasks in Campaign Time Bars" data-variation="basic"></i></a>' % ( self.path, c.campaign_id, tmins, tmaxs))
-            res.append('<a href="%s/pending_files?campaign_id=%d"><i class="external file icon" data-content="Pending File Information" data-variation="basic"></i></a>' % ( self.path, c.campaign_id ))
-            res.append('<a href="%s/campaign_info?campaign_id=%d"><i class="external info circle icon" data-content="Campaign Information" data-variation="basic"></i></a>' % ( self.path, c.campaign_id ))
-            res.append('<a target="_blank" href="%s/launch_jobs?campaign_id=%d"><i class="external rocket icon" data-content="Launch Tasks for Campaign" data-variation="basic"></i></a>' % ( self.path, c.campaign_id))
-            res.append('<a target="_blank" href="%s/kill_jobs?campaign_id=%d"><i class="external trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i></a>' % ( self.path, c.campaign_id))
-            res.append('</td>')
-            counts = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
-            for k in counts.keys():
-                res.append('<td><a href="job_table?campaign_id=%s&job_status=%s&tmin=%s&tmax=%s&tdays=%s">%d</a></td>' % (c.campaign_id, k, tmin, tmax, tdays, counts[k]))
-            res.append("</tr>")
-            
-        res.append("</table>")
-        screendata = "\n".join(res)
+            counts[c.campaign_id] = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
+            counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
               
         template = self.jinja_env.get_template('campaign_grid.html')
-        return template.render(  screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path, help_page="ShowCampaignsHelp")
+        return template.render(  counts = counts, counts_keys = counts_keys, cl = cl, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path, help_page="ShowCampaignsHelp")
 
     @cherrypy.expose
     def campaign_info(self, campaign_id ):
