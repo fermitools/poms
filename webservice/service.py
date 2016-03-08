@@ -164,12 +164,16 @@ class SessionTool(cherrypy.Tool):
             cherrypy.request.db.add(e2e)
             cherrypy.request.db.commit()
 
-        e   = cherrypy.request.db.query(Experimenter).filter(Experimenter.email==email).one()
-        e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e.experimenter_id)
+        e   = cherrypy.request.db.query(Experimenter).filter(Experimenter.email==email).all()
+        if len(e):
+           e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e[0].experimenter_id)
+        else:
+           e2e = []
         exps = {}
         for row in e2e:
             exps[row.experiment] = row.active
-        cherrypy.session['experimenter'] = SessionExperimenter(e.experimenter_id, e.first_name, e.last_name, e.email, exps)
+        if len(e):
+            cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id, e[0].first_name, e[0].last_name, e[0].email, exps)
         cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For','Unknown'), cherrypy.session['id'], 
                                                       experimenter.email if experimenter else 'none', 
                                                       experimenter.first_name if experimenter else 'none' , 
