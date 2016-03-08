@@ -174,6 +174,8 @@ class SessionTool(cherrypy.Tool):
             exps[row.experiment] = row.active
         if len(e):
             cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id, e[0].first_name, e[0].last_name, e[0].email, exps)
+        else:
+            cherrypy.session['experimenter'] = SessionExperimenter("anonymous", "", "", "", {})
         cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For','Unknown'), cherrypy.session['id'], 
                                                       experimenter.email if experimenter else 'none', 
                                                       experimenter.first_name if experimenter else 'none' , 
