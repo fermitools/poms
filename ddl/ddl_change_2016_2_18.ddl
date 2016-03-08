@@ -58,9 +58,6 @@ insert into launch_templates (experiment, launch_host, launch_account, launch_se
 update campaigns set launch_id = (select launch_id from launch_templates);
 alter table campaigns alter launch_id set not null;
 
-grant select, insert, update, delete on all tables in schema public to pomsdbs;
-grant usage on all sequences in schema public to pomsdbs;
-
 
 ALTER TABLE campaigns ADD param_overrides json  ;
 
@@ -68,4 +65,38 @@ ALTER TABLE jobs ADD cpu_time float8  ;
 
 ALTER TABLE jobs ADD wall_time float8  ;
 
+
+CREATE TABLE tags ( 
+	tag_id               serial  NOT NULL,
+	experiment           varchar(10)  NOT NULL,
+	tag_name             varchar(100)  NOT NULL,
+	CONSTRAINT pk_tags PRIMARY KEY ( tag_id ),
+	CONSTRAINT idx_tags_experiment_tag_name UNIQUE ( experiment, tag_name ) 
+ );
+
+CREATE INDEX idx_tags ON tags ( experiment );
+
+ALTER TABLE tags ADD CONSTRAINT fk_tags_experiment FOREIGN KEY ( experiment ) REFERENCES experiments( experiment );
+
+
+CREATE TABLE campaigns_tags ( 
+	campaign_id          integer  NOT NULL,
+	tag_id               integer  NOT NULL,
+	CONSTRAINT pk_campaign_tags PRIMARY KEY ( campaign_id, tag_id )
+ );
+
+CREATE INDEX idx_campaigns_tags_tag_id ON campaigns_tags ( tag_id );
+
+CREATE INDEX idx_campaigns_tags_campaign_id ON campaigns_tags ( campaign_id );
+
+ALTER TABLE campaigns_tags ADD CONSTRAINT fk_campaigns_tags FOREIGN KEY ( tag_id ) REFERENCES tags( tag_id );
+
+ALTER TABLE campaigns_tags ADD CONSTRAINT fk_campaigns_tags_0 FOREIGN KEY ( campaign_id ) REFERENCES campaigns( campaign_id );
+
+
+
+
+
+grant select, insert, update, delete on all tables in schema public to pomsdbs;
+grant usage on all sequences in schema public to pomsdbs;
 

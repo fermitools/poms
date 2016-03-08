@@ -224,3 +224,27 @@ class JobHistory(Base):
     status = Column(Text, nullable=False)
     
     job_obj = relationship(u'Job',backref='history')
+
+class Tag(Base):
+    __tablename__ = 'tags'
+
+    def __init__(self, experiment=None, tag_name=None):
+        self.experiment = experiment
+        self.tag_name = tag_name
+    
+    tag_id = Column(Integer, primary_key=True, server_default=text("nextval('tags_tag_id_seq'::regclass)"))
+    experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
+    tag_name = Column(Text, nullable=False)
+    
+class CampaignsTags(Base):
+    __tablename__ = 'campaigns_tags'
+
+    def __init__(self, campaign_id=None, tag_id=None):
+        self.campaign_id = campaign_id
+        self.tag_id = tag_id
+
+    campaign_id = Column(Integer, ForeignKey('campaigns.campaign_id'), primary_key=True)
+    tag_id = Column(Integer, ForeignKey('tags.tag_id'), primary_key=True)
+
+    campaign_obj = relationship(Campaign, backref="campaigns_tags")
+    tag_obj = relationship(Tag, backref="campaigns_tags")
