@@ -5,6 +5,7 @@ import httplib
 import json
 import shelve
 import os
+import time
 
 class fts_status_watcher:
     def __init__(self, debug=0):
@@ -56,9 +57,14 @@ class fts_status_watcher:
 
         if fs: fs.close()
 
-        for exp in explist:
-            os.rename("%s/%s_files.db.new" % (self.workdir, item["experiment"]),
+        for exp in explist.keys():
+            if exp == "unknown":
+                continue
+            try:
+                os.rename("%s/%s_files.db.new" % (self.workdir, item["experiment"]),
                          "%s/%s_files.db" % (self.workdir, item["experiment"]))
+            except:
+                print "Error renaming %s/%s_files.db.new" % (self.workdir, item["experiment"])
  
     def poll(self):
         while 1:
