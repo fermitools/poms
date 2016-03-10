@@ -123,7 +123,7 @@ class jobsub_q_scraper:
                 #
                 # only report status if its different
                 #
-                if not prev or prev['status'] != args['status'] or prev['node_name'] != args['node_name'] or prev['cpu_time'] != args['cpu_time'] or prev['wall_time'] != args['wall_time']::
+                if not prev or prev['status'] != args['status'] or prev['node_name'] != args['node_name'] or prev['cpu_time'] != args['cpu_time'] or prev['wall_time'] != args['wall_time']:
                     try: 
                         self.job_reporter.report_status(**args)
                     except:
