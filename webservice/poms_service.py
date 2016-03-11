@@ -1321,7 +1321,7 @@ class poms_service:
         q = cherrypy.request.db.query(*qargs)
         q = q.join(Task,Campaign)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax, Job.user_exe_exit_code != 0)
-        q = q.group_by(*gbl).order_by(*gbl)
+        q = q.group_by(*gbl).order_by(desc(func.count(Job.job_id)))
  
         jl = q.all()
         cherrypy.log( "got jobtable %s " % repr( jl[0].__dict__) )
@@ -1622,3 +1622,42 @@ class poms_service:
         template = self.jinja_env.get_template('launched_jobs.html')
         return template.render(command = lcmd, output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="LaunchedJobsHelp")
 
+    @cherrypy.expose
+    def jobs_eff_histo(self, campaign_id, tmax = None, tmin = None, tdays = 1 ):
+        """  use
+                  select count(job_id), floor(cpu_time * 10 / wall_time) as de 
+                     from jobs, tasks  
+                     where 
+                        jobs.task_id = tasks.task_id and 
+                        tasks.campaign_id=17 and  
+                        wall_time > 0 and 
+                        wall_time > cpu_time and 
+                        jobs.updated > '2016-03-10 00:00:00' 
+                        group by floor(cpu_time * 10 / wall_time) 
+                       order by de;
+             to get height bars for a histogram, clicks through to 
+             jobs with a given efficiency...
+             Need to add efficiency  (cpu_time/wall_time) as a param to 
+             jobs_table...
+         """
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'jobs_eff_histo?campaign_id=%s' % campaign_id)
+
+        q = cherrypy.request.db.query(func.count(Job.job_id), func.floor(Job.cpu_time *10/Job.wall_time))
+        q = q.join(Job.task_obj)
+        q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == campaign_id)
+        q = q.filter(Job.wall_time > 0, Job.wall_time > Job.cpu_time)
+        q = q.filter(Job.updated <= tmax, Job.updated >= tmin)
+        q = q.group_by(func.floor(Job.cpu_time*10/Job.wall_time))
+        q = q.order_by((func.floor(Job.cpu_time*10/Job.wall_time)))
+
+        total = 0
+        vals = []
+        for row in q.all():
+            vals.append(row)
+            total += row[0]
+
+        # return "total %d ; vals %s" % (total, vals)
+        # return "Not yet implemented"
+
+        template = self.jinja_env.get_template('job_histo.html')
+        return template.render(  total = total, vals = vals, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, pomspath=self.path, help_page="JobEfficiencyHistoHelp")
