@@ -81,7 +81,8 @@
 
      {% for c in cl %}
             <tr>
-            <td>
+            <td style="width: 8em">
+            <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{c.campaign_id}}&tmax={{tmaxs}}"><i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i></a>
             <a href="{{pomspath}}/campaign_sheet?campaign_id={{c.campaign_id}}&tmax={{tmaxs}}"><i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i></a>
             <a href="{{pomspath}}/campaign_time_bars?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}"><i class="external tasks icon" data-content="Tasks in Campaign Time Bars" data-variation="basic"></i></a>
             <a href="{{pomspath}}/pending_files?campaign_id={{c.campaign_id}}"><i class="external file icon" data-content="Pending File Information" data-variation="basic"></i></a>
