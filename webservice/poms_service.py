@@ -1132,7 +1132,7 @@ class poms_service:
 
     
     @cherrypy.expose
-    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None):
+    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None, eff_d = None):
            
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'job_table?')
         extra = ""
@@ -1194,6 +1194,15 @@ class poms_service:
         if project:
             q = q.filter(Task.project == project)
             filtered_fields['project'] = project
+
+        #
+        # this one for our effeciency percentage decile...
+        # i.e. if you want jobs in the 80..90% eficiency range
+        # you ask for eff_d == 8...
+        #
+        if eff_d:
+            q = q.filter(Job.wall_time != 0.0, func.floor(Job.cpu_time *10/Job.wall_time)== eff_d )
+            filtered_fields['eff_d'] = eff_d
 
         if jobsub_job_id:
             q = q.filter(Job.jobsub_job_id == jobsub_job_id)
@@ -1656,8 +1665,9 @@ class poms_service:
             vals.append(row)
             total += row[0]
 
+	c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
         # return "total %d ; vals %s" % (total, vals)
         # return "Not yet implemented"
 
         template = self.jinja_env.get_template('job_histo.html')
-        return template.render(  total = total, vals = vals, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, pomspath=self.path, help_page="JobEfficiencyHistoHelp")
+        return template.render(  c = c, total = total, vals = vals, tmaxs = tmaxs, campaign_id=campaign_id, tdays = tdays, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, pomspath=self.path, help_page="JobEfficiencyHistoHelp")
