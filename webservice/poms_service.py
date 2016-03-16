@@ -14,6 +14,7 @@ import shelve
 from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate
 
 from utc import utc
+from crontab import CronTab
 
 def error_response():
     dump = ""
@@ -1431,6 +1432,15 @@ class poms_service:
             columns.append('exit(%d)'%e)
         outrows = []
         exitcounts = {}
+	totfiles = 0
+	totdfiles = 0
+	totjobs = 0       
+	totjobfails = 0
+	outfiles = 0
+	infiles = 0
+	pendfiles = 0
+	for e in exitcodes:
+	    exitcounts[e] = 0
 
         for task in tl:
             if day != task.created.weekday():
@@ -1494,7 +1504,10 @@ class poms_service:
 	# add a row to the table on the day boundary
 	outrow = []
 	outrow.append(daynames[day])
-	outrow.append(date.isoformat()[:10])
+        if date:
+	    outrow.append(date.isoformat()[:10])
+        else:
+	    outrow.append('')
 	outrow.append(str(totfiles if totfiles > 0 else infiles))
 	outrow.append(str(totdfiles))
 	outrow.append(str(totjobs))
@@ -1671,3 +1684,54 @@ class poms_service:
 
         template = self.jinja_env.get_template('job_histo.html')
         return template.render(  c = c, total = total, vals = vals, tmaxs = tmaxs, campaign_id=campaign_id, tdays = tdays, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, pomspath=self.path, help_page="JobEfficiencyHistoHelp")
+
+
+    @cherrypy.expose
+    def schedule_launch(self, campaign_id ):
+	c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+	my_crontab = CronTab(user=True)       
+	iter = my_crontab.find_comment("POMS_CAMPAIGN_ID=%s" % campaign_id)
+	# there should be only one...
+	job = iter[0]
+	template = self.jinja_env.get_template('campaign_launch_schedule.html')
+	return template.render(  c = c, job = job, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ScheduleLaunchHelp")
+
+    @cherrypy.expose
+    def update_launch_schedule(self, campaign_id, dowlist = None,  domlist = None, monthly = None, month = None, hourlist = None ):
+
+	# deal with single item list silliness
+	if isinstance(hourlist, basestring):
+	   hourlist = [hourlist]
+	if isinstance(dowlist, basestring):
+	   dowlist = [dowlist]
+	if isinstance(domlist, basestring):
+	   domlist = [domlist]
+
+	hourlist = [int(x) for x in hourlist]
+	dowlist = [int(x) for x in dowlist]
+	domlist = [int(x) for x in domlist]
+
+	sched = json.loads(sched_json)
+	my_crontab = CronTab(user=True)       
+	# clean out old
+	my_crontab.remove_all(comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
+	# make job for new
+	job = my_crontab.new(command="%s/cron/launcher --campaign_id=%s" % (
+			  os.environ.get("POMS_DIR","/etc"), campaign_id),
+			  comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
+
+	# set timing...
+	if dowlist:
+	    job.dow.on(*dowlist)
+
+	if hourlist:
+	    job.hour.on(*hourlist)
+			     
+	if domlist:
+	    job.day.on(*domlist)
+
+	job.enable()
+
+	my_crontab.write()
+
+	raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id )
