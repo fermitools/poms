@@ -8,6 +8,7 @@ from collections import OrderedDict
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func, exc, distinct
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
@@ -451,6 +452,7 @@ class poms_service:
         except:
             cherrypy.request.db.rollback()
             message = "The experiment, %s, is used and may not be deleted." % experiment
+            cherrypy.log(e.message)
 
         return self.experiment_edit(message)
 
@@ -472,6 +474,7 @@ class poms_service:
             except:
                 db.rollback()
                 message = "The template, %s, is in use and may not be deleted." % name
+                cherrypy.log(e.message)
 
         if action == 'add' or action == 'edit':
             ae_launch_id = kwargs.pop('ae_launch_id')
@@ -480,20 +483,30 @@ class poms_service:
             ae_launch_account = kwargs.pop('ae_launch_account')
             ae_launch_setup = kwargs.pop('ae_launch_setup')
             experimenter_id = kwargs.pop('experimenter_id')
-            if action == 'add':
-                template = LaunchTemplate(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host, launch_account=ae_launch_account, 
-                                          launch_setup=ae_launch_setup,creator = experimenter_id, created = datetime.now(utc))
-                db.add(template)
+            try:
+                if action == 'add':
+                    template = LaunchTemplate(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host, launch_account=ae_launch_account, 
+                                              launch_setup=ae_launch_setup,creator = experimenter_id, created = datetime.now(utc))
+                    db.add(template)
+                else:
+                    columns = {"name":           ae_launch_name,
+                               "launch_host":    ae_launch_host,
+                               "launch_account": ae_launch_account,
+                               "launch_setup":   ae_launch_setup,
+                               "updated":        datetime.now(utc),
+                               "updater":        experimenter_id
+                               }
+                    template = db.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).update(columns)
+            except IntegrityError, e:
+                message = "Integrity error - you are most likely using a name which already exists in database."
+                cherrypy.log(e.message)
+                db.rollback()
+            except SQLAlchemyError, e:
+                message = "SQLAlchemyError.  Please report this to the administrator."
+                cherrypy.log(e.message)
+                db.rollback()
             else:
-                columns = {"name":           ae_launch_name,
-                           "launch_host":    ae_launch_host,
-                           "launch_account": ae_launch_account,
-                           "launch_setup":   ae_launch_setup,
-                           "updated":        datetime.now(utc),
-                           "updater":        experimenter_id
-                           }
-                template = db.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).update(columns)
-            db.commit();
+                db.commit()
 
         # Find experiments layout templates
         if exp: # cuz the default is find
@@ -505,6 +518,75 @@ class poms_service:
         template = self.jinja_env.get_template('launch_template_edit.html')
         return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="LaunchTemplateEditHelp")
+
+    @cherrypy.expose
+    def campaign_definition_edit(self, *args, **kwargs):
+        db = cherrypy.request.db
+        data = {}
+        message = None
+        data['exp_selections'] = db.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
+
+        action = kwargs.pop('action',None)
+        exp = kwargs.pop('experiment',None)
+
+        if action == 'delete':
+            name = kwargs.pop('name')
+            try:
+                db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).filter(CampaignDefinition.name==name).delete()
+                db.commit()
+            except:
+                db.rollback()
+                message = "The campaign definition, %s, is in use and may not be deleted." % name
+                cherrypy.log(e.message)
+
+        if action == 'add' or action == 'edit':
+            campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
+            name = kwargs.pop('ae_definition_name')
+            input_files_per_job = kwargs.pop('ae_input_files_per_job')
+            output_files_per_job = kwargs.pop('ae_output_files_per_job')
+            launch_script = kwargs.pop('ae_launch_script')
+            definition_parameters = kwargs.pop('ae_definition_parameters')
+            experimenter_id = kwargs.pop('experimenter_id')
+            try:
+                if action == 'add':
+                    cd = CampaignDefinition(campaign_definition_id=campaign_definition_id, name=name, experiment=experiment,
+                                            input_files_per_job=input_file_per_job, output_files_per_job=output_files_per_job,
+                                            launch_script=launch_script, definition_parameters=definition_parameters, 
+                                            creator=experimenter_id, created=datetime.now(utc))
+
+                    db.add(cd)
+                else:
+                    columns = {"name":                  name,
+                               "input_files_per_job":   input_files_per_job,
+                               "output_files_per_job":  output_files_per_job,
+                               "launch_script":         launch_script,
+                               "definition_parameters": definition_parameters,
+                               "updated":               datetime.now(utc),
+                               "updater":               experimenter_id
+                               }
+                    cd = db.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).update(columns)
+            except IntegrityError, e:
+                message = "Integrity error - you are most likely using a name which already exists in database."
+                cherrypy.log(e.message)
+                db.rollback()
+            except SQLAlchemyError, e:
+                message = "SQLAlchemyError.  Please report this to the administrator."
+                cherrypy.log(e.message)
+                db.rollback()
+            else:
+                db.commit()
+
+        # Find experiments layout templates
+        if exp: # cuz the default is find
+            data['curr_experiment'] = exp
+            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            data['definitions'] = db.query(CampaignDefinition,Experiment).join(Experiment).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
+
+        data['message'] = message
+        template = self.jinja_env.get_template('campaign_definition_edit.html')
+        return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
+                               pomspath=self.path,help_page="CampaignDefinitionEditHelp")
+
 
     @cherrypy.expose
     def list_generic(self, classname):

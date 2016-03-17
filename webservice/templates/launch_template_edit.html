@@ -24,7 +24,7 @@
 
 {%block header%}
 <h1 class="ui header">
-    Launch Templates
+    Launch Templates {%include 'help_button.html'%}
 </h1>
 {%endblock%}
 
@@ -58,11 +58,11 @@
       <tr>
 	<td class="collapsing">
           {% if data.authorized==True %}
-	  <i class="large edit link teal icon"  onclick="edit_template('{{row.LaunchTemplate.launch_id}}','{{row.LaunchTemplate.name}}','{{row.LaunchTemplate.launch_host}}','{{row.LaunchTemplate.launch_account}}','{{row.LaunchTemplate.launch_setup}}');"></i>
-	  <i class="large trash link teal icon" onclick="delete_template('{{row.LaunchTemplate.name}}'); "></i>
+	  <i class="large edit link blue icon"  onclick="edit_template('{{row.LaunchTemplate.launch_id}}','{{row.LaunchTemplate.name}}','{{row.LaunchTemplate.launch_host}}','{{row.LaunchTemplate.launch_account}}','{{row.LaunchTemplate.launch_setup}}');"></i>
+	  <i class="large trash link blue icon" onclick="delete_template('{{row.LaunchTemplate.name}}'); "></i>
 	  {% else %}
-	  <i class="disabled large edit link teal icon">
-	  <i class="disabled large trash link teal icon">
+	  <i class="disabled large edit link blue icon">
+	  <i class="disabled large trash link blue icon">
 	  {% endif %}
         </td>
 	<td>{{row.LaunchTemplate.name}}</td>
@@ -128,15 +128,12 @@
 
 <div class="ui modal" id="template_add_edit_modal">
   <i class="close icon"></i>
-  <div class="header">
-    <label id="template_header">Layout Template Editor</label>
+  <h3 class="block header" id="template_header">
+    Layout Template Editor (SPUD)
+  </h3>
+  <div class="ui hidden divider"></div>
+  <div class="ui text container">
   <form id="template_add_edit_form" class="ui form" method="POST" action="launch_template_edit">
-    <div class="one field">
-      <div class="field">
-        <label>Experiment</label>
-        <input type="text" id="ae_experiment" name="ae_experiment" value="SPUD" disabled>
-      </div>
-    </div>
     <div class="three fields">
       <div class="field">
         <label>Name</label>
@@ -166,6 +163,8 @@
     <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id}}">
     <input type="hidden" id="ae_launch_id" name="ae_launch_id" value="0">
   </form>
+  </div>
+  <div class="ui hidden divider"></div>
 </div> <!-- Ends template_add_edit_modal -->
 
 <script>
@@ -199,26 +198,27 @@ $("#experiment").change(function() {
   }
 
   function edit_template(launch_id, name, launch_host, launch_account, launch_setup) {
+    $("#template_header").text("Layout Template Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
     $("#ae_launch_action").val("edit")
     $("#ae_launch_id").val(launch_id)
     $("#ae_launch_name").val(name)
     $("#ae_launch_host").val(launch_host)
     $("#ae_launch_account").val(launch_account)
     $("#ae_launch_setup").val(launch_setup)
-    mod_form = $("#template_add_edit_modal").modal({
+    $("#template_add_edit_modal").modal({
     }).modal('show');
   }
 
   function add_template() {
     $("#template_add_edit_modal").form('reset');
+    $("#template_header").text("Layout Template Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
     $("#ae_experiment").val("{{ data.curr_experiment if data.curr_experiment is defined}}");
-    mod_form = $("#template_add_edit_modal").modal({
-    }).modal('show');
+    $("#template_add_edit_modal").modal({}).modal('show');
   }
 
 setTimeout(function(){
   if ("{{ data.message }}" != "None") {
-    mod_form = $("#display_message_modal").modal('show');  
+    $("#display_message_modal").modal('show');  
   }
 }, 1000);
 

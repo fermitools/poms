@@ -161,6 +161,18 @@ class LaunchTemplate(Base):
 class CampaignDefinition(Base):
     __tablename__ = 'campaign_definitions'
 
+    def __init__(self, campaign_definition_id=None, name=None, experiment=None, launch_script=None, definition_parameters=None, creator=None, created=None,
+                 updater=None, updated=None):
+        self.campaign_definition_id = campaign_definition_id
+        self.name = name
+        self.experiment = experiment
+        self.launch_script = launch_script
+        self.definition_parameters = definition_parameters
+        self.creator = creator
+        self.created = created
+        self.updater = updater
+        self.updated = updated
+        
     campaign_definition_id = Column(Integer, primary_key=True, server_default=text("nextval('campaign_definitions_campaign_definition_id_seq'::regclass)"))
     name = Column(Text, nullable=False, unique=True)
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
