@@ -1,0 +1,45 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>POMS:Campaign {{c.name}} Scheduled Launches</title>
+{%endblock%}
+
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="{{pomspath}}/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section"> <a href="{{pomspath}}/show_campaigns">Campaigns</a></div>
+  <div class="divider"> / </div>
+  <div class="section">Scheduled Launches {{c.name}}</div>
+</div>
+{%endblock%}
+
+
+{%block header%}
+<h1 class="ui header">
+     Campaign Launch Schedule{%include 'help_button.html'%}
+</h1>
+{%endblock%}
+
+
+{%block content%}
+  <div class="ui">
+    {{job}}
+  <form action="update_launch_schedule" method="GET">
+  <input type="hidden" name="campaign_id" value="{{campaign_id}}">
+  Hour(s) of day:
+  <input name="hourlist" width=2 value="{{job.hours if job.hours else '*'}}">
+  <br>
+  Day(s) of week:
+  <input name="dowlist" width=2 value="{{job.day if job.day else '*'}}">
+  <br>
+
+  Day(s) of Month:
+  <input name="domlist" width=2 value="{{job.dom if job.dom else '*'}}">
+  <br>
+   <input type="submit" name="submit" value="submit">
+   <input type="submit" name="delete" value="delete">
+ </form>
+  </div>
+{%endblock%}
