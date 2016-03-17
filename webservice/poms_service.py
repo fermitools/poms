@@ -8,10 +8,11 @@ from collections import OrderedDict
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func, exc, distinct
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags
 
 from utc import utc
 from crontab import CronTab
@@ -452,6 +453,7 @@ class poms_service:
         except:
             cherrypy.request.db.rollback()
             message = "The experiment, %s, is used and may not be deleted." % experiment
+            cherrypy.log(e.message)
 
         return self.experiment_edit(message)
 
@@ -473,6 +475,7 @@ class poms_service:
             except:
                 db.rollback()
                 message = "The template, %s, is in use and may not be deleted." % name
+                cherrypy.log(e.message)
 
         if action == 'add' or action == 'edit':
             ae_launch_id = kwargs.pop('ae_launch_id')
@@ -481,20 +484,30 @@ class poms_service:
             ae_launch_account = kwargs.pop('ae_launch_account')
             ae_launch_setup = kwargs.pop('ae_launch_setup')
             experimenter_id = kwargs.pop('experimenter_id')
-            if action == 'add':
-                template = LaunchTemplate(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host, launch_account=ae_launch_account, 
-                                          launch_setup=ae_launch_setup,creator = experimenter_id, created = datetime.now(utc))
-                db.add(template)
+            try:
+                if action == 'add':
+                    template = LaunchTemplate(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host, launch_account=ae_launch_account, 
+                                              launch_setup=ae_launch_setup,creator = experimenter_id, created = datetime.now(utc))
+                    db.add(template)
+                else:
+                    columns = {"name":           ae_launch_name,
+                               "launch_host":    ae_launch_host,
+                               "launch_account": ae_launch_account,
+                               "launch_setup":   ae_launch_setup,
+                               "updated":        datetime.now(utc),
+                               "updater":        experimenter_id
+                               }
+                    template = db.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).update(columns)
+            except IntegrityError, e:
+                message = "Integrity error - you are most likely using a name which already exists in database."
+                cherrypy.log(e.message)
+                db.rollback()
+            except SQLAlchemyError, e:
+                message = "SQLAlchemyError.  Please report this to the administrator."
+                cherrypy.log(e.message)
+                db.rollback()
             else:
-                columns = {"name":           ae_launch_name,
-                           "launch_host":    ae_launch_host,
-                           "launch_account": ae_launch_account,
-                           "launch_setup":   ae_launch_setup,
-                           "updated":        datetime.now(utc),
-                           "updater":        experimenter_id
-                           }
-                template = db.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).update(columns)
-            db.commit();
+                db.commit()
 
         # Find experiments layout templates
         if exp: # cuz the default is find
@@ -506,6 +519,75 @@ class poms_service:
         template = self.jinja_env.get_template('launch_template_edit.html')
         return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="LaunchTemplateEditHelp")
+
+    @cherrypy.expose
+    def campaign_definition_edit(self, *args, **kwargs):
+        db = cherrypy.request.db
+        data = {}
+        message = None
+        data['exp_selections'] = db.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
+
+        action = kwargs.pop('action',None)
+        exp = kwargs.pop('experiment',None)
+
+        if action == 'delete':
+            name = kwargs.pop('name')
+            try:
+                db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).filter(CampaignDefinition.name==name).delete()
+                db.commit()
+            except:
+                db.rollback()
+                message = "The campaign definition, %s, is in use and may not be deleted." % name
+                cherrypy.log(e.message)
+
+        if action == 'add' or action == 'edit':
+            campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
+            name = kwargs.pop('ae_definition_name')
+            input_files_per_job = kwargs.pop('ae_input_files_per_job')
+            output_files_per_job = kwargs.pop('ae_output_files_per_job')
+            launch_script = kwargs.pop('ae_launch_script')
+            definition_parameters = kwargs.pop('ae_definition_parameters')
+            experimenter_id = kwargs.pop('experimenter_id')
+            try:
+                if action == 'add':
+                    cd = CampaignDefinition(campaign_definition_id=campaign_definition_id, name=name, experiment=experiment,
+                                            input_files_per_job=input_file_per_job, output_files_per_job=output_files_per_job,
+                                            launch_script=launch_script, definition_parameters=definition_parameters, 
+                                            creator=experimenter_id, created=datetime.now(utc))
+
+                    db.add(cd)
+                else:
+                    columns = {"name":                  name,
+                               "input_files_per_job":   input_files_per_job,
+                               "output_files_per_job":  output_files_per_job,
+                               "launch_script":         launch_script,
+                               "definition_parameters": definition_parameters,
+                               "updated":               datetime.now(utc),
+                               "updater":               experimenter_id
+                               }
+                    cd = db.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).update(columns)
+            except IntegrityError, e:
+                message = "Integrity error - you are most likely using a name which already exists in database."
+                cherrypy.log(e.message)
+                db.rollback()
+            except SQLAlchemyError, e:
+                message = "SQLAlchemyError.  Please report this to the administrator."
+                cherrypy.log(e.message)
+                db.rollback()
+            else:
+                db.commit()
+
+        # Find experiments layout templates
+        if exp: # cuz the default is find
+            data['curr_experiment'] = exp
+            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            data['definitions'] = db.query(CampaignDefinition,Experiment).join(Experiment).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
+
+        data['message'] = message
+        template = self.jinja_env.get_template('campaign_definition_edit.html')
+        return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
+                               pomspath=self.path,help_page="CampaignDefinitionEditHelp")
+
 
     @cherrypy.expose
     def list_generic(self, classname):
@@ -989,9 +1071,10 @@ class poms_service:
 
         c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
         td =  cherrypy.request.db.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id == c.campaign_definition_id ).first()
+        tags = cherrypy.request.db.query(Tag).filter(CampaignsTags.campaign_id==campaign_id, CampaignsTags.tag_id==Tag.tag_id).all()
 
         template = self.jinja_env.get_template('campaign_info.html')
-        return template.render(  campaign = c, taskdefinition = td, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp")
+        return template.render(  campaign = c, taskdefinition = td, tags=tags, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp")
         
     @cherrypy.expose
     def campaign_time_bars(self, campaign_id, tmin = None, tmax = None, tdays = 1):
@@ -1347,13 +1430,13 @@ class poms_service:
 
 
     @cherrypy.expose
-    def quick_search(self, jobsub_job_id):
-        job_info = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
+    def quick_search(self, search_term):
+        job_info = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == search_term).first()
         if job_info:
             tmins =  datetime.now(utc).strftime("%Y-%m-%d+%H:%M:%S")
             raise cherrypy.HTTPRedirect("%s/triage_job?job_id=%s&tmin=%s" % (self.path,str(job_info.job_id),tmins))
         else:
-            raise cherrypy.HTTPRedirect(self.path + "/")
+            raise cherrypy.HTTPRedirect("%s/search_tags?q=%s" % (self.path, search_term))
 
     @cherrypy.expose
     def json_project_summary_for_task(self, task_id):
@@ -1649,6 +1732,82 @@ class poms_service:
         
         template = self.jinja_env.get_template('launched_jobs.html')
         return template.render(command = lcmd, output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="LaunchedJobsHelp")
+
+
+
+
+    @cherrypy.expose
+    def link_tags(self, campaign_id, tag_name, experiment):
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        response = {}
+
+        if self.can_db_admin():
+
+            tag = cherrypy.request.db.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()
+
+            if tag:  #we have a tag in the db for this experiment so go ahead and do the linking
+                try:
+                    ct = CampaignsTags()
+                    ct.campaign_id = campaign_id
+                    ct.tag_id = tag.tag_id
+                    cherrypy.request.db.add(ct)
+                    cherrypy.request.db.commit()
+                    response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": tag.tag_name, "msg": "OK"}
+                    return json.dumps(response)
+                except exc.IntegrityError:
+                    response = {"msg": "This tag already exists."}
+                    return json.dumps(response)
+            else:  #we do not have a tag in the db for this experiment so create the tag and then do the linking
+                try:
+                    t = Tag()
+                    t.tag_name = tag_name
+                    t.experiment = experiment
+                    cherrypy.request.db.add(t)
+                    cherrypy.request.db.commit()
+
+                    ct = CampaignsTags()
+                    ct.campaign_id = campaign_id
+                    ct.tag_id = t.tag_id
+                    cherrypy.request.db.add(ct)
+                    cherrypy.request.db.commit()
+                    response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": t.tag_name, "msg": "OK"}
+                    return json.dumps(response)
+                except exc.IntegrityError:
+                    response = {"msg": "This tag already exists."}
+                    return json.dumps(response)
+        else:
+            response = {"msg": "You are not authorized to add tags."}
+            return json.dumps(response)
+
+
+
+
+    @cherrypy.expose
+    def delete_campaigns_tags(self, campaign_id, tag_id):
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        if self.can_db_admin():
+            cherrypy.request.db.query(CampaignsTags).filter(CampaignsTags.campaign_id == campaign_id, CampaignsTags.tag_id == tag_id).delete()
+            cherrypy.request.db.commit()
+            response = {"msg": "OK"}
+        else:
+            response = {"msg": "You are not authorized to delete tags."}
+        return json.dumps(response)
+
+
+
+
+    @cherrypy.expose
+    def search_tags(self, q):
+        q_list = q.split(" ")
+
+        query = cherrypy.request.db.query(Campaign).filter(CampaignsTags.tag_id == Tag.tag_id, Tag.tag_name.in_(q_list), Campaign.campaign_id == CampaignsTags.campaign_id).group_by(Campaign.campaign_id).having(func.count(Campaign.campaign_id) == len(q_list))
+        results = query.all()
+
+        template = self.jinja_env.get_template('tag_table.html')
+
+        return template.render(results=results, q=q, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="SearchTagsHelp")
+
+
 
     @cherrypy.expose
     def jobs_eff_histo(self, campaign_id, tmax = None, tmin = None, tdays = 1 ):

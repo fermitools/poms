@@ -37,6 +37,7 @@
 
             <script src='{{pomspath}}/static/js/jquery-ui.js'></script>
             <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/datepicker.css">
+
     </head>
     
     
@@ -140,7 +141,6 @@
                 </div>
             </div>
 
-
             <!--<a class="item requests"  href="#">
                 <b>Filter</b>
             </a>-->
@@ -148,7 +148,7 @@
 <div class="item">
   <div class="ui inverted transparent left icon input">
          <form id="f1" method="get" action="{{pomspath}}/quick_search" onsubmit="return validateQuickSearchForm('f1')">
-             <input type="text" id=jobsub_job_id_f1 name="jobsub_job_id" placeholder="Search...">
+             <input type="text" id=search_term_f1 name="search_term" placeholder="Search...">
              <i class="search icon"></i>
              <!--input type="submit" name="."-->
          </form>
@@ -237,7 +237,7 @@
                 </a>
 	      </div>
             </div>
-                        
+
             <div class="item">
               <div class="header">Jobs</div>
 	      <div class="menu">
@@ -267,20 +267,11 @@
 <script>
 function validateQuickSearchForm(formid)
 {
-    var inputid="#jobsub_job_id_"+formid 
-    var jobsub_job_id = $( inputid ).val();
-    if (jobsub_job_id == null || jobsub_job_id == "")
+    var inputid="#search_term_"+formid
+    var search_term = $( inputid ).val();
+    if (search_term == null || search_term == "")
     {
-        alert( id + " must be filled out in form:" + formid + ".");
-        return false;
-    }
-    else if( jobsub_job_id.search(".fnal.gov") > -1  && jobsub_job_id.search("@") > -1 )
-    {
-        return true;
-    }
-    else
-    {
-        alert("Not a valid jobsub_job_id.  Try something like 5301637.1@fifebatch2.fnal.gov");
+        alert("Please enter a value.");
         return false;
     }
 }
@@ -290,7 +281,7 @@ function validateQuickSearchForm(formid)
 <div class="item">
   <div class="ui inverted transparent left icon input">
          <form id="f2" method="GET" action="{{pomspath}}/quick_search" onsubmit="return validateQuickSearchForm('f2')">
-             <input type="text" id=jobsub_job_id_f2 name="jobsub_job_id" placeholder="Search...">
+             <input type="text" id=search_term_f2 name="search_term" placeholder="Search...">
              <i class="search icon"></i>
              <!--input type="submit" name="."-->
          </form>
@@ -405,6 +396,7 @@ function validateQuickSearchForm(formid)
 $( ".requests" ).click(function() {
   $('#under_construction').modal('show');
 });
+
 </script>
 
 
@@ -431,6 +423,9 @@ $('.tbox_delayed')
     }
   })
 ;
+
+$("#spw").dropdown();
+
 </script>
 
 
