@@ -85,7 +85,7 @@ $( document ).ready(function() {
                 var campaigns_tags_composite_key = data.campaign_id.toString() + "_" + data.tag_id.toString();
                 $('#response').html(data.msg);
 
-                var new_tag = "<a class=\'ui blue tag label poms_tag\' id=" + campaigns_tags_composite_key + ">" + data.tag_name + "</a>"
+                var new_tag = "<a href=\'{{pomspath}}/search_tags?q=" + data.tag_name + "\' class=\'ui blue tag label poms_tag\'id=" + campaigns_tags_composite_key + ">" + data.tag_name + "</a>"
                 $('#tag_container').append(new_tag);
                 add_dblclick_handler();
             }
@@ -139,7 +139,7 @@ $( document ).ready(function() {
 
     <div id="tag_container">
     {% for tag in tags %}
-        <a class="ui blue tag label poms_tag" id="{{campaign.campaign_id}}_{{tag.tag_id}}">{{tag.tag_name}}</a>
+        <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label poms_tag" id="{{campaign.campaign_id}}_{{tag.tag_id}}">{{tag.tag_name}}</a>
     {% endfor %}
     </div>
 
