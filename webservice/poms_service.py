@@ -11,7 +11,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags
 
 from utc import utc
 
@@ -1033,9 +1033,10 @@ class poms_service:
 
         c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
         td =  cherrypy.request.db.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id == c.campaign_definition_id ).first()
+        tags = cherrypy.request.db.query(Tag).filter(CampaignsTags.campaign_id==campaign_id, CampaignsTags.tag_id==Tag.tag_id).all()
 
         template = self.jinja_env.get_template('campaign_info.html')
-        return template.render(  campaign = c, taskdefinition = td, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp")
+        return template.render(  campaign = c, taskdefinition = td, tags=tags, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp")
         
     @cherrypy.expose
     def campaign_time_bars(self, campaign_id, tmin = None, tmax = None, tdays = 1):
@@ -1377,13 +1378,13 @@ class poms_service:
 
 
     @cherrypy.expose
-    def quick_search(self, jobsub_job_id):
-        job_info = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
+    def quick_search(self, search_term):
+        job_info = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == search_term).first()
         if job_info:
             tmins =  datetime.now(utc).strftime("%Y-%m-%d+%H:%M:%S")
             raise cherrypy.HTTPRedirect("%s/triage_job?job_id=%s&tmin=%s" % (self.path,str(job_info.job_id),tmins))
         else:
-            raise cherrypy.HTTPRedirect(self.path + "/")
+            raise cherrypy.HTTPRedirect("%s/search_tags?q=%s" % (self.path, search_term))
 
     @cherrypy.expose
     def json_project_summary_for_task(self, task_id):
@@ -1666,4 +1667,82 @@ class poms_service:
         
         template = self.jinja_env.get_template('launched_jobs.html')
         return template.render(command = lcmd, output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="LaunchedJobsHelp")
+
+
+
+
+
+
+    @cherrypy.expose
+    def link_tags(self, campaign_id, tag_name, experiment):
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        response = {}
+
+        if self.can_db_admin():
+
+            tag = cherrypy.request.db.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()
+
+            if tag:  #we have a tag in the db for this experiment so go ahead and do the linking
+                try:
+                    ct = CampaignsTags()
+                    ct.campaign_id = campaign_id
+                    ct.tag_id = tag.tag_id
+                    cherrypy.request.db.add(ct)
+                    cherrypy.request.db.commit()
+                    response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": tag.tag_name, "msg": "OK"}
+                    return json.dumps(response)
+                except exc.IntegrityError:
+                    response = {"msg": "This tag already exists."}
+                    return json.dumps(response)
+            else:  #we do not have a tag in the db for this experiment so create the tag and then do the linking
+                try:
+                    t = Tag()
+                    t.tag_name = tag_name
+                    t.experiment = experiment
+                    cherrypy.request.db.add(t)
+                    cherrypy.request.db.commit()
+
+                    ct = CampaignsTags()
+                    ct.campaign_id = campaign_id
+                    ct.tag_id = t.tag_id
+                    cherrypy.request.db.add(ct)
+                    cherrypy.request.db.commit()
+                    response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": t.tag_name, "msg": "OK"}
+                    return json.dumps(response)
+                except exc.IntegrityError:
+                    response = {"msg": "This tag already exists."}
+                    return json.dumps(response)
+        else:
+            response = {"msg": "You are not authorized to add tags."}
+            return json.dumps(response)
+
+
+
+
+    @cherrypy.expose
+    def delete_campaigns_tags(self, campaign_id, tag_id):
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        if self.can_db_admin():
+            cherrypy.request.db.query(CampaignsTags).filter(CampaignsTags.campaign_id == campaign_id, CampaignsTags.tag_id == tag_id).delete()
+            cherrypy.request.db.commit()
+            response = {"msg": "OK"}
+        else:
+            response = {"msg": "You are not authorized to delete tags."}
+        return json.dumps(response)
+
+
+
+
+    @cherrypy.expose
+    def search_tags(self, q):
+        q_list = q.split(" ")
+
+        query = cherrypy.request.db.query(Campaign).filter(CampaignsTags.tag_id == Tag.tag_id, Tag.tag_name.in_(q_list), Campaign.campaign_id == CampaignsTags.campaign_id).group_by(Campaign.campaign_id).having(func.count(Campaign.campaign_id) == len(q_list))
+        results = query.all()
+
+        template = self.jinja_env.get_template('tag_table.html')
+
+        return template.render(results=results, q=q, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="SearchTagsHelp")
+
+
 

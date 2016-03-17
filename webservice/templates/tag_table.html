@@ -1,0 +1,68 @@
+{%extends "layout.html" %}
+
+{%block title%}
+    <title>POMS Tag Query Results</title>
+{%endblock%}
+
+
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top:-45px;">
+  <a href="{{pomspath}}/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">Tag Query Results</div>
+</div>
+{%endblock%}
+
+
+
+
+
+{%block header%}
+<h1 class="ui header">
+         Tag Query Results {%include 'help_button.html'%}
+                    
+          <div class="sub header">
+              view all campaigns belonging to this tag
+          </div>
+</h1>
+{%endblock%}
+
+
+
+
+{%block subheader%}
+<h2 class="ui dividing header">Tag Query Results: {{q}}</h2>
+{%endblock%}
+
+
+
+{%block content %}
+<table class="ui sortable celled table">
+  <thead>
+    <tr>
+      <th class="">Campaign Name</th>
+      <th class="">Experiment</th>
+    </tr>
+  </thead>
+
+
+
+  <tbody>
+
+  {% for row in results %}
+  <tr>
+      <td><a href="{{pomspath}}/campaign_info?campaign_id={{row.campaign_id}}">{{row.name}}</a></td>
+      <td>{{row.experiment}}</td>
+  </tr>
+  {% endfor %}
+
+  </tbody>
+
+
+</table>
+
+
+
+	
+{%endblock%}
