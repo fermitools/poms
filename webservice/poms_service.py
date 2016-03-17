@@ -8,12 +8,14 @@ from collections import OrderedDict
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func, exc, distinct
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
 from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags
 
 from utc import utc
+from crontab import CronTab
 
 def error_response():
     dump = ""
@@ -451,6 +453,7 @@ class poms_service:
         except:
             cherrypy.request.db.rollback()
             message = "The experiment, %s, is used and may not be deleted." % experiment
+            cherrypy.log(e.message)
 
         return self.experiment_edit(message)
 
@@ -472,6 +475,7 @@ class poms_service:
             except:
                 db.rollback()
                 message = "The template, %s, is in use and may not be deleted." % name
+                cherrypy.log(e.message)
 
         if action == 'add' or action == 'edit':
             ae_launch_id = kwargs.pop('ae_launch_id')
@@ -480,20 +484,30 @@ class poms_service:
             ae_launch_account = kwargs.pop('ae_launch_account')
             ae_launch_setup = kwargs.pop('ae_launch_setup')
             experimenter_id = kwargs.pop('experimenter_id')
-            if action == 'add':
-                template = LaunchTemplate(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host, launch_account=ae_launch_account, 
-                                          launch_setup=ae_launch_setup,creator = experimenter_id, created = datetime.now(utc))
-                db.add(template)
+            try:
+                if action == 'add':
+                    template = LaunchTemplate(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host, launch_account=ae_launch_account, 
+                                              launch_setup=ae_launch_setup,creator = experimenter_id, created = datetime.now(utc))
+                    db.add(template)
+                else:
+                    columns = {"name":           ae_launch_name,
+                               "launch_host":    ae_launch_host,
+                               "launch_account": ae_launch_account,
+                               "launch_setup":   ae_launch_setup,
+                               "updated":        datetime.now(utc),
+                               "updater":        experimenter_id
+                               }
+                    template = db.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).update(columns)
+            except IntegrityError, e:
+                message = "Integrity error - you are most likely using a name which already exists in database."
+                cherrypy.log(e.message)
+                db.rollback()
+            except SQLAlchemyError, e:
+                message = "SQLAlchemyError.  Please report this to the administrator."
+                cherrypy.log(e.message)
+                db.rollback()
             else:
-                columns = {"name":           ae_launch_name,
-                           "launch_host":    ae_launch_host,
-                           "launch_account": ae_launch_account,
-                           "launch_setup":   ae_launch_setup,
-                           "updated":        datetime.now(utc),
-                           "updater":        experimenter_id
-                           }
-                template = db.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).update(columns)
-            db.commit();
+                db.commit()
 
         # Find experiments layout templates
         if exp: # cuz the default is find
@@ -505,6 +519,75 @@ class poms_service:
         template = self.jinja_env.get_template('launch_template_edit.html')
         return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="LaunchTemplateEditHelp")
+
+    @cherrypy.expose
+    def campaign_definition_edit(self, *args, **kwargs):
+        db = cherrypy.request.db
+        data = {}
+        message = None
+        data['exp_selections'] = db.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
+
+        action = kwargs.pop('action',None)
+        exp = kwargs.pop('experiment',None)
+
+        if action == 'delete':
+            name = kwargs.pop('name')
+            try:
+                db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).filter(CampaignDefinition.name==name).delete()
+                db.commit()
+            except:
+                db.rollback()
+                message = "The campaign definition, %s, is in use and may not be deleted." % name
+                cherrypy.log(e.message)
+
+        if action == 'add' or action == 'edit':
+            campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
+            name = kwargs.pop('ae_definition_name')
+            input_files_per_job = kwargs.pop('ae_input_files_per_job')
+            output_files_per_job = kwargs.pop('ae_output_files_per_job')
+            launch_script = kwargs.pop('ae_launch_script')
+            definition_parameters = kwargs.pop('ae_definition_parameters')
+            experimenter_id = kwargs.pop('experimenter_id')
+            try:
+                if action == 'add':
+                    cd = CampaignDefinition(campaign_definition_id=campaign_definition_id, name=name, experiment=experiment,
+                                            input_files_per_job=input_file_per_job, output_files_per_job=output_files_per_job,
+                                            launch_script=launch_script, definition_parameters=definition_parameters, 
+                                            creator=experimenter_id, created=datetime.now(utc))
+
+                    db.add(cd)
+                else:
+                    columns = {"name":                  name,
+                               "input_files_per_job":   input_files_per_job,
+                               "output_files_per_job":  output_files_per_job,
+                               "launch_script":         launch_script,
+                               "definition_parameters": definition_parameters,
+                               "updated":               datetime.now(utc),
+                               "updater":               experimenter_id
+                               }
+                    cd = db.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).update(columns)
+            except IntegrityError, e:
+                message = "Integrity error - you are most likely using a name which already exists in database."
+                cherrypy.log(e.message)
+                db.rollback()
+            except SQLAlchemyError, e:
+                message = "SQLAlchemyError.  Please report this to the administrator."
+                cherrypy.log(e.message)
+                db.rollback()
+            else:
+                db.commit()
+
+        # Find experiments layout templates
+        if exp: # cuz the default is find
+            data['curr_experiment'] = exp
+            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            data['definitions'] = db.query(CampaignDefinition,Experiment).join(Experiment).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
+
+        data['message'] = message
+        template = self.jinja_env.get_template('campaign_definition_edit.html')
+        return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
+                               pomspath=self.path,help_page="CampaignDefinitionEditHelp")
+
 
     @cherrypy.expose
     def list_generic(self, classname):
@@ -974,59 +1057,14 @@ class poms_service:
 
         cl = cherrypy.request.db.query(Campaign).filter(Task.campaign_id == Campaign.campaign_id, Campaign.active == True ).order_by(Campaign.experiment).all()
 
-        res = []
-        res.append( '<table class="ui celled table unstackable">')
-        res.append( '<tr><th colspan=2> Campaign ')
-        res.append( '<a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Campaign"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '<th colspan=3>Active Jobs')
-        res.append( '</th>')
-        res.append( '<th colspan=2>Jobs in %s</th></tr>' % time_range_string),
-        res.append( '<tr><th>Experiment')
-        res.append( '</th>')
-        res.append( '<th>Name')
-        res.append( '</th>')
-        res.append( '<th>Idle')
-        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '<th>Running')
-        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '<th>Held')
-        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '<th>Completed')
-        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '<th>Located')
-        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '<th>Removed')
-        res.append( '<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>')
-        res.append( '</th>')
-        res.append( '</tr>')
-
+        counts = {}
+        counts_keys = {}
         for c in cl:
-            res.append('<tr>')
-            res.append('<td>%s</td>' % c.experiment)
-            res.append('<td>%s' % c.name)
-            res.append('<a href="%s/campaign_sheet?campaign_id=%d&tmax=%s"><i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i></a>' % ( self.path, c.campaign_id, tmaxs))
-            res.append('<a href="%s/campaign_time_bars?campaign_id=%d&tmin=%s&tmax=%s"><i class="external tasks icon" data-content="Tasks in Campaign Time Bars" data-variation="basic"></i></a>' % ( self.path, c.campaign_id, tmins, tmaxs))
-            res.append('<a href="%s/pending_files?campaign_id=%d"><i class="external file icon" data-content="Pending File Information" data-variation="basic"></i></a>' % ( self.path, c.campaign_id ))
-            res.append('<a href="%s/campaign_info?campaign_id=%d"><i class="external info circle icon" data-content="Campaign Information" data-variation="basic"></i></a>' % ( self.path, c.campaign_id ))
-            res.append('<a target="_blank" href="%s/launch_jobs?campaign_id=%d"><i class="external rocket icon" data-content="Launch Tasks for Campaign" data-variation="basic"></i></a>' % ( self.path, c.campaign_id))
-            res.append('<a target="_blank" href="%s/kill_jobs?campaign_id=%d"><i class="external trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i></a>' % ( self.path, c.campaign_id))
-            res.append('</td>')
-            counts = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
-            for k in counts.keys():
-                res.append('<td><a href="job_table?campaign_id=%s&job_status=%s&tmin=%s&tmax=%s&tdays=%s">%d</a></td>' % (c.campaign_id, k, tmin, tmax, tdays, counts[k]))
-            res.append("</tr>")
-            
-        res.append("</table>")
-        screendata = "\n".join(res)
+            counts[c.campaign_id] = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
+            counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
               
         template = self.jinja_env.get_template('campaign_grid.html')
-        return template.render(  screendata = screendata, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path, help_page="ShowCampaignsHelp")
+        return template.render(  counts = counts, counts_keys = counts_keys, cl = cl, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path, help_page="ShowCampaignsHelp")
 
     @cherrypy.expose
     def campaign_info(self, campaign_id ):
@@ -1178,7 +1216,7 @@ class poms_service:
 
     
     @cherrypy.expose
-    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None):
+    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None, eff_d = None):
            
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'job_table?')
         extra = ""
@@ -1240,6 +1278,15 @@ class poms_service:
         if project:
             q = q.filter(Task.project == project)
             filtered_fields['project'] = project
+
+        #
+        # this one for our effeciency percentage decile...
+        # i.e. if you want jobs in the 80..90% eficiency range
+        # you ask for eff_d == 8...
+        #
+        if eff_d:
+            q = q.filter(Job.wall_time != 0.0, func.floor(Job.cpu_time *10/Job.wall_time)== eff_d )
+            filtered_fields['eff_d'] = eff_d
 
         if jobsub_job_id:
             q = q.filter(Job.jobsub_job_id == jobsub_job_id)
@@ -1367,7 +1414,7 @@ class poms_service:
         q = cherrypy.request.db.query(*qargs)
         q = q.join(Task,Campaign)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax, Job.user_exe_exit_code != 0)
-        q = q.group_by(*gbl).order_by(*gbl)
+        q = q.group_by(*gbl).order_by(desc(func.count(Job.job_id)))
  
         jl = q.all()
         cherrypy.log( "got jobtable %s " % repr( jl[0].__dict__) )
@@ -1468,6 +1515,15 @@ class poms_service:
             columns.append('exit(%d)'%e)
         outrows = []
         exitcounts = {}
+	totfiles = 0
+	totdfiles = 0
+	totjobs = 0       
+	totjobfails = 0
+	outfiles = 0
+	infiles = 0
+	pendfiles = 0
+	for e in exitcodes:
+	    exitcounts[e] = 0
 
         for task in tl:
             if day != task.created.weekday():
@@ -1531,7 +1587,10 @@ class poms_service:
 	# add a row to the table on the day boundary
 	outrow = []
 	outrow.append(daynames[day])
-	outrow.append(date.isoformat()[:10])
+        if date:
+	    outrow.append(date.isoformat()[:10])
+        else:
+	    outrow.append('')
 	outrow.append(str(totfiles if totfiles > 0 else infiles))
 	outrow.append(str(totdfiles))
 	outrow.append(str(totjobs))
@@ -1671,8 +1730,6 @@ class poms_service:
 
 
 
-
-
     @cherrypy.expose
     def link_tags(self, campaign_id, tag_name, experiment):
         cherrypy.response.headers['Content-Type'] = 'application/json'
@@ -1746,3 +1803,94 @@ class poms_service:
 
 
 
+    @cherrypy.expose
+    def jobs_eff_histo(self, campaign_id, tmax = None, tmin = None, tdays = 1 ):
+        """  use
+                  select count(job_id), floor(cpu_time * 10 / wall_time) as de 
+                     from jobs, tasks  
+                     where 
+                        jobs.task_id = tasks.task_id and 
+                        tasks.campaign_id=17 and  
+                        wall_time > 0 and 
+                        wall_time > cpu_time and 
+                        jobs.updated > '2016-03-10 00:00:00' 
+                        group by floor(cpu_time * 10 / wall_time) 
+                       order by de;
+             to get height bars for a histogram, clicks through to 
+             jobs with a given efficiency...
+             Need to add efficiency  (cpu_time/wall_time) as a param to 
+             jobs_table...
+         """
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'jobs_eff_histo?campaign_id=%s' % campaign_id)
+
+        q = cherrypy.request.db.query(func.count(Job.job_id), func.floor(Job.cpu_time *10/Job.wall_time))
+        q = q.join(Job.task_obj)
+        q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == campaign_id)
+        q = q.filter(Job.wall_time > 0, Job.wall_time > Job.cpu_time)
+        q = q.filter(Job.updated <= tmax, Job.updated >= tmin)
+        q = q.group_by(func.floor(Job.cpu_time*10/Job.wall_time))
+        q = q.order_by((func.floor(Job.cpu_time*10/Job.wall_time)))
+
+        total = 0
+        vals = []
+        for row in q.all():
+            vals.append(row)
+            total += row[0]
+
+	c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        # return "total %d ; vals %s" % (total, vals)
+        # return "Not yet implemented"
+
+        template = self.jinja_env.get_template('job_histo.html')
+        return template.render(  c = c, total = total, vals = vals, tmaxs = tmaxs, campaign_id=campaign_id, tdays = tdays, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, pomspath=self.path, help_page="JobEfficiencyHistoHelp")
+
+
+    @cherrypy.expose
+    def schedule_launch(self, campaign_id ):
+	c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+	my_crontab = CronTab(user=True)       
+	iter = my_crontab.find_comment("POMS_CAMPAIGN_ID=%s" % campaign_id)
+	# there should be only one...
+	job = iter[0]
+	template = self.jinja_env.get_template('campaign_launch_schedule.html')
+	return template.render(  c = c, job = job, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ScheduleLaunchHelp")
+
+    @cherrypy.expose
+    def update_launch_schedule(self, campaign_id, dowlist = None,  domlist = None, monthly = None, month = None, hourlist = None ):
+
+	# deal with single item list silliness
+	if isinstance(hourlist, basestring):
+	   hourlist = [hourlist]
+	if isinstance(dowlist, basestring):
+	   dowlist = [dowlist]
+	if isinstance(domlist, basestring):
+	   domlist = [domlist]
+
+	hourlist = [int(x) for x in hourlist]
+	dowlist = [int(x) for x in dowlist]
+	domlist = [int(x) for x in domlist]
+
+	sched = json.loads(sched_json)
+	my_crontab = CronTab(user=True)       
+	# clean out old
+	my_crontab.remove_all(comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
+	# make job for new
+	job = my_crontab.new(command="%s/cron/launcher --campaign_id=%s" % (
+			  os.environ.get("POMS_DIR","/etc"), campaign_id),
+			  comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
+
+	# set timing...
+	if dowlist:
+	    job.dow.on(*dowlist)
+
+	if hourlist:
+	    job.hour.on(*hourlist)
+			     
+	if domlist:
+	    job.day.on(*domlist)
+
+	job.enable()
+
+	my_crontab.write()
+
+	raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id )

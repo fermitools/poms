@@ -163,6 +163,7 @@ class joblog_scraper:
 
     def scan(self):
         for line in self.filehandle:
+             #print "got: ", line
              d = self.parse_line(line)
              if d['task'] != '':
                  self.report_item(d['task'], d['jobsub_job_id'], d['hostname'],  d['message'])

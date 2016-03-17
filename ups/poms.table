@@ -13,6 +13,7 @@ Action=setup
    SetupRequired(jinja)
    SetupRequired(-j jobsub_client)
    SetupRequired(-j sam_web_client)
+   SetupRequired(-j python_crontab)
    PathPrepend(PYTHONPATH,${UPS_PROD_DIR})
 
 Action=start

@@ -32,8 +32,8 @@ class job_reporter:
         try:
             uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
             res = uh.read()
-        except:
-            errtext = uh.read()
+        except urllib2.HTTPError, e:
+            errtext = e.read()
             sys.stderr.write("HTTP fetch status %d" %  uh.getcode())
             sys.stderr.write(errtext)
             sys.stderr.write("--------")
