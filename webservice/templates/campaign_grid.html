@@ -38,8 +38,74 @@
 
 
 {%block content%}
+
+<!--
+ {{counts}}
+ {{counts_keys}}
+-->
+
   <div class="ui">
-    {{screendata}}
+
+
+   <table class="ui celled table unstackable">
+     <tr>
+       <th colspan=3> Campaign 
+        <a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Campaign"><i style="float: none" class="grey help circle link icon"></i></a>
+      </th>
+      <th colspan=3>Active Jobs </th>
+      <th colspan=2>Jobs in {{time_range_string}}</th>
+     </tr>
+     <tr>
+        <th>Actions </th>
+        <th>Experiment </th>
+        <th>Name </th>
+        <th>Idle 
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+        <th>Running
+        <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+        <th>Held
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+        <th>Completed
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+        <th>Located
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+        <th>Removed
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+     </tr>
+
+     {% for c in cl %}
+            <tr>
+            <td style="width: 8em">
+            <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{c.campaign_id}}&tmax={{tmaxs}}"><i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i></a>
+            <a href="{{pomspath}}/campaign_sheet?campaign_id={{c.campaign_id}}&tmax={{tmaxs}}"><i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i></a>
+            <a href="{{pomspath}}/campaign_time_bars?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}"><i class="external tasks icon" data-content="Tasks in Campaign Time Bars" data-variation="basic"></i></a>
+            <a href="{{pomspath}}/pending_files?campaign_id={{c.campaign_id}}"><i class="external file icon" data-content="Pending File Information" data-variation="basic"></i></a>
+            <a href="{{pomspath}}/campaign_info?campaign_id={{c.campaign_id}}"><i class="external info circle icon" data-content="Campaign Information" data-variation="basic"></i></a>
+            <a target="_blank" href="{{pomspath}}/launch_jobs?campaign_id={{c.campaign_id}}"><i class="external rocket icon" data-content="Launch Tasks for Campaign" data-variation="basic"></i></a>
+            <a target="_blank" href="{{pomspath}}/kill_jobs?campaign_id={{c.campaign_id}}"><i class="external trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i></a>
+            </td>
+            <td>{{c.experiment}}</td>
+            <td>{{c.name}}</td>
+            {% for k in counts_keys[c.campaign_id] %}
+              {% if k %}
+                <td>
+                  <a href="job_table?campaign_id={{c.campaign_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
+                    {{counts[c.campaign_id][k]}}
+                  </a>
+                 </td>
+               {%endif%}
+            {% endfor %}
+         </tr>
+
+     {% endfor %}
+
+    </table>
   </div>
 
 <script>
