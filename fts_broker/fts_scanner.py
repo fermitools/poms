@@ -33,6 +33,7 @@ class fts_status_watcher:
         explist = {}
         oldexp = None
         registry = self.fetch_json(self.registry_url)
+        print "got registry:", registry
         for item in registry:
             if item["type"] == "fts" and item["tier"] == "prd":
                # some fts-es are listed twice...
@@ -41,6 +42,9 @@ class fts_status_watcher:
                # skip daq fts-es
                if item["uris"]["service"].find("daq") > 0:
                    continue
+               if item["experiment"] == "unknown":
+                   continue
+
                explist[item["experiment"]] = True
                didthat[item["uris"]["service"]] = True
 
