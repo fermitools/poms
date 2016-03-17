@@ -1922,8 +1922,9 @@ class poms_service:
 
  
     @cherrypy.expose
-    def actual_pending_files(self, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 7):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'actual_pending_files?campaign_id=%s&' % campaign_id)
+    def actual_pending_files(self, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1):
+        cherrypy.response.timeout = 600
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'actual_pending_files?count_or_list=%s&%s=%s&' % (count_or_list,'campaign_id',campaign_id) if campaign_id else (count_or_list,'task_id',task_id))
 
         #
         # either way, we need info from the campaign
@@ -1956,6 +1957,8 @@ class poms_service:
 
         dims = "snapshot_for_project_name  %s minus (isparentof: (version '%s')) " % ( plistdims, c.software_version)
 
+        cherrypy.log('running dimension query: "%s"' % dims)
+
         if count_or_list.startswith('c'):
             count = cherrypy.request.project_fetcher.count_files(c.experiment, dims)
             flist = None
@@ -1964,4 +1967,4 @@ class poms_service:
             flist = cherrypy.request.project_fetcher.list_files(c.experiment, dims)
         #return dims + "<br>" + str(res)
 	template = self.jinja_env.get_template('actual_pending_files.html')
-	return template.render( tmin = str(tmin)[:16], tmax = str(tmax)[:16], days = str(tdays),  next = nextlink, prev = prevlink,c = c, campaign_id = campaign_id, count_or_list = count_or_list , flist = flist, count = count,  task_id = task_id,  current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ActualPendingFilesHelp")
+	return template.render( tmin = str(tmin)[:16], tmax = str(tmax)[:16], days = str(tdays),  next = nextlink, prev = prevlink,c = c, campaign_id = campaign_id, count_or_list = count_or_list , flist = flist, count = count,  task_id = task_id,  current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ActualPendingFilesHelp", tasklist = tasklist)
