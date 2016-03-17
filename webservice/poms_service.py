@@ -1133,7 +1133,7 @@ class poms_service:
 
     
     @cherrypy.expose
-    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None, eff_d = None):
+    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, name=None,campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None, eff_d = None):
            
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'job_table?')
         extra = ""
@@ -1171,6 +1171,11 @@ class poms_service:
         if campaign_name:
             q = q.filter(Campaign.name == campaign_name)
             filtered_fields['campaign_name'] = campaign_name
+
+        # alias for failed_jobs_by_whatever
+        if name:
+            q = q.filter(Campaign.name == name)
+            filtered_fields['campaign_name'] = name
 
         if campaign_def_id:
             q = q.filter(Campaign.campaign_definition_id == campaign_def_id)
@@ -1361,7 +1366,7 @@ class poms_service:
 
 
     @cherrypy.expose
-    def pending_files(self, campaign_id=None, task_id=None, job_id = None ):
+    def inflight_files(self, campaign_id=None, task_id=None, job_id = None ):
         q = cherrypy.request.db.query(Job).join(Job.task_obj).join(Task.campaign_obj)
         if campaign_id != None: 
 	    q = q.filter(Task.campaign_id == campaign_id)
@@ -1403,7 +1408,7 @@ class poms_service:
                     statusmap[f] = ''
             fss.close()
 
-	template = self.jinja_env.get_template('pending_files.html')
+	template = self.jinja_env.get_template('inflight_files.html')
 	return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = statusmap, jjid = jjid, c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
 
 
@@ -1426,7 +1431,7 @@ class poms_service:
         day = -1
         date = None
         first = 1
-        columns = ['day','date','requested files','delivered files','jobs','failed','outfiles','pending']
+        columns = ['day','date','requested files','delivered files','jobs','failed','outfiles','inflight','pending']
         exitcodes.sort()
 	for e in exitcodes:
             columns.append('exit(%d)'%e)
@@ -1619,10 +1624,11 @@ class poms_service:
             "setup poms_jobsub_wrapper v0_3 -z /grid/fermiapp/products/common/db",
             "export JOBSUB_GROUP=%s" % group,
 	]
-        params = json.loads(cd.definition_parameters) 
-        # params.update(json.loads(c.param_overrides)) 
+        params = OrderedDict(json.loads(cd.definition_parameters))
+        if c.param_overrides != None:
+            params.update(json.loads(c.param_overrides))
         
-        lcmd = cd.launch_script + " " + ' '.join(x + params[1].get(x,'') for x in params[0])
+        lcmd = cd.launch_script + " " + ' '.join((x[0]+x[1]) for x in params.items())
         lcmd = lcmd % {
               "dataset":dataset, 
               "version":c.software_version,
@@ -1691,47 +1697,112 @@ class poms_service:
 	c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
 	my_crontab = CronTab(user=True)       
 	iter = my_crontab.find_comment("POMS_CAMPAIGN_ID=%s" % campaign_id)
-	# there should be only one...
-	job = iter[0]
+	# there should be only zero or one...
+        job = None
+        for job in iter:
+            break
 	template = self.jinja_env.get_template('campaign_launch_schedule.html')
-	return template.render(  c = c, job = job, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ScheduleLaunchHelp")
+	return template.render(  c = c, campaign_id = campaign_id, job = job, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ScheduleLaunchHelp")
 
     @cherrypy.expose
-    def update_launch_schedule(self, campaign_id, dowlist = None,  domlist = None, monthly = None, month = None, hourlist = None ):
+    def update_launch_schedule(self, campaign_id, dowlist = None,  domlist = None, monthly = None, month = None, hourlist = None, submit = None , minlist = None, delete = None):
 
 	# deal with single item list silliness
+	if isinstance(minlist, basestring):
+	   hourlist = minlist.split(",")
 	if isinstance(hourlist, basestring):
-	   hourlist = [hourlist]
+	   hourlist = hourlist.split(",")
 	if isinstance(dowlist, basestring):
-	   dowlist = [dowlist]
+	   dowlist = dowlist.split(",")
 	if isinstance(domlist, basestring):
-	   domlist = [domlist]
+	   domlist = domlist.split(",")
 
-	hourlist = [int(x) for x in hourlist]
-	dowlist = [int(x) for x in dowlist]
-	domlist = [int(x) for x in domlist]
+        cherrypy.log("hourlist is %s " % hourlist)
 
-	sched = json.loads(sched_json)
+        if hourlist[0] == "*":
+            hourlist = None
+        else:
+	    hourlist = [int(x) for x in hourlist if x != '']
+
+        if dowlist[0] == "*":
+            dowlist = None
+        else:
+	    dowlist[0] = [int(x) for x in dowlist if x != '']
+
+        if domlist[0] == "*":
+            domlist = None
+        else:
+	    domlist = [int(x) for x in domlist if x != '']
+
 	my_crontab = CronTab(user=True)       
 	# clean out old
 	my_crontab.remove_all(comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
-	# make job for new
-	job = my_crontab.new(command="%s/cron/launcher --campaign_id=%s" % (
-			  os.environ.get("POMS_DIR","/etc"), campaign_id),
-			  comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
 
-	# set timing...
-	if dowlist:
-	    job.dow.on(*dowlist)
+        if not delete:
 
-	if hourlist:
-	    job.hour.on(*hourlist)
-			     
-	if domlist:
-	    job.day.on(*domlist)
+	    # make job for new
+	    job = my_crontab.new(command="%s/cron/launcher --campaign_id=%s" % (
+			      os.environ.get("POMS_DIR","/etc"), campaign_id),
+			      comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
 
-	job.enable()
+	    # set timing...
+	    if dowlist:
+		job.dow.on(*dowlist)
+
+	    if hourlist:
+		job.hour.on(*hourlist)
+				 
+	    if domlist:
+		job.day.on(*domlist)
+
+	    job.enable()
 
 	my_crontab.write()
 
 	raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id )
+
+ 
+    @cherrypy.expose
+    def actual_pending_files(self, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 7):
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'actual_pending_files?campaign_id=%s&' % campaign_id)
+
+        #
+        # either way, we need info from the campaign
+        #
+        if campaign_id:
+	    c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        if task_id:
+	    c = cherrypy.request.db.query(Campaign).join(Task).filter(Task.task_id == task_id , Campaign.campaign_id == Task.campaign_id ).first()
+
+        #
+        # now we build up a list of projects involved
+        #
+        pquery = cherrypy.request.db.query(Task)
+        if (task_id):
+            pquery = pquery.filter(Task.task_id == task_id)
+
+        if (campaign_id):
+            pquery = pquery.filter(Task.campaign_id == campaign_id)
+
+        if (tmin):
+            pquery = pquery.filter(Task.updated >= tmin)
+
+        if (tmax):
+            pquery = pquery.filter(Task.updated <= tmax)
+
+        tasklist = pquery.all()
+
+        projlist = [str(x.project) for x in tasklist  if x.project != None and x.project!= 'None']
+        plistdims= "'%s'" % "','".join(projlist) 
+
+        dims = "snapshot_for_project_name  %s minus (isparentof: (version '%s')) " % ( plistdims, c.software_version)
+
+        if count_or_list.startswith('c'):
+            count = cherrypy.request.project_fetcher.count_files(c.experiment, dims)
+            flist = None
+        else:
+            count = None
+            flist = cherrypy.request.project_fetcher.list_files(c.experiment, dims)
+        #return dims + "<br>" + str(res)
+	template = self.jinja_env.get_template('actual_pending_files.html')
+	return template.render( tmin = str(tmin)[:16], tmax = str(tmax)[:16], days = str(tdays),  next = nextlink, prev = prevlink,c = c, campaign_id = campaign_id, count_or_list = count_or_list , flist = flist, count = count,  task_id = task_id,  current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ActualPendingFilesHelp")
