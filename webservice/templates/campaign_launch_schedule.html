@@ -28,6 +28,9 @@
     {{job}}
   <form action="update_launch_schedule" method="GET">
   <input type="hidden" name="campaign_id" value="{{campaign_id}}">
+  Minutes(s) of the hour:
+  <input name="minlist" width=2 value="{{job.minutes if job.minutes else '*'}}">
+  <br>
   Hour(s) of day:
   <input name="hourlist" width=2 value="{{job.hours if job.hours else '*'}}">
   <br>
