@@ -1871,7 +1871,7 @@ class poms_service:
 
 	# deal with single item list silliness
 	if isinstance(minlist, basestring):
-	   hourlist = minlist.split(",")
+	   minlist = minlist.split(",")
 	if isinstance(hourlist, basestring):
 	   hourlist = hourlist.split(",")
 	if isinstance(dowlist, basestring):
@@ -1880,6 +1880,11 @@ class poms_service:
 	   domlist = domlist.split(",")
 
         cherrypy.log("hourlist is %s " % hourlist)
+
+        if minlist[0] == "*":
+            minlist = None
+        else:
+	    minlist = [int(x) for x in minlist if x != '']
 
         if hourlist[0] == "*":
             hourlist = None
@@ -1910,6 +1915,9 @@ class poms_service:
 	    # set timing...
 	    if dowlist:
 		job.dow.on(*dowlist)
+
+	    if minlist:
+		job.minute.on(*minlist)
 
 	    if hourlist:
 		job.hour.on(*hourlist)
