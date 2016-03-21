@@ -1,4 +1,5 @@
 import cherrypy
+import glob
 import os
 import time_grid
 import json
@@ -1067,7 +1068,7 @@ class poms_service:
             counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
               
         template = self.jinja_env.get_template('campaign_grid.html')
-        return template.render(  counts = counts, counts_keys = counts_keys, cl = cl, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path, help_page="ShowCampaignsHelp")
+        return template.render( services=self.service_status_hier('All'), counts = counts, counts_keys = counts_keys, cl = cl, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path, help_page="ShowCampaignsHelp")
 
     @cherrypy.expose
     def campaign_info(self, campaign_id ):
@@ -1499,7 +1500,7 @@ class poms_service:
 
 
     @cherrypy.expose
-    def campaign_sheet(self, campaign_id, tmin = None, tmax = None , tdays = 14):
+    def campaign_sheet(self, campaign_id, tmin = None, tmax = None , tdays = 7):
 
         daynames=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"]
 
@@ -1853,18 +1854,34 @@ class poms_service:
         template = self.jinja_env.get_template('job_histo.html')
         return template.render(  c = c, total = total, vals = vals, tmaxs = tmaxs, campaign_id=campaign_id, tdays = tdays, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, pomspath=self.path, help_page="JobEfficiencyHistoHelp")
 
+    @cherrypy.expose
+    def list_launch_file(self, campaign_id, fname ):
+        dirname="%s/private/logs/poms/launches/campaign_%s" % (
+           os.environ['HOME'],campaign_id)
+        lf = open("%s/%s" % (dirname, fname), "r")
+        lines = lf.readlines()
+        lf.close()
+        return "".join(lines)
 
     @cherrypy.expose
     def schedule_launch(self, campaign_id ):
 	c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
 	my_crontab = CronTab(user=True)       
-	iter = my_crontab.find_comment("POMS_CAMPAIGN_ID=%s" % campaign_id)
+	citer = my_crontab.find_comment("POMS_CAMPAIGN_ID=%s" % campaign_id)
 	# there should be only zero or one...
         job = None
-        for job in iter:
+        for job in citer:
             break
+
+        # any launch outputs to look at?
+        # 
+        dirname="%s/private/logs/poms/launches/campaign_%s" % (
+           os.environ['HOME'],campaign_id)
+        launch_flist = glob.glob('%s/*' % dirname)
+        launch_flist = map(os.path.basename, launch_flist)
+
 	template = self.jinja_env.get_template('campaign_launch_schedule.html')
-	return template.render(  c = c, campaign_id = campaign_id, job = job, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ScheduleLaunchHelp")
+	return template.render(  c = c, campaign_id = campaign_id, job = job, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ScheduleLaunchHelp", launch_flist= launch_flist)
 
     @cherrypy.expose
     def update_launch_schedule(self, campaign_id, dowlist = None,  domlist = None, monthly = None, month = None, hourlist = None, submit = None , minlist = None, delete = None):
