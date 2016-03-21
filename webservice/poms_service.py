@@ -16,6 +16,7 @@ from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment,
 
 from utc import utc
 from crontab import CronTab
+import gc
 
 def error_response():
     dump = ""
@@ -732,7 +733,9 @@ class poms_service:
               res.append( '%s "%s"' % (sep, job.jobsub_job_id))
               sep = ","
          res.append( "]" )
-         return "".join(res)
+         res = "".join(res)
+         gc.collect(2)
+         return res
 
     @cherrypy.expose
     def output_pending_jobs(self):
