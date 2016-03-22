@@ -1911,7 +1911,8 @@ class poms_service:
         if dowlist[0] == "*":
             dowlist = None
         else:
-	    dowlist[0] = [int(x) for x in dowlist if x != '']
+	    # dowlist[0] = [int(x) for x in dowlist if x != '']
+            pass
 
         if domlist[0] == "*":
             domlist = None
