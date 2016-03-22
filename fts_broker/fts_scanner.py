@@ -6,6 +6,9 @@ import json
 import shelve
 import os
 import time
+import gc
+
+gc.enable()
 
 class fts_status_watcher:
     def __init__(self, debug=0):
@@ -34,6 +37,7 @@ class fts_status_watcher:
         oldexp = None
         registry = self.fetch_json(self.registry_url)
         print "got registry:", registry
+        count = 0
         for item in registry:
             if item["type"] == "fts" and item["tier"] == "prd":
                # some fts-es are listed twice...
@@ -49,15 +53,20 @@ class fts_status_watcher:
                didthat[item["uris"]["service"]] = True
 
                if oldexp != item["experiment"]:
-                   if fs: fs.close()
-                   fs = shelve.open("%s/%s_files.db.new" % (self.workdir, item["experiment"]),flag="c")
+                   if fs: 
+                       fs.close()
+	               gc.collect(2)
+
+                   fs = shelve.open("%s/%s_files.db.new" % (self.workdir, item["experiment"]),flag="n",writeback=True)
                status = self.fetch_json(item["uris"]["service"] + "/status?format=json")
-               print "staus.keys() is: " , status.keys()
                for t in status.get("errorstates",[]) + status.get("pendingstates",[]) + status.get("newstates",[]):
+                   count = count + 1
+                   if (count % 100) == 99:
+                      fs.sync()
+                      gc.collect(2)
                    k = t["name"].encode('ascii','ignore')
                    v = t["msg"].encode('ascii','ignore')
                    fs[k] = "%s:%s" % (item["name"], v)
-
 
         if fs: fs.close()
 
