@@ -44,7 +44,7 @@
   </select>
 
   {% if data.curr_experiment is defined %} 
-  <table class="ui celled table">
+  <table class="ui sortable celled table">
     <thead>
       <tr>
 	<th></th>
@@ -122,12 +122,14 @@
   <div class="header">
     Message
   </div>
+  <div class="ui text container">
     <div class="one field">
       <div class="field">
 	<label>{{data.message}}</label>
       </div>
     </div>
     <div class="ui hidden divider"></div>
+  </div>
 </div> <!-- Ends display_message_modal  -->
 
 <div class="ui modal" id="definition_add_edit_modal">
@@ -393,12 +395,12 @@ function ep_down_button(current_row) {
     }).modal('show');
   }
 
-setTimeout(function(){
+$(document).ready(function(){
   if ("{{ data.message }}" != "None") {
+    $("#poms_message_data").text("{{ data.message }}");
     $("#display_message_modal").modal('show');  
   }
-}, 1000);
-
+});
 
 $('#cdf_experiment')
   .dropdown()

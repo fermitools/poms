@@ -67,7 +67,7 @@ function pop_experiment_users_modal(experiment) {
 <div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_add_experiment_modal()" >Add Experiment</div>
 <div class="ui hidden divider"></div>
 <form id="exp_form" class="ui form" action="experiment_authorize" method="POST">
-  <table class="ui celled table">
+  <table class="ui sortable celled table">
     <thead>
       <tr>
 	<th>Delete</th>
@@ -160,19 +160,6 @@ function pop_experiment_users_modal(experiment) {
   </form>
 </div> <!-- Ends Modal -->
 
-<div class="ui modal" id="display_message_modal">
-  <i class="close icon"></i>
-  <div class="header">
-    Message
-  </div>
-    <div class="one field">
-      <div class="field">
-	<label>{{message}}</label>
-      </div>
-    </div>
-    <div class="ui hidden divider"></div>
-</div> <!-- Ends Modal -->
-
 <div class="ui modal" id="experiment_users_modal">
   <i class="close icon"></i>
   <div id="header_experiment_users_modal" class="header">
@@ -209,11 +196,12 @@ $('.ui.form')
   })
 ;
 
-setTimeout(function(){
+$(document).ready(function(){
   if ("{{ message }}" != "None") {
-    mod_form = $("#display_message_modal").modal('show');  
+    $("#poms_message_data").text("{{ message }}");
+    $("#display_message_modal").modal('show');  
   }
-}, 1000);
+});
 
 
 </script>

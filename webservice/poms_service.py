@@ -503,13 +503,13 @@ class poms_service:
                 cherrypy.log(e.message)
                 db.rollback()
             except SQLAlchemyError, e:
-                message = "SQLAlchemyError.  Please report this to the administrator."
+                message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
                 cherrypy.log(e.message)
                 db.rollback()
             else:
                 db.commit()
 
-        # Find experiments layout templates
+        # Find templates
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
             data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
@@ -538,7 +538,7 @@ class poms_service:
             except:
                 db.rollback()
                 message = "The campaign definition, %s, is in use and may not be deleted." % name
-                cherrypy.log(e.message)
+                cherrypy.log(message)
 
         if action == 'add' or action == 'edit':
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
@@ -571,13 +571,13 @@ class poms_service:
                 cherrypy.log(e.message)
                 db.rollback()
             except SQLAlchemyError, e:
-                message = "SQLAlchemyError.  Please report this to the administrator."
+                message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
                 cherrypy.log(e.message)
                 db.rollback()
             else:
                 db.commit()
 
-        # Find experiments layout templates
+        # Find definitions 
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
             data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
@@ -588,6 +588,108 @@ class poms_service:
         return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="CampaignDefinitionEditHelp")
 
+
+    @cherrypy.expose
+    def campaign_edit(self, *args, **kwargs):
+        db = cherrypy.request.db
+        data = {}
+        message = None
+        data['exp_selections'] = db.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
+
+        action = kwargs.pop('action',None)
+        exp = kwargs.pop('experiment',None)
+
+        if action == 'delete':
+            name = kwargs.pop('name')
+            try:
+                db.query(Campaign).filter(Campaign.experiment==exp).filter(Campaign.name==name).delete()
+                db.commit()
+            except:
+                db.rollback()
+                message = "The campaign definition, %s, has been used and may not be deleted." % name
+                cherrypy.log(message)
+
+        if action == 'add' or action == 'edit':
+            campaign_id = kwargs.pop('ae_campaign_id')
+            name = kwargs.pop('ae_campaign_name')
+            vo_role = kwargs.pop('ae_vo_role')
+            software_version = kwargs.pop('ae_software_version')
+            dataset = kwargs.pop('ae_dataset')
+            param_overrides = kwargs.pop('ae_param_overrides')
+            campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
+            launch_id = kwargs.pop('ae_launch_id')
+            experimenter_id = kwargs.pop('experimenter_id')
+            try:
+                if action == 'add':
+                    c = Campaign(campaign_id=campaign_id, name=name, experiment=exp,vo_role=vo_role, 
+                                 software_version=software_version, dataset=dataset,
+                                 param_overrides=param_overrides, launch_id=launch_id,
+                                 campaign_definition_id=campaign_definition_id, 
+                                 creator=experimenter_id, created=datetime.now(utc))
+
+                    db.add(c)
+                else:
+                    columns = {"name":                  name,
+                               "vo_role":               vo_role,
+                               "software_version":      software_version,
+                               "dataset" :              dataset,
+                               "param_overrides":       param_overrides,
+                               "campaign_definition_id":campaign_definition_id,
+                               "launch_id":             launch_id,
+                               "updated":               datetime.now(utc),
+                               "updater":               experimenter_id
+                               }
+                    cd = db.query(Campaign).filter(Campaign.campaign_id==campaign_id).update(columns)
+            except IntegrityError, e:
+                message = "Integrity error - you are most likely using a name which already exists in database."
+                cherrypy.log(e.message)
+                db.rollback()
+            except SQLAlchemyError, e:
+                message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
+                cherrypy.log(e.message)
+                db.rollback()
+            else:
+                db.commit()
+
+
+        # Find campaigns
+        if exp: # cuz the default is find
+            data['curr_experiment'] = exp
+            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            data['campaigns'] = db.query(Campaign).filter(Campaign.experiment==exp).order_by(Campaign.name)
+            data['definitions'] = db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
+            data['templates'] = db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
+
+            
+        data['message'] = message
+        template = self.jinja_env.get_template('campaign_edit.html')
+        return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
+                               pomspath=self.path,help_page="CampaignEditHelp")
+
+    @cherrypy.expose
+    def campaign_edit_query(self, *args, **kwargs):
+        db = cherrypy.request.db
+        data = {}
+        ae_launch_id = kwargs.pop('ae_launch_id',None)
+        ae_campaign_definition_id = kwargs.pop('ae_campaign_definition_id',None)
+
+        if ae_launch_id:
+            template = {}
+            temp = db.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).first()
+            template['launch_host'] = temp.launch_host
+            template['launch_account'] = temp.launch_account
+            template['launch_setup'] = temp.launch_setup
+            data['template'] = template
+
+        if ae_campaign_definition_id:
+            definition = {}
+            cdef = db.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==ae_campaign_definition_id).first()
+            definition['input_files_per_job'] = cdef.input_files_per_job
+            definition['output_files_per_job'] = cdef.output_files_per_job
+            definition['launch_script'] = cdef.launch_script
+            definition['definition_parameters'] = cdef.definition_parameters
+            data['definition'] = definition
+        return json.dumps(data)
 
     @cherrypy.expose
     def list_generic(self, classname):
