@@ -1,0 +1,502 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>POMS</title>
+
+    <style type="text/css">
+    div.scrollable {
+        width: 100%;
+        overflow-x: scroll;
+    }
+    div.scrollable table {
+        width: 300%;
+    }
+    </style>
+{%endblock%}
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="{{pomspath}}/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">Campaigns</div>
+</div>
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">Campaigns {%include 'help_button.html'%}</h1>
+{%endblock%}
+
+{%block subheader%}
+{%endblock%}
+
+{%block content%}
+<form id="campaign_form" class="ui form" action="campaign_edit" method="POST">
+
+  <select class="ui dropdown" name="experiment" id="c_experiment">
+    <option value="">Choose Experiment</option>
+    {% for row in data.exp_selections %}
+    <option value="{{row.experiment}}" {{ 'selected="selected"' if (data.curr_experiment == row.experiment) }}>{{row.name}}</option>
+    {% endfor %}
+  </select>
+
+  {% if data.curr_experiment is defined %} 
+  <table class="ui sortable celled table">
+    <thead>
+      <tr>
+	<th></th>
+	<th>Name</th>
+	<th>VO Role</th>
+	<th>Software Version</th>
+	<th>Dataset</th>
+	<th>Parameter Overrides</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in data.campaigns %}
+      <tr>
+	<td class="collapsing">
+          {% if data.authorized==True %}
+	  <i class="large edit link blue icon"  onclick="edit_campaign({{loop.index}});"></i>
+	  <i class="large trash link blue icon" onclick="delete_campaign('{{row.name}}');"></i>
+	  {% else %}
+	  <i class="large unhide link blue icon" onclick="edit_campaign({{loop.index}});">
+	  {% endif %}
+	</td>
+	<td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.campaign_id}}</td>
+	<td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.campaign_definition_id}}</td>
+	<td id="c_launch_id_{{loop.index}}" style="display:none">{{row.launch_id}}</td>
+	<td id="c_name_{{loop.index}}">{{row.name}}</td>
+	<td id="c_vo_role_{{loop.index}}">{{row.vo_role}}</td>
+	<td id="c_software_version_{{loop.index}}">{{row.software_version}}</td>
+	<td id="c_dataset_{{loop.index}}">{{row.dataset}}</td>
+	<td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|replace("None","")}}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+	<th colspan="6">
+	  <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (data.authorized==False) }}>
+	    <i class="icon add square"></i>
+	    Add 
+	  </button>
+	</th>
+      </tr>
+    </tfoot>
+  </table>
+  {% endif %}
+  <input type="hidden" id="action" name="action" value="find">
+</form>
+
+<div class="ui modal" id="confirm_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Delete Campaign
+  </div>
+  <div class="image content">
+    <div class="image">
+      <i class="delete icon"></i>
+    </div>
+    <div class="description">
+      <div class="ui header"><label id="confirm_modal_message">Message Goes Here</label></div>
+    </div>
+  </div>
+  <div class="actions">
+    <div class="two fluid ui buttons">
+      <button class="ui pink deny button">
+	No
+      </button>
+      <button id="approved_btn" class="ui teal approve button">
+	<i class="checkmark icon"></i>
+	Yes
+      </button>
+    </div>
+  </div>
+</div> <!-- Ends confirm_modal -->
+
+<div class="ui modal" id="campaign_add_edit_modal">
+  <i class="close icon"></i>
+  <h3 class="block header" id="ae_experiment">Campaign Editor SPUD</h3>
+  <div class="ui hidden divider"></div>
+  <div class="ui text container">
+    <form id="campaign_add_edit_form" class="ui form" method="POST" action="campaign_edit">
+      <div class="three fields">
+	<div class="field">
+          <label>Name</label>
+          <input type="text" id="ae_campaign_name" name="ae_campaign_name" placeholder="Campaign Name">
+	</div>
+	<div class="field">
+          <label>VO Role</label>
+          <input type="text" id="ae_vo_role" name="ae_vo_role">
+	</div>
+	<div class="field">
+          <label>Software Version</label>
+          <input type="text" id="ae_software_version" name="ae_software_version">
+	</div>
+      </div>
+      <div class="one field">
+	<div class="field">
+          <label>Dataset</label>
+          <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset"></input>
+	</div>
+      </div>
+      <div class="one field">
+	<div class="field">
+          <label>Parameter Overrides<i class="large edit link blue icon" id="edit_param_modal_btn"></i></label>
+          <textarea rows="2" id="ae_param_overrides_text" disabled></textarea>
+	</div>
+      </div>
+      <h4 class="ui horizontal divider">Launch Template</h4>
+      <div class="three fields">
+	<div>
+	  <br/>
+	<div class="ui floating dropdown labled icon button">
+	  <input type="hidden"  name="ae_launch_id" id="ae_launch_id">
+	  <i class="dropdown icon"></i>
+	  <span class="text">Select Template</span>
+	  <div class="menu">
+	    <div class="ui icon search input">
+	      <i class="search icon"></i>
+	      <input type="text" placeholder="Search tags...">
+	    </div>
+	    {% for row in data.templates %}
+	    <div class="item" data-value="{{row.launch_id}}" >{{row.name}}</div>
+	    {% endfor %}
+	  </div>
+	</div>
+	</div>
+	<div class="field">
+          <label>Host</label>
+          <input type="text" id="ae_launch_host" disabled>
+	</div>
+	<div class="field">
+          <label>Account</label>
+          <input type="text" id="ae_launch_account" disabled>
+	</div>
+      </div>
+      <div class="one field">
+	<label>Setup</label>
+	<input type="text" id="ae_launch_setup" disabled>
+      </div>
+      <h4 class="ui horizontal divider">Campaign Definition</h4>
+      <div class="three fields">
+	<div>
+	  <br/>
+	<div class="ui floating dropdown labled icon button">
+	  <input type="hidden"  name="ae_campaign_definition_id" id="ae_campaign_definition_id">
+	  <i class="dropdown icon"></i>
+	  <span class="text">Select Definition</span>
+	  <div class="menu">
+	    <div class="ui icon search input">
+	      <i class="search icon"></i>
+	      <input type="text" placeholder="Search tags...">
+	    </div>
+	    {% for row in data.definitions %}
+	    <div class="item" data-value="{{row.campaign_definition_id}}" >{{row.name}}</div>
+	    {% endfor %}
+	  </div>
+	  </div>
+	</div>
+	<div class="field">
+          <label>Input Files/Job</label>
+          <input type="text" id="ae_input_files_per_job" disabled>
+	</div>
+	<div class="field">
+          <label>Output Files/Job</label>
+          <input type="text" id="ae_output_files_per_job" disabled>
+	</div>
+      </div>
+      <div class="two fields">
+	<div class="field">
+	  <label>Launch Script</label>
+	  <input type="text" id="ae_launch_script" disabled>
+	</div>
+	<div class="field">
+	  <label>Definition Parameters</label>
+	  <input type="text" id="ae_launch_definition_parameters" disabled>
+	</div>
+      </div>
+      <div class="actions">
+	<div class="ui button deny pink">Cancel</div>
+	<input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
+      </div>      
+      <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
+      <input type="hidden" name="action" id="ae_definition_action" value="add">
+      <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id}}">
+      <input type="hidden" id="ae_campaign_id" name="ae_campaign_id" value="0">
+      <input type="hidden" id="ae_param_overrides" name="ae_param_overrides" value="">
+    </form>
+  </div>
+  <div class="ui hidden divider"></div>
+</div> <!-- Ends campaign_add_edit_modal -->
+
+<div class="ui small modal" id="edit_param_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Definition Parameters Editor
+  </div>
+  <div class="ui text container">
+    <div class="scrollable">
+      <table class="ui celled table" id="ep_table">
+	<thead>
+	  <tr>
+	    <th>Key</th>
+	    <th>Value</th>
+	    <th></th>
+	  </tr>
+	</thead>
+	<tbody id="ep_tbody">
+	</tbody>
+	<tfoot>
+	  <tr>
+	    <th colspan="3">
+	      <div class="actions">
+		<button class="ui button deny pink">Cancel</button>
+		<button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
+	      </div>
+	    </th>
+	  </tr>
+	</tfoot>
+      </table>
+    </div>
+  </div>
+  <div class="ui hidden divider"></div>
+</div> <!-- Ends edit_param_modal  -->
+
+<script type="text/javascript">
+
+$('#campaign_add_edit_form')
+  .form({
+    fields: {
+      ae_campaign_name :          'empty',
+      ae_vo_role :                'empty',
+      ae_software_version :       'empty',
+      ae_dataset :                'empty',
+      ae_launch_id :              'empty',
+      ae_campaign_definition_id : 'empty'
+    }
+  })
+;
+
+$("#c_experiment").change(function() {
+    $("#campaign_form").submit();
+});
+
+$("#ae_launch_id").change(function() {
+  var formdata = {'ae_launch_id': $("#ae_launch_id").val()};
+  $.ajax({
+      url: "{{pomspath}}/campaign_edit_query", 
+      type: 'GET',
+      data: formdata,
+      success: function(dat){
+        data = JSON.parse(dat);
+        $("#ae_launch_host").val(data.template.launch_host);
+        $("#ae_launch_account").val(data.template.launch_account);
+        $("#ae_launch_setup").val(data.template.launch_setup);
+      }
+    });
+});
+
+$("#ae_campaign_definition_id").change(function() {
+  var formdata = {'ae_campaign_definition_id': $("#ae_campaign_definition_id").val()};
+  $.ajax({
+      url: "{{pomspath}}/campaign_edit_query", 
+      type: 'GET',
+      data: formdata,
+      success: function(dat){
+        data = JSON.parse(dat);
+        $("#ae_input_files_per_job").val(data.definition.input_files_per_job);
+        $("#ae_output_files_per_job").val(data.definition.output_files_per_job);
+        $("#ae_launch_script").val(data.definition.launch_script);
+        $("#ae_launch_definition_parameters").val(data.definition.definition_parameters);
+      }
+    });
+});
+
+function create_row(index, key, value) {
+    return row;
+}
+
+var ep_parms = [];
+//spwspw
+$("#edit_param_modal_btn").click(function() {
+  var parms_str = $("#ae_param_overrides").val();
+  if (parms_str != "") {
+    //ep_parms = eval ("(" + parms_str + ")");
+    ep_parms = JSON.parse(parms_str);
+  }
+  ep_build_table_body();
+  $("#edit_param_modal").modal({
+    closable  : false,
+    onApprove : function(){
+      var data = ep_build_parms_string();
+      if (data[0] == "") {
+        $("#ae_param_overrides_text").val(data[1]);
+        $("#ae_param_overrides").val(data[1]);
+        $("#campaign_add_edit_modal").modal('show');
+      } else {
+          return false;
+      }
+    },
+    onDeny : function(){
+      $("#campaign_add_edit_modal").modal('show');
+    },
+    }).modal('show');
+});
+
+function ep_build_parms_string() {
+  var parms = "[";
+  var message = "";
+  rebuild_ep_parms();
+  for (index = 0; index < ep_parms.length; index++) {
+    key = ep_parms[index][0];
+    value = ep_parms[index][1];
+    if ((key != "") && (value != "")) {
+      if (parms != "[") {
+        parms += ",";
+      }
+      parms += '["' +key+ '","' +value+ '"]';
+    } else if ((key == "") && (value == "")){
+      continue;
+    } else {
+      message = "A row is missing the key or value.";
+      break;
+    }
+  }
+  parms += "]"
+  return [message, parms];
+} 
+
+function ep_build_table_body() {
+  $("#ep_tbody").text("");
+  if (ep_parms.length ==0) {
+    ep_parms.push(["",""]);
+  }
+  for (index = 0; index < ep_parms.length; index++) {
+    var ep_row = "ep_row_" + index;
+    var ep_key = "ep_key_" + index;
+    var ep_val = "ep_val_" + index;		  
+    var row = '<tr id="' +ep_row+ '">';
+    row +=       '<td class="brown">'
+    row +=          '<div class="ui fluid input">'
+    row +=             '<label></label>'
+    row +=             '<input type="text" id="' +ep_key+  '" value="' +ep_parms[index][0]+ '">'
+    row +=          '</div>'
+    row +=       '</td>';
+    row +=       '<td>'
+    row +=          '<div class="ui fluid input">'
+    row +=             '<label></label>'
+    row +=             '<input type="text" id="' +ep_val+  '" value="' +ep_parms[index][1]+ '">'
+    row +=          '</div>'
+    row +=       '</td>';
+    row +=       '<td  class="collapsing">'
+    row +=         '<i class="blue icon link add square" onclick="ep_add_button('+index+');"></i>'
+    row +=	   '<i class="blue icon link minus square" onclick="ep_delete_button('+index+');"></i>'
+    row +=	   '<i class="blue icon link arrow square up" onclick="ep_up_button('+index+');"></i>'
+    row +=	   '<i class="blue icon link arrow square down" onclick="ep_down_button('+index+');"></i>'
+    row +=       '</td>';
+    row +=     '</tr>'
+    $("#ep_tbody").append(row);
+  }		
+}
+
+function rebuild_ep_parms() {
+  ep_parms = []
+  var rowCount = $("#ep_table >tbody >tr").length;
+  for (index=0; index< rowCount; index++) {
+    var ep_key = "#ep_key_" + index;
+    var ep_val = "#ep_val_" + index;
+    var key = $(ep_key).val();
+    var val = $(ep_val).val();
+    ep_parms.push([key,val]);
+  }
+}
+
+function ep_add_button(current_row) {
+  rebuild_ep_parms();
+  ep_parms.splice(current_row+1, 0, ["",""] );
+  ep_build_table_body();
+}
+		  
+function ep_delete_button(current_row) {
+  rebuild_ep_parms();
+  ep_parms.splice(current_row, 1 );
+  ep_build_table_body();
+}
+		  
+function ep_up_button(current_row) {
+  if (current_row > 0) {
+    rebuild_ep_parms();
+    var hold = ep_parms[current_row-1];
+    ep_parms[current_row-1] = ep_parms[current_row];
+    ep_parms[current_row] = hold;
+    ep_build_table_body();
+  } 
+}
+		  
+function ep_down_button(current_row) {
+  if (current_row < (ep_parms.length-1)) {
+    rebuild_ep_parms();
+    var hold = ep_parms[current_row+1];
+    ep_parms[current_row+1] = ep_parms[current_row];
+    ep_parms[current_row] = hold;
+    ep_build_table_body();
+  } 
+}
+		  
+function delete_campaign(name) {
+  var cname = name; 
+  $("#confirm_modal_message").text("Delete the campaign named " +name+" ?")
+  $("#confirm_modal").modal({
+  closable  : false,
+  onApprove : function(){
+    $("#action").val('delete');
+    $("<input>").attr({'type':'hidden','name': 'name', 'value': cname}).appendTo("#campaign_form");
+    $("#campaign_form").submit();
+  },
+  }).modal('show');
+}
+
+function edit_campaign(index) {
+  $("#ae_experiment").text("Campaign Editor  ({{ data.curr_experiment if data.curr_experiment is defined}})");
+  $("#ae_definition_action").val("edit");
+  $("#ae_campaign_id").val( $("#c_campaign_id_"+index).text()  );
+  $("#ae_campaign_name").val( $("#c_name_"+index).text() );
+  $("#ae_vo_role").val( $("#c_vo_role_"+index).text() );
+  $("#ae_software_version").val( $("#c_software_version_"+index).text() );
+  $("#ae_dataset").val( $("#c_dataset_"+index).text() );
+  $("#ae_param_overrides_text").val( $("#c_param_overrides_"+index).text() );
+  $("#ae_param_overrides").val( $("#c_param_overrides_"+index).text() );
+  $("#ae_campaign_definition_id").val( $("#c_campaign_definition_id_"+index).text() );
+  $("#ae_launch_id").val( $("#c_launch_id_"+index).text() );
+  // Trigger the change function which will load associated fields
+  $("#ae_campaign_definition_id").trigger('change');
+  $("#ae_launch_id").trigger('change');
+
+  $("#campaign_add_edit_modal").modal('show');
+}
+
+function add_campaign() {
+  $("#campaign_add_edit_modal").form('reset');
+  $("#ae_experiment").text("Campaign Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
+  $("#campaign_add_edit_modal").modal({}).modal('show');
+}
+
+
+$(document).ready(function(){
+  if ("{{ data.message }}" != "None") {
+    $("#poms_message_data").text("{{ data.message }}");
+    $("#display_message_modal").modal('show');  
+  }
+});
+
+
+$('.ui.dropdown')
+  .dropdown()
+;
+
+</script>
+
+
+{%endblock%}
+

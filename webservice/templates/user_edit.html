@@ -151,13 +151,15 @@ function user_action(action) {
   <div class="header">
     Message
   </div>
+  <div class="ui text container">
     <div class="one field">
       <div class="field">
 	<label>{{data.message}}</label>
       </div>
     </div>
     <div class="ui hidden divider"></div>
-</div> <!-- Ends Modal -->
+  </div>
+</div> <!-- Ends display_message_modal  -->
 
 <div class="ui modal" id="user_add_edit_modal">
   <i class="close icon"></i>
@@ -195,11 +197,12 @@ $('#user_add_edit_form')
   })
 ;
 
-setTimeout(function(){
+$(document).ready(function(){
   if ("{{ data.message }}" != "None") {
-    mod_form = $("#display_message_modal").modal('show');  
+    $("#poms_message_data").text("{{ data.message }}");
+    $("#display_message_modal").modal('show');  
   }
-}, 1000);
+});
 
 </script>
 
