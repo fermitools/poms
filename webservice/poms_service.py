@@ -1,4 +1,5 @@
 import cherrypy
+import glob
 import os
 import time_grid
 import json
@@ -12,10 +13,11 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags
 
 from utc import utc
 from crontab import CronTab
+import gc
 
 def error_response():
     dump = ""
@@ -834,7 +836,9 @@ class poms_service:
               res.append( '%s "%s"' % (sep, job.jobsub_job_id))
               sep = ","
          res.append( "]" )
-         return "".join(res)
+         res = "".join(res)
+         gc.collect(2)
+         return res
 
     @cherrypy.expose
     def output_pending_jobs(self):
@@ -1166,16 +1170,17 @@ class poms_service:
             counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
               
         template = self.jinja_env.get_template('campaign_grid.html')
-        return template.render(  counts = counts, counts_keys = counts_keys, cl = cl, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path, help_page="ShowCampaignsHelp")
+        return template.render( services=self.service_status_hier('All'), counts = counts, counts_keys = counts_keys, cl = cl, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path, help_page="ShowCampaignsHelp")
 
     @cherrypy.expose
     def campaign_info(self, campaign_id ):
 
         c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
         td =  cherrypy.request.db.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id == c.campaign_definition_id ).first()
+        tags = cherrypy.request.db.query(Tag).filter(CampaignsTags.campaign_id==campaign_id, CampaignsTags.tag_id==Tag.tag_id).all()
 
         template = self.jinja_env.get_template('campaign_info.html')
-        return template.render(  campaign = c, taskdefinition = td, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp")
+        return template.render(  campaign = c, taskdefinition = td, tags=tags, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp")
         
     @cherrypy.expose
     def campaign_time_bars(self, campaign_id, tmin = None, tmax = None, tdays = 1):
@@ -1317,7 +1322,7 @@ class poms_service:
 
     
     @cherrypy.expose
-    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None, eff_d = None):
+    def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, name=None,campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None, eff_d = None):
            
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'job_table?')
         extra = ""
@@ -1355,6 +1360,11 @@ class poms_service:
         if campaign_name:
             q = q.filter(Campaign.name == campaign_name)
             filtered_fields['campaign_name'] = campaign_name
+
+        # alias for failed_jobs_by_whatever
+        if name:
+            q = q.filter(Campaign.name == name)
+            filtered_fields['campaign_name'] = name
 
         if campaign_def_id:
             q = q.filter(Campaign.campaign_definition_id == campaign_def_id)
@@ -1526,13 +1536,13 @@ class poms_service:
 
 
     @cherrypy.expose
-    def quick_search(self, jobsub_job_id):
-        job_info = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
+    def quick_search(self, search_term):
+        job_info = cherrypy.request.db.query(Job).filter(Job.jobsub_job_id == search_term).first()
         if job_info:
             tmins =  datetime.now(utc).strftime("%Y-%m-%d+%H:%M:%S")
             raise cherrypy.HTTPRedirect("%s/triage_job?job_id=%s&tmin=%s" % (self.path,str(job_info.job_id),tmins))
         else:
-            raise cherrypy.HTTPRedirect(self.path + "/")
+            raise cherrypy.HTTPRedirect("%s/search_tags?q=%s" % (self.path, search_term))
 
     @cherrypy.expose
     def json_project_summary_for_task(self, task_id):
@@ -1545,7 +1555,7 @@ class poms_service:
 
 
     @cherrypy.expose
-    def pending_files(self, campaign_id=None, task_id=None, job_id = None ):
+    def inflight_files(self, campaign_id=None, task_id=None, job_id = None ):
         q = cherrypy.request.db.query(Job).join(Job.task_obj).join(Task.campaign_obj)
         if campaign_id != None: 
 	    q = q.filter(Task.campaign_id == campaign_id)
@@ -1587,12 +1597,12 @@ class poms_service:
                     statusmap[f] = ''
             fss.close()
 
-	template = self.jinja_env.get_template('pending_files.html')
+	template = self.jinja_env.get_template('inflight_files.html')
 	return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = statusmap, jjid = jjid, c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
 
 
     @cherrypy.expose
-    def campaign_sheet(self, campaign_id, tmin = None, tmax = None , tdays = 14):
+    def campaign_sheet(self, campaign_id, tmin = None, tmax = None , tdays = 7):
 
         daynames=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"]
 
@@ -1610,7 +1620,7 @@ class poms_service:
         day = -1
         date = None
         first = 1
-        columns = ['day','date','requested files','delivered files','jobs','failed','outfiles','pending']
+        columns = ['day','date','requested files','delivered files','jobs','failed','outfiles','inflight','pending']
         exitcodes.sort()
 	for e in exitcodes:
             columns.append('exit(%d)'%e)
@@ -1803,10 +1813,11 @@ class poms_service:
             "setup poms_jobsub_wrapper v0_3 -z /grid/fermiapp/products/common/db",
             "export JOBSUB_GROUP=%s" % group,
 	]
-        params = json.loads(cd.definition_parameters) 
-        # params.update(json.loads(c.param_overrides)) 
+        params = OrderedDict(json.loads(cd.definition_parameters))
+        if c.param_overrides != None:
+            params.update(json.loads(c.param_overrides))
         
-        lcmd = cd.launch_script + " " + ' '.join(x + params[1].get(x,'') for x in params[0])
+        lcmd = cd.launch_script + " " + ' '.join((x[0]+x[1]) for x in params.items())
         lcmd = lcmd % {
               "dataset":dataset, 
               "version":c.software_version,
@@ -1827,6 +1838,82 @@ class poms_service:
         
         template = self.jinja_env.get_template('launched_jobs.html')
         return template.render(command = lcmd, output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="LaunchedJobsHelp")
+
+
+
+
+    @cherrypy.expose
+    def link_tags(self, campaign_id, tag_name, experiment):
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        response = {}
+
+        if self.can_db_admin():
+
+            tag = cherrypy.request.db.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()
+
+            if tag:  #we have a tag in the db for this experiment so go ahead and do the linking
+                try:
+                    ct = CampaignsTags()
+                    ct.campaign_id = campaign_id
+                    ct.tag_id = tag.tag_id
+                    cherrypy.request.db.add(ct)
+                    cherrypy.request.db.commit()
+                    response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": tag.tag_name, "msg": "OK"}
+                    return json.dumps(response)
+                except exc.IntegrityError:
+                    response = {"msg": "This tag already exists."}
+                    return json.dumps(response)
+            else:  #we do not have a tag in the db for this experiment so create the tag and then do the linking
+                try:
+                    t = Tag()
+                    t.tag_name = tag_name
+                    t.experiment = experiment
+                    cherrypy.request.db.add(t)
+                    cherrypy.request.db.commit()
+
+                    ct = CampaignsTags()
+                    ct.campaign_id = campaign_id
+                    ct.tag_id = t.tag_id
+                    cherrypy.request.db.add(ct)
+                    cherrypy.request.db.commit()
+                    response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": t.tag_name, "msg": "OK"}
+                    return json.dumps(response)
+                except exc.IntegrityError:
+                    response = {"msg": "This tag already exists."}
+                    return json.dumps(response)
+        else:
+            response = {"msg": "You are not authorized to add tags."}
+            return json.dumps(response)
+
+
+
+
+    @cherrypy.expose
+    def delete_campaigns_tags(self, campaign_id, tag_id):
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        if self.can_db_admin():
+            cherrypy.request.db.query(CampaignsTags).filter(CampaignsTags.campaign_id == campaign_id, CampaignsTags.tag_id == tag_id).delete()
+            cherrypy.request.db.commit()
+            response = {"msg": "OK"}
+        else:
+            response = {"msg": "You are not authorized to delete tags."}
+        return json.dumps(response)
+
+
+
+
+    @cherrypy.expose
+    def search_tags(self, q):
+        q_list = q.split(" ")
+
+        query = cherrypy.request.db.query(Campaign).filter(CampaignsTags.tag_id == Tag.tag_id, Tag.tag_name.in_(q_list), Campaign.campaign_id == CampaignsTags.campaign_id).group_by(Campaign.campaign_id).having(func.count(Campaign.campaign_id) == len(q_list))
+        results = query.all()
+
+        template = self.jinja_env.get_template('tag_table.html')
+
+        return template.render(results=results, q=q, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="SearchTagsHelp")
+
+
 
     @cherrypy.expose
     def jobs_eff_histo(self, campaign_id, tmax = None, tmin = None, tdays = 1 ):
@@ -1869,53 +1956,146 @@ class poms_service:
         template = self.jinja_env.get_template('job_histo.html')
         return template.render(  c = c, total = total, vals = vals, tmaxs = tmaxs, campaign_id=campaign_id, tdays = tdays, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, pomspath=self.path, help_page="JobEfficiencyHistoHelp")
 
+    @cherrypy.expose
+    def list_launch_file(self, campaign_id, fname ):
+        dirname="%s/private/logs/poms/launches/campaign_%s" % (
+           os.environ['HOME'],campaign_id)
+        lf = open("%s/%s" % (dirname, fname), "r")
+        lines = lf.readlines()
+        lf.close()
+        return "".join(lines)
 
     @cherrypy.expose
     def schedule_launch(self, campaign_id ):
 	c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
 	my_crontab = CronTab(user=True)       
-	iter = my_crontab.find_comment("POMS_CAMPAIGN_ID=%s" % campaign_id)
-	# there should be only one...
-	job = iter[0]
+	citer = my_crontab.find_comment("POMS_CAMPAIGN_ID=%s" % campaign_id)
+	# there should be only zero or one...
+        job = None
+        for job in citer:
+            break
+
+        # any launch outputs to look at?
+        # 
+        dirname="%s/private/logs/poms/launches/campaign_%s" % (
+           os.environ['HOME'],campaign_id)
+        launch_flist = glob.glob('%s/*' % dirname)
+        launch_flist = map(os.path.basename, launch_flist)
+
 	template = self.jinja_env.get_template('campaign_launch_schedule.html')
-	return template.render(  c = c, job = job, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ScheduleLaunchHelp")
+	return template.render(  c = c, campaign_id = campaign_id, job = job, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ScheduleLaunchHelp", launch_flist= launch_flist)
 
     @cherrypy.expose
-    def update_launch_schedule(self, campaign_id, dowlist = None,  domlist = None, monthly = None, month = None, hourlist = None ):
+    def update_launch_schedule(self, campaign_id, dowlist = None,  domlist = None, monthly = None, month = None, hourlist = None, submit = None , minlist = None, delete = None):
 
 	# deal with single item list silliness
+	if isinstance(minlist, basestring):
+	   minlist = minlist.split(",")
 	if isinstance(hourlist, basestring):
-	   hourlist = [hourlist]
+	   hourlist = hourlist.split(",")
 	if isinstance(dowlist, basestring):
-	   dowlist = [dowlist]
+	   dowlist = dowlist.split(",")
 	if isinstance(domlist, basestring):
-	   domlist = [domlist]
+	   domlist = domlist.split(",")
 
-	hourlist = [int(x) for x in hourlist]
-	dowlist = [int(x) for x in dowlist]
-	domlist = [int(x) for x in domlist]
+        cherrypy.log("hourlist is %s " % hourlist)
 
-	sched = json.loads(sched_json)
+        if minlist[0] == "*":
+            minlist = None
+        else:
+	    minlist = [int(x) for x in minlist if x != '']
+
+        if hourlist[0] == "*":
+            hourlist = None
+        else:
+	    hourlist = [int(x) for x in hourlist if x != '']
+
+        if dowlist[0] == "*":
+            dowlist = None
+        else:
+	    # dowlist[0] = [int(x) for x in dowlist if x != '']
+            pass
+
+        if domlist[0] == "*":
+            domlist = None
+        else:
+	    domlist = [int(x) for x in domlist if x != '']
+
 	my_crontab = CronTab(user=True)       
 	# clean out old
 	my_crontab.remove_all(comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
-	# make job for new
-	job = my_crontab.new(command="%s/cron/launcher --campaign_id=%s" % (
-			  os.environ.get("POMS_DIR","/etc"), campaign_id),
-			  comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
 
-	# set timing...
-	if dowlist:
-	    job.dow.on(*dowlist)
+        if not delete:
 
-	if hourlist:
-	    job.hour.on(*hourlist)
-			     
-	if domlist:
-	    job.day.on(*domlist)
+	    # make job for new
+	    job = my_crontab.new(command="%s/cron/launcher --campaign_id=%s" % (
+			      os.environ.get("POMS_DIR","/etc"), campaign_id),
+			      comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
 
-	job.enable()
+	    # set timing...
+	    if dowlist:
+		job.dow.on(*dowlist)
+
+	    if minlist:
+		job.minute.on(*minlist)
+
+	    if hourlist:
+		job.hour.on(*hourlist)
+				 
+	    if domlist:
+		job.day.on(*domlist)
+
+	    job.enable()
 
 	my_crontab.write()
 
 	raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id )
+
+ 
+    @cherrypy.expose
+    def actual_pending_files(self, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1):
+        cherrypy.response.timeout = 600
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'actual_pending_files?count_or_list=%s&%s=%s&' % (count_or_list,'campaign_id',campaign_id) if campaign_id else (count_or_list,'task_id',task_id))
+
+        #
+        # either way, we need info from the campaign
+        #
+        if campaign_id:
+	    c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        if task_id:
+	    c = cherrypy.request.db.query(Campaign).join(Task).filter(Task.task_id == task_id , Campaign.campaign_id == Task.campaign_id ).first()
+
+        #
+        # now we build up a list of projects involved
+        #
+        pquery = cherrypy.request.db.query(Task)
+        if (task_id):
+            pquery = pquery.filter(Task.task_id == task_id)
+
+        if (campaign_id):
+            pquery = pquery.filter(Task.campaign_id == campaign_id)
+
+        if (tmin):
+            pquery = pquery.filter(Task.updated >= tmin)
+
+        if (tmax):
+            pquery = pquery.filter(Task.updated <= tmax)
+
+        tasklist = pquery.all()
+
+        projlist = [str(x.project) for x in tasklist  if x.project != None and x.project!= 'None']
+        plistdims= "'%s'" % "','".join(projlist) 
+
+        dims = "snapshot_for_project_name  %s minus (isparentof: (version '%s')) " % ( plistdims, c.software_version)
+
+        cherrypy.log('running dimension query: "%s"' % dims)
+
+        if count_or_list.startswith('c'):
+            count = cherrypy.request.project_fetcher.count_files(c.experiment, dims)
+            flist = None
+        else:
+            count = None
+            flist = cherrypy.request.project_fetcher.list_files(c.experiment, dims)
+        #return dims + "<br>" + str(res)
+	template = self.jinja_env.get_template('actual_pending_files.html')
+	return template.render( tmin = str(tmin)[:16], tmax = str(tmax)[:16], days = str(tdays),  next = nextlink, prev = prevlink,c = c, campaign_id = campaign_id, count_or_list = count_or_list , flist = flist, count = count,  task_id = task_id,  current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ActualPendingFilesHelp", tasklist = tasklist)

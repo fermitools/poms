@@ -73,6 +73,20 @@ class project_fetcher:
              fl = []
          return fl 
 
+     def count_files(self,experiment,dims):
+         base = "http://samweb.fnal.gov:8480"
+         url="%s/sam/%s/api/files/count" % (base,experiment)
+         try:
+	     res = urllib2.urlopen(url,urllib.urlencode({"dims":dims}))
+	     text = res.read()
+             count = int(text)
+	     res.close()
+         except:
+             raise
+             count = 0
+         return count
+
+
      def create_definition(self,experiment,name, dims):
          base = "http://samweb.fnal.gov:8480"
          url="%s/sam/%s/api/definitions/create" % (base,experiment)
@@ -93,3 +107,5 @@ if __name__ == "__main__":
 
     l = pf.list_files("nova","file_name neardet_r00011388_s00_t00_S15-12-07_v1_data_keepup.caf.root,neardet_r00011388_s00_t00_S15-12-07_v1_data_keepup.reco.rootneardet_r00011388_s05_t00_S15-12-07_v1_data_keepup.reco.root,neardet_r00011388_s05_t00_S15-12-07_v1_data_keepup.caf.root,neardet_r00011388_s01_t00_S15-12-07_v1_data_keepup.reco.root,neardet_r00011388_s01_t00_S15-12-07_v1_data_keepup.caf.root,neardet_r00011388_s10_t00_S15-12-07_v1_data_keepup.reco.root")
     print "got list:", l
+    c = pf.count_files("nova", "project_name 'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.e-neardet-20160210_1624','vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.a-fardet-20160202_1814'");
+    print "got count:", c

@@ -1,7 +1,7 @@
 {%extends "layout.html" %}
 
 {%block title%}
-    <title>Pending files for Jobs</title>
+    <title>In-Flight files for Jobs</title>
 {%endblock%}
 
 {%block breadcrumbs%}
@@ -9,13 +9,13 @@
        Dashboard  <!--label of current location on mobile-->
     </div>
     <div class="item">
-      Pending Files<!--label of current location on mobile-->
+      In-Flight Files<!--label of current location on mobile-->
     </div>
 {%endblock%}
 
 {%block header%}
 <h1 class="ui header">
-         Pending Files {%include 'help_button.html'%}
+         In-Flight Files {%include 'help_button.html'%}
 </h1>
 {%endblock%}
 
@@ -29,7 +29,7 @@
 
 {%block content %}
 
-Pending files for:
+In-Flight files for:
 
      {% if campaign_id is not none %}
         Campaign {{c.name}}

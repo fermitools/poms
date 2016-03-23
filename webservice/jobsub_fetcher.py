@@ -21,7 +21,7 @@ class jobsub_fetcher():
          if self.workdir:
               os.system("rm -rf %s" % self.workdir)
 
-    def fetch(self, jobsubjobid, group, role, force_reload = False):
+    def fetch(self, jobsubjobid, group, role, force_reload = False, user = None):
          if group == "samdev": group = "fermilab"
          thistar = "%s/%s.tgz" % (self.workdir, jobsubjobid.rstrip("\n"))
          if os.path.exists(thistar):
@@ -40,12 +40,15 @@ class jobsub_fetcher():
                  pass
              self.tarfiles = self.tarfiles[1:]
              self.fetchcount = self.fetchcount - 1   
+
+             if user == None:
+                user = "%spro" % group
                  
-         os.system("cd %s && /bin/pwd && /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_fetchlog --group=%s --role=%s --user=%spro --jobid=%s" %(
+         os.system("cd %s && /bin/pwd && /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_fetchlog --group=%s --role=%s --user=%s --jobid=%s" %(
                      self.workdir,
                      group,
                      role,
-                     role,
+                     user,
                      jobsubjobid))
          os.system("ls -l %s " % self.workdir)
 

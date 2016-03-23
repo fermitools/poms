@@ -12,7 +12,7 @@
   <div class="section"> <a href="{{pomspath}}/show_campaigns">Campaigns</a></div>
   <div class="divider"> / </div>
   <div class="section">{{campaign.name}}</div>
-</div>
+</div>	
 {%endblock%}
 
 
@@ -28,8 +28,83 @@
 
 
 {%block content%}
+
+
+
+<script>
+$( document ).ready(function() {
+
+    function do_delete(item)
+    {
+        var c_id = item.id.split("_")[0];
+        var t_id = item.id.split("_")[1];
+        var clicked_id = "#"+item.id
+
+        $.post('delete_campaigns_tags', {campaign_id: c_id, tag_id: t_id}, function(data) {
+            if(data.msg == "OK")
+            {
+                $('#response').html(data.msg);
+                $(clicked_id).remove();
+
+            }
+            else
+            {
+                $('#response').html(data.msg);
+            }
+        });
+    }
+
+
+
+    function add_dblclick_handler()
+    {
+        $( ".poms_tag" ).dblclick(function() {
+            do_delete(this);
+        });
+    }
+
+    add_dblclick_handler();
+
+
+
+    $('#add_button').on('click', function(e) {
+        e.preventDefault();
+        $('#response').html("");
+
+        if( !$('#tag_field').val() )
+        {
+            $('#response').html("Please enter a tag.");
+            return;
+        }
+
+        tag = $('#tag_field').val()
+        $.post('link_tags', {tag_name: tag, campaign_id: {{campaign.campaign_id}}, experiment: '{{campaign.experiment}}'}, function(data) {
+
+            if(data.msg == "OK")
+            {
+                var campaigns_tags_composite_key = data.campaign_id.toString() + "_" + data.tag_id.toString();
+                $('#response').html(data.msg);
+
+                var new_tag = "<a href=\'{{pomspath}}/search_tags?q=" + data.tag_name + "\' class=\'ui blue tag label poms_tag\'id=" + campaigns_tags_composite_key + ">" + data.tag_name + "</a>"
+                $('#tag_container').append(new_tag);
+                add_dblclick_handler();
+            }
+            else
+            {
+                $('#response').html(data.msg);
+            }
+
+        });
+    });
+
+});
+</script>
+
+
+
+
   <div class="ui">
-    <h3>campaign</h3>
+    <h3>Campaign</h3>
 
     <b>name</b>: {{campaign.name}}<br>
     <b>experiment</b>: {{campaign.experiment}}<br>
@@ -38,12 +113,42 @@
     <b>cs_split_type</b>: {{campaign.cs_split_type}}<br>
     <b>cs_split_dimensions</b>: {{campaign.cs_split_dimensions}}<br>
 
-    <h3>taskdefinition</h3>
+    <h3>Campaign Definition</h3>
 
     <b>name</b>: {{taskdefinition.name}}<br>
     <b>experiment</b>: {{taskdefinition.experiment}}<br>
     <b>created</b>: {{taskdefinition.created}}<br>
     <b>launch_script</b>: {{taskdefinition.launch_script}}<br>
     <b>definition_parameters</b>: {{taskdefinition.definition_parameters}}<br>
+
+    <h3>Tags</h3>
+
+    <div class="ui left icon input">
+      <input type="text" id="tag_field" name="tag" placeholder="Enter tag">
+      <i class="tag icon"></i>
+    </div>
+
+    <button class="ui icon small blue button" id="add_button">
+      <i class="plus icon"></i>
+    </button>
+    <div id="response" style="display:inline; vertical-align: bottom; font-style: italic;"></div>
+
+    <br/>
+    <br/>
+
+
+    <div id="tag_container">
+    {% for tag in tags %}
+        <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label poms_tag" id="{{campaign.campaign_id}}_{{tag.tag_id}}">{{tag.tag_name}}</a>
+    {% endfor %}
+    </div>
+
+
+
   </div>
+
+
+
+
+
 {%endblock%}
