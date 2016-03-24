@@ -1819,7 +1819,11 @@ class poms_service:
             "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id, 
             "export JOBSUB_GROUP=%s" % group,
 	]
-        params = OrderedDict(json.loads(cd.definition_parameters))
+        if cd.definition_parameters:
+           params = OrderedDict(json.loads(cd.definition_parameters))
+        else:
+           params = []
+
         if c.param_overrides != None and c.param_overrides != "":
             params.update(json.loads(c.param_overrides))
         
