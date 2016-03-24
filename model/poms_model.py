@@ -162,7 +162,7 @@ class CampaignDefinition(Base):
     __tablename__ = 'campaign_definitions'
 
     def __init__(self, campaign_definition_id=None, name=None, experiment=None, launch_script=None, definition_parameters=None, creator=None, created=None,
-                 updater=None, updated=None):
+                 updater=None, updated=None, input_files_per_job = None, output_files_per_job = None ):
         self.campaign_definition_id = campaign_definition_id
         self.name = name
         self.experiment = experiment
@@ -172,6 +172,8 @@ class CampaignDefinition(Base):
         self.created = created
         self.updater = updater
         self.updated = updated
+        self.input_files_per_job = input_files_per_job
+        self.output_files_per_job = output_files_per_job
         
     campaign_definition_id = Column(Integer, primary_key=True, server_default=text("nextval('campaign_definitions_campaign_definition_id_seq'::regclass)"))
     name = Column(Text, nullable=False, unique=True)
