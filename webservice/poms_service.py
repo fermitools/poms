@@ -1822,7 +1822,7 @@ class poms_service:
         if cd.definition_parameters:
            params = OrderedDict(json.loads(cd.definition_parameters))
         else:
-           params = []
+           params = OrderedDict([])
 
         if c.param_overrides != None and c.param_overrides != "":
             params.update(json.loads(c.param_overrides))
