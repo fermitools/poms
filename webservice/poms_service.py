@@ -1165,7 +1165,7 @@ class poms_service:
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
-        cl = cherrypy.request.db.query(Campaign).filter(Task.campaign_id == Campaign.campaign_id, Campaign.active == True ).order_by(Campaign.experiment).all()
+        cl = cherrypy.request.db.query(Campaign).filter(Campaign.active == True ).order_by(Campaign.experiment).all()
 
         counts = {}
         counts_keys = {}
