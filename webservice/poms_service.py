@@ -355,12 +355,8 @@ class poms_service:
         return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="RawTablesHelp")
         
     @cherrypy.expose
-    def user_edit(self, data={'message':None}):
-        template = self.jinja_env.get_template('user_edit.html')
-        return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
-
-    @cherrypy.expose
-    def user_authorize(self, *args, **kwargs):
+    def user_edit(self, *args, **kwargs):
+        db = cherrypy.request.db 
         message = None
         data = {}
         email = kwargs.pop('email',None)
@@ -371,46 +367,49 @@ class poms_service:
 
         if action == 'membership':
             e_id = kwargs.pop('experimenter_id',None)
-            cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e_id).update({"active":False})
+            db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e_id).update({"active":False})
             for key,exp in kwargs.items():
                 updated = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e_id).filter(ExperimentsExperimenters.experiment==exp).update({"active":True})
                 if updated==0:
                     cherrypy.request.db.add( ExperimentsExperimenters(e_id,exp,True) )
-            cherrypy.request.db.commit()
+            db.commit()
 
         elif action == "add":
-            if cherrypy.request.db.query(Experimenter).filter(Experimenter.email==email).one():
+            if db.query(Experimenter).filter(Experimenter.email==email).one():
                 message = "An experimenter with the email %s already exists" %  email
             else:
-                cherrypy.request.db.add( Experimenter(kwargs.get('first_name'), kwargs.get('last_name'), email ))
-                cherrypy.request.db.commit()
+                db.add( Experimenter(kwargs.get('first_name'), kwargs.get('last_name'), email ))
+                db.commit()
 
         elif action == "edit":
             values = {"first_name" : kwargs.get('first_name'), 
                       "last_name"  : kwargs.get('last_name'),
                       "email"      : email}
-            cherrypy.request.db.query(Experimenter).filter(Experimenter.experimenter_id==kwargs.get('experimenter_id')).update(values)
-            cherrypy.request.db.commit()
+            db.query(Experimenter).filter(Experimenter.experimenter_id==kwargs.get('experimenter_id')).update(values)
+            db.commit()
 
         if email:
-            experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == email ).first()
+            experimenter = query(Experimenter).filter(Experimenter.email == email ).first()
             if experimenter == None:
                 message = "There is no experimenter with the email %s" % email
             else:
                 data['experimenter'] = experimenter
-                data['member_of_exp'] = cherrypy.request.db.query(ExperimentsExperimenters).filter(
+                data['member_of_exp'] = db.query(ExperimentsExperimenters).filter(
                     ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
-                subquery = cherrypy.request.db.query(ExperimentsExperimenters.experiment).filter(
+                subquery = db.query(ExperimentsExperimenters.experiment).filter(
                     ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
-                data['not_member_of_exp'] = cherrypy.request.db.query(Experiment).filter(~Experiment.experiment.in_(subquery))
+                data['not_member_of_exp'] = db.query(Experiment).filter(~Experiment.experiment.in_(subquery))
 
         data['message'] = message
-        return self.user_edit(data)
+        template = self.jinja_env.get_template('user_edit.html')
+        return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
+
 
     @cherrypy.expose
     def experiment_members(self, *args, **kwargs):
+        db = cherrypy.request.db 
         exp = kwargs['experiment']
-        query = cherrypy.request.db.query(Experiment,ExperimentsExperimenters,Experimenter).join(ExperimentsExperimenters).join(Experimenter).filter(Experiment.name==exp).order_by(ExperimentsExperimenters.active.desc(),Experimenter.last_name)
+        query = db.query(Experiment,ExperimentsExperimenters,Experimenter).join(ExperimentsExperimenters).join(Experimenter).filter(Experiment.name==exp).order_by(ExperimentsExperimenters.active.desc(),Experimenter.last_name)
         trows=""
         for experiment, e2e, experimenter in query:
             active = "No"
@@ -422,12 +421,14 @@ class poms_service:
 
     @cherrypy.expose
     def experiment_edit(self, message=None):
-        experiments = cherrypy.request.db.query(Experiment).order_by(Experiment.experiment)
+        db = cherrypy.request.db
+        experiments = db.query(Experiment).order_by(Experiment.experiment)
         template = self.jinja_env.get_template('experiment_edit.html')
         return template.render(message=message, experiments=experiments, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="ExperimentEditHelp")
         
     @cherrypy.expose
     def experiment_authorize(self, *args, **kwargs):
+        db = cherrypy.request.db
         if not self.can_db_admin():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
 
@@ -437,7 +438,7 @@ class poms_service:
             experiment = kwargs.pop('experiment')
             name = kwargs.pop('name')
             try:
-                cherrypy.request.db.query(Experiment).filter(Experiment.experiment==experiment).one()
+                db.query(Experiment).filter(Experiment.experiment==experiment).one()
                 message = "Experiment, %s,  already exists." % experiment
             except NoResultFound:
                 exp = Experiment(experiment=experiment, name=name)
@@ -449,12 +450,15 @@ class poms_service:
         try:
             experiment = None
             for experiment in kwargs:
-                cherrypy.request.db.query(Experiment).filter(Experiment.experiment==experiment).delete()
-                pass
+                db.query(Experiment).filter(Experiment.experiment==experiment).delete()
             cherrypy.request.db.commit()
-        except:
-            cherrypy.request.db.rollback()
+        except IntegrityError, e:
             message = "The experiment, %s, is used and may not be deleted." % experiment
+            cherrypy.log(e.message)
+            db.rollback()
+        except SQLAlchemyError, e: 
+            cherrypy.request.db.rollback()
+            message = "SqlAlchemy error - %s" % e.message
             cherrypy.log(e.message)
 
         return self.experiment_edit(message)
@@ -1056,7 +1060,7 @@ class poms_service:
         task_jobsub_id = self.task_min_job(task_id)
 
         template = self.jinja_env.get_template('job_grid.html')
-        return template.render( blob=blob, job_counts = job_counts,  taskid = task_id, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, key = key, pomspath=self.path,help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id, campaign_id = campaign_id,cname = cname)
+        return template.render( blob=blob, job_counts = job_counts,  taskid = task_id, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), extramap = extramap, do_refresh = 1, key = key, pomspath=self.path,help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id, campaign_id = campaign_id,cname = cname)
 
 
     @cherrypy.expose
@@ -1227,7 +1231,7 @@ class poms_service:
 
 	blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(tmin)19.19s&tmax=%(tmax)19.19s',extramap = extramap )
               
-        return template.render( job_counts = job_counts, blob = blob, name = name, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, help_page="CampaignTimeBarsHelp")
+        return template.render( job_counts = job_counts, blob = blob, name = name, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, extramap = extramap, help_page="CampaignTimeBarsHelp")
 
     def task_min_job(self, task_id):
         # find the job with the logs -- minimum jobsub_job_id for this task
@@ -1811,6 +1815,8 @@ class poms_service:
               "group": group,
             },
             "setup poms_jobsub_wrapper v0_3 -z /grid/fermiapp/products/common/db",
+            "export POMS_CAMPAIGN_ID=%s" % c.campaign_id, 
+            "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id, 
             "export JOBSUB_GROUP=%s" % group,
 	]
         params = OrderedDict(json.loads(cd.definition_parameters))
