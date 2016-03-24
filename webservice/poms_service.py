@@ -627,7 +627,7 @@ class poms_service:
             experimenter_id = kwargs.pop('experimenter_id')
             try:
                 if action == 'add':
-                    c = Campaign(campaign_id=campaign_id, name=name, experiment=exp,vo_role=vo_role, 
+                    c = Campaign(name=name, experiment=exp,vo_role=vo_role, 
                                  software_version=software_version, dataset=dataset,
                                  param_overrides=param_overrides, launch_id=launch_id,
                                  campaign_definition_id=campaign_definition_id, 
