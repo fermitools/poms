@@ -1820,7 +1820,7 @@ class poms_service:
             "export JOBSUB_GROUP=%s" % group,
 	]
         params = OrderedDict(json.loads(cd.definition_parameters))
-        if c.param_overrides != None:
+        if c.param_overrides != None and c.param_overrides != "":
             params.update(json.loads(c.param_overrides))
         
         lcmd = cd.launch_script + " " + ' '.join((x[0]+x[1]) for x in params.items())
