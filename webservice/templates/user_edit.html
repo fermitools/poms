@@ -55,7 +55,7 @@ function user_action(action) {
 }
 </script>
 
-<form id="user_form" class="ui form" action="user_authorize" method="POST">
+<form id="user_form" class="ui form" action="user_edit" method="POST">
   <div class="three fields">
     {% if data.experimenter is defined %} 
     <div class="field">
@@ -99,7 +99,7 @@ function user_action(action) {
 </form>
 
 <div class="ui hidden divider"></div>
-<form id="exp_form" class="ui form" action="user_authorize" method="POST">
+<form id="exp_form" class="ui form" action="user_edit" method="POST">
   {% if data.member_of_exp is defined %}
   <table class="ui celled table">
     <thead>
