@@ -954,7 +954,7 @@ class poms_service:
         task_jobsub_id = self.task_min_job(task_id)
 
         template = self.jinja_env.get_template('job_grid.html')
-        return template.render( blob=blob, job_counts = job_counts,  taskid = task_id, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, key = key, pomspath=self.path,help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id, campaign_id = campaign_id,cname = cname)
+        return template.render( blob=blob, job_counts = job_counts,  taskid = task_id, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), extramap = extramap, do_refresh = 1, key = key, pomspath=self.path,help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id, campaign_id = campaign_id,cname = cname)
 
 
     @cherrypy.expose
@@ -1125,7 +1125,7 @@ class poms_service:
 
 	blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(tmin)19.19s&tmax=%(tmax)19.19s',extramap = extramap )
               
-        return template.render( job_counts = job_counts, blob = blob, name = name, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, help_page="CampaignTimeBarsHelp")
+        return template.render( job_counts = job_counts, blob = blob, name = name, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, extramap = extramap, help_page="CampaignTimeBarsHelp")
 
     def task_min_job(self, task_id):
         # find the job with the logs -- minimum jobsub_job_id for this task
@@ -1709,6 +1709,8 @@ class poms_service:
               "group": group,
             },
             "setup poms_jobsub_wrapper v0_3 -z /grid/fermiapp/products/common/db",
+            "export POMS_CAMPAIGN_ID=%s" % c.campaign_id, 
+            "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id, 
             "export JOBSUB_GROUP=%s" % group,
 	]
         params = OrderedDict(json.loads(cd.definition_parameters))
