@@ -47,8 +47,23 @@
 
     
     
-    <body id="example" class="started" ontouchstart="">
+<body id="example" class="started" ontouchstart="">
         
+  <!--modal for messages-->
+  <div class="ui modal" id="display_message_modal">
+    <i class="close icon"></i>
+    <div class="header">
+      Message
+    </div>
+    <div class="ui text container">
+      <div class="one field">
+	<div class="field">
+	  <label id="poms_message_data"></label>
+	</div>
+      </div>
+      <div class="ui hidden divider"></div>
+    </div>
+  </div> <!-- Ends display_message_modal  -->
         
         
         
@@ -130,7 +145,7 @@
                         Failed_By Exit Code and Campaign Name (Last Day)
                     </a>
                     <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=7&f=user_exe_exit_code&f=name">
-                        Failed_By Exit Code and Campaign Nmae (Last Week)
+                        Failed_By Exit Code and Campaign Name (Last Week)
                     </a>
                     <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=node_name">
                         Failed_By Exit Code and Node Name (Last Day)
@@ -423,8 +438,6 @@ $('.tbox_delayed')
     }
   })
 ;
-
-$("#spw").dropdown();
 
 </script>
 

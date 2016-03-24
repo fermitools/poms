@@ -355,12 +355,8 @@ class poms_service:
         return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="RawTablesHelp")
         
     @cherrypy.expose
-    def user_edit(self, data={'message':None}):
-        template = self.jinja_env.get_template('user_edit.html')
-        return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
-
-    @cherrypy.expose
-    def user_authorize(self, *args, **kwargs):
+    def user_edit(self, *args, **kwargs):
+        db = cherrypy.request.db 
         message = None
         data = {}
         email = kwargs.pop('email',None)
@@ -371,46 +367,49 @@ class poms_service:
 
         if action == 'membership':
             e_id = kwargs.pop('experimenter_id',None)
-            cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e_id).update({"active":False})
+            db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e_id).update({"active":False})
             for key,exp in kwargs.items():
                 updated = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e_id).filter(ExperimentsExperimenters.experiment==exp).update({"active":True})
                 if updated==0:
                     cherrypy.request.db.add( ExperimentsExperimenters(e_id,exp,True) )
-            cherrypy.request.db.commit()
+            db.commit()
 
         elif action == "add":
-            if cherrypy.request.db.query(Experimenter).filter(Experimenter.email==email).one():
+            if db.query(Experimenter).filter(Experimenter.email==email).one():
                 message = "An experimenter with the email %s already exists" %  email
             else:
-                cherrypy.request.db.add( Experimenter(kwargs.get('first_name'), kwargs.get('last_name'), email ))
-                cherrypy.request.db.commit()
+                db.add( Experimenter(kwargs.get('first_name'), kwargs.get('last_name'), email ))
+                db.commit()
 
         elif action == "edit":
             values = {"first_name" : kwargs.get('first_name'), 
                       "last_name"  : kwargs.get('last_name'),
                       "email"      : email}
-            cherrypy.request.db.query(Experimenter).filter(Experimenter.experimenter_id==kwargs.get('experimenter_id')).update(values)
-            cherrypy.request.db.commit()
+            db.query(Experimenter).filter(Experimenter.experimenter_id==kwargs.get('experimenter_id')).update(values)
+            db.commit()
 
         if email:
-            experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == email ).first()
+            experimenter = query(Experimenter).filter(Experimenter.email == email ).first()
             if experimenter == None:
                 message = "There is no experimenter with the email %s" % email
             else:
                 data['experimenter'] = experimenter
-                data['member_of_exp'] = cherrypy.request.db.query(ExperimentsExperimenters).filter(
+                data['member_of_exp'] = db.query(ExperimentsExperimenters).filter(
                     ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
-                subquery = cherrypy.request.db.query(ExperimentsExperimenters.experiment).filter(
+                subquery = db.query(ExperimentsExperimenters.experiment).filter(
                     ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
-                data['not_member_of_exp'] = cherrypy.request.db.query(Experiment).filter(~Experiment.experiment.in_(subquery))
+                data['not_member_of_exp'] = db.query(Experiment).filter(~Experiment.experiment.in_(subquery))
 
         data['message'] = message
-        return self.user_edit(data)
+        template = self.jinja_env.get_template('user_edit.html')
+        return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
+
 
     @cherrypy.expose
     def experiment_members(self, *args, **kwargs):
+        db = cherrypy.request.db 
         exp = kwargs['experiment']
-        query = cherrypy.request.db.query(Experiment,ExperimentsExperimenters,Experimenter).join(ExperimentsExperimenters).join(Experimenter).filter(Experiment.name==exp).order_by(ExperimentsExperimenters.active.desc(),Experimenter.last_name)
+        query = db.query(Experiment,ExperimentsExperimenters,Experimenter).join(ExperimentsExperimenters).join(Experimenter).filter(Experiment.name==exp).order_by(ExperimentsExperimenters.active.desc(),Experimenter.last_name)
         trows=""
         for experiment, e2e, experimenter in query:
             active = "No"
@@ -422,12 +421,14 @@ class poms_service:
 
     @cherrypy.expose
     def experiment_edit(self, message=None):
-        experiments = cherrypy.request.db.query(Experiment).order_by(Experiment.experiment)
+        db = cherrypy.request.db
+        experiments = db.query(Experiment).order_by(Experiment.experiment)
         template = self.jinja_env.get_template('experiment_edit.html')
         return template.render(message=message, experiments=experiments, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="ExperimentEditHelp")
         
     @cherrypy.expose
     def experiment_authorize(self, *args, **kwargs):
+        db = cherrypy.request.db
         if not self.can_db_admin():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
 
@@ -437,7 +438,7 @@ class poms_service:
             experiment = kwargs.pop('experiment')
             name = kwargs.pop('name')
             try:
-                cherrypy.request.db.query(Experiment).filter(Experiment.experiment==experiment).one()
+                db.query(Experiment).filter(Experiment.experiment==experiment).one()
                 message = "Experiment, %s,  already exists." % experiment
             except NoResultFound:
                 exp = Experiment(experiment=experiment, name=name)
@@ -449,12 +450,15 @@ class poms_service:
         try:
             experiment = None
             for experiment in kwargs:
-                cherrypy.request.db.query(Experiment).filter(Experiment.experiment==experiment).delete()
-                pass
+                db.query(Experiment).filter(Experiment.experiment==experiment).delete()
             cherrypy.request.db.commit()
-        except:
-            cherrypy.request.db.rollback()
+        except IntegrityError, e:
             message = "The experiment, %s, is used and may not be deleted." % experiment
+            cherrypy.log(e.message)
+            db.rollback()
+        except SQLAlchemyError, e: 
+            cherrypy.request.db.rollback()
+            message = "SqlAlchemy error - %s" % e.message
             cherrypy.log(e.message)
 
         return self.experiment_edit(message)
@@ -505,13 +509,13 @@ class poms_service:
                 cherrypy.log(e.message)
                 db.rollback()
             except SQLAlchemyError, e:
-                message = "SQLAlchemyError.  Please report this to the administrator."
+                message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
                 cherrypy.log(e.message)
                 db.rollback()
             else:
                 db.commit()
 
-        # Find experiments layout templates
+        # Find templates
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
             data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
@@ -540,7 +544,7 @@ class poms_service:
             except:
                 db.rollback()
                 message = "The campaign definition, %s, is in use and may not be deleted." % name
-                cherrypy.log(e.message)
+                cherrypy.log(message)
 
         if action == 'add' or action == 'edit':
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
@@ -573,13 +577,13 @@ class poms_service:
                 cherrypy.log(e.message)
                 db.rollback()
             except SQLAlchemyError, e:
-                message = "SQLAlchemyError.  Please report this to the administrator."
+                message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
                 cherrypy.log(e.message)
                 db.rollback()
             else:
                 db.commit()
 
-        # Find experiments layout templates
+        # Find definitions 
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
             data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
@@ -590,6 +594,108 @@ class poms_service:
         return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="CampaignDefinitionEditHelp")
 
+
+    @cherrypy.expose
+    def campaign_edit(self, *args, **kwargs):
+        db = cherrypy.request.db
+        data = {}
+        message = None
+        data['exp_selections'] = db.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
+
+        action = kwargs.pop('action',None)
+        exp = kwargs.pop('experiment',None)
+
+        if action == 'delete':
+            name = kwargs.pop('name')
+            try:
+                db.query(Campaign).filter(Campaign.experiment==exp).filter(Campaign.name==name).delete()
+                db.commit()
+            except:
+                db.rollback()
+                message = "The campaign definition, %s, has been used and may not be deleted." % name
+                cherrypy.log(message)
+
+        if action == 'add' or action == 'edit':
+            campaign_id = kwargs.pop('ae_campaign_id')
+            name = kwargs.pop('ae_campaign_name')
+            vo_role = kwargs.pop('ae_vo_role')
+            software_version = kwargs.pop('ae_software_version')
+            dataset = kwargs.pop('ae_dataset')
+            param_overrides = kwargs.pop('ae_param_overrides')
+            campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
+            launch_id = kwargs.pop('ae_launch_id')
+            experimenter_id = kwargs.pop('experimenter_id')
+            try:
+                if action == 'add':
+                    c = Campaign(campaign_id=campaign_id, name=name, experiment=exp,vo_role=vo_role, 
+                                 software_version=software_version, dataset=dataset,
+                                 param_overrides=param_overrides, launch_id=launch_id,
+                                 campaign_definition_id=campaign_definition_id, 
+                                 creator=experimenter_id, created=datetime.now(utc))
+
+                    db.add(c)
+                else:
+                    columns = {"name":                  name,
+                               "vo_role":               vo_role,
+                               "software_version":      software_version,
+                               "dataset" :              dataset,
+                               "param_overrides":       param_overrides,
+                               "campaign_definition_id":campaign_definition_id,
+                               "launch_id":             launch_id,
+                               "updated":               datetime.now(utc),
+                               "updater":               experimenter_id
+                               }
+                    cd = db.query(Campaign).filter(Campaign.campaign_id==campaign_id).update(columns)
+            except IntegrityError, e:
+                message = "Integrity error - you are most likely using a name which already exists in database."
+                cherrypy.log(e.message)
+                db.rollback()
+            except SQLAlchemyError, e:
+                message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
+                cherrypy.log(e.message)
+                db.rollback()
+            else:
+                db.commit()
+
+
+        # Find campaigns
+        if exp: # cuz the default is find
+            data['curr_experiment'] = exp
+            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            data['campaigns'] = db.query(Campaign).filter(Campaign.experiment==exp).order_by(Campaign.name)
+            data['definitions'] = db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
+            data['templates'] = db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
+
+            
+        data['message'] = message
+        template = self.jinja_env.get_template('campaign_edit.html')
+        return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
+                               pomspath=self.path,help_page="CampaignEditHelp")
+
+    @cherrypy.expose
+    def campaign_edit_query(self, *args, **kwargs):
+        db = cherrypy.request.db
+        data = {}
+        ae_launch_id = kwargs.pop('ae_launch_id',None)
+        ae_campaign_definition_id = kwargs.pop('ae_campaign_definition_id',None)
+
+        if ae_launch_id:
+            template = {}
+            temp = db.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).first()
+            template['launch_host'] = temp.launch_host
+            template['launch_account'] = temp.launch_account
+            template['launch_setup'] = temp.launch_setup
+            data['template'] = template
+
+        if ae_campaign_definition_id:
+            definition = {}
+            cdef = db.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==ae_campaign_definition_id).first()
+            definition['input_files_per_job'] = cdef.input_files_per_job
+            definition['output_files_per_job'] = cdef.output_files_per_job
+            definition['launch_script'] = cdef.launch_script
+            definition['definition_parameters'] = cdef.definition_parameters
+            data['definition'] = definition
+        return json.dumps(data)
 
     @cherrypy.expose
     def list_generic(self, classname):

@@ -43,7 +43,7 @@
   </select>
 
   {% if data.curr_experiment is defined %} 
-  <table class="ui celled table">
+  <table class="ui sortable celled table">
     <thead>
       <tr>
 	<th></th>
@@ -113,23 +113,10 @@
   </div>
 </div> <!-- Ends confirm_modal -->
 
-<div class="ui modal" id="display_message_modal">
-  <i class="close icon"></i>
-  <div class="header">
-    Message
-  </div>
-    <div class="one field">
-      <div class="field">
-	<label>{{data.message}}</label>
-      </div>
-    </div>
-    <div class="ui hidden divider"></div>
-</div> <!-- Ends display_message_modal  -->
-
 <div class="ui modal" id="template_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header" id="template_header">
-    Layout Template Editor (SPUD)
+    Launch Template Editor (SPUD)
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
@@ -186,7 +173,7 @@ $("#experiment").change(function() {
 
   function delete_template(name) {
     var template = name; 
-    $("#confirm_modal_message").text("Delete the layout template named " +name+" ?")
+    $("#confirm_modal_message").text("Delete the launch template named " +name+" ?")
     mod_form = $("#confirm_modal").modal({
     closable  : false,
     onApprove : function(){
@@ -198,7 +185,7 @@ $("#experiment").change(function() {
   }
 
   function edit_template(launch_id, name, launch_host, launch_account, launch_setup) {
-    $("#template_header").text("Layout Template Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
+    $("#template_header").text("Launch Template Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
     $("#ae_launch_action").val("edit")
     $("#ae_launch_id").val(launch_id)
     $("#ae_launch_name").val(name)
@@ -211,17 +198,17 @@ $("#experiment").change(function() {
 
   function add_template() {
     $("#template_add_edit_modal").form('reset');
-    $("#template_header").text("Layout Template Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
+    $("#template_header").text("Launch Template Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
     $("#ae_experiment").val("{{ data.curr_experiment if data.curr_experiment is defined}}");
     $("#template_add_edit_modal").modal({}).modal('show');
   }
 
-setTimeout(function(){
+$(document).ready(function(){
   if ("{{ data.message }}" != "None") {
+    $("#poms_message_data").text("{{ data.message }}");
     $("#display_message_modal").modal('show');  
   }
-}, 1000);
-
+});
 
 $('.ui.dropdown')
   .dropdown()
