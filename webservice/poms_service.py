@@ -568,8 +568,8 @@ class poms_service:
             experimenter_id = kwargs.pop('experimenter_id')
             try:
                 if action == 'add':
-                    cd = CampaignDefinition(campaign_definition_id=campaign_definition_id, name=name, experiment=experiment,
-                                            input_files_per_job=input_file_per_job, output_files_per_job=output_files_per_job,
+                    cd = CampaignDefinition(campaign_definition_id=campaign_definition_id, name=name, experiment=exp,
+                                            input_files_per_job=input_files_per_job, output_files_per_job = output_files_per_job,
                                             launch_script=launch_script, definition_parameters=definition_parameters, 
                                             creator=experimenter_id, created=datetime.now(utc))
 
@@ -643,7 +643,7 @@ class poms_service:
             experimenter_id = kwargs.pop('experimenter_id')
             try:
                 if action == 'add':
-                    c = Campaign(campaign_id=campaign_id, name=name, experiment=exp,vo_role=vo_role, 
+                    c = Campaign(name=name, experiment=exp,vo_role=vo_role, 
                                  software_version=software_version, dataset=dataset,
                                  param_overrides=param_overrides, launch_id=launch_id,
                                  campaign_definition_id=campaign_definition_id, 
@@ -1074,7 +1074,7 @@ class poms_service:
         task_jobsub_id = self.task_min_job(task_id)
 
         template = self.jinja_env.get_template('job_grid.html')
-        return template.render( blob=blob, job_counts = job_counts,  taskid = task_id, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, key = key, pomspath=self.path,help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id, campaign_id = campaign_id,cname = cname)
+        return template.render( blob=blob, job_counts = job_counts,  taskid = task_id, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), extramap = extramap, do_refresh = 1, key = key, pomspath=self.path,help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id, campaign_id = campaign_id,cname = cname)
 
 
     @cherrypy.expose
@@ -1179,7 +1179,7 @@ class poms_service:
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
-        cl = cherrypy.request.db.query(Campaign).filter(Task.campaign_id == Campaign.campaign_id, Campaign.active == True ).order_by(Campaign.experiment).all()
+        cl = cherrypy.request.db.query(Campaign).filter(Campaign.active == True ).order_by(Campaign.experiment).all()
 
         counts = {}
         counts_keys = {}
@@ -1245,7 +1245,7 @@ class poms_service:
 
 	blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(tmin)19.19s&tmax=%(tmax)19.19s',extramap = extramap )
               
-        return template.render( job_counts = job_counts, blob = blob, name = name, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, help_page="CampaignTimeBarsHelp")
+        return template.render( job_counts = job_counts, blob = blob, name = name, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, extramap = extramap, help_page="CampaignTimeBarsHelp")
 
     def task_min_job(self, task_id):
         # find the job with the logs -- minimum jobsub_job_id for this task
@@ -1829,10 +1829,16 @@ class poms_service:
               "group": group,
             },
             "setup poms_jobsub_wrapper v0_3 -z /grid/fermiapp/products/common/db",
+            "export POMS_CAMPAIGN_ID=%s" % c.campaign_id, 
+            "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id, 
             "export JOBSUB_GROUP=%s" % group,
 	]
-        params = OrderedDict(json.loads(cd.definition_parameters))
-        if c.param_overrides != None:
+        if cd.definition_parameters:
+           params = OrderedDict(json.loads(cd.definition_parameters))
+        else:
+           params = OrderedDict([])
+
+        if c.param_overrides != None and c.param_overrides != "":
             params.update(json.loads(c.param_overrides))
         
         lcmd = cd.launch_script + " " + ' '.join((x[0]+x[1]) for x in params.items())
@@ -2117,3 +2123,5 @@ class poms_service:
         #return dims + "<br>" + str(res)
 	template = self.jinja_env.get_template('actual_pending_files.html')
 	return template.render( tmin = str(tmin)[:16], tmax = str(tmax)[:16], days = str(tdays),  next = nextlink, prev = prevlink,c = c, campaign_id = campaign_id, count_or_list = count_or_list , flist = flist, count = count,  task_id = task_id,  current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ActualPendingFilesHelp", tasklist = tasklist)
+
+
