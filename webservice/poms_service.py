@@ -55,7 +55,8 @@ class poms_service:
     @cherrypy.expose
     def index(self):
         template = self.jinja_env.get_template('service_statuses.html')
-        return template.render(services=self.service_status_hier('All'),current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, pomspath=self.path,help_page="DashboardHelp")
+        return template.render(services=self.service_status_hier('All'),current_experimenter=cherrypy.session.get('experimenter'),
+                               do_refresh = 1, pomspath=self.path,help_page="DashboardHelp")
 
     def can_create_task(self):
         ra =  cherrypy.request.headers.get('Remote-Addr', None)
@@ -352,7 +353,8 @@ class poms_service:
         if not self.can_db_admin():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
-        return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="RawTablesHelp")
+        return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'),
+                               pomspath=self.path,help_page="RawTablesHelp")
         
     @cherrypy.expose
     def user_edit(self, *args, **kwargs):
@@ -366,10 +368,15 @@ class poms_service:
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
 
         if action == 'membership':
+            # To update memberships set all the tags to false and then reset the needed ones to true.
             e_id = kwargs.pop('experimenter_id',None)
             db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e_id).update({"active":False})
             for key,exp in kwargs.items():
-                updated = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e_id).filter(ExperimentsExperimenters.experiment==exp).update({"active":True})
+                updated = (
+                    db.query(ExperimentsExperimenters)
+                    .filter(ExperimentsExperimenters.experimenter_id==e_id)
+                    .filter(ExperimentsExperimenters.experiment==exp).update({"active":True})
+                    )
                 if updated==0:
                     cherrypy.request.db.add( ExperimentsExperimenters(e_id,exp,True) )
             db.commit()
@@ -389,15 +396,15 @@ class poms_service:
             db.commit()
 
         if email:
-            experimenter = query(Experimenter).filter(Experimenter.email == email ).first()
+            experimenter = db.query(Experimenter).filter(Experimenter.email == email ).first()
             if experimenter == None:
                 message = "There is no experimenter with the email %s" % email
             else:
                 data['experimenter'] = experimenter
-                data['member_of_exp'] = db.query(ExperimentsExperimenters).filter(
-                    ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
-                subquery = db.query(ExperimentsExperimenters.experiment).filter(
-                    ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
+                # Experiments that are members of an experiment can be active or inactive
+                data['member_of_exp'] = db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
+                # Experimenters that were never a member of an experiment will not have an entry in the experiments_experimenters table for that experiment
+                subquery = db.query(ExperimentsExperimenters.experiment).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
                 data['not_member_of_exp'] = db.query(Experiment).filter(~Experiment.experiment.in_(subquery))
 
         data['message'] = message
@@ -409,7 +416,11 @@ class poms_service:
     def experiment_members(self, *args, **kwargs):
         db = cherrypy.request.db 
         exp = kwargs['experiment']
-        query = db.query(Experiment,ExperimentsExperimenters,Experimenter).join(ExperimentsExperimenters).join(Experimenter).filter(Experiment.name==exp).order_by(ExperimentsExperimenters.active.desc(),Experimenter.last_name)
+        query = (db.query(Experiment,ExperimentsExperimenters,Experimenter)
+                 .join(ExperimentsExperimenters).join(Experimenter)
+                 .filter(Experiment.name==exp)
+                 .order_by(ExperimentsExperimenters.active.desc(),Experimenter.last_name)
+                 )
         trows=""
         for experiment, e2e, experimenter in query:
             active = "No"
@@ -424,7 +435,8 @@ class poms_service:
         db = cherrypy.request.db
         experiments = db.query(Experiment).order_by(Experiment.experiment)
         template = self.jinja_env.get_template('experiment_edit.html')
-        return template.render(message=message, experiments=experiments, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="ExperimentEditHelp")
+        return template.render(message=message, experiments=experiments, current_experimenter=cherrypy.session.get('experimenter'),
+                               pomspath=self.path,help_page="ExperimentEditHelp")
         
     @cherrypy.expose
     def experiment_authorize(self, *args, **kwargs):
@@ -587,7 +599,11 @@ class poms_service:
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
             data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
-            data['definitions'] = db.query(CampaignDefinition,Experiment).join(Experiment).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
+            data['definitions'] = (db.query(CampaignDefinition,Experiment)
+                                   .join(Experiment)
+                                   .filter(CampaignDefinition.experiment==exp)
+                                   .order_by(CampaignDefinition.name)
+                                   )
 
         data['message'] = message
         template = self.jinja_env.get_template('campaign_definition_edit.html')
@@ -657,7 +673,6 @@ class poms_service:
             else:
                 db.commit()
 
-
         # Find campaigns
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
@@ -665,7 +680,6 @@ class poms_service:
             data['campaigns'] = db.query(Campaign).filter(Campaign.experiment==exp).order_by(Campaign.name)
             data['definitions'] = db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
             data['templates'] = db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
-
             
         data['message'] = message
         template = self.jinja_env.get_template('campaign_edit.html')
