@@ -1857,7 +1857,7 @@ class poms_service:
         cherrypy.response.headers['Content-Type'] = 'application/json'
         response = {}
 
-        if self.can_db_admin():
+        if cherrypy.session.get('experimenter').is_authorized(experiment):
 
             tag = cherrypy.request.db.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()
 
@@ -1899,9 +1899,9 @@ class poms_service:
 
 
     @cherrypy.expose
-    def delete_campaigns_tags(self, campaign_id, tag_id):
+    def delete_campaigns_tags(self, campaign_id, tag_id, experiment):
         cherrypy.response.headers['Content-Type'] = 'application/json'
-        if self.can_db_admin():
+        if cherrypy.session.get('experimenter').is_authorized(experiment):
             cherrypy.request.db.query(CampaignsTags).filter(CampaignsTags.campaign_id == campaign_id, CampaignsTags.tag_id == tag_id).delete()
             cherrypy.request.db.commit()
             response = {"msg": "OK"}

@@ -40,7 +40,7 @@ $( document ).ready(function() {
         var t_id = item.id.split("_")[1];
         var clicked_id = "#"+item.id
 
-        $.post('delete_campaigns_tags', {campaign_id: c_id, tag_id: t_id}, function(data) {
+        $.post('delete_campaigns_tags', {campaign_id: c_id, tag_id: t_id, experiment: {{campaign.experiment}}}, function(data) {
             if(data.msg == "OK")
             {
                 $('#response').html(data.msg);
