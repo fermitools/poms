@@ -1814,6 +1814,8 @@ class poms_service:
         cd = c.campaign_definition_obj
         lt = c.launch_template_obj
 
+        # if cherrypy.session.get('experimenter').is_authorized(c.experiment):
+
         dataset = self.get_dataset_for(c)
 
         group = c.experiment
