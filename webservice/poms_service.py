@@ -568,7 +568,7 @@ class poms_service:
             experimenter_id = kwargs.pop('experimenter_id')
             try:
                 if action == 'add':
-                    cd = CampaignDefinition(campaign_definition_id=campaign_definition_id, name=name, experiment=exp,
+                    cd = CampaignDefinition( name=name, experiment=exp,
                                             input_files_per_job=input_files_per_job, output_files_per_job = output_files_per_job,
                                             launch_script=launch_script, definition_parameters=definition_parameters, 
                                             creator=experimenter_id, created=datetime.now(utc))
