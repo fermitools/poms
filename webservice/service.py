@@ -3,15 +3,16 @@
 import sys
 import os
 
+if 0:
 # make sure poms is setup...
-if os.environ.get("SETUP_POMS","") == "":
-    sys.path.insert(0,os.environ.get('SETUPS_DIR',os.environ.get('HOME')+'/products'))
-    import setups
-    print "setting up poms..."
-    ups = setups.setups()
-    ups.use_package("poms","","SETUP_POMS")
-else:
-    print "already setup"
+    if os.environ.get("SETUP_POMS","") == "":
+        sys.path.insert(0,os.environ.get('SETUPS_DIR',os.environ.get('HOME')+'/products'))
+        import setups
+        print "setting up poms..."
+        ups = setups.setups()
+        ups.use_package("poms","","SETUP_POMS")
+    else:
+        print "already setup"
 
 
 from model.poms_model import Experimenter, ExperimentsExperimenters
