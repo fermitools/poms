@@ -1360,7 +1360,7 @@ class poms_service:
         return cherrypy.request.project_fetcher.fetch_info(t.campaign_obj.experiment, t.project)
 
     def project_summary_for_tasks(self, task_list):
-        print "*********** len(task_list)=%s" % len(task_list)      #VP Debug
+        #~ print "*********** len(task_list)=%s" % len(task_list)      #VP Debug
         return cherrypy.request.project_fetcher.fetch_info_list(task_list)
         #~ return [ {"tot_consumed": 0, "tot_failed": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
 
@@ -1425,7 +1425,7 @@ class poms_service:
                 .options(joinedload('jobs'))
                 .all())
         psl = self.project_summary_for_tasks(tl)        # Get project summary list for a given task list in one query
-        print "************* len(psl)=%s" % len(psl)
+        #~ print "************* len(psl)=%s" % len(psl)
 
         el = cherrypy.request.db.query(distinct(Job.user_exe_exit_code)).filter(Job.updated >= tmin, Job.updated <= tmax).all()
 
