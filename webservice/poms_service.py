@@ -1413,7 +1413,7 @@ class poms_service:
 
 
     @cherrypy.expose
-    def campaign_sheet(self, campaign_id, tmin = None, tmax = None , tdays = 14):
+    def campaign_sheet(self, campaign_id, tmin = None, tmax = None , tdays = 7):
 
         daynames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"]
 

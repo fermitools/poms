@@ -6,6 +6,7 @@ import json
 import time
 import concurrent.futures
 import requests
+import pprint       #VP Debug
 
 class project_fetcher:
     def __init__(self):
@@ -19,7 +20,7 @@ class project_fetcher:
 
         if p and (time.time() - t < self.valid or
                    p['project_status'] == "completed"):
-             return 1
+            return 1
 
         return 0
 
@@ -52,11 +53,10 @@ class project_fetcher:
         #~ return [ {"tot_consumed": 0, "tot_failed": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
         base = "http://samweb.fnal.gov:8480"
         urls = ["%s/sam/%s/api/projects/name/%s/summary?format=json" % (base, t.campaign_obj.experiment, t.project) for t in task_list]
-        #~ print "urls=", urls   #VP Debug
+        print "urls=",          #VP Debug
+        pprint.pprint(urls)     #VP Debug
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
             replies = executor.map(requests.get, urls)
-        #~ rr = [json.loads(r) for r in replies]
-        #~ rr = [r.text for r in replies]
         infos = []
         for r in replies:
             try:
@@ -65,7 +65,7 @@ class project_fetcher:
                 infos.append(info)
             except:
                 infos.append({})
-        print "infos=", infos[:5]   #VP Debug
+        pprint.pprint(infos[:3])   #VP Debug
         return infos
 
     def do_totals(self,info):
