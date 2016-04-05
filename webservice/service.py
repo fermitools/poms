@@ -3,7 +3,7 @@
 import sys
 import os
 
-if 0:
+if 1:
     # make sure poms is setup...
     if os.environ.get("SETUP_POMS","") == "":
         sys.path.insert(0,os.environ.get('SETUPS_DIR',os.environ.get('HOME')+'/products'))
