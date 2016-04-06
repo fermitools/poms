@@ -2133,7 +2133,7 @@ class poms_service:
 	return template.render( tmin = str(tmin)[:16], tmax = str(tmax)[:16], days = str(tdays),  next = nextlink, prev = prevlink,c = c, campaign_id = campaign_id, count_or_list = count_or_list , flist = flist, count = count,  task_id = task_id,  current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ActualPendingFilesHelp", tasklist = tasklist)
 
     def get_pending_count(self, task_id):
-        dims = self.get_pending_dims(self,  task_id = task_id)
+        dims = self.get_pending_dims( task_id = task_id)
         count = cherrypy.request.project_fetcher.count_files(c.experiment, dims)
         return count
 
