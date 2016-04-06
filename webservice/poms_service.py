@@ -1634,7 +1634,7 @@ class poms_service:
         tl = (cherrypy.request.db.query(Task)
                 .filter(Task.campaign_id==campaign_id, Task.created > tmin, Task.created < tmax)
                 .order_by(desc(Task.created))
-                .options(joinedload('jobs'))
+                .options(joinedload(Task.jobs))
                 .all())
         psl = self.project_summary_for_tasks(tl)        # Get project summary list for a given task list in one query
 
@@ -1649,7 +1649,7 @@ class poms_service:
         day = -1
         date = None
         first = 1
-        columns = ['day','date','requested files','delivered files','jobs','failed','outfiles','inflight','pending']
+        columns = ['day','date','requested files','delivered files','jobs','failed','outfiles','pending']
         exitcodes.sort()
         for e in exitcodes:
             columns.append('exit(%d)'%e)
@@ -1853,7 +1853,7 @@ class poms_service:
             "export POMS_CAMPAIGN_ID=%s" % c.campaign_id,
             "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id,
             "export JOBSUB_GROUP=%s" % group,
-	]
+        ]
         if cd.definition_parameters:
            params = OrderedDict(json.loads(cd.definition_parameters))
         else:
@@ -2012,10 +2012,10 @@ class poms_service:
 
     @cherrypy.expose
     def schedule_launch(self, campaign_id ):
-	c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-	my_crontab = CronTab(user=True)
-	citer = my_crontab.find_comment("POMS_CAMPAIGN_ID=%s" % campaign_id)
-	# there should be only zero or one...
+        c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        my_crontab = CronTab(user=True)
+        citer = my_crontab.find_comment("POMS_CAMPAIGN_ID=%s" % campaign_id)
+        # there should be only zero or one...
         job = None
         for job in citer:
             break
@@ -2027,74 +2027,74 @@ class poms_service:
         launch_flist = glob.glob('%s/*' % dirname)
         launch_flist = map(os.path.basename, launch_flist)
 
-	template = self.jinja_env.get_template('campaign_launch_schedule.html')
-	return template.render(  c = c, campaign_id = campaign_id, job = job, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ScheduleLaunchHelp", launch_flist= launch_flist)
+        template = self.jinja_env.get_template('campaign_launch_schedule.html')
+        return template.render(  c = c, campaign_id = campaign_id, job = job, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ScheduleLaunchHelp", launch_flist= launch_flist)
 
     @cherrypy.expose
     def update_launch_schedule(self, campaign_id, dowlist = None,  domlist = None, monthly = None, month = None, hourlist = None, submit = None , minlist = None, delete = None):
 
-	# deal with single item list silliness
-	if isinstance(minlist, basestring):
-	   minlist = minlist.split(",")
-	if isinstance(hourlist, basestring):
-	   hourlist = hourlist.split(",")
-	if isinstance(dowlist, basestring):
-	   dowlist = dowlist.split(",")
-	if isinstance(domlist, basestring):
-	   domlist = domlist.split(",")
+        # deal with single item list silliness
+        if isinstance(minlist, basestring):
+           minlist = minlist.split(",")
+        if isinstance(hourlist, basestring):
+           hourlist = hourlist.split(",")
+        if isinstance(dowlist, basestring):
+           dowlist = dowlist.split(",")
+        if isinstance(domlist, basestring):
+           domlist = domlist.split(",")
 
         cherrypy.log("hourlist is %s " % hourlist)
 
         if minlist[0] == "*":
             minlist = None
         else:
-	    minlist = [int(x) for x in minlist if x != '']
+            minlist = [int(x) for x in minlist if x != '']
 
         if hourlist[0] == "*":
             hourlist = None
         else:
-	    hourlist = [int(x) for x in hourlist if x != '']
+            hourlist = [int(x) for x in hourlist if x != '']
 
         if dowlist[0] == "*":
             dowlist = None
         else:
-	    # dowlist[0] = [int(x) for x in dowlist if x != '']
+            # dowlist[0] = [int(x) for x in dowlist if x != '']
             pass
 
         if domlist[0] == "*":
             domlist = None
         else:
-	    domlist = [int(x) for x in domlist if x != '']
+            domlist = [int(x) for x in domlist if x != '']
 
-	my_crontab = CronTab(user=True)
-	# clean out old
-	my_crontab.remove_all(comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
+        my_crontab = CronTab(user=True)
+        # clean out old
+        my_crontab.remove_all(comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
 
         if not delete:
 
-	    # make job for new
-	    job = my_crontab.new(command="%s/cron/launcher --campaign_id=%s" % (
-			      os.environ.get("POMS_DIR","/etc"), campaign_id),
-			      comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
+            # make job for new
+            job = my_crontab.new(command="%s/cron/launcher --campaign_id=%s" % (
+                              os.environ.get("POMS_DIR","/etc"), campaign_id),
+                              comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
 
-	    # set timing...
-	    if dowlist:
-		job.dow.on(*dowlist)
+            # set timing...
+            if dowlist:
+                job.dow.on(*dowlist)
 
-	    if minlist:
-		job.minute.on(*minlist)
+            if minlist:
+                job.minute.on(*minlist)
 
-	    if hourlist:
-		job.hour.on(*hourlist)
+            if hourlist:
+                job.hour.on(*hourlist)
 
-	    if domlist:
-		job.day.on(*domlist)
+            if domlist:
+                job.day.on(*domlist)
 
-	    job.enable()
+            job.enable()
 
-	my_crontab.write()
+        my_crontab.write()
 
-	raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id )
+        raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id )
 
 
     @cherrypy.expose
@@ -2106,9 +2106,9 @@ class poms_service:
         # either way, we need info from the campaign
         #
         if campaign_id:
-	    c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+            c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
         if task_id:
-	    c = cherrypy.request.db.query(Campaign).join(Task).filter(Task.task_id == task_id , Campaign.campaign_id == Task.campaign_id ).first()
+            c = cherrypy.request.db.query(Campaign).join(Task).filter(Task.task_id == task_id , Campaign.campaign_id == Task.campaign_id ).first()
 
         #
         # now we build up a list of projects involved
@@ -2142,7 +2142,7 @@ class poms_service:
             count = None
             flist = cherrypy.request.project_fetcher.list_files(c.experiment, dims)
         #return dims + "<br>" + str(res)
-	template = self.jinja_env.get_template('actual_pending_files.html')
-	return template.render( tmin = str(tmin)[:16], tmax = str(tmax)[:16], days = str(tdays),  next = nextlink, prev = prevlink,c = c, campaign_id = campaign_id, count_or_list = count_or_list , flist = flist, count = count,  task_id = task_id,  current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ActualPendingFilesHelp", tasklist = tasklist)
+        template = self.jinja_env.get_template('actual_pending_files.html')
+        return template.render( tmin = str(tmin)[:16], tmax = str(tmax)[:16], days = str(tdays),  next = nextlink, prev = prevlink,c = c, campaign_id = campaign_id, count_or_list = count_or_list , flist = flist, count = count,  task_id = task_id,  current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ActualPendingFilesHelp", tasklist = tasklist)
 
 
