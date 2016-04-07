@@ -8,78 +8,20 @@ import concurrent.futures
 import requests
 
 class project_fetcher:
-     def __init__(self):
-         self.proj_cache = {}
-         self.proj_cache_time = {}
-         self.valid = 60
+    def __init__(self):
+        self.proj_cache = {}
+        self.proj_cache_time = {}
+        self.valid = 60
 
-     def have_cache(self,experiment,projid):
-         t = self.proj_cache_time.get(experiment+projid,0)
-         p = self.proj_cache.get(experiment+projid,None)
+    def have_cache(self, experiment, projid):
+        t = self.proj_cache_time.get(experiment+projid, 0)
+        p = self.proj_cache.get(experiment+projid, None)
 
-         if p and (time.time() - t < self.valid or 
-                    p['project_status'] == "completed"):
-              return 1
+        if p and (time.time() - t < self.valid or
+                   p['project_status'] == "completed"):
+            return 1
 
-         return 0
-
-     def do_totals(self,info):
-         tot_consumed = 0
-         tot_failed = 0
-         tot_jobs = 0
-         tot_jobfails = 0
-         tot_unknown = 0
-         for proc in info["processes"]:
-              tot_consumed = tot_consumed + proc["counts"]["consumed"]
-              tot_failed = tot_failed + proc["counts"]["failed"]
-              tot_unknown = tot_unknown + proc["counts"].get("unknown",0)
-              tot_jobs = tot_jobs + 1
-              if proc["status"] != "completed":
-                  tot_jobfails = tot_jobfails + 1
-
-         info["tot_consumed"] = tot_consumed
-         info["tot_failed"] = tot_failed
-         info["tot_unknown"] = tot_unknown
-         info["tot_jobs"] = tot_jobs
-         info["tot_jobfails"] = tot_jobfails
-
-     def list_files(self,experiment,dims):
-         base = "http://samweb.fnal.gov:8480"
-         url="%s/sam/%s/api/files/list" % (base,experiment)
-         try:
-	     res = urllib2.urlopen(url,urllib.urlencode({"dims":dims,"format":"json"}))
-	     text = res.read()
-             fl = json.loads(text)
-	     res.close()
-         except:
-             raise
-             fl = []
-         return fl 
-
-     def count_files(self,experiment,dims):
-         base = "http://samweb.fnal.gov:8480"
-         url="%s/sam/%s/api/files/count" % (base,experiment)
-         try:
-	     res = urllib2.urlopen(url,urllib.urlencode({"dims":dims}))
-	     text = res.read()
-             count = int(text)
-	     res.close()
-         except:
-             raise
-             count = 0
-         return count
-
-
-     def create_definition(self,experiment,name, dims):
-         base = "http://samweb.fnal.gov:8480"
-         url="%s/sam/%s/api/definitions/create" % (base,experiment)
-         try:
-	     res = urllib2.urlopen(url,urllib.urlencode({"name": name, "dims":dims,"user":os.environ.get("USER",os.environ.get("GRID_USER","sam"))}))
-	     text = res.read()
-	     res.close()
-         except:
-             raise
-         return "Ok."
+        return 0
 
     def fetch_info(self, experiment, projid):
 
@@ -106,7 +48,7 @@ class project_fetcher:
     def fetch_info_list(self, task_list):
         """
         """
-        #~ return [ {"tot_consumed": 0, "tot_failed": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
+        #~ return [ {"tot_consumed": 0, "tot_unknown": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
         base = "http://samweb.fnal.gov:8480"
         urls = ["%s/sam/%s/api/projects/name/%s/summary?format=json" % (base, t.campaign_obj.experiment, t.project) for t in task_list]
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
@@ -121,6 +63,63 @@ class project_fetcher:
                 infos.append({})
         return infos
 
+    def do_totals(self,info):
+        tot_consumed = 0
+        tot_unknown = 0
+        tot_unknown = 0
+        tot_jobs = 0
+        tot_jobfails = 0
+        for proc in info["processes"]:
+             tot_consumed += proc["counts"]["consumed"]
+             tot_unknown += proc["counts"]["unknown"]
+             tot_unknown += proc["counts"]["unknown"]
+             tot_jobs += 1
+             if proc["status"] != "completed":
+                 tot_jobfails += 1
+
+        info["tot_consumed"] = tot_consumed
+        info["tot_unknown"] = tot_unknown
+        info["tot_unknown"] = tot_unknown
+        info["tot_jobs"] = tot_jobs
+        info["tot_jobfails"] = tot_jobfails
+
+    def list_files(self, experiment, dims):
+        base = "http://samweb.fnal.gov:8480"
+        url="%s/sam/%s/api/files/list" % (base,experiment)
+        try:
+            res = urllib2.urlopen(url,urllib.urlencode({"dims":dims,"format":"json"}))
+            text = res.read()
+            fl = json.loads(text)
+            res.close()
+        except:
+            raise
+            fl = []
+        return fl
+
+    def count_files(self,experiment,dims):
+        base = "http://samweb.fnal.gov:8480"
+        url="%s/sam/%s/api/files/count" % (base,experiment)
+        try:
+            res = urllib2.urlopen(url,urllib.urlencode({"dims":dims}))
+            text = res.read()
+            count = int(text)
+            res.close()
+        except:
+            raise
+            count = 0
+        return count
+
+
+    def create_definition(self, experiment, name, dims):
+        base = "http://samweb.fnal.gov:8480"
+        url = "%s/sam/%s/api/definitions/create" % (base, experiment)
+        try:
+            res = urllib2.urlopen(url,urllib.urlencode({"name": name, "dims":dims,"user":os.environ.get("USER",os.environ.get("GRID_USER","sam"))}))
+            text = res.read()
+            res.close()
+        except:
+            raise
+        return "Ok."
 
 if __name__ == "__main__":
     import pprint
