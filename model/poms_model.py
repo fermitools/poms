@@ -15,7 +15,8 @@ class Campaign(Base):
     campaign_id = Column(Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)"))
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
     name = Column(Text, nullable=False)
-    campaign_definition_id = Column(ForeignKey(u'campaign_definitions.campaign_definition_id'), nullable=False, index=True, server_default=text("nextval('campaigns_campaign_definition_id_seq'::regclass)"))
+    campaign_definition_id = Column(ForeignKey(u'campaign_definitions.campaign_definition_id'), nullable=False, index=True,
+                                    server_default=text("nextval('campaigns_campaign_definition_id_seq'::regclass)"))
     creator = Column(ForeignKey(u'experimenters.experimenter_id'), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey(u'experimenters.experimenter_id'), index=True)
@@ -262,3 +263,20 @@ class CampaignsTags(Base):
 
     campaign_obj = relationship(Campaign, backref="campaigns_tags")
     tag_obj = relationship(Tag, backref="campaigns_tags")
+
+class OutputFile(Base):
+    __tablename__ = 'output_files'
+
+    def __init__(self, job_id=None, file_name=None, created=None, declared=None):
+        self.job_id = job_id
+        self.file_name = file_name
+        self.created = created
+        self.declared = declared
+    
+    job_id = Column(Integer, Foreign('jobs.job_id'), primary_key=True)
+    file_name = Column(Text, Primary_key=True, nullable=False)
+    created = Column(DateTime(True), nullable=False)
+    declared = Column(DateTime(True))
+    
+    job_obj = relationship(Job, backref='output_files')
+    
