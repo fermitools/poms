@@ -273,8 +273,8 @@ class OutputFile(Base):
         self.created = created
         self.declared = declared
     
-    job_id = Column(Integer, Foreign('jobs.job_id'), primary_key=True)
-    file_name = Column(Text, Primary_key=True, nullable=False)
+    job_id = Column(Integer, ForeignKey('jobs.job_id'), primary_key=True)
+    file_name = Column(Text, primary_key=True, nullable=False)
     created = Column(DateTime(True), nullable=False)
     declared = Column(DateTime(True))
     
