@@ -14,6 +14,8 @@ Action=setup
    SetupRequired(-j jobsub_client)
    SetupRequired(-j sam_web_client)
    SetupRequired(-j python_crontab)
+   SetupRequired(-j python_futures)
+   SetupRequired(-j python_request)
    PathPrepend(PYTHONPATH,${UPS_PROD_DIR})
 
 Action=start
