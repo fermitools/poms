@@ -2007,6 +2007,32 @@ class poms_service:
 
 
 
+
+
+
+
+    @cherrypy.expose
+    def auto_complete_tags_search(self, experiment, q):
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        response = {}
+        results = []
+        rows = cherrypy.request.db.query(Tag).filter(Tag.tag_name.like('%'+q+'%'), Tag.experiment == experiment).order_by(desc(Tag.tag_name)).all()
+        for row in rows:
+            results.append({"tag_name": row.tag_name})
+
+        response["results"] = results
+        return json.dumps(response)
+
+
+
+
+
+
+
+
+
+
+
     @cherrypy.expose
     def jobs_eff_histo(self, campaign_id, tmax = None, tmin = None, tdays = 1 ):
         """  use
