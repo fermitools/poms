@@ -1879,8 +1879,12 @@ class poms_service:
              cherrypy.response.status="404 Permission Denied."
              return "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
         experimenter_login = e.email[:e.email.find('@')]
+        lt.launch_account = lt.launch_account % {
+              "experimenter": experimenter_login,
+        }
 
         dataset = self.get_dataset_for(c)
+
 
         group = c.experiment
         if group == 'samdev': group = 'fermilab'
