@@ -6,6 +6,7 @@ import json
 import time
 import concurrent.futures
 import requests
+import traceback
 
 class project_fetcher:
     def __init__(self):
@@ -43,6 +44,7 @@ class project_fetcher:
             self.proj_cache_time[experiment+projid] = time.time()
             return info
         except:
+            traceback.print_exc()
             return {}
 
     def fetch_info_list(self, task_list):
@@ -66,19 +68,19 @@ class project_fetcher:
     def do_totals(self,info):
         tot_consumed = 0
         tot_unknown = 0
-        tot_unknown = 0
+        tot_failed = 0
         tot_jobs = 0
         tot_jobfails = 0
         for proc in info["processes"]:
              tot_consumed += proc["counts"]["consumed"]
-             tot_unknown += proc["counts"]["unknown"]
-             tot_unknown += proc["counts"]["unknown"]
+             tot_failed += proc["counts"]["failed"]
+             tot_unknown += proc["counts"].get("unknown", 0)
              tot_jobs += 1
              if proc["status"] != "completed":
                  tot_jobfails += 1
 
         info["tot_consumed"] = tot_consumed
-        info["tot_unknown"] = tot_unknown
+        info["tot_failed"] = tot_failed
         info["tot_unknown"] = tot_unknown
         info["tot_jobs"] = tot_jobs
         info["tot_jobfails"] = tot_jobfails
@@ -124,7 +126,7 @@ class project_fetcher:
 if __name__ == "__main__":
     import pprint
     pf = project_fetcher()
-    i = pf.fetch_info("nova","brebel-AnalysisSkimmer-20151120_0126")
+    i = pf.fetch_info("nova","arrieta1-Offsite_test_Caltech-20160404_1157")
     i2 = pf.fetch_info("nova","brebel-AnalysisSkimmer-20151120_0126")
     print "got:"
     pprint.pprint(i)
