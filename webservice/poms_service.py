@@ -367,9 +367,6 @@ class poms_service:
         email = kwargs.pop('email',None)
         action = kwargs.pop('action',None)
 
-        if action !='find' and (not self.can_db_admin()):
-             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-
         if action == 'membership':
             # To update memberships set all the tags to false and then reset the needed ones to true.
             e_id = kwargs.pop('experimenter_id',None)
