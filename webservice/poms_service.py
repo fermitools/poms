@@ -1595,7 +1595,9 @@ class poms_service:
             tmins =  datetime.now(utc).strftime("%Y-%m-%d+%H:%M:%S")
             raise cherrypy.HTTPRedirect("%s/triage_job?job_id=%s&tmin=%s" % (self.path,str(job_info.job_id),tmins))
         else:
-            raise cherrypy.HTTPRedirect("%s/search_tags?q=%s" % (self.path, search_term))
+            search_term = search_term.replace("+", " ")
+            query = urllib.urlencode({'q' : search_term})
+            raise cherrypy.HTTPRedirect("%s/search_tags?%s" % (self.path, query))
 
     @cherrypy.expose
     def json_project_summary_for_task(self, task_id):
@@ -2000,6 +2002,7 @@ class poms_service:
 
     @cherrypy.expose
     def search_tags(self, q):
+
         q_list = q.split(" ")
 
         query = cherrypy.request.db.query(Campaign).filter(CampaignsTags.tag_id == Tag.tag_id, Tag.tag_name.in_(q_list), Campaign.campaign_id == CampaignsTags.campaign_id).group_by(Campaign.campaign_id).having(func.count(Campaign.campaign_id) == len(q_list))
@@ -2007,7 +2010,7 @@ class poms_service:
 
         template = self.jinja_env.get_template('tag_table.html')
 
-        return template.render(results=results, q=q, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="SearchTagsHelp")
+        return template.render(results=results, q_list=q_list, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="SearchTagsHelp")
 
 
 

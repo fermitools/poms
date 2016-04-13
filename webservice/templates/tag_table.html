@@ -32,7 +32,7 @@
 
 
 {%block subheader%}
-<h2 class="ui dividing header">Tag Query Results: {{q}}</h2>
+<h2 class="ui dividing header">Tag Query Results: {% for item in q_list %} <div class="ui blue label">{{item}}</div> {% endfor %}</h2>
 {%endblock%}
 
 
@@ -64,5 +64,7 @@
 
 
 
-	
+
+
+
 {%endblock%}
