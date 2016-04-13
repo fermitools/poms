@@ -41,11 +41,6 @@ class Campaign(Base):
 class Experimenter(Base):
     __tablename__ = 'experimenters'
 
-    def __init__(self,first_name=None, last_name=None, email=None):
-        self.first_name = first_name
-        self.last_name = last_name
-        self.email = email
-
     experimenter_id = Column(Integer, primary_key=True, server_default=text("nextval('experimenters_experimenter_id_seq'::regclass)"))
     first_name = Column(Text, nullable=False)
     last_name = Column(Text)
@@ -54,11 +49,6 @@ class Experimenter(Base):
             
 class ExperimentsExperimenters(Base):
     __tablename__ = 'experiments_experimenters'
-
-    def __init__(self, experimenter_id=None, experiment=None, active=None):
-        self.experimenter_id = experimenter_id
-        self.experiment = experiment
-        self.active = active
 
     experimenter_id = Column(Integer, ForeignKey('experimenters.experimenter_id'), primary_key=True)
     experiment = Column(Text, ForeignKey('experiments.experiment'), primary_key=True)
@@ -130,19 +120,6 @@ class Service(Base):
 class LaunchTemplate(Base):
     __tablename__ = 'launch_templates'
     
-    def __init__(self,launch_id=None, name=None, experiment=None, launch_host=None, launch_account=None, launch_setup=None,
-                 creator=None, created=None, updater=None, updated=None):
-        self.launch_id = launch_id
-        self.name = name
-        self.experiment = experiment
-        self.launch_host = launch_host
-        self.launch_account = launch_account
-        self.launch_setup = launch_setup
-        self.creator = creator
-        self.created = created
-        self.updater = updater
-        self.updated = updated
-        
     launch_id = Column(Integer, primary_key=True, server_default=text("nextval('launch_templates_launch_id_seq'::regclass)"))
     name = Column(Text, nullable=False, index=True, unique=True)
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
@@ -162,20 +139,6 @@ class LaunchTemplate(Base):
 class CampaignDefinition(Base):
     __tablename__ = 'campaign_definitions'
 
-    def __init__(self, campaign_definition_id=None, name=None, experiment=None, launch_script=None, definition_parameters=None, creator=None, created=None,
-                 updater=None, updated=None, input_files_per_job = None, output_files_per_job = None ):
-        self.campaign_definition_id = campaign_definition_id
-        self.name = name
-        self.experiment = experiment
-        self.launch_script = launch_script
-        self.definition_parameters = definition_parameters
-        self.creator = creator
-        self.created = created
-        self.updater = updater
-        self.updated = updated
-        self.input_files_per_job = input_files_per_job
-        self.output_files_per_job = output_files_per_job
-        
     campaign_definition_id = Column(Integer, primary_key=True, server_default=text("nextval('campaign_definitions_campaign_definition_id_seq'::regclass)"))
     name = Column(Text, nullable=False, unique=True)
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
@@ -199,7 +162,6 @@ class Task(Base):
 
     task_id = Column(Integer, primary_key=True, server_default=text("nextval('tasks_task_id_seq'::regclass)"))
     campaign_id = Column(ForeignKey(u'campaigns.campaign_id'), nullable=False, index=True, server_default=text("nextval('tasks_campaign_id_seq'::regclass)"))
-    #campaign_definition_id = Column(Integer, nullable=False, index=True, server_default=text("nextval('tasks_campaign_definition_id_seq'::regclass)"))
     task_order = Column(Integer, nullable=False)
     input_dataset = Column(Text, nullable=False)
     output_dataset = Column(Text, nullable=False)
@@ -243,10 +205,6 @@ class JobHistory(Base):
 class Tag(Base):
     __tablename__ = 'tags'
 
-    def __init__(self, experiment=None, tag_name=None):
-        self.experiment = experiment
-        self.tag_name = tag_name
-    
     tag_id = Column(Integer, primary_key=True, server_default=text("nextval('tags_tag_id_seq'::regclass)"))
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
     tag_name = Column(Text, nullable=False)
@@ -254,29 +212,81 @@ class Tag(Base):
 class CampaignsTags(Base):
     __tablename__ = 'campaigns_tags'
 
-    def __init__(self, campaign_id=None, tag_id=None):
-        self.campaign_id = campaign_id
-        self.tag_id = tag_id
-
     campaign_id = Column(Integer, ForeignKey('campaigns.campaign_id'), primary_key=True)
     tag_id = Column(Integer, ForeignKey('tags.tag_id'), primary_key=True)
 
     campaign_obj = relationship(Campaign, backref="campaigns_tags")
     tag_obj = relationship(Tag, backref="campaigns_tags")
 
-class OutputFile(Base):
-    __tablename__ = 'output_files'
+class JobFile(Base):
+    __tablename__ = 'job_files'
 
-    def __init__(self, job_id=None, file_name=None, created=None, declared=None):
-        self.job_id = job_id
-        self.file_name = file_name
-        self.created = created
-        self.declared = declared
-    
     job_id = Column(Integer, ForeignKey('jobs.job_id'), primary_key=True)
     file_name = Column(Text, primary_key=True, nullable=False)
+    file_type = Column(Text, nullable=False)
     created = Column(DateTime(True), nullable=False)
     declared = Column(DateTime(True))
     
-    job_obj = relationship(Job, backref='output_files')
+    job_obj = relationship(Job, backref='job_files')
     
+
+class CampaignSnapshot(Base):
+    __tablename__ = 'campaign_snapshots'
+
+    campaign_snapshot_id = Column(Integer, primary_key=True, server_default=text("nextval('campaign_snapshots_campaign_snapshot_id_seq'::regclass)"))
+    campaign_id = Column(ForeignKey(u'campaigns.campaign_id'), nullable=False, index=True)
+    experiment = Column(Text, nullable=False)
+    name = Column(Text, nullable=False)
+    campaign_definition_id = Column(Integer, nullable=False)
+    vo_role = Column(Text, nullable=False)
+    creator = Column(Integer, nullable=False)
+    created = Column(DateTime(True), nullable=False)
+    active = Column(Boolean, nullable=False, server_default=text("true"))
+    dataset = Column(Text, nullable=False)
+    software_version = Column(Text, nullable=False)
+    launch_id = Column(Integer, nullable=False)
+    param_overrides = Column(JSON)
+    updater = Column(Integer)
+    updated = Column(DateTime(True))
+    cs_last_split = Column(DateTime(True))
+    cs_split_type = Column(Text)
+    cs_split_dimensions = Column(Text)
+
+    campaign = relationship(u'Campaign')
+
+
+class CampaignDefinitionSnapshot(Base):
+    __tablename__ = 'campaign_definition_snapshots'
+
+    campaign_definition_snap_id = Column(Integer, primary_key=True, server_default=text("nextval('campaign_definition_snapshots_campaign_definition_snap_id_seq'::regclass)"))
+    campaign_definition_id = Column(ForeignKey(u'campaign_definitions.campaign_definition_id'), nullable=False, index=True)
+    name = Column(Text, nullable=False)
+    experiment = Column(Text, nullable=False)
+    launch_script = Column(Text)
+    definition_parameters = Column(JSON)
+    input_files_per_job = Column(Integer)
+    output_files_per_job = Column(Integer)
+    creator = Column(Integer, nullable=False)
+    created = Column(DateTime(True), nullable=False)
+    updater = Column(Integer)
+    updated = Column(DateTime(True))
+
+    campaign_definition = relationship(u'CampaignDefinition')
+
+
+class LaunchTemplateSnapshot(Base):
+    __tablename__ = 'launch_template_snapshots'
+
+    launch_snapshot_id = Column(Integer, primary_key=True, server_default=text("nextval('launch_template_snapshots_launch_snapshot_id_seq'::regclass)"))
+    launch_id = Column(ForeignKey(u'launch_templates.launch_id'), nullable=False, index=True)
+    experiment = Column(String(10), nullable=False)
+    launch_host = Column(Text, nullable=False)
+    launch_account = Column(Text, nullable=False)
+    launch_setup = Column(Text, nullable=False)
+    creator = Column(Integer, nullable=False)
+    created = Column(DateTime(True), nullable=False)
+    updater = Column(Integer)
+    updated = Column(DateTime(True))
+    name = Column(Text, nullable=False)
+
+    launch = relationship(u'LaunchTemplate')
