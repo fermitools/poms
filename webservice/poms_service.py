@@ -863,10 +863,10 @@ class poms_service:
          cherrypy.response.headers['Content-Type']= 'application/json'
          res = [ "{" ]
          sep=""
-         for job in cherrypy.request.db.query(Job).filter(Job.status == "Completed", Job.output_file_names != "").all():
+         for job in cherrypy.request.db.query(Job).filter(Job.status == "Completed", Job.job_files != []).all():
               if job.jobsub_job_id == "unknown":
                    continue
-              res.append( '%s "%s" : {"output_file_names":"%s", "experiment":"%s"}' % (sep, job.jobsub_job_id, job.output_file_names, job.task_obj.campaign_obj.experiment))
+              res.append( '%s "%s" : {"output_file_names":"%s", "experiment":"%s"}' % (sep, job.jobsub_job_id, " ".join([x.file_name for x in job.job_files]), job.task_obj.campaign_obj.experiment))
               sep = ","
          res.append( "}" )
          return "".join(res)
@@ -970,29 +970,29 @@ class poms_service:
 
              if kwargs.get('output_file_names', None):
                  cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
-                 if j.output_file_names:
-                     files =  j.output_file_names.split(' ')
+                 if j.output_files:
+                     files =  [x.file_name for x in j.job_files]
                  else:
                      files = []
 
                  newfiles = kwargs['output_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         files.append(f)
-                 j.output_file_names = ' '.join(files)
+                         jf = JobFiles(job_id = j.job_id, file_name = f, file_type = "output", created =  datetime.now(utc))
+                         cherrypy.request.db.add(jf)
 
              if kwargs.get('input_file_names', None):
                  cherrypy.log("saw input_file_names: %s" % kwargs['input_file_names'])
                  if j.input_file_names:
-                     files =  j.input_file_names.split(' ')
+                     files =  [x.file_name for x in j.job_files]
                  else:
                      files = []
 
                  newfiles = kwargs['input_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         files.append(f)
-                 j.input_file_names = ' '.join(files)
+                         jf = JobFiles(job_id = j.job_id, file_name = f, file_type = "input", created =  datetime.now(utc))
+                         cherrypy.request.db.add(jf)
 
              j.updated =  datetime.now(utc)
 
@@ -1022,7 +1022,7 @@ class poms_service:
             else:
                 all_all_declared = 1
                 for j in t.jobs:
-                    if (j.output_file_names == '' or j.output_file_names == None) and not j.output_files_declared:
+                    if ([x for x in j.job_files if x.file_type == "outoput"] == [])  and not j.output_files_declared:
                         j.output_files_declared = True
                         cherrypy.request.db.add(j)
                     if not j.output_files_declared:
@@ -1094,7 +1094,7 @@ class poms_service:
         job_history = cherrypy.request.db.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
 
         if job_info.Job.output_file_names:
-            output_file_names_list = job_info.Job.output_file_names.split(" ")
+            output_file_names_list = [x.file_name for x in job_info.job_files if file_type == "output"]
 
         #begins service downtimes
         first = job_history[0].created
@@ -1220,13 +1220,14 @@ class poms_service:
         datarows = []
         for t in tl:
              psummary = self.project_summary_for_task(t.task_id)
-             logdelivered = 0
+             logwritten = 0
              logkids = 0
              for j in  t.jobs:
-                 if j.input_file_names == None:
-                     continue
-                 for f in j.input_file_names.split(' '):
-                     logdelivered = logdelivered + 1
+                 for f in j.job_files:
+                     if f.file_type == "input":
+                         logdelivered = logdelivered + 1
+                     if f.file_type == "output":
+                         logkids = logkids + 1
 
              located_list, inflight = self.get_inflight(task_id = t.task_id)
              pending = self.get_pending_count(task_id = t.task_id)
@@ -1637,8 +1638,8 @@ class poms_service:
         flist = []
         jjid = "xxxxx"
         for j in q.all():
-            if j.output_file_names:
-                flist = flist + j.output_file_names.split(' ')
+            if j.job_files:
+                flist = flist + [x.job_name for x in j.job_files ]
             if j.jobsub_job_id < jjid:
                 jjid = j.jobsub_job_id
             lastj = j
@@ -1762,16 +1763,16 @@ class poms_service:
                 #    continue
 
                 exitcounts[job.user_exe_exit_code] = exitcounts.get(job.user_exe_exit_code, 0) + 1
-                if job.output_file_names:
-                    nout = len(job.output_file_names.split(' '))
+                if job.job_files:
+                    nout = len(j.job_files)
                     outfiles += nout
                     if not job.output_files_declared:
                         # a bit of a lie, we don't know they're *all* pending, just some of them
                         # but its close, and we don't want to re-poll SAM here..
                         pendfiles += nout
 
-                if job.input_file_names:
-                    nin = len(job.input_file_names.split(' '))
+                if job.job_files:
+                    nin = len([x for x in j.job_files if x.file_type == "input"])
                     infiles += nin
         # end 'for'
         # we *should* add another row here for the last set of totals, but
@@ -1811,7 +1812,6 @@ class poms_service:
 
     @cherrypy.expose
     def kill_jobs(self, campaign_id=None, task_id=None, job_id=None, confirm=None):
-
         jjil = []
         jql = None
         if campaign_id != None or task_id != None:
