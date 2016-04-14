@@ -1213,10 +1213,9 @@ class poms_service:
 	tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id, Task.created >= tmin, Task.created < tmax ).all()
 
         columns=["jobsub_jobid", "date", "submit-<br>ted",
-                 "delivered<br>(SAM)",
-                 "delivered<br>(logs)",
-                 "con-<br>sumed","skipped","unknown",
-                 "w/kids<br>declared ",
+                 "delivered<br>(SAM:logs)",
+                 "con-<br>sumed","skipped","unk.",
+                 "w/kids<br>declared<br>(some:all)",
                  "w/kids<br>inflight",
                  "w/kids<br>located",
                  "pending"]
@@ -1231,17 +1230,18 @@ class poms_service:
                      continue
                  for f in j.input_file_names.split(' '):
                      logdelivered = logdelivered + 1
+
              located_list, inflight = self.get_inflight(task_id = t.task_id)
              pending = self.get_pending_count(task_id = t.task_id)
+             partpending = self.get_pending_count(task_id = t.task_id,all_kids=False)
              declpending = self.get_pending_count(task_id = t.task_id, just_declared=True )
              task_jobsub_job_id = self.task_min_job(t.task_id)
              datarows.append([task_jobsub_job_id.replace('@','@<br>'), 
                            t.created.strftime("%Y-%m-%d %H:%M"), 
                            psummary['files_in_snapshot'],
-                           psummary['tot_consumed'] + psummary['tot_failed'] + psummary['tot_unknown'],
-                           logdelivered,
+                           "%d:%d" % (psummary['tot_consumed'] + psummary['tot_failed'] + psummary['tot_unknown'], logdelivered),
                            psummary['tot_consumed'], psummary['tot_failed'], psummary['tot_unknown'],
-                           psummary['files_in_snapshot'] - declpending,
+                           "%d:%d" % (psummary['files_in_snapshot'] - declpending,psummary['files_in_snapshot'] - partpending),
                            len(inflight), 
                            len(located_list), 
                            pending])
@@ -2216,13 +2216,13 @@ class poms_service:
 	template = self.jinja_env.get_template('actual_pending_files.html')
 	return template.render( tmin = str(tmin)[:16], tmax = str(tmax)[:16], days = str(tdays),  next = nextlink, prev = prevlink,c = c, campaign_id = campaign_id, count_or_list = count_or_list , flist = flist, count = count,  task_id = task_id,  current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ActualPendingFilesHelp", tasklist = tasklist)
 
-    def get_pending_count(self, task_id, just_declared = False):
-        c,dims = self.get_pending_dims( task_id = task_id, just_declared = just_declared)
+    def get_pending_count(self, task_id, just_declared = False, all_kids = True):
+        c,dims = self.get_pending_dims( task_id = task_id, just_declared = just_declared, all_kids = all_kids)
         cherrypy.log("get_pending_count: dims: %s" % dims)
         count = cherrypy.request.project_fetcher.count_files(c.experiment, dims)
         return count
 
-    def get_pending_dims(self, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1, just_declared = False):
+    def get_pending_dims(self, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1, just_declared = False, all_kids = True):
         #
         # either way, we need info from the campaign
         #
@@ -2252,8 +2252,13 @@ class poms_service:
         projlist = [str(x.project) for x in tasklist  if x.project != None and x.project!= 'None']
         plistdims= "'%s'" % "','".join(projlist)
 
-        dims = "snapshot_for_project_name  %s minus isparentof: (version '%s' with availability %s)" % ( plistdims, c.software_version, "anylocation" if just_declared else "physical")
-        #dims = "snapshot_for_project_name  %s minus isparentof: (version '%s') " % ( plistdims, c.software_version) 
-
+        dims = "snapshot_for_project_name  %s " % plistdims
+        if all_kids:
+            #for kidtype in json.loads(c.kidtypes):
+            for kidtype in ["%.root"]:
+                dims = "%s minus isparentof: (version '%s' and file_name like '%s'  with availability %s)" % ( dims, c.software_version, kidtype,"anylocation" if just_declared else "physical")
+               
+        else:
+            dims =  "%s minus isparentof: (version '%s' with availability %s)" % ( dims, c.software_version, "anylocation" if just_declared else "physical")
         return c,dims
 
