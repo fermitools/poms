@@ -367,9 +367,6 @@ class poms_service:
         email = kwargs.pop('email',None)
         action = kwargs.pop('action',None)
 
-        if action !='find' and (not self.can_db_admin()):
-             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-
         if action == 'membership':
             # To update memberships set all the tags to false and then reset the needed ones to true.
             e_id = kwargs.pop('experimenter_id',None)
@@ -866,10 +863,10 @@ class poms_service:
          cherrypy.response.headers['Content-Type']= 'application/json'
          res = [ "{" ]
          sep=""
-         for job in cherrypy.request.db.query(Job).filter(Job.status == "Completed", Job.output_file_names != "").all():
+         for job in cherrypy.request.db.query(Job).filter(Job.status == "Completed", Job.job_files != []).all():
               if job.jobsub_job_id == "unknown":
                    continue
-              res.append( '%s "%s" : {"output_file_names":"%s", "experiment":"%s"}' % (sep, job.jobsub_job_id, job.output_file_names, job.task_obj.campaign_obj.experiment))
+              res.append( '%s "%s" : {"output_file_names":"%s", "experiment":"%s"}' % (sep, job.jobsub_job_id, " ".join([x.file_name for x in job.job_files]), job.task_obj.campaign_obj.experiment))
               sep = ","
          res.append( "}" )
          return "".join(res)
@@ -973,29 +970,29 @@ class poms_service:
 
              if kwargs.get('output_file_names', None):
                  cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
-                 if j.output_file_names:
-                     files =  j.output_file_names.split(' ')
+                 if j.output_files:
+                     files =  [x.file_name for x in j.job_files]
                  else:
                      files = []
 
                  newfiles = kwargs['output_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         files.append(f)
-                 j.output_file_names = ' '.join(files)
+                         jf = JobFiles(job_id = j.job_id, file_name = f, file_type = "output", created =  datetime.now(utc))
+                         cherrypy.request.db.add(jf)
 
              if kwargs.get('input_file_names', None):
                  cherrypy.log("saw input_file_names: %s" % kwargs['input_file_names'])
                  if j.input_file_names:
-                     files =  j.input_file_names.split(' ')
+                     files =  [x.file_name for x in j.job_files]
                  else:
                      files = []
 
                  newfiles = kwargs['input_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         files.append(f)
-                 j.input_file_names = ' '.join(files)
+                         jf = JobFiles(job_id = j.job_id, file_name = f, file_type = "input", created =  datetime.now(utc))
+                         cherrypy.request.db.add(jf)
 
              j.updated =  datetime.now(utc)
 
@@ -1025,7 +1022,7 @@ class poms_service:
             else:
                 all_all_declared = 1
                 for j in t.jobs:
-                    if (j.output_file_names == '' or j.output_file_names == None) and not j.output_files_declared:
+                    if ([x for x in j.job_files if x.file_type == "outoput"] == [])  and not j.output_files_declared:
                         j.output_files_declared = True
                         cherrypy.request.db.add(j)
                     if not j.output_files_declared:
@@ -1097,7 +1094,7 @@ class poms_service:
         job_history = cherrypy.request.db.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
 
         if job_info.Job.output_file_names:
-            output_file_names_list = job_info.Job.output_file_names.split(" ")
+            output_file_names_list = [x.file_name for x in job_info.job_files if file_type == "output"]
 
         #begins service downtimes
         first = job_history[0].created
@@ -1213,10 +1210,9 @@ class poms_service:
 	tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id, Task.created >= tmin, Task.created < tmax ).all()
 
         columns=["jobsub_jobid", "date", "submit-<br>ted",
-                 "delivered<br>(SAM)",
-                 "delivered<br>(logs)",
-                 "con-<br>sumed","skipped","unknown",
-                 "w/kids<br>declared ",
+                 "delivered<br>(SAM:logs)",
+                 "con-<br>sumed","skipped","unk.",
+                 "w/kids<br>declared<br>(some:all)",
                  "w/kids<br>inflight",
                  "w/kids<br>located",
                  "pending"]
@@ -1224,24 +1220,26 @@ class poms_service:
         datarows = []
         for t in tl:
              psummary = self.project_summary_for_task(t.task_id)
-             logdelivered = 0
+             logwritten = 0
              logkids = 0
              for j in  t.jobs:
-                 if j.input_file_names == None:
-                     continue
-                 for f in j.input_file_names.split(' '):
-                     logdelivered = logdelivered + 1
+                 for f in j.job_files:
+                     if f.file_type == "input":
+                         logdelivered = logdelivered + 1
+                     if f.file_type == "output":
+                         logkids = logkids + 1
+
              located_list, inflight = self.get_inflight(task_id = t.task_id)
              pending = self.get_pending_count(task_id = t.task_id)
+             partpending = self.get_pending_count(task_id = t.task_id,all_kids=False)
              declpending = self.get_pending_count(task_id = t.task_id, just_declared=True )
              task_jobsub_job_id = self.task_min_job(t.task_id)
              datarows.append([task_jobsub_job_id.replace('@','@<br>'), 
                            t.created.strftime("%Y-%m-%d %H:%M"), 
                            psummary['files_in_snapshot'],
-                           psummary['tot_consumed'] + psummary['tot_failed'] + psummary['tot_unknown'],
-                           logdelivered,
+                           "%d:%d" % (psummary['tot_consumed'] + psummary['tot_failed'] + psummary['tot_unknown'], logdelivered),
                            psummary['tot_consumed'], psummary['tot_failed'], psummary['tot_unknown'],
-                           psummary['files_in_snapshot'] - declpending,
+                           "%d:%d" % (psummary['files_in_snapshot'] - declpending,psummary['files_in_snapshot'] - partpending),
                            len(inflight), 
                            len(located_list), 
                            pending])
@@ -1640,8 +1638,8 @@ class poms_service:
         flist = []
         jjid = "xxxxx"
         for j in q.all():
-            if j.output_file_names:
-                flist = flist + j.output_file_names.split(' ')
+            if j.job_files:
+                flist = flist + [x.job_name for x in j.job_files ]
             if j.jobsub_job_id < jjid:
                 jjid = j.jobsub_job_id
             lastj = j
@@ -1765,16 +1763,16 @@ class poms_service:
                 #    continue
 
                 exitcounts[job.user_exe_exit_code] = exitcounts.get(job.user_exe_exit_code, 0) + 1
-                if job.output_file_names:
-                    nout = len(job.output_file_names.split(' '))
+                if job.job_files:
+                    nout = len(j.job_files)
                     outfiles += nout
                     if not job.output_files_declared:
                         # a bit of a lie, we don't know they're *all* pending, just some of them
                         # but its close, and we don't want to re-poll SAM here..
                         pendfiles += nout
 
-                if job.input_file_names:
-                    nin = len(job.input_file_names.split(' '))
+                if job.job_files:
+                    nin = len([x for x in j.job_files if x.file_type == "input"])
                     infiles += nin
         # end 'for'
         # we *should* add another row here for the last set of totals, but
@@ -1814,7 +1812,6 @@ class poms_service:
 
     @cherrypy.expose
     def kill_jobs(self, campaign_id=None, task_id=None, job_id=None, confirm=None):
-
         jjil = []
         jql = None
         if campaign_id != None or task_id != None:
@@ -2219,13 +2216,13 @@ class poms_service:
 	template = self.jinja_env.get_template('actual_pending_files.html')
 	return template.render( tmin = str(tmin)[:16], tmax = str(tmax)[:16], days = str(tdays),  next = nextlink, prev = prevlink,c = c, campaign_id = campaign_id, count_or_list = count_or_list , flist = flist, count = count,  task_id = task_id,  current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ActualPendingFilesHelp", tasklist = tasklist)
 
-    def get_pending_count(self, task_id, just_declared = False):
-        c,dims = self.get_pending_dims( task_id = task_id, just_declared = just_declared)
+    def get_pending_count(self, task_id, just_declared = False, all_kids = True):
+        c,dims = self.get_pending_dims( task_id = task_id, just_declared = just_declared, all_kids = all_kids)
         cherrypy.log("get_pending_count: dims: %s" % dims)
         count = cherrypy.request.project_fetcher.count_files(c.experiment, dims)
         return count
 
-    def get_pending_dims(self, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1, just_declared = False):
+    def get_pending_dims(self, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1, just_declared = False, all_kids = True):
         #
         # either way, we need info from the campaign
         #
@@ -2255,8 +2252,13 @@ class poms_service:
         projlist = [str(x.project) for x in tasklist  if x.project != None and x.project!= 'None']
         plistdims= "'%s'" % "','".join(projlist)
 
-        dims = "snapshot_for_project_name  %s minus isparentof: (version '%s' with availability %s)" % ( plistdims, c.software_version, "anylocation" if just_declared else "physical")
-        #dims = "snapshot_for_project_name  %s minus isparentof: (version '%s') " % ( plistdims, c.software_version) 
-
+        dims = "snapshot_for_project_name  %s " % plistdims
+        if all_kids:
+            #for kidtype in json.loads(c.kidtypes):
+            for kidtype in ["%.root"]:
+                dims = "%s minus isparentof: (version '%s' and file_name like '%s'  with availability %s)" % ( dims, c.software_version, kidtype,"anylocation" if just_declared else "physical")
+               
+        else:
+            dims =  "%s minus isparentof: (version '%s' with availability %s)" % ( dims, c.software_version, "anylocation" if just_declared else "physical")
         return c,dims
 
