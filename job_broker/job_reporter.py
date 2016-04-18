@@ -32,6 +32,9 @@ class job_reporter:
             if f.done():
                 r = f.result()
                 self.futures.remove(f)
+        if len(self.futures) > 10:
+            done, not_done = concurrent.futures.wait(self.futures, return_when=concurruent.futures.FIRST_COMPLETED)
+            self.futures = not_done
 
     def actually_report_status(self, jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
         data = {}
