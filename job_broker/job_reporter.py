@@ -21,6 +21,9 @@ class job_reporter:
         self.futures = set()
   
     def __del__(self):
+        self.cleanup()
+
+    def cleanup(self):
         # clean up all our futures
         self.executor.shutdown(wait=True)
         self.futures = set()
@@ -34,7 +37,10 @@ class job_reporter:
         for f in self.futures:
             if f.done():
                 r = f.result()
+                print r
+                sys.stdout.flush()
                 cleanup.append(f)
+
         for f in cleanup:
 	    self.futures.remove(f)
 
@@ -46,6 +52,11 @@ class job_reporter:
                 print "calling futures.wait()" 
                 sys.stdout.flush()
             done, not_done = concurrent.futures.wait(self.futures, return_when=concurrent.futures.FIRST_COMPLETED)
+            for f in done:
+                r = f.result()
+                print r
+                sys.stdout.flush()
+                
             self.futures = not_done
             if self.debug: 
                 print "after futures.wait() : len(self.futures) == " , len(self.futures)
@@ -87,3 +98,6 @@ if __name__ == '__main__':
     r.report_status(jobsub_job_id="12346.0@fifebatch3.fnal.gov",output_files_declared = "True",status="Located")
     r.report_status(jobsub_job_id="12347.0@fifebatch3.fnal.gov",output_files_declared = "True",status="Located")
     r.report_status(jobsub_job_id="12348.0@fifebatch3.fnal.gov",output_files_declared = "True",status="Located")
+    print "started reports:"
+    sys.stdout.flush()
+    r.cleanup()

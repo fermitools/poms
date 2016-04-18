@@ -863,7 +863,7 @@ class poms_service:
          cherrypy.response.headers['Content-Type']= 'application/json'
          res = [ "{" ]
          sep=""
-         for job in cherrypy.request.db.query(Job).filter(Job.status == "Completed", Job.job_files != []).all():
+         for job in cherrypy.request.db.query(Job).options(joinedload(Job.job_files)).filter(Job.status == "Completed").all():
               if job.jobsub_job_id == "unknown":
                    continue
               res.append( '%s "%s" : {"output_file_names":"%s", "experiment":"%s"}' % (sep, job.jobsub_job_id, " ".join([x.file_name for x in job.job_files]), job.task_obj.campaign_obj.experiment))
@@ -936,10 +936,14 @@ class poms_service:
              j = Job()
              j.jobsub_job_id = jobsub_job_id.rstrip("\n")
              j.created = datetime.now(utc)
+             j.updated = j.created
              j.task_id = task_id
              j.task_obj = t
              j.output_files_declared = False
+             j.cpu_type = ''
              j.node_name = ''
+             j.host_site = ''
+             j.status = 'new'
              cherrypy.request.db.add(j)
              cherrypy.request.db.commit()
 
@@ -997,6 +1001,9 @@ class poms_service:
                          cherrypy.request.db.add(jf)
 
              j.updated =  datetime.now(utc)
+
+             if j.cpu_type == None:
+                 j.cpu_type = 'unknown'
 
              if j.task_obj:
                  j.task_obj.status = self.compute_status(j.task_obj)
