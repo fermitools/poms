@@ -978,7 +978,7 @@ class poms_service:
                  newfiles = kwargs['output_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         jf = JobFiles(job_id = j.job_id, file_name = f, file_type = "output", created =  datetime.now(utc))
+                         jf = JobFile(job_id = j.job_id, file_name = f, file_type = "output", created =  datetime.now(utc))
                          cherrypy.request.db.add(jf)
 
              if kwargs.get('input_file_names', None):
@@ -991,7 +991,7 @@ class poms_service:
                  newfiles = kwargs['input_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         jf = JobFiles(job_id = j.job_id, file_name = f, file_type = "input", created =  datetime.now(utc))
+                         jf = JobFile(job_id = j.job_id, file_name = f, file_type = "input", created =  datetime.now(utc))
                          cherrypy.request.db.add(jf)
 
              j.updated =  datetime.now(utc)

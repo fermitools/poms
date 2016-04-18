@@ -1,5 +1,6 @@
 from datetime import datetime
 from utc import utc
+import collections
 
 class time_grid:
      
@@ -108,7 +109,7 @@ class time_grid:
           self.tmin = tmin
           self.tmax = tmax
           self.tdelta = tmax - tmin
-          self.pmap = {}
+          self.pmap = collections.OrderedDict()
           justnow = datetime.now(utc)
           for id,dlist in dlistmap.items():
               plist = []

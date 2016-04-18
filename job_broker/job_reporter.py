@@ -18,22 +18,26 @@ class job_reporter:
         self.report_url = report_url
         self.debug = debug
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=10) 
-        self.futures = []
+        self.futures = set()
   
     def __del__(self):
         # clean up all our futures
         self.executor.shutdown(wait=True)
-        self.futures = []
+        self.futures = set()
 
     def report_status(self,  jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
-        self.futures.append( self.executor.submit(self.actually_report_status,  jobsub_job_id, taskid, status, cpu_type, slot, **kwargs))
+        self.futures.add( self.executor.submit(self.actually_report_status,  jobsub_job_id, taskid, status, cpu_type, slot, **kwargs))
         if self.debug: 
             print "before done loop: len(self.futures) == " , len(self.futures)
             sys.stdout.flush()
+        cleanup = []
         for f in self.futures:
             if f.done():
                 r = f.result()
-                self.futures.remove(f)
+                cleanup.append(f)
+        for f in cleanup:
+	    self.futures.remove(f)
+
         if self.debug: 
             print "after done loop: len(self.futures) == " , len(self.futures)
             sys.stdout.flush()

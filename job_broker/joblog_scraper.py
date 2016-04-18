@@ -11,8 +11,7 @@ import time
 from job_reporter import job_reporter
 
 class joblog_scraper:
-    def __init__(self, filehandle, job_reporter, debug = 0):
-        self.filehandle = filehandle
+    def __init__(self,  job_reporter, debug = 0):
         self.job_reporter = job_reporter
         self.debug = debug
 
@@ -161,7 +160,8 @@ class joblog_scraper:
         self.job_reporter.report_status(**data)
 
 
-    def scan(self):
+    def scan(self, filehandle):
+        self.filehandle = filehandle
         for line in self.filehandle:
              #print "got: ", line
              d = self.parse_line(line)
@@ -173,6 +173,7 @@ if __name__ == '__main__':
    if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
 
+   js = joblog_scraper( job_reporter("http://localhost:8080/poms/", debug), debug)
    while 1:
       if debug:
            print "Starting..."
@@ -183,8 +184,7 @@ if __name__ == '__main__':
           if debug:
              print "re-reading...";
 
-          js = joblog_scraper(h, job_reporter("http://localhost:8080/poms/", debug), debug)
-          js.scan()
+          js.scan(h)
           # for testing
           #break
 
