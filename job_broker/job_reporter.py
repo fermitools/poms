@@ -22,19 +22,30 @@ class job_reporter:
   
     def __del__(self):
         # clean up all our futures
-        for f in self.futures:
-            r = f.result()
+        self.executor.shutdown(wait=True)
         self.futures = []
 
     def report_status(self,  jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
         self.futures.append( self.executor.submit(self.actually_report_status,  jobsub_job_id, taskid, status, cpu_type, slot, **kwargs))
+        if self.debug: 
+            print "before done loop: len(self.futures) == " , len(self.futures)
+            sys.stdout.flush()
         for f in self.futures:
             if f.done():
                 r = f.result()
                 self.futures.remove(f)
+        if self.debug: 
+            print "after done loop: len(self.futures) == " , len(self.futures)
+            sys.stdout.flush()
         if len(self.futures) > 10:
-            done, not_done = concurrent.futures.wait(self.futures, return_when=concurruent.futures.FIRST_COMPLETED)
+            if self.debug: 
+                print "calling futures.wait()" 
+                sys.stdout.flush()
+            done, not_done = concurrent.futures.wait(self.futures, return_when=concurrent.futures.FIRST_COMPLETED)
             self.futures = not_done
+            if self.debug: 
+                print "after futures.wait() : len(self.futures) == " , len(self.futures)
+                sys.stdout.flush()
 
     def actually_report_status(self, jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
         data = {}
@@ -50,6 +61,7 @@ class job_reporter:
            sys.stdout.flush()
           
         uh = None
+        res = None
         try:
             uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
             res = uh.read()
@@ -61,7 +73,7 @@ class job_reporter:
             sys.stderr.write(errtext)
             sys.stderr.write("--------")
 
-        uh.close()
+        #uh.close()
         return res
 
 if __name__ == '__main__':
