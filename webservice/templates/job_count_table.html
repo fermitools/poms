@@ -46,22 +46,17 @@
 <form action="failed_jobs_by_whatever" method="GET">
   <input type="hidden" name=tmin value="{{tmins}}">
   <input type="hidden" name=tmax value="{{tmaxs}}">
-  <select multiple name="f">
 
-  {% for c in possible_columns%}
-    <option value="{{c}}"
-      {%if c in columns %}
-         selected="1"
-      {%endif%}
-    >
-    {{c}}
-   </option>
-  {% endfor %}
-  <input type="submit" name="go">
-
+  <select name="f" class="ui selection dropdown" multiple="" id="multi-select">
+    {% for c in possible_columns%}
+      <option value="{{c}}"{%if c in columns %}selected="1"{%endif%}>{{c}}</option>
+    {% endfor %}
   </select>
 
+  &nbsp;&nbsp;&nbsp;<input class="tiny ui blue submit button" type="submit" name="go">
 </form>
+
+
 <table class="ui sortable celled collapsing table">
   <thead>
     <tr>
@@ -109,4 +104,15 @@ $(function() {
     $('#global_datepicker_container').show();
 });
 </script>
+
+
+
+<script>
+$('#multi-select').dropdown();
+</script>
+
+
+
+
+
 {%endblock%}

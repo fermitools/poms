@@ -1593,7 +1593,8 @@ class poms_service:
         q = q.group_by(*gbl).order_by(desc(func.count(Job.job_id)))
 
         jl = q.all()
-        cherrypy.log( "got jobtable %s " % repr( jl[0].__dict__) )
+        if jl:
+            cherrypy.log( "got jobtable %s " % repr( jl[0].__dict__) )
 
         template = self.jinja_env.get_template('job_count_table.html')
 
