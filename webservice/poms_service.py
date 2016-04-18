@@ -940,6 +940,8 @@ class poms_service:
              j.task_obj = t
              j.output_files_declared = False
              j.node_name = ''
+             cherrypy.request.db.add(j)
+             cherrypy.request.db.commit()
 
          if j:
              cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
