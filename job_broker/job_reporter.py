@@ -7,60 +7,50 @@ import urllib2
 import urllib
 import json
 import concurrent.futures
+import Queue
+import thread
+import threading
 
 class job_reporter:
     """
-       this would actually call jobsub_q, if it were efficient, and you
-       could pass -format...  instead we call condor_q directly to look
-       at the fifebatchhead nodes.
+       class to report job status -- now runs several threads to asynchronously report queued items
+       given to us, so we don't drop messages from syslog piping to us, etc.
     """
-    def __init__(self, report_url, debug = 0):
+    def __init__(self, report_url, debug = 0, nthreads = 5):
         self.report_url = report_url
         self.debug = debug
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=10) 
-        self.futures = set()
-  
-    def __del__(self):
-        self.cleanup()
+        self.work = Queue.Queue()
+        self.wthreads = []
+        for i in range(nthreads):
+            self.wthreads.append(threading.Thread(target=self.runqueue))
+            #self.wthreads[i].daemon = True
+            self.wthreads[i].start()
 
+    def bail(self):
+        print "thread: %d -- bailing" % thread.get_ident()
+        raise KeyboardInterrupt("just quitting a thread")
+
+    def runqueue(self):
+        try:
+            while 1:
+                d = self.work.get(block = True)
+                d['f'](*d['args'], **d['kwargs'])
+        except KeyboardInterrupt:
+            pass
+        except:
+            raise
+  
     def cleanup(self):
-        # clean up all our futures
-        self.executor.shutdown(wait=True)
-        self.futures = set()
+        # first tell threads to exit
+        for wth in self.wthreads:
+            self.work.put({'f': job_reporter.bail, 'args': [self], 'kwargs':{}})
+
+        # then wait for them
+        for wth in self.wthreads:
+            wth.join()
 
     def report_status(self,  jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
-        self.futures.add( self.executor.submit(self.actually_report_status,  jobsub_job_id, taskid, status, cpu_type, slot, **kwargs))
-        if self.debug: 
-            print "before done loop: len(self.futures) == " , len(self.futures)
-            sys.stdout.flush()
-        cleanup = []
-        for f in self.futures:
-            if f.done():
-                r = f.result()
-                print r
-                sys.stdout.flush()
-                cleanup.append(f)
-
-        for f in cleanup:
-	    self.futures.remove(f)
-
-        if self.debug: 
-            print "after done loop: len(self.futures) == " , len(self.futures)
-            sys.stdout.flush()
-        if len(self.futures) > 10:
-            if self.debug: 
-                print "calling futures.wait()" 
-                sys.stdout.flush()
-            done, not_done = concurrent.futures.wait(self.futures, return_when=concurrent.futures.FIRST_COMPLETED)
-            for f in done:
-                r = f.result()
-                print r
-                sys.stdout.flush()
-                
-            self.futures = not_done
-            if self.debug: 
-                print "after futures.wait() : len(self.futures) == " , len(self.futures)
-                sys.stdout.flush()
+        self.work.put({'f':job_reporter.actually_report_status, 'args': [ self, jobsub_job_id, taskid, status, cpu_type, slot], 'kwargs': kwargs})
 
     def actually_report_status(self, jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
         data = {}
@@ -72,7 +62,7 @@ class job_reporter:
         data.update(kwargs)
 
         if self.debug:
-           print "reporting: ",  data 
+           sys.stdout.write("reporting: %s\n" %  data )
            sys.stdout.flush()
           
         uh = None
@@ -88,7 +78,6 @@ class job_reporter:
             sys.stderr.write(errtext)
             sys.stderr.write("--------")
 
-        #uh.close()
         return res
 
 if __name__ == '__main__':
