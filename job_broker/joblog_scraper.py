@@ -79,7 +79,8 @@ class joblog_scraper:
         for item in list:
             item = item[item.rfind("/")+1:]
             # pretty much all actual output files are .root or .art ...
-            if item.endswith(".root") or item.endswith(".art"):
+            # buth we also want input files...
+            if item.endswith(".root") or item.endswith(".art") or item.endswith(".raw") or item.endswith(".fcl"):
                file_map[item] = 1
 
         if self.debug:
