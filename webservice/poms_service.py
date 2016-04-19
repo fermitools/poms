@@ -976,8 +976,8 @@ class poms_service:
 
              if kwargs.get('output_file_names', None):
                  cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
-                 if j.output_files:
-                     files =  [x.file_name for x in j.job_files]
+                 if j.job_files:
+                     files =  [x.file_name for x in j.job_files if x.file_type == 'output']
                  else:
                      files = []
 
@@ -989,8 +989,8 @@ class poms_service:
 
              if kwargs.get('input_file_names', None):
                  cherrypy.log("saw input_file_names: %s" % kwargs['input_file_names'])
-                 if j.input_file_names:
-                     files =  [x.file_name for x in j.job_files]
+                 if j.job_files:
+                     files =  [x.file_name for x in j.job_files if x.file_type == 'input']
                  else:
                      files = []
 
