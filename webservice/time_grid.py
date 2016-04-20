@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from utc import utc
 import collections
 
@@ -99,10 +99,10 @@ class time_grid:
           if t0 < tmin:
              t0 = tmin
           if t1 > tmax:
-             t1 = tmax
+             t1 = tmax 
           d1 = (t1 - t0)
           d2 = (tmax - tmin)
-          pw = d1.total_seconds() * 99.9 / d2.total_seconds()
+          pw = d1.total_seconds() * 100.0 /  d2.total_seconds()
           return pw
 
      def add_time_data(self, tmin, tmax, dlistmap):
@@ -112,38 +112,50 @@ class time_grid:
           self.pmap = collections.OrderedDict()
           justnow = datetime.now(utc)
           for id,dlist in dlistmap.items():
+              totwidth = 0.0
               plist = []
               # somehow this is is never false?!?
               # if dlist[0]['time'] > self.tmin:
               # so compare second conversions...
               if int(dlist[0]['time'].strftime("%s")) > int(self.tmin.strftime("%s")):
-                  plist.append( {'width': self.pwidth(self.tmin, dlist[0]['time'],tmin, tmax),
+                  width = self.pwidth(self.tmin, dlist[0]['time'],tmin, tmax)
+                  plist.append( {'width': width ,
                              'color': '', 'txt': '', 'url': ''})
+                  totwidth = totwidth + max(width,0.04)
                   i = 0
               else:
                   i = 0 
                   while i < len(dlist) and dlist[i]['time'] < self.tmin:
                      i = i + 1
                   if i < len(dlist):
-                      plist.append({ 'width': self.pwidth(self.tmin, dlist[i]['time'],tmin, tmax),
+                      width = self.pwidth(self.tmin, dlist[i]['time'],tmin, tmax)
+                      plist.append({ 'width': width,
                                 'color': self.status_color(dlist[i-1]['status']),
-                                'txt': dlist[i-1]['txt'],
+                                'txt': dlist[i-1]['txt'], 
                                 'url': dlist[i-1]['url']})
+                      totwidth = totwidth + max(width,0.04)
 
-              while i < len(dlist) and dlist[i]['time'] < self.tmax:
+              while i < len(dlist) and dlist[i]['time'] <= self.tmax:
                   if i == len(dlist) - 1:
+                      # last item in row special case...
                       # don't draw boxes past current time...
-                      if justnow > self.tmin:
-                          tend = min(self.tmax, justnow)
+                      if self.tmax > justnow:
+                          tend= justnow
+                          width = self.pwidth(dlist[i]['time'], tend, tmin,tmax)
                       else:
+                          # take the remaining width, rather than computing
+                          # the delta to reduce wraparound
                           tend = self.tmax
+                          width = 98.0 - totwidth 
                   else:
                       tend = dlist[i+1]['time']
+                      width = self.pwidth(dlist[i]['time'], tend, tmin,tmax)
 
-                  plist.append({ 'width' : self.pwidth(dlist[i]['time'], tend, tmin,tmax),
+                  plist.append({ 'width' : width,
                                 'color' : self.status_color(dlist[i]['status']),
                                 'txt' : dlist[i]['txt'],
                                 'url' : dlist[i]['url']})
+                  totwidth = totwidth + max(width,0.04)
                   i = i + 1
                  
               self.pmap[id] = plist

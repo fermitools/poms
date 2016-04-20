@@ -943,7 +943,7 @@ class poms_service:
              j.cpu_type = ''
              j.node_name = ''
              j.host_site = ''
-             j.status = 'new'
+             j.status = 'Idle'
              cherrypy.request.db.add(j)
              cherrypy.request.db.commit()
 
@@ -1052,6 +1052,7 @@ class poms_service:
                 self.__dict__.update(kwargs)
         items = []
         extramap = {}
+        laststatus = None
         for jh, j in jl:
             if j.jobsub_job_id:
                 jjid= j.jobsub_job_id.replace('fifebatch','').replace('.fnal.gov','')
@@ -1062,10 +1063,12 @@ class poms_service:
                 extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d"><i class="ui trash icon"></i></a>' % (self.path, jh.job_id)
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
-            items.append(fakerow(job_id = jh.job_id,
+            if jh.status != laststatus:
+                items.append(fakerow(job_id = jh.job_id,
                                   created = jh.created.replace(tzinfo=utc),
                                   status = jh.status,
                                   jobsub_job_id = jjid))
+            laststatus = jh.status
 
         job_counts = self.format_job_counts(task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
         key = tg.key(fancy=1)
