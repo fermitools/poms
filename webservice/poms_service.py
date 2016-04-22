@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot
 
 from utc import utc
 from crontab import CronTab
@@ -775,6 +775,8 @@ class poms_service:
         cherrypy.log("update_for: found is now %s" % found )
         cherrypy.request.db.add(found)
         cherrypy.request.db.commit()
+        if classname == "Task":
+              self.snapshot_parts(found.campaign_id)
         return "%s=%s" % (classname, getattr(found,primkey))
 
     def edit_screen_for( self, classname, eclass, update_call, primkey, primval, valmap):
@@ -2210,6 +2212,22 @@ class poms_service:
 
         raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id )
 
+    def snapshot_parts(self, campaign_id):
+         c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+         for table, snaptable, field, sfield, tid in [
+		[Campaign,CampaignSnapshot,Campaign.campaign_id,CampaignSnapshot.campaign_id,c.campaign_id], 
+		[CampaignDefinition, CampaignDefinitionSnapshot,CampaignDefinition.campaign_definition_id, CampaignDefinitionSnapshot.campaign_definition_id, c.campaign_definition_id], 
+                [LaunchTemplate ,LaunchTemplateSnapshot,LaunchTemplate.launch_id,LaunchTemplateSnapshot.launch_id,  c.launch_id]]:
+              
+             i = cherrypy.request.db.query(func.max(snaptable.updated)).filter(sfield == tid).first()
+             j = cherrypy.request.db.query(table).filter(field == tid).first()
+             if (i[0] == None or j == None or j.updated == None or  i[0] < j.updated):
+                newsnap = snaptable()
+                columns = j._sa_instance_state.class_.__table__.columns
+                for fieldname in columns.keys():
+                     setattr(newsnap, fieldname, getattr(j,fieldname))     
+                cherrypy.request.db.add(newsnap)
+             cherrypy.request.db.commit()
 
     @cherrypy.expose
     def actual_pending_files(self, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1):
