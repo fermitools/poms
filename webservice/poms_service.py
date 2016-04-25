@@ -1234,6 +1234,7 @@ class poms_service:
         datarows = []
         for t in tl:
              psummary = self.project_summary_for_task(t.task_id)
+             logdelivered = 0
              logwritten = 0
              logkids = 0
              for j in  t.jobs:
@@ -1248,12 +1249,14 @@ class poms_service:
              partpending = self.get_pending_count(task_id = t.task_id,all_kids=False)
              declpending = self.get_pending_count(task_id = t.task_id, just_declared=True )
              task_jobsub_job_id = self.task_min_job(t.task_id)
+             if task_jobsub_job_id == None:
+                 continue
              datarows.append([task_jobsub_job_id.replace('@','@<br>'), 
                            t.created.strftime("%Y-%m-%d %H:%M"), 
-                           psummary['files_in_snapshot'],
-                           "%d:%d" % (psummary['tot_consumed'] + psummary['tot_failed'] + psummary['tot_unknown'], logdelivered),
-                           psummary['tot_consumed'], psummary['tot_failed'], psummary['tot_unknown'],
-                           "%d:%d" % (psummary['files_in_snapshot'] - declpending,psummary['files_in_snapshot'] - partpending),
+                           psummary.get('files_in_snapshot',0),
+                           "%d:%d" % (psummary.get('tot_consumed',0) + psummary.get('tot_failed',0) + psummary.get('tot_unknown',0), logdelivered),
+                           psummary.get('tot_consumed',0), psummary.get('tot_failed',0), psummary.get('tot_unknown',0),
+                           "%d:%d" % (psummary.get('files_in_snapshot',0) - declpending,psummary.get('files_in_snapshot',0) - partpending),
                            len(inflight), 
                            len(located_list), 
                            pending])
@@ -1654,7 +1657,7 @@ class poms_service:
         jjid = "xxxxx"
         for j in q.all():
             if j.job_files:
-                flist = flist + [x.job_name for x in j.job_files ]
+                flist = flist + [x.file_name for x in j.job_files ]
             if j.jobsub_job_id < jjid:
                 jjid = j.jobsub_job_id
             lastj = j
