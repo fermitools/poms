@@ -99,7 +99,7 @@
               </div>
               <div class=item>
               <a href="{{pomspath}}/campaign_time_bars?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}">
-                <i class="external tasks icon" data-content="Tasks in Campaign Time Bars" data-variation="basic"></i>Task Time Bars
+                <i class="external tasks icon" data-content="Submissions for Campaign Time Bars" data-variation="basic"></i>Submission Time Bars
               </a>
               </div>
               <div class=item>
@@ -121,7 +121,10 @@
 		<a href="{{pomspath}}/campaign_info?campaign_id={{c.campaign_id}}"><i class="external info circle icon" data-content="Campaign Information" data-variation="basic"></i>Campaign Information</a>
               </div>
               <div class=item>
-		<a target="_blank" href="{{pomspath}}/launch_jobs?campaign_id={{c.campaign_id}}"><i class="external rocket icon" data-content="Immediately Launch Tasks for Campaign" data-variation="basic"></i>Launch Campaign Jobs Now</a>
+		<a target="_blank" href="{{pomspath}}/campaign_task_files?campaign_id={{c.campaign_id}}"><i class="external file icon" data-content="List file statistics for Submissions for Campaign" data-variation="basic"></i>Campaign Submission Files</a>
+              </div>
+              <div class=item>
+		<a target="_blank" href="{{pomspath}}/launch_jobs?campaign_id={{c.campaign_id}}"><i class="external rocket icon" data-content="Immediately Launch Submissions for Campaign" data-variation="basic"></i>Launch Campaign Jobs Now</a>
               </div>
               <div class=item>
 		<a target="_blank" href="{{pomspath}}/kill_jobs?campaign_id={{c.campaign_id}}"><i class="external trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i>Kill Jobs for Campaign</a>
