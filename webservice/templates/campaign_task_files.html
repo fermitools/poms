@@ -1,0 +1,63 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>POMS</title>
+{%endblock%}
+
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="{{pomspath}}/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">Submission file info for campaign {{name}}</div>
+</div>
+{%endblock%}
+
+
+{%block header%}
+<h1 class="ui header">
+  File Info by Submission {%include 'help_button.html'%}
+</h1>
+<div class="ui subheader">
+{{days}} Days ending  {{tmax}}
+</div>
+
+<a href="{{prev}}">&lt;previous {{days}} days</a> | 
+<a href="{{next}}">next {{days}} days &gt;</a>
+{%endblock%}
+
+
+{%block subheader%}
+{%endblock%}
+
+
+{%block content%}
+<table class="ui sortable celled collapsing table">
+  <thead>
+    <tr>
+    {%for col in columns%}
+       <th class="">
+           {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignTaskFilesHelp#{{col|replace(' ','_')}}"><i class="small icon grey help circle  link"></i>
+       </th>
+    {%endfor%}
+    </tr>
+  </thead>
+  <tbody>
+    {%for row in datarows %}
+      <tr>
+         {%for col in range(0, columns|count) %}
+              <td>{{row[col]}}</td>
+         {%endfor%}
+      </tr>
+    {%endfor%}
+  </tbody>
+</table>
+
+
+
+<script>
+$(function() {
+    $('#global_datepicker_container').show();
+});
+</script>
+{%endblock%}
