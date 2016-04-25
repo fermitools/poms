@@ -7,6 +7,7 @@ import urllib2
 import json
 import time
 import traceback
+import resource
 from job_reporter import job_reporter
 
 class jobsub_q_scraper:
@@ -157,6 +158,14 @@ class jobsub_q_scraper:
 			 
 	    except KeyboardInterrupt:
 	        break
+ 
+            except OSError as e:
+	        print "Exception!"
+	        traceback.print_exc()
+                # if we're out of memory, dump core...
+                if e.errno == 12:
+                    resource.setrlimit(resource.RLIMIT_CORE,resource.RLIM_INFINITIY)
+                    os.abort()
 
 	    except:
 	        print "Exception!"

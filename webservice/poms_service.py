@@ -1782,7 +1782,7 @@ class poms_service:
 
                 exitcounts[job.user_exe_exit_code] = exitcounts.get(job.user_exe_exit_code, 0) + 1
                 if job.job_files:
-                    nout = len(j.job_files)
+                    nout = len(job.job_files)
                     outfiles += nout
                     if not job.output_files_declared:
                         # a bit of a lie, we don't know they're *all* pending, just some of them
@@ -1790,7 +1790,7 @@ class poms_service:
                         pendfiles += nout
 
                 if job.job_files:
-                    nin = len([x for x in j.job_files if x.file_type == "input"])
+                    nin = len([x for x in job.job_files if x.file_type == "input"])
                     infiles += nin
         # end 'for'
         # we *should* add another row here for the last set of totals, but
