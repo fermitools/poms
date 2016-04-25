@@ -1223,7 +1223,7 @@ class poms_service:
 
 	tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id, Task.created >= tmin, Task.created < tmax ).all()
 
-        columns=["jobsub_jobid", "date", "submit-<br>ted",
+        columns=["jobsub_jobid", "project", "date", "submit-<br>ted",
                  "delivered<br>(SAM:logs)",
                  "con-<br>sumed","skipped","unk.",
                  "w/kids<br>declared<br>(some:all)",
@@ -1252,6 +1252,7 @@ class poms_service:
              if task_jobsub_job_id == None:
                  continue
              datarows.append([task_jobsub_job_id.replace('@','@<br>'), 
+                           t.project,
                            t.created.strftime("%Y-%m-%d %H:%M"), 
                            psummary.get('files_in_snapshot',0),
                            "%d:%d" % (psummary.get('tot_consumed',0) + psummary.get('tot_failed',0) + psummary.get('tot_unknown',0), logdelivered),
