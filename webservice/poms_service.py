@@ -1244,7 +1244,7 @@ class poms_service:
                      if f.file_type == "output":
                          logkids = logkids + 1
 
-             located_list, inflight = self.get_inflight(task_id = t.task_id)
+             c, located_list, inflight = self.get_inflight(task_id = t.task_id)
              pending = self.get_pending_count(task_id = t.task_id)
              partpending = self.get_pending_count(task_id = t.task_id,all_kids=False)
              declpending = self.get_pending_count(task_id = t.task_id, just_declared=True )
@@ -1692,7 +1692,7 @@ class poms_service:
 
         template = self.jinja_env.get_template('inflight_files.html')
 
-        return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = statusmap, jjid = jjid, c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
+        return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = statusmap, c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
 
 
     @cherrypy.expose
