@@ -1674,11 +1674,11 @@ class poms_service:
         for f in flist:
              if not f in located_list:
                   outlist.append(f)
-        return located_list, outlist
+        return c, located_list, outlist
 
     @cherrypy.expose
     def inflight_files(self, campaign_id=None, task_id=None, job_id = None ):
-        located_list, outlist = self.get_inflight(campaign_id=campaign_id, task_id= task_id, job_id = job_id)
+        c, located_list, outlist = self.get_inflight(campaign_id=campaign_id, task_id= task_id, job_id = job_id)
         statusmap = {}
         fss_file = "%s/%s_files.db" % (cherrypy.config.get("ftsscandir"), c.experiment)
         if os.path.exists(fss_file):
