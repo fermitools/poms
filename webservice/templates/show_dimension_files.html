@@ -1,0 +1,43 @@
+{%extends "layout.html" %}
+
+{%block title%}
+    <title>In-Flight files for Jobs</title>
+{%endblock%}
+
+{%block breadcrumbs%}
+    <div class="item">
+       Dashboard  <!--label of current location on mobile-->
+    </div>
+    <div class="item">
+      Dimension File list<!--label of current location on mobile-->
+    </div>
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+         Files for Dimension{%include 'help_button.html'%}
+</h1>
+{%endblock%}
+
+
+
+{%block subheader%}
+{%endblock%}
+
+
+{%block content %}
+Files for dimension <pre>
+{{dims}}
+</pre>
+Count: {{flist|length}}
+<br>
+
+<div class="ui raised padded text container segment">
+<div class="ui list">
+{% for f in flist %}
+<div class="item"> {{f}}  <br>
+</div>
+{%endfor%}
+</div>
+	
+{%endblock%}

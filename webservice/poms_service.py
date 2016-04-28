@@ -1218,49 +1218,126 @@ class poms_service:
     @cherrypy.expose
     def campaign_task_files(self,campaign_id, tmin = None, tmax = None, tdays = 1):
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'campaign_task_files?campaign_id=%s' % campaign_id)
+ 
+        #
+        # inhale all the campaign related task info for the time window
+        # in one fell swoop
+        #
 
-        c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+	tl = (cherrypy.request.db.query(Task).
+		options(joinedload(Task.campaign_obj)).
+                options(joinedload(Task.jobs).joinedload(Job.job_files)).
+                filter(Task.campaign_id == campaign_id, 
+                       Task.created >= tmin, Task.created < tmax ).
+                all())
+ 
+        #
+        # either get the campaign obj from above, or if we didn't
+        # find any tasks in that window, look it up
+        #
+        if len(tl) > 0:
+            c = tl[0].campaign_obj
+        else:
+            c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
 
-	tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id, Task.created >= tmin, Task.created < tmax ).all()
+
+        #
+        # fetch needed data in tandem
+        # -- first build lists of stuff to fetch
+        #
+        base_dim_list = []
+        summary_needed = []
+        some_kids_needed = []
+        some_kids_decl_needed = []
+        finished_flying_needed = []
+        for t in tl:
+             summary_needed.append(t)
+             basedims = "snapshot_for_project_name %s " % t.project
+             base_dim_list.append(basedims)
+
+             somekiddims = "%s and isparentof: (version %s)" % (basedims, t.campaign_obj.software_version)
+             some_kids_needed.append(somekiddims)
+
+             somekidsdecldims = "%s and isparentof: (version %s with availability anylocation )" % (basedims, t.campaign_obj.software_version)
+             some_kids_decl_needed.append(somekidsdecldims)
+
+             #
+             # allkiddims = basedims
+             # for pat in t.campaign_obj.out_file_types.split(","):
+             #     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, t.campaign_obj.software_version)
+             # all_kids_needed.append(allkiddims)
+             #
+             # allkiddecldims = basedims
+             # for pat in t.campaign_obj.out_file_types.split(","):
+             #     allkiddecldims = "%s and isparentof: ( file_name '%s' and version '%s' with availability anylocation ) " % (allkiddecldims, pat, t.campaign_obj.software_version)
+             # all_kids_decl_needed.append(allkiddecldims)
+
+             logoutfiles = []
+             for j in t.jobs:           
+                 for f in j.job_files:
+                     if f.file_type == "output":
+                         logoutfiles.append(f.file_name)
+             finished_flying_needed.append( "file_name '%s'" % "','".join(logoutfiles))
+
+        #
+        # -- now call parallel fetches for items
+        #
+        summary_list = cherrypy.request.project_fetcher.fetch_info_list(summary_needed)
+        some_kids_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, some_kids_needed)
+        some_kids_decl_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, some_kids_decl_needed)
+        #all_kids_decl_list = cherrypy.request.project_fetcher.count_files_list( c.experiment, all_kids_decl_needed)
+        #all_kids_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, all_kids_needed)
+        all_kids_decl_list = some_kids_decl_list
+        all_kids_list = some_kids_list
+        all_kids_decl_needed = some_kids_decl_needed # fixme 
+        finished_flying_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, finished_flying_needed)
 
         columns=["jobsub_jobid", "project", "date", "submit-<br>ted",
                  "delivered<br>(SAM:logs)",
                  "con-<br>sumed","skipped","unk.",
-                 "w/kids<br>declared<br>(some:all)",
+                 "w/some kids<br>declared",
+                 "w/all kids<br>declared",
                  "w/kids<br>inflight",
                  "w/kids<br>located",
                  "pending"]
 
+        listfiles = "show_dimension_files?experiment=%s&dims=%%s" % c.experiment
         datarows = []
+        i = -1
         for t in tl:
-             psummary = self.project_summary_for_task(t.task_id)
+             cherrypy.log("task %d" % t.task_id)
+             i = i + 1
+             psummary = summary_list[i]
+             partpending = psummary.get('files_in_snapshot', 0) - some_kids_list[i]
+             #pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
+             pending = partpending
              logdelivered = 0
              logwritten = 0
              logkids = 0
-             for j in  t.jobs:
+             for j in t.jobs:
                  for f in j.job_files:
                      if f.file_type == "input":
                          logdelivered = logdelivered + 1
                      if f.file_type == "output":
                          logkids = logkids + 1
-
-             c, located_list, inflight = self.get_inflight(task_id = t.task_id)
-             pending = self.get_pending_count(task_id = t.task_id)
-             partpending = self.get_pending_count(task_id = t.task_id,all_kids=False)
-             declpending = self.get_pending_count(task_id = t.task_id, just_declared=True )
              task_jobsub_job_id = self.task_min_job(t.task_id)
              if task_jobsub_job_id == None:
-                 continue
-             datarows.append([task_jobsub_job_id.replace('@','@<br>'), 
-                           t.project,
-                           t.created.strftime("%Y-%m-%d %H:%M"), 
-                           psummary.get('files_in_snapshot',0),
-                           "%d:%d" % (psummary.get('tot_consumed',0) + psummary.get('tot_failed',0) + psummary.get('tot_unknown',0), logdelivered),
-                           psummary.get('tot_consumed',0), psummary.get('tot_failed',0), psummary.get('tot_unknown',0),
-                           "%d:%d" % (psummary.get('files_in_snapshot',0) - declpending,psummary.get('files_in_snapshot',0) - partpending),
-                           len(inflight), 
-                           len(located_list), 
-                           pending])
+                 task_jobsub_job_id = "t%s" % t.task_id
+             datarows.append([
+                           [task_jobsub_job_id.replace('@','@<br>'), "show_task_jobs?task_id=%d" % t.task_id],
+                           [t.project,"http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s" % (c.experiment, c.experiment, t.project)],
+                           [t.created.strftime("%Y-%m-%d %H:%M"),None], 
+                           [psummary.get('files_in_snapshot',0), listfiles % base_dim_list[i]],
+                           ["%d:%d" % (psummary.get('tot_consumed',0) + psummary.get('tot_failed',0) + psummary.get('tot_unknown',0), logdelivered), listfiles % base_dim_list[i] + " and consumed_status consumed,failed,unknown "],
+                           [psummary.get('tot_consumed',0), listfiles % base_dim_list + " and consumed_status consumed"],
+                           [ psummary.get('tot_failed',0),  listfiles % base_dim_list + " and consumed_status failed"],
+                           [ psummary.get('tot_unknown',0),  listfiles % base_dim_list + " and consumed_status unknown"],
+                           [some_kids_decl_list[i], listfiles % some_kids_needed[i] ],
+                           [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
+                           [logdelivered - finished_flying_list[i], "inflight"],
+                           [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
+                           [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
+                ])
         template = self.jinja_env.get_template('campaign_task_files.html')
         return template.render(name = c.name, columns = columns, datarows = datarows, prevlink=prevlink, nextlink=nextlink,current_experimenter=cherrypy.session.get('experimenter'), campaign_id = campaign_id, pomspath=self.path,help_page="CampaignTaskFilesHelp")
                            
@@ -1287,7 +1364,7 @@ class poms_service:
 
         job_counts = self.format_job_counts(campaign_id = cp.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string)
 
-        qr = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == campaign_id, TaskHistory.task_id == Task.task_id , Task.created > tmin - timedelta(hours=12), Task.created < tmax ).order_by(TaskHistory.task_id,TaskHistory.created).all()
+        qr = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id == campaign_id, TaskHistory.task_id == Task.task_id , or_(and_(Task.created > tmin, Task.created < tmax),and_(Task.updated > tmin, Task.updated < tmax)) ).order_by(TaskHistory.task_id,TaskHistory.created).all()
         items = []
         extramap = {}
         for th in qr:
@@ -1675,6 +1752,14 @@ class poms_service:
              if not f in located_list:
                   outlist.append(f)
         return c, located_list, outlist
+
+    @cherrypy.expose
+    def show_dimension_files(self, experiment, dims):
+
+        flist = cherrypy.request.project_fetcher.list_files(experiment, dims)
+
+        template = self.jinja_env.get_template('show_dimension_files.html')
+        return template.render(flist = flist, dims = dims,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = [], pomspath=self.path,help_page="ShowDimensionFilesHelp")
 
     @cherrypy.expose
     def inflight_files(self, campaign_id=None, task_id=None, job_id = None ):

@@ -40,6 +40,9 @@ class status_scraper():
         # login initially...
         #
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
+        self.do_login()
+
+    def do_login(self):
         login = self.cf.get('global','login')
         pw = self.cf.get('global','password')
         print "trying ",self.url + "/login" 
@@ -163,8 +166,16 @@ class status_scraper():
         self.report()
 
     def poll(self):
+        count = 30 
         while 1:
             try:
+                # login every so often
+                if count <= 0:
+                   self.do_login()
+                   count = 30
+
+                count = count - 1
+
                 self.one_pass()
 
 	    except KeyboardInterrupt:

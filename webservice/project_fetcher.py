@@ -53,7 +53,7 @@ class project_fetcher:
         #~ return [ {"tot_consumed": 0, "tot_unknown": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
         base = "http://samweb.fnal.gov:8480"
         urls = ["%s/sam/%s/api/projects/name/%s/summary?format=json" % (base, t.campaign_obj.experiment, t.project) for t in task_list]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             replies = executor.map(requests.get, urls)
         infos = []
         for r in replies:
@@ -111,6 +111,29 @@ class project_fetcher:
             count = 0
         return count
 
+    def count_files_list(self, experiment, dims_list ):
+        """
+        """
+        def getit(url):
+            retries = 5
+            r =  requests.get(url,verify=False)
+            while r.status_code >= 500 and retries > 0:
+               time.sleep(5)
+               retries = retries - 1
+               r =  requests.get(url,verify=False)
+            return r
+               
+        base = "http://samweb.fnal.gov:8480"
+        urls = ["%s/sam/%s/api/files/count?%s" % (base, experiment, urllib.urlencode({"dims":dims})) for dims in dims_list]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            replies = executor.map(getit, urls)
+        infos = []
+        for r in replies:
+            if r.text.find("query limit") > 0:
+                infos.append(-1)
+            else:     
+                infos.append(int(r.text)) 
+        return infos
 
     def create_definition(self, experiment, name, dims):
         base = "http://samweb.fnal.gov:8480"
@@ -144,4 +167,8 @@ if __name__ == "__main__":
     pprint.pprint(l)
 
     c = pf.count_files("nova", "project_name 'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.e-neardet-20160210_1624','vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.a-fardet-20160202_1814'");
+
     print "got count:", c
+
+    l = pf.count_files_list("nova",["defname:mwm_test_6","defname:mwm_test_9","defname:mwm_test_11"])
+    print "got count list: ", l

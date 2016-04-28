@@ -32,6 +32,10 @@
 
 
 {%block content%}
+
+<!--
+ {{datarows}}
+-->
 <table class="ui sortable celled collapsing table">
   <thead>
     <tr>
@@ -46,7 +50,7 @@
     {%for row in datarows %}
       <tr>
          {%for col in range(0, columns|count) %}
-              <td>{{row[col]}}</td>
+              <td><a href="{{row[col][1]}}">{{row[col][0]}}</a></td>
          {%endfor%}
       </tr>
     {%endfor%}
