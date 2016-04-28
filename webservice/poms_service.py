@@ -1339,7 +1339,7 @@ class poms_service:
                            [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                 ])
         template = self.jinja_env.get_template('campaign_task_files.html')
-        return template.render(name = c.name, columns = columns, datarows = datarows, prevlink=prevlink, nextlink=nextlink,current_experimenter=cherrypy.session.get('experimenter'), campaign_id = campaign_id, pomspath=self.path,help_page="CampaignTaskFilesHelp")
+        return template.render(name = c.name if c else "", columns = columns, datarows = datarows, prevlink=prevlink, nextlink=nextlink,current_experimenter=cherrypy.session.get('experimenter'), campaign_id = campaign_id, pomspath=self.path,help_page="CampaignTaskFilesHelp")
                            
 
     @cherrypy.expose
@@ -1723,6 +1723,7 @@ class poms_service:
 
 
     def get_inflight(self, campaign_id=None, task_id=None, job_id = None ):
+        c = None
         q = cherrypy.request.db.query(Job).join(Job.task_obj).join(Task.campaign_obj)
         if campaign_id != None:
             q = q.filter(Task.campaign_id == campaign_id)
@@ -1765,15 +1766,16 @@ class poms_service:
     def inflight_files(self, campaign_id=None, task_id=None, job_id = None ):
         c, located_list, outlist = self.get_inflight(campaign_id=campaign_id, task_id= task_id, job_id = job_id)
         statusmap = {}
-        fss_file = "%s/%s_files.db" % (cherrypy.config.get("ftsscandir"), c.experiment)
-        if os.path.exists(fss_file):
-            fss = shelve.open(fss_file, 'r')
-            for f in outlist:
-                try:
-                    statusmap[f] = fss.get(f.encode('ascii','ignore'),'')
-                except KeyError:
-                    statusmap[f] = ''
-            fss.close()
+        if c:
+	    fss_file = "%s/%s_files.db" % (cherrypy.config.get("ftsscandir"), c.experiment)
+	    if os.path.exists(fss_file):
+		fss = shelve.open(fss_file, 'r')
+		for f in outlist:
+		    try:
+			statusmap[f] = fss.get(f.encode('ascii','ignore'),'')
+		    except KeyError:
+			statusmap[f] = ''
+		fss.close()
 
         template = self.jinja_env.get_template('inflight_files.html')
 
