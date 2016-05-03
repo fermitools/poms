@@ -2341,63 +2341,43 @@ class poms_service:
         cherrypy.response.timeout = 600
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'actual_pending_files?count_or_list=%s&%s=%s&' % (count_or_list,'campaign_id',campaign_id) if campaign_id else (count_or_list,'task_id',task_id))
 
-        c, dims = self.get_pending_dims(self,  task_id = task_id, campaign_id = campaign_id, tmin = tmin, tmax= tmax, tdays = tdays)
+	tl = (cherrypy.request.db.query(Task).
+		options(joinedload(Task.campaign_obj)).
+                options(joinedload(Task.jobs).joinedload(Job.job_files)).
+                filter(Task.campaign_id == campaign_id, 
+                       Task.created >= tmin, Task.created < tmax ).
+                all())
 
-        cherrypy.log('running dimension query: "%s"' % dims)
-
-        if count_or_list.startswith('c'):
-            count = cherrypy.request.project_fetcher.count_files(c.experiment, dims)
-            flist = None
+        c = None
+        plist = []
+        for t in tl:
+            if not c:
+                c = t.campaign_obj
+            plist.append(t.project if t.project else 'None')
+ 
+        if c:
+            dims = "snapshot_for_project_name %s minus isparentof: (version %s) " % (
+                    ','.join(plist),
+                    c.software_version
+                )
+             # needs stuff like:
+             # when we get our output file patterns
+             # allkiddims = basedims
+             # for pat in t.campaign_obj.out_file_types.split(","):
+             #     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, t.campaign_obj.software_version)
+             # all_kids_needed.append(allkiddims)
+             #
         else:
-            count = None
+            c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id ).first()
+            dims = None
+
+        flist = []
+        count = None
+        if count_or_list.startswith('c') and dims:
+            count = cherrypy.request.project_fetcher.count_files(c.experiment, dims)
+        if count_or_list.startswith('c') and dims:
             flist = cherrypy.request.project_fetcher.list_files(c.experiment, dims)
         #return dims + "<br>" + str(res)
 	template = self.jinja_env.get_template('actual_pending_files.html')
-	return template.render( tmin = str(tmin)[:16], tmax = str(tmax)[:16], days = str(tdays),  next = nextlink, prev = prevlink,c = c, campaign_id = campaign_id, count_or_list = count_or_list , flist = flist, count = count,  task_id = task_id,  current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ActualPendingFilesHelp", tasklist = tasklist)
-
-    def get_pending_count(self, task_id, just_declared = False, all_kids = True):
-        c,dims = self.get_pending_dims( task_id = task_id, just_declared = just_declared, all_kids = all_kids)
-        cherrypy.log("get_pending_count: dims: %s" % dims)
-        count = cherrypy.request.project_fetcher.count_files(c.experiment, dims)
-        return count
-
-    def get_pending_dims(self, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1, just_declared = False, all_kids = True):
-        #
-        # either way, we need info from the campaign
-        #
-        if campaign_id:
-            c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-        if task_id:
-            c = cherrypy.request.db.query(Campaign).join(Task).filter(Task.task_id == task_id , Campaign.campaign_id == Task.campaign_id ).first()
-
-        #
-        # now we build up a list of projects involved
-        #
-        pquery = cherrypy.request.db.query(Task)
-        if (task_id):
-            pquery = pquery.filter(Task.task_id == task_id)
-
-        if (campaign_id):
-            pquery = pquery.filter(Task.campaign_id == campaign_id)
-
-        if (tmin):
-            pquery = pquery.filter(Task.updated >= tmin)
-
-        if (tmax):
-            pquery = pquery.filter(Task.updated <= tmax)
-
-        tasklist = pquery.all()
-
-        projlist = [str(x.project) for x in tasklist  if x.project != None and x.project!= 'None']
-        plistdims= "'%s'" % "','".join(projlist)
-
-        dims = "snapshot_for_project_name  %s " % plistdims
-        if all_kids:
-            #for kidtype in json.loads(c.kidtypes):
-            for kidtype in ["%.root"]:
-                dims = "%s minus isparentof: (version '%s' and file_name like '%s'  with availability %s)" % ( dims, c.software_version, kidtype,"anylocation" if just_declared else "physical")
-               
-        else:
-            dims =  "%s minus isparentof: (version '%s' with availability %s)" % ( dims, c.software_version, "anylocation" if just_declared else "physical")
-        return c,dims
+	return template.render( tmin = str(tmin)[:16], tmax = str(tmax)[:16], days = str(tdays),  next = nextlink, prev = prevlink,c = c, campaign_id = campaign_id, count_or_list = count_or_list , flist = flist, tasklist=tl, count = count,  task_id = task_id,  current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ActualPendingFilesHelp")
 
