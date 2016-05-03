@@ -104,7 +104,7 @@ class jobsub_q_scraper:
             host = jobenv.get('REMOTEHOST','')
             host = host[host.rfind('@')+1:]
 
-            if jobenv.has_key("POMS_TASK_ID") > 0:
+            if jobenv.has_key("POMS_TASK_ID"):
 
                 if self.debug: print "jobenv is: ", jobenv
 
@@ -126,7 +126,7 @@ class jobsub_q_scraper:
                 #
                 # only report status if its different
                 #
-                if not prev or prev['status'] != args['status'] or prev['node_name'] != args['node_name'] or prev['cpu_time'] != args['cpu_time'] or prev['wall_time'] != args['wall_time']:
+                if not prev or prev['status'] != args['status'] or prev['node_name'] != args['node_name'] or prev['cpu_time'] != args['cpu_time'] or prev['wall_time'] != args['wall_time'] or prev['task_project'] != args['task_project']:
                     try: 
                         self.job_reporter.actually_report_status(**args)
                     except:
