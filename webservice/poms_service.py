@@ -861,17 +861,32 @@ class poms_service:
          return res
 
     @cherrypy.expose
+    def report_declared_files(self, flist):
+        now =  datetime.now(utc)
+        for f in cherrypy.request.db.query(JobFile).filter(JobFile.file_name.in_(flist) ).all():
+             f.declared = now;
+             cherrypy.request.db.add(f)
+        cherrypy.request.db.commit()
+
+    @cherrypy.expose
     def output_pending_jobs(self):
          cherrypy.response.headers['Content-Type']= 'application/json'
-         res = [ "{" ]
+         res = {}
          sep=""
-         for job in cherrypy.request.db.query(Job).options(joinedload(Job.job_files)).filter(Job.status == "Completed").all():
-              if job.jobsub_job_id == "unknown":
-                   continue
-              res.append( '%s "%s" : {"output_file_names":"%s", "experiment":"%s"}' % (sep, job.jobsub_job_id, " ".join([x.file_name for x in job.job_files]), job.task_obj.campaign_obj.experiment))
-              sep = ","
-         res.append( "}" )
-         return "".join(res)
+         preve = None
+         prevj = None
+         for e, jobsub_job_id, fname  in cherrypy.request.db.query(Campaign.experiment,Job.jobsub_job_id,JobFile.file_name).join(Task).filter(Task.campaign_id == Campaign.campaign_id, Job.jobsub_job_id != "unknown", Job.task_id == Task.task_id, Job.job_id == JobFile.job_id, Job.status == "Completed", JobFile.declared == None, JobFile.file_type == 'output').order_by(Campaign.experiment,Job.jobsub_job_id).all():
+              if preve != e:
+                  preve = e
+                  res[e] = {}
+              if prevj != jobsub_job_id:
+                  prevj = jobsub_job_id
+                  res[e][jobsub_job_id] = []
+              res[e][jobsub_job_id].append(fname)
+         sres =  json.dumps(res)
+         res = None
+         gc.collect(2)
+         return sres
 
     @cherrypy.expose
     def wrapup_tasks(self):
@@ -964,9 +979,7 @@ class poms_service:
                  if kwargs.get(field, None):
                     setattr(j,field,kwargs[field].rstrip("\n"))
                  if not getattr(j,field, None):
-                    if field == 'user_exe_exit_code':
-                        setattr(j,field,0)
-                    else:
+                    if field != 'user_exe_exit_code':
                         setattr(j,field,'unknown')
 
              for field in ['project', ]:

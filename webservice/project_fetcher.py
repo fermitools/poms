@@ -132,7 +132,10 @@ class project_fetcher:
             if r.text.find("query limit") > 0:
                 infos.append(-1)
             else:     
-                infos.append(int(r.text)) 
+                try:
+                   infos.append(int(r.text)) 
+                except:
+                   infos.append(-1) 
         return infos
 
     def create_definition(self, experiment, name, dims):

@@ -12,6 +12,7 @@ if os.environ.get("SETUP_POMS","") == "":
 
 import re
 import urllib2
+import urllib
 import json
 import time
 import traceback
@@ -23,6 +24,21 @@ class declared_files_watcher:
         self.job_reporter = job_reporter
         self.old_experiment = None
 
+    def report_declared_files(self,flist):
+        print "entering: report_declared_files:", flist
+        url = self.job_reporter.report_url + "/report_declared_files"
+        try:
+            conn = urllib2.urlopen(url,urllib.urlencode([ ("flist",x) for x in flist]))
+            res = conn.read()
+            conn.close()
+        except KeyboardInterrupt:
+            raise
+        except:
+            print  time.asctime(), "Ouch!", sys.exc_info()
+            sys.stdout.flush()
+	    traceback.print_exc()
+            pass
+
     def call_wrapup_tasks(self):
 	self.jobmap = {}
         try:
@@ -32,6 +48,8 @@ class declared_files_watcher:
             conn.close()
 
             print "got: ", output
+        except KeyboardInterrupt:
+            raise
         except:
             print time.asctime(), "Ouch!", sys.exc_info()
 	    traceback.print_exc()
@@ -48,6 +66,8 @@ class declared_files_watcher:
             #print "got: ", jobs
             sys.stdout.flush()
             return jobs
+        except KeyboardInterrupt:
+            raise
         except:
             print  time.asctime(), "Ouch!", sys.exc_info()
             sys.stdout.flush()
@@ -74,36 +94,39 @@ class declared_files_watcher:
         print "found %d located files for %s" % (len(res), experiment)
         return res
 
+
     def one_pass(self):
          jobmap = self.get_pending_jobs()
-         old_experiment = ""
+         if jobmap == None:
+             return
          samweb = None
          total_flist = {}
          present_files = {}
-         for jobsub_job_id in  jobmap.keys():
-             job_flist = jobmap[jobsub_job_id]["output_file_names"].split(" ")
-             experiment  = jobmap[jobsub_job_id]["experiment"]
-             if not total_flist.has_key(experiment):
-                  total_flist[experiment] = []
-	     total_flist[experiment] = total_flist[experiment] + job_flist
+         for experiment in jobmap.keys():
+             for jobsub_job_id in jobmap[experiment].keys():
+                 job_flist = jobmap[experiment][jobsub_job_id]
+                 if not total_flist.has_key(experiment):
+                     total_flist[experiment] = []
+	         total_flist[experiment] = total_flist[experiment] + job_flist
 
          print "got total file lists for experiments..."
 
          for experiment in total_flist.keys():
              present_files[experiment] = self.find_located_files(experiment, total_flist[experiment])
+
+             self.report_declared_files(total_flist[experiment])
           
-         for jobsub_job_id in  jobmap.keys():
+         for experiment in jobmap.keys():
+             for jobsub_job_id in  jobmap[e].keys():
+                 flist = jobmap[experiment][jobsub_job_id]
 
-             flist = jobmap[jobsub_job_id]["output_file_names"].split(" ")
-             experiment  = jobmap[jobsub_job_id]["experiment"]
+		 all_located = 1
+		 for f in flist:
+		      if not f in present_files[experiment]:
+			  all_located = 0
 
-             all_located = 1
-             for f in flist:
-                  if not f in present_files[experiment]:
-		      all_located = 0
-
-             if all_located:
-                 self.job_reporter.report_status(jobsub_job_id,output_files_declared = "True",status="Located")
+		 if all_located:
+		     self.job_reporter.report_status(jobsub_job_id,output_files_declared = "True",status="Located")
 
          print "Looked through files.."
 
