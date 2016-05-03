@@ -41,7 +41,8 @@ class jobsub_q_scraper:
             jobs = json.load(conn)
             conn.close()
 
-            print "got: ", jobs
+            #print "got: ", jobs
+            print "got %d jobs" % len(jobs)
             for j in jobs:
                 self.jobmap[j] = 0
         except:
@@ -55,7 +56,7 @@ class jobsub_q_scraper:
             text = conn.read()
             conn.close()
 
-            print "got: ", text
+            if self.debug: print "got: ", text
         except:
             print  "Ouch!", sys.exc_info()
 	    traceback.print_exc()
@@ -105,7 +106,8 @@ class jobsub_q_scraper:
 
             if jobenv.has_key("POMS_TASK_ID") > 0:
 
-                print "reporting: ", jobenv
+                if self.debug: print "jobenv is: ", jobenv
+
                 args = {
                     'jobsub_job_id' : jobsub_job_id,
                     'taskid' : jobenv['POMS_TASK_ID'],
@@ -126,11 +128,17 @@ class jobsub_q_scraper:
                 #
                 if not prev or prev['status'] != args['status'] or prev['node_name'] != args['node_name'] or prev['cpu_time'] != args['cpu_time'] or prev['wall_time'] != args['wall_time']:
                     try: 
-                        self.job_reporter.report_status(**args)
+                        self.job_reporter.actually_report_status(**args)
                     except:
 	                print "Reporting Exception!"
 	                traceback.print_exc()
                         pass
+                else:
+                    if self.debug: 
+                         print "unchanged, not reporting"
+                         print "prev", prev
+                         print "args", args
+                          
             else:
                 #print "skipping:" , line
                 pass
@@ -179,5 +187,5 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
 
-    js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms"), debug = debug)
+    js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms", debug=debug), debug = debug)
     js.poll()
