@@ -885,7 +885,6 @@ class poms_service:
               res[e][jobsub_job_id].append(fname)
          sres =  json.dumps(res)
          res = None
-         gc.collect(2)
          return sres
 
     @cherrypy.expose
