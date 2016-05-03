@@ -1826,7 +1826,7 @@ class poms_service:
             if e != None:
                 columns.append('exit(%d)'%e)
             else:
-                columns.append('No exitcode''%e)
+                columns.append('No exitcode')
         outrows = []
         exitcounts = {}
         totfiles = 0
