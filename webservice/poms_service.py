@@ -1825,6 +1825,8 @@ class poms_service:
         for e in exitcodes:
             if e != None:
                 columns.append('exit(%d)'%e)
+            else:
+                columns.append('No exitcode''%e)
         outrows = []
         exitcounts = {}
         totfiles = 0
@@ -1835,8 +1837,7 @@ class poms_service:
         infiles = 0
         pendfiles = 0
         for e in exitcodes:
-            if e != None:
-                exitcounts[e] = 0
+            exitcounts[e] = 0
 
         for tno, task in enumerate(tl):
             if day != task.created.weekday():
@@ -1864,8 +1865,7 @@ class poms_service:
                 infiles = 0
                 pendfiles = 0
                 for e in exitcodes:
-                    if e != None:
-                        exitcounts[e] = 0
+                    exitcounts[e] = 0
             day = task.created.weekday()
             date = task.created
             #
