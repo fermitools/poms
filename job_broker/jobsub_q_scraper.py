@@ -180,7 +180,6 @@ class jobsub_q_scraper:
 	        traceback.print_exc()
 	        pass
 
-            time.sleep(60)
 
 if __name__ == '__main__':
     debug = 0
