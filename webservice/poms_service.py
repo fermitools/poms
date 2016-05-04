@@ -1261,6 +1261,8 @@ class poms_service:
         summary_needed = []
         some_kids_needed = []
         some_kids_decl_needed = []
+        all_kids_needed = []
+        all_kids_decl_needed = []
         finished_flying_needed = []
         for t in tl:
              summary_needed.append(t)
@@ -1273,16 +1275,15 @@ class poms_service:
              somekidsdecldims = "%s and isparentof: (version %s with availability anylocation )" % (basedims, t.campaign_obj.software_version)
              some_kids_decl_needed.append(somekidsdecldims)
 
-             #
-             # allkiddims = basedims
-             # for pat in t.campaign_obj.out_file_types.split(","):
-             #     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, t.campaign_obj.software_version)
-             # all_kids_needed.append(allkiddims)
-             #
-             # allkiddecldims = basedims
-             # for pat in t.campaign_obj.out_file_types.split(","):
-             #     allkiddecldims = "%s and isparentof: ( file_name '%s' and version '%s' with availability anylocation ) " % (allkiddecldims, pat, t.campaign_obj.software_version)
-             # all_kids_decl_needed.append(allkiddecldims)
+             allkiddecldims = basedims
+             allkiddims = basedims
+             for pat in str(t.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
+                 if pat == 'None':
+                    pat = '%'
+                 allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, t.campaign_obj.software_version)
+                 allkiddecldims = "%s and isparentof: ( file_name '%s' and version '%s' with availability anylocation ) " % (allkiddecldims, pat, t.campaign_obj.software_version)
+             all_kids_needed.append(allkiddims)
+             all_kids_decl_needed.append(allkiddecldims)
 
              logoutfiles = []
              for j in t.jobs:           
@@ -1297,11 +1298,8 @@ class poms_service:
         summary_list = cherrypy.request.project_fetcher.fetch_info_list(summary_needed)
         some_kids_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, some_kids_needed)
         some_kids_decl_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, some_kids_decl_needed)
-        #all_kids_decl_list = cherrypy.request.project_fetcher.count_files_list( c.experiment, all_kids_decl_needed)
-        #all_kids_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, all_kids_needed)
-        all_kids_decl_list = some_kids_decl_list
-        all_kids_list = some_kids_list
-        all_kids_decl_needed = some_kids_decl_needed # fixme 
+        all_kids_decl_list = cherrypy.request.project_fetcher.count_files_list( c.experiment, all_kids_decl_needed)
+        all_kids_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, all_kids_needed)
         finished_flying_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, finished_flying_needed)
 
         columns=["jobsub_jobid", "project", "date", "submit-<br>ted",
@@ -1735,8 +1733,12 @@ class poms_service:
 
 
     def get_inflight(self, campaign_id=None, task_id=None, job_id = None ):
-        c = None
-        q = cherrypy.request.db.query(Job).join(Job.task_obj).join(Task.campaign_obj)
+        q = cherrypy.request.db.query(JobFile).join(Job).join(Task).join(Campaign)
+        q = q.filter(Task.campaign_id == Campaign.campaign_id)
+        q = q.filter(Task.task_id == Job.task_id)
+        q = q.filter(Job.job_id == JobFile.job_id)
+        q = q.filter(JobFile.file_type == 'output' )
+        q = q.filter(JobFile.declared == None )
         if campaign_id != None:
             q = q.filter(Task.campaign_id == campaign_id)
         if task_id != None:
@@ -1746,24 +1748,9 @@ class poms_service:
         q = q.filter(Job.output_files_declared == False)
         flist = []
         jjid = "xxxxx"
-        for j in q.all():
-            if j.job_files:
-                flist = flist + [x.file_name for x in j.job_files ]
-            if j.jobsub_job_id < jjid:
-                jjid = j.jobsub_job_id
-            lastj = j
+        for jf in q.all():
+            outlist.append(jf.file_name)
 
-        if len(flist) > 0:
-            c = lastj.task_obj.campaign_obj
-            dims="file_name %s" % ",".join(flist)
-            located_list = cherrypy.request.project_fetcher.list_files(c.experiment, dims)
-        else:
-            located_list = []
-
-        outlist = []
-        for f in flist:
-             if not f in located_list:
-                  outlist.append(f)
         return c, located_list, outlist
 
     @cherrypy.expose
@@ -1775,8 +1762,12 @@ class poms_service:
         return template.render(flist = flist, dims = dims,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = [], pomspath=self.path,help_page="ShowDimensionFilesHelp")
 
     @cherrypy.expose
-    def inflight_files(self, campaign_id=None, task_id=None, job_id = None ):
-        c, located_list, outlist = self.get_inflight(campaign_id=campaign_id, task_id= task_id, job_id = job_id)
+    def inflight_files(self, campaign_id=None, task_id=None):
+        if campaign_id:
+           c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        elif task_id:
+           c = cherrypy.request.db.query(Campaign).join(Task).filter(Campaign.campaign_id == Task.campaign_id, Task.task_id == task_id).first()
+        outlist = self.get_inflight(campaign_id=campaign_id, task_id= task_id)
         statusmap = {}
         if c:
 	    fss_file = "%s/%s_files.db" % (cherrypy.config.get("ftsscandir"), c.experiment)
@@ -2355,17 +2346,12 @@ class poms_service:
             plist.append(t.project if t.project else 'None')
  
         if c:
-            dims = "snapshot_for_project_name %s minus isparentof: (version %s) " % (
-                    ','.join(plist),
-                    c.software_version
-                )
-             # needs stuff like:
-             # when we get our output file patterns
-             # allkiddims = basedims
-             # for pat in t.campaign_obj.out_file_types.split(","):
-             #     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, t.campaign_obj.software_version)
-             # all_kids_needed.append(allkiddims)
-             #
+            dims = "snapshot_for_project_name %s minus (" %  ','.join(plist)
+            sep = ""
+            for pat in str(c.campaign_definition_obj.output_file_patterns).split(','):
+                dims = "%s %s isparentof: ( file_name '%s' and version '%s' ) " % (dims, sep, pat, t.campaign_obj.software_version)
+                sep = "and"
+            dims = dims + ")"
         else:
             c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id ).first()
             dims = None
