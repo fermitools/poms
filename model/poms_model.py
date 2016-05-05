@@ -146,6 +146,7 @@ class CampaignDefinition(Base):
     definition_parameters = Column(JSON)
     input_files_per_job = Column(Integer)
     output_files_per_job = Column(Integer)
+    output_file_patterns = Column(Text)
     creator = Column(ForeignKey(u'experimenters.experimenter_id'), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey(u'experimenters.experimenter_id'), index=True)

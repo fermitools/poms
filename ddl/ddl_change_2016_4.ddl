@@ -108,6 +108,7 @@ ALTER TABLE tasks ADD CONSTRAINT fk_tasks_campaign_snapshot_id FOREIGN KEY ( cam
 
 ALTER TABLE tasks ADD CONSTRAINT fk_tasks_campaign_definition_snap_id FOREIGN KEY ( campaign_definition_snap_id ) REFERENCES campaign_definition_snapshots( campaign_definition_snap_id )    ;
 
+ALTER TABLE campaign_definitions ADD output_file_patterns text  ;
 
 
 
