@@ -1261,6 +1261,8 @@ class poms_service:
         summary_needed = []
         some_kids_needed = []
         some_kids_decl_needed = []
+        all_kids_needed = []
+        all_kids_decl_needed = []
         finished_flying_needed = []
         for t in tl:
              summary_needed.append(t)
@@ -1273,23 +1275,21 @@ class poms_service:
              somekidsdecldims = "%s and isparentof: (version %s with availability anylocation )" % (basedims, t.campaign_obj.software_version)
              some_kids_decl_needed.append(somekidsdecldims)
 
-             #
-             # allkiddims = basedims
-             # for pat in t.campaign_obj.out_file_types.split(","):
-             #     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, t.campaign_obj.software_version)
-             # all_kids_needed.append(allkiddims)
-             #
-             # allkiddecldims = basedims
-             # for pat in t.campaign_obj.out_file_types.split(","):
-             #     allkiddecldims = "%s and isparentof: ( file_name '%s' and version '%s' with availability anylocation ) " % (allkiddecldims, pat, t.campaign_obj.software_version)
-             # all_kids_decl_needed.append(allkiddecldims)
+             allkiddecldims = basedims
+             allkiddims = basedims
+             for pat in str(t.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
+                 if pat == 'None':
+                    pat = '%'
+                 allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, t.campaign_obj.software_version)
+                 allkiddecldims = "%s and isparentof: ( file_name '%s' and version '%s' with availability anylocation ) " % (allkiddecldims, pat, t.campaign_obj.software_version)
+             all_kids_needed.append(allkiddims)
+             all_kids_decl_needed.append(allkiddecldims)
 
              logoutfiles = []
              for j in t.jobs:           
                  for f in j.job_files:
                      if f.file_type == "output":
                          logoutfiles.append(f.file_name)
-             finished_flying_needed.append( "file_name '%s'" % "','".join(logoutfiles))
 
         #
         # -- now call parallel fetches for items
@@ -1297,12 +1297,8 @@ class poms_service:
         summary_list = cherrypy.request.project_fetcher.fetch_info_list(summary_needed)
         some_kids_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, some_kids_needed)
         some_kids_decl_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, some_kids_decl_needed)
-        #all_kids_decl_list = cherrypy.request.project_fetcher.count_files_list( c.experiment, all_kids_decl_needed)
-        #all_kids_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, all_kids_needed)
-        all_kids_decl_list = some_kids_decl_list
-        all_kids_list = some_kids_list
-        all_kids_decl_needed = some_kids_decl_needed # fixme 
-        finished_flying_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, finished_flying_needed)
+        all_kids_decl_list = cherrypy.request.project_fetcher.count_files_list( c.experiment, all_kids_decl_needed)
+        all_kids_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, all_kids_needed)
 
         columns=["jobsub_jobid", "project", "date", "submit-<br>ted",
                  "delivered<br>(SAM:logs)",
@@ -1346,7 +1342,7 @@ class poms_service:
                            [ psummary.get('tot_unknown',0),  listfiles % base_dim_list + " and consumed_status unknown"],
                            [some_kids_decl_list[i], listfiles % some_kids_needed[i] ],
                            [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                           [logdelivered - finished_flying_list[i], "inflight"],
+                           [len(get_inflight(task_id=t.task_id)), "inflight"],
                            [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
                            [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                 ])
@@ -1734,37 +1730,24 @@ class poms_service:
         #~ return [ {"tot_consumed": 0, "tot_failed": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
 
 
-    def get_inflight(self, campaign_id=None, task_id=None, job_id = None ):
-        c = None
-        q = cherrypy.request.db.query(Job).join(Job.task_obj).join(Task.campaign_obj)
+    def get_inflight(self, campaign_id=None, task_id=None):
+        q = cherrypy.request.db.query(JobFile).join(Job).join(Task).join(Campaign)
+        q = q.filter(Task.campaign_id == Campaign.campaign_id)
+        q = q.filter(Task.task_id == Job.task_id)
+        q = q.filter(Job.job_id == JobFile.job_id)
+        q = q.filter(JobFile.file_type == 'output' )
+        q = q.filter(JobFile.declared == None )
         if campaign_id != None:
             q = q.filter(Task.campaign_id == campaign_id)
         if task_id != None:
             q = q.filter(Job.task_id == task_id)
-        if job_id != None:
-            q = q.filter(Job.job_id == job_id)
         q = q.filter(Job.output_files_declared == False)
-        flist = []
-        jjid = "xxxxx"
-        for j in q.all():
-            if j.job_files:
-                flist = flist + [x.file_name for x in j.job_files ]
-            if j.jobsub_job_id < jjid:
-                jjid = j.jobsub_job_id
-            lastj = j
-
-        if len(flist) > 0:
-            c = lastj.task_obj.campaign_obj
-            dims="file_name %s" % ",".join(flist)
-            located_list = cherrypy.request.project_fetcher.list_files(c.experiment, dims)
-        else:
-            located_list = []
-
         outlist = []
-        for f in flist:
-             if not f in located_list:
-                  outlist.append(f)
-        return c, located_list, outlist
+        jjid = "xxxxx"
+        for jf in q.all():
+            outlist.append(jf.file_name)
+
+        return outlist
 
     @cherrypy.expose
     def show_dimension_files(self, experiment, dims):
@@ -1775,8 +1758,15 @@ class poms_service:
         return template.render(flist = flist, dims = dims,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = [], pomspath=self.path,help_page="ShowDimensionFilesHelp")
 
     @cherrypy.expose
-    def inflight_files(self, campaign_id=None, task_id=None, job_id = None ):
-        c, located_list, outlist = self.get_inflight(campaign_id=campaign_id, task_id= task_id, job_id = job_id)
+    def inflight_files(self, campaign_id=None, task_id=None):
+        if campaign_id:
+            c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        elif task_id:
+            c = cherrypy.request.db.query(Campaign).join(Task).filter(Campaign.campaign_id == Task.campaign_id, Task.task_id == task_id).first()
+        else: 
+            cherrypy.response.status="404 Permission Denied."
+            return "Neither Campaign nor Task found"
+        outlist = self.get_inflight(campaign_id=campaign_id, task_id= task_id)
         statusmap = {}
         if c:
 	    fss_file = "%s/%s_files.db" % (cherrypy.config.get("ftsscandir"), c.experiment)
@@ -1791,7 +1781,7 @@ class poms_service:
 
         template = self.jinja_env.get_template('inflight_files.html')
 
-        return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = statusmap, c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
+        return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = statusmap, c = c, campaign_id = campaign_id, task_id = task_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
 
 
     @cherrypy.expose
@@ -1809,7 +1799,6 @@ class poms_service:
         psl = self.project_summary_for_tasks(tl)        # Get project summary list for a given task list in one query
 
         el = cherrypy.request.db.query(distinct(Job.user_exe_exit_code)).filter(Job.updated >= tmin, Job.updated <= tmax).all()
-
         exitcodes = []
         for e in el:
             exitcodes.append(e[0])
@@ -2355,28 +2344,22 @@ class poms_service:
             plist.append(t.project if t.project else 'None')
  
         if c:
-            dims = "snapshot_for_project_name %s minus isparentof: (version %s) " % (
-                    ','.join(plist),
-                    c.software_version
-                )
-             # needs stuff like:
-             # when we get our output file patterns
-             # allkiddims = basedims
-             # for pat in t.campaign_obj.out_file_types.split(","):
-             #     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, t.campaign_obj.software_version)
-             # all_kids_needed.append(allkiddims)
-             #
+            dims = "snapshot_for_project_name %s minus (" %  ','.join(plist)
+            sep = ""
+            for pat in str(c.campaign_definition_obj.output_file_patterns).split(','):
+                if pat == "None":
+                   pat = "%"
+                dims = "%s %s isparentof: ( file_name '%s' and version '%s' ) " % (dims, sep, pat, t.campaign_obj.software_version)
+                sep = "and"
+                cherrypy.log("dims now: %s" % dims)
+            dims = dims + ")"
         else:
             c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id ).first()
             dims = None
 
-        flist = []
-        count = None
-        if count_or_list.startswith('c') and dims:
-            count = cherrypy.request.project_fetcher.count_files(c.experiment, dims)
-        if count_or_list.startswith('c') and dims:
-            flist = cherrypy.request.project_fetcher.list_files(c.experiment, dims)
-        #return dims + "<br>" + str(res)
-	template = self.jinja_env.get_template('actual_pending_files.html')
-	return template.render( tmin = str(tmin)[:16], tmax = str(tmax)[:16], days = str(tdays),  next = nextlink, prev = prevlink,c = c, campaign_id = campaign_id, count_or_list = count_or_list , flist = flist, tasklist=tl, count = count,  task_id = task_id,  current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  pomspath=self.path, help_page="ActualPendingFilesHelp")
+        if None == dims or 'None' == dims:
+            return "Ouch"
 
+        cherrypy.log("actual pending files: got dims %s" % dims)
+
+        return self.show_dimension_files(c.experiment, dims)
