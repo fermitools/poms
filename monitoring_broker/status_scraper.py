@@ -165,7 +165,7 @@ class status_scraper():
                     if self.debug: print "got:", line
                     m = re_obj.search(line)
                     if m:
-                        if m.group(1) == good or (good2 and m.group(1) == good2):
+                        if good == "" or m.group(1) == good or (good2 and m.group(1) == good2):
                              if self.debug: print "good"
                              n_good = n_good + 1 
 
