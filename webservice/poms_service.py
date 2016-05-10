@@ -1342,7 +1342,7 @@ class poms_service:
                            [ psummary.get('tot_unknown',0),  listfiles % base_dim_list + " and consumed_status unknown"],
                            [some_kids_decl_list[i], listfiles % some_kids_needed[i] ],
                            [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                           [len(get_inflight(task_id=t.task_id)), "inflight"],
+                           [len(self.get_inflight(task_id=t.task_id)), "inflight"],
                            [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
                            [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                 ])
