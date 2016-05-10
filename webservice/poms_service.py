@@ -265,6 +265,27 @@ class poms_service:
         cherrypy.request.db.commit()
 
         return "Ok."
+
+    @cherrypy.expose
+    def new_task_for_campaign(self, campaign_name, command_executed, experimenter_name):
+        c = cherrypy.request.db.query(Campaign).filter(Campaign.name == campaign_name).first()
+        e = cherrypy.request.db.query(Experimenter).filter(like_)(Experimenter.email,"%s@%%" % experimenter_name ).first()
+        t = Task()
+        t.campaign_id = c.campaign_id
+        t.campaign_definition_id = c.campaign_definition_id
+        t.task_order = 0
+        t.input_dataset = "-"
+        t.output_dataset = "-"
+        t.status = 'started'
+        t.created = datetime.now(utc)
+        t.updated = datetime.now(utc)
+        t.updater = e.experimenter_id
+        t.creator = e.experimenter_id
+        t.command_executed = command_executed
+        cherrypy.request.db.add(t)
+        cherrypy.request.db.commit()
+        return "Task=%d" % t.task_id
+
     @cherrypy.expose
     def service_status(self, under = 'All'):
         prev = None
@@ -747,6 +768,8 @@ class poms_service:
         if found == None:
             cherrypy.log("update_for: making new %s" % eclass)
             found = eclass()
+            if hasattr(found,'created'):
+                setattr(found, 'created', datetime.now(utc))
         columns = found._sa_instance_state.class_.__table__.columns
         for fieldname in columns.keys():
             if not kwargs.get(fieldname,None):
@@ -2363,3 +2386,4 @@ class poms_service:
         cherrypy.log("actual pending files: got dims %s" % dims)
 
         return self.show_dimension_files(c.experiment, dims)
+
