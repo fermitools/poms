@@ -112,5 +112,34 @@ ALTER TABLE campaign_definitions ADD output_file_patterns text  ;
 
 
 
+/* Adding recovery types */
+
+ALTER TABLE tasks ADD recovery_position integer  ;
+
+CREATE TABLE recovery_types ( 
+	recovery_type_id     serial  NOT NULL,
+	name                 text  NOT NULL,
+	description          text  NOT NULL,
+	CONSTRAINT pk_recovery_type PRIMARY KEY ( recovery_type_id )
+ ) ;
+
+CREATE TABLE campaign_recoveries ( 
+	campaign_definition_id integer  NOT NULL,
+	recovery_type_id     integer  NOT NULL,
+	recovery_order       integer  NOT NULL,
+	CONSTRAINT pk_campaign_recoveries PRIMARY KEY ( campaign_definition_id, recovery_type_id )
+ ) ;
+
+CREATE INDEX idx_campaign_recoveries ON campaign_recoveries ( recovery_type_id ) ;
+
+ALTER TABLE campaign_recoveries ADD CONSTRAINT fk_campaign_recoveries FOREIGN KEY ( recovery_type_id ) REFERENCES recovery_types( recovery_type_id )    ;
+
+ALTER TABLE campaign_recoveries ADD CONSTRAINT fk_campaign_recoveries_0 FOREIGN KEY ( campaign_definition_id ) REFERENCES campaign_definitions( campaign_definition_id )    ;
+
+/* Clean up discrpencies */
+
+ALTER TABLE jobs DROP COLUMN output_file_names;
+
+
 grant select, insert, update, delete on all tables in schema public to pomsdbs;
 grant usage on all sequences in schema public to pomsdbs;
