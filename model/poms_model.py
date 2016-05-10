@@ -77,7 +77,6 @@ class Job(Base):
     status = Column(Text, nullable=False)
     updated = Column(DateTime(True), nullable=False)
     output_files_declared = Column(Boolean, nullable=False)
-    output_file_names = Column(Text)
     user_exe_exit_code = Column(Integer)
     input_file_names = Column(Text)
     reason_held = Column(Text)
@@ -176,6 +175,7 @@ class Task(Base):
     updated = Column(DateTime(True))
     command_executed = Column(Text)
     project = Column(Text)
+    recovery_position = Column(Integer)
 
     campaign_obj = relationship(u'Campaign')
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Task.creator == Experimenter.experimenter_id')
@@ -291,3 +291,24 @@ class LaunchTemplateSnapshot(Base):
     name = Column(Text, nullable=False)
 
     launch = relationship(u'LaunchTemplate')
+
+
+class RecoveryType(Base):
+    __tablename__ = 'recovery_types'
+
+    recovery_type_id = Column(Integer, primary_key=True, server_default=text("nextval('recovery_types_recovery_type_id_seq'::regclass)"))
+    name = Column(Text, nullable=False)
+    description = Column(Text, nullable=False)
+
+
+class CampaignRecovery(Base):
+    __tablename__ = 'campaign_recoveries'
+
+    campaign_definition_id = Column(ForeignKey(u'campaign_definitions.campaign_definition_id'), primary_key=True, nullable=False)
+    recovery_type_id = Column(ForeignKey(u'recovery_types.recovery_type_id'), primary_key=True, nullable=False, index=True)
+    recovery_order = Column(Integer, nullable=False)
+
+    campaign_definition = relationship(u'CampaignDefinition')
+    recovery_type = relationship(u'RecoveryType')
+
+
