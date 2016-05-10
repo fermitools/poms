@@ -768,6 +768,8 @@ class poms_service:
         if found == None:
             cherrypy.log("update_for: making new %s" % eclass)
             found = eclass()
+            if hasattr(found,'created'):
+                setattr(found, 'created', datetime.now(utc))
         columns = found._sa_instance_state.class_.__table__.columns
         for fieldname in columns.keys():
             if not kwargs.get(fieldname,None):
