@@ -1142,8 +1142,7 @@ class poms_service:
 
         job_history = cherrypy.request.db.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
 
-        if job_info.Job.output_file_names:
-            output_file_names_list = [x.file_name for x in job_info.job_files if file_type == "output"]
+        output_file_names_list = [x.file_name for x in job_info[0].job_files if x.file_type == "output"]
 
         #begins service downtimes
         first = job_history[0].created
