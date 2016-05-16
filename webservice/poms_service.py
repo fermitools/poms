@@ -1023,6 +1023,7 @@ class poms_service:
                      if not f in files:
                          jf = JobFile(job_id = j.job_id, file_name = f, file_type = "output", created =  datetime.now(utc))
                          cherrypy.request.db.add(jf)
+                         cherrypy.request.db.commit()
 
              if kwargs.get('input_file_names', None):
                  cherrypy.log("saw input_file_names: %s" % kwargs['input_file_names'])
@@ -1036,6 +1037,7 @@ class poms_service:
                      if not f in files:
                          jf = JobFile(job_id = j.job_id, file_name = f, file_type = "input", created =  datetime.now(utc))
                          cherrypy.request.db.add(jf)
+                         cherrypy.request.db.commit()
 
              j.updated =  datetime.now(utc)
 
