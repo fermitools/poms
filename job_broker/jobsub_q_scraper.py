@@ -111,7 +111,7 @@ class jobsub_q_scraper:
             wall_time = float(jobenv.get('RemoteWallClockTime','0.0'))
             status_time =int(jobenv.get('EnteredCurrentStatus','0'))
 
-            if float(wall_time) == 0.0 and status_time != 0 and jobenv.get('JOBSTATUS','0') == 2:
+            if float(wall_time) == 0.0 and status_time != 0 and int(jobenv.get('JOBSTATUS','0')) == 2:
                  wall_time = float(time.time() - status_time)
 
 
