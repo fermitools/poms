@@ -70,6 +70,8 @@ class job_reporter:
         try:
             uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
             res = uh.read()
+            sys.stderr.write("response: %s\n" % res)
+
         except urllib2.HTTPError, e:
             errtext = e.read()
             sys.stderr.write("Excpetion:")

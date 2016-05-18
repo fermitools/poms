@@ -963,7 +963,8 @@ class poms_service:
              task_id = int(task_id)
 
          host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
-         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).first()
+
+         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.jobsub_job_id).first()
 
          if not j and task_id:
              t = cherrypy.request.db.query(Task).filter(Task.task_id==task_id).first()
@@ -984,7 +985,7 @@ class poms_service:
              j.host_site = ''
              j.status = 'Idle'
              cherrypy.request.db.add(j)
-             cherrypy.request.db.commit()
+             cherrypy.request.db.flush()
 
          if j:
              cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
@@ -1007,6 +1008,8 @@ class poms_service:
              for field in ['project', ]:
                  if kwargs.get("task_%s" % field, None) and j.task_obj:
                     setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
+                    cherrypy.log("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field), kwargs["task_%s"%field]))
+
              for field in [ 'cpu_time', 'wall_time']:
                  if kwargs.get(field, None) and kwargs[field] != "None":
                     setattr(j,field,float(kwargs[field].rstrip("\n")))
