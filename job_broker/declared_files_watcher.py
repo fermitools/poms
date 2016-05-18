@@ -117,7 +117,7 @@ class declared_files_watcher:
              self.report_declared_files(total_flist[experiment])
           
          for experiment in jobmap.keys():
-             for jobsub_job_id in  jobmap[e].keys():
+             for jobsub_job_id in  jobmap[experiment].keys():
                  flist = jobmap[experiment][jobsub_job_id]
 
 		 all_located = 1
