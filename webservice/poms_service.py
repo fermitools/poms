@@ -977,7 +977,7 @@ class poms_service:
              j = Job()
              j.jobsub_job_id = jobsub_job_id.rstrip("\n")
              j.created = datetime.now(utc)
-             j.updated = j.created
+             j.updated = datetime.now(utc)
              j.task_id = task_id
              j.task_obj = t
              j.output_files_declared = False
@@ -1043,18 +1043,19 @@ class poms_service:
                          cherrypy.request.db.add(jf)
                          cherrypy.request.db.flush([jf])
 
-             j.updated =  datetime.now(utc)
 
              if j.cpu_type == None:
                  j.cpu_type = 'unknown'
 
              cherrypy.log("update_job: db add/commit job ")
+
+             j.updated =  datetime.now(utc)
              cherrypy.request.db.add(j)
              cherrypy.request.db.flush()
+
              cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
              cherrypy.request.db.commit()
 
-             cherrypy.request.db.begin()
              if j.task_obj:
                  newstatus = self.compute_status(j.task_obj)
                  if newstatus != j.task_obj.status:
@@ -1062,7 +1063,6 @@ class poms_service:
                      j.task_obj.updated =  datetime.now(utc)
                      cherrypy.request.db.add(j.task_obj)
                      cherrypy.request.db.flush([j.task_obj])
-             cherrypy.request.db.commit()
  
 
          return "Ok."
