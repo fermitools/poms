@@ -2022,7 +2022,6 @@ class poms_service:
             cherrypy.config.update({'poms.launches': hold})
         raise cherrypy.HTTPRedirect(self.path)
 
-    @cherrypy.expose
     def launch_recovery_if_needed(self, task_id):
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
             return
