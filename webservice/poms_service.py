@@ -929,6 +929,7 @@ class poms_service:
                  task.status = "Completed"
                  task.updated = datetime.now(utc)
                  cherrypy.request.db.add(task)
+                 self.launch_recovery_if_needed(task.task_i)
 
         cherrypy.request.db.commit()
 
@@ -2019,7 +2020,47 @@ class poms_service:
         raise cherrypy.HTTPRedirect(self.path)
 
     @cherrypy.expose
-    def launch_jobs(self, campaign_id):
+    def launch_recovery_if_needed(self, task_id):
+	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
+            return
+
+        t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj),joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
+        rlist = cherrypy.request.db.query(CampaignRecovery).joinedload(CampaignRecovery.recovery_type_obj).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(recovery_order)
+
+        if t.n_recovery == None:
+           t.n_recovery = 0
+
+        if t.n_recovery != None and t.recovery_position < len(rlist):
+            rtype = rlist[t.recovery_position].recovery_type
+            t.recovery_position = t.recovery_position + 1
+            if rtype.name == 'consumed_status':
+                 recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
+            elif rtype.name == 'proj_status':
+                 recovery_dims = "snapshot_for_project_name %s and process_status != 'ok'" % t.project
+            elif rtype.name == 'pending_files':
+                 recovery_dims = "snapshot_for_project_name %s " % t.project
+                 if t.campaign_obj.campaign_definition_obj.output_file_types:
+                     oftypelist = campaign_obj.campaign_definition_obj.output_file_types.split(",") 
+                 else:
+                     oftypelist = ["%"]
+
+                 for oft in oftypelist:
+                     recovery_dims = recovery_dims + "minus isparent: ( version %s and file_name like %s) " % (t.campaign_obj.software_version, oft)
+            else:
+                 # default to consumed status(?)
+                 recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
+
+            nfiles = cherrypy.request.project_fetcher.count_files(t.campaign_obj.experiment,recovery_dims)
+
+            if nfiles > 0:
+                rname = "poms_recover_%d_%d" % (t.task_id,t.recovery_position)
+
+                cherrypy.request.project_fetcher.create_definition(t.campaign_obj.experiment, rname, recovery_dims)
+            
+                self.launch_jobs(t.campaign_obj.campaign_id, dataset_override=rname)
+        
+    @cherrypy.expose
+    def launch_jobs(self, campaign_id, dataset_override = None):
         if cherrypy.config.get("poms.launches","allowed") == "hold":
             return "Job launches currentl held."
 
@@ -2039,8 +2080,10 @@ class poms_service:
               "experimenter": experimenter_login,
         }
 
-        dataset = self.get_dataset_for(c)
-
+        if dataset_override:
+            dataset = dataset_override
+        else:
+            dataset = self.get_dataset_for(c)
 
         group = c.experiment
         if group == 'samdev': group = 'fermilab'
