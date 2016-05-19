@@ -985,7 +985,7 @@ class poms_service:
              j.host_site = ''
              j.status = 'Idle'
              cherrypy.request.db.add(j)
-             cherrypy.request.db.flush()
+             cherrypy.request.db.flush([j])
 
          if j:
              cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
@@ -1008,7 +1008,7 @@ class poms_service:
              for field in ['project', ]:
                  if kwargs.get("task_%s" % field, None) and j.task_obj:
                     setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
-                    cherrypy.log("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field), kwargs["task_%s"%field]))
+                    cherrypy.log("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field, kwargs["task_%s"%field])))
 
              for field in [ 'cpu_time', 'wall_time']:
                  if kwargs.get(field, None) and kwargs[field] != "None":
@@ -1026,7 +1026,7 @@ class poms_service:
                      if not f in files:
                          jf = JobFile(job_id = j.job_id, file_name = f, file_type = "output", created =  datetime.now(utc))
                          cherrypy.request.db.add(jf)
-                         cherrypy.request.db.flush()
+                         cherrypy.request.db.flush([jf])
 
              if kwargs.get('input_file_names', None):
                  cherrypy.log("saw input_file_names: %s" % kwargs['input_file_names'])
@@ -1040,22 +1040,30 @@ class poms_service:
                      if not f in files:
                          jf = JobFile(job_id = j.job_id, file_name = f, file_type = "input", created =  datetime.now(utc))
                          cherrypy.request.db.add(jf)
-                         cherrypy.request.db.flush()
+                         cherrypy.request.db.flush([jf])
 
              j.updated =  datetime.now(utc)
 
              if j.cpu_type == None:
                  j.cpu_type = 'unknown'
 
-             if j.task_obj:
-                 j.task_obj.status = self.compute_status(j.task_obj)
-                 j.task_obj.updated =  datetime.now(utc)
-                 cherrypy.request.db.add(j.task_obj)
-
              cherrypy.log("update_job: db add/commit job ")
              cherrypy.request.db.add(j)
              cherrypy.request.db.flush()
              cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
+             cherrypy.request.db.commit()
+
+             cherrypy.request.db.begin()
+             if j.task_obj:
+                 newstatus = self.compute_status(j.task_obj)
+                 if newstatus != j.task_obj.status:
+                     j.task_obj.status = newstatus
+                     j.task_obj.updated =  datetime.now(utc)
+                     cherrypy.request.db.add(j.task_obj)
+                     cherrypy.request.db.flush([j.task_obj])
+             cherrypy.request.db.commit()
+ 
+
          return "Ok."
 
     @cherrypy.expose
