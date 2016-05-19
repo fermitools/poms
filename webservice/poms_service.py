@@ -2030,6 +2030,22 @@ class poms_service:
             cherrypy.config.update({'poms.launches': hold})
         raise cherrypy.HTTPRedirect(self.path)
 
+    def launch_dependants_if_needed(self, task_id):
+	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
+            return
+        t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj),joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
+        clist = []
+        #clist = cherrypy.request.db.query(Campaign).filter(Campaign.depends_on == t.campaign_obj.campaign_id).all()
+
+        i = 0
+        for c in clist:
+             i = i + 1
+             dims = "ischildof: (snapshot_for_project %s and file_name like '%s'" % (t.project, t.campaign_obj.depends_file_match)
+             dname = "poms_depends_%d_%d" % (t.task_id,i)
+
+             cherrypy.request.project_fetcher.create_definition(t.campaign_obj.experiment, dname, dims)
+             self.launch_jobs(c.campaign_id, dataset_override = dname)
+
     def launch_recovery_if_needed(self, task_id):
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
             return
