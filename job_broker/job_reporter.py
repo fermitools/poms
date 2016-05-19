@@ -10,6 +10,7 @@ import concurrent.futures
 import Queue
 import thread
 import threading
+import time
 
 class job_reporter:
     """
@@ -64,23 +65,31 @@ class job_reporter:
         if self.debug:
            sys.stdout.write("reporting: %s\n" %  data )
            sys.stdout.flush()
+
+        retries = 3
           
         uh = None
         res = None
-        try:
-            uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
-            res = uh.read()
-            sys.stderr.write("response: %s\n" % res)
+      
+        while retries > 0:
+	    try:
+		uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
+		res = uh.read()
+		sys.stderr.write("response: %s\n" % res)
 
-        except urllib2.HTTPError, e:
-            errtext = e.read()
-            sys.stderr.write("Excpetion:")
-            if uh:
-                sys.stderr.write("HTTP fetch status %d" %  uh.getcode())
-            sys.stderr.write(errtext)
-            sys.stderr.write("--------")
+		return res
 
-        return res
+	    except (urllib2.HTTPError, urllib2.URLError) as e:
+		errtext = str(e)
+		sys.stderr.write("Excpetion:")
+		if uh:
+		    sys.stderr.write("HTTP fetch status %d" %  uh.getcode())
+		sys.stderr.write(errtext)
+		sys.stderr.write("--------")
+
+                time.sleep(5)
+                retries = retries - 1
+                
 
 if __name__ == '__main__':
     print "self test:"
@@ -91,4 +100,7 @@ if __name__ == '__main__':
     r.report_status(jobsub_job_id="12348.0@fifebatch3.fnal.gov",output_files_declared = "True",status="Located")
     print "started reports:"
     sys.stdout.flush()
+    r.cleanup()
+    r = job_reporter("http://127.0.0.1:8080/nosuch", debug=1)
+    r.report_status(jobsub_job_id="12345.0@fifebatch3.fnal.gov",output_files_declared = "True",status="Located")
     r.cleanup()
