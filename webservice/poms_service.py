@@ -169,7 +169,7 @@ class poms_service:
                 d.downtime_ended = end_dt
                 d.downtime_type = 'scheduled'
                 cherrypy.request.db.add(d)
-                cherrypy.request.db.flush()
+                cherrypy.request.db.commit()
                 return "Ok."
             except exc.IntegrityError:
                 return "This item already exists."
@@ -193,7 +193,7 @@ class poms_service:
             record.ServiceDowntime.service_id = s.service_id
             record.ServiceDowntime.downtime_started = new_start_dt
             record.ServiceDowntime.downtime_ended = end_dt
-            cherrypy.request.db.flush()
+            cherrypy.request.db.commit()
             return "Ok."
         else:
             return "Oops."
@@ -262,7 +262,7 @@ class poms_service:
         s.items = total
         s.failed_items = failed
         cherrypy.request.db.add(s)
-        cherrypy.request.db.flush()
+        cherrypy.request.db.commit()
 
         return "Ok."
 
@@ -283,7 +283,7 @@ class poms_service:
         t.creator = e.experimenter_id
         t.command_executed = command_executed
         cherrypy.request.db.add(t)
-        cherrypy.request.db.flush()
+        cherrypy.request.db.commit()
         return "Task=%d" % t.task_id
 
     @cherrypy.expose
@@ -428,6 +428,8 @@ class poms_service:
                 subquery = db.query(ExperimentsExperimenters.experiment).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
                 data['not_member_of_exp'] = db.query(Experiment).filter(~Experiment.experiment.in_(subquery))
 
+        db.commit()
+
         data['message'] = message
         template = self.jinja_env.get_template('user_edit.html')
         return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
@@ -546,7 +548,7 @@ class poms_service:
                 cherrypy.log(e.message)
                 db.rollback()
             else:
-                db.flush()
+                db.commit()
 
         # Find templates
         if exp: # cuz the default is find
@@ -573,7 +575,7 @@ class poms_service:
             name = kwargs.pop('name')
             try:
                 db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).filter(CampaignDefinition.name==name).delete()
-                db.flush()
+                db.commit()
             except:
                 db.rollback()
                 message = "The campaign definition, %s, is in use and may not be deleted." % name
@@ -2181,7 +2183,7 @@ class poms_service:
                     ct.campaign_id = campaign_id
                     ct.tag_id = t.tag_id
                     cherrypy.request.db.add(ct)
-                    cherrypy.request.db.flush()
+                    cherrypy.request.db.commit()
                     response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": t.tag_name, "msg": "OK"}
                     return json.dumps(response)
                 except exc.IntegrityError:
@@ -2199,7 +2201,7 @@ class poms_service:
         cherrypy.response.headers['Content-Type'] = 'application/json'
         if cherrypy.session.get('experimenter').is_authorized(experiment):
             cherrypy.request.db.query(CampaignsTags).filter(CampaignsTags.campaign_id == campaign_id, CampaignsTags.tag_id == tag_id).delete()
-            cherrypy.request.db.flush()
+            cherrypy.request.db.commit()
             response = {"msg": "OK"}
         else:
             response = {"msg": "You are not authorized to delete tags."}
@@ -2399,7 +2401,7 @@ class poms_service:
                 for fieldname in columns.keys():
                      setattr(newsnap, fieldname, getattr(j,fieldname))     
                 cherrypy.request.db.add(newsnap)
-             cherrypy.request.db.flush()
+             cherrypy.request.db.commit()
 
     @cherrypy.expose
     def actual_pending_files(self, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1):
