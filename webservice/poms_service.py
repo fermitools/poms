@@ -931,7 +931,7 @@ class poms_service:
                  task.status = "Completed"
                  task.updated = datetime.now(utc)
                  cherrypy.request.db.add(task)
-                 self.launch_recovery_if_needed(task.task_i)
+                 self.launch_recovery_if_needed(task.task_id)
 
         cherrypy.request.db.commit()
 
