@@ -183,7 +183,7 @@ class jobsub_q_scraper:
 	        traceback.print_exc()
                 # if we're out of memory, dump core...
                 if e.errno == 12:
-                    resource.setrlimit(resource.RLIMIT_CORE,resource.RLIM_INFINITIY)
+                    resource.setrlimit(resource.RLIMIT_CORE,resource.RLIM_INFINITY)
                     os.abort()
 
 	    except:

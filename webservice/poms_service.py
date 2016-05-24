@@ -169,7 +169,7 @@ class poms_service:
                 d.downtime_ended = end_dt
                 d.downtime_type = 'scheduled'
                 cherrypy.request.db.add(d)
-                cherrypy.request.db.flush()
+                cherrypy.request.db.commit()
                 return "Ok."
             except exc.IntegrityError:
                 return "This item already exists."
@@ -193,7 +193,7 @@ class poms_service:
             record.ServiceDowntime.service_id = s.service_id
             record.ServiceDowntime.downtime_started = new_start_dt
             record.ServiceDowntime.downtime_ended = end_dt
-            cherrypy.request.db.flush()
+            cherrypy.request.db.commit()
             return "Ok."
         else:
             return "Oops."
@@ -262,7 +262,7 @@ class poms_service:
         s.items = total
         s.failed_items = failed
         cherrypy.request.db.add(s)
-        cherrypy.request.db.flush()
+        cherrypy.request.db.commit()
 
         return "Ok."
 
@@ -285,7 +285,7 @@ class poms_service:
         if dataset_name:
             t.input_dataset = dataset_name
         cherrypy.request.db.add(t)
-        cherrypy.request.db.flush()
+        cherrypy.request.db.commit()
         return "Task=%d" % t.task_id
 
     @cherrypy.expose
@@ -402,21 +402,21 @@ class poms_service:
                     )
                 if updated==0:
                     cherrypy.request.db.add( ExperimentsExperimenters(e_id,exp,True) )
-            db.flush()
+            db.commit()
 
         elif action == "add":
             if db.query(Experimenter).filter(Experimenter.email==email).one():
                 message = "An experimenter with the email %s already exists" %  email
             else:
                 db.add( Experimenter(kwargs.get('first_name'), kwargs.get('last_name'), email ))
-                db.flush()
+                db.commit()
 
         elif action == "edit":
             values = {"first_name" : kwargs.get('first_name'),
                       "last_name"  : kwargs.get('last_name'),
                       "email"      : email}
             db.query(Experimenter).filter(Experimenter.experimenter_id==kwargs.get('experimenter_id')).update(values)
-            db.flush()
+            db.commit()
 
         if email:
             experimenter = db.query(Experimenter).filter(Experimenter.email == email ).first()
@@ -429,6 +429,8 @@ class poms_service:
                 # Experimenters that were never a member of an experiment will not have an entry in the experiments_experimenters table for that experiment
                 subquery = db.query(ExperimentsExperimenters.experiment).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
                 data['not_member_of_exp'] = db.query(Experiment).filter(~Experiment.experiment.in_(subquery))
+
+        db.commit()
 
         data['message'] = message
         template = self.jinja_env.get_template('user_edit.html')
@@ -478,7 +480,7 @@ class poms_service:
             except NoResultFound:
                 exp = Experiment(experiment=experiment, name=name)
                 cherrypy.request.db.add(exp)
-                cherrypy.request.db.flush()
+                cherrypy.request.db.commit()
         except KeyError:
             pass
         # Delete experiment(s), if any were selected
@@ -486,7 +488,7 @@ class poms_service:
             experiment = None
             for experiment in kwargs:
                 db.query(Experiment).filter(Experiment.experiment==experiment).delete()
-            cherrypy.request.db.flush()
+            cherrypy.request.db.commit()
         except IntegrityError, e:
             message = "The experiment, %s, is used and may not be deleted." % experiment
             cherrypy.log(e.message)
@@ -512,7 +514,7 @@ class poms_service:
             name = kwargs.pop('name')
             try:
                 db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).delete()
-                db.flush()
+                db.commit()
             except:
                 db.rollback()
                 message = "The template, %s, is in use and may not be deleted." % name
@@ -548,7 +550,7 @@ class poms_service:
                 cherrypy.log(e.message)
                 db.rollback()
             else:
-                db.flush()
+                db.commit()
 
         # Find templates
         if exp: # cuz the default is find
@@ -575,7 +577,7 @@ class poms_service:
             name = kwargs.pop('name')
             try:
                 db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).filter(CampaignDefinition.name==name).delete()
-                db.flush()
+                db.commit()
             except:
                 db.rollback()
                 message = "The campaign definition, %s, is in use and may not be deleted." % name
@@ -931,7 +933,7 @@ class poms_service:
                  task.status = "Completed"
                  task.updated = datetime.now(utc)
                  cherrypy.request.db.add(task)
-                 self.launch_recovery_if_needed(task.task_i)
+                 self.launch_recovery_if_needed(task.task_id)
 
         cherrypy.request.db.commit()
 
@@ -979,7 +981,7 @@ class poms_service:
              j = Job()
              j.jobsub_job_id = jobsub_job_id.rstrip("\n")
              j.created = datetime.now(utc)
-             j.updated = j.created
+             j.updated = datetime.now(utc)
              j.task_id = task_id
              j.task_obj = t
              j.output_files_declared = False
@@ -988,7 +990,7 @@ class poms_service:
              j.host_site = ''
              j.status = 'Idle'
              cherrypy.request.db.add(j)
-             cherrypy.request.db.flush([j])
+             cherrypy.request.db.commit()
 
          if j:
              cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
@@ -1029,7 +1031,7 @@ class poms_service:
                      if not f in files:
                          jf = JobFile(job_id = j.job_id, file_name = f, file_type = "output", created =  datetime.now(utc))
                          cherrypy.request.db.add(jf)
-                         cherrypy.request.db.flush([jf])
+                         cherrypy.request.db.commit()
 
              if kwargs.get('input_file_names', None):
                  cherrypy.log("saw input_file_names: %s" % kwargs['input_file_names'])
@@ -1043,28 +1045,28 @@ class poms_service:
                      if not f in files:
                          jf = JobFile(job_id = j.job_id, file_name = f, file_type = "input", created =  datetime.now(utc))
                          cherrypy.request.db.add(jf)
-                         cherrypy.request.db.flush([jf])
+                         cherrypy.request.db.commit()
 
-             j.updated =  datetime.now(utc)
 
              if j.cpu_type == None:
                  j.cpu_type = 'unknown'
 
              cherrypy.log("update_job: db add/commit job ")
+
+             j.updated =  datetime.now(utc)
              cherrypy.request.db.add(j)
-             cherrypy.request.db.flush()
+             cherrypy.request.db.commit()
+
              cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
              cherrypy.request.db.commit()
 
-             cherrypy.request.db.begin()
              if j.task_obj:
                  newstatus = self.compute_status(j.task_obj)
                  if newstatus != j.task_obj.status:
                      j.task_obj.status = newstatus
                      j.task_obj.updated =  datetime.now(utc)
                      cherrypy.request.db.add(j.task_obj)
-                     cherrypy.request.db.flush([j.task_obj])
-             cherrypy.request.db.commit()
+                     cherrypy.request.db.commit()
  
 
          return "Ok."
@@ -2181,7 +2183,7 @@ class poms_service:
                     ct.campaign_id = campaign_id
                     ct.tag_id = tag.tag_id
                     cherrypy.request.db.add(ct)
-                    cherrypy.request.db.flush()
+                    cherrypy.request.db.commit()
                     response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": tag.tag_name, "msg": "OK"}
                     return json.dumps(response)
                 except exc.IntegrityError:
@@ -2193,13 +2195,13 @@ class poms_service:
                     t.tag_name = tag_name
                     t.experiment = experiment
                     cherrypy.request.db.add(t)
-                    cherrypy.request.db.flush()
+                    cherrypy.request.db.commit()
 
                     ct = CampaignsTags()
                     ct.campaign_id = campaign_id
                     ct.tag_id = t.tag_id
                     cherrypy.request.db.add(ct)
-                    cherrypy.request.db.flush()
+                    cherrypy.request.db.commit()
                     response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": t.tag_name, "msg": "OK"}
                     return json.dumps(response)
                 except exc.IntegrityError:
@@ -2217,7 +2219,7 @@ class poms_service:
         cherrypy.response.headers['Content-Type'] = 'application/json'
         if cherrypy.session.get('experimenter').is_authorized(experiment):
             cherrypy.request.db.query(CampaignsTags).filter(CampaignsTags.campaign_id == campaign_id, CampaignsTags.tag_id == tag_id).delete()
-            cherrypy.request.db.flush()
+            cherrypy.request.db.commit()
             response = {"msg": "OK"}
         else:
             response = {"msg": "You are not authorized to delete tags."}
@@ -2417,7 +2419,7 @@ class poms_service:
                 for fieldname in columns.keys():
                      setattr(newsnap, fieldname, getattr(j,fieldname))     
                 cherrypy.request.db.add(newsnap)
-             cherrypy.request.db.flush()
+             cherrypy.request.db.commit()
 
     @cherrypy.expose
     def actual_pending_files(self, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1):
