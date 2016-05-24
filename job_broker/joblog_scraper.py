@@ -75,10 +75,13 @@ class joblog_scraper:
             print "looking for input/output files in: " , message
         file_map = {}
         message = message[message.find("ifdh::cp(")+9:]
+        message = message[:message.find(")")]
+
         list = message.split(" ")
         for item in list:
             item = item[item.rfind("/")+1:]
-            file_map[item] = 1
+            if item != "":
+                file_map[item] = 1
 
         if self.debug:
             print "found files: " , file_map
