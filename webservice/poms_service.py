@@ -1053,7 +1053,12 @@ class poms_service:
 
              j.updated =  datetime.now(utc)
              cherrypy.request.db.add(j)
-             cherrypy.request.db.flush()
+             # retry flush with updated time if we get history error.
+             try:
+                 cherrypy.request.db.flush()
+             except:
+                 j.updated =  datetime.now(utc)
+                 cherrypy.request.db.flush()
 
              cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
              cherrypy.request.db.commit()
