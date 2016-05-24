@@ -267,7 +267,7 @@ class poms_service:
         return "Ok."
 
     @cherrypy.expose
-    def new_task_for_campaign(self, campaign_name, command_executed, experimenter_name):
+    def new_task_for_campaign(self, campaign_name, command_executed, experimenter_name, dataset_name = None):
         c = cherrypy.request.db.query(Campaign).filter(Campaign.name == campaign_name).first()
         e = cherrypy.request.db.query(Experimenter).filter(like_)(Experimenter.email,"%s@%%" % experimenter_name ).first()
         t = Task()
@@ -282,6 +282,8 @@ class poms_service:
         t.updater = e.experimenter_id
         t.creator = e.experimenter_id
         t.command_executed = command_executed
+        if dataset_name:
+            t.input_dataset = dataset_name
         cherrypy.request.db.add(t)
         cherrypy.request.db.flush()
         return "Task=%d" % t.task_id
