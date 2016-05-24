@@ -2057,7 +2057,7 @@ class poms_service:
 
              cherrypy.request.project_fetcher.create_definition(t.campaign_obj.experiment, dname, dims)
              self.launch_jobs(c.campaign_id, dataset_override = dname)
-       return 1
+        return 1
 
     def launch_recovery_if_needed(self, task_id):
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
