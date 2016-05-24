@@ -933,7 +933,9 @@ class poms_service:
                  task.status = "Completed"
                  task.updated = datetime.now(utc)
                  cherrypy.request.db.add(task)
-                 self.launch_recovery_if_needed(task.task_id)
+
+                 if not self.launch_recovery_if_needed(task.task_id):
+                     self.launch_dependents_if_needed(task.task_id)
 
         cherrypy.request.db.commit()
 
@@ -1058,7 +1060,6 @@ class poms_service:
              cherrypy.request.db.commit()
 
              cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
-             cherrypy.request.db.commit()
 
              if j.task_obj:
                  newstatus = self.compute_status(j.task_obj)
@@ -2034,9 +2035,10 @@ class poms_service:
             cherrypy.config.update({'poms.launches': hold})
         raise cherrypy.HTTPRedirect(self.path)
 
-    def launch_dependants_if_needed(self, task_id):
+    def launch_dependents_if_needed(self, task_id):
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
-            return
+            # XXX should queue for later?!?
+            return 1
         t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj),joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
         clist = []
         #clist = cherrypy.request.db.query(Campaign).filter(Campaign.depends_on == t.campaign_obj.campaign_id).all()
@@ -2049,10 +2051,12 @@ class poms_service:
 
              cherrypy.request.project_fetcher.create_definition(t.campaign_obj.experiment, dname, dims)
              self.launch_jobs(c.campaign_id, dataset_override = dname)
+       return 1
 
     def launch_recovery_if_needed(self, task_id):
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
-            return
+            # XXX should queue for later?!?
+            return 1
 
         t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj),joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
         rlist = cherrypy.request.db.query(CampaignRecovery).joinedload(CampaignRecovery.recovery_type_obj).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(recovery_order)
@@ -2060,7 +2064,7 @@ class poms_service:
         if t.n_recovery == None:
            t.n_recovery = 0
 
-        if t.n_recovery != None and t.recovery_position < len(rlist):
+        while t.n_recovery != None and t.recovery_position < len(rlist):
             rtype = rlist[t.recovery_position].recovery_type
             t.recovery_position = t.recovery_position + 1
             if rtype.name == 'consumed_status':
@@ -2088,11 +2092,13 @@ class poms_service:
                 cherrypy.request.project_fetcher.create_definition(t.campaign_obj.experiment, rname, recovery_dims)
             
                 self.launch_jobs(t.campaign_obj.campaign_id, dataset_override=rname)
+                return 1
+        return 0
         
     @cherrypy.expose
     def launch_jobs(self, campaign_id, dataset_override = None):
         if cherrypy.config.get("poms.launches","allowed") == "hold":
-            return "Job launches currentl held."
+            return "Job launches currently held."
 
         c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).options(joinedload(Campaign.launch_template_obj),joinedload(Campaign.campaign_definition_obj)).first()
         cd = c.campaign_definition_obj
