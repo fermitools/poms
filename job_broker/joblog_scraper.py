@@ -78,10 +78,7 @@ class joblog_scraper:
         list = message.split(" ")
         for item in list:
             item = item[item.rfind("/")+1:]
-            # pretty much all actual output files are .root or .art ...
-            # buth we also want input files...
-            if item.endswith(".root") or item.endswith(".art") or item.endswith(".raw") or item.endswith(".fcl"):
-               file_map[item] = 1
+            file_map[item] = 1
 
         if self.debug:
             print "found files: " , file_map
