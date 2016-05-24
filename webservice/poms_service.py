@@ -1384,12 +1384,12 @@ class poms_service:
                            [t.created.strftime("%Y-%m-%d %H:%M"),None], 
                            [psummary.get('files_in_snapshot',0), listfiles % base_dim_list[i]],
                            ["%d:%d" % (psummary.get('tot_consumed',0) + psummary.get('tot_failed',0) + psummary.get('tot_unknown',0), logdelivered), listfiles % base_dim_list[i] + " and consumed_status consumed,failed,unknown "],
-                           [psummary.get('tot_consumed',0), listfiles % base_dim_list + " and consumed_status consumed"],
-                           [ psummary.get('tot_failed',0),  listfiles % base_dim_list + " and consumed_status failed"],
-                           [ psummary.get('tot_unknown',0),  listfiles % base_dim_list + " and consumed_status unknown"],
+                           [psummary.get('tot_consumed',0), listfiles % base_dim_list[i] + " and consumed_status consumed"],
+                           [ psummary.get('tot_failed',0),  listfiles % base_dim_list[i] + " and consumed_status failed"],
+                           [ psummary.get('tot_unknown',0),  listfiles % base_dim_list[i] + " and consumed_status unknown"],
                            [some_kids_decl_list[i], listfiles % some_kids_needed[i] ],
                            [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                           [len(self.get_inflight(task_id=t.task_id)), "inflight"],
+                           [len(self.get_inflight(task_id=t.task_id)), "./inflight_files?task_id=%d" % t.task_id],
                            [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
                            [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                 ])
@@ -1828,7 +1828,7 @@ class poms_service:
 
         template = self.jinja_env.get_template('inflight_files.html')
 
-        return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = statusmap, c = c, campaign_id = campaign_id, task_id = task_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
+        return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = statusmap, c = c, jjid= self.task_min_job(task_id),campaign_id = campaign_id, task_id = task_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
 
 
     @cherrypy.expose
