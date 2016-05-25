@@ -401,14 +401,22 @@ class poms_service:
                     .filter(ExperimentsExperimenters.experiment==exp).update({"active":True})
                     )
                 if updated==0:
-                    cherrypy.request.db.add( ExperimentsExperimenters(e_id,exp,True) )
+                    EE = ExperimentsExperimenters()
+                    EE.experimenter_id = e_id
+                    EE.experiment = exp
+                    EE.active = True
+                    cherrypy.request.db.add( EE )
             db.commit()
 
         elif action == "add":
             if db.query(Experimenter).filter(Experimenter.email==email).one():
                 message = "An experimenter with the email %s already exists" %  email
             else:
-                db.add( Experimenter(kwargs.get('first_name'), kwargs.get('last_name'), email ))
+                experimenter = Experimenter()
+                experimenter.first_name = kwargs.get('first_name')
+                experimenter.last_name = kwargs.get('last_name')
+                experimenter.email = email
+                db.add( experimenter)
                 db.commit()
 
         elif action == "edit":
