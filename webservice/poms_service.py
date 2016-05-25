@@ -401,7 +401,11 @@ class poms_service:
                     .filter(ExperimentsExperimenters.experiment==exp).update({"active":True})
                     )
                 if updated==0:
-                    cherrypy.request.db.add( ExperimentsExperimenters(e_id,exp,True) )
+                    EE = ExperimentsExperimenters()
+                    EE.experimenter_id = e_id
+                    EE.experiment = exp
+                    EE.active = True
+                    cherrypy.request.db.add( EE )
             db.commit()
 
         elif action == "add":
