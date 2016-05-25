@@ -2114,7 +2114,7 @@ class poms_service:
     @cherrypy.expose
     def launch_jobs(self, campaign_id, dataset_override = None):
 
-        cherrypy.log("Entering launch_jobs(%d, %s)" % (campaign_id, dataset_override))
+        cherrypy.log("Entering launch_jobs(%s, %s)" % (campaign_id, dataset_override))
         if cherrypy.config.get("poms.launches","allowed") == "hold":
             return "Job launches currently held."
 
