@@ -412,7 +412,11 @@ class poms_service:
             if db.query(Experimenter).filter(Experimenter.email==email).one():
                 message = "An experimenter with the email %s already exists" %  email
             else:
-                db.add( Experimenter(kwargs.get('first_name'), kwargs.get('last_name'), email ))
+                experimenter = Experimenter()
+                experimenter.first_name = kwargs.get('first_name')
+                experimenter.last_name = kwargs.get('last_name')
+                experimenter.email = email
+                db.add( experimenter)
                 db.commit()
 
         elif action == "edit":
