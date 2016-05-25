@@ -2050,7 +2050,7 @@ class poms_service:
         raise cherrypy.HTTPRedirect(self.path)
 
     def launch_dependents_if_needed(self, task_id):
-        cherrypy.log("Entering launch_dependents_if_needed(%d)" % task_id)
+        cherrypy.log("Entering launch_dependents_if_needed(%s)" % task_id)
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
             return 1
@@ -2069,7 +2069,7 @@ class poms_service:
         return 1
 
     def launch_recovery_if_needed(self, task_id):
-        cherrypy.log("Entering launch_recovery_if_needed(%d)" % task_id)
+        cherrypy.log("Entering launch_recovery_if_needed(%s)" % task_id)
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
             return 1
