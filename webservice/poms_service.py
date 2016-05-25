@@ -2042,6 +2042,7 @@ class poms_service:
         raise cherrypy.HTTPRedirect(self.path)
 
     def launch_dependents_if_needed(self, task_id):
+        cherrypy.log("Entering launch_dependents_if_needed(%d)" % task_id)
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
             return 1
@@ -2060,11 +2061,12 @@ class poms_service:
         return 1
 
     def launch_recovery_if_needed(self, task_id):
+        cherrypy.log("Entering launch_recovery_if_needed(%d)" % task_id)
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
             return 1
 
-        t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj),joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
+        t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj),joinedload(Task.campaign_obj.campaign_definition_obj)).filter(Task.task_id == task_id).first()
         rlist = cherrypy.request.db.query(CampaignRecovery).joinedload(CampaignRecovery.recovery_type_obj).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(recovery_order)
 
         if t.n_recovery == None:
@@ -2103,6 +2105,8 @@ class poms_service:
         
     @cherrypy.expose
     def launch_jobs(self, campaign_id, dataset_override = None):
+
+        cherrypy.log("Entering launch_jobs(%d, %s)" % (campaign_id, dataset_override))
         if cherrypy.config.get("poms.launches","allowed") == "hold":
             return "Job launches currently held."
 
