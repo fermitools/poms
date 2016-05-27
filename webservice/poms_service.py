@@ -1004,7 +1004,7 @@ class poms_service:
              j.status = 'Idle'
              cherrypy.request.db.add(j)
 
-         cherrpy.request.db.commit()
+         cherrypy.request.db.commit()
 
          if j:
              cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
