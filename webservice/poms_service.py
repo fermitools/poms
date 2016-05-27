@@ -972,12 +972,15 @@ class poms_service:
          cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
 
          if not self.can_report_data():
+              cherrypy.log("update_job: not allowed")
               return "Not Allowed"
 
          if task_id:
              task_id = int(task_id)
 
          host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
+
+         cherrypy.request.db.begin_nested()
 
          j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.jobsub_job_id).first()
 
@@ -1000,25 +1003,28 @@ class poms_service:
              j.host_site = ''
              j.status = 'Idle'
              cherrypy.request.db.add(j)
-             cherrypy.request.db.commit()
+
+         cherrpy.request.db.commit()
 
          if j:
              cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
-             if kwargs.get('output_files_declared', None) == "True":
-                 if j.status == "Completed":
-                     j.output_files_declared = True
-                     j.status = "Located"
 
              for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
 
                  if field == 'status' and j.status == "Located":
                      # stick at Located, don't roll back to Completed,etc.
                      continue
+
                  if kwargs.get(field, None):
                     setattr(j,field,kwargs[field].rstrip("\n"))
                  if not getattr(j,field, None):
                     if field != 'user_exe_exit_code':
                         setattr(j,field,'unknown')
+
+             if kwargs.get('output_files_declared', None) == "True":
+                 if j.status == "Completed" :
+                     j.output_files_declared = True
+                     j.status = "Located"
 
              for field in ['project', ]:
                  if kwargs.get("task_%s" % field, None) and j.task_obj:
@@ -1061,7 +1067,7 @@ class poms_service:
              if j.cpu_type == None:
                  j.cpu_type = 'unknown'
 
-             cherrypy.log("update_job: db add/commit job ")
+             cherrypy.log("update_job: db add/commit job status %s " %  j.status)
 
              j.updated =  datetime.now(utc)
              cherrypy.request.db.add(j)
@@ -2054,7 +2060,7 @@ class poms_service:
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
             return 1
-        t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj),joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
+        t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
         clist = []
         #clist = cherrypy.request.db.query(Campaign).filter(Campaign.depends_on == t.campaign_obj.campaign_id).all()
 
@@ -2074,8 +2080,8 @@ class poms_service:
             # XXX should queue for later?!?
             return 1
 
-        t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj),joinedload(Task.campaign_obj.campaign_definition_obj)).filter(Task.task_id == task_id).first()
-        rlist = cherrypy.request.db.query(CampaignRecovery).joinedload(CampaignRecovery.recovery_type_obj).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(recovery_order)
+        t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
+        rlist = cherrypy.request.db.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type_obj)).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(recovery_order)
 
         if t.n_recovery == None:
            t.n_recovery = 0
