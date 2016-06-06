@@ -8,6 +8,7 @@ import json
 import time
 import traceback
 import resource
+import gc
 from job_reporter import job_reporter
 
 class jobsub_q_scraper:
@@ -171,6 +172,7 @@ class jobsub_q_scraper:
         self.call_wrapup_tasks()
 
     def poll(self):
+        gc.set_debug(gc.DEBUG_LEAK)
         while(1):
             try:
                 self.scan()
@@ -191,6 +193,7 @@ class jobsub_q_scraper:
 	        traceback.print_exc()
 	        pass
 
+            gc.collect()
 
 if __name__ == '__main__':
     debug = 0

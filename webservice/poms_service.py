@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery
 
 from utc import utc
 from crontab import CronTab
@@ -980,7 +980,7 @@ class poms_service:
 
          host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
 
-         cherrypy.request.db.begin_nested()
+         
 
          j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.jobsub_job_id).first()
 
@@ -1002,9 +1002,7 @@ class poms_service:
              j.node_name = ''
              j.host_site = ''
              j.status = 'Idle'
-             cherrypy.request.db.add(j)
 
-         cherrypy.request.db.commit()
 
          if j:
              cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
@@ -1045,9 +1043,9 @@ class poms_service:
                  newfiles = kwargs['output_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         jf = JobFile(job_id = j.job_id, file_name = f, file_type = "output", created =  datetime.now(utc))
+                         jf = JobFile(file_name = f, file_type = "output", created =  datetime.now(utc), job_obj = j)
+                         j.jobs.append(jf)
                          cherrypy.request.db.add(jf)
-                         cherrypy.request.db.commit()
 
              if kwargs.get('input_file_names', None):
                  cherrypy.log("saw input_file_names: %s" % kwargs['input_file_names'])
@@ -1059,9 +1057,8 @@ class poms_service:
                  newfiles = kwargs['input_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         jf = JobFile(job_id = j.job_id, file_name = f, file_type = "input", created =  datetime.now(utc))
+                         jf = JobFile(file_name = f, file_type = "input", created =  datetime.now(utc), job_obj = j)
                          cherrypy.request.db.add(jf)
-                         cherrypy.request.db.commit()
 
 
              if j.cpu_type == None:
@@ -1070,24 +1067,17 @@ class poms_service:
              cherrypy.log("update_job: db add/commit job status %s " %  j.status)
 
              j.updated =  datetime.now(utc)
-             cherrypy.request.db.add(j)
-             # retry flush with updated time if we get history error.
-             try:
-                 cherrypy.request.db.flush()
-             except:
-                 j.updated =  datetime.now(utc)
-                 cherrypy.request.db.flush()
-             cherrypy.request.db.commit()
-
-             cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
 
              if j.task_obj:
                  newstatus = self.compute_status(j.task_obj)
                  if newstatus != j.task_obj.status:
                      j.task_obj.status = newstatus
                      j.task_obj.updated =  datetime.now(utc)
-                     cherrypy.request.db.add(j.task_obj)
-                     cherrypy.request.db.commit()
+
+             cherrypy.request.db.add(j)
+	     cherrypy.request.db.commit()
+
+             cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
  
 
          return "Ok."
@@ -2081,12 +2071,18 @@ class poms_service:
             return 1
 
         t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
-        rlist = cherrypy.request.db.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type_obj)).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(recovery_order)
+        rlist = cherrypy.request.db.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(CampaignRecovery.recovery_order)
 
-        if t.n_recovery == None:
-           t.n_recovery = 0
+        # convert to a real list...
+        l = []
+        for r in rlist:
+            l.append(r)
+        rlist = l
 
-        while t.n_recovery != None and t.recovery_position < len(rlist):
+        if t.recovery_position == None:
+           t.recovery_position = 0
+
+        while t.recovery_position != None and t.recovery_position < len(rlist):
             rtype = rlist[t.recovery_position].recovery_type
             t.recovery_position = t.recovery_position + 1
             if rtype.name == 'consumed_status':
@@ -2110,6 +2106,8 @@ class poms_service:
 
             if nfiles > 0:
                 rname = "poms_recover_%d_%d" % (t.task_id,t.recovery_position)
+
+                cherrypy.log("launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s" % (t.campaign_obj.experiment, rname, recovery_dims))
 
                 cherrypy.request.project_fetcher.create_definition(t.campaign_obj.experiment, rname, recovery_dims)
             

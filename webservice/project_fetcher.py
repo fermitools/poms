@@ -7,6 +7,8 @@ import time
 import concurrent.futures
 import requests
 import traceback
+import os
+import cherrypy
 
 class project_fetcher:
     def __init__(self):
@@ -141,8 +143,10 @@ class project_fetcher:
     def create_definition(self, experiment, name, dims):
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/definitions/create" % (base, experiment)
+        cherrypy.log("create_definition: url: %s" % url)
+
         try:
-            res = urllib2.urlopen(url,urllib.urlencode({"name": name, "dims":dims,"user":os.environ.get("USER",os.environ.get("GRID_USER","sam"))}))
+            res = urllib2.urlopen(url,urllib.urlencode({"name": name, "dims":dims,"user":os.environ.get("USER","sam")}))
             text = res.read()
             res.close()
         except:
