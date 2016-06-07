@@ -996,10 +996,13 @@ class poms_service:
                 ji.jobsub_job_id="dup_"+ji.jobsub_job_id
                 cherrypy.request.db.add(ji)
                 # steal any job_files
+	        files =  [x.file_name for x in j.job_files ]
                 for jf in ji.job_files:
-                    njf = JobFile(file_name = jf.file_name, file_type = jf.file_type, created =  jf.created, job_obj = j)
-                    cherrypy.request.db.add(njf)
+                    if jf.file_name not in files:
+                        njf = JobFile(file_name = jf.file_name, file_type = jf.file_type, created =  jf.created, job_obj = j)
+                        cherrypy.request.db.add(njf)
 
+                cherrypy.request.db.delete(ji)
                 cherrypy.request.db.flush()
                     
          if not j and task_id:

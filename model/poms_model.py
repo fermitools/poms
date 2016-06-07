@@ -1,6 +1,6 @@
 # coding: utf-8
 from sqlalchemy import Table, BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text, Float
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql.json import JSON
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -65,7 +65,7 @@ class Experiment(Base):
     name = Column(Text, nullable=False)
     
 
-class Job(Base):
+class Job(Base): 
     __tablename__ = 'jobs'
 
     job_id = Column(BigInteger, primary_key=True, server_default=text("nextval('jobs_job_id_seq'::regclass)"))
@@ -201,7 +201,7 @@ class JobHistory(Base):
     created = Column(DateTime(True), primary_key=True, nullable=False)
     status = Column(Text, nullable=False)
     
-    job_obj = relationship(u'Job',backref='history')
+    job_obj = relationship(u'Job',backref=backref('history',cascade="all,delete-orphan"))
 
 class Tag(Base):
     __tablename__ = 'tags'
@@ -228,7 +228,7 @@ class JobFile(Base):
     created = Column(DateTime(True), nullable=False)
     declared = Column(DateTime(True))
     
-    job_obj = relationship(Job, backref='job_files')
+    job_obj = relationship(Job, backref=backref('job_files', cascade="all,delete-orphan"))
     
 
 class CampaignSnapshot(Base):
