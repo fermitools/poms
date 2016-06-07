@@ -8,7 +8,7 @@ CREATE TABLE job_files (
 	file_type            text  NOT NULL,
 	created              timestamptz  NOT NULL,
 	declared             timestamptz  ,
-	CONSTRAINT pk_output_files PRIMARY KEY ( job_id, file_name )
+	CONSTRAINT pk_output_files PRIMARY KEY ( job_id, file_name, file_type )
  ) ;
 
 ALTER TABLE job_files ADD CONSTRAINT check_file_type CHECK ( (file_type = 'input'::text) OR (file_type = 'output'::text) OR (file_type = 'log'::text) ) ;
@@ -140,6 +140,9 @@ ALTER TABLE campaign_recoveries ADD CONSTRAINT fk_campaign_recoveries_0 FOREIGN 
 
 ALTER TABLE jobs DROP COLUMN output_file_names;
 
+ALTER TABLE tasks ADD recovery_tasks_parent integer  ;
+CREATE INDEX idx_tasks_recovery_tasks_parent ON tasks ( recovery_tasks_parent ) ;
+ALTER TABLE tasks ADD CONSTRAINT fk_tasks_recovery_tasks_parent FOREIGN KEY ( recovery_tasks_parent ) REFERENCES tasks( task_id )    ;
 
 grant select, insert, update, delete on all tables in schema public to pomsdbs;
 grant usage on all sequences in schema public to pomsdbs;
