@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery
 
 from utc import utc
 from crontab import CronTab
@@ -169,7 +169,7 @@ class poms_service:
                 d.downtime_ended = end_dt
                 d.downtime_type = 'scheduled'
                 cherrypy.request.db.add(d)
-                cherrypy.request.db.flush()
+                cherrypy.request.db.commit()
                 return "Ok."
             except exc.IntegrityError:
                 return "This item already exists."
@@ -193,7 +193,7 @@ class poms_service:
             record.ServiceDowntime.service_id = s.service_id
             record.ServiceDowntime.downtime_started = new_start_dt
             record.ServiceDowntime.downtime_ended = end_dt
-            cherrypy.request.db.flush()
+            cherrypy.request.db.commit()
             return "Ok."
         else:
             return "Oops."
@@ -262,12 +262,12 @@ class poms_service:
         s.items = total
         s.failed_items = failed
         cherrypy.request.db.add(s)
-        cherrypy.request.db.flush()
+        cherrypy.request.db.commit()
 
         return "Ok."
 
     @cherrypy.expose
-    def new_task_for_campaign(self, campaign_name, command_executed, experimenter_name):
+    def new_task_for_campaign(self, campaign_name, command_executed, experimenter_name, dataset_name = None):
         c = cherrypy.request.db.query(Campaign).filter(Campaign.name == campaign_name).first()
         e = cherrypy.request.db.query(Experimenter).filter(like_)(Experimenter.email,"%s@%%" % experimenter_name ).first()
         t = Task()
@@ -282,8 +282,10 @@ class poms_service:
         t.updater = e.experimenter_id
         t.creator = e.experimenter_id
         t.command_executed = command_executed
+        if dataset_name:
+            t.input_dataset = dataset_name
         cherrypy.request.db.add(t)
-        cherrypy.request.db.flush()
+        cherrypy.request.db.commit()
         return "Task=%d" % t.task_id
 
     @cherrypy.expose
@@ -399,22 +401,30 @@ class poms_service:
                     .filter(ExperimentsExperimenters.experiment==exp).update({"active":True})
                     )
                 if updated==0:
-                    cherrypy.request.db.add( ExperimentsExperimenters(e_id,exp,True) )
-            db.flush()
+                    EE = ExperimentsExperimenters()
+                    EE.experimenter_id = e_id
+                    EE.experiment = exp
+                    EE.active = True
+                    cherrypy.request.db.add( EE )
+            db.commit()
 
         elif action == "add":
             if db.query(Experimenter).filter(Experimenter.email==email).one():
                 message = "An experimenter with the email %s already exists" %  email
             else:
-                db.add( Experimenter(kwargs.get('first_name'), kwargs.get('last_name'), email ))
-                db.flush()
+                experimenter = Experimenter()
+                experimenter.first_name = kwargs.get('first_name')
+                experimenter.last_name = kwargs.get('last_name')
+                experimenter.email = email
+                db.add( experimenter)
+                db.commit()
 
         elif action == "edit":
             values = {"first_name" : kwargs.get('first_name'),
                       "last_name"  : kwargs.get('last_name'),
                       "email"      : email}
             db.query(Experimenter).filter(Experimenter.experimenter_id==kwargs.get('experimenter_id')).update(values)
-            db.flush()
+            db.commit()
 
         if email:
             experimenter = db.query(Experimenter).filter(Experimenter.email == email ).first()
@@ -427,6 +437,8 @@ class poms_service:
                 # Experimenters that were never a member of an experiment will not have an entry in the experiments_experimenters table for that experiment
                 subquery = db.query(ExperimentsExperimenters.experiment).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
                 data['not_member_of_exp'] = db.query(Experiment).filter(~Experiment.experiment.in_(subquery))
+
+        db.commit()
 
         data['message'] = message
         template = self.jinja_env.get_template('user_edit.html')
@@ -476,7 +488,7 @@ class poms_service:
             except NoResultFound:
                 exp = Experiment(experiment=experiment, name=name)
                 cherrypy.request.db.add(exp)
-                cherrypy.request.db.flush()
+                cherrypy.request.db.commit()
         except KeyError:
             pass
         # Delete experiment(s), if any were selected
@@ -484,7 +496,7 @@ class poms_service:
             experiment = None
             for experiment in kwargs:
                 db.query(Experiment).filter(Experiment.experiment==experiment).delete()
-            cherrypy.request.db.flush()
+            cherrypy.request.db.commit()
         except IntegrityError, e:
             message = "The experiment, %s, is used and may not be deleted." % experiment
             cherrypy.log(e.message)
@@ -510,7 +522,7 @@ class poms_service:
             name = kwargs.pop('name')
             try:
                 db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).delete()
-                db.flush()
+                db.commit()
             except:
                 db.rollback()
                 message = "The template, %s, is in use and may not be deleted." % name
@@ -546,7 +558,7 @@ class poms_service:
                 cherrypy.log(e.message)
                 db.rollback()
             else:
-                db.flush()
+                db.commit()
 
         # Find templates
         if exp: # cuz the default is find
@@ -573,7 +585,7 @@ class poms_service:
             name = kwargs.pop('name')
             try:
                 db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).filter(CampaignDefinition.name==name).delete()
-                db.flush()
+                db.commit()
             except:
                 db.rollback()
                 message = "The campaign definition, %s, is in use and may not be deleted." % name
@@ -929,7 +941,9 @@ class poms_service:
                  task.status = "Completed"
                  task.updated = datetime.now(utc)
                  cherrypy.request.db.add(task)
-                 self.launch_recovery_if_needed(task.task_i)
+
+                 if not self.launch_recovery_if_needed(task.task_id):
+                     self.launch_dependents_if_needed(task.task_id)
 
         cherrypy.request.db.commit()
 
@@ -958,6 +972,7 @@ class poms_service:
          cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
 
          if not self.can_report_data():
+              cherrypy.log("update_job: not allowed")
               return "Not Allowed"
 
          if task_id:
@@ -965,8 +980,28 @@ class poms_service:
 
          host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
 
-         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.jobsub_job_id).first()
+         
 
+         jl = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
+         first = True
+         for ji in jl:
+             if first:
+                j = ji
+                first = False
+             else:
+                #
+                # we somehow got multiple jobs with the sam jobsub_job_id
+                #
+                # mark the others as dups
+                ji.jobsub_job_id="dup_"+ji.jobsub_job_id
+                cherrypy.request.db.add(ji)
+                # steal any job_files
+                for jf in ji.job_files:
+                    njf = JobFile(file_name = jf.file_name, file_type = jf.file_type, created =  jf.created, job_obj = j)
+                    cherrypy.request.db.add(njf)
+
+                cherrypy.request.db.flush()
+                    
          if not j and task_id:
              t = cherrypy.request.db.query(Task).filter(Task.task_id==task_id).first()
              if t == None:
@@ -977,7 +1012,7 @@ class poms_service:
              j = Job()
              j.jobsub_job_id = jobsub_job_id.rstrip("\n")
              j.created = datetime.now(utc)
-             j.updated = j.created
+             j.updated = datetime.now(utc)
              j.task_id = task_id
              j.task_obj = t
              j.output_files_declared = False
@@ -985,26 +1020,27 @@ class poms_service:
              j.node_name = ''
              j.host_site = ''
              j.status = 'Idle'
-             cherrypy.request.db.add(j)
-             cherrypy.request.db.flush([j])
+
 
          if j:
              cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
-             if kwargs.get('output_files_declared', None) == "True":
-                 if j.status == "Completed":
-                     j.output_files_declared = True
-                     j.status = "Located"
 
              for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
 
                  if field == 'status' and j.status == "Located":
                      # stick at Located, don't roll back to Completed,etc.
                      continue
+
                  if kwargs.get(field, None):
                     setattr(j,field,kwargs[field].rstrip("\n"))
                  if not getattr(j,field, None):
                     if field != 'user_exe_exit_code':
                         setattr(j,field,'unknown')
+
+             if kwargs.get('output_files_declared', None) == "True":
+                 if j.status == "Completed" :
+                     j.output_files_declared = True
+                     j.status = "Located"
 
              for field in ['project', ]:
                  if kwargs.get("task_%s" % field, None) and j.task_obj:
@@ -1025,9 +1061,9 @@ class poms_service:
                  newfiles = kwargs['output_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         jf = JobFile(job_id = j.job_id, file_name = f, file_type = "output", created =  datetime.now(utc))
+                         jf = JobFile(file_name = f, file_type = "output", created =  datetime.now(utc), job_obj = j)
+                         j.jobs.append(jf)
                          cherrypy.request.db.add(jf)
-                         cherrypy.request.db.flush([jf])
 
              if kwargs.get('input_file_names', None):
                  cherrypy.log("saw input_file_names: %s" % kwargs['input_file_names'])
@@ -1039,32 +1075,28 @@ class poms_service:
                  newfiles = kwargs['input_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         jf = JobFile(job_id = j.job_id, file_name = f, file_type = "input", created =  datetime.now(utc))
+                         jf = JobFile(file_name = f, file_type = "input", created =  datetime.now(utc), job_obj = j)
                          cherrypy.request.db.add(jf)
-                         cherrypy.request.db.flush([jf])
+
+
+             if j.cpu_type == None:
+                 j.cpu_type = ''
+
+             cherrypy.log("update_job: db add/commit job status %s " %  j.status)
 
              j.updated =  datetime.now(utc)
 
-             if j.cpu_type == None:
-                 j.cpu_type = 'unknown'
-
-             cherrypy.log("update_job: db add/commit job ")
-             cherrypy.request.db.add(j)
-             cherrypy.request.db.flush()
-             cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
-             cherrypy.request.db.commit()
-
-             cherrypy.request.db.begin()
              if j.task_obj:
                  newstatus = self.compute_status(j.task_obj)
                  if newstatus != j.task_obj.status:
                      j.task_obj.status = newstatus
                      j.task_obj.updated =  datetime.now(utc)
-                     cherrypy.request.db.add(j.task_obj)
-                     cherrypy.request.db.flush([j.task_obj])
-             cherrypy.request.db.commit()
- 
 
+             cherrypy.request.db.add(j)
+	     cherrypy.request.db.commit()
+
+             cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
+ 
          return "Ok."
 
     @cherrypy.expose
@@ -1373,12 +1405,12 @@ class poms_service:
                            [t.created.strftime("%Y-%m-%d %H:%M"),None], 
                            [psummary.get('files_in_snapshot',0), listfiles % base_dim_list[i]],
                            ["%d:%d" % (psummary.get('tot_consumed',0) + psummary.get('tot_failed',0) + psummary.get('tot_unknown',0), logdelivered), listfiles % base_dim_list[i] + " and consumed_status consumed,failed,unknown "],
-                           [psummary.get('tot_consumed',0), listfiles % base_dim_list + " and consumed_status consumed"],
-                           [ psummary.get('tot_failed',0),  listfiles % base_dim_list + " and consumed_status failed"],
-                           [ psummary.get('tot_unknown',0),  listfiles % base_dim_list + " and consumed_status unknown"],
+                           [psummary.get('tot_consumed',0), listfiles % base_dim_list[i] + " and consumed_status consumed"],
+                           [ psummary.get('tot_failed',0),  listfiles % base_dim_list[i] + " and consumed_status failed"],
+                           [ psummary.get('tot_unknown',0),  listfiles % base_dim_list[i] + " and consumed_status unknown"],
                            [some_kids_decl_list[i], listfiles % some_kids_needed[i] ],
                            [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                           [len(self.get_inflight(task_id=t.task_id)), "inflight"],
+                           [len(self.get_inflight(task_id=t.task_id)), "./inflight_files?task_id=%d" % t.task_id],
                            [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
                            [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                 ])
@@ -1817,7 +1849,7 @@ class poms_service:
 
         template = self.jinja_env.get_template('inflight_files.html')
 
-        return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = statusmap, c = c, campaign_id = campaign_id, task_id = task_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
+        return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = statusmap, c = c, jjid= self.task_min_job(task_id),campaign_id = campaign_id, task_id = task_id, pomspath=self.path,help_page="PendingFilesJobsHelp")
 
 
     @cherrypy.expose
@@ -2030,17 +2062,44 @@ class poms_service:
             cherrypy.config.update({'poms.launches': hold})
         raise cherrypy.HTTPRedirect(self.path)
 
-    def launch_recovery_if_needed(self, task_id):
+    def launch_dependents_if_needed(self, task_id):
+        cherrypy.log("Entering launch_dependents_if_needed(%s)" % task_id)
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
-            return
+            # XXX should queue for later?!?
+            return 1
+        t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
+        clist = []
+        #clist = cherrypy.request.db.query(Campaign).filter(Campaign.depends_on == t.campaign_obj.campaign_id).all()
 
-        t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj),joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
-        rlist = cherrypy.request.db.query(CampaignRecovery).joinedload(CampaignRecovery.recovery_type_obj).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(recovery_order)
+        i = 0
+        for c in clist:
+             i = i + 1
+             dims = "ischildof: (snapshot_for_project %s and file_name like '%s'" % (t.project, t.campaign_obj.depends_file_match)
+             dname = "poms_depends_%d_%d" % (t.task_id,i)
 
-        if t.n_recovery == None:
-           t.n_recovery = 0
+             cherrypy.request.project_fetcher.create_definition(t.campaign_obj.experiment, dname, dims)
+             self.launch_jobs(c.campaign_id, dataset_override = dname)
+        return 1
 
-        if t.n_recovery != None and t.recovery_position < len(rlist):
+    def launch_recovery_if_needed(self, task_id):
+        cherrypy.log("Entering launch_recovery_if_needed(%s)" % task_id)
+	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
+            # XXX should queue for later?!?
+            return 1
+
+        t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
+        rlist = cherrypy.request.db.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(CampaignRecovery.recovery_order)
+
+        # convert to a real list...
+        l = []
+        for r in rlist:
+            l.append(r)
+        rlist = l
+
+        if t.recovery_position == None:
+           t.recovery_position = 0
+
+        while t.recovery_position != None and t.recovery_position < len(rlist):
             rtype = rlist[t.recovery_position].recovery_type
             t.recovery_position = t.recovery_position + 1
             if rtype.name == 'consumed_status':
@@ -2065,14 +2124,20 @@ class poms_service:
             if nfiles > 0:
                 rname = "poms_recover_%d_%d" % (t.task_id,t.recovery_position)
 
+                cherrypy.log("launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s" % (t.campaign_obj.experiment, rname, recovery_dims))
+
                 cherrypy.request.project_fetcher.create_definition(t.campaign_obj.experiment, rname, recovery_dims)
             
                 self.launch_jobs(t.campaign_obj.campaign_id, dataset_override=rname)
+                return 1
+        return 0
         
     @cherrypy.expose
     def launch_jobs(self, campaign_id, dataset_override = None):
+
+        cherrypy.log("Entering launch_jobs(%s, %s)" % (campaign_id, dataset_override))
         if cherrypy.config.get("poms.launches","allowed") == "hold":
-            return "Job launches currentl held."
+            return "Job launches currently held."
 
         c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).options(joinedload(Campaign.launch_template_obj),joinedload(Campaign.campaign_definition_obj)).first()
         cd = c.campaign_definition_obj
@@ -2163,7 +2228,7 @@ class poms_service:
                     ct.campaign_id = campaign_id
                     ct.tag_id = tag.tag_id
                     cherrypy.request.db.add(ct)
-                    cherrypy.request.db.flush()
+                    cherrypy.request.db.commit()
                     response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": tag.tag_name, "msg": "OK"}
                     return json.dumps(response)
                 except exc.IntegrityError:
@@ -2175,13 +2240,13 @@ class poms_service:
                     t.tag_name = tag_name
                     t.experiment = experiment
                     cherrypy.request.db.add(t)
-                    cherrypy.request.db.flush()
+                    cherrypy.request.db.commit()
 
                     ct = CampaignsTags()
                     ct.campaign_id = campaign_id
                     ct.tag_id = t.tag_id
                     cherrypy.request.db.add(ct)
-                    cherrypy.request.db.flush()
+                    cherrypy.request.db.commit()
                     response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": t.tag_name, "msg": "OK"}
                     return json.dumps(response)
                 except exc.IntegrityError:
@@ -2199,7 +2264,7 @@ class poms_service:
         cherrypy.response.headers['Content-Type'] = 'application/json'
         if cherrypy.session.get('experimenter').is_authorized(experiment):
             cherrypy.request.db.query(CampaignsTags).filter(CampaignsTags.campaign_id == campaign_id, CampaignsTags.tag_id == tag_id).delete()
-            cherrypy.request.db.flush()
+            cherrypy.request.db.commit()
             response = {"msg": "OK"}
         else:
             response = {"msg": "You are not authorized to delete tags."}
@@ -2399,7 +2464,7 @@ class poms_service:
                 for fieldname in columns.keys():
                      setattr(newsnap, fieldname, getattr(j,fieldname))     
                 cherrypy.request.db.add(newsnap)
-             cherrypy.request.db.flush()
+             cherrypy.request.db.commit()
 
     @cherrypy.expose
     def actual_pending_files(self, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1):

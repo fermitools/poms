@@ -75,13 +75,13 @@ class joblog_scraper:
             print "looking for input/output files in: " , message
         file_map = {}
         message = message[message.find("ifdh::cp(")+9:]
+        message = message[:message.find(")")]
+
         list = message.split(" ")
         for item in list:
             item = item[item.rfind("/")+1:]
-            # pretty much all actual output files are .root or .art ...
-            # buth we also want input files...
-            if item.endswith(".root") or item.endswith(".art") or item.endswith(".raw") or item.endswith(".fcl"):
-               file_map[item] = 1
+            if item != "":
+                file_map[item] = 1
 
         if self.debug:
             print "found files: " , file_map

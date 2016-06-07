@@ -8,6 +8,7 @@ import json
 import time
 import traceback
 import resource
+import gc
 from job_reporter import job_reporter
 
 class jobsub_q_scraper:
@@ -45,6 +46,8 @@ class jobsub_q_scraper:
             print "got %d jobs" % len(jobs)
             for j in jobs:
                 self.jobmap[j] = 0
+	except KeyboardInterrupt:
+	    raise
         except:
             print  "Ouch!", sys.exc_info()
 	    traceback.print_exc()
@@ -57,6 +60,8 @@ class jobsub_q_scraper:
             conn.close()
 
             if self.debug: print "got: ", text
+	except KeyboardInterrupt:
+	    raise
         except:
             print  "Ouch!", sys.exc_info()
 	    traceback.print_exc()
@@ -140,6 +145,8 @@ class jobsub_q_scraper:
                 if not prev or prev['status'] != args['status'] or prev['node_name'] != args['node_name'] or prev['cpu_time'] != args['cpu_time'] or prev['wall_time'] != args['wall_time'] or prev['task_project'] != args['task_project']:
                     try: 
                         self.job_reporter.actually_report_status(**args)
+	            except KeyboardInterrupt:
+	                raise
                     except:
 	                print "Reporting Exception!"
 	                traceback.print_exc()
@@ -171,6 +178,7 @@ class jobsub_q_scraper:
         self.call_wrapup_tasks()
 
     def poll(self):
+        gc.set_debug(gc.DEBUG_LEAK)
         while(1):
             try:
                 self.scan()
@@ -183,7 +191,7 @@ class jobsub_q_scraper:
 	        traceback.print_exc()
                 # if we're out of memory, dump core...
                 if e.errno == 12:
-                    resource.setrlimit(resource.RLIMIT_CORE,resource.RLIM_INFINITIY)
+                    resource.setrlimit(resource.RLIMIT_CORE,resource.RLIM_INFINITY)
                     os.abort()
 
 	    except:
@@ -191,6 +199,7 @@ class jobsub_q_scraper:
 	        traceback.print_exc()
 	        pass
 
+            gc.collect()
 
 if __name__ == '__main__':
     debug = 0
