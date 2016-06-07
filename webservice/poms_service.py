@@ -982,7 +982,7 @@ class poms_service:
 
          
 
-         jl = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.jobsub_job_id).all()
+         jl = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
          first = True
          for ji in jl:
              if first:
@@ -991,22 +991,15 @@ class poms_service:
              else:
                 #
                 # we somehow got multiple jobs with the sam jobsub_job_id
-                # merge them...
                 #
-                # steal any jobfiles
-                for jf in ji.jobfiles:
-                    j.jobs.append(jf)
-                    jf.job_id = j.job_id
-                    cherrypy.request.db.add(jf)
-                # take the status update
-                j.status = ji.status
-                j.updated = datetime.now(utc)
-                # if it has other info, take it
-                if ji.cpu_type: j.cpu_type = ji.cpu_type
-                if ji.node_name: j.node_name = ji.node_name
-                if ji.host_site: j.host_site = ji.host_site
-                cherrypy.request.db.delete(ji)
-                cherrypy.request.db.add(j)
+                # mark the others as dups
+                ji.jobsub_job_id="dup_"+ji.jobsub_job_id
+                cherrypy.request.db.add(ji)
+                # steal any job_files
+                for jf in ji.job_files:
+                    njf = JobFile(file_name = jf.file_name, file_type = jf.file_type, created =  jf.created, job_obj = j)
+                    cherrypy.request.db.add(njf)
+
                 cherrypy.request.db.flush()
                     
          if not j and task_id:

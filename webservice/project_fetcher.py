@@ -146,13 +146,14 @@ class project_fetcher:
         url = "%s/sam/%s/api/definitions/create" % (base, experiment)
 
         try:
-            pdict = urllib.urlencode({"name": name, "dims":dims,"user":os.environ.get("USER","sam")})
+            pdict = urllib.urlencode({"defname": name, "dims":dims,"user":os.environ.get("USER","sam")})
             cherrypy.log("create_definition: calling: %s with %s " % (url,pdict))
             res = urllib2.urlopen(url,pdict)
             text = res.read()
             res.close()
-        except:
-            raise
+        except Exception as e:
+            cherrypy.log( "Exception creating definition: url %s args %s exception %s" % ( url, pdict, e.args))
+            return "Fail."
         return "Ok."
 
 if __name__ == "__main__":
