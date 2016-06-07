@@ -46,6 +46,8 @@ class jobsub_q_scraper:
             print "got %d jobs" % len(jobs)
             for j in jobs:
                 self.jobmap[j] = 0
+	except KeyboardInterrupt:
+	    raise
         except:
             print  "Ouch!", sys.exc_info()
 	    traceback.print_exc()
@@ -58,6 +60,8 @@ class jobsub_q_scraper:
             conn.close()
 
             if self.debug: print "got: ", text
+	except KeyboardInterrupt:
+	    raise
         except:
             print  "Ouch!", sys.exc_info()
 	    traceback.print_exc()
@@ -141,6 +145,8 @@ class jobsub_q_scraper:
                 if not prev or prev['status'] != args['status'] or prev['node_name'] != args['node_name'] or prev['cpu_time'] != args['cpu_time'] or prev['wall_time'] != args['wall_time'] or prev['task_project'] != args['task_project']:
                     try: 
                         self.job_reporter.actually_report_status(**args)
+	            except KeyboardInterrupt:
+	                raise
                     except:
 	                print "Reporting Exception!"
 	                traceback.print_exc()
