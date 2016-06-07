@@ -2091,6 +2091,11 @@ class poms_service:
             return 1
 
         t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
+        # if this is itself a recovery job, we go back to our parent
+        # to do all the work, because it has the counters, etc.
+        if t.parent_obj:
+           t = t.parent_obj
+
         rlist = cherrypy.request.db.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(CampaignRecovery.recovery_order)
 
         # convert to a real list...
@@ -2131,14 +2136,14 @@ class poms_service:
 
                 cherrypy.request.project_fetcher.create_definition(t.campaign_obj.experiment, rname, recovery_dims)
             
-                self.launch_jobs(t.campaign_obj.campaign_id, dataset_override=rname)
+                self.launch_jobs(t.campaign_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id)
                 return 1
         return 0
         
     @cherrypy.expose
-    def launch_jobs(self, campaign_id, dataset_override = None):
+    def launch_jobs(self, campaign_id, dataset_override = None, parent_task_id = None):
 
-        cherrypy.log("Entering launch_jobs(%s, %s)" % (campaign_id, dataset_override))
+        cherrypy.log("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
         if cherrypy.config.get("poms.launches","allowed") == "hold":
             return "Job launches currently held."
 
@@ -2169,6 +2174,7 @@ class poms_service:
         cmdl =  [
             "exec 2>&1",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
+            "export POMS_PARENT_TASK_ID=%d" % parent_task_id,
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/`hostname`@FNAL.GOV || true",
             "ssh -tx %s@%s <<EOF" % (lt.launch_account, lt.launch_host),
             lt.launch_setup % {

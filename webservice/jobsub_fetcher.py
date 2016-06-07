@@ -44,13 +44,13 @@ class jobsub_fetcher():
              if user == None:
                 user = "%spro" % group
                  
-         os.system("cd %s && /bin/pwd && /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_fetchlog --group=%s --role=%s --user=%s --jobid=%s" %(
+         os.system("cd %s && /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_fetchlog --group=%s --role=%s --user=%s --jobid=%s " %(
                      self.workdir,
                      group,
                      role,
                      user,
                      jobsubjobid))
-         os.system("ls -l %s " % self.workdir)
+         # os.system("ls -l %s " % self.workdir)
 
     def index(self, jobsubjobid, group, role = "Production", force_reload = False):
 
