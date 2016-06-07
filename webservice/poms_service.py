@@ -982,8 +982,33 @@ class poms_service:
 
          
 
-         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.jobsub_job_id).first()
-
+         jl = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.jobsub_job_id).all()
+         first = True
+         for ji in jl:
+             if first:
+                j = ji
+                first = False
+             else:
+                #
+                # we somehow got multiple jobs with the sam jobsub_job_id
+                # merge them...
+                #
+                # steal any jobfiles
+                for jf in ji.jobfiles:
+                    j.jobs.append(jf)
+                    jf.job_id = j.job_id
+                    cherrypy.request.db.add(jf)
+                # take the status update
+                j.status = ji.status
+                j.updated = datetime.now(utc)
+                # if it has other info, take it
+                if ji.cpu_type: j.cpu_type = ji.cpu_type
+                if ji.node_name: j.node_name = ji.node_name
+                if ji.host_site: j.host_site = ji.host_site
+                cherrypy.request.db.delete(ji)
+                cherrypy.request.db.add(j)
+                cherrypy.request.db.flush()
+                    
          if not j and task_id:
              t = cherrypy.request.db.query(Task).filter(Task.task_id==task_id).first()
              if t == None:
@@ -1062,7 +1087,7 @@ class poms_service:
 
 
              if j.cpu_type == None:
-                 j.cpu_type = 'unknown'
+                 j.cpu_type = ''
 
              cherrypy.log("update_job: db add/commit job status %s " %  j.status)
 
@@ -1079,7 +1104,6 @@ class poms_service:
 
              cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
  
-
          return "Ok."
 
     @cherrypy.expose
