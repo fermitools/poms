@@ -44,7 +44,7 @@ class jobsub_fetcher():
              if user == None:
                 user = "%spro" % group
                  
-         os.system("cd %s && /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_fetchlog --group=%s --role=%s --user=%s --jobid=%s " %(
+         os.system("cd %s && /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_fetchlog --group=%s --role=%s --user=%s --jobid=%s > /dev/null" %(
                      self.workdir,
                      group,
                      role,

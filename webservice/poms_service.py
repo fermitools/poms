@@ -984,6 +984,7 @@ class poms_service:
 
          jl = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
          first = True
+         j = None
          for ji in jl:
              if first:
                 j = ji
@@ -2514,4 +2515,5 @@ class poms_service:
         cherrypy.log("actual pending files: got dims %s" % dims)
 
         return self.show_dimension_files(c.experiment, dims)
+
 

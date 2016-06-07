@@ -77,6 +77,9 @@ class job_reporter:
 		res = uh.read()
 		sys.stderr.write("response: %s\n" % res)
 
+                del uh
+                uh = None
+
 		return res
 
 	    except (urllib2.HTTPError, urllib2.URLError) as e:
@@ -84,8 +87,11 @@ class job_reporter:
 		sys.stderr.write("Excpetion:")
 		if uh:
 		    sys.stderr.write("HTTP fetch status %d" %  uh.getcode())
+                    del uh
 		sys.stderr.write(errtext)
 		sys.stderr.write("--------")
+
+                del e
 
                 time.sleep(5)
                 retries = retries - 1
