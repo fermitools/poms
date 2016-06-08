@@ -1366,11 +1366,11 @@ class poms_service:
         #
         # -- now call parallel fetches for items
         #
-        summary_list = cherrypy.request.project_fetcher.fetch_info_list(summary_needed)
-        some_kids_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, some_kids_needed)
-        some_kids_decl_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, some_kids_decl_needed)
-        all_kids_decl_list = cherrypy.request.project_fetcher.count_files_list( c.experiment, all_kids_decl_needed)
-        all_kids_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, all_kids_needed)
+        summary_list = cherrypy.request.samweb_lite.fetch_info_list(summary_needed)
+        some_kids_list = cherrypy.request.samweb_lite.count_files_list(c.experiment, some_kids_needed)
+        some_kids_decl_list = cherrypy.request.samweb_lite.count_files_list(c.experiment, some_kids_decl_needed)
+        all_kids_decl_list = cherrypy.request.samweb_lite.count_files_list( c.experiment, all_kids_decl_needed)
+        all_kids_list = cherrypy.request.samweb_lite.count_files_list(c.experiment, all_kids_needed)
 
         columns=["jobsub_jobid", "project", "date", "submit-<br>ted",
                  "delivered<br>(SAM:logs)",
@@ -1795,10 +1795,10 @@ class poms_service:
 
     def project_summary_for_task(self, task_id):
         t = cherrypy.request.db.query(Task).filter(Task.task_id == task_id).first()
-        return cherrypy.request.project_fetcher.fetch_info(t.campaign_obj.experiment, t.project)
+        return cherrypy.request.samweb_lite.fetch_info(t.campaign_obj.experiment, t.project)
 
     def project_summary_for_tasks(self, task_list):
-        return cherrypy.request.project_fetcher.fetch_info_list(task_list)
+        return cherrypy.request.samweb_lite.fetch_info_list(task_list)
         #~ return [ {"tot_consumed": 0, "tot_failed": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
 
 
@@ -1824,7 +1824,7 @@ class poms_service:
     @cherrypy.expose
     def show_dimension_files(self, experiment, dims):
 
-        flist = cherrypy.request.project_fetcher.list_files(experiment, dims)
+        flist = cherrypy.request.samweb_lite.list_files(experiment, dims)
 
         template = self.jinja_env.get_template('show_dimension_files.html')
         return template.render(flist = flist, dims = dims,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = [], pomspath=self.path,help_page="ShowDimensionFilesHelp")
@@ -2052,7 +2052,7 @@ class poms_service:
                 camp.cs_last_split = -1
             camp.cs_last_split += 1
             new = dataset + "_slice%d" % camp.cs_last_split
-            self.project_fetcher.create_definition(new, "defname: %s stride %d skip %d" % (camp.dataset, m, camp.cs_last_split))
+            self.samweb_lite.create_definition(new, "defname: %s stride %d skip %d" % (camp.dataset, m, camp.cs_last_split))
             res = new
 
         if res != camp.dataset:
@@ -2081,7 +2081,7 @@ class poms_service:
              dims = "ischildof: (snapshot_for_project %s and file_name like '%s'" % (t.project, t.campaign_obj.depends_file_match)
              dname = "poms_depends_%d_%d" % (t.task_id,i)
 
-             cherrypy.request.project_fetcher.create_definition(t.campaign_obj.experiment, dname, dims)
+             cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, dname, dims)
              self.launch_jobs(c.campaign_id, dataset_override = dname)
         return 1
 
@@ -2128,14 +2128,14 @@ class poms_service:
                  # default to consumed status(?)
                  recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
 
-            nfiles = cherrypy.request.project_fetcher.count_files(t.campaign_obj.experiment,recovery_dims)
+            nfiles = cherrypy.request.samweb_lite.count_files(t.campaign_obj.experiment,recovery_dims)
 
             if nfiles > 0:
                 rname = "poms_recover_%d_%d" % (t.task_id,t.recovery_position)
 
                 cherrypy.log("launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s" % (t.campaign_obj.experiment, rname, recovery_dims))
 
-                cherrypy.request.project_fetcher.create_definition(t.campaign_obj.experiment, rname, recovery_dims)
+                cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, rname, recovery_dims)
             
                 self.launch_jobs(t.campaign_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id)
                 return 1
