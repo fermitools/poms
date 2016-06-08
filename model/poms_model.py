@@ -312,4 +312,13 @@ class CampaignRecovery(Base):
     campaign_definition = relationship(u'CampaignDefinition')
     recovery_type = relationship(u'RecoveryType')
 
+class CampaignDependency(Base):
+    __tablename__ = 'campaign_dependencies'
 
+    campaign_dep_id =       Column(Integer, primary_key=True, server_default=text("nextval('campaign_dependency_id_seq'::regclass)"))
+    needs_camp_id = Column(ForeignKey(u'campaigns.campaign_id'), primary_key=True, nullable=False, index=True)        
+    uses_camp_id   = Column(ForeignKey(u'campaigns.campaign_id'), primary_key=True, nullable=False, index=True)              
+    file_patterns  = Column(Text, nullable=False)
+
+    needs_camp = relationship(u'Campaign',foreign_keys=needs_camp_id)
+    uses_camp = relationship(u'Campaign',foreign_keys=uses_camp_id)

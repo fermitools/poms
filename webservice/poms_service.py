@@ -965,6 +965,10 @@ class poms_service:
             if dcount == st["Completed"]:
                 #all completed jobs have files declared
                 res = "Located"
+                # once we have configurable completion status, this
+                # goes here..
+                # if not self.launch_recovery_if_needed(task.task_id):
+                #     self.launch_dependents_if_needed(task.task_id)
         return res
 
     @cherrypy.expose
@@ -979,8 +983,6 @@ class poms_service:
              task_id = int(task_id)
 
          host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
-
-         
 
          jl = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
          first = True
@@ -2072,17 +2074,16 @@ class poms_service:
             # XXX should queue for later?!?
             return 1
         t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
-        clist = []
-        #clist = cherrypy.request.db.query(Campaign).filter(Campaign.depends_on == t.campaign_obj.campaign_id).all()
+        cdlist = cherrypy.request.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_id == t.campaign_obj.campaign_id).all()
 
         i = 0
-        for c in clist:
+        for cd in cdlist:
              i = i + 1
-             dims = "ischildof: (snapshot_for_project %s and file_name like '%s'" % (t.project, t.campaign_obj.depends_file_match)
+             dims = "ischildof: (snapshot_for_project %s and version %s and file_name like '%s'" % (t.project, t.campaign_obj.software_version, cd.file_patterns)
              dname = "poms_depends_%d_%d" % (t.task_id,i)
 
              cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, dname, dims)
-             self.launch_jobs(c.campaign_id, dataset_override = dname)
+             self.launch_jobs(cd.uses_camp_id, dataset_override = dname)
         return 1
 
     def launch_recovery_if_needed(self, task_id):
