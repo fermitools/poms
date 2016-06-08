@@ -181,7 +181,7 @@ class Task(Base):
     campaign_obj = relationship(u'Campaign')
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Task.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Task.updater == Experimenter.experimenter_id')
-    parent_obj = relationship(u'Task', remote_side=[task_id])
+    parent_obj = relationship(u'Task', remote_side=[task_id],foreign_keys=recovery_tasks_parent)
     jobs = relationship(u'Job', order_by = "Job.job_id")
 
 
