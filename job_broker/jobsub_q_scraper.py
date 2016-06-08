@@ -38,6 +38,7 @@ class jobsub_q_scraper:
     def get_open_jobs(self):
         self.prevjobmap = self.jobmap
 	self.jobmap = {}
+        conn = None
         try:
             conn = urllib2.urlopen(self.job_reporter.report_url + '/active_jobs')
             jobs = json.loads(conn.read())
@@ -56,7 +57,7 @@ class jobsub_q_scraper:
         except:
             print  "Ouch!", sys.exc_info()
 	    traceback.print_exc()
-            del conn
+            if conn: del conn
 
     def call_wrapup_tasks(self):
         try:
