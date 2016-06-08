@@ -176,6 +176,7 @@ class Task(Base):
     command_executed = Column(Text)
     project = Column(Text)
     recovery_position = Column(Integer)
+    recovery_tasks_parent = Coulumn(ForeignKey(u'tasks.task_id'),index=True)
 
     campaign_obj = relationship(u'Campaign')
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Task.creator == Experimenter.experimenter_id')
