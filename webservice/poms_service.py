@@ -1727,6 +1727,9 @@ class poms_service:
         if isinstance(f, basestring):
             f = [f]
 
+        if not 'experiment' in f:
+            f.append('experiment')
+
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'failed_jobs_by_whatever?%s&' % ('&'.join(['f=%s'%x for x in f] )))
 
         #
