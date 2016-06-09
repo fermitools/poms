@@ -8,6 +8,8 @@ import json
 import time
 import traceback
 import resource
+import gc
+import pprint
 from job_reporter import job_reporter
 
 class jobsub_q_scraper:
@@ -36,31 +38,42 @@ class jobsub_q_scraper:
     def get_open_jobs(self):
         self.prevjobmap = self.jobmap
 	self.jobmap = {}
+        conn = None
         try:
             conn = urllib2.urlopen(self.job_reporter.report_url + '/active_jobs')
-            jobs = json.load(conn)
+            jobs = json.loads(conn.read())
             conn.close()
+            del conn
+            conn = None
 
             #print "got: ", jobs
             print "got %d jobs" % len(jobs)
             for j in jobs:
                 self.jobmap[j] = 0
+            del jobs
+            jobs = None
+	except KeyboardInterrupt:
+	    raise
         except:
             print  "Ouch!", sys.exc_info()
 	    traceback.print_exc()
-            pass
+            if conn: del conn
 
     def call_wrapup_tasks(self):
         try:
             conn = urllib2.urlopen(self.job_reporter.report_url + '/wrapup_tasks')
             text = conn.read()
             conn.close()
+            del conn
+            conn = None
 
             if self.debug: print "got: ", text
+	except KeyboardInterrupt:
+	    raise
         except:
             print  "Ouch!", sys.exc_info()
 	    traceback.print_exc()
-            pass
+            del conn
 
     def scan(self):
         # roll our previous/current status
@@ -140,6 +153,8 @@ class jobsub_q_scraper:
                 if not prev or prev['status'] != args['status'] or prev['node_name'] != args['node_name'] or prev['cpu_time'] != args['cpu_time'] or prev['wall_time'] != args['wall_time'] or prev['task_project'] != args['task_project']:
                     try: 
                         self.job_reporter.actually_report_status(**args)
+	            except KeyboardInterrupt:
+	                raise
                     except:
 	                print "Reporting Exception!"
 	                traceback.print_exc()
@@ -171,12 +186,13 @@ class jobsub_q_scraper:
         self.call_wrapup_tasks()
 
     def poll(self):
+        gc.set_debug(gc.DEBUG_LEAK)
         while(1):
             try:
                 self.scan()
 			 
 	    except KeyboardInterrupt:
-	        break
+	        raise
  
             except OSError as e:
 	        print "Exception!"
@@ -191,6 +207,8 @@ class jobsub_q_scraper:
 	        traceback.print_exc()
 	        pass
 
+            n = gc.collect()
+            print "gc.collect() returns %d unreachable" % n
 
 if __name__ == '__main__':
     debug = 0
@@ -198,4 +216,11 @@ if __name__ == '__main__':
         debug=1
 
     js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms", debug=debug), debug = debug)
-    js.poll()
+    try:
+        js.poll()
+    except KeyboardInterrupt:
+        n = gc.collect()
+        print "gc.collect() returns %d unreachable" % n
+        print "Remaining garbage:"
+        pprint.pprint(gc.garbage)
+    

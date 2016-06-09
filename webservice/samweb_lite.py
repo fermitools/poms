@@ -7,8 +7,10 @@ import time
 import concurrent.futures
 import requests
 import traceback
+import os
+import cherrypy
 
-class project_fetcher:
+class samweb_lite:
     def __init__(self):
         self.proj_cache = {}
         self.proj_cache_time = {}
@@ -139,14 +141,19 @@ class project_fetcher:
         return infos
 
     def create_definition(self, experiment, name, dims):
+        cherrypy.log("create_definition( %s, %s, %s )" % (experiment,name,dims))
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/definitions/create" % (base, experiment)
+
         try:
-            res = urllib2.urlopen(url,urllib.urlencode({"name": name, "dims":dims,"user":os.environ.get("USER",os.environ.get("GRID_USER","sam"))}))
+            pdict = urllib.urlencode({"defname": name, "dims":dims,"user":os.environ.get("USER","sam")})
+            cherrypy.log("create_definition: calling: %s with %s " % (url,pdict))
+            res = urllib2.urlopen(url,pdict)
             text = res.read()
             res.close()
-        except:
-            raise
+        except Exception as e:
+            cherrypy.log( "Exception creating definition: url %s args %s exception %s" % ( url, pdict, e.args))
+            return "Fail."
         return "Ok."
 
 if __name__ == "__main__":

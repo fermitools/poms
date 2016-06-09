@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery
 
 from utc import utc
 from crontab import CronTab
@@ -965,6 +965,10 @@ class poms_service:
             if dcount == st["Completed"]:
                 #all completed jobs have files declared
                 res = "Located"
+                # once we have configurable completion status, this
+                # goes here..
+                # if not self.launch_recovery_if_needed(task.task_id):
+                #     self.launch_dependents_if_needed(task.task_id)
         return res
 
     @cherrypy.expose
@@ -980,10 +984,30 @@ class poms_service:
 
          host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
 
-         cherrypy.request.db.begin_nested()
+         jl = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
+         first = True
+         j = None
+         for ji in jl:
+             if first:
+                j = ji
+                first = False
+             else:
+                #
+                # we somehow got multiple jobs with the sam jobsub_job_id
+                #
+                # mark the others as dups
+                ji.jobsub_job_id="dup_"+ji.jobsub_job_id
+                cherrypy.request.db.add(ji)
+                # steal any job_files
+	        files =  [x.file_name for x in j.job_files ]
+                for jf in ji.job_files:
+                    if jf.file_name not in files:
+                        njf = JobFile(file_name = jf.file_name, file_type = jf.file_type, created =  jf.created, job_obj = j)
+                        cherrypy.request.db.add(njf)
 
-         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.jobsub_job_id).first()
-
+                cherrypy.request.db.delete(ji)
+                cherrypy.request.db.flush()
+                    
          if not j and task_id:
              t = cherrypy.request.db.query(Task).filter(Task.task_id==task_id).first()
              if t == None:
@@ -1002,9 +1026,7 @@ class poms_service:
              j.node_name = ''
              j.host_site = ''
              j.status = 'Idle'
-             cherrypy.request.db.add(j)
 
-         cherrypy.request.db.commit()
 
          if j:
              cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
@@ -1045,9 +1067,9 @@ class poms_service:
                  newfiles = kwargs['output_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         jf = JobFile(job_id = j.job_id, file_name = f, file_type = "output", created =  datetime.now(utc))
+                         jf = JobFile(file_name = f, file_type = "output", created =  datetime.now(utc), job_obj = j)
+                         j.jobs.append(jf)
                          cherrypy.request.db.add(jf)
-                         cherrypy.request.db.commit()
 
              if kwargs.get('input_file_names', None):
                  cherrypy.log("saw input_file_names: %s" % kwargs['input_file_names'])
@@ -1059,37 +1081,28 @@ class poms_service:
                  newfiles = kwargs['input_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         jf = JobFile(job_id = j.job_id, file_name = f, file_type = "input", created =  datetime.now(utc))
+                         jf = JobFile(file_name = f, file_type = "input", created =  datetime.now(utc), job_obj = j)
                          cherrypy.request.db.add(jf)
-                         cherrypy.request.db.commit()
 
 
              if j.cpu_type == None:
-                 j.cpu_type = 'unknown'
+                 j.cpu_type = ''
 
              cherrypy.log("update_job: db add/commit job status %s " %  j.status)
 
              j.updated =  datetime.now(utc)
-             cherrypy.request.db.add(j)
-             # retry flush with updated time if we get history error.
-             try:
-                 cherrypy.request.db.flush()
-             except:
-                 j.updated =  datetime.now(utc)
-                 cherrypy.request.db.flush()
-             cherrypy.request.db.commit()
-
-             cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
 
              if j.task_obj:
                  newstatus = self.compute_status(j.task_obj)
                  if newstatus != j.task_obj.status:
                      j.task_obj.status = newstatus
                      j.task_obj.updated =  datetime.now(utc)
-                     cherrypy.request.db.add(j.task_obj)
-                     cherrypy.request.db.commit()
- 
 
+             cherrypy.request.db.add(j)
+	     cherrypy.request.db.commit()
+
+             cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
+ 
          return "Ok."
 
     @cherrypy.expose
@@ -1355,11 +1368,11 @@ class poms_service:
         #
         # -- now call parallel fetches for items
         #
-        summary_list = cherrypy.request.project_fetcher.fetch_info_list(summary_needed)
-        some_kids_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, some_kids_needed)
-        some_kids_decl_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, some_kids_decl_needed)
-        all_kids_decl_list = cherrypy.request.project_fetcher.count_files_list( c.experiment, all_kids_decl_needed)
-        all_kids_list = cherrypy.request.project_fetcher.count_files_list(c.experiment, all_kids_needed)
+        summary_list = cherrypy.request.samweb_lite.fetch_info_list(summary_needed)
+        some_kids_list = cherrypy.request.samweb_lite.count_files_list(c.experiment, some_kids_needed)
+        some_kids_decl_list = cherrypy.request.samweb_lite.count_files_list(c.experiment, some_kids_decl_needed)
+        all_kids_decl_list = cherrypy.request.samweb_lite.count_files_list( c.experiment, all_kids_decl_needed)
+        all_kids_list = cherrypy.request.samweb_lite.count_files_list(c.experiment, all_kids_needed)
 
         columns=["jobsub_jobid", "project", "date", "submit-<br>ted",
                  "delivered<br>(SAM:logs)",
@@ -1714,6 +1727,9 @@ class poms_service:
         if isinstance(f, basestring):
             f = [f]
 
+        if not 'experiment' in f:
+            f.append('experiment')
+
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'failed_jobs_by_whatever?%s&' % ('&'.join(['f=%s'%x for x in f] )))
 
         #
@@ -1764,7 +1780,68 @@ class poms_service:
 
         return template.render(joblist=jl, possible_columns = possible_columns, columns = columns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, time_range_string = time_range_string, days = tdays, pomspath=self.path,help_page="JobsByExitcodeHelp")
 
+    @cherrypy.expose
+    def get_task_id_for(self, campaign_name, user = None, experiment = None, command_executed = "", input_dataset = ""):
+        if user == None:
+             user = 4
+        else:
+             u = cherrypy.request.db.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
+             if u:
+                  user = u.experimenter_id
+        q = cherrypy.request.db.query(Campaign).filter(Campaign.name.like("%%%s%%" % campaign_name))
+        if experiment:
+            q = q.filter(Campaign.experiment == experiment)
+        c = q.first()
+        tim = datetime.now(utc)
+        t = Task(campaign_id = c.campaign_id, 
+                 campaign_definition_id = c.campaign_definition_id,
+                 task_order = 0,
+                 input_dataset = input_dataset,
+                 output_dataset = "",
+                 status = "New",
+                 task_parameters = "{}",
+                 updater = 4,
+                 creator = 4,
+                 created = tim,
+                 updated = tim,
+                 command_executed = command)
+        cherrypy.request.db.add(t)
+        self.snapshot_parts(found.campaign_id)
+        return "task_id=%d" % t.task_id
 
+    def register_poms_campaign(self, experiment,  campaign_name, version, user = None, campaign_definition = None, dataset = "", params = []):
+         if user == None:
+              user = 4
+         else:
+              u = cherrypy.request.db.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
+              if u:
+                   user = u.experimenter_id
+          
+         if campaign_definition:
+              cd = cherrypy.request.db.query(CampaignDefinition).filter(Campaign.name.like("%%%s%%" % campaign_definition), Campaign.experiment == experiment).first()
+         else:
+              cd = cherrypy.request.db.query(CampaignDefinition).filter(Campaign.name.like("%generic%"), Campaign.experiment == experiment).first()
+          
+         c = cherrypy.db.query(Campaign).filter( Campaign.experiment == experiment, Campaign.campaign_name == campaign_name).first()
+         if c:
+             changed = False
+         else:
+             c = Campaign(experiment = experiment, name = campaign_name, creator = user, created = datetime.now(utc))
+
+         if version:
+               c.software_verison = version
+               changed = True
+         if user:
+               c.software_verison = version
+               changed = True
+
+         if changed:
+                c.updated = datetime.now(utc)
+                c.updator = user
+                cherrypy.db.add(c)
+                cherrypy.db.commit()
+         return "Ok."
+          
     @cherrypy.expose
     def quick_search(self, search_term):
         search_term = search_term.strip()
@@ -1784,10 +1861,10 @@ class poms_service:
 
     def project_summary_for_task(self, task_id):
         t = cherrypy.request.db.query(Task).filter(Task.task_id == task_id).first()
-        return cherrypy.request.project_fetcher.fetch_info(t.campaign_obj.experiment, t.project)
+        return cherrypy.request.samweb_lite.fetch_info(t.campaign_obj.experiment, t.project)
 
     def project_summary_for_tasks(self, task_list):
-        return cherrypy.request.project_fetcher.fetch_info_list(task_list)
+        return cherrypy.request.samweb_lite.fetch_info_list(task_list)
         #~ return [ {"tot_consumed": 0, "tot_failed": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
 
 
@@ -1813,7 +1890,7 @@ class poms_service:
     @cherrypy.expose
     def show_dimension_files(self, experiment, dims):
 
-        flist = cherrypy.request.project_fetcher.list_files(experiment, dims)
+        flist = cherrypy.request.samweb_lite.list_files(experiment, dims)
 
         template = self.jinja_env.get_template('show_dimension_files.html')
         return template.render(flist = flist, dims = dims,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = [], pomspath=self.path,help_page="ShowDimensionFilesHelp")
@@ -2045,7 +2122,7 @@ class poms_service:
                 camp.cs_last_split = -1
             camp.cs_last_split += 1
             new = dataset + "_slice%d" % camp.cs_last_split
-            self.project_fetcher.create_definition(new, "defname: %s stride %d skip %d" % (camp.dataset, m, camp.cs_last_split))
+            self.samweb_lite.create_definition(new, "defname: %s stride %d skip %d" % (camp.dataset, m, camp.cs_last_split))
             res = new
 
         if res != camp.dataset:
@@ -2065,17 +2142,16 @@ class poms_service:
             # XXX should queue for later?!?
             return 1
         t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
-        clist = []
-        #clist = cherrypy.request.db.query(Campaign).filter(Campaign.depends_on == t.campaign_obj.campaign_id).all()
+        cdlist = cherrypy.request.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_id == t.campaign_obj.campaign_id).all()
 
         i = 0
-        for c in clist:
+        for cd in cdlist:
              i = i + 1
-             dims = "ischildof: (snapshot_for_project %s and file_name like '%s'" % (t.project, t.campaign_obj.depends_file_match)
+             dims = "ischildof: (snapshot_for_project %s and version %s and file_name like '%s'" % (t.project, t.campaign_obj.software_version, cd.file_patterns)
              dname = "poms_depends_%d_%d" % (t.task_id,i)
 
-             cherrypy.request.project_fetcher.create_definition(t.campaign_obj.experiment, dname, dims)
-             self.launch_jobs(c.campaign_id, dataset_override = dname)
+             cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, dname, dims)
+             self.launch_jobs(cd.uses_camp_id, dataset_override = dname)
         return 1
 
     def launch_recovery_if_needed(self, task_id):
@@ -2085,12 +2161,23 @@ class poms_service:
             return 1
 
         t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
-        rlist = cherrypy.request.db.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type_obj)).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(recovery_order)
+        # if this is itself a recovery job, we go back to our parent
+        # to do all the work, because it has the counters, etc.
+        if t.parent_obj:
+           t = t.parent_obj
 
-        if t.n_recovery == None:
-           t.n_recovery = 0
+        rlist = cherrypy.request.db.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(CampaignRecovery.recovery_order)
 
-        while t.n_recovery != None and t.recovery_position < len(rlist):
+        # convert to a real list...
+        l = []
+        for r in rlist:
+            l.append(r)
+        rlist = l
+
+        if t.recovery_position == None:
+           t.recovery_position = 0
+
+        while t.recovery_position != None and t.recovery_position < len(rlist):
             rtype = rlist[t.recovery_position].recovery_type
             t.recovery_position = t.recovery_position + 1
             if rtype.name == 'consumed_status':
@@ -2110,21 +2197,23 @@ class poms_service:
                  # default to consumed status(?)
                  recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
 
-            nfiles = cherrypy.request.project_fetcher.count_files(t.campaign_obj.experiment,recovery_dims)
+            nfiles = cherrypy.request.samweb_lite.count_files(t.campaign_obj.experiment,recovery_dims)
 
             if nfiles > 0:
                 rname = "poms_recover_%d_%d" % (t.task_id,t.recovery_position)
 
-                cherrypy.request.project_fetcher.create_definition(t.campaign_obj.experiment, rname, recovery_dims)
+                cherrypy.log("launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s" % (t.campaign_obj.experiment, rname, recovery_dims))
+
+                cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, rname, recovery_dims)
             
-                self.launch_jobs(t.campaign_obj.campaign_id, dataset_override=rname)
+                self.launch_jobs(t.campaign_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id)
                 return 1
         return 0
         
     @cherrypy.expose
-    def launch_jobs(self, campaign_id, dataset_override = None):
+    def launch_jobs(self, campaign_id, dataset_override = None, parent_task_id = None):
 
-        cherrypy.log("Entering launch_jobs(%s, %s)" % (campaign_id, dataset_override))
+        cherrypy.log("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
         if cherrypy.config.get("poms.launches","allowed") == "hold":
             return "Job launches currently held."
 
@@ -2155,6 +2244,7 @@ class poms_service:
         cmdl =  [
             "exec 2>&1",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
+            "export POMS_PARENT_TASK_ID=%d" % parent_task_id,
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/`hostname`@FNAL.GOV || true",
             "ssh -tx %s@%s <<EOF" % (lt.launch_account, lt.launch_host),
             lt.launch_setup % {
@@ -2494,4 +2584,5 @@ class poms_service:
         cherrypy.log("actual pending files: got dims %s" % dims)
 
         return self.show_dimension_files(c.experiment, dims)
+
 

@@ -1,6 +1,6 @@
 # coding: utf-8
 from sqlalchemy import Table, BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text, Float
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql.json import JSON
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -65,7 +65,7 @@ class Experiment(Base):
     name = Column(Text, nullable=False)
     
 
-class Job(Base):
+class Job(Base): 
     __tablename__ = 'jobs'
 
     job_id = Column(BigInteger, primary_key=True, server_default=text("nextval('jobs_job_id_seq'::regclass)"))
@@ -176,11 +176,12 @@ class Task(Base):
     command_executed = Column(Text)
     project = Column(Text)
     recovery_position = Column(Integer)
+    recovery_tasks_parent = Column(ForeignKey(u'tasks.task_id'),index=True)
 
     campaign_obj = relationship(u'Campaign')
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Task.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Task.updater == Experimenter.experimenter_id')
-    parent_obj = relationship(u'Task', remote_side=[task_id])
+    parent_obj = relationship(u'Task', remote_side=[task_id],foreign_keys=recovery_tasks_parent)
     jobs = relationship(u'Job', order_by = "Job.job_id")
 
 
@@ -201,7 +202,7 @@ class JobHistory(Base):
     created = Column(DateTime(True), primary_key=True, nullable=False)
     status = Column(Text, nullable=False)
     
-    job_obj = relationship(u'Job',backref='history')
+    job_obj = relationship(u'Job',backref=backref('history',cascade="all,delete-orphan"))
 
 class Tag(Base):
     __tablename__ = 'tags'
@@ -228,7 +229,7 @@ class JobFile(Base):
     created = Column(DateTime(True), nullable=False)
     declared = Column(DateTime(True))
     
-    job_obj = relationship(Job, backref='job_files')
+    job_obj = relationship(Job, backref=backref('job_files', cascade="all,delete-orphan"))
     
 
 class CampaignSnapshot(Base):
@@ -311,4 +312,13 @@ class CampaignRecovery(Base):
     campaign_definition = relationship(u'CampaignDefinition')
     recovery_type = relationship(u'RecoveryType')
 
+class CampaignDependency(Base):
+    __tablename__ = 'campaign_dependencies'
 
+    campaign_dep_id =       Column(Integer, primary_key=True, server_default=text("nextval('campaign_dependency_id_seq'::regclass)"))
+    needs_camp_id = Column(ForeignKey(u'campaigns.campaign_id'), primary_key=True, nullable=False, index=True)        
+    uses_camp_id   = Column(ForeignKey(u'campaigns.campaign_id'), primary_key=True, nullable=False, index=True)              
+    file_patterns  = Column(Text, nullable=False)
+
+    needs_camp = relationship(u'Campaign',foreign_keys=needs_camp_id)
+    uses_camp = relationship(u'Campaign',foreign_keys=uses_camp_id)
