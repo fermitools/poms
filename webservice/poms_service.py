@@ -1950,7 +1950,10 @@ class poms_service:
         psl = self.project_summary_for_tasks(tl)        # Get project summary list for a given task list in one query
 
         el = cherrypy.request.db.query(distinct(Job.user_exe_exit_code)).filter(Job.updated >= tmin, Job.updated <= tmax).all()
-        exitcodes = []
+        
+	experiment, = cherrypy.request.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).one()
+
+	exitcodes = []
         for e in el:
             exitcodes.append(e[0])
 
@@ -1963,7 +1966,7 @@ class poms_service:
         exitcodes.sort()
         for e in exitcodes:
             if e != None:
-                columns.append('exit(%d)'%e)
+                columns.append('exit(%d)'%(e))
             else:
                 columns.append('No exitcode')
         outrows = []
@@ -2068,7 +2071,8 @@ class poms_service:
                                 nextlink=nextlink,
                                 current_experimenter=cherrypy.session.get('experimenter'),
                                 campaign_id=campaign_id,
-                                pomspath=self.path,help_page="CampaignSheetHelp")
+                                experiment=experiment,
+				pomspath=self.path,help_page="CampaignSheetHelp")
 
 
     @cherrypy.expose
