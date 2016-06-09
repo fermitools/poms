@@ -1781,16 +1781,22 @@ class poms_service:
         return template.render(joblist=jl, possible_columns = possible_columns, columns = columns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, time_range_string = time_range_string, days = tdays, pomspath=self.path,help_page="JobsByExitcodeHelp")
 
     @cherrypy.expose
-    def get_task_id_for(self, campaign_name, user = None, experiment = None, command_executed = "", input_dataset = ""):
+    def get_task_id_for(self, campaign, user = None, experiment = None, command_executed = "", input_dataset = "", parent_task_id=None):
         if user == None:
              user = 4
         else:
              u = cherrypy.request.db.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
              if u:
                   user = u.experimenter_id
-        q = cherrypy.request.db.query(Campaign).filter(Campaign.name.like("%%%s%%" % campaign_name))
+        q = cherrypy.request.db.query(Campaign)
+        if campaign[0] in "0123456789":
+            q = q.filter(Campaign.campaign_id == int(campaign))
+        else:
+            q = q.filter(Campaign.name.like("%%%s%%" % campaign))
+
         if experiment:
             q = q.filter(Campaign.experiment == experiment)
+
         c = q.first()
         tim = datetime.now(utc)
         t = Task(campaign_id = c.campaign_id, 
@@ -1805,10 +1811,16 @@ class poms_service:
                  created = tim,
                  updated = tim,
                  command_executed = command)
-        cherrypy.request.db.add(t)
-        self.snapshot_parts(found.campaign_id)
-        return "task_id=%d" % t.task_id
 
+        if parent_task_id != None;
+            t.recovery_tasks_parent = int(parent_task_id)
+
+        cherrypy.request.db.add(t)
+        cherrypy.request.db.commit(t)
+        self.snapshot_parts(found.campaign_id)
+        return "Task=%d" % t.task_id
+
+    @cherrypy.expose
     def register_poms_campaign(self, experiment,  campaign_name, version, user = None, campaign_definition = None, dataset = "", params = []):
          if user == None:
               user = 4
@@ -1840,7 +1852,8 @@ class poms_service:
                 c.updator = user
                 cherrypy.db.add(c)
                 cherrypy.db.commit()
-         return "Ok."
+
+         return "Campaign=%d" % c.campaign_id
           
     @cherrypy.expose
     def quick_search(self, search_term):
