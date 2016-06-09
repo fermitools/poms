@@ -1780,7 +1780,68 @@ class poms_service:
 
         return template.render(joblist=jl, possible_columns = possible_columns, columns = columns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, time_range_string = time_range_string, days = tdays, pomspath=self.path,help_page="JobsByExitcodeHelp")
 
+    @cherrypy.expose
+    def get_task_id_for(self, campaign_name, user = None, experiment = None, command_executed = "", input_dataset = ""):
+        if user == None:
+             user = 4
+        else:
+             u = cherrypy.request.db.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
+             if u:
+                  user = u.experimenter_id
+        q = cherrypy.request.db.query(Campaign).filter(Campaign.name.like("%%%s%%" % campaign_name))
+        if experiment:
+            q = q.filter(Campaign.experiment == experiment)
+        c = q.first()
+        tim = datetime.now(utc)
+        t = Task(campaign_id = c.campaign_id, 
+                 campaign_definition_id = c.campaign_definition_id,
+                 task_order = 0,
+                 input_dataset = input_dataset,
+                 output_dataset = "",
+                 status = "New",
+                 task_parameters = "{}",
+                 updater = 4,
+                 creator = 4,
+                 created = tim,
+                 updated = tim,
+                 command_executed = command)
+        cherrypy.request.db.add(t)
+        self.snapshot_parts(found.campaign_id)
+        return "task_id=%d" % t.task_id
 
+    def register_poms_campaign(self, experiment,  campaign_name, version, user = None, campaign_definition = None, dataset = "", params = []):
+         if user == None:
+              user = 4
+         else:
+              u = cherrypy.request.db.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
+              if u:
+                   user = u.experimenter_id
+          
+         if campaign_definition:
+              cd = cherrypy.request.db.query(CampaignDefinition).filter(Campaign.name.like("%%%s%%" % campaign_definition), Campaign.experiment == experiment).first()
+         else:
+              cd = cherrypy.request.db.query(CampaignDefinition).filter(Campaign.name.like("%generic%"), Campaign.experiment == experiment).first()
+          
+         c = cherrypy.db.query(Campaign).filter( Campaign.experiment == experiment, Campaign.campaign_name == campaign_name).first()
+         if c:
+             changed = False
+         else:
+             c = Campaign(experiment = experiment, name = campaign_name, creator = user, created = datetime.now(utc))
+
+         if version:
+               c.software_verison = version
+               changed = True
+         if user:
+               c.software_verison = version
+               changed = True
+
+         if changed:
+                c.updated = datetime.now(utc)
+                c.updator = user
+                cherrypy.db.add(c)
+                cherrypy.db.commit()
+         return "Ok."
+          
     @cherrypy.expose
     def quick_search(self, search_term):
         search_term = search_term.strip()
