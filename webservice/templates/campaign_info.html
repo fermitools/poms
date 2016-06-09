@@ -148,6 +148,55 @@ $( document ).ready(function() {
     <b>cs_split_dimensions</b>: {{campaign.cs_split_dimensions}}<br>
     </div>
 
+
+    <div class="ui segment raised floated left">
+         <h3>Actions</h3>
+         <div class=menu>
+          <div class=item>
+           <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{campaign.campaign_id}}&tmax={{tmaxs}}">
+               <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job Efficiency Histogram
+           </a>
+          </div>
+          <div class=item>
+           <a href="{{pomspath}}/campaign_sheet?campaign_id={{campaign.campaign_id}}&tmax={{tmaxs}}">
+            <i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i>Day by Day Spreadsheet
+           </a>
+          </div>
+          <div class=item>
+          <a href="{{pomspath}}/campaign_time_bars?campaign_id={{campaign.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}">
+            <i class="external tasks icon" data-content="Submissions for Campaign Time Bars" data-variation="basic"></i>Submission Time Bars
+          </a>
+          </div>
+          <div class=item>
+          <a href="{{pomspath}}/inflight_files?campaign_id={{campaign.campaign_id}}">
+            <i class="external plane icon" data-content="In-Flight File Information" data-variation="basic"></i>Inflight Files
+          </a>
+          </div>
+          <div class=item>
+          <a href="{{pomspath}}/actual_pending_files?count_or_list=c&campaign_id={{campaign.campaign_id}}">
+            <i class="external spinner icon" data-content="Pending File Information" data-variation="basic"></i>Pending Files for Recent Jobs
+          </a>
+          </div>
+          <div class=item>
+            <a target="_blank" href="{{pomspath}}/campaign_task_files?campaign_id={{campaign.campaign_id}}"><i class="external file icon" data-content="List file statistics for Submissions for Campaign" data-variation="basic"></i>Campaign Submission Files</a>
+          </div>
+          <div class=item>
+            <a target="_blank" href="{{pomspath}}/launch_jobs?campaign_id={{campaign.campaign_id}}"><i class="external rocket icon" data-content="Immediately Launch Submissions for Campaign" data-variation="basic"></i>Launch Campaign Jobs Now</a>
+          </div>
+          <div class=item>
+            <a target="_blank" href="{{pomspath}}/kill_jobs?campaign_id={{campaign.campaign_id}}"><i class="external trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i>Kill Jobs for Campaign</a>
+           </div>
+          <div class=item>
+          <a href="{{pomspath}}/schedule_launch?campaign_id={{campaign.campaign_id}}">
+             <i class="external calendar icon" data-content="Schedule Future Launches" data-variation="basic"></i>Schedule Future Job Launches
+          </a>
+          </div>
+          </div>
+         </div>
+     </div>
+
+	<div style="clear: both;">&nbsp;</div>
+
      <div class="ui segment raised floated left">
     <h3>Campaign Definition</h3>
 
@@ -186,64 +235,8 @@ $( document ).ready(function() {
     </div>
 
     </div>
-    <div class="ui segment raised floated left">
-	 <h3>Actions</h3>
-	 <div class=menu>
-	  <div class=item>
-	   <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{campaign.campaign_id}}&tmax={{tmaxs}}"
->
-	       <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job Efficiency Histogram
-	   </a>
-	  </div>
-	  <div class=item>
-	   <a href="{{pomspath}}/campaign_sheet?campaign_id={{campaign.campaign_id}}&tmax={{tmaxs}}">
-	    <i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i>Day by Day Spreadsheet
-	   </a>
-	  </div>
-	  <div class=item>
-	  <a href="{{pomspath}}/campaign_time_bars?campaign_id={{campaign.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}">
-	    <i class="external tasks icon" data-content="Submissions for Campaign Time Bars" data-variation="basic"></i>Submission Time Bars
-	  </a>
-	  </div>
-	  <div class=item>
-	  <a href="{{pomspath}}/inflight_files?campaign_id={{campaign.campaign_id}}">
-	    <i class="external plane icon" data-content="In-Flight File Information" data-variation="basic"></i>Inflight Files
-	  </a>
-	  </div>
-	  <div class=item>
-	  <a href="{{pomspath}}/actual_pending_files?count_or_list=c&campaign_id={{campaign.campaign_id}}">
-	    <i class="external spinner icon" data-content="Pending File Information" data-variation="basic"></i>Pending Files for Recent Jobs
-	  </a>
-	  </div>
-	  <div class=item>
-	    <a target="_blank" href="{{pomspath}}/campaign_task_files?campaign_id={{campaign.campaign_id}}"><i class="external file icon" data-content="List file statistics for Submissions for Campaign" data-variation="basic"></i>Campaign Submission Files</a>
-	  </div>
-	  <div class=item>
-	    <a target="_blank" href="{{pomspath}}/launch_jobs?campaign_id={{campaign.campaign_id}}"><i class="external rocket icon" data-content="Immediately Launch Submissions for Campaign" data-variation="basic"></i>Launch Campaign Jobs Now</a>
-	  </div>
-	  <div class=item>
-	    <a target="_blank" href="{{pomspath}}/kill_jobs?campaign_id={{campaign.campaign_id}}"><i class="external trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i>Kill Jobs for Campaign</a>
-	   </div>
-	  <div class=item>
-	  <a href="{{pomspath}}/schedule_launch?campaign_id={{campaign.campaign_id}}">
-	     <i class="external calendar icon" data-content="Schedule Future Launches" data-variation="basic"></i>Schedule Future Job Launches
-	  </a>
-	  </div>
-	  </div>
-	 </div>
-     </div>
-
 
 </div>
-
-
-
-
-
-
-
-
-
 <script>
 var protocol = window.location.protocol;
 var hostname = window.location.hostname;
