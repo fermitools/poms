@@ -1,0 +1,45 @@
+#!/bin/sh
+
+#
+# wrapper to intercept calls to jobsub_client
+#
+# expects POMS_CAMPAIGN_ID in the environment
+#
+POMS_URI=${POMS_URI:-"http://pomsgpvm01.fnal.gov:8080/poms"}
+
+POMS_TASK_DEFINITION_ID=${POMS_TASK_DEFINITION_ID:-24}
+POMS_CAMPAIGN_ID=${POMS_CAMPAIGN_ID:-14}
+
+urlencode() {
+  perl -pe 's{\W}{sprintf("%%%02x",ord($&))}ge;'
+}
+
+datestamp=`date '+%Y-%m-%dT%H:%M:%S'`
+command=`echo "jobsub_submit $*" | urlencode`
+
+result=`curl \
+        -s -S \
+        -o - \
+	--data "classname=Task" \
+	--data "task_id=" \
+	--data "campaign_id=$POMS_CAMPAIGN_ID" \
+	--data "task_definition_id=$POMS_TASK_DEFINITION_ID" \
+	--data "task_order=0" \
+	--data "input_dataset=- " \
+	--data "output_dataset=-" \
+	--data "updater=4" \
+	--data "creator=4" \
+	--data "status=started" \
+	--data "task_parameters={}" \
+	--data "depends_on=" \
+	--data "depend_threshold=" \
+	--data "created=$datestamp" \
+	--data "updated=$datestamp" \
+	--data "command_executed=$command" \
+	--data "_submit=Submit+Query" \
+        "$POMS_URI/update_generic"`
+
+export POMS_TASK_ID=`echo "$result" | sed -e 's/.*=//'`
+echo "task_url='https://pomsgpvm01.fnal.gov/poms/show_task_jobs?task_id=$POMS_TASK_ID'"
+
+$JOBSUB_CLIENT_DIR/jobsub_submit -e POMS_TASK_ID "$@"
