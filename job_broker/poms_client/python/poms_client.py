@@ -3,7 +3,7 @@
 import urllib
 import urllib2
 
-def register_poms_campaign(campaign_name, user = None, experiment = None, version = None, dataset = None, campaign_definition = None, test = None)
+def register_poms_campaign(campaign_name, user = None, experiment = None, version = None, dataset = None, campaign_definition = None, test = None):
     
     make_poms_call( 
 	method = 'register_poms_campaign',
@@ -15,10 +15,10 @@ def register_poms_campaign(campaign_name, user = None, experiment = None, versio
 	campaign_definition = campaign_definition,
 	test = test)
 
-def get_task_id(campaign, user = None, command_executed = None, input_dataset = None, parent_task_id = None, test = None)
+def get_task_id_for(campaign, user = None, command_executed = None, input_dataset = None, parent_task_id = None, test = None):
 
     make_poms_call( 
-         method = 'get_task_id',
+         method = 'get_task_id_for',
 	 campaign = campaign,
 	 user = user,
 	 command_executed = command_executed,
@@ -32,10 +32,10 @@ def make_poms_call(**kwargs):
     del kwargs["method"]
 
     if kwargs.get("test"):
-        base='https://fermicloud045.fnal.gov/poms/'
+        base='http://fermicloud045.fnal.gov:8080/poms/'
         del kwargs["test"]
     else:
-        base='https://pomsgpvm01.fnal.gov/poms/'
+        base='http://pomsgpvm01.fnal.gov:8080/poms/'
 
     c = urllib2.urlopen("%s/%s" % (base,method), urllib.urlencode(kwargs));
     print c.read()
@@ -44,3 +44,5 @@ def make_poms_call(**kwargs):
 
 if __name__ == '__main__':
     # simple tests...
+    make_poms_call(test=True, method="active_jobs")
+    get_task_id_for(campaign=14, command_executed="fake test job")
