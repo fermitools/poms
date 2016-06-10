@@ -1,5 +1,5 @@
 File=Table
-Product=poms_jobsub_wrapper
+Product=poms_client
 
 Flavor=ANY
 Qualifiers=
@@ -8,3 +8,4 @@ Action = setup
    ProdDir()
    SetupEnv()
    PathPrepend(PATH, ${UPS_PROD_DIR}/bin)
+   PathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/python)
