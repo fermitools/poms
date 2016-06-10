@@ -15,7 +15,7 @@ def register_poms_campaign(campaign_name, user = None, experiment = None, versio
 	campaign_definition = campaign_definition,
 	test = test)
 
-def get_task_id_for(campaign, user = None, command_executed = None, input_dataset = None, parent_task_id = None, test = None):
+def get_task_id_for(campaign, user = None, command_executed = None, input_dataset = None, parent_task_id = None, test = None, experiment = None):
 
     make_poms_call( 
          method = 'get_task_id_for',

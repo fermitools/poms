@@ -14,10 +14,10 @@ parser.add_option('--test',  help="use test server", default = None)
 
 (options, args ) = parser.parse_args()
 
-get_task_id(campaign_name = options.campaign, 
+register_poms_campaign(campaign_name = options.campaign, 
 	user = options.user,
 	experiment = options.experiment,
 	version = options.version,
-	dataset = options.datset,
+	dataset = options.dataset,
 	campaign_definition = options.campaign_definition,
 	test = options.test)
