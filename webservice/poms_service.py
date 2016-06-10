@@ -1812,7 +1812,7 @@ class poms_service:
                  updated = tim,
                  command_executed = command)
 
-        if parent_task_id != None;
+        if parent_task_id != None:
             t.recovery_tasks_parent = int(parent_task_id)
 
         cherrypy.request.db.add(t)
