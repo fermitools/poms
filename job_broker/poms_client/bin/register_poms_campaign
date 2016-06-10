@@ -1,34 +1,23 @@
 #!/usr/bin/env python
-import urllib2
+
+from poms_client import register_poms_campaign
 import optparse
 
-def register_poms_campaign(**kwargs):
-    if kwargs.get("test"):
-        base='https://fermicloud045.fnal.gov/poms/'
-        del kwargs["test"]
-    else:
-        base='https://pomsgpvm01.fnal.gov/poms/'
+parser = optparse.OptionParser(usage="usage: %prog [options] \n get a task id")
+parser.add_option('--campaign', help="campaign name or id", default = None)
+parser.add_option('--user',     help="username", default = None )
+parser.add_option('--experiment', help="experiment name", default = None)
+parser.add_option('--version',  help="software version for campaign", default = None)
+parser.add_option('--campaign-definition',  help="software version for campaign", default = None)
+parser.add_option('--dataset',  help="dataset name for job", default = None)
+parser.add_option('--test',  help="use test server", default = None)
 
-    c = urllib2.urlopen("%s/get_task_id" % base, urllib.urlencode(kwargs));
-    print c.read()
-  
+(options, args ) = parser.parse_args()
 
-if __name__ == '__main__':
-    parser = optparse.OptionParser(usage="usage: %prog [options] \n get a task id")
-    parser.add_option('--campaign', help="campaign name or id", default = None)
-    parser.add_option('--user',     help="username", default = None )
-    parser.add_option('--experiment', help="experiment name", default = None)
-    parser.add_option('--version',  help="software version for campaign", default = None)
-    parser.add_option('--campaign-definition',  help="software version for campaign", default = None)
-    parser.add_option('--dataset',  help="dataset name for job", default = None)
-    parser.add_option('--test',  help="use test server", default = None)
-
-    (options, args ) = parser.parse_args()
-
-    get_task_id(campaign_name = options.campaign, 
-                user = options.user,
-                experiment = options.experiment,
-                version = options.version,
-                dataset = options.datset,
-                campaign_definition = options.campaign_definition,
-                test = options.test)
+get_task_id(campaign_name = options.campaign, 
+	user = options.user,
+	experiment = options.experiment,
+	version = options.version,
+	dataset = options.datset,
+	campaign_definition = options.campaign_definition,
+	test = options.test)
