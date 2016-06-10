@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,CampaignDependency
 
 from utc import utc
 from crontab import CronTab
@@ -1800,7 +1800,6 @@ class poms_service:
         c = q.first()
         tim = datetime.now(utc)
         t = Task(campaign_id = c.campaign_id, 
-                 campaign_definition_id = c.campaign_definition_id,
                  task_order = 0,
                  input_dataset = input_dataset,
                  output_dataset = "",
@@ -1810,14 +1809,14 @@ class poms_service:
                  creator = 4,
                  created = tim,
                  updated = tim,
-                 command_executed = command)
+                 command_executed = command_executed)
 
-        if parent_task_id != None:
+        if parent_task_id != None and parent_task_id != "None":
             t.recovery_tasks_parent = int(parent_task_id)
 
         cherrypy.request.db.add(t)
-        cherrypy.request.db.commit(t)
-        self.snapshot_parts(found.campaign_id)
+        cherrypy.request.db.commit()
+        self.snapshot_parts(t.campaign_id)
         return "Task=%d" % t.task_id
 
     @cherrypy.expose
@@ -2155,7 +2154,7 @@ class poms_service:
             # XXX should queue for later?!?
             return 1
         t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
-        cdlist = cherrypy.request.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_id == t.campaign_obj.campaign_id).all()
+        cdlist = cherrypy.request.db.query(CampaignDependency).filter(CampaignDependency.needs_camp_id == t.campaign_obj.campaign_id).all()
 
         i = 0
         for cd in cdlist:
