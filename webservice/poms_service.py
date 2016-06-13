@@ -1820,7 +1820,7 @@ class poms_service:
         return "Task=%d" % t.task_id
 
     @cherrypy.expose
-    def register_poms_campaign(self, experiment,  campaign_name, version, user = None, campaign_definition = None, dataset = "", params = []):
+    def register_poms_campaign(self, experiment,  campaign_name, version, user = None, campaign_definition = None, dataset = "", role = "Analysis", params = []):
          if user == None:
               user = 4
          else:
@@ -1828,29 +1828,43 @@ class poms_service:
               if u:
                    user = u.experimenter_id
           
-         if campaign_definition:
-              cd = cherrypy.request.db.query(CampaignDefinition).filter(Campaign.name.like("%%%s%%" % campaign_definition), Campaign.experiment == experiment).first()
+         if campaign_definition != None and campaign_definition != "None":
+              cd = cherrypy.request.db.query(CampaignDefinition).filter(Campaign.name == campaign_definition, Campaign.experiment == experiment).first()
          else:
-              cd = cherrypy.request.db.query(CampaignDefinition).filter(Campaign.name.like("%generic%"), Campaign.experiment == experiment).first()
+              cd = cherrypy.request.db.query(CampaignDefinition).filter(CampaignDefinition.name.like("%generic%"), Campaign.experiment == experiment).first()
+
+         ld = cherrypy.request.db.query(LaunchTemplate).filter(LaunchTemplate.name.like("%generic%")).first()
+
+         if cd == None:
+              # pick *any* generic one...
+              cd = cherrypy.request.db.query(CampaignDefinition).filter(Campaign.name.like("%generic%")).first()
           
-         c = cherrypy.db.query(Campaign).filter( Campaign.experiment == experiment, Campaign.campaign_name == campaign_name).first()
+         cherrypy.log("campaign_definition = %s " % cd)
+         c = cherrypy.request.db.query(Campaign).filter( Campaign.experiment == experiment, Campaign.name == campaign_name).first()
          if c:
              changed = False
          else:
-             c = Campaign(experiment = experiment, name = campaign_name, creator = user, created = datetime.now(utc))
+             c = Campaign(experiment = experiment, name = campaign_name, creator = user, created = datetime.now(utc), software_version = version, campaign_definition_id=cd.campaign_definition_id, launch_id = ld.launch_id, vo_role = role)
 
          if version:
                c.software_verison = version
                changed = True
-         if user:
-               c.software_verison = version
+
+         if dataset:
+               c.dataset = dataset
                changed = True
+
+         if user:
+               c.experimenter = user
+               changed = True
+
+         cherrypy.log("register_campaign -- campaign is %s" % c.__dict__)
 
          if changed:
                 c.updated = datetime.now(utc)
                 c.updator = user
-                cherrypy.db.add(c)
-                cherrypy.db.commit()
+                cherrypy.request.db.add(c)
+                cherrypy.request.db.commit()
 
          return "Campaign=%d" % c.campaign_id
           
