@@ -2178,7 +2178,7 @@ class poms_service:
 
              cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, dname, dims)
              self.launch_jobs(cd.uses_camp_id, dataset_override = dname)
-       return 1
+        return 1
 
     def launch_recovery_if_needed(self, task_id):
         cherrypy.log("Entering launch_recovery_if_needed(%s)" % task_id)
