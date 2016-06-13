@@ -11,7 +11,7 @@ def register_poms_campaign(campaign_name, user = None, experiment = None, versio
 	user = user,
 	experiment = experiment,
 	version = version,
-	dataset = datset,
+	dataset = dataset,
 	campaign_definition = campaign_definition,
 	test = test)
 
@@ -37,6 +37,10 @@ def make_poms_call(**kwargs):
     else:
         base='http://pomsgpvm01.fnal.gov:8080/poms/'
 
+    for k in kwargs.keys():
+        if kwargs[k] == None:
+            del kwargs[k]
+
     c = urllib2.urlopen("%s/%s" % (base,method), urllib.urlencode(kwargs));
     print c.read()
   
@@ -45,4 +49,6 @@ def make_poms_call(**kwargs):
 if __name__ == '__main__':
     # simple tests...
     make_poms_call(test=True, method="active_jobs")
-    get_task_id_for(campaign=14, command_executed="fake test job")
+    get_task_id_for(test = True, campaign=14, command_executed="fake test job")
+    register_poms_campaign("mwm_client_test",  user = "mengel", experiment = "samdev", version = "v0_0", dataset = "mwm_test_data", test = True)
+

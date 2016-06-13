@@ -2612,3 +2612,31 @@ class poms_service:
         return self.show_dimension_files(c.experiment, dims)
 
 
+
+
+    #curl -F myfile=@<some_file> -F "campaign_id=17" http://localhost:8085/poms/upload
+    @cherrypy.expose
+    def upload(self, myFile, campaign_id):
+        out = """<html>
+        <body>
+            myFile length: %s<br />
+            myFile filename: %s<br />
+            myFile mime-type: %s
+        </body>
+        </html>"""
+
+        destination = os.path.join(  cherrypy.config.get("cron_launches_logs_dir"), "campaign_%s", myFile.filename  ) % (campaign_id)
+
+        if not os.path.exists(os.path.dirname(destination)):
+            os.makedirs(os.path.dirname(destination))
+
+        size = 0
+        fh = open(destination, 'w')
+        while True:
+            data = myFile.file.read(8192)
+            if not data:
+                break
+            size += len(data)
+            fh.write(data)
+        fh.close()
+        return out % (size, myFile.filename, myFile.content_type)
