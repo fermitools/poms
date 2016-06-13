@@ -2256,7 +2256,7 @@ class poms_service:
         cmdl =  [
             "exec 2>&1",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
-            "export POMS_PARENT_TASK_ID=%d" % parent_task_id,
+            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/`hostname`@FNAL.GOV || true",
             "ssh -tx %s@%s <<EOF" % (lt.launch_account, lt.launch_host),
             lt.launch_setup % {
