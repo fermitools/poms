@@ -46,7 +46,7 @@
        <div class="right floated right aligned six wide column tmax"></div>
      </div>
 
-         {% for id,plist in blob.pmap.items() %}
+         {% for id,plist in blob.pmap|dictsort %}
              {% if plist|length > 0 %}
 
               <div class='row' style='margin:0px 0px; padding:0px 0px;'>
