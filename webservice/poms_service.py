@@ -2227,15 +2227,21 @@ class poms_service:
 
             nfiles = cherrypy.request.samweb_lite.count_files(t.campaign_obj.experiment,recovery_dims)
 
+	    t.recovery_position = t.recovery_position + 1
+            cherrypy.request.db.add(t)
+            cherrypy.request.db.commit()
+ 
             if nfiles > 0:
                 rname = "poms_recover_%d_%d" % (t.task_id,t.recovery_position)
 
                 cherrypy.log("launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s" % (t.campaign_obj.experiment, rname, recovery_dims))
 
                 cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, rname, recovery_dims)
+
             
                 self.launch_jobs(t.campaign_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id)
                 return 1
+
         return 0
         
     @cherrypy.expose
