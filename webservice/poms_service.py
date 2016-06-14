@@ -1070,7 +1070,7 @@ class poms_service:
                  for f in newfiles:
                      if not f in files:
                          jf = JobFile(file_name = f, file_type = "output", created =  datetime.now(utc), job_obj = j)
-                         j.jobs.append(jf)
+                         j.job_files.append(jf)
                          cherrypy.request.db.add(jf)
 
              if kwargs.get('input_file_names', None):
