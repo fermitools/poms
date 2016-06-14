@@ -1051,7 +1051,7 @@ class poms_service:
                      j.status = "Located"
 
              for field in ['project','recovery_tasks_parent' ]:
-                 if kwargs.get("task_%s" % field, None) and j.task_obj:
+                 if kwargs.get("task_%s" % field, None) and kwargs.get("task_%s" % field) != "None" and j.task_obj:
                     setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
                     cherrypy.log("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field, kwargs["task_%s"%field])))
 
