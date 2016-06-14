@@ -34,6 +34,7 @@ class jobsub_q_scraper:
         self.jobmap = {}
         self.prevjobmap = {}
         self.debug = debug
+        self.passcount = 0
 
     def get_open_jobs(self):
         self.prevjobmap = self.jobmap
@@ -188,6 +189,12 @@ class jobsub_q_scraper:
     def poll(self):
         gc.set_debug(gc.DEBUG_LEAK)
         while(1):
+            self.passcount = self.passcount + 1
+
+            # just restart periodically, so we don't eat memory, etc.
+            if self.passcount > 1000:
+                os.execvp(sys.argv[0], sys.argv)
+
             try:
                 self.scan()
 			 
