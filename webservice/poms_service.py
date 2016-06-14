@@ -1136,7 +1136,7 @@ class poms_service:
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=%s' % task_id)
 
-        jl = cherrypy.request.db.query(JobHistory,Job).filter(Job.job_id == JobHistory.job_id, Job.task_id==task_id, JobHistory.created >= tmin - timedelta(hours=4), JobHistory.created <= tmax).order_by(JobHistory.job_id,JobHistory.created).all()
+        jl = cherrypy.request.db.query(JobHistory,Job).filter(Job.job_id == JobHistory.job_id, Job.task_id==task_id ).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = time_grid.time_grid()
         class fakerow:
             def __init__(self, **kwargs):
@@ -1144,6 +1144,7 @@ class poms_service:
         items = []
         extramap = {}
         laststatus = None
+        lastjjid = None
         for jh, j in jl:
             if j.jobsub_job_id:
                 jjid= j.jobsub_job_id.replace('fifebatch','').replace('.fnal.gov','')
@@ -1154,12 +1155,13 @@ class poms_service:
                 extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d"><i class="ui trash icon"></i></a>' % (self.path, jh.job_id)
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
-            if jh.status != laststatus:
+            if jh.status != laststatus or jjid != lastjjid:
                 items.append(fakerow(job_id = jh.job_id,
                                   created = jh.created.replace(tzinfo=utc),
                                   status = jh.status,
                                   jobsub_job_id = jjid))
             laststatus = jh.status
+            lastjjid = jjid
 
         job_counts = self.format_job_counts(task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
         key = tg.key(fancy=1)

@@ -33,6 +33,10 @@
 
 {%block content%}
 
+<!--
+BLOB:
+{{blob}}
+-->
    <div class="ui grid">
    <div class="ui row">
      {{job_counts}}
@@ -47,7 +51,7 @@
      </div>
 
          {% for id,plist in blob.pmap|dictsort %}
-             {% if plist|length > 0 %}
+             {#% if plist|length > 0 %#}
 
               <div class='row' style='margin:0px 0px; padding:0px 0px;'>
                  <div class='mwm_label' style='text-align: right; width: 14%; float:left; padding: 5px 5px; border-right: 1px solid black; '>
@@ -68,7 +72,7 @@
                   </div>
                   &nbsp;
                </div>
-              {% endif %}
+              {#% endif %#}
             {% endfor %}
 
 
