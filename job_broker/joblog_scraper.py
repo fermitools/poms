@@ -37,6 +37,8 @@ class joblog_scraper:
         self.ifdhline_re = re.compile(ifdhline_pat)
         self.oldifdhline_re = re.compile(oldifdhline_pat)
         self.copyin_re = re.compile(".*ifdh::cp\( (--force=[a-z]* )?(-D )?(/pnfs|/nova|/minerva|/grid|/cvmfs|/mu2e|/uboone|/lbne|/dune|/argoneut|/minos|/gm2|/miniboone|/coupp|/d0|/lariat|/e906|gsiftp:|s3:|http:)")
+        self.job_id_map = {}
+        self.job_task_map = {}
 
     def parse_line(self, line):
 	timestamp = ""
@@ -58,6 +60,33 @@ class joblog_scraper:
             timestamp, hostname, user, experiment, task, jobsub_job_id, ifdh_vers, experiment, pid, message = m2.groups()
         else:
             message = line
+
+        # If jobs use old ifdh internally, but current ones in the
+        # wrapper, we can use the host+experiment+pid to pick out
+        # other messages we can attribute
+        # so we don't grow forever, we start the mapping at "BEGIN ExE..."
+        # and clean themou at "COMPLETED"...
+        #
+        # pick a key for this job -- hostname + pid
+        key = hostname+experiment+pid
+
+        # write down mapping at BEGIN EXECUTION
+        if message.find("BEGIN EXECUTION") > 0 and jobsub_job_id and task:
+            self.job_id_map[key] = jobsub_job_id
+            self.job_task_map[jobsub_job_id] = task
+
+        # clean up mapping at COMPLETED with...
+        if message.find("COMPLETED with") > 0 and jobsub_job_id and task:
+            del self.job_id_map[key]
+            del self.job_task_map[jobsub_job_id]
+  
+        # use mapping to fill in missing bits
+        if not jobsub_job_id and has_key(self.job_id_map, key):
+            jobsub_job_id = self.job_id_map[key]
+
+        if not task and jobsub_job_id and has_key(self.job_task_map, jobsub_job_id):
+            task = self.job_task_map[jobsub_job_id]
+            
         return { 
 		'timestamp': timestamp.strip(),
 		'hostname': hostname.strip(),
@@ -166,6 +195,7 @@ class joblog_scraper:
         for line in self.filehandle:
              #print "got: ", line
              d = self.parse_line(line)
+             
              if d['task'] != '':
                  self.report_item(d['task'], d['jobsub_job_id'], d['hostname'],  d['message'])
 
