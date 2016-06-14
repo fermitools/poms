@@ -2162,7 +2162,7 @@ class poms_service:
     def set_job_launches(self, hold):
         if hold in ["hold","allowed"]:
             cherrypy.config.update({'poms.launches': hold})
-        raise cherrypy.HTTPRedirect(self.path)
+        raise cherrypy.HTTPRedirect(self.path + "/")
 
     def launch_dependents_if_needed(self, task_id):
         cherrypy.log("Entering launch_dependents_if_needed(%s)" % task_id)
