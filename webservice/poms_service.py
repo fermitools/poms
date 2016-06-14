@@ -1050,10 +1050,11 @@ class poms_service:
                      j.output_files_declared = True
                      j.status = "Located"
 
-             for field in ['project', ]:
+             for field in ['project','recovery_tasks_parent' ]:
                  if kwargs.get("task_%s" % field, None) and j.task_obj:
                     setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
                     cherrypy.log("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field, kwargs["task_%s"%field])))
+
 
              for field in [ 'cpu_time', 'wall_time']:
                  if kwargs.get(field, None) and kwargs[field] != "None":

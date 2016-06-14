@@ -143,6 +143,7 @@ class jobsub_q_scraper:
                     'task_project' : jobenv.get('SAM_PROJECT_NAME',None),
                     'cpu_time' : jobenv.get('RemoteUserCpu'),
                     'wall_time' : wall_time,
+                    'task_recovery_tasks_parent': jobenv.get('POMS_PARENT_TASK_ID',None),
                 }
 
                 prev = self.prev_report.get(jobsub_job_id, None)
