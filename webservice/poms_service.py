@@ -960,6 +960,8 @@ class poms_service:
             res = "Running"
         if (st['Completed'] > 0 and st['Idle'] == 0 and st['Held'] == 0):
             res = "Completed"
+            if not self.launch_recovery_if_needed(task.task_id):
+                 self.launch_dependents_if_needed(task.task_id)
         if res == "Completed":
             dcount = cherrypy.request.db.query(func.count(Job.job_id)).filter(Job.output_files_declared).scalar()
             if dcount == st["Completed"]:

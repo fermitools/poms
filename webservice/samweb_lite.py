@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import urllib2
+import httplib
 import urllib
 import json
 import time
@@ -9,6 +10,7 @@ import requests
 import traceback
 import os
 import cherrypy
+import ssl
 
 class samweb_lite:
     def __init__(self):
@@ -142,31 +144,43 @@ class samweb_lite:
 
     def create_definition(self, experiment, name, dims):
         cherrypy.log("create_definition( %s, %s, %s )" % (experiment,name,dims))
-        base = "http://samweb.fnal.gov:8480"
-        url = "%s/sam/%s/api/definitions/create" % (base, experiment)
+        base = "https://samweb.fnal.gov:8483"
+        path = "/sam/%s/api/definitions/create" %  experiment
+        url = "%s%s" % (base,path)
 
+        pdict = None
         try:
-            pdict = urllib.urlencode({"defname": name, "dims":dims,"user":os.environ.get("USER","sam")})
+  
+            pdict = urllib.urlencode({"defname": name, "dims":dims,"user":"sam", "group": experiment})
             cherrypy.log("create_definition: calling: %s with %s " % (url,pdict))
-            res = urllib2.urlopen(url,pdict)
+
+            conn = httplib.HTTPSConnection("samweb.fnal.gov",8483, 
+		    key_file="%s/private/gsi/%skey.pem" % (os.environ["HOME"],os.environ["USER"]),
+		    cert_file="%s/private/gsi/%scert.pem" % (os.environ["HOME"],os.environ["USER"]))
+        
+            headers = {"Content-type": "application/x-www-form-urlencoded",
+                 "Accept": "text/plain"}
+            conn.request("POST",path, pdict, headers)
+            res = conn.getresponse()
             text = res.read()
             res.close()
         except Exception as e:
             cherrypy.log( "Exception creating definition: url %s args %s exception %s" % ( url, pdict, e.args))
             return "Fail."
-        return "Ok."
+        return text
 
 if __name__ == "__main__":
     import pprint
-    pf = project_fetcher()
-    i = pf.fetch_info("nova","arrieta1-Offsite_test_Caltech-20160404_1157")
-    i2 = pf.fetch_info("nova","brebel-AnalysisSkimmer-20151120_0126")
+    sl = samweb_lite()
+    print sl.create_definition("samdev","mwm_test_%d" % os.getpid(), "(snapshot_for_project_name mwm_test_proj_1465918505)")
+    i = sl.fetch_info("nova","arrieta1-Offsite_test_Caltech-20160404_1157")
+    i2 = sl.fetch_info("nova","brebel-AnalysisSkimmer-20151120_0126")
     print "got:"
     pprint.pprint(i)
     print "got:"
     pprint.pprint(i2)
 
-    l = pf.list_files("nova","file_name neardet_r00011388_s00_t00_S15-12-07_v1_data_keepup.caf.root,"
+    l = sl.list_files("nova","file_name neardet_r00011388_s00_t00_S15-12-07_v1_data_keepup.caf.root,"
                         "neardet_r00011388_s00_t00_S15-12-07_v1_data_keepup.reco.root,"
                         "neardet_r00011388_s05_t00_S15-12-07_v1_data_keepup.reco.root,"
                         "neardet_r00011388_s05_t00_S15-12-07_v1_data_keepup.caf.root,"
@@ -176,9 +190,10 @@ if __name__ == "__main__":
     print("got list:")
     pprint.pprint(l)
 
-    c = pf.count_files("nova", "project_name 'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.e-neardet-20160210_1624','vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.a-fardet-20160202_1814'");
+    c = sl.count_files("nova", "project_name 'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.e-neardet-20160210_1624','vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.a-fardet-20160202_1814'");
 
     print "got count:", c
 
-    l = pf.count_files_list("nova",["defname:mwm_test_6","defname:mwm_test_9","defname:mwm_test_11"])
+    l = sl.count_files_list("nova",["defname:mwm_test_6","defname:mwm_test_9","defname:mwm_test_11"])
     print "got count list: ", l
+
