@@ -77,11 +77,10 @@ class joblog_scraper:
 
         # clean up mapping at COMPLETED with...
         if message.find("COMPLETED with") > 0:
-            del self.job_id_map[key]
-            try:
-               del self.job_task_map[jobsub_job_id]
-            except:
-               pass
+            if self.job_id_map.has_key(key):
+                if self.job_task_map.has_key(self.job_id_map[key]):
+                    del self.job_task_map[self.job_id_map[key]]
+                del self.job_id_map[key]
   
         # use mapping to fill in missing bits
         if not jobsub_job_id and self.job_id_map.has_key(key):
