@@ -2289,7 +2289,7 @@ class poms_service:
               "group": group,
               "experimenter": experimenter_login,
             },
-            "setup poms_jobsub_wrapper v0_3 -z /grid/fermiapp/products/common/db",
+            "setup poms_jobsub_wrapper b0_5 -z /grid/fermiapp/products/common/db",
             "export POMS_CAMPAIGN_ID=%s" % c.campaign_id,
             "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id,
             "export JOBSUB_GROUP=%s" % group,
@@ -2650,3 +2650,4 @@ class poms_service:
             fh.write(data)
         fh.close()
         return out % (size, myFile.filename, myFile.content_type)
+
