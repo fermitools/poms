@@ -1071,6 +1071,8 @@ class poms_service:
                  newfiles = kwargs['output_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
+                         if f == ";":
+                             continue
                          jf = JobFile(file_name = f, file_type = "output", created =  datetime.now(utc), job_obj = j)
                          j.job_files.append(jf)
                          cherrypy.request.db.add(jf)
@@ -1308,6 +1310,15 @@ class poms_service:
         return template.render(  campaign = c, taskdefinition = td, tags=tags, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp")
 
     @cherrypy.expose
+    def list_task_logged_files(self, task_id):
+        t =  cherrypy.request.db.query(Task).filter(Task.task_id== task_id).first()
+        jobsub_job_id = self.task_min_job(task_id)
+        fl = cherrypy.request.db.query(JobFile).join(Job).filter(Job.task_id == task_id, JobFile.job_id == Job.job_id).all()
+        template = self.jinja_env.get_template('list_task_logged_files.html')
+        return template.render(fl = fl, campaign = t.campaign_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp")
+
+         
+    @cherrypy.expose
     def campaign_task_files(self,campaign_id, tmin = None, tmax = None, tdays = 1):
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'campaign_task_files?campaign_id=%s' % campaign_id)
  
@@ -1381,7 +1392,8 @@ class poms_service:
         all_kids_list = cherrypy.request.samweb_lite.count_files_list(c.experiment, all_kids_needed)
 
         columns=["jobsub_jobid", "project", "date", "submit-<br>ted",
-                 "delivered<br>(SAM:logs)",
+                 "deliv-<br>ered<br>SAM",
+                 "deliv-<br>ered<br> logs",
                  "con-<br>sumed","skipped","unk.",
                  "w/some kids<br>declared",
                  "w/all kids<br>declared",
@@ -1416,7 +1428,8 @@ class poms_service:
                            [t.project,"http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s" % (c.experiment, c.experiment, t.project)],
                            [t.created.strftime("%Y-%m-%d %H:%M"),None], 
                            [psummary.get('files_in_snapshot',0), listfiles % base_dim_list[i]],
-                           ["%d:%d" % (psummary.get('tot_consumed',0) + psummary.get('tot_failed',0) + psummary.get('tot_unknown',0), logdelivered), listfiles % base_dim_list[i] + " and consumed_status consumed,failed,unknown "],
+                           ["%d" % (psummary.get('tot_consumed',0) + psummary.get('tot_failed',0) + psummary.get('tot_unknown',0)), listfiles % base_dim_list[i] + " and consumed_status consumed,failed,unknown "],
+                           ["%d" % logdelivered, "./list_task_logged_files?task_id=%s" % t.task_id ],
                            [psummary.get('tot_consumed',0), listfiles % base_dim_list[i] + " and consumed_status consumed"],
                            [ psummary.get('tot_failed',0),  listfiles % base_dim_list[i] + " and consumed_status failed"],
                            [ psummary.get('tot_unknown',0),  listfiles % base_dim_list[i] + " and consumed_status unknown"],
