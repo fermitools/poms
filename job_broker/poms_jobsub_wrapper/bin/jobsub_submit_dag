@@ -21,7 +21,12 @@ then
    extra="$extra --parent-task-id=$POMS_PARENT_TASK_ID"
 fi
 
-result=`get_task_for_campaign --command="jobsub_submit $*" $POMS_CAMPAIGN_ID $extra`
+if [ "x$POMS_TEST" != "x" ]
+then
+    extra="$extra --test=1"
+fi
+
+result=`get_task_id_for --command="jobsub_submit $*" --campaign=$POMS_CAMPAIGN_ID $extra`
 
 export POMS_TASK_ID=`echo "$result" | sed -e 's/.*=//'`
 
