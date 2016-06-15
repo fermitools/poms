@@ -71,21 +71,21 @@ class samweb_lite:
 
     def do_totals(self,info):
         tot_consumed = 0
-        tot_unknown = 0
+        tot_skipped = 0
         tot_failed = 0
         tot_jobs = 0
         tot_jobfails = 0
         for proc in info["processes"]:
              tot_consumed += proc["counts"]["consumed"]
              tot_failed += proc["counts"]["failed"]
-             tot_unknown += proc["counts"].get("unknown", 0)
+             tot_skipped += proc["counts"].get("skipped", 0)
              tot_jobs += 1
              if proc["status"] != "completed":
                  tot_jobfails += 1
 
         info["tot_consumed"] = tot_consumed
         info["tot_failed"] = tot_failed
-        info["tot_unknown"] = tot_unknown
+        info["tot_skipped"] = tot_skipped
         info["tot_jobs"] = tot_jobs
         info["tot_jobfails"] = tot_jobfails
 
