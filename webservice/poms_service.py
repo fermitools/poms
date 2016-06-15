@@ -1053,7 +1053,7 @@ class poms_service:
                      j.status = "Located"
 
              for field in ['project','recovery_tasks_parent' ]:
-                 if kwargs.get("task_%s" % field, None) and j.task_obj:
+                 if kwargs.get("task_%s" % field, None) and kwargs.get("task_%s" % field) != "None" and j.task_obj:
                     setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
                     cherrypy.log("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field, kwargs["task_%s"%field])))
 
@@ -2293,6 +2293,8 @@ class poms_service:
               "experimenter": experimenter_login,
             },
             "setup poms_jobsub_wrapper b0_5 -z /grid/fermiapp/products/common/db",
+            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
+            "export POMS_TEST=%s" % ("" if "poms" in self.hostname else "1"),
             "export POMS_CAMPAIGN_ID=%s" % c.campaign_id,
             "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id,
             "export JOBSUB_GROUP=%s" % group,
