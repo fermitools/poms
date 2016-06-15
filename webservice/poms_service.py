@@ -1294,12 +1294,16 @@ class poms_service:
     @cherrypy.expose
     def campaign_info(self, campaign_id ):
 
-        c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-        td =  cherrypy.request.db.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id == c.campaign_definition_id ).first()
+        Campaign_info = cherrypy.request.db.query(Campaign, Experimenter).filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id).first()
+        Campaign_definition_info =  cherrypy.request.db.query(CampaignDefinition, Experimenter).filter(CampaignDefinition.campaign_definition_id == Campaign_info.Campaign.campaign_definition_id, CampaignDefinition.creator == Experimenter.experimenter_id ).first()
+        Launch_template_info = cherrypy.request.db.query(LaunchTemplate, Experimenter).filter(LaunchTemplate.launch_id == Campaign_info.Campaign.launch_id, LaunchTemplate.creator == Experimenter.experimenter_id).first()
         tags = cherrypy.request.db.query(Tag).filter(CampaignsTags.campaign_id==campaign_id, CampaignsTags.tag_id==Tag.tag_id).all()
 
+        launched_campaigns = cherrypy.request.db.query(CampaignSnapshot).filter(CampaignSnapshot.campaign_id == campaign_id).all()
+
+
         template = self.jinja_env.get_template('campaign_info.html')
-        return template.render(  campaign = c, taskdefinition = td, tags=tags, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp")
+        return template.render(  Campaign_info = Campaign_info, Campaign_definition_info = Campaign_definition_info, Launch_template_info = Launch_template_info, tags=tags, launched_campaigns=launched_campaigns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp")
 
     @cherrypy.expose
     def campaign_task_files(self,campaign_id, tmin = None, tmax = None, tdays = 1):
