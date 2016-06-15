@@ -1050,10 +1050,11 @@ class poms_service:
                      j.output_files_declared = True
                      j.status = "Located"
 
-             for field in ['project', ]:
+             for field in ['project','recovery_tasks_parent' ]:
                  if kwargs.get("task_%s" % field, None) and j.task_obj:
                     setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
                     cherrypy.log("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field, kwargs["task_%s"%field])))
+
 
              for field in [ 'cpu_time', 'wall_time']:
                  if kwargs.get(field, None) and kwargs[field] != "None":
@@ -2289,7 +2290,7 @@ class poms_service:
               "group": group,
               "experimenter": experimenter_login,
             },
-            "setup poms_jobsub_wrapper v0_3 -z /grid/fermiapp/products/common/db",
+            "setup poms_jobsub_wrapper b0_5 -z /grid/fermiapp/products/common/db",
             "export POMS_CAMPAIGN_ID=%s" % c.campaign_id,
             "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id,
             "export JOBSUB_GROUP=%s" % group,
@@ -2650,3 +2651,4 @@ class poms_service:
             fh.write(data)
         fh.close()
         return out % (size, myFile.filename, myFile.content_type)
+

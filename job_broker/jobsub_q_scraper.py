@@ -34,6 +34,7 @@ class jobsub_q_scraper:
         self.jobmap = {}
         self.prevjobmap = {}
         self.debug = debug
+        self.passcount = 0
 
     def get_open_jobs(self):
         self.prevjobmap = self.jobmap
@@ -142,6 +143,7 @@ class jobsub_q_scraper:
                     'task_project' : jobenv.get('SAM_PROJECT_NAME',None),
                     'cpu_time' : jobenv.get('RemoteUserCpu'),
                     'wall_time' : wall_time,
+                    'task_recovery_tasks_parent': jobenv.get('POMS_PARENT_TASK_ID',None),
                 }
 
                 prev = self.prev_report.get(jobsub_job_id, None)
@@ -188,6 +190,12 @@ class jobsub_q_scraper:
     def poll(self):
         gc.set_debug(gc.DEBUG_LEAK)
         while(1):
+            self.passcount = self.passcount + 1
+
+            # just restart periodically, so we don't eat memory, etc.
+            if self.passcount > 1000:
+                os.execvp(sys.argv[0], sys.argv)
+
             try:
                 self.scan()
 			 
