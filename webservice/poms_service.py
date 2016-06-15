@@ -961,8 +961,9 @@ class poms_service:
             res = "Running"
         if (st['Completed'] > 0 and st['Idle'] == 0 and st['Held'] == 0):
             res = "Completed"
-            if not self.launch_recovery_if_needed(task.task_id):
-                 self.launch_dependents_if_needed(task.task_id)
+            if task.status != "Completed":
+                if not self.launch_recovery_if_needed(task.task_id):
+                    self.launch_dependents_if_needed(task.task_id)
         if res == "Completed":
             dcount = cherrypy.request.db.query(func.count(Job.job_id)).filter(Job.output_files_declared).scalar()
             if dcount == st["Completed"]:
@@ -1071,7 +1072,7 @@ class poms_service:
                  newfiles = kwargs['output_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         if f == ";":
+                         if len(f) <= 2:  # ignore '0', '-D', etc...
                              continue
                          jf = JobFile(file_name = f, file_type = "output", created =  datetime.now(utc), job_obj = j)
                          j.job_files.append(jf)
@@ -1401,7 +1402,7 @@ class poms_service:
                  "con-<br>sumed","failed", "skipped",
                  "w/some kids<br>declared",
                  "w/all kids<br>declared",
-                 "w/kids<br>inflight",
+                 "kids in<br>flight",
                  "w/kids<br>located",
                  "pending"]
 
