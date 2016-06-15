@@ -2281,7 +2281,6 @@ class poms_service:
         cmdl =  [
             "exec 2>&1",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
-            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/`hostname`@FNAL.GOV || true",
             "ssh -tx %s@%s <<EOF" % (lt.launch_account, lt.launch_host),
             lt.launch_setup % {
@@ -2291,6 +2290,8 @@ class poms_service:
               "experimenter": experimenter_login,
             },
             "setup poms_jobsub_wrapper b0_5 -z /grid/fermiapp/products/common/db",
+            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
+            "export POMS_TEST=1", # ZZZ fxi me later
             "export POMS_CAMPAIGN_ID=%s" % c.campaign_id,
             "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id,
             "export JOBSUB_GROUP=%s" % group,
