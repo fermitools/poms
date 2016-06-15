@@ -2350,9 +2350,15 @@ class poms_service:
         output = ''.join(outlist)
 
         template = self.jinja_env.get_template('launched_jobs.html')
-        return template.render(command = lcmd, output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="LaunchedJobsHelp")
-
-
+        res = template.render(command = lcmd, output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="LaunchedJobsHelp")
+        ds = time.strftime("%Y%m%d_%H%M%S")
+        outdir = "%s/private/logs/launches/campaign_%d" % (os.environ["HOME"],campaign_id
+        outfile = "%s/%s" % (outdir, ds)
+        os.mkpath(outdir)
+        lf = open(outfile,"w")
+        lf.write(res)
+        lf.close()
+        return res
 
 
     @cherrypy.expose

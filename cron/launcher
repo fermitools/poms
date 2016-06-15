@@ -12,7 +12,4 @@ outfile="$outdir/$ds"
 mkdir -p $outdir
 url="http://127.0.0.1:8080/poms/launch_jobs?campaign_id=$campaign_id"
 
-wget --timeout=0 -o outfile.log -O "$outfile" "$url"
-
-curl -F myFile=@"$outfile" -F "campaign_id=$campaign_id" http://127.0.0.1:8080/poms/upload
-
+wget --timeout=0 -o outfile.log -O /dev/null "$url"
