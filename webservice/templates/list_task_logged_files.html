@@ -49,4 +49,12 @@ Output Files seen
 {%endfor%}
 </ul>
 
+Log Files seen
+<ul>
+{%for file in fl%}
+   {%if file.file_type == "log"%}
+     <li> {{file.file_name}}
+   {%endif%}
+{%endfor%}
+</ul>
 {%endblock%}
