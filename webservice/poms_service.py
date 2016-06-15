@@ -2462,9 +2462,9 @@ class poms_service:
         q = q.order_by((func.floor(Job.cpu_time*10/Job.wall_time)))
 
         total = 0
-        vals = []
+        vals = {}
         for row in q.all():
-            vals.append(row)
+            vals[row[1]] = row[0]
             total += row[0]
 
         c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
