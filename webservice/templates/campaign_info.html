@@ -1,7 +1,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS:Campaign {{campaign.name}}</title>
+    <title>POMS:Campaign {{Campaign_info.Campaign.name}}</title>
 {%endblock%}
 
 
@@ -11,7 +11,7 @@
   <div class="divider"> / </div>
   <div class="section"> <a href="{{pomspath}}/show_campaigns">Campaigns</a></div>
   <div class="divider"> / </div>
-  <div class="section">{{campaign.name}}</div>
+  <div class="section">{{Campaign_info.Campaign.name}}</div>
 </div>	
 {%endblock%}
 
@@ -23,7 +23,7 @@
 {%endblock%}
 
 {%block subheader%}
-<h2 class="ui dividing header">Campaign {{campaign.name}}</h2>
+<h2 class="ui dividing header">Campaign {{Campaign_info.Campaign.name}}</h2>
 {%endblock%}
 
 
@@ -47,7 +47,7 @@ $( document ).ready(function() {
         var c_id = item.id.split("_")[0];
         var t_id = item.id.split("_")[1];
         var clicked_id = "#"+item.id;
-        var experiment = "{{campaign.experiment}}";
+        var experiment = "{{Campaign_info.Campaign.experiment}}";
 
         $.post('delete_campaigns_tags', {campaign_id: c_id, tag_id: t_id, experiment: experiment}, function(data) {
             if(data.msg == "OK")
@@ -95,7 +95,7 @@ $( document ).ready(function() {
         }
 
         tag = $('#tag_field').val()
-        $.post('link_tags', {tag_name: tag, campaign_id: {{campaign.campaign_id}}, experiment: '{{campaign.experiment}}'}, function(data) {
+        $.post('link_tags', {tag_name: tag, campaign_id: {{Campaign_info.Campaign.campaign_id}}, experiment: '{{Campaign_info.Campaign.experiment}}'}, function(data) {
 
             if(data.msg == "OK")
             {
@@ -140,12 +140,18 @@ $( document ).ready(function() {
   <div class="ui">
      <div class="ui segment raised floated left">
     <h3>Campaign</h3>
-    <b>name</b>: {{campaign.name}}<br>
-    <b>experiment</b>: {{campaign.experiment}}<br>
-    <b>created</b>: {{campaign.created}}<br>
-    <b>vo_role</b>: {{campaign.vo_role}}<br>
-    <b>cs_split_type</b>: {{campaign.cs_split_type}}<br>
-    <b>cs_split_dimensions</b>: {{campaign.cs_split_dimensions}}<br>
+    <b>Name</b>: {{Campaign_info.Campaign.name}}<br>
+    <b>Experiment</b>: {{Campaign_info.Campaign.experiment}}<br>
+    <b>Dataset</b>: {{Campaign_info.Campaign.dataset}}<br>
+    <b>Software Version</b>: {{Campaign_info.Campaign.software_version}}<br>
+    <b>Created</b>: {{Campaign_info.Campaign.created}}<br>
+    <b>Creator</b>: {{Campaign_info.Experimenter.email}}</br>
+    <b>VO Role</b>: {{Campaign_info.Campaign.vo_role}}<br>
+    <b>Param Overrides</b>: {{Campaign_info.Campaign.param_overrides}}<br>
+    <b>cs_split_type</b>: {{Campaign_info.Campaign.cs_split_type}}<br>
+    <b>cs_split_dimensions</b>: {{Campaign_info.Campaign.cs_split_dimensions}}<br>
+    <b>cs_last_split</b>: {{Campaign_info.Campaign.cs_last_split}}<br>
+    <b>Active</b>: {{Campaign_info.Campaign.active}} 
     </div>
 
 
@@ -153,43 +159,43 @@ $( document ).ready(function() {
          <h3>Actions</h3>
          <div class=menu>
           <div class=item>
-           <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{campaign.campaign_id}}&tmax={{tmaxs}}">
+           <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{Campaign_info.Campaign.campaign_id}}&tmax={{tmaxs}}">
                <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job Efficiency Histogram
            </a>
           </div>
           <div class=item>
-           <a href="{{pomspath}}/campaign_sheet?campaign_id={{campaign.campaign_id}}&tmax={{tmaxs}}">
+           <a href="{{pomspath}}/campaign_sheet?campaign_id={{Campaign_info.Campaign.campaign_id}}&tmax={{tmaxs}}">
             <i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i>Day by Day Spreadsheet
            </a>
           </div>
           <div class=item>
-          <a href="{{pomspath}}/campaign_time_bars?campaign_id={{campaign.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}">
+          <a href="{{pomspath}}/campaign_time_bars?campaign_id={{Campaign_info.Campaign.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}">
             <i class="external tasks icon" data-content="Submissions for Campaign Time Bars" data-variation="basic"></i>Submission Time Bars
           </a>
           </div>
         <!-- this stuff is reached via Campaign Submission File now(?) --mengel
           <div class=item>
-          <a href="{{pomspath}}/inflight_files?campaign_id={{campaign.campaign_id}}">
+          <a href="{{pomspath}}/inflight_files?campaign_id={{Campaign_info.Campaign.campaign_id}}">
             <i class="external plane icon" data-content="In-Flight File Information" data-variation="basic"></i>Inflight Files
           </a>
           </div>
           <div class=item>
-          <a href="{{pomspath}}/actual_pending_files?count_or_list=c&campaign_id={{campaign.campaign_id}}">
+          <a href="{{pomspath}}/actual_pending_files?count_or_list=c&campaign_id={{Campaign_info.Campaign.campaign_id}}">
             <i class="external spinner icon" data-content="Pending File Information" data-variation="basic"></i>Pending Files for Recent Jobs
           </a>
           </div>
         -->
           <div class=item>
-            <a target="_blank" href="{{pomspath}}/campaign_task_files?campaign_id={{campaign.campaign_id}}"><i class="external file icon" data-content="List file statistics for Submissions for Campaign" data-variation="basic"></i>Campaign Submission Files</a>
+            <a target="_blank" href="{{pomspath}}/campaign_task_files?campaign_id={{Campaign_info.Campaign.campaign_id}}"><i class="external file icon" data-content="List file statistics for Submissions for Campaign" data-variation="basic"></i>Campaign Submission Files</a>
           </div>
           <div class=item>
-            <a target="_blank" href="{{pomspath}}/launch_jobs?campaign_id={{campaign.campaign_id}}"><i class="external rocket icon" data-content="Immediately Launch Submissions for Campaign" data-variation="basic"></i>Launch Campaign Jobs Now</a>
+            <a target="_blank" href="{{pomspath}}/launch_jobs?campaign_id={{Campaign_info.Campaign.campaign_id}}"><i class="external rocket icon" data-content="Immediately Launch Submissions for Campaign" data-variation="basic"></i>Launch Campaign Jobs Now</a>
           </div>
           <div class=item>
-            <a target="_blank" href="{{pomspath}}/kill_jobs?campaign_id={{campaign.campaign_id}}"><i class="external trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i>Kill Jobs for Campaign</a>
+            <a target="_blank" href="{{pomspath}}/kill_jobs?campaign_id={{Campaign_info.Campaign.campaign_id}}"><i class="external trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i>Kill Jobs for Campaign</a>
            </div>
           <div class=item>
-          <a href="{{pomspath}}/schedule_launch?campaign_id={{campaign.campaign_id}}">
+          <a href="{{pomspath}}/schedule_launch?campaign_id={{Campaign_info.Campaign.campaign_id}}">
              <i class="external calendar icon" data-content="Schedule Future Launches" data-variation="basic"></i>Schedule Future Job Launches
           </a>
           </div>
@@ -202,11 +208,16 @@ $( document ).ready(function() {
      <div class="ui segment raised floated left">
     <h3>Campaign Definition</h3>
 
-    <b>name</b>: {{taskdefinition.name}}<br>
-    <b>experiment</b>: {{taskdefinition.experiment}}<br>
-    <b>created</b>: {{taskdefinition.created}}<br>
-    <b>launch_script</b>: {{taskdefinition.launch_script}}<br>
-    <b>definition_parameters</b>: {{taskdefinition.definition_parameters}}<br>
+    <b>Name</b>: {{Campaign_definition_info.CampaignDefinition.name}}<br>
+    <!--<b>experiment</b>: {{Campaign_definition_info.CampaignDefinition.experiment}}<br>-->
+    <b>Creator</b>: {{Campaign_definition_info.Experimenter.email}}<br>
+    <b>Created</b>: {{Campaign_definition_info.CampaignDefinition.created}}<br>
+    <b>Launch Script</b>: {{Campaign_definition_info.CampaignDefinition.launch_script}}<br>
+    <b>Definition Parameters</b>: {{Campaign_definition_info.CampaignDefinition.definition_parameters}}<br>
+    <b>Input Files Per Job</b>: {{Campaign_definition_info.CampaignDefinition.input_files_per_job}}<br>
+    <b>Output Files Per Job</b>: {{Campaign_definition_info.CampaignDefinition.output_files_per_job}}<br>
+    <b>Output File Patterns</b>: {{Campaign_definition_info.CampaignDefinition.output_file_patterns}}<br>
+    <b>
     </div>
 
     <div style="clear: both;">&nbsp;</div>
@@ -230,8 +241,8 @@ $( document ).ready(function() {
 
     <div id="tag_container">
     {% for tag in tags %}
-        <i class="trash outline icon link poms_tag" id="{{campaign.campaign_id}}_{{tag.tag_id}}"></i>
-        <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label" id="{{campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
+        <i class="trash outline icon link poms_tag" id="{{Campaign_info.Campaign.campaign_id}}_{{tag.tag_id}}"></i>
+        <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label" id="{{Campaign_info.Campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
     <!--    <br/></br>   -->
     {% endfor %}
     </div>
@@ -239,6 +250,63 @@ $( document ).ready(function() {
     </div>
 
 </div>
+
+
+
+
+
+
+
+
+
+<div>
+<h4 class="ui horizontal divider header">
+      <i class="history icon"></i>
+      Campaign Launch History Table
+</h4>
+
+
+<table class="ui celled table">
+  <thead>
+    <tr>
+      <th>campaign_definition_id</th>
+      <th>launch_id</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in launched_campaigns %}
+    <tr>
+      <td>{{row.campaign_definition_id}}</td>
+      <td>{{row.launch_id}}</td>
+    </tr>
+    {% endfor %}
+
+  </tbody>
+</table>
+</div>  <!-- ends gheith div -->
+
+
+
+
+
+
+<!--new div for launch templates-->
+
+    <div class="ui segment raised floated left">
+    <h3>Launch Template</h3>
+    <b>Name</b>: {{Launch_template_info.LaunchTemplate.name}}<br>
+    <b>Launch Host</b>: {{Launch_template_info.LaunchTemplate.launch_host}}<br>
+    <b>Launch Account</b>: {{Launch_template_info.LaunchTemplate.launch_account}}<br>
+    <b>Launch Setup</b>: {{Launch_template_info.LaunchTemplate.launch_setup}}<br>
+    <b>Creator</b>: {{Launch_template_info.Experimenter.email}}<br>
+    <b>Created</b>: {{Launch_template_info.LaunchTemplate.created}}<br>
+    </div>
+
+
+
+<!--ends launch templates div-->
+
+
 <script>
 var protocol = window.location.protocol;
 var hostname = window.location.hostname;
@@ -246,7 +314,7 @@ var appname = window.location.pathname.split("/")[1];
 var querypath = protocol + "//" + hostname + "/" + appname + "/auto_complete_tags_search";
 
 
-var experiment = "{{campaign.experiment}}";
+var experiment = "{{Campaign_info.Campaign.experiment}}";
 $('.ui.search')
 .search({
 apiSettings: {
