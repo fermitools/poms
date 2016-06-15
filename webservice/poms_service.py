@@ -1074,7 +1074,12 @@ class poms_service:
                      if not f in files:
                          if len(f) <= 2:  # ignore '0', '-D', etc...
                              continue
-                         jf = JobFile(file_name = f, file_type = "output", created =  datetime.now(utc), job_obj = j)
+                         if f.find("log") >= 0:
+                             ftype = "log"
+                         else:
+                             ftype = "output"
+
+                         jf = JobFile(file_name = f, file_type = ftype, created =  datetime.now(utc), job_obj = j)
                          j.job_files.append(jf)
                          cherrypy.request.db.add(jf)
 
