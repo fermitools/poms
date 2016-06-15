@@ -1,6 +1,7 @@
 import cherrypy
 import glob
 import os
+import time
 import time_grid
 import json
 import urllib
@@ -2352,7 +2353,7 @@ class poms_service:
         template = self.jinja_env.get_template('launched_jobs.html')
         res = template.render(command = lcmd, output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="LaunchedJobsHelp")
         ds = time.strftime("%Y%m%d_%H%M%S")
-        outdir = "%s/private/logs/launches/campaign_%d" % (os.environ["HOME"],campaign_id
+        outdir = "%s/private/logs/launches/campaign_%d" % (os.environ["HOME"],campaign_id)
         outfile = "%s/%s" % (outdir, ds)
         os.mkpath(outdir)
         lf = open(outfile,"w")
