@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+
+from poms_client import get_task_id_for
+import optparse
+
+parser = optparse.OptionParser(usage="usage: %prog [options] \n get a task id")
+parser.add_option('--campaign', help="campaign name or id", default = None)
+parser.add_option('--user',     help="username", default = None )
+parser.add_option('--experiment', help="experiment name", default = None)
+parser.add_option('--command_executed',  help="command name for job", default = None)
+parser.add_option('--input_dataset',  help="dataset name for job", default = None)
+parser.add_option('--parent_task_id',  help="dataset name for job", default = None)
+parser.add_option('--test',  help="dataset name for job", default = None)
+
+(options, args ) = parser.parse_args()
+
+get_task_id_for(campaign = options.campaign, 
+	user = options.user,
+	experiment = options.experiment,
+	command_executed = options.command_executed,
+	input_dataset = options.input_dataset,
+	parent_task_id = options.parent_task_id,
+	test = options.test)

@@ -4,6 +4,7 @@ import os
 import time_grid
 import json
 import urllib
+import socket
 from collections import OrderedDict
 
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func, exc, distinct
@@ -48,6 +49,7 @@ class poms_service:
         self.task_min_job_cache = {}
         self.path = cherrypy.config.get("pomspath","/poms")
         cherrypy.config.update({'poms.launches': 'allowed'})
+        self.hostname = socket.getfqdn()
 
     @cherrypy.expose
     def headers(self):
@@ -2282,7 +2284,7 @@ class poms_service:
             "exec 2>&1",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
-            "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/`hostname`@FNAL.GOV || true",
+            "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.hostname,
             "ssh -tx %s@%s <<EOF" % (lt.launch_account, lt.launch_host),
             lt.launch_setup % {
               "dataset":dataset,
