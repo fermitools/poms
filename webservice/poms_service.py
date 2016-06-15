@@ -444,8 +444,7 @@ class poms_service:
 
         data['message'] = message
         template = self.jinja_env.get_template('user_edit.html')
-        return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path)
-
+        return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="EditUsersHelp")
 
     @cherrypy.expose
     def experiment_members(self, *args, **kwargs):
