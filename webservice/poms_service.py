@@ -1316,9 +1316,15 @@ class poms_service:
 
         launched_campaigns = cherrypy.request.db.query(CampaignSnapshot).filter(CampaignSnapshot.campaign_id == campaign_id).all()
 
+        # any launch outputs to look at?
+        #
+        dirname="%s/private/logs/poms/launches/campaign_%s" % (
+           os.environ['HOME'],campaign_id)
+        launch_flist = glob.glob('%s/*' % dirname)
+        launch_flist = map(os.path.basename, launch_flist)
 
         template = self.jinja_env.get_template('campaign_info.html')
-        return template.render(  Campaign_info = Campaign_info, Campaign_definition_info = Campaign_definition_info, Launch_template_info = Launch_template_info, tags=tags, launched_campaigns=launched_campaigns, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp")
+        return template.render(  Campaign_info = Campaign_info, Campaign_definition_info = Campaign_definition_info, Launch_template_info = Launch_template_info, tags=tags, launched_campaigns=launched_campaigns, launch_flist = launch_flist, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp")
 
     @cherrypy.expose
     def list_task_logged_files(self, task_id):
@@ -2352,10 +2358,13 @@ class poms_service:
 
         template = self.jinja_env.get_template('launched_jobs.html')
         res = template.render(command = lcmd, output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="LaunchedJobsHelp")
+        # always record launch...
         ds = time.strftime("%Y%m%d_%H%M%S")
-        outdir = "%s/private/logs/launches/campaign_%d" % (os.environ["HOME"],campaign_id)
+        outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"],campaign_id)
         outfile = "%s/%s" % (outdir, ds)
-        os.mkpath(outdir)
+        cherrypy.log("trying to record launch in %s" % outfile)
+        if not os.path.isdir(outdir):
+            os.makedirs(outdir)
         lf = open(outfile,"w")
         lf.write(res)
         lf.close()

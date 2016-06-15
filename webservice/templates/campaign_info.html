@@ -286,7 +286,15 @@ $( document ).ready(function() {
 </div>  <!-- ends gheith div -->
 
 
-
+ <div class="ui segment raised floated left">
+   <h3>Recent Launch Outputs </h3>
+   <ul>
+   {%for f in launch_flist%}
+      <li>
+      <a href="list_launch_file?campaign_id={{campaign_id}}&fname={{f}}">{{f}}</a>
+   {%endfor%}
+   </ul>
+ </div>
 
 
 
