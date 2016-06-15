@@ -1,0 +1,52 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    <title>Task {{jobsub_job_id}} Logged Files </title>
+{%endblock%}
+
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="{{pomspath}}/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section"> <a href="{{pomspath}}/show_campaigns">Campaigns</a></div>
+  <div class="divider"> / </div>
+  <div class="section"> <a href="{{pomspath}}/campaign_task_files">Campaign {{campaign.name}} File Info by Submission</a></div>
+  <div class="divider"> / </div>
+  <div class="section"> <a href="{{pomspath}}/show_campaigns">Task {{jobsub_job_id}} Logged files</a></div>
+</div>	
+{%endblock%}
+
+
+{%block header%}
+<h1 class="ui header">
+     Campaigns{%include 'help_button.html'%}
+</h1>
+{%endblock%}
+
+{%block subheader%}
+<h2 class="ui dividing header">Submission {{jobsub_job_id}}</h2>
+{%endblock%}
+
+
+{%block content%}
+
+Input Files seen
+<ul>
+{%for file in fl%}
+   {%if file.file_type == "input"%}
+     <li> {{file.file_name}}
+   {%endif%}
+{%endfor%}
+</ul>
+
+Output Files seen
+<ul>
+{%for file in fl%}
+   {%if file.file_type == "output"%}
+     <li> {{file.file_name}}
+   {%endif%}
+{%endfor%}
+</ul>
+
+{%endblock%}
