@@ -990,13 +990,15 @@ class poms_service:
         
         summary_list = cherrypy.request.samweb_lite.fetch_info_list(lookup_task_list)
         count_list = cherrypy.request.samweb_lite.count_files_list(task.campaign_obj.experiment,lookup_dims_list)
-
+        thresholds = []
         for i in range(len(summary_list)):
             # XXX
             # this is using a 90% threshold, this ought to be
             # a tunable in the campaign_definition.  Basically we consider it
             # located if 90% of the files it consumed have suitable kids...
-            if float(count_list[i]) > (summary_list[i].get('tot_consumed',0) * 0.9):
+            threshold = (summary_list[i].get('tot_consumed',0) * 0.9)
+            thresholds.append(threshold)
+            if float(count_list[i]) >= threshold:
                 n_located = n_located + 1
                 task = lookup_task_list[i]
                 task.status = "Located"
@@ -1009,6 +1011,10 @@ class poms_service:
         res.append("Counts: completed: %d stale: %d project %d: located %d" %
         	(n_completed, n_stale , n_project, n_located))
                 
+        res.append("count_list: %s" % count_list)
+        res.append("thresholds: %s" % thresholds)
+        res.append("lookup_dims_list: %s" % lookup_dims_list)
+
         cherrypy.request.db.commit()
 
         return "\n".join(res)
