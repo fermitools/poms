@@ -924,7 +924,7 @@ class poms_service:
 
     @cherrypy.expose
     def wrapup_tasks(self):
-        cherrypy.response.headers['Content-Type'] = "application/json"
+        cherrypy.response.headers['Content-Type'] = "text/plain"
         now =  datetime.now(utc)
         res = ["wrapping up:"]
         for task in cherrypy.request.db.query(Task).options(subqueryload(Task.jobs)).filter(Task.status != "Completed", Task.status != "Located").all():
@@ -942,7 +942,73 @@ class poms_service:
                  task.updated = datetime.now(utc)
                  cherrypy.request.db.add(task)
 
+        lookup_task_list = []
+        lookup_dims_list = []
+        n_completed = 0
+        n_stale = 0
+        n_project = 0
+        n_located = 0
+        for task in cherrypy.request.db.query(Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_obj,Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
+            n_completed = n_completed + 1
+            # if it's been a day, just declare it located; its as 
+            # located as its going to get...
+            if (now - task.updated > timedelta(days=1)):
+                 n_located = n_located + 1
+                 n_stale = n_stale + 1
+                 task.status = "Located"
+                 task.updated = datetime.now(utc)
+                 cherrypy.request.db.add(task)
+                 if not self.launch_recovery_if_needed(task.task_id):
+                     self.launch_dependents_if_needed(task.task_id)
+            elif task.project:
+                 # task had a sam project, add to the list to look
+                 # up in sam
+                 n_project = n_project + 1
+                 lookup_task_list.append(task)
+                 basedims = "snapshot_for_project_name %s " % task.project
+		 allkiddims = basedims
+		 for pat in str(task.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
+		     if pat == 'None':
+			pat = '%'
+		     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, task.campaign_obj.software_version)
+                 lookup_dims_list.append(allkiddims)
+            else:
+                 # we don't have a project, guess off of located jobs
+                 locflag = True
+                 for j in task.jobs:
+                     if j.status != "Located":
+                         locaflag = False
+                 if locflag:
+                     n_located = n_located + 1
+                     task.status = "Located"
+                     task.updated = datetime.now(utc)
+                     cherrypy.request.db.add(task)
+                     if not self.launch_recovery_if_needed(task.task_id):
+                         self.launch_dependents_if_needed(task.task_id)
 
+        cherrypy.request.db.commit()
+        
+        summary_list = cherrypy.request.samweb_lite.fetch_info_list(lookup_task_list)
+        count_list = cherrypy.request.samweb_lite.count_files_list(task.campaign_obj.experiment,lookup_dims_list)
+
+        for i in range(len(summary_list)):
+            # XXX
+            # this is using a 90% threshold, this ought to be
+            # a tunable in the campaign_definition.  Basically we consider it
+            # located if 90% of the files it consumed have suitable kids...
+            if float(count_list[i]) > (summary_list[i].get('tot_consumed',0) * 0.9):
+                n_located = n_located + 1
+                task = lookup_task_list[i]
+                task.status = "Located"
+                task.updated = datetime.now(utc)
+                cherrypy.request.db.add(task)
+
+                if not self.launch_recovery_if_needed(task.task_id):
+                    self.launch_dependents_if_needed(task.task_id)
+
+        res.append("Counts: completed: %d stale: %d project %d: located %d" %
+        	(n_completed, n_stale , n_project, n_located))
+                
         cherrypy.request.db.commit()
 
         return "\n".join(res)
@@ -962,13 +1028,6 @@ class poms_service:
             #if task.status != "Completed":
             #    if not self.launch_recovery_if_needed(task.task_id):
             #        self.launch_dependents_if_needed(task.task_id)
-        if res == "Completed":
-            dcount = cherrypy.request.db.query(func.count(JobFile.job_file_id)).join(Job).filter(Job.task_id == task.task_id, JobFile.job_id == Job.job_id, JobFile.declared != None, JobFile.file_type == 'output').scalar()
-            if dcount == 0:
-                #all files are declared
-                res = "Located"
-                if not self.launch_recovery_if_needed(task.task_id):
-                    self.launch_dependents_if_needed(task.task_id)
         return res
 
     @cherrypy.expose
@@ -1113,33 +1172,6 @@ class poms_service:
  
          return "Ok."
 
-    @cherrypy.expose
-    def check_output_files_declared(self):
-        #
-        # Completed means jobs are done
-        # Declared means all output files are declared
-        # we try to make this transition here.
-        # we just got there if our output_files_per_job == 0
-        #
-        tl = cherrypy.request.db.query(Task).filter(Task.status == "Completed").all()
-        for t in tl:
-            if t.campaign_obj.campaign_definition_obj.output_files_per_job == 0:
-                t.status = "Located"
-            else:
-                all_all_declared = 1
-                for j in t.jobs:
-                    if ([x for x in j.job_files if x.file_type == "output"] == [])  and not j.output_files_declared:
-                        j.output_files_declared = True
-                        cherrypy.request.db.add(j)
-                    if not j.output_files_declared:
-                        all_all_declared = 0
-                        break
-                if all_all_declared:
-                    t.status = "Located"
-
-            if t.status == "Located":
-                 if not self.launch_recovery_if_needed(t.task_id):
-                     self.launch_dependents_if_needed(t.task_id)
               
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ):
