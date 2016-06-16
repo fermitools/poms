@@ -253,45 +253,12 @@ $( document ).ready(function() {
 
 
 
-
-
-
-
-
-
-<div>
-<h4 class="ui horizontal divider header">
-      <i class="history icon"></i>
-      Campaign Launch History Table
-</h4>
-
-
-<table class="ui celled table">
-  <thead>
-    <tr>
-      <th>campaign_definition_id</th>
-      <th>launch_id</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for row in launched_campaigns %}
-    <tr>
-      <td>{{row.campaign_definition_id}}</td>
-      <td>{{row.launch_id}}</td>
-    </tr>
-    {% endfor %}
-
-  </tbody>
-</table>
-</div>  <!-- ends gheith div -->
-
-
  <div class="ui segment raised floated left">
    <h3>Recent Launch Outputs </h3>
    <ul>
-   {%for f in launch_flist%}
+   {%for f in launch_flist|sort(reverse=True)%}
       <li>
-      <a href="list_launch_file?campaign_id={{campaign_id}}&fname={{f}}">{{f}}</a>
+      <a href="list_launch_file?campaign_id={{Campaign_info.Campaign.campaign_id}}&fname={{f}}">{{f}}</a>
    {%endfor%}
    </ul>
  </div>

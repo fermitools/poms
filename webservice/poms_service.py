@@ -900,9 +900,7 @@ class poms_service:
     @cherrypy.expose
     def report_declared_files(self, flist):
         now =  datetime.now(utc)
-        for f in cherrypy.request.db.query(JobFile).filter(JobFile.file_name.in_(flist) ).all():
-             f.declared = now;
-             cherrypy.request.db.add(f)
+        cherrypy.request.db.query(JobFile).filter(JobFile.file_name.in_(flist) ).update({JobFile.declared: now}, synchronize_session = False)
         cherrypy.request.db.commit()
 
     @cherrypy.expose
@@ -944,8 +942,6 @@ class poms_service:
                  task.updated = datetime.now(utc)
                  cherrypy.request.db.add(task)
 
-                 #if not self.launch_recovery_if_needed(task.task_id):
-                 #    self.launch_dependents_if_needed(task.task_id)
 
         cherrypy.request.db.commit()
 
@@ -962,16 +958,17 @@ class poms_service:
             res = "Running"
         if (st['Completed'] > 0 and st['Idle'] == 0 and st['Held'] == 0):
             res = "Completed"
+            # no, not here we wait for "Located" status..
             #if task.status != "Completed":
-            #   if not self.launch_recovery_if_needed(task.task_id):
-            #       self.launch_dependents_if_needed(task.task_id)
+            #    if not self.launch_recovery_if_needed(task.task_id):
+            #        self.launch_dependents_if_needed(task.task_id)
         if res == "Completed":
             dcount = cherrypy.request.db.query(func.count(JobFile.job_file_id)).join(Job).filter(Job.task_id == task.task_id, JobFile.job_id == Job.job_id, JobFile.declared != None).scalar()
             if dcount == 0:
                 #all files are declared
                 res = "Located"
                 if not self.launch_recovery_if_needed(task.task_id):
-                     self.launch_dependents_if_needed(task.task_id)
+                    self.launch_dependents_if_needed(task.task_id)
         return res
 
     @cherrypy.expose
@@ -1144,7 +1141,6 @@ class poms_service:
                  if not self.launch_recovery_if_needed(t.task_id):
                      self.launch_dependents_if_needed(t.task_id)
               
-
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ):
 
@@ -2668,32 +2664,4 @@ class poms_service:
         return self.show_dimension_files(c.experiment, dims)
 
 
-
-
-    #curl -F myfile=@<some_file> -F "campaign_id=17" http://localhost:8085/poms/upload
-    @cherrypy.expose
-    def upload(self, myFile, campaign_id):
-        out = """<html>
-        <body>
-            myFile length: %s<br />
-            myFile filename: %s<br />
-            myFile mime-type: %s
-        </body>
-        </html>"""
-
-        destination = os.path.join(  cherrypy.config.get("cron_launches_logs_dir"), "campaign_%s", myFile.filename  ) % (campaign_id)
-
-        if not os.path.exists(os.path.dirname(destination)):
-            os.makedirs(os.path.dirname(destination))
-
-        size = 0
-        fh = open(destination, 'w')
-        while True:
-            data = myFile.file.read(8192)
-            if not data:
-                break
-            size += len(data)
-            fh.write(data)
-        fh.close()
-        return out % (size, myFile.filename, myFile.content_type)
 
