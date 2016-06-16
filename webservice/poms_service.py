@@ -900,9 +900,7 @@ class poms_service:
     @cherrypy.expose
     def report_declared_files(self, flist):
         now =  datetime.now(utc)
-        for f in cherrypy.request.db.query(JobFile).filter(JobFile.file_name.in_(flist) ).all():
-             f.declared = now;
-             cherrypy.request.db.add(f)
+        cherrypy.request.db.query(JobFile).filter(JobFile.file_name.in_(flist) ).update({JobFile.declared: now}, synchronize_session = False)
         cherrypy.request.db.commit()
 
     @cherrypy.expose

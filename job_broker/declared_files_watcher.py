@@ -82,9 +82,9 @@ class declared_files_watcher:
 
         res = []
         while len(flist) > 0:
-            batch = flist[:500]
-            flist = flist[500:]
-            dims = "file_name %s" % ','.join(batch)
+            batch = flist[:300]
+            flist = flist[300:]
+            dims = "file_name '%s'" % "','".join(batch)
             #print "trying dimensions: ", dims
             sys.stdout.flush()
             found = self.samweb.listFiles(dims)
