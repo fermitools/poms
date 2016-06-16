@@ -963,7 +963,7 @@ class poms_service:
             #    if not self.launch_recovery_if_needed(task.task_id):
             #        self.launch_dependents_if_needed(task.task_id)
         if res == "Completed":
-            dcount = cherrypy.request.db.query(func.count(JobFile.job_file_id)).join(Job).filter(Job.task_id == task.task_id, JobFile.job_id == Job.job_id, JobFile.declared != None).scalar()
+            dcount = cherrypy.request.db.query(func.count(JobFile.job_file_id)).join(Job).filter(Job.task_id == task.task_id, JobFile.job_id == Job.job_id, JobFile.declared != None, JobFile.file_type == 'output').scalar()
             if dcount == 0:
                 #all files are declared
                 res = "Located"
