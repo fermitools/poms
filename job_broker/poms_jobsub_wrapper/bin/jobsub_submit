@@ -23,7 +23,7 @@ fi
 
 if [ "x$POMS_PARENT_TASK_ID" != "x" ]
 then
-   extra="$extra --parent-task-id=$POMS_PARENT_TASK_ID"
+   extra="$extra --parent_task_id=$POMS_PARENT_TASK_ID"
 fi
 
 result=`get_task_id_for --command="jobsub_submit $*" --campaign=$POMS_CAMPAIGN_ID $extra`
