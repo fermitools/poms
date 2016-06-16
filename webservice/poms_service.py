@@ -944,8 +944,8 @@ class poms_service:
                  task.updated = datetime.now(utc)
                  cherrypy.request.db.add(task)
 
-                 if not self.launch_recovery_if_needed(task.task_id):
-                     self.launch_dependents_if_needed(task.task_id)
+                 #if not self.launch_recovery_if_needed(task.task_id):
+                 #    self.launch_dependents_if_needed(task.task_id)
 
         cherrypy.request.db.commit()
 
@@ -962,18 +962,16 @@ class poms_service:
             res = "Running"
         if (st['Completed'] > 0 and st['Idle'] == 0 and st['Held'] == 0):
             res = "Completed"
-            if task.status != "Completed":
-                if not self.launch_recovery_if_needed(task.task_id):
-                    self.launch_dependents_if_needed(task.task_id)
+            #if task.status != "Completed":
+            #   if not self.launch_recovery_if_needed(task.task_id):
+            #       self.launch_dependents_if_needed(task.task_id)
         if res == "Completed":
-            dcount = cherrypy.request.db.query(func.count(Job.job_id)).filter(Job.output_files_declared).scalar()
-            if dcount == st["Completed"]:
-                #all completed jobs have files declared
+            dcount = cherrypy.request.db.query(func.count(JobFile.job_file_id)).join(Job).filter(Job.task_id == task.task_id, JobFile.job_id == Job.job_id, JobFile.declared != None).scalar()
+            if dcount == 0:
+                #all files are declared
                 res = "Located"
-                # once we have configurable completion status, this
-                # goes here..
-                # if not self.launch_recovery_if_needed(task.task_id):
-                #     self.launch_dependents_if_needed(task.task_id)
+                if not self.launch_recovery_if_needed(task.task_id):
+                     self.launch_dependents_if_needed(task.task_id)
         return res
 
     @cherrypy.expose
@@ -1073,7 +1071,7 @@ class poms_service:
                  newfiles = kwargs['output_file_names'].split(' ')
                  for f in newfiles:
                      if not f in files:
-                         if len(f) <= 2:  # ignore '0', '-D', etc...
+                         if len(f) < 2 or f[0] == '-':  # ignore '0', '-D', etc...
                              continue
                          if f.find("log") >= 0:
                              ftype = "log"
@@ -1133,7 +1131,7 @@ class poms_service:
             else:
                 all_all_declared = 1
                 for j in t.jobs:
-                    if ([x for x in j.job_files if x.file_type == "outoput"] == [])  and not j.output_files_declared:
+                    if ([x for x in j.job_files if x.file_type == "output"] == [])  and not j.output_files_declared:
                         j.output_files_declared = True
                         cherrypy.request.db.add(j)
                     if not j.output_files_declared:
@@ -1141,6 +1139,11 @@ class poms_service:
                         break
                 if all_all_declared:
                     t.status = "Located"
+
+            if t.status == "Located":
+                 if not self.launch_recovery_if_needed(t.task_id):
+                     self.launch_dependents_if_needed(t.task_id)
+              
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ):
