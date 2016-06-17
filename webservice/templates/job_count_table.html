@@ -68,11 +68,13 @@
   </thead>
   <tbody>
     {%for job in joblist %}
-      <tr {% if job[0] == 0 %} class="positive" {%else%} class="negative" {%endif%} >
+      <tr {% if job[0] == 0 %} class="%itive" {%else%} class="negative" {%endif%} >
          {%for col in range(0, columns|count) %}
-            {% if loop.first %}
+            {% if loop.last %}
               <td><a href="{{pomspath}}/job_table?tdays={{days}}&tmax={{tmax}}{%for c2 in range(0,columns|count-1)%}&{{columns[c2]}}={{job[c2]}}{%endfor%}">{{job[col]}}</a></td>
-            {% else %}
+            {% elif columns[col]== 'user_exe_exit_code' %}
+		<td><a href="https://cdcvs.fnal.gov/redmine/projects/offline_production_operations_service/wiki/_{%for c in range(0,columns|count-1)%}{%if columns[c]== 'experiment'%}{{job[c]}}{% endif %}{%endfor%}_error_codes_#{{job[col]}}">{{job[col]}}</a></td>
+    	    {% else %}
               <td>{{job[col]}}</td>
             {% endif %}
          {%endfor%}
