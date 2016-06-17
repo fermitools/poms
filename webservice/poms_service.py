@@ -942,6 +942,9 @@ class poms_service:
                  task.updated = datetime.now(utc)
                  cherrypy.request.db.add(task)
 
+        # mark them all completed, so we can look them over..
+        cherrypy.request.db.commit()
+
         lookup_task_list = []
         lookup_dims_list = []
         n_completed = 0
