@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import urllib2
-import httplib
+#import urllib2
+#import httplib
 import urllib
 import json
 import time
@@ -39,9 +39,8 @@ class samweb_lite:
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/projects/name/%s/summary?format=json" % (base, experiment, projid)
         try:
-            res = urllib2.urlopen(url)
-            text = res.read()
-            info = json.loads(text)
+            res = requests.get(url)
+            info = res.json()
             res.close()
             self.do_totals(info)
             self.proj_cache[experiment+projid] = info
@@ -62,7 +61,7 @@ class samweb_lite:
         infos = []
         for r in replies:
             try:
-                info = json.loads(r.text)
+                info = r.json()
                 self.do_totals(info)
                 infos.append(info)
             except:
@@ -93,9 +92,8 @@ class samweb_lite:
         base = "http://samweb.fnal.gov:8480"
         url="%s/sam/%s/api/files/list" % (base,experiment)
         try:
-            res = urllib2.urlopen(url,urllib.urlencode({"dims":dims,"format":"json"}))
-            text = res.read()
-            fl = json.loads(text)
+            res = requests.get(url,params={"dims":dims,"format":"json"})
+            fl = res.json()
             res.close()
         except:
             raise
@@ -106,8 +104,8 @@ class samweb_lite:
         base = "http://samweb.fnal.gov:8480"
         url="%s/sam/%s/api/files/count" % (base,experiment)
         try:
-            res = urllib2.urlopen(url,urllib.urlencode({"dims":dims}))
-            text = res.read()
+            res = requests.get(url,params={"dims":dims})
+            text = res.content
             count = int(text)
             res.close()
         except:
@@ -151,18 +149,11 @@ class samweb_lite:
         pdict = None
         try:
   
-            pdict = urllib.urlencode({"defname": name, "dims":dims,"user":"sam", "group": experiment})
+            pdict = {"defname": name, "dims":dims,"user":"sam", "group": experiment}
             cherrypy.log("create_definition: calling: %s with %s " % (url,pdict))
-
-            conn = httplib.HTTPSConnection("samweb.fnal.gov",8483, 
-		    key_file="%s/private/gsi/%skey.pem" % (os.environ["HOME"],os.environ["USER"]),
-		    cert_file="%s/private/gsi/%scert.pem" % (os.environ["HOME"],os.environ["USER"]))
-        
-            headers = {"Content-type": "application/x-www-form-urlencoded",
-                 "Accept": "text/plain"}
-            conn.request("POST",path, pdict, headers)
-            res = conn.getresponse()
-            text = res.read()
+            res = requests.post(url,data=pdict,verify=False,cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"],os.environ["USER"]),"%s/private/gsi/%skey.pem" % (os.environ["HOME"],os.environ["USER"])))
+ 
+            text = res.content
             res.close()
         except Exception as e:
             cherrypy.log( "Exception creating definition: url %s args %s exception %s" % ( url, pdict, e.args))
