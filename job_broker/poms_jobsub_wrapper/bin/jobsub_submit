@@ -13,7 +13,7 @@ extra=""
 
 if [ "x$GROUP" != "x" ]
 then
-    extra="$extra --experiemnt $GROUP"
+    extra="$extra --experiment $GROUP"
 fi
 
 if [ "x$POMS_TEST" != "x" ]

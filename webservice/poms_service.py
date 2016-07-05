@@ -1172,7 +1172,8 @@ class poms_service:
                  newstatus = self.compute_status(j.task_obj)
                  if newstatus != j.task_obj.status:
                      j.task_obj.status = newstatus
-                     j.task_obj.updated =  datetime.now(utc)
+                     j.task_obj.updated = datetime.now(utc)
+                     j.task_obj.campaign_obj.active = True
 
              cherrypy.request.db.add(j)
 	     cherrypy.request.db.commit()
@@ -2663,6 +2664,26 @@ class poms_service:
                      setattr(newsnap, fieldname, getattr(j,fieldname))     
                 cherrypy.request.db.add(newsnap)
              cherrypy.request.db.commit()
+
+    @cherrypy.expose
+    def make_stale_campaigns_inactive(self):
+        lastweek = datetime.now(utc) - timedelta(days=7)
+        cp = cherrypy.request.db.query(Task.campaign_id).filter(Task.created > lastweek).group_by(Task.campaign_id).all()
+        sc = []
+        for cid in cp:
+            sc.append(cid)
+
+        stale =  cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id.notin_(sc), Campaign.active == True).all()
+        res=[]
+        for c in stale:
+            res.append(c.name)
+            c.active=False
+            cherrypy.request.db.add(c)
+
+ 
+        cherrypy.request.db.commit()
+        
+        return "Marked inactive stale: " + ",".join(res)
 
     @cherrypy.expose
     def actual_pending_files(self, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1):
