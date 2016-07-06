@@ -51,6 +51,7 @@
 	<th>Name</th>
 	<th>Input Files Per Job</th>
 	<th>Output Files Per Job</th>
+	<th>Output File Patterns</th>
 	<th>Launch Script</th>
 	<th>Definition Parameters</th>
       </tr>
@@ -71,6 +72,7 @@
 	<td id="cdf_name_{{loop.index}}">{{row.CampaignDefinition.name}}</td>
 	<td id="cdf_input_{{loop.index}}">{{row.CampaignDefinition.input_files_per_job}}</td>
 	<td id="cdf_output_{{loop.index}}">{{row.CampaignDefinition.output_files_per_job}}</td>
+	<td id="cdf_outputpat_{{loop.index}}">{{row.CampaignDefinition.output_file_patterns}}</td>
 	<td id="cdf_script_{{loop.index}}">{{row.CampaignDefinition.launch_script|replace("None","")}}</td>
 	<td id="cdf_definition_{{loop.index}}">{{row.CampaignDefinition.definition_parameters|replace("None","")}}</td>
       </tr>
@@ -137,6 +139,10 @@
 	<div class="field">
           <label>Output Files Per Job</label>
           <input type="text" id="ae_output_files_per_job" name="ae_output_files_per_job">
+	</div>
+	<div class="field">
+          <label>Output File Patterns</label>
+          <input type="text" id="ae_output_file_patterns" name="ae_output_file_patterns">
 	</div>
       </div>
       <div class="one field">
@@ -206,6 +212,7 @@ $('#definition_add_edit_form')
       ae_definition_name            : 'empty',
       ae_input_files_per_job        : 'empty',
       ae_output_files_per_job       : 'empty',
+      ae_output_file_patterns       : 'empty',
       ae_launch_script              : 'empty',
       ae_definition_parameters_text : 'empty'
     }
@@ -371,6 +378,7 @@ function ep_down_button(current_row) {
     $("#ae_definition_parameters").val( $("#cdf_definition_"+index).text() );
     $("#ae_input_files_per_job").val( $("#cdf_input_"+index).text() );
     $("#ae_output_files_per_job").val( $("#cdf_output_"+index).text() );
+    $("#ae_output_file_patterns").val( $("#cdf_outputpat_"+index).text() );
     $("#definition_add_edit_modal").modal('show');
   }
 

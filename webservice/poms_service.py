@@ -598,6 +598,7 @@ class poms_service:
             name = kwargs.pop('ae_definition_name')
             input_files_per_job = kwargs.pop('ae_input_files_per_job')
             output_files_per_job = kwargs.pop('ae_output_files_per_job')
+            output_file_patterns = kwargs.pop('ae_output_file_patterns')
             launch_script = kwargs.pop('ae_launch_script')
             definition_parameters = kwargs.pop('ae_definition_parameters')
             experimenter_id = kwargs.pop('experimenter_id')
@@ -605,6 +606,7 @@ class poms_service:
                 if action == 'add':
                     cd = CampaignDefinition( name=name, experiment=exp,
                                             input_files_per_job=input_files_per_job, output_files_per_job = output_files_per_job,
+                                            output_file_patterns = output_file_patterns,
                                             launch_script=launch_script, definition_parameters=definition_parameters,
                                             creator=experimenter_id, created=datetime.now(utc))
 
@@ -613,6 +615,7 @@ class poms_service:
                     columns = {"name":                  name,
                                "input_files_per_job":   input_files_per_job,
                                "output_files_per_job":  output_files_per_job,
+                               "output_file_patterns":  output_file_patterns,
                                "launch_script":         launch_script,
                                "definition_parameters": definition_parameters,
                                "updated":               datetime.now(utc),
@@ -633,7 +636,8 @@ class poms_service:
         # Find definitions
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
-            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            #data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            data['authorized'] = True
             data['definitions'] = (db.query(CampaignDefinition,Experiment)
                                    .join(Experiment)
                                    .filter(CampaignDefinition.experiment==exp)
@@ -2272,6 +2276,17 @@ class poms_service:
              self.launch_jobs(cd.uses_camp_id, dataset_override = dname)
         return 1
 
+    def get_recovery_list_for_campaign_def(self, campaign_def):
+        rlist = cherrypy.request.db.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == campaign_def.campaign_definition_id).order_by(CampaignRecovery.recovery_order)
+
+        # convert to a real list...
+        l = []
+        for r in rlist:
+            l.append(r)
+        rlist = l
+
+        return rlist
+
     def launch_recovery_if_needed(self, task_id):
         cherrypy.log("Entering launch_recovery_if_needed(%s)" % task_id)
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
@@ -2284,13 +2299,7 @@ class poms_service:
         if t.parent_obj:
            t = t.parent_obj
 
-        rlist = cherrypy.request.db.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(CampaignRecovery.recovery_order)
-
-        # convert to a real list...
-        l = []
-        for r in rlist:
-            l.append(r)
-        rlist = l
+        rlist = self.get_recovery_list_for_campaign_def(self, t.campaign_obj.campaign_definition_obj)
 
         if t.recovery_position == None:
            t.recovery_position = 0
