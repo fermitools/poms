@@ -54,6 +54,7 @@
 	<th>Output File Patterns</th>
 	<th>Launch Script</th>
 	<th>Definition Parameters</th>
+	<th>Recoveries</th>
       </tr>
     </thead>
     <tbody>
@@ -72,9 +73,17 @@
 	<td id="cdf_name_{{loop.index}}">{{row.CampaignDefinition.name}}</td>
 	<td id="cdf_input_{{loop.index}}">{{row.CampaignDefinition.input_files_per_job}}</td>
 	<td id="cdf_output_{{loop.index}}">{{row.CampaignDefinition.output_files_per_job}}</td>
-	<td id="cdf_outputpat_{{loop.index}}">{{row.CampaignDefinition.output_file_patterns}}</td>
+	<td id="cdf_outputpat_{{loop.index}}">{{row.CampaignDefinition.output_file_patterns|replace("None","")}}</td>
 	<td id="cdf_script_{{loop.index}}">{{row.CampaignDefinition.launch_script|replace("None","")}}</td>
 	<td id="cdf_definition_{{loop.index}}">{{row.CampaignDefinition.definition_parameters|replace("None","")}}</td>
+	<td id="cdf_recovery_{{loop.index}}">
+ 
+            {%for recov in data.recoveries %}
+              {%if recov.campaign_definition_id == row.CampaignDefinition.campaign_definition_id %}
+                 {{recov.recovery_order}}.{{recov.recovery_type.name}}
+              {%endif%}
+            {%endfor%}
+       </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -157,6 +166,12 @@
           <textarea id="ae_definition_parameters_text" disabled>[]</textarea>
 	</div>
       </div>
+      <div class="one field">
+	<div class="field">
+           <label>Recovery Launches <i class="large edit link blue icon" id="edit_recovery_modal_btn"></i></label>
+          <textarea id="ae_definition_recovery_text" disabled>[]</textarea>
+        </div>
+      </div>
       <div class="actions">
 	<div class="ui button deny pink">Cancel</div>
 	<input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
@@ -217,7 +232,7 @@ $('#definition_add_edit_form')
       ae_definition_parameters_text : 'empty'
     }
   })
-;
+
 
 $("#cdf_experiment").change(function() {
     $("#campaign_definition_form").submit();
@@ -379,6 +394,7 @@ function ep_down_button(current_row) {
     $("#ae_input_files_per_job").val( $("#cdf_input_"+index).text() );
     $("#ae_output_files_per_job").val( $("#cdf_output_"+index).text() );
     $("#ae_output_file_patterns").val( $("#cdf_outputpat_"+index).text() );
+    $("#ae_definition_recovery_text").val( $("#cdf_recovery_"+index).text() );
     $("#definition_add_edit_modal").modal('show');
   }
 

@@ -601,6 +601,7 @@ class poms_service:
             output_file_patterns = kwargs.pop('ae_output_file_patterns')
             launch_script = kwargs.pop('ae_launch_script')
             definition_parameters = kwargs.pop('ae_definition_parameters')
+            recovieries = kwargs.pop('ae_recoveries')
             experimenter_id = kwargs.pop('experimenter_id')
             try:
                 if action == 'add':
@@ -643,6 +644,7 @@ class poms_service:
                                    .filter(CampaignDefinition.experiment==exp)
                                    .order_by(CampaignDefinition.name)
                                    )
+            data['recoveries'] = (cherrypy.request.db.query(CampaignRecovery).join(CampaignDefinition).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == CampaignDefinition.campaign_definition_id,CampaignDefinition.experiment == exp).order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
 
         data['message'] = message
         template = self.jinja_env.get_template('campaign_definition_edit.html')
