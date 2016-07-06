@@ -2210,6 +2210,7 @@ class poms_service:
             # no split to do, it is a draining datset, etc.
             res =  camp.dataset
 
+            
         elif camp.cs_split_type == 'list':
             j# we were given a list of datasets..
             l = camp.dataset.split(',')
@@ -2226,6 +2227,20 @@ class poms_service:
             camp.cs_last_split += 1
             new = dataset + "_slice%d" % camp.cs_last_split
             self.samweb_lite.create_definition(new, "defname: %s stride %d skip %d" % (camp.dataset, m, camp.cs_last_split))
+            res = new
+
+        elif camp.cs_split_type == 'new':
+            # save time *before* we define things, so we don't miss any
+            t = time.time()
+
+            if camp.cs_last_split == '':
+                new = dataset
+            else:    
+                new = dataset + "_since_%s" % camp.cs_last_split
+                self.samweb_lite.create_definition(new, "defname: %s and start_time > %s" % (camp.dataset, time.strftime("%Y-%m-%dT%h:%m:%s", camp.cs_last_split))
+
+            # mark time for next time
+            camp.cs_last_split = t
             res = new
 
         if res != camp.dataset:
@@ -2334,7 +2349,7 @@ class poms_service:
         xff = cherrypy.request.headers.get('X-Forwarded-For', None)
         ra =  cherrypy.request.headers.get('Remote-Addr', None)
         if not e.is_authorized(c.experiment) and not ( ra == '127.0.0.1' and xff == None):
-             cherrypy.log("update_job -- no such task yet")
+             cherrypy.log("launch_jobs -- experimenter not authorized")
              cherrypy.response.status="404 Permission Denied."
              return "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
         experimenter_login = e.email[:e.email.find('@')]
