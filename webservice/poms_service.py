@@ -1332,11 +1332,11 @@ class poms_service:
 
        
     @cherrypy.expose
-    def show_campaigns(self,tmin = None, tmax = None, tdays = 1):
+    def show_campaigns(self,tmin = None, tmax = None, tdays = 1, active = True):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
-        cl = cherrypy.request.db.query(Campaign).filter(Campaign.active == True ).order_by(Campaign.experiment).all()
+        cl = cherrypy.request.db.query(Campaign).filter(Campaign.active == active ).order_by(Campaign.experiment).all()
 
         counts = {}
         counts_keys = {}
@@ -2237,7 +2237,7 @@ class poms_service:
                 new = dataset
             else:    
                 new = dataset + "_since_%s" % camp.cs_last_split
-                self.samweb_lite.create_definition(new, "defname: %s and start_time > %s" % (camp.dataset, time.strftime("%Y-%m-%dT%h:%m:%s", camp.cs_last_split))
+                self.samweb_lite.create_definition(new, "defname: %s and start_time > %s" % (camp.dataset, time.strftime("%Y-%m-%dT%h:%m:%s", camp.cs_last_split)))
 
             # mark time for next time
             camp.cs_last_split = t
