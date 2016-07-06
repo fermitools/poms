@@ -1,7 +1,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS:Active Campaigns</title>
+    <title>POMS:{{In}}Active Campaigns</title>
 {%endblock%}
 
 
@@ -24,7 +24,7 @@
 
 
 {%block subheader%}
-<h2 class="ui dividing header">Active Campaigns <!--for {{time_range_string}}--></h2>
+<h2 class="ui dividing header">{{In}}Active Campaigns <!--for {{time_range_string}}--></h2>
 <a href="{{prev}}">&lt;previous {{days}} days</a> | 
 <a href="{{next}}">next {{days}} days &gt;</a>
 
