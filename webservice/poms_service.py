@@ -1345,7 +1345,7 @@ class poms_service:
             counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
 
         template = self.jinja_env.get_template('show_campaigns.html')
-        return template.render( services=self.service_status_hier('All'), counts = counts, counts_keys = counts_keys, cl = cl, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path, help_page="ShowCampaignsHelp")
+        return template.render( In= ("" if active == True else "In"), services=self.service_status_hier('All'), counts = counts, counts_keys = counts_keys, cl = cl, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path, help_page="ShowCampaignsHelp")
 
     @cherrypy.expose
     def campaign_info(self, campaign_id ):
