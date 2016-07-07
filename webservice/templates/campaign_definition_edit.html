@@ -278,9 +278,7 @@ $("#edit_recovery_modal_btn").click(function() {
   var i = 0;
   for (i = 0 ; i < rlist.length; i++ ) {
       var sel = "#re_recover_"+i.toString()+" option[value="+rlist[i]+"]";
-      var opt = $(sel);
-      var s = opt.val();
-      opt.prop('selected','selected');
+      $(sel).prop('selected','selected');
   }
   $("#edit_recovery_modal").modal({
     closable  : false,
