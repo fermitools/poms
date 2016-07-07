@@ -15,7 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,CampaignDependency
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
 
 from utc import utc
 from crontab import CronTab
@@ -639,7 +639,7 @@ class poms_service:
             data['curr_experiment'] = exp
             data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
             # for testing ui...
-            #data['authorized'] = True
+            data['authorized'] = True
             data['definitions'] = (db.query(CampaignDefinition,Experiment)
                                    .join(Experiment)
                                    .filter(CampaignDefinition.experiment==exp)
@@ -647,6 +647,7 @@ class poms_service:
                                    )
             data['recoveries'] = (cherrypy.request.db.query(CampaignRecovery).join(CampaignDefinition).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == CampaignDefinition.campaign_definition_id,CampaignDefinition.experiment == exp).order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
 
+            data['rtypes'] = (cherrypy.request.db.query(RecoveryType.name,RecoveryType.description).order_by(RecoveryType.name).all())
         data['message'] = message
         template = self.jinja_env.get_template('campaign_definition_edit.html')
         return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
