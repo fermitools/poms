@@ -45,9 +45,11 @@
       <tr>
 	<th></th>
 	<th>Name</th>
+        <th>Act<br>ive</th>
 	<th>VO Role</th>
 	<th>Software Version</th>
 	<th>Dataset</th>
+        <th>Split Type</th>
 	<th>Parameter Overrides</th>
       </tr>
     </thead>
@@ -66,9 +68,11 @@
 	<td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.campaign_definition_id}}</td>
 	<td id="c_launch_id_{{loop.index}}" style="display:none">{{row.launch_id}}</td>
 	<td id="c_name_{{loop.index}}">{{row.name}}</td>
+	<td id="c_active_{{loop.index}}">{{row.active}}</td>
 	<td id="c_vo_role_{{loop.index}}">{{row.vo_role}}</td>
 	<td id="c_software_version_{{loop.index}}">{{row.software_version}}</td>
 	<td id="c_dataset_{{loop.index}}">{{row.dataset}}</td>
+	<td id="c_split_type_{{loop.index}}">{{row.cs_split_type}}</td>
 	<td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|replace("None","")}}</td>
       </tr>
       {% endfor %}
@@ -120,7 +124,7 @@
   <div class="ui hidden divider"></div>
   <div class="ui text container">
     <form id="campaign_add_edit_form" class="ui form" method="POST" action="campaign_edit">
-      <div class="three fields">
+      <div class="four fields">
 	<div class="field">
           <label>Name</label>
           <input type="text" id="ae_campaign_name" name="ae_campaign_name" placeholder="Campaign Name">
@@ -130,14 +134,22 @@
           <input type="text" id="ae_vo_role" name="ae_vo_role">
 	</div>
 	<div class="field">
+          <label>Active</label>
+          <input type="text" id="ae_active" name="ae_active">
+	</div>
+	<div class="field">
           <label>Software Version</label>
           <input type="text" id="ae_software_version" name="ae_software_version">
 	</div>
       </div>
-      <div class="one field">
+      <div class="two fields">
 	<div class="field">
           <label>Dataset</label>
           <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset"></input>
+	</div>
+	<div class="field">
+          <label>Dataset Split Type</label>
+          <input type="text" id="ae_split_type" name="ae_split_type">
 	</div>
       </div>
       <div class="one field">
@@ -269,9 +281,11 @@ $('#campaign_add_edit_form')
   .form({
     fields: {
       ae_campaign_name :          'empty',
+      ae_active :                 'empty',
       ae_vo_role :                'empty',
       ae_software_version :       'empty',
       ae_dataset :                'empty',
+      ae_split_type :             'empty',
       ae_launch_id :              'empty',
       ae_campaign_definition_id : 'empty'
     }
@@ -463,9 +477,11 @@ function edit_campaign(index) {
   $("#ae_definition_action").val("edit");
   $("#ae_campaign_id").val( $("#c_campaign_id_"+index).text()  );
   $("#ae_campaign_name").val( $("#c_name_"+index).text() );
+  $("#ae_active").val( $("#c_active_"+index).text() );
   $("#ae_vo_role").val( $("#c_vo_role_"+index).text() );
   $("#ae_software_version").val( $("#c_software_version_"+index).text() );
   $("#ae_dataset").val( $("#c_dataset_"+index).text() );
+  $("#ae_split_type").val( $("#c_split_type_"+index).text() );
   $("#ae_param_overrides_text").val( $("#c_param_overrides_"+index).text() );
   $("#ae_param_overrides").val( $("#c_param_overrides_"+index).text() );
   $("#ae_campaign_definition_id").val( $("#c_campaign_definition_id_"+index).text() );

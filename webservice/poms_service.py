@@ -637,8 +637,9 @@ class poms_service:
         # Find definitions
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
-            #data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
-            data['authorized'] = True
+            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            # for testing ui...
+            #data['authorized'] = True
             data['definitions'] = (db.query(CampaignDefinition,Experiment)
                                    .join(Experiment)
                                    .filter(CampaignDefinition.experiment==exp)
@@ -675,6 +676,8 @@ class poms_service:
         if action == 'add' or action == 'edit':
             campaign_id = kwargs.pop('ae_campaign_id')
             name = kwargs.pop('ae_campaign_name')
+            active = kwargs.pop('ae_campaign_active')
+            split_type = kwargs.pop('ae_split_type')
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
             dataset = kwargs.pop('ae_dataset')
@@ -685,6 +688,7 @@ class poms_service:
             try:
                 if action == 'add':
                     c = Campaign(name=name, experiment=exp,vo_role=vo_role,
+                                 active=active, cs_split_type = split_type,
                                  software_version=software_version, dataset=dataset,
                                  param_overrides=param_overrides, launch_id=launch_id,
                                  campaign_definition_id=campaign_definition_id,
@@ -717,7 +721,8 @@ class poms_service:
         # Find campaigns
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
-            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            #data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            data['authorized'] = True
             data['campaigns'] = db.query(Campaign).filter(Campaign.experiment==exp).order_by(Campaign.name)
             data['definitions'] = db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
             data['templates'] = db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
