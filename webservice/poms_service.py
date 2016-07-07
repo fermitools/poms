@@ -722,7 +722,8 @@ class poms_service:
         # Find campaigns
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
-            #data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            # for testing ui...
             data['authorized'] = True
             data['campaigns'] = db.query(Campaign).filter(Campaign.experiment==exp).order_by(Campaign.name)
             data['definitions'] = db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
