@@ -601,7 +601,7 @@ class poms_service:
             output_file_patterns = kwargs.pop('ae_output_file_patterns')
             launch_script = kwargs.pop('ae_launch_script')
             definition_parameters = kwargs.pop('ae_definition_parameters')
-            recoveries = kwargs.pop('ae_definition_recovery_text')
+            recoveries = kwargs.pop('ae_definition_recovery')
             experimenter_id = kwargs.pop('experimenter_id')
             try:
                 if action == 'add':
@@ -626,11 +626,12 @@ class poms_service:
 
                 # now fixup recoveries -- clean out existing ones, and
                 # add listed ones.
-                db.query(CampaignRecovery).filter(campaign_definition_id == campaign_definiition_id).delete()
+                if campaign_definition_id:
+                    db.query(CampaignRecovery).filter(campaign_definition_id == campaign_definition_id).delete()
                 i = 0
                 for rtn in json.loads(recoveries):
                     rt = db.query(RecoveryType).filter(RecoveryType.name==rtn)
-                    db.add(CampaignRecovery( campaign_definition_id = campaign_definition_id, order = i, recovery_type = rt))
+                    db.add(CampaignRecovery( campaign_definition = cd, recovery_order = i, recovery_type = rt))
                 db.commit()
             except IntegrityError, e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
