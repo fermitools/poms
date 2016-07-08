@@ -696,6 +696,7 @@ class poms_service:
             launch_id = kwargs.pop('ae_launch_id')
             experimenter_id = kwargs.pop('experimenter_id')
             depends = kwargs.pop('ae_depends')
+            depends = json.loads(depends)
             try:
                 if action == 'add':
                     c = Campaign(name=name, experiment=exp,vo_role=vo_role,
@@ -720,9 +721,12 @@ class poms_service:
                     cd = db.query(Campaign).filter(Campaign.campaign_id==campaign_id).update(columns)
                 # now redo dependencies
                 db.query(CampaignDependency).filter(CampaignDependency.uses_camp_id == campaign_id).delete()
-                depcamps = db.query(Campaigns).filter(Campaign.name.in_(depends)).all()
+                cherrypy.log("depends for %s are: %s" % (campaign_id, depends))
+                depcamps = db.query(Campaign).filter(Campaign.name.in_(depends)).all()
                 for dc in depcamps:
-                    d = CampaignDependency(camp_uses_id = dc.campaign_id, camp_needs = campaign_id)
+                      
+                    cherrypy.log("trying to add dependency for: %s" % dc.name)
+                    d = CampaignDependency(uses_camp_id = campaign_id, needs_camp_id = dc.campaign_id, file_patterns='%')
                     db.add(d)
                 db.commit()
 
