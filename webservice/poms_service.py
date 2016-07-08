@@ -612,6 +612,8 @@ class poms_service:
                                             creator=experimenter_id, created=datetime.now(utc))
 
                     db.add(cd)
+                    db.flush()
+                    campaign_definition_id = cd.campaign_definition_id
                 else:
                     columns = {"name":                  name,
                                "input_files_per_job":   input_files_per_job,
@@ -631,7 +633,7 @@ class poms_service:
                 i = 0
                 for rtn in json.loads(recoveries):
                     rt = db.query(RecoveryType).filter(RecoveryType.name==rtn)
-                    db.add(CampaignRecovery( campaign_definition = cd, recovery_order = i, recovery_type = rt))
+                    db.add(CampaignRecovery( campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt))
                 db.commit()
             except IntegrityError, e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
