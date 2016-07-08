@@ -1,0 +1,40 @@
+import ConfigParser
+import getpass
+
+
+def get_pid():
+    config = ConfigParser.RawConfigParser()
+    config.read('../webservice/poms.ini')
+
+    pid_path = config.get('global', 'log.pidfile')[1:-1]
+    with open(pid_path, 'r') as f:
+        pid = f.readline()
+    f.close()
+    return pid
+
+
+def get_db_info():
+    config = ConfigParser.ConfigParser()
+    config.read('../webservice/poms.ini')
+
+    dbname = config.get('global', 'db').replace("\"", "'")
+    dbuser = config.get('global', 'dbuser').replace("\"", "'")
+    dbhost = config.get('global', 'dbhost').replace("\"", "'")
+    dbport = config.get('global', 'dbport').replace("\"", "'")
+    try:
+        dbpass = config.get('global', 'dbpass').replace("\"", "'")
+    except ConfigParser.NoOptionError as e:
+        dbpass = getpass.getpass("Please enter database password: ")
+    return dbhost, dbname, dbuser, dbpass, dbport
+
+
+def get_base_url():
+    config = ConfigParser.RawConfigParser()
+    config.read('../webservice/poms.ini')
+
+    port = config.get('global', 'server.socket_port')
+    pomspath = config.get('global', 'pomspath')
+    pomspath = pomspath.replace("'", "")
+    pidpath = config.get('global', 'log.pidfile')[1:-1]
+    base_url = "http://localhost:"+port+pomspath+"/"
+    return base_url

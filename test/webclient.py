@@ -1,16 +1,18 @@
 import time
 import urllib2
 import urllib
-import unittest
 import logging
-
+import utils
 
 logging.basicConfig(filename='test_requests.log',level=logging.DEBUG, filemode='w', format='%(asctime)s %(message)s')
 
 
 class WebClient(object):
-    def __init__(self, base_url=''):
-        self.base_url = base_url
+    def __init__(self, base_url=None):
+        if base_url:
+            self.base_url = base_url
+        else:
+            self.base_url = utils.get_base_url()
 
 
     def get(self, url):
@@ -45,5 +47,3 @@ class WebClient(object):
             response = error
             self.code = response.getcode()
             logging.info("url: " + self.url + "  data: " + str(data) + "  method: " + method + "  status: " +str(self.code) + "  response_time: " + str(duration) )
-
-        
