@@ -51,8 +51,10 @@
 	<th>Name</th>
 	<th>Input Files Per Job</th>
 	<th>Output Files Per Job</th>
+	<th>Output File Patterns</th>
 	<th>Launch Script</th>
 	<th>Definition Parameters</th>
+	<th>Recoveries</th>
       </tr>
     </thead>
     <tbody>
@@ -71,8 +73,18 @@
 	<td id="cdf_name_{{loop.index}}">{{row.CampaignDefinition.name}}</td>
 	<td id="cdf_input_{{loop.index}}">{{row.CampaignDefinition.input_files_per_job}}</td>
 	<td id="cdf_output_{{loop.index}}">{{row.CampaignDefinition.output_files_per_job}}</td>
+	<td id="cdf_outputpat_{{loop.index}}">{{row.CampaignDefinition.output_file_patterns|replace("None","")}}</td>
 	<td id="cdf_script_{{loop.index}}">{{row.CampaignDefinition.launch_script|replace("None","")}}</td>
 	<td id="cdf_definition_{{loop.index}}">{{row.CampaignDefinition.definition_parameters|replace("None","")}}</td>
+	<td id="cdf_recovery_{{loop.index}}">
+            [
+            {%for recov in data.recoveries %}
+              {%if recov.campaign_definition_id == row.CampaignDefinition.campaign_definition_id %}
+                 "{{recov.recovery_type.name}}"{%if not loop.last%},{%endif%}
+              {%endif%}
+            {%endfor%}
+            ]
+       </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -138,6 +150,10 @@
           <label>Output Files Per Job</label>
           <input type="text" id="ae_output_files_per_job" name="ae_output_files_per_job">
 	</div>
+	<div class="field">
+          <label>Output File Patterns</label>
+          <input type="text" id="ae_output_file_patterns" name="ae_output_file_patterns">
+	</div>
       </div>
       <div class="one field">
 	<div class="field">
@@ -150,6 +166,12 @@
           <label>Definition Parameters <i class="large edit link blue icon" id="edit_param_modal_btn"></i></label>
           <textarea id="ae_definition_parameters_text" disabled>[]</textarea>
 	</div>
+      </div>
+      <div class="one field">
+	<div class="field">
+           <label>Recovery Launches <i class="large edit link blue icon" id="edit_recovery_modal_btn"></i></label>
+          <textarea id="ae_definition_recovery_text" disabled></textarea>
+        </div>
       </div>
       <div class="actions">
 	<div class="ui button deny pink">Cancel</div>
@@ -198,6 +220,28 @@
   <div class="ui hidden divider"></div>
 </div> <!-- Ends edit_param_modal  -->
 
+<div class="ui small modal" id="edit_recovery_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Definition Recovery Editor
+  </div>
+  <div class="ui text container">
+    <div class="scrollable">
+       <ol>
+         {% for i in range(10) %}
+         <li> 
+             <select id="re_recover_{{i}}">
+                <option value="None">-</option>
+                {% for rtype in data.rtypes %}
+                <option value="{{rtype}}">{{rtype}}</option>
+                {% endfor %}
+             </select>
+         {%endfor%}
+       </ol>
+    </div>
+  </div>
+  <div class="ui hidden divider"></div>
+</div> <!-- Ends edit_param_modal  -->
 <script type="text/javascript">
 
 $('#definition_add_edit_form')
@@ -206,11 +250,12 @@ $('#definition_add_edit_form')
       ae_definition_name            : 'empty',
       ae_input_files_per_job        : 'empty',
       ae_output_files_per_job       : 'empty',
+      ae_output_file_patterns       : 'empty',
       ae_launch_script              : 'empty',
       ae_definition_parameters_text : 'empty'
     }
   })
-;
+
 
 $("#cdf_experiment").change(function() {
     $("#campaign_definition_form").submit();
@@ -221,6 +266,24 @@ function create_row(index, key, value) {
 }
 
 var ep_parms = [];
+
+$("#edit_recovery_modal_btn").click(function() {
+  var recoveries = $("#ae_recovery_definition_text").val();
+  var rlist = JSON.parse(recoveries);
+  $("#edit_recovery_modal").modal({
+    closable  : false,
+    onApprove : function(){
+      var rlist = []
+      for (i = 0; i < 10 ; i++) {
+         rlist.append( $("#re_recover_"+tostring(i)+":selected").val());
+      }
+      $("#ae_definition_recovery_text").val(JSON.stringify(rlist));
+    },
+    onDeny : function(){
+      $("#definition_add_edit_modal").modal('show');
+    },
+    }).modal('show');
+});
 
 $("#edit_param_modal_btn").click(function() {
   var parms_str = $("#ae_definition_parameters").val();
@@ -371,6 +434,8 @@ function ep_down_button(current_row) {
     $("#ae_definition_parameters").val( $("#cdf_definition_"+index).text() );
     $("#ae_input_files_per_job").val( $("#cdf_input_"+index).text() );
     $("#ae_output_files_per_job").val( $("#cdf_output_"+index).text() );
+    $("#ae_output_file_patterns").val( $("#cdf_outputpat_"+index).text() );
+    $("#ae_definition_recovery_text").val( $("#cdf_recovery_"+index).text() );
     $("#definition_add_edit_modal").modal('show');
   }
 

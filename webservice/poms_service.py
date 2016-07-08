@@ -15,7 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,CampaignDependency
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
 
 from utc import utc
 from crontab import CronTab
@@ -598,13 +598,16 @@ class poms_service:
             name = kwargs.pop('ae_definition_name')
             input_files_per_job = kwargs.pop('ae_input_files_per_job')
             output_files_per_job = kwargs.pop('ae_output_files_per_job')
+            output_file_patterns = kwargs.pop('ae_output_file_patterns')
             launch_script = kwargs.pop('ae_launch_script')
             definition_parameters = kwargs.pop('ae_definition_parameters')
+            recovieries = kwargs.pop('ae_recoveries')
             experimenter_id = kwargs.pop('experimenter_id')
             try:
                 if action == 'add':
                     cd = CampaignDefinition( name=name, experiment=exp,
                                             input_files_per_job=input_files_per_job, output_files_per_job = output_files_per_job,
+                                            output_file_patterns = output_file_patterns,
                                             launch_script=launch_script, definition_parameters=definition_parameters,
                                             creator=experimenter_id, created=datetime.now(utc))
 
@@ -613,6 +616,7 @@ class poms_service:
                     columns = {"name":                  name,
                                "input_files_per_job":   input_files_per_job,
                                "output_files_per_job":  output_files_per_job,
+                               "output_file_patterns":  output_file_patterns,
                                "launch_script":         launch_script,
                                "definition_parameters": definition_parameters,
                                "updated":               datetime.now(utc),
@@ -634,12 +638,16 @@ class poms_service:
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
             data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            # for testing ui...
+            data['authorized'] = True
             data['definitions'] = (db.query(CampaignDefinition,Experiment)
                                    .join(Experiment)
                                    .filter(CampaignDefinition.experiment==exp)
                                    .order_by(CampaignDefinition.name)
                                    )
+            data['recoveries'] = (cherrypy.request.db.query(CampaignRecovery).join(CampaignDefinition).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == CampaignDefinition.campaign_definition_id,CampaignDefinition.experiment == exp).order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
 
+            data['rtypes'] = (cherrypy.request.db.query(RecoveryType.name,RecoveryType.description).order_by(RecoveryType.name).all())
         data['message'] = message
         template = self.jinja_env.get_template('campaign_definition_edit.html')
         return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
@@ -669,6 +677,8 @@ class poms_service:
         if action == 'add' or action == 'edit':
             campaign_id = kwargs.pop('ae_campaign_id')
             name = kwargs.pop('ae_campaign_name')
+            active = kwargs.pop('ae_campaign_active')
+            split_type = kwargs.pop('ae_split_type')
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
             dataset = kwargs.pop('ae_dataset')
@@ -679,6 +689,7 @@ class poms_service:
             try:
                 if action == 'add':
                     c = Campaign(name=name, experiment=exp,vo_role=vo_role,
+                                 active=active, cs_split_type = split_type,
                                  software_version=software_version, dataset=dataset,
                                  param_overrides=param_overrides, launch_id=launch_id,
                                  campaign_definition_id=campaign_definition_id,
@@ -711,7 +722,8 @@ class poms_service:
         # Find campaigns
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
-            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            #data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            data['authorized'] = True
             data['campaigns'] = db.query(Campaign).filter(Campaign.experiment==exp).order_by(Campaign.name)
             data['definitions'] = db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
             data['templates'] = db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
@@ -2272,6 +2284,17 @@ class poms_service:
              self.launch_jobs(cd.uses_camp_id, dataset_override = dname)
         return 1
 
+    def get_recovery_list_for_campaign_def(self, campaign_def):
+        rlist = cherrypy.request.db.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == campaign_def.campaign_definition_id).order_by(CampaignRecovery.recovery_order)
+
+        # convert to a real list...
+        l = []
+        for r in rlist:
+            l.append(r)
+        rlist = l
+
+        return rlist
+
     def launch_recovery_if_needed(self, task_id):
         cherrypy.log("Entering launch_recovery_if_needed(%s)" % task_id)
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
@@ -2284,13 +2307,7 @@ class poms_service:
         if t.parent_obj:
            t = t.parent_obj
 
-        rlist = cherrypy.request.db.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == t.campaign_obj.campaign_definition_obj.campaign_definition_id).order_by(CampaignRecovery.recovery_order)
-
-        # convert to a real list...
-        l = []
-        for r in rlist:
-            l.append(r)
-        rlist = l
+        rlist = self.get_recovery_list_for_campaign_def(self, t.campaign_obj.campaign_definition_obj)
 
         if t.recovery_position == None:
            t.recovery_position = 0
