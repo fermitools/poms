@@ -74,6 +74,9 @@
 	<td id="c_dataset_{{loop.index}}">{{row.dataset}}</td>
 	<td id="c_split_type_{{loop.index}}">{{row.cs_split_type}}</td>
 	<td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|replace("None","")}}</td>
+        <td id="c_depends_{{loop.index}}">
+            [ {%for drow in data.depends%}{% if drow[0] == row.campaign_id %} "{{drow[1]}}"{%if not loop.last%},{%endif%}{% endif %}{% endfor %} ]
+         </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -158,6 +161,12 @@
           <textarea rows="2" id="ae_param_overrides_text" disabled>[]</textarea>
 	</div>
       </div>
+      <div class="one field">
+	<div class="field">
+          <label>Campaigns Depended upon<i class="large edit link blue icon" id="edit_depends_modal_btn"></i></label>
+          <textarea rows="2" id="ae_depends_text" disabled>[]</textarea>
+	</div>
+      </div>
       <h4 class="ui horizontal divider">Launch Template</h4>
       <div class="three fields">
 	<div>
@@ -237,6 +246,7 @@
       <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id}}">
       <input type="hidden" id="ae_campaign_id" name="ae_campaign_id" value="0">
       <input type="hidden" id="ae_param_overrides" name="ae_param_overrides" value="[]">
+      <input type="hidden" id="ae_depends" name="ae_depends" value="[]">
     </form>
   </div>
   <div class="ui hidden divider"></div>
@@ -274,6 +284,30 @@
   </div>
   <div class="ui hidden divider"></div>
 </div> <!-- Ends edit_param_modal  -->
+
+<div class="ui small modal" id="edit_depends_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Campaign Dependency Editor
+  </div>
+  <div class="ui text container">
+    <div class="scrollable">
+          {% for i in range(5) %}
+             {{i}}. <select id="de_select_{{i}}">
+                <option value="">-</option>
+                {%for c in data['campaigns']%}
+                   <option value="{{c.name}}">{{c.name}}</option>
+                {% endfor %}
+             </select> <br>
+          {% endfor %}
+	  <div class="actions">
+	    <button class="ui button deny pink">Cancel</button>
+	    <button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
+	  </div>
+    </div>
+  </div>
+  <div class="ui hidden divider"></div>
+</div> <!-- Ends edit_depends_modal  -->
 
 <script type="text/javascript">
 
@@ -351,6 +385,38 @@ $("#edit_param_modal_btn").click(function() {
       } else {
           return false;
       }
+    },
+    onDeny : function(){
+      $("#campaign_add_edit_modal").modal('show');
+    },
+    }).modal('show');
+});
+
+$("#edit_depends_modal_btn").click(function() {
+  //mwm
+  var depends = $("#ae_depends").val();
+  var dlist = JSON.parse(depends);
+  var i;
+  for (i = 0 ; i < dlist.length; i++ ) {
+      var sel = "#de_select_"+i.toString()+" option[value="+dlist[i]+"]";
+      $(sel).prop('selected','selected');
+  }
+  $("#edit_depends_modal").modal({
+    closable  : false,
+    onApprove : function(){
+      var dlist = [];
+      var i;
+      var s;
+      for (i = 0; i < 5 ; i++) {
+         s=$("#de_select_"+i.toString()+" option:selected").val();
+         if (s) {
+             dlist.push(s);
+         }
+      }
+      var sval = JSON.stringify(dlist);
+      $("#ae_depends").val(sval);
+      $("#ae_depends_text").val(sval);
+      $("#campaign_add_edit_modal").modal('show');
     },
     onDeny : function(){
       $("#campaign_add_edit_modal").modal('show');
@@ -483,7 +549,9 @@ function edit_campaign(index) {
   $("#ae_dataset").val( $("#c_dataset_"+index).text() );
   $("#ae_split_type").val( $("#c_split_type_"+index).text() );
   $("#ae_param_overrides_text").val( $("#c_param_overrides_"+index).text() );
-  $("#ae_param_overrides").val( $("#c_param_overrides_"+index).text() );
+  $("#ae_param_overrides_text").val( $("#c_param_overrides_"+index).text() );
+  $("#ae_depends").val( $("#c_depends_"+index).text() );
+  $("#ae_depends_text").val( $("#c_depends_"+index).text() );
   $("#ae_campaign_definition_id").val( $("#c_campaign_definition_id_"+index).text() );
   $("#ae_launch_id").val( $("#c_launch_id_"+index).text() );
   // Trigger the change function which will load associated fields

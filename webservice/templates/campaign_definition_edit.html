@@ -228,7 +228,7 @@
   <div class="ui text container">
     <div class="scrollable">
        <ol>
-         {% for i in range(10) %}
+         {% for i in range(5) %}
          <li> 
              <select id="re_recover_{{i}}">
                 <option value="None">-</option>
@@ -284,8 +284,12 @@ $("#edit_recovery_modal_btn").click(function() {
     closable  : false,
     onApprove : function(){
       var rlist = [];
-      for (i = 0; i < 10 ; i++) {
-         rlist.push( $("#re_recover_"+i.toString()+" option:selected").val());
+      var s;
+      for (i = 0; i < 5 ; i++) {
+         s = $("#re_recover_"+i.toString()+" option:selected").val();
+         if (s) {
+             rlist.push(s);
+         }
       }
       var sval = JSON.stringify(rlist);
       $("#ae_definition_recovery_text").val(sval);
