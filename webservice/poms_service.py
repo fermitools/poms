@@ -628,12 +628,12 @@ class poms_service:
 
                 # now fixup recoveries -- clean out existing ones, and
                 # add listed ones.
-                if campaign_definition_id:
-                    db.query(CampaignRecovery).filter(campaign_definition_id == campaign_definition_id).delete()
+                db.query(CampaignRecovery).filter(campaign_definition_id == campaign_definition_id).delete()
                 i = 0
                 for rtn in json.loads(recoveries):
-                    rt = db.query(RecoveryType).filter(RecoveryType.name==rtn)
-                    db.add(CampaignRecovery( campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt))
+                    rt = db.query(RecoveryType).filter(RecoveryType.name==rtn).first()
+                    cr = CampaignRecovery( campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt)
+                    db.add(cr)
                 db.commit()
             except IntegrityError, e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
