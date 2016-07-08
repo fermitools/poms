@@ -601,7 +601,7 @@ class poms_service:
             output_file_patterns = kwargs.pop('ae_output_file_patterns')
             launch_script = kwargs.pop('ae_launch_script')
             definition_parameters = kwargs.pop('ae_definition_parameters')
-            recovieries = kwargs.pop('ae_recoveries')
+            recoveries = kwargs.pop('ae_definition_recovery_text')
             experimenter_id = kwargs.pop('experimenter_id')
             try:
                 if action == 'add':
@@ -623,6 +623,15 @@ class poms_service:
                                "updater":               experimenter_id
                                }
                     cd = db.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).update(columns)
+
+                # now fixup recoveries -- clean out existing ones, and
+                # add listed ones.
+                db.query(CampaignRecovery).filter(campaign_definition_id == campaign_definiition_id).delete()
+                i = 0
+                for rtn in json.loads(recoveries):
+                    rt = db.query(RecoveryType).filter(RecoveryType.name==rtn)
+                    db.add(CampaignRecovery( campaign_definition_id = campaign_definition_id, order = i, recovery_type = rt))
+                db.commit()
             except IntegrityError, e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
                 cherrypy.log(e.message)
@@ -639,7 +648,7 @@ class poms_service:
             data['curr_experiment'] = exp
             data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
             # for testing ui...
-            data['authorized'] = True
+            #data['authorized'] = True
             data['definitions'] = (db.query(CampaignDefinition,Experiment)
                                    .join(Experiment)
                                    .filter(CampaignDefinition.experiment==exp)
@@ -677,7 +686,7 @@ class poms_service:
         if action == 'add' or action == 'edit':
             campaign_id = kwargs.pop('ae_campaign_id')
             name = kwargs.pop('ae_campaign_name')
-            active = kwargs.pop('ae_campaign_active')
+            active = kwargs.pop('ae_active')
             split_type = kwargs.pop('ae_split_type')
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
@@ -686,6 +695,7 @@ class poms_service:
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
             launch_id = kwargs.pop('ae_launch_id')
             experimenter_id = kwargs.pop('experimenter_id')
+            depends = kwargs.pop('ae_depends')
             try:
                 if action == 'add':
                     c = Campaign(name=name, experiment=exp,vo_role=vo_role,
@@ -708,6 +718,14 @@ class poms_service:
                                "updater":               experimenter_id
                                }
                     cd = db.query(Campaign).filter(Campaign.campaign_id==campaign_id).update(columns)
+                # now redo dependencies
+                db.query(CampaignDependency).filter(CampaignDependency.uses_camp_id == campaign_id).delete()
+                depcamps = db.query(Campaigns).filter(Campaign.name.in_(depends)).all()
+                for dc in depcamps:
+                    d = CampaignDependency(camp_uses_id = dc.campaign_id, camp_needs = campaign_id)
+                    db.add(d)
+                db.commit()
+
             except IntegrityError, e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
                 cherrypy.log(e.message)
@@ -722,11 +740,15 @@ class poms_service:
         # Find campaigns
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
-            #data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
-            data['authorized'] = True
+            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            # for testing ui...
+            #data['authorized'] = True
+
             data['campaigns'] = db.query(Campaign).filter(Campaign.experiment==exp).order_by(Campaign.name)
             data['definitions'] = db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
             data['templates'] = db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
+            cids = [c.campaign_id for c in data['campaigns'].all()]
+            data['depends'] = db.query(CampaignDependency.uses_camp_id, Campaign.name).filter(CampaignDependency.uses_camp_id.in_(cids), Campaign.campaign_id == CampaignDependency.needs_camp_id)
 
         data['message'] = message
         template = self.jinja_env.get_template('campaign_edit.html')

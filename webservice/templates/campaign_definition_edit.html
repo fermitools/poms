@@ -228,16 +228,20 @@
   <div class="ui text container">
     <div class="scrollable">
        <ol>
-         {% for i in range(10) %}
+         {% for i in range(5) %}
          <li> 
              <select id="re_recover_{{i}}">
                 <option value="None">-</option>
                 {% for rtype in data.rtypes %}
-                <option value="{{rtype}}">{{rtype}}</option>
+                <option value="{{rtype[0]}}">{{rtype[0]}} -- {{rtype[1]}}</option>
                 {% endfor %}
              </select>
          {%endfor%}
        </ol>
+      <div class="actions">
+       <button class="ui button deny pink">Cancel</button>
+       <button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
+       </div>
     </div>
   </div>
   <div class="ui hidden divider"></div>
@@ -252,7 +256,8 @@ $('#definition_add_edit_form')
       ae_output_files_per_job       : 'empty',
       ae_output_file_patterns       : 'empty',
       ae_launch_script              : 'empty',
-      ae_definition_parameters_text : 'empty'
+      ae_definition_parameters_text : 'empty',
+      ae_definition_recovery_text   : 'empty'
     }
   })
 
@@ -268,16 +273,27 @@ function create_row(index, key, value) {
 var ep_parms = [];
 
 $("#edit_recovery_modal_btn").click(function() {
-  var recoveries = $("#ae_recovery_definition_text").val();
+  var recoveries = $("#ae_definition_recovery_text").val();
   var rlist = JSON.parse(recoveries);
+  var i = 0;
+  for (i = 0 ; i < rlist.length; i++ ) {
+      var sel = "#re_recover_"+i.toString()+" option[value="+rlist[i]+"]";
+      $(sel).prop('selected','selected');
+  }
   $("#edit_recovery_modal").modal({
     closable  : false,
     onApprove : function(){
-      var rlist = []
-      for (i = 0; i < 10 ; i++) {
-         rlist.append( $("#re_recover_"+tostring(i)+":selected").val());
+      var rlist = [];
+      var s;
+      for (i = 0; i < 5 ; i++) {
+         s = $("#re_recover_"+i.toString()+" option:selected").val();
+         if (s) {
+             rlist.push(s);
+         }
       }
-      $("#ae_definition_recovery_text").val(JSON.stringify(rlist));
+      var sval = JSON.stringify(rlist);
+      $("#ae_definition_recovery_text").val(sval);
+      $("#definition_add_edit_modal").modal('show');
     },
     onDeny : function(){
       $("#definition_add_edit_modal").modal('show');
