@@ -1,22 +1,12 @@
 from webclient import WebClient
 import unittest
-import ConfigParser
 import time
 import subprocess
 import sys
+import utils
 
 
-config = ConfigParser.RawConfigParser()
-config.read('../webservice/poms.ini')
-
-port = config.get('global', 'server.socket_port')
-pomspath = config.get('global', 'pomspath')
-pomspath = pomspath.replace("'", "")
-pidpath = config.get('global', 'log.pidfile')[1:-1]
-base_url = "http://localhost:"+port+pomspath+"/"
-
-
-client = WebClient(base_url) 
+client = WebClient(base_url='')
 
 
 class indexMethods(unittest.TestCase):
@@ -49,9 +39,7 @@ def setUpModule():
 
 def tearDownModule():
     print "************* TEARING DOWN POMS *************"
-    with open(pidpath, 'r') as f:
-        pid = f.readline()
-    f.close()
+    pid = utils.get_pid()
     try:
         proc = subprocess.Popen("kill " + pid, shell=True)
     except OSError as e:

@@ -1,16 +1,14 @@
-import ConfigParser
 import psycopg2
 import psycopg2.extras
 import pprint
-import getpass
 import sys
-
+import utils
 
 class Database:
 
     def __init__(self):
 
-        conn_string = "host=%s dbname=%s user=%s password=%s port=%s" % (self.__get_db_info())
+        conn_string = "host=%s dbname=%s user=%s password=%s port=%s" % (utils.get_db_info())
 
         try:
             self.conn = psycopg2.connect( conn_string )
@@ -22,21 +20,6 @@ class Database:
         self.cursor = self.conn.cursor()
   
         self.dict_cursor = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-
-
-    def __get_db_info(self):
-        config = ConfigParser.ConfigParser()
-        config.read('../webservice/poms.ini')
-
-        dbname = config.get('global', 'db').replace("\"", "'")
-        dbuser = config.get('global', 'dbuser').replace("\"", "'")
-        dbhost = config.get('global', 'dbhost').replace("\"", "'")
-        dbport = config.get('global', 'dbport').replace("\"", "'")
-        try:
-            dbpass = config.get('global', 'dbpass').replace("\"", "'")
-        except ConfigParser.NoOptionError as e:
-            dbpass = getpass.getpass("Please enter database password: ")
-        return dbhost, dbname, dbuser, dbpass, dbport
 
 
     def query_all(self, query):
