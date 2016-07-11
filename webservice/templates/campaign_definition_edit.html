@@ -182,6 +182,7 @@
       <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id}}">
       <input type="hidden" id="ae_campaign_definition_id" name="ae_campaign_definition_id" value="0">
       <input type="hidden" id="ae_definition_parameters" name="ae_definition_parameters" value="[]">
+      <input type="hidden" id="ae_definition_recovery" name="ae_definition_recovery" value="[]">
     </form>
   </div>
   <div class="ui hidden divider"></div>
@@ -231,7 +232,7 @@
          {% for i in range(5) %}
          <li> 
              <select id="re_recover_{{i}}">
-                <option value="None">-</option>
+                <option value="">-</option>
                 {% for rtype in data.rtypes %}
                 <option value="{{rtype[0]}}">{{rtype[0]}} -- {{rtype[1]}}</option>
                 {% endfor %}
@@ -293,6 +294,7 @@ $("#edit_recovery_modal_btn").click(function() {
       }
       var sval = JSON.stringify(rlist);
       $("#ae_definition_recovery_text").val(sval);
+      $("#ae_definition_recovery").val(sval);
       $("#definition_add_edit_modal").modal('show');
     },
     onDeny : function(){
@@ -452,6 +454,7 @@ function ep_down_button(current_row) {
     $("#ae_output_files_per_job").val( $("#cdf_output_"+index).text() );
     $("#ae_output_file_patterns").val( $("#cdf_outputpat_"+index).text() );
     $("#ae_definition_recovery_text").val( $("#cdf_recovery_"+index).text() );
+    $("#ae_definition_recovery").val( $("#cdf_recovery_"+index).text() );
     $("#definition_add_edit_modal").modal('show');
   }
 

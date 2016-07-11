@@ -601,7 +601,7 @@ class poms_service:
             output_file_patterns = kwargs.pop('ae_output_file_patterns')
             launch_script = kwargs.pop('ae_launch_script')
             definition_parameters = kwargs.pop('ae_definition_parameters')
-            recoveries = kwargs.pop('ae_definition_recovery_text')
+            recoveries = kwargs.pop('ae_definition_recovery')
             experimenter_id = kwargs.pop('experimenter_id')
             try:
                 if action == 'add':
@@ -612,6 +612,8 @@ class poms_service:
                                             creator=experimenter_id, created=datetime.now(utc))
 
                     db.add(cd)
+                    db.flush()
+                    campaign_definition_id = cd.campaign_definition_id
                 else:
                     columns = {"name":                  name,
                                "input_files_per_job":   input_files_per_job,
@@ -626,11 +628,12 @@ class poms_service:
 
                 # now fixup recoveries -- clean out existing ones, and
                 # add listed ones.
-                db.query(CampaignRecovery).filter(campaign_definition_id == campaign_definiition_id).delete()
+                db.query(CampaignRecovery).filter(campaign_definition_id == campaign_definition_id).delete()
                 i = 0
                 for rtn in json.loads(recoveries):
-                    rt = db.query(RecoveryType).filter(RecoveryType.name==rtn)
-                    db.add(CampaignRecovery( campaign_definition_id = campaign_definition_id, order = i, recovery_type = rt))
+                    rt = db.query(RecoveryType).filter(RecoveryType.name==rtn).first()
+                    cr = CampaignRecovery( campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt)
+                    db.add(cr)
                 db.commit()
             except IntegrityError, e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
@@ -696,6 +699,7 @@ class poms_service:
             launch_id = kwargs.pop('ae_launch_id')
             experimenter_id = kwargs.pop('experimenter_id')
             depends = kwargs.pop('ae_depends')
+            depends = json.loads(depends)
             try:
                 if action == 'add':
                     c = Campaign(name=name, experiment=exp,vo_role=vo_role,
@@ -720,9 +724,12 @@ class poms_service:
                     cd = db.query(Campaign).filter(Campaign.campaign_id==campaign_id).update(columns)
                 # now redo dependencies
                 db.query(CampaignDependency).filter(CampaignDependency.uses_camp_id == campaign_id).delete()
-                depcamps = db.query(Campaigns).filter(Campaign.name.in_(depends)).all()
+                cherrypy.log("depends for %s are: %s" % (campaign_id, depends))
+                depcamps = db.query(Campaign).filter(Campaign.name.in_(depends)).all()
                 for dc in depcamps:
-                    d = CampaignDependency(camp_uses_id = dc.campaign_id, camp_needs = campaign_id)
+                      
+                    cherrypy.log("trying to add dependency for: %s" % dc.name)
+                    d = CampaignDependency(uses_camp_id = campaign_id, needs_camp_id = dc.campaign_id, file_patterns='%')
                     db.add(d)
                 db.commit()
 
