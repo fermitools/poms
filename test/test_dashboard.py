@@ -27,25 +27,9 @@ class indexMethods(unittest.TestCase):
 
 
 
-def setUpModule():
-    print "************* SETTING UP POMS *************"
-    try:
-        proc = subprocess.Popen("cd ../ && source /fnal/ups/etc/setups.sh && setup -. poms && cd webservice/ && python service.py &", shell=True)
-    except OSError as e:
-        print >>sys.stderr, "Execution failed:", e
-    time.sleep(10)
-
-
-
-def tearDownModule():
-    print "************* TEARING DOWN POMS *************"
-    pid = utils.get_pid()
-    try:
-        proc = subprocess.Popen("kill " + pid, shell=True)
-    except OSError as e:
-        print >>sys.stderr, "Excecution failed:", e
-
-
-
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    utils.setUpPoms()
+    try:
+        unittest.main(verbosity=2)
+    finally:
+        utils.tearDownPoms()

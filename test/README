@@ -1,0 +1,9 @@
+You can run these tests one by one:
+python test_dashboard.py
+.
+.
+.
+or run the whole suite:
+./run_tests.py
+
+In either case the poms environment will be stood up and torn down for you based on your poms.ini configuration.
