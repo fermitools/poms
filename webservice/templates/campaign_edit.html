@@ -401,21 +401,21 @@ $("#edit_depends_modal_btn").click(function() {
   var depends = $("#ae_depends").val();
   var dlists = JSON.parse(depends);
   var i;
-  for (i = 0 ; i < dlist['campaigns'].length; i++ ) {
-      var sel = "#de_select_"+i.toString()+" option[value="+dlist['campaigns'][i]+"]";
-      var dep = "#de_filepat_"+i.toString")
+  for (i = 0 ; i < dlists['campaigns'].length; i++ ) {
+      var sel = "#de_select_" + i.toString()+ " option[value="+dlists['campaigns'][i]+"]";
+      var dep = "#de_filepat_"+i.toString();
       $(sel).prop('selected','selected');
-      $(val).value = dlist.filepats[i]
+      $(dep).val(dlists['file_patterns'][i]);
   }
   $("#edit_depends_modal").modal({
     closable  : false,
     onApprove : function(){
-      var dlists = {'campaigns:[], 'file_patterns':[]};
+      var dlists = {'campaigns':[], 'file_patterns':[]};
       var i;
       var s;
       for (i = 0; i < 5 ; i++) {
-         s=$("#de_select_"+i.toString()+" option:selected").value();
-         p=$("#de_filepat_"+i.tostring).value();
+         s=$("#de_select_"+i.toString()+" option:selected").val();
+         p=$("#de_filepat_"+i.toString()).val();
          if (s) {
              dlists['campaigns'].push(s);
              dlists['file_patterns'].push(p)

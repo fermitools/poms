@@ -724,13 +724,13 @@ class poms_service:
                     cd = db.query(Campaign).filter(Campaign.campaign_id==campaign_id).update(columns)
                 # now redo dependencies
                 db.query(CampaignDependency).filter(CampaignDependency.uses_camp_id == campaign_id).delete()
-                cherrypy.log("depends for %s are: %s" % (campaign_id, depends.campaigns))
-                depcamps = db.query(Campaign).filter(Campaign.name.in_(depends.campaigns)).all()
+                cherrypy.log("depends for %s are: %s" % (campaign_id, depends['campaigns']))
+                depcamps = db.query(Campaign).filter(Campaign.name.in_(depends['campaigns'])).all()
                 
                 for i in range(len(depcamps)):
                       
                     cherrypy.log("trying to add dependency for: %s" % depcamps[i].name)
-                    d = CampaignDependency(uses_camp_id = campaign_id, needs_camp_id = dc.campaign_id, file_patterns=depends.files[i])
+                    d = CampaignDependency(uses_camp_id = campaign_id, needs_camp_id = depcamps[i].campaign_id, file_patterns=depends['file_patterns'][i])
                     db.add(d)
                 db.commit()
 
