@@ -724,12 +724,13 @@ class poms_service:
                     cd = db.query(Campaign).filter(Campaign.campaign_id==campaign_id).update(columns)
                 # now redo dependencies
                 db.query(CampaignDependency).filter(CampaignDependency.uses_camp_id == campaign_id).delete()
-                cherrypy.log("depends for %s are: %s" % (campaign_id, depends))
-                depcamps = db.query(Campaign).filter(Campaign.name.in_(depends)).all()
-                for dc in depcamps:
+                cherrypy.log("depends for %s are: %s" % (campaign_id, depends.campaigns))
+                depcamps = db.query(Campaign).filter(Campaign.name.in_(depends.campaigns)).all()
+                
+                for i in range(len(depcamps)):
                       
-                    cherrypy.log("trying to add dependency for: %s" % dc.name)
-                    d = CampaignDependency(uses_camp_id = campaign_id, needs_camp_id = dc.campaign_id, file_patterns='%')
+                    cherrypy.log("trying to add dependency for: %s" % depcamps[i].name)
+                    d = CampaignDependency(uses_camp_id = campaign_id, needs_camp_id = dc.campaign_id, file_patterns=depends.files[i])
                     db.add(d)
                 db.commit()
 
@@ -755,7 +756,7 @@ class poms_service:
             data['definitions'] = db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
             data['templates'] = db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
             cids = [c.campaign_id for c in data['campaigns'].all()]
-            data['depends'] = db.query(CampaignDependency.uses_camp_id, Campaign.name).filter(CampaignDependency.uses_camp_id.in_(cids), Campaign.campaign_id == CampaignDependency.needs_camp_id)
+            data['depends'] = db.query(CampaignDependency.uses_camp_id, Campaign.name, CampaignDependency.file_patterns ).filter(CampaignDependency.uses_camp_id.in_(cids), Campaign.campaign_id == CampaignDependency.needs_camp_id)
 
         data['message'] = message
         template = self.jinja_env.get_template('campaign_edit.html')
@@ -994,9 +995,9 @@ class poms_service:
         n_located = 0
         for task in cherrypy.request.db.query(Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_obj,Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
             n_completed = n_completed + 1
-            # if it's been a day, just declare it located; its as 
+            # if it's been 2 days, just declare it located; its as 
             # located as its going to get...
-            if (now - task.updated > timedelta(days=1)):
+            if (now - task.updated > timedelta(days=2)):
                  n_located = n_located + 1
                  n_stale = n_stale + 1
                  task.status = "Located"
@@ -1040,7 +1041,8 @@ class poms_service:
             # this is using a 90% threshold, this ought to be
             # a tunable in the campaign_definition.  Basically we consider it
             # located if 90% of the files it consumed have suitable kids...
-            threshold = (summary_list[i].get('tot_consumed',0) * 0.9)
+            cfrac = lookup_task_list[i].campaign_obj.campaign_def_obj.cfrac
+            threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
             thresholds.append(threshold)
             if float(count_list[i]) >= threshold:
                 n_located = n_located + 1

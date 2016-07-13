@@ -75,7 +75,9 @@
 	<td id="c_split_type_{{loop.index}}">{{row.cs_split_type}}</td>
 	<td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|replace("None","")}}</td>
         <td id="c_depends_{{loop.index}}">
-            [ {%for drow in data.depends%}{% if drow[0] == row.campaign_id %} "{{drow[1]}}"{%if not loop.last%},{%endif%}{% endif %}{% endfor %} ]
+            { "campaigns":[ {%for drow in data.depends%}{% if drow[0] == row.campaign_id %} "{{drow[1]}}"{%if not loop.last%},{%endif%}{% endif %}{% endfor %} ],
+             "file_patterns": [{%for drow in data.depends%}{% if drow[0] == row.campaign_id %} "{{drow[2]}}"{%if not loop.last%},{%endif%}{% endif %}{% endfor %} ]
+           }
          </td>
       </tr>
       {% endfor %}
@@ -293,12 +295,14 @@
   <div class="ui text container">
     <div class="scrollable">
           {% for i in range(5) %}
-             {{i}}. <select id="de_select_{{i}}">
+             {{i}}. <select name="de_select_{{i}}" id="de_select_{{i}}">
                 <option value="">-</option>
                 {%for c in data['campaigns']%}
                    <option value="{{c.name}}">{{c.name}}</option>
                 {% endfor %}
-             </select> <br>
+             </select> 
+            <input name="de_filepat_{{i}}" id="de_filepat_{{i}}">
+            <br>
           {% endfor %}
 	  <div class="actions">
 	    <button class="ui button deny pink">Cancel</button>
@@ -395,25 +399,29 @@ $("#edit_param_modal_btn").click(function() {
 $("#edit_depends_modal_btn").click(function() {
   //mwm
   var depends = $("#ae_depends").val();
-  var dlist = JSON.parse(depends);
+  var dlists = JSON.parse(depends);
   var i;
-  for (i = 0 ; i < dlist.length; i++ ) {
-      var sel = "#de_select_"+i.toString()+" option[value="+dlist[i]+"]";
+  for (i = 0 ; i < dlist['campaigns'].length; i++ ) {
+      var sel = "#de_select_"+i.toString()+" option[value="+dlist['campaigns'][i]+"]";
+      var dep = "#de_filepat_"+i.toString")
       $(sel).prop('selected','selected');
+      $(val).value = dlist.filepats[i]
   }
   $("#edit_depends_modal").modal({
     closable  : false,
     onApprove : function(){
-      var dlist = [];
+      var dlists = {'campaigns:[], 'file_patterns':[]};
       var i;
       var s;
       for (i = 0; i < 5 ; i++) {
-         s=$("#de_select_"+i.toString()+" option:selected").val();
+         s=$("#de_select_"+i.toString()+" option:selected").value();
+         p=$("#de_filepat_"+i.tostring).value();
          if (s) {
-             dlist.push(s);
+             dlists['campaigns'].push(s);
+             dlists['file_patterns'].push(p)
          }
       }
-      var sval = JSON.stringify(dlist);
+      var sval = JSON.stringify(dlists);
       $("#ae_depends").val(sval);
       $("#ae_depends_text").val(sval);
       $("#campaign_add_edit_modal").modal('show');
