@@ -51,6 +51,7 @@
 	<th>Dataset</th>
         <th>Split Type</th>
 	<th>Parameter Overrides</th>
+	<th>Depends On</th>
       </tr>
     </thead>
     <tbody>
@@ -165,7 +166,7 @@
       </div>
       <div class="one field">
 	<div class="field">
-          <label>Campaigns Depended upon<i class="large edit link blue icon" id="edit_depends_modal_btn"></i></label>
+          <label>Depends On<i class="large edit link blue icon" id="edit_depends_modal_btn"></i></label>
           <textarea rows="2" id="ae_depends_text" disabled>[]</textarea>
 	</div>
       </div>
@@ -294,6 +295,9 @@
   </div>
   <div class="ui text container">
     <div class="scrollable">
+          <span style="padding: 0 2em; font-weight: bold">Campaign</span>
+          <span style="padding: 0 4em; font-weight: bold">File Pattern</span>
+          <br>
           {% for i in range(5) %}
              {{i}}. <select name="de_select_{{i}}" id="de_select_{{i}}">
                 <option value="">-</option>
