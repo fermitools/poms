@@ -73,7 +73,7 @@
 	<td id="cdf_name_{{loop.index}}">{{row.CampaignDefinition.name}}</td>
 	<td id="cdf_input_{{loop.index}}">{{row.CampaignDefinition.input_files_per_job}}</td>
 	<td id="cdf_output_{{loop.index}}">{{row.CampaignDefinition.output_files_per_job}}</td>
-	<td id="cdf_outputpat_{{loop.index}}">{{row.CampaignDefinition.output_file_patterns|replace("None","")}}</td>
+	<td id="cdf_outputpat_{{loop.index}}">{{row.CampaignDefinition.output_file_patterns|replace("None","%")}}</td>
 	<td id="cdf_script_{{loop.index}}">{{row.CampaignDefinition.launch_script|replace("None","")}}</td>
 	<td id="cdf_definition_{{loop.index}}">{{row.CampaignDefinition.definition_parameters|replace("None","")}}</td>
 	<td id="cdf_recovery_{{loop.index}}">
