@@ -2327,12 +2327,16 @@ class poms_service:
 
         i = 0
         for cd in cdlist:
-             i = i + 1
-             dims = "ischildof: (snapshot_for_project %s and version %s and file_name like '%s'" % (t.project, t.campaign_obj.software_version, cd.file_patterns)
-             dname = "poms_depends_%d_%d" % (t.task_id,i)
-
-             cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, dname, dims)
-             self.launch_jobs(cd.uses_camp_id, dataset_override = dname)
+           if cd.uses_camp_id == t.campaign_obj.campaign_id:
+              # self-reference, just do a normal launch
+              self.launch_jobs(cd.uses_camp_id)
+           else:
+              i = i + 1
+              dims = "ischildof: (snapshot_for_project %s and version %s and file_name like '%s'" % (t.project, t.campaign_obj.software_version, cd.file_patterns)
+              dname = "poms_depends_%d_%d" % (t.task_id,i)
+ 
+              cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, dname, dims)
+              self.launch_jobs(cd.uses_camp_id, dataset_override = dname)
         return 1
 
     def get_recovery_list_for_campaign_def(self, campaign_def):
