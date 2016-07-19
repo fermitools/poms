@@ -20,6 +20,8 @@ from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment,
 from utc import utc
 from crontab import CronTab
 import gc
+from elasticsearch import Elasticsearch
+import pprint
 
 def error_response():
     dump = ""
@@ -63,6 +65,24 @@ class poms_service:
 
         launches = cherrypy.config.get("poms.launches","allowed"),
                                do_refresh = 1, pomspath=self.path,help_page="DashboardHelp")
+
+
+
+    @cherrypy.expose
+    def es(self):
+        template = self.jinja_env.get_template('elasticsearch.html')
+
+        es = Elasticsearch()
+
+        query = {
+            'query' : {
+                'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
+            }
+        }
+
+        es_response= es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+        pprint.pprint(es_response)
+        return template.render(pomspath=self.path, es_response=es_response)
 
     def can_create_task(self):
         ra =  cherrypy.request.headers.get('Remote-Addr', None)

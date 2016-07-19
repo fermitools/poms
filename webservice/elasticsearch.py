@@ -49,6 +49,7 @@ if __name__ == '__main__':
 
     es = Elasticsearch()
 
+    #example of basic searching and getting particular fields from object
     query = {
         'query' : {
             'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
@@ -60,3 +61,36 @@ if __name__ == '__main__':
 
     print "# of records: ", response.get('hits').get('total')
     print "# of ms to query: ", response.get('took')
+    for record in response.get('hits').get('hits'):
+        print record.get('_source').get('jobid')
+        print record.get('_source').get('event_message')
+        print "*" * 13
+
+    print "*" * 100
+
+    #emample of searching by field
+    query = {
+        "fields" : ["jobid", "Owner"],
+        "query" : {
+            "term" : { "jobid" : "9034906.0@fifebatch1.fnal.gov" }
+        }
+    }
+    response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+    pprint.pprint(response)
+
+    print "*" * 100
+
+    #example of iterating the result set
+
+    query = {
+        'query' : {
+            'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
+        }
+    }
+
+    response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+
+    for record in response.get('hits').get('hits'):
+        for k,v in record.get("_source").iteritems():
+            print str(k) + ": " + str(v)
+        print "---"

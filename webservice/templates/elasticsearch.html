@@ -1,0 +1,93 @@
+{%extends "layout.html" %}
+
+{%block title%}
+    <title>POMS Service Downtimes</title>
+{%endblock%}
+
+{%block breadcrumbs%}
+    <div class="item">
+       Dashboard  <!--label of current location on mobile-->
+    </div>
+    <div class="item">
+      Elasticsearch Table Demo <!--label of current location on mobile-->
+    </div>
+{%endblock%}
+
+
+
+
+
+
+{%block header%}
+<h1 class="ui header">
+         Elasticsearch Table Demo {%include 'help_button.html'%}
+                    
+          <div class="sub header">
+              view key value pairs of es query result set
+          </div>
+</h1>
+{%endblock%}
+
+
+
+
+{%block subheader%}
+<h2 class="ui dividing header">Service Downtimes:</h2>
+{%endblock%}
+
+
+
+{%block content %}
+
+
+
+<table class="ui celled striped table">
+  <thead>
+    <tr><th colspan="4">
+      <b>Results</b>
+    </th>
+  </tr></thead>
+  <tbody>
+
+  {% for record in es_response.get('hits').get('hits') %}
+
+    <tr>
+      <td class="collapsing">
+         <b>{{record.get("_source").get("jobid")}}</b>
+      </td>
+      <td> {{record.get("_source").get("condor_timestamp")}} </td>
+      <td>{{record.get("_source").get("event_message")}}</td>
+      <td class="right aligned collapsing">{{record.get("_source").get("type")}}</td>
+    </tr>
+
+  {% endfor %}
+
+  </tbody>
+</table>
+
+
+<p>{{es_response.get('hits').get('total')}} records</p>
+<p>{{es_response.get('took')}} ms to query</p>
+
+
+
+
+
+
+
+
+
+{% for record in es_response.get('hits').get('hits') %}
+
+    {% set record_meat = record.get('_source') %}
+          
+        {% for key, value in record_meat.iteritems() %}
+        <b>{{ key|e }}</b>:
+        {{ value|e }}
+        <br/>
+        {% endfor %}
+<br/><br/>
+{% endfor %}
+
+	
+{%endblock%}
