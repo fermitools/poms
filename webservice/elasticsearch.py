@@ -81,7 +81,6 @@ if __name__ == '__main__':
     print "*" * 100
 
     #example of iterating the result set
-
     query = {
         'query' : {
             'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
@@ -94,3 +93,30 @@ if __name__ == '__main__':
         for k,v in record.get("_source").iteritems():
             print str(k) + ": " + str(v)
         print "---"
+
+    print "*" * 100
+
+    #example of specifying a from and a size which can be useful for pagination
+    query = {
+        "from" : 0, "size" : 3,
+        'query' : {
+            'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
+        }
+    }
+    response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+    pprint.pprint(response)
+
+    print "*" * 100
+
+    #example of sorting by date
+    query = {
+        "sort" : [{ "@timestamp" : {"order" : "asc"}}],
+        'query' : {
+            'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
+        }
+    }
+    response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+    pprint.pprint(response)
+
+    print "*" * 100
+
