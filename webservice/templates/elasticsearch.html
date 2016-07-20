@@ -55,9 +55,9 @@
       <td class="collapsing">
          <b>{{record.get("_source").get("jobid")}}</b>
       </td>
-      <td> {{record.get("_source").get("condor_timestamp")}} </td>
+      <td> {{record.get("_source").get("@timestamp")}} </td>
       <td>{{record.get("_source").get("event_message")}}</td>
-      <td class="right aligned collapsing">{{record.get("_source").get("type")}}</td>
+      <td class="right aligned collapsing">{{record.get("_source").get("@timestamp")}}</td>
     </tr>
 
   {% endfor %}
@@ -90,4 +90,157 @@
 {% endfor %}
 
 	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//
+
+
+
+
+
+
+
+
+
+        <style>
+        .hid {
+            display: none;
+            background-color: #efefef;
+        }
+
+        /*
+        table {
+        border-collapse: collapse;
+        }
+
+        table, td, th {
+        border: 1px solid black;
+        }
+        */
+
+        th, td {
+            padding: 3px 5px 5px 5px;
+        }
+        </style>
+
+
+
+        <script>
+            $( document ).ready(function() {
+                        $(".toggler").click(function(){
+                                $(this).closest('tr').next('tr').toggle();
+
+                                if ( $(this).text() == "+" )
+                                {
+                                    $(this).text("-");
+                                }
+                                else
+                                {
+                                    $(this).text("+");
+                                }
+                        });  //ends click handler
+            });  //ends dom ready
+        </script>
+
+
+
+
+
+
+
+
+
+
+
+                <table>
+
+
+                    <thead>
+                        <tr>
+                            <th width="1%"></th>
+                            <th><span>Time</span></th>
+                            <th><span>Event</span></th>
+                        </tr>
+                    </thead>
+
+
+
+                    <tbody>  <!-- root tbody-->
+
+                    {% for record in es_response.get('hits').get('hits') %}
+                    {% set record_meat = record.get('_source') %}
+                        <!--item-->
+                        <tr>
+                            <td class="toggler">+</td>
+                            <td width="30%">{{record_meat.get("@timestamp")}}</td>
+                            <td>{{record_meat.get("event_message")}}</td>
+                        </tr>
+
+
+                        <tr class="hid">
+                            <td colspan="3">
+                                <table>
+                                    <tbody>
+                                        {% for key, value in record_meat.iteritems() %}
+                                        <tr>
+                                            <td>{{ key|e }}</td>
+                                            <td width="1%"></td>
+                                            <td>{{ value|e }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        <!--ends item-->
+                    {% endfor %}
+
+
+
+                    </tbody>  <!--ends root tbody-->
+                </table>  <!--ends root table-->
+
+
+
+
+
+
+
+
+
 {%endblock%}
+

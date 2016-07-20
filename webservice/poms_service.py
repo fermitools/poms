@@ -75,6 +75,7 @@ class poms_service:
         es = Elasticsearch()
 
         query = {
+            'sort' : [{ '@timestamp' : {'order' : 'asc'}}],
             'query' : {
                 'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
             }
