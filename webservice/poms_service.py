@@ -20,6 +20,8 @@ from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment,
 from utc import utc
 from crontab import CronTab
 import gc
+from elasticsearch import Elasticsearch
+import pprint
 
 def error_response():
     dump = ""
@@ -63,6 +65,25 @@ class poms_service:
 
         launches = cherrypy.config.get("poms.launches","allowed"),
                                do_refresh = 1, pomspath=self.path,help_page="DashboardHelp")
+
+
+
+    @cherrypy.expose
+    def es(self):
+        template = self.jinja_env.get_template('elasticsearch.html')
+
+        es = Elasticsearch()
+
+        query = {
+            'sort' : [{ '@timestamp' : {'order' : 'asc'}}],
+            'query' : {
+                'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
+            }
+        }
+
+        es_response= es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+        pprint.pprint(es_response)
+        return template.render(pomspath=self.path, es_response=es_response)
 
     def can_create_task(self):
         ra =  cherrypy.request.headers.get('Remote-Addr', None)
@@ -2307,12 +2328,16 @@ class poms_service:
 
         i = 0
         for cd in cdlist:
-             i = i + 1
-             dims = "ischildof: (snapshot_for_project %s and version %s and file_name like '%s'" % (t.project, t.campaign_obj.software_version, cd.file_patterns)
-             dname = "poms_depends_%d_%d" % (t.task_id,i)
-
-             cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, dname, dims)
-             self.launch_jobs(cd.uses_camp_id, dataset_override = dname)
+           if cd.uses_camp_id == t.campaign_obj.campaign_id:
+              # self-reference, just do a normal launch
+              self.launch_jobs(cd.uses_camp_id)
+           else:
+              i = i + 1
+              dims = "ischildof: (snapshot_for_project %s and version %s and file_name like '%s'" % (t.project, t.campaign_obj.software_version, cd.file_patterns)
+              dname = "poms_depends_%d_%d" % (t.task_id,i)
+ 
+              cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, dname, dims)
+              self.launch_jobs(cd.uses_camp_id, dataset_override = dname)
         return 1
 
     def get_recovery_list_for_campaign_def(self, campaign_def):
