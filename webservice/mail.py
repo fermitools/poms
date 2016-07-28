@@ -23,10 +23,14 @@ class Mail:
         msg['From'] = self.sender
         msg['To'] = to
 
-        s = smtplib.SMTP(self.server)
-        s.set_debuglevel(self.debug)
-        s.sendmail(self.sender, [to], msg.as_string())
-        s.quit()
+        try:
+            s = smtplib.SMTP(self.server)
+            s.set_debuglevel(self.debug)
+            s.sendmail(self.sender, [to], msg.as_string())
+        except Exception, e:
+            print 'oops: %s' % e
+        finally:
+            s.quit()
 
 
 if __name__ == '__main__':
