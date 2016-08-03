@@ -777,7 +777,29 @@ class poms_service:
             data['definitions'] = db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
             data['templates'] = db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
             cids = [c.campaign_id for c in data['campaigns'].all()]
-            data['depends'] = db.query(CampaignDependency.uses_camp_id, Campaign.name, CampaignDependency.file_patterns ).filter(CampaignDependency.uses_camp_id.in_(cids), Campaign.campaign_id == CampaignDependency.needs_camp_id)
+#            data['depends'] = (db.query(CampaignDependency.uses_camp_id, Campaign.name, CampaignDependency.file_patterns )
+#                               .filter(CampaignDependency.uses_camp_id.in_(cids),
+#                                       Campaign.campaign_id == CampaignDependency.needs_camp_id))
+            depends = {}
+            for cid in cids:
+                sql = (db.query(CampaignDependency.uses_camp_id, Campaign.name, CampaignDependency.file_patterns )
+                       .filter(CampaignDependency.uses_camp_id == cid,
+                               Campaign.campaign_id == CampaignDependency.needs_camp_id))
+                deps = {"campaigns"     : [row[1] for row  in sql.all()],
+                        "file_patterns" : [row[2] for row  in sql.all()]
+                        }
+                depends[cid] = json.dumps(deps)
+            data['depends'] = depends
+            print "*"*80
+            print "*"*80
+            print "*"*80
+            for key in depends.keys():
+                print "%s" % str(depends[key])
+            print "*"*80
+            print "*"*80
+            print "*"*80
+            
+
 
         data['message'] = message
         template = self.jinja_env.get_template('campaign_edit.html')
