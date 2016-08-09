@@ -1355,9 +1355,24 @@ class poms_service:
         downtimes = downtimes1 + downtimes2
         #ends service downtimes
 
+
+        #begins condor event logs
+        es = Elasticsearch()
+
+        query = {
+            'sort' : [{ '@timestamp' : {'order' : 'asc'}}],
+            'size' : 100,
+            'query' : {
+                'term' : { 'jobid' : job_info.Job.jobsub_job_id }
+            }
+        }
+
+        es_response= es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+        #ends condor event logs
+
         task_jobsub_job_id = self.task_min_job(job_info.Job.task_id)
 
-        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id)
+        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id)
 
     def handle_dates(self,tmin, tmax, tdays, baseurl):
         """
