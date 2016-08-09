@@ -1,12 +1,16 @@
 import requests
 import pprint
 import json
-
+import cherrypy
 
 class Elasticsearch:
 
-    def __init__(self):
-        self.base_url="https://fifemon-es.fnal.gov"
+    def __init__(self, debug=0):
+        if debug == 1:
+            self.base_url="https://fifemon-es.fnal.gov"
+        else:
+            self.base_url=cherrypy.config.get('elasticsearch_base_url').strip('"')
+
         requests.packages.urllib3.disable_warnings()
 
     def search(self, **kwargs):
@@ -47,7 +51,7 @@ if __name__ == '__main__':
     lpc-jobs
     '''
 
-    es = Elasticsearch()
+    es = Elasticsearch(debug=1)
 
     #example of basic searching and getting particular fields from object
     query = {
