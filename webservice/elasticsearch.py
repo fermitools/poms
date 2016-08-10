@@ -1,12 +1,16 @@
 import requests
 import pprint
 import json
-
+import cherrypy
 
 class Elasticsearch:
 
-    def __init__(self):
-        self.base_url="https://fifemon-es.fnal.gov"
+    def __init__(self, debug=0):
+        if debug == 1:
+            self.base_url="https://fifemon-es.fnal.gov"
+        else:
+            self.base_url=cherrypy.config.get('elasticsearch_base_url').strip('"')
+
         requests.packages.urllib3.disable_warnings()
 
     def search(self, **kwargs):
@@ -47,8 +51,9 @@ if __name__ == '__main__':
     lpc-jobs
     '''
 
-    es = Elasticsearch()
+    es = Elasticsearch(debug=1)
 
+    #example of basic searching and getting particular fields from object
     query = {
         'query' : {
             'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
@@ -60,3 +65,62 @@ if __name__ == '__main__':
 
     print "# of records: ", response.get('hits').get('total')
     print "# of ms to query: ", response.get('took')
+    for record in response.get('hits').get('hits'):
+        print record.get('_source').get('jobid')
+        print record.get('_source').get('event_message')
+        print "*" * 13
+
+    print "*" * 100
+
+    #emample of searching by field
+    query = {
+        "fields" : ["jobid", "Owner"],
+        "query" : {
+            "term" : { "jobid" : "9034906.0@fifebatch1.fnal.gov" }
+        }
+    }
+    response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+    pprint.pprint(response)
+
+    print "*" * 100
+
+    #example of iterating the result set
+    query = {
+        'query' : {
+            'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
+        }
+    }
+
+    response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+
+    for record in response.get('hits').get('hits'):
+        for k,v in record.get("_source").iteritems():
+            print str(k) + ": " + str(v)
+        print "---"
+
+    print "*" * 100
+
+    #example of specifying a from and a size which can be useful for pagination
+    query = {
+        "from" : 0, "size" : 3,
+        'query' : {
+            'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
+        }
+    }
+    response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+    pprint.pprint(response)
+
+    print "*" * 100
+
+    #example of sorting by date
+    query = {
+        "sort" : [{ "@timestamp" : {"order" : "asc"}}],
+        'query' : {
+            'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
+        }
+    }
+    response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+    pprint.pprint(response)
+
+    print "*" * 100
+

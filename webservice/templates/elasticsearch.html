@@ -1,0 +1,251 @@
+{%extends "layout.html" %}
+
+{%block title%}
+    <title>POMS Service Downtimes</title>
+{%endblock%}
+
+{%block breadcrumbs%}
+    <div class="item">
+       Dashboard  <!--label of current location on mobile-->
+    </div>
+    <div class="item">
+      Elasticsearch Table Demo <!--label of current location on mobile-->
+    </div>
+{%endblock%}
+
+
+
+
+
+
+{%block header%}
+<h1 class="ui header">
+         Elasticsearch Table Demo {%include 'help_button.html'%}
+                    
+          <div class="sub header">
+              view key value pairs of es query result set
+          </div>
+</h1>
+{%endblock%}
+
+
+
+
+{%block subheader%}
+<h2 class="ui dividing header">Service Downtimes:</h2>
+{%endblock%}
+
+
+
+{%block content %}
+
+
+
+<table class="ui celled striped table">
+  <thead>
+    <tr><th colspan="4">
+      <b>Results</b>
+    </th>
+  </tr></thead>
+  <tbody>
+
+  {% for record in es_response.get('hits').get('hits') %}
+
+    <tr>
+      <td class="collapsing">
+         <b>{{record.get("_source").get("jobid")}}</b>
+      </td>
+      <td> {{record.get("_source").get("@timestamp")}} </td>
+      <td>{{record.get("_source").get("event_message")}}</td>
+      <td class="right aligned collapsing">{{record.get("_source").get("@timestamp")}}</td>
+    </tr>
+
+  {% endfor %}
+
+  </tbody>
+</table>
+
+
+<p>{{es_response.get('hits').get('total')}} records</p>
+<p>{{es_response.get('took')}} ms to query</p>
+
+
+
+
+
+
+
+
+
+{% for record in es_response.get('hits').get('hits') %}
+
+    {% set record_meat = record.get('_source') %}
+          
+        {% for key, value in record_meat.iteritems() %}
+        <b>{{ key|e }}</b>:
+        {{ value|e }}
+        <br/>
+        {% endfor %}
+<br/><br/>
+{% endfor %}
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//
+
+
+
+
+
+
+
+
+
+        <style>
+        .hid {
+            display: none;
+            background-color: #efefef;
+        }
+
+        /*
+        table {
+        border-collapse: collapse;
+        }
+
+        table, td, th {
+        border: 1px solid black;
+        }
+        */
+
+        th, td {
+            padding: 3px 5px 5px 5px;
+        }
+
+        .toggler
+        {
+            cursor:pointer;
+        }
+        </style>
+
+
+
+        <script>
+            $( document ).ready(function() {
+                        $(".toggler").click(function(){
+                                $(this).closest('tr').next('tr').toggle();
+
+                                if ( $(this).text() == "+" )
+                                {
+                                    $(this).text("-");
+                                }
+                                else
+                                {
+                                    $(this).text("+");
+                                }
+                        });  //ends click handler
+            });  //ends dom ready
+        </script>
+
+
+
+
+
+
+
+
+
+
+
+                <table class="ui celled striped table">
+
+
+                    <thead>
+                        <tr>
+                            <th width="1%"></th>
+                            <th><span>Time</span></th>
+                            <th><span>Event</span></th>
+                        </tr>
+                    </thead>
+
+
+
+                    <tbody>  <!-- root tbody-->
+
+                    {% for record in es_response.get('hits').get('hits') %}
+                    {% set record_meat = record.get('_source') %}
+                        <!--item-->
+                        <tr>
+                            <td class="toggler">+</td>
+                            <td width="30%">{{record_meat.get("@timestamp")}}</td>
+                            <td>{{record_meat.get("event_message")}}</td>
+                        </tr>
+
+
+                        <tr class="hid">
+                            <td colspan="3">
+                                <table>
+                                    <tbody>
+                                        {% for key, value in record_meat.iteritems() %}
+                                        <tr>
+                                            <td><b>{{ key|e }}</b></td>
+                                            <td width="1%" style="display:none;"></td>
+                                            <td>{{ value|e }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        <!--ends item-->
+                    {% endfor %}
+
+
+
+                    </tbody>  <!--ends root tbody-->
+                </table>  <!--ends root table-->
+
+
+
+
+
+
+
+
+
+{%endblock%}
+
