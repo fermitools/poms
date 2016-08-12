@@ -7,6 +7,7 @@ Qualifiers=
 Action=setup
    ProdDir()
    SetupEnv()
+   SetupRequired(python v2_7_6)
    SetupRequired(cherrypy)
    SetupRequired(postgres_client)
    SetupRequired(sqlalchemy)

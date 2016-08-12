@@ -10,8 +10,8 @@ class Mail:
     def __get_smtp_info(self):
         config = ConfigParser.ConfigParser()
         config.read('../webservice/poms.ini')
-        server = config.get('smtp', 'server')
-        sender = config.get('smtp', 'sender')
+        server = config.get('smtp', 'server').strip('"')
+        sender = config.get('smtp', 'sender').strip('"')
         debug = config.getint('smtp', 'debug')
         return (server, sender, debug)
 
@@ -23,10 +23,14 @@ class Mail:
         msg['From'] = self.sender
         msg['To'] = to
 
-        s = smtplib.SMTP(self.server)
-        s.set_debuglevel(self.debug)
-        s.sendmail(self.sender, [to], msg.as_string())
-        s.quit()
+        try:
+            s = smtplib.SMTP(self.server)
+            s.set_debuglevel(self.debug)
+            s.sendmail(self.sender, [to], msg.as_string())
+        except Exception, e:
+            print 'oops: %s' % e
+        finally:
+            s.quit()
 
 
 if __name__ == '__main__':

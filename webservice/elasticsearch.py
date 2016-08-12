@@ -1,12 +1,18 @@
 import requests
 import pprint
 import json
-
+import cherrypy
+from datetime import datetime
 
 class Elasticsearch:
 
-    def __init__(self):
-        self.base_url="https://fifemon-es.fnal.gov"
+    def __init__(self, debug=0):
+        if debug == 1:
+            self.base_url="https://fifemon-es.fnal.gov"
+            #self.base_url="http://sammongpvm01.fnal.gov:9200"
+        else:
+            self.base_url=cherrypy.config.get('elasticsearch_base_url').strip('"')
+
         requests.packages.urllib3.disable_warnings()
 
     def search(self, **kwargs):
@@ -32,6 +38,19 @@ class Elasticsearch:
         #print r.json
         return json.loads(r.text)
 
+    def index(self, index, doc_type, body):
+        timestamp = body.get("timestamp")
+        if isinstance(timestamp, datetime):
+            timestamp = timestamp.strftime('%Y-%m-%dT%H:%M:%S')
+            body["timestamp"] = timestamp
+        url_bits = [self.base_url, index, doc_type]
+        url = "/".join(url_bits)
+        payload = json.dumps(body)
+        r = requests.post(url, data=payload)
+        #print r.text
+        #print r.status_code
+        return r.json()
+
 
 
 if __name__ == '__main__':
@@ -47,7 +66,7 @@ if __name__ == '__main__':
     lpc-jobs
     '''
 
-    es = Elasticsearch()
+    es = Elasticsearch(debug=1)
 
     #example of basic searching and getting particular fields from object
     query = {
@@ -120,3 +139,16 @@ if __name__ == '__main__':
 
     print "*" * 100
 
+    """
+    #example of sending a record where datetimes will be serialized
+    payload = {'timestamp': datetime.now(), 'message': 'trying out elasticsearch with poms', 'user': 'mgheith'}
+    response = es.index(index='poms-2016-08-11', doc_type='my-poms-type', body=payload)
+    pprint.pprint(response)
+
+    print "*" * 100
+
+    #example of sending a record where datetimes will not be serialized
+    payload = {'timestamp': '2016-08-11T20:00:00', 'message': 'trying out elasticsearch with poms not serialized', 'user': 'mgheith'}
+    response = es.index(index='poms-2016-08-11', doc_type='my-poms-type', body=payload)
+    pprint.pprint(response)
+    """
