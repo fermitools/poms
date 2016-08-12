@@ -128,11 +128,11 @@ class jobsub_q_scraper:
             if float(wall_time) == 0.0 and status_time != 0 and int(jobenv.get('JOBSTATUS','0')) == 2:
                  wall_time = float(time.time() - status_time)
 
-            if not jobenv.has_key("SAM_PROJECT_NAME") and jobenv["Args"].find("--sam_project") > 0:
-                spv = jobenv["Args"][jobenv.find("--sam_project")+15:]
+            if not jobenv.has_key("SAM_PROJECT_NAME") and jobenv.has_key("Args")  and jobenv["Args"].find("--sam_project") > 0:
+                spv = jobenv["Args"][jobenv["Args"].find("--sam_project")+14:]
                 spv = spv[0:spv.find(" ")]
+                print "found uboone project: ", spv
                 jobenv["SAM_PROJECT_NAME"] = spv
-
 
             if jobenv.has_key("POMS_TASK_ID"):
 
