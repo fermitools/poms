@@ -131,7 +131,6 @@ class jobsub_q_scraper:
             if not jobenv.has_key("SAM_PROJECT_NAME") and jobenv.has_key("Args")  and jobenv["Args"].find("--sam_project") > 0:
                 spv = jobenv["Args"][jobenv["Args"].find("--sam_project")+14:]
                 spv = spv[0:spv.find(" ")]
-                print "found uboone project: ", spv
                 jobenv["SAM_PROJECT_NAME"] = spv
 
             if jobenv.has_key("POMS_TASK_ID"):
