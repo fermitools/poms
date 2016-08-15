@@ -39,6 +39,39 @@ def error_response():
     cherrypy.response.body = body
     cherrypy.log(dump)
 
+#
+# utility function for running commands that don't run forever...
+#
+def popen_read_with_timeout(cmd, totaltime = 30):
+
+    origtime = totaltime
+    # start up keeping subprocess handle and pipe
+    pp = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE)
+    f = pp.stdout
+
+    outlist = []
+    block=" "
+
+    # read the file, with select timeout of total time remaining
+    while totaltime > 0 and len(block) > 0:
+        t1 = time.time()
+        r, w, e = select.select( [f],[],[], totaltime)
+        if not f in r:
+           outlist.append("\n[...timed out after %d seconds]\n" % origtime)
+           # timed out!
+           pp.kill()
+           break
+        block = os.read(f.fileno(), 512)
+        t2 = time.time()
+        totaltime = totaltime - (t2 - t1)
+        outlist.append(block)
+
+    pp.wait()
+    output = ''.join(outlist)
+    return output
+
+
+
 class poms_service:
 
 
@@ -2516,15 +2549,10 @@ class poms_service:
         cmdl.append(lcmd)
         cmdl.append('exit')
         cmdl.append('EOF')
-
         cmd = '\n'.join(cmdl)
 
-        f = os.popen(cmd,'r')
-        outlist = []
-        for line in f:
-            outlist.append(line)
-        f.close()
-        output = ''.join(outlist)
+        # make sure launch doesn't take more that half an hour...
+        output = popen_read_with_timeout(cmd, 1800)
 
         template = self.jinja_env.get_template('launch_jobs.html')
         res = template.render(command = lcmd, output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="LaunchedJobsHelp")
