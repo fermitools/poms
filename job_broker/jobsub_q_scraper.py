@@ -88,7 +88,11 @@ class jobsub_q_scraper:
         # for now we have a for loop and use condor_q, in future
         # we hope to be able to use jobsub_q with -format...
 
+<<<<<<< HEAD
         f = os.popen("for n in 1 2; do m=$((n+2)) condor_q -pool fifebatchhead$m.fnal.gov -name fifebatch$n.fnal.gov  -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format \"%d;SCHEDD=fifebatch$n.fnal.gov;\" ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'xxx=%d\\n' ProcID ; done", "r")
+=======
+        f = os.popen("for n in 1 2; do m=$((n+2)); condor_q -pool fifebatchhead$m.fnal.gov -name fifebatch$n.fnal.gov  -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format \"%d;SCHEDD=fifebatch$n.fnal.gov;\" ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'xxx=%d\\n' ProcID ; done", "r")
+>>>>>>> e66ec145ef34ea9881f9c88509b215b113474ad6
         for line in f:
 
             line = line.rstrip('\n')
@@ -128,11 +132,10 @@ class jobsub_q_scraper:
             if float(wall_time) == 0.0 and status_time != 0 and int(jobenv.get('JOBSTATUS','0')) == 2:
                  wall_time = float(time.time() - status_time)
 
-            if not jobenv.has_key("SAM_PROJECT_NAME") and jobenv["Args"].find("--sam_project") > 0:
-                spv = jobenv["Args"][jobenv.find("--sam_project")+15:]
+            if not jobenv.has_key("SAM_PROJECT_NAME") and jobenv.has_key("Args")  and jobenv["Args"].find("--sam_project") > 0:
+                spv = jobenv["Args"][jobenv["Args"].find("--sam_project")+14:]
                 spv = spv[0:spv.find(" ")]
                 jobenv["SAM_PROJECT_NAME"] = spv
-
 
             if jobenv.has_key("POMS_TASK_ID"):
 
