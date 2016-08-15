@@ -7,5 +7,6 @@ Qualifiers=
 Action = setup
    ProdDir()
    SetupEnv()
-   SetupRequred(poms_client ${UPS_PROD_VERSION})
+   SetupOptional(poms_client ${UPS_PROD_VERSION})
+   SetupRequired(poms_client)
    PathPrepend(PATH, ${UPS_PROD_DIR}/bin)

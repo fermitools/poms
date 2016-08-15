@@ -1242,6 +1242,10 @@ class poms_service:
 
                  newfiles = kwargs['input_file_names'].split(' ')
                  for f in newfiles:
+
+                     if len(f) < 2 or f[0] == '-':  # ignore '0', '-D', etc...
+                         continue
+
                      if not f in files:
                          jf = JobFile(file_name = f, file_type = "input", created =  datetime.now(utc), job_obj = j)
                          cherrypy.request.db.add(jf)

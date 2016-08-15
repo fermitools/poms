@@ -7,7 +7,14 @@
 #
 POMS_URI=${POMS_URI:-"http://pomsgpvm01.fnal.gov:8080/poms"}
 
-POMS_CAMPAIGN_ID=${POMS_CAMPAIGN_ID:-14}
+export POMS_CAMPAIGN_ID=${POMS_CAMPAIGN_ID:-14}
+
+export POMS_CAMPAIGN_TAGS=${POMS_CAMPAIGN_TAGS:-}
+
+if [ "$POMS_CAMPAIGN_TAGS" != "" ] 
+then
+   $POMS_CAMPAIGN_TAGS=",$POMS_CAMPAIGN_TAGS"
+fi
 
 extra=""
 
@@ -32,4 +39,10 @@ export POMS_TASK_ID=`echo "$result" | sed -e 's/.*=//'`
 
 echo "task_url='https://pomsgpvm01.fnal.gov/poms/show_task_jobs?task_id=$POMS_TASK_ID'"
 
-$JOBSUB_CLIENT_DIR/jobsub_submit -e POMS_CAMPAIGN_ID -e POMS_TASK_ID -l "+POMS_TASK_ID=$POMS_TASK_ID" -l "POMS_CAMPAIGN_ID=$POMS_CAMPAIGN_ID" "$@"
+$JOBSUB_CLIENT_DIR/jobsub_submit \
+	-e POMS_CAMPAIGN_ID \
+	-e POMS_TASK_ID \
+	-l "+FIFE_CATEGORIES='\"POMS_TASK_ID_$POMS_TASK_ID,POMS_CAMPAIGN_ID_$POMS_CAMPAIGN_ID$POMS_CAMPAIGN_TAGS\"'" \
+	-l "+POMS_TASK_ID=$POMS_TASK_ID" \
+	-l "+POMS_CAMPAIGN_ID=$POMS_CAMPAIGN_ID" \
+	"$@"
