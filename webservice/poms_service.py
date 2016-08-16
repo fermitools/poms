@@ -2170,7 +2170,7 @@ class poms_service:
 
         daynames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"]
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s' % campaign_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s&' % campaign_id)
 
         tl = (cherrypy.request.db.query(Task)
                 .filter(Task.campaign_id==campaign_id, Task.created > tmin, Task.created < tmax)
@@ -2297,8 +2297,12 @@ class poms_service:
         return template.render(name=name,
                                 columns=columns,
                                 datarows=outrows,
-                                prevlink=prevlink,
-                                nextlink=nextlink,
+                                tmaxs=tmaxs,
+                                prev=prevlink,
+                                next=nextlink,
+                                days=tdays,
+                                tmin = str(tmin)[:16],
+                                tmax = str(tmax)[:16],
                                 current_experimenter=cherrypy.session.get('experimenter'),
                                 campaign_id=campaign_id,
                                 experiment=experiment,
