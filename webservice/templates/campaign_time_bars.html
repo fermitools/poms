@@ -18,27 +18,28 @@
 
 {%block header%}
 <h1 class="ui header">
-     Campaign {{name}}{%include 'help_button.html'%}
+     Campaign {{name}} Submissions{%include 'help_button.html'%}
 </h1>
 
 <div class="ui basic label">
   <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
 </div>
+
+<div>
+  <a href="{{prev}}">&lt;previous {{days}} days</a> |
+  <a href="{{next}}">next {{days}} days &gt;</a>
+</div>
 {%endblock%}
-
-
 
 
 {%block subheader%}
-<h2 class="ui dividing header"> Campaign {{name}} <!--as of <p class="tmin" style="display:inline;"></p>--></h2>
-<a href="{{prev}}">&lt;previous {{days}} days</a> | 
-<a href="{{next}}">next {{days}} days &gt;</a>
 {%endblock%}
+
 
 
 {%block content%}
 
-   <h2 class="ui row dividing header">{{name}} Submissions </h2>
+   <!--<h2 class="ui row dividing header">{{name}} Submissions </h2>-->
 
    <div class="ui grid">
    <div class="ui row">
