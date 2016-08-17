@@ -1517,7 +1517,7 @@ class poms_service:
          
     @cherrypy.expose
     def campaign_task_files(self,campaign_id, tmin = None, tmax = None, tdays = 1):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'campaign_task_files?campaign_id=%s' % campaign_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'campaign_task_files?campaign_id=%s&' % campaign_id)
  
         #
         # inhale all the campaign related task info for the time window
@@ -1637,7 +1637,7 @@ class poms_service:
                            [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                 ])
         template = self.jinja_env.get_template('campaign_task_files.html')
-        return template.render(name = c.name if c else "", columns = columns, datarows = datarows, prevlink=prevlink, nextlink=nextlink,current_experimenter=cherrypy.session.get('experimenter'), campaign_id = campaign_id, pomspath=self.path,help_page="CampaignTaskFilesHelp")
+        return template.render(name = c.name if c else "", columns = columns, datarows = datarows, tmin=tmins, tmax=tmaxs,  prev=prevlink, next=nextlink, days=tdays, current_experimenter=cherrypy.session.get('experimenter'), campaign_id = campaign_id, pomspath=self.path,help_page="CampaignTaskFilesHelp")
                            
 
     @cherrypy.expose
@@ -2169,7 +2169,7 @@ class poms_service:
 
         daynames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"]
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s' % campaign_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s&' % campaign_id)
 
         tl = (cherrypy.request.db.query(Task)
                 .filter(Task.campaign_id==campaign_id, Task.created > tmin, Task.created < tmax)
@@ -2296,8 +2296,12 @@ class poms_service:
         return template.render(name=name,
                                 columns=columns,
                                 datarows=outrows,
-                                prevlink=prevlink,
-                                nextlink=nextlink,
+                                tmaxs=tmaxs,
+                                prev=prevlink,
+                                next=nextlink,
+                                days=tdays,
+                                tmin = str(tmin)[:16],
+                                tmax = str(tmax)[:16],
                                 current_experimenter=cherrypy.session.get('experimenter'),
                                 campaign_id=campaign_id,
                                 experiment=experiment,
@@ -2688,7 +2692,7 @@ class poms_service:
              Need to add efficiency  (cpu_time/wall_time) as a param to
              jobs_table...
          """
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'jobs_eff_histo?campaign_id=%s' % campaign_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'jobs_eff_histo?campaign_id=%s&' % campaign_id)
 
         q = cherrypy.request.db.query(func.count(Job.job_id), func.floor(Job.cpu_time *10/Job.wall_time))
         q = q.join(Job.task_obj)
