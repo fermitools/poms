@@ -684,11 +684,11 @@ class poms_service:
 
                 # now fixup recoveries -- clean out existing ones, and
                 # add listed ones.
-                db.query(CampaignRecovery).filter(campaign_definition_id == campaign_definition_id).delete()
+                db.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == campaign_definition_id).delete()
                 i = 0
                 for rtn in json.loads(recoveries):
                     rt = db.query(RecoveryType).filter(RecoveryType.name==rtn).first()
-                    cr = CampaignRecovery( campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt)
+                    cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt)
                     db.add(cr)
                 db.commit()
             except IntegrityError, e:
@@ -713,7 +713,19 @@ class poms_service:
                                    .filter(CampaignDefinition.experiment==exp)
                                    .order_by(CampaignDefinition.name)
                                    )
-            data['recoveries'] = (cherrypy.request.db.query(CampaignRecovery).join(CampaignDefinition).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == CampaignDefinition.campaign_definition_id,CampaignDefinition.experiment == exp).order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
+            # Build the recoveries for each campaign.
+            cids = [row[0].campaign_definition_id for row in data['definitions'].all()]
+            recs_dict = {}
+            for cid in cids:
+                recs = (cherrypy.request.db.query(CampaignRecovery).join(CampaignDefinition).options(joinedload(CampaignRecovery.recovery_type))
+                        .filter(CampaignRecovery.campaign_definition_id == cid,CampaignDefinition.experiment == exp)
+                        .order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
+
+                rec_list  = []
+                for rec in recs:
+                    rec_list.append(rec.recovery_type.name )
+                recs_dict[cid] = json.dumps(rec_list)
+            data['recoveries'] = recs_dict
 
             data['rtypes'] = (cherrypy.request.db.query(RecoveryType.name,RecoveryType.description).order_by(RecoveryType.name).all())
         data['message'] = message
@@ -812,9 +824,6 @@ class poms_service:
             data['definitions'] = db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
             data['templates'] = db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
             cids = [c.campaign_id for c in data['campaigns'].all()]
-#            data['depends'] = (db.query(CampaignDependency.uses_camp_id, Campaign.name, CampaignDependency.file_patterns )
-#                               .filter(CampaignDependency.uses_camp_id.in_(cids),
-#                                       Campaign.campaign_id == CampaignDependency.needs_camp_id))
             depends = {}
             for cid in cids:
                 sql = (db.query(CampaignDependency.uses_camp_id, Campaign.name, CampaignDependency.file_patterns )
@@ -825,16 +834,6 @@ class poms_service:
                         }
                 depends[cid] = json.dumps(deps)
             data['depends'] = depends
-            print "*"*80
-            print "*"*80
-            print "*"*80
-            for key in depends.keys():
-                print "%s" % str(depends[key])
-            print "*"*80
-            print "*"*80
-            print "*"*80
-            
-
 
         data['message'] = message
         template = self.jinja_env.get_template('campaign_edit.html')

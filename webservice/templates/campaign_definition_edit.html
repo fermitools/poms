@@ -77,13 +77,11 @@
 	<td id="cdf_script_{{loop.index}}">{{row.CampaignDefinition.launch_script|replace("None","")}}</td>
 	<td id="cdf_definition_{{loop.index}}">{{row.CampaignDefinition.definition_parameters|replace("None","")}}</td>
 	<td id="cdf_recovery_{{loop.index}}">
-            [
-            {%for recov in data.recoveries %}
-              {%if recov.campaign_definition_id == row.CampaignDefinition.campaign_definition_id %}
-                 "{{recov.recovery_type.name}}"{%if not loop.last%},{%endif%}
-              {%endif%}
-            {%endfor%}
-            ]
+	  {% if data.recoveries[row.CampaignDefinition.campaign_definition_id] is defined %}
+	    {{data.recoveries[row.CampaignDefinition.campaign_definition_id]}}
+	  {% else %}
+	    []
+	  {% endif %}
        </td>
       </tr>
       {% endfor %}
@@ -231,13 +229,14 @@
        <ol>
          {% for i in range(5) %}
          <li> 
-             <select id="re_recover_{{i}}">
-                <option value="">-</option>
-                {% for rtype in data.rtypes %}
-                <option value="{{rtype[0]}}">{{rtype[0]}} -- {{rtype[1]}}</option>
-                {% endfor %}
-             </select>
-         {%endfor%}
+           <select id="re_recover_{{i}}">
+             <option value="">-</option>
+             {% for rtype in data.rtypes %}
+             <option value="{{rtype[0]}}">{{rtype[0]}} -- {{rtype[1]}}</option>
+             {% endfor %}
+           </select>
+           {%endfor%}
+	 </li>
        </ol>
       <div class="actions">
        <button class="ui button deny pink">Cancel</button>
@@ -274,6 +273,7 @@ function create_row(index, key, value) {
 var ep_parms = [];
 
 $("#edit_recovery_modal_btn").click(function() {
+  listLen = 5;
   var recoveries = $("#ae_definition_recovery_text").val();
   var rlist = JSON.parse(recoveries);
   var i = 0;
@@ -286,7 +286,7 @@ $("#edit_recovery_modal_btn").click(function() {
     onApprove : function(){
       var rlist = [];
       var s;
-      for (i = 0; i < 5 ; i++) {
+      for (i = 0; i < listLen ; i++) {
          s = $("#re_recover_"+i.toString()+" option:selected").val();
          if (s) {
              rlist.push(s);
@@ -453,7 +453,7 @@ function ep_down_button(current_row) {
     $("#ae_input_files_per_job").val( $("#cdf_input_"+index).text() );
     $("#ae_output_files_per_job").val( $("#cdf_output_"+index).text() );
     $("#ae_output_file_patterns").val( $("#cdf_outputpat_"+index).text() );
-    $("#ae_definition_recovery_text").val( $("#cdf_recovery_"+index).text() );
+    $("#ae_definition_recovery_text").val( $.trim( $("#cdf_recovery_"+index).text() ) );
     $("#ae_definition_recovery").val( $("#cdf_recovery_"+index).text() );
     $("#definition_add_edit_modal").modal('show');
   }
