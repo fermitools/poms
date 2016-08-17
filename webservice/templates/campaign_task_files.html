@@ -9,7 +9,11 @@
 <div class="ui breadcrumb" style="margin-top: -45px;">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
-  <div class="section">Submission file info for campaign {{name}}</div>
+  <a href="{{pomspath}}/show_campaigns/" class="section">Campaigns</a>
+  <div class="divider"> / </div>
+  <a href="{{pomspath}}/campaign_info?campaign_id={{campaign_id}}" class="section">{{name}}</a>
+  <div class="divider"> / </div>
+  <div class="section">Submission file info</div>
 </div>
 {%endblock%}
 
