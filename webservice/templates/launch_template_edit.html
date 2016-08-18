@@ -58,7 +58,7 @@
       <tr>
 	<td class="collapsing">
           {% if data.authorized==True %}
-	  <i class="large edit link blue icon"  onclick="edit_template('{{row.LaunchTemplate.launch_id}}','{{row.LaunchTemplate.name}}','{{row.LaunchTemplate.launch_host}}','{{row.LaunchTemplate.launch_account}}','{{row.LaunchTemplate.launch_setup}}');"></i>
+	  <i class="large edit link blue icon"  onclick="edit_template('{{row.LaunchTemplate.launch_id}}','{{row.LaunchTemplate.name}}','{{row.LaunchTemplate.launch_host}}','{{row.LaunchTemplate.launch_account}}','{{row.LaunchTemplate.launch_setup|e}}');"></i>
 	  <i class="large trash link blue icon" onclick="delete_template('{{row.LaunchTemplate.name}}'); "></i>
 	  {% else %}
 	  <i class="disabled large edit link blue icon">
@@ -68,7 +68,7 @@
 	<td>{{row.LaunchTemplate.name}}</td>
 	<td>{{row.LaunchTemplate.launch_host}}</td>
 	<td>{{row.LaunchTemplate.launch_account}}</td>
-	<td>{{row.LaunchTemplate.launch_setup}}</td>
+	<td>{{row.LaunchTemplate.launch_setup|e}}</td>
       </tr>
       {% endfor %}
     </tbody>
