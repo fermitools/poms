@@ -2363,13 +2363,13 @@ class poms_service:
 
             res = l[camp.cs_last_split]
 
-        elif camp.cs_split_type.starts_with('mod_'):
+        elif camp.cs_split_type.startswith('mod_'):
             m = int(camp.cs_split_type[4:])
             if camp.cs_last_split == '':
                 camp.cs_last_split = -1
             camp.cs_last_split += 1
             new = dataset + "_slice%d" % camp.cs_last_split
-            self.samweb_lite.create_definition(new, "defname: %s stride %d skip %d" % (camp.dataset, m, camp.cs_last_split))
+            cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new,  "defname: %s stride %d skip %d" % (camp.dataset, m, camp.cs_last_split))
             res = new
 
         elif camp.cs_split_type == 'new':
@@ -2377,10 +2377,12 @@ class poms_service:
             t = time.time()
 
             if camp.cs_last_split == '':
-                new = dataset
+                new = camp.dataset
             else:    
-                new = dataset + "_since_%s" % camp.cs_last_split
-                self.samweb_lite.create_definition(new, "defname: %s and start_time > %s" % (camp.dataset, time.strftime("%Y-%m-%dT%h:%m:%s", camp.cs_last_split)))
+                if camp.cs_last_split == None:
+                    camp.cs_last_split = time.time()
+                new = camp.dataset + "_since_%s" % camp.cs_last_split
+                cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new, "defname: %s and start_time > %s" % (camp.dataset, time.strftime("%Y-%m-%dT%h:%m:%s", time.gmtime(camp.cs_last_split))))
 
             # mark time for next time
             camp.cs_last_split = t
@@ -2786,9 +2788,11 @@ class poms_service:
 
         if not delete:
 
-            # make job for new
+            # make job for new -- use current link for product
+            pdir=os.environ.get("POMS_DIR","/etc/poms")
+            pdir=pdir[:pdir.rfind("poms")+4] + "/current"
             job = my_crontab.new(command="%s/cron/launcher --campaign_id=%s" % (
-                              os.environ.get("POMS_DIR","/etc"), campaign_id),
+                              pdir, campaign_id),
                               comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
 
             # set timing...
