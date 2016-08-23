@@ -2558,6 +2558,8 @@ class poms_service:
         cmdl.append('EOF')
         cmd = '\n'.join(cmdl)
 
+        cmd = cmd.replace('\r','')
+
         # make sure launch doesn't take more that half an hour...
         output = popen_read_with_timeout(cmd, 1800)
 
