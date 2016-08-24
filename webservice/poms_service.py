@@ -2349,7 +2349,7 @@ class poms_service:
     def get_dataset_for(self, camp):
         res = None
 
-        if camp.cs_split_type == None or camp.cs_split_type in [ '', 'draining']:
+        if camp.cs_split_type == None or camp.cs_split_type in [ '', 'draining','None' ]:
             # no split to do, it is a draining datset, etc.
             res =  camp.dataset
 
@@ -2381,7 +2381,7 @@ class poms_service:
             else:    
                 if camp.cs_last_split == None:
                     camp.cs_last_split = time.time()
-                new = camp.dataset + "_since_%s" % camp.cs_last_split
+                new = camp.dataset + "_since_%s" % int(camp.cs_last_split)
                 cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new, "defname: %s and start_time > %s" % (camp.dataset, time.strftime("%Y-%m-%dT%h:%m:%s", time.gmtime(camp.cs_last_split))))
 
             # mark time for next time
@@ -2524,7 +2524,7 @@ class poms_service:
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.hostname,
-            "ssh -tx %s@%s <<EOF" % (lt.launch_account, lt.launch_host),
+            "ssh -tx %s@%s <<'EOF'" % (lt.launch_account, lt.launch_host),
             lt.launch_setup % {
               "dataset":dataset,
               "version":c.software_version,

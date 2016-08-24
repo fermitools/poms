@@ -22,7 +22,7 @@ class Campaign(Base):
     updater = Column(ForeignKey(u'experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
     vo_role = Column(Text, nullable = False)
-    cs_last_split = Column(DateTime(True), nullable=True)
+    cs_last_split = Column(Integer, nullable=True)
     cs_split_type = Column(Text, nullable = True)
     cs_split_dimensions = Column(Text, nullable = True)
     dataset = Column(Text, nullable = False)
