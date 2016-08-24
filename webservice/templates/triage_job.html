@@ -48,11 +48,11 @@
 
 
 
-
 <table class="ui celled table">
   <thead>
     <tr>
       <th>Status</th>
+      <th>CPU Efficiency</th>
       <th>Host Site</th>
       <th>Node Name</th>
       <th>CPU</th>
@@ -65,6 +65,7 @@
   <tbody>
     <tr>
       <td {% if job_info.Job.status == "Completed" %} class="positive">  <i class="icon checkmark"></i>  {% else %} >  {% endif %}      {{job_info.Job.status}}</td>
+      <td>{{efficiency}}{% if efficiency != None %}%{%endif%}</td>
       <td>{{job_info.Job.host_site}}</td>
       <td>{{job_info.Job.node_name}}</td>
       <td>{{job_info.Job.cpu_type}}</td>
