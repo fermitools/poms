@@ -250,7 +250,7 @@ class CampaignSnapshot(Base):
     param_overrides = Column(JSON)
     updater = Column(Integer)
     updated = Column(DateTime(True))
-    cs_last_split = Column(DateTime(True))
+    cs_last_split = Column(Integer)
     cs_split_type = Column(Text)
     cs_split_dimensions = Column(Text)
 
