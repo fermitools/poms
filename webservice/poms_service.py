@@ -2356,25 +2356,37 @@ class poms_service:
         if camp.cs_split_type == None or camp.cs_split_type in [ '', 'draining','None' ]:
             # no split to do, it is a draining datset, etc.
             res =  camp.dataset
-
             
         elif camp.cs_split_type == 'list':
             j# we were given a list of datasets..
             l = camp.dataset.split(',')
-            if camp.cs_last_split == '' || camp.cs_last_split == None:
+            if camp.cs_last_split == '' or camp.cs_last_split == None:
                 camp.cs_last_split = -1
             camp.cs_last_split += 1
+
+            if camp.cs_last_split >= len(l):
+                raise cherrypy.HTTPError(404, 'No more splits in this campaign')
 
             res = l[camp.cs_last_split]
 
+            cherrypy.request.db.add(camp)
+            cherrypy.request.db.commit()
+
         elif camp.cs_split_type.startswith('mod_'):
             m = int(camp.cs_split_type[4:])
-            if camp.cs_last_split == '' || camp.cs_last_split == None:
+            if camp.cs_last_split == '' or camp.cs_last_split == None:
                 camp.cs_last_split = -1
             camp.cs_last_split += 1
-            new = dataset + "_slice%d" % camp.cs_last_split
-            cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new,  "defname: %s stride %d skip %d" % (camp.dataset, m, camp.cs_last_split))
+
+            if camp.cs_last_split >= m:
+                raise cherrypy.HTTPError(404, 'No more splits in this campaign')
+            new = camp.dataset + "_slice%d" % camp.cs_last_split
+            cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new,  "defname: %s with stride %d skip %d" % (camp.dataset, m, camp.cs_last_split))
+
             res = new
+
+            cherrypy.request.db.add(camp)
+            cherrypy.request.db.commit()
 
         elif camp.cs_split_type == 'new':
             # save time *before* we define things, so we don't miss any
@@ -2384,14 +2396,14 @@ class poms_service:
                 new = camp.dataset
             else:    
                 new = camp.dataset + "_since_%s" % int(camp.cs_last_split)
-                cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new, "defname: %s and start_time > %s" % (camp.dataset, time.strftime("%Y-%m-%dT%h:%m:%s", time.gmtime(camp.cs_last_split))))
+                cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new, "defname: %s and start_time > '%s'" % (camp.dataset, time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(camp.cs_last_split))))
 
             # mark time for next time
             camp.cs_last_split = t
             res = new
 
-        if res != camp.dataset:
             cherrypy.request.db.add(camp)
+            cherrypy.request.db.commit()
 
         return res
 
@@ -2446,7 +2458,7 @@ class poms_service:
         if t.parent_obj:
            t = t.parent_obj
 
-        rlist = self.get_recovery_list_for_campaign_def(self, t.campaign_obj.campaign_definition_obj)
+        rlist = self.get_recovery_list_for_campaign_def(t.campaign_obj.campaign_definition_obj)
 
         if t.recovery_position == None:
            t.recovery_position = 0
