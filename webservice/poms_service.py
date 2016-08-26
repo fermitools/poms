@@ -1412,9 +1412,25 @@ class poms_service:
         es_response= es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
         #ends condor event logs
 
+
+        #get cpu efficiency
+        query = {
+            'fields' : ['efficiency'],
+            'query' : {
+                'term' : { 'jobid' : job_info.Job.jobsub_job_id }
+            }
+        }
+
+        es_efficiency_response = es.search(index='fifebatch-jobs', types=['job'], query=query)
+        if "fields" in es_efficiency_response.get("hits").get("hits")[0].keys():
+            efficiency = int(es_efficiency_response.get('hits').get('hits')[0].get('fields').get('efficiency')[0] * 100)
+        else:
+            efficiency = None
+        #ends get cpu efficiency
+
         task_jobsub_job_id = self.task_min_job(job_info.Job.task_id)
 
-        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id)
+        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, efficiency=efficiency, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id)
 
     def handle_dates(self,tmin, tmax, tdays, baseurl):
         """
