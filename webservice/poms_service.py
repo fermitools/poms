@@ -1412,9 +1412,25 @@ class poms_service:
         es_response= es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
         #ends condor event logs
 
+
+        #get cpu efficiency
+        query = {
+            'fields' : ['efficiency'],
+            'query' : {
+                'term' : { 'jobid' : job_info.Job.jobsub_job_id }
+            }
+        }
+
+        es_efficiency_response = es.search(index='fifebatch-jobs', types=['job'], query=query)
+        if "fields" in es_efficiency_response.get("hits").get("hits")[0].keys():
+            efficiency = int(es_efficiency_response.get('hits').get('hits')[0].get('fields').get('efficiency')[0] * 100)
+        else:
+            efficiency = None
+        #ends get cpu efficiency
+
         task_jobsub_job_id = self.task_min_job(job_info.Job.task_id)
 
-        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id)
+        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, efficiency=efficiency, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id)
 
     def handle_dates(self,tmin, tmax, tdays, baseurl):
         """
@@ -2390,20 +2406,56 @@ class poms_service:
 
         elif camp.cs_split_type == 'new':
             # save time *before* we define things, so we don't miss any
-            t = time.time()
+            # and knock off an estimated FTS delay
+            est_fts_delay = 1800 # half an hour?
+            t = time.time() - 1800
 
             if camp.cs_last_split == '' or camp.cs_last_split == None:
                 new = camp.dataset
             else:    
                 new = camp.dataset + "_since_%s" % int(camp.cs_last_split)
-                cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new, "defname: %s and start_time > '%s'" % (camp.dataset, time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(camp.cs_last_split))))
+                cherrypy.request.samweb_lite.create_definition(
+                  camp.campaign_definition_obj.experiment, 
+                  new, 
+                  "defname: %s and end_time > '%s' and end_time <= '%s'" % (
+                     camp.dataset, 
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(camp.cs_last_split)),
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(t)))
+                )
 
-            # mark time for next time
+            # mark end time for start of next run
             camp.cs_last_split = t
             res = new
 
             cherrypy.request.db.add(camp)
             cherrypy.request.db.commit()
+
+        elif camp.cs_split_type == 'new_local':
+            # save time *before* we define things, so we don't miss any
+            # and knock off an estimated FTS delay
+            est_fts_delay = 1800 # half an hour?
+            t = time.time() - 1800
+
+            if camp.cs_last_split == '' or camp.cs_last_split == None:
+                new = camp.dataset
+            else:    
+                new = camp.dataset + "_since_%s" % int(camp.cs_last_split)
+                cherrypy.request.samweb_lite.create_definition(
+                  camp.campaign_definition_obj.experiment, 
+                  new, 
+                  "defname: %s and end_time > '%s' and end_time <= '%s'" % (
+                     camp.dataset, 
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(camp.cs_last_split)),
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(t)))
+                )
+
+            # mark end time for start of next run
+            camp.cs_last_split = t
+            res = new
+
+            cherrypy.request.db.add(camp)
+            cherrypy.request.db.commit()
+
 
         return res
 
@@ -2545,7 +2597,7 @@ class poms_service:
               "group": group,
               "experimenter": experimenter_login,
             },
-            "setup poms_jobsub_wrapper v0_4 -z /grid/fermiapp/products/common/db",
+            "setup poms_jobsub_wrapper v0_5 -z /grid/fermiapp/products/common/db",
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "export POMS_TEST=%s" % ("" if "poms" in self.hostname else "1"),
             "export POMS_CAMPAIGN_ID=%s" % c.campaign_id,
