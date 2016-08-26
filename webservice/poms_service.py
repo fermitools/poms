@@ -2390,20 +2390,56 @@ class poms_service:
 
         elif camp.cs_split_type == 'new':
             # save time *before* we define things, so we don't miss any
-            t = time.time()
+            # and knock off an estimated FTS delay
+            est_fts_delay = 1800 # half an hour?
+            t = time.time() - 1800
 
             if camp.cs_last_split == '' or camp.cs_last_split == None:
                 new = camp.dataset
             else:    
                 new = camp.dataset + "_since_%s" % int(camp.cs_last_split)
-                cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new, "defname: %s and start_time > '%s'" % (camp.dataset, time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(camp.cs_last_split))))
+                cherrypy.request.samweb_lite.create_definition(
+                  camp.campaign_definition_obj.experiment, 
+                  new, 
+                  "defname: %s and end_time > '%s' and end_time <= '%s'" % (
+                     camp.dataset, 
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(camp.cs_last_split)),
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(t)))
+                )
 
-            # mark time for next time
+            # mark end time for start of next run
             camp.cs_last_split = t
             res = new
 
             cherrypy.request.db.add(camp)
             cherrypy.request.db.commit()
+
+        elif camp.cs_split_type == 'new_local':
+            # save time *before* we define things, so we don't miss any
+            # and knock off an estimated FTS delay
+            est_fts_delay = 1800 # half an hour?
+            t = time.time() - 1800
+
+            if camp.cs_last_split == '' or camp.cs_last_split == None:
+                new = camp.dataset
+            else:    
+                new = camp.dataset + "_since_%s" % int(camp.cs_last_split)
+                cherrypy.request.samweb_lite.create_definition(
+                  camp.campaign_definition_obj.experiment, 
+                  new, 
+                  "defname: %s and end_time > '%s' and end_time <= '%s'" % (
+                     camp.dataset, 
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(camp.cs_last_split)),
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(t)))
+                )
+
+            # mark end time for start of next run
+            camp.cs_last_split = t
+            res = new
+
+            cherrypy.request.db.add(camp)
+            cherrypy.request.db.commit()
+
 
         return res
 
