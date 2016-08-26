@@ -2381,7 +2381,7 @@ class poms_service:
             if camp.cs_last_split >= m:
                 raise cherrypy.HTTPError(404, 'No more splits in this campaign')
             new = camp.dataset + "_slice%d" % camp.cs_last_split
-            cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new,  "defname: %s with stride %d skip %d" % (camp.dataset, m, camp.cs_last_split))
+            cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new,  "defname: %s with stride %d offset %d" % (camp.dataset, m, camp.cs_last_split))
 
             res = new
 
