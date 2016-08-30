@@ -2621,7 +2621,7 @@ class poms_service:
               "group": group,
               "experimenter": experimenter_login,
             },
-            "setup poms_jobsub_wrapper v0_5 -z /grid/fermiapp/products/common/db",
+            "setup poms_jobsub_wrapper v0_4 -z /grid/fermiapp/products/common/db",
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "export POMS_TEST=%s" % ("" if "poms" in self.hostname else "1"),
             "export POMS_CAMPAIGN_ID=%s" % c.campaign_id,
