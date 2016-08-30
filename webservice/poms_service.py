@@ -1499,8 +1499,14 @@ class poms_service:
 
         counts = {}
         counts_keys = {}
-        for c in cl:
+
+        pendings = self.get_pending_for_campaigns(cl, tmin, tmax)
+        effs = self.get_efficiency(cl, tmin, tmax)
+        
+        for i, c in enumerate(cl):
             counts[c.campaign_id] = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
+            counts[c.campaign_id]['efficiency'] = effs[i]
+            counts[c.campaign_id]['pending'] = pendings[i]
             counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
 
         template = self.jinja_env.get_template('show_campaigns.html')
@@ -2211,7 +2217,7 @@ class poms_service:
         day = -1
         date = None
         first = 1
-        columns = ['day','date','requested files','delivered files','jobs','failed','outfiles','pending']
+        columns = ['day','date','requested files','delivered files','jobs','failed','outfiles','pending','efficiency%']
         exitcodes.sort()
         for e in exitcodes:
             if e != None:
@@ -2230,10 +2236,13 @@ class poms_service:
         for e in exitcodes:
             exitcounts[e] = 0
 
+        daytasks = []
         for tno, task in enumerate(tl):
             if day != task.created.weekday():
                 if not first:
                      # add a row to the table on the day boundary
+                       
+                     daytasks.append(tasklist)
                      outrow = []
                      outrow.append(daynames[day])
                      outrow.append(date.isoformat()[:10])
@@ -2242,7 +2251,10 @@ class poms_service:
                      outrow.append(str(totjobs))
                      outrow.append(str(totjobfails))
                      outrow.append(str(outfiles))
-                     outrow.append(str(pendfiles))
+                     outrow.append("")  # we will get pending counts in a minute
+                     if totwall == 0.0:
+                        totwall = 0.001
+                     outrow.append(str(int(totcpu * 100.0 / totwall)))
                      for e in exitcodes:
                          outrow.append(exitcounts[e])
                      outrows.append(outrow)
@@ -2254,9 +2266,12 @@ class poms_service:
                 totjobfails = 0
                 outfiles = 0
                 infiles = 0
-                pendfiles = 0
+                totcpu = 0
+                totwall = 0
+                tasklist = []
                 for e in exitcodes:
                     exitcounts[e] = 0
+            tasklist.append(task)
             day = task.created.weekday()
             date = task.created
             #
@@ -2275,14 +2290,14 @@ class poms_service:
                 #if job.updated < tmin or job.updated > tmax:
                 #    continue
 
+                if job.cpu_time and job.wall_time:
+                    totcpu += job.cpu_time
+                    totwall += job.wall_time
+
                 exitcounts[job.user_exe_exit_code] = exitcounts.get(job.user_exe_exit_code, 0) + 1
                 if job.job_files:
                     nout = len(job.job_files)
                     outfiles += nout
-                    if not job.output_files_declared:
-                        # a bit of a lie, we don't know they're *all* pending, just some of them
-                        # but its close, and we don't want to re-poll SAM here..
-                        pendfiles += nout
 
                 if job.job_files:
                     nin = len([x for x in job.job_files if x.file_type == "input"])
@@ -2303,11 +2318,20 @@ class poms_service:
         outrow.append(str(totjobs))
         outrow.append(str(totjobfails))
         outrow.append(str(outfiles))
-        outrow.append(str(pendfiles))
+        outrow.append("") # we will get pending counts in a minute
         for e in exitcodes:
             outrow.append(exitcounts[e])
         outrows.append(outrow)
 
+        #
+        # get pending counts for the task list for each day
+        # and fill in the 7th column...
+        #
+        pendings = self.get_pending_for_task_lists( daytasks )
+        for i in range(len(pendings)):
+            outrows[i][7] = pendings[i]
+  
+            
         template = self.jinja_env.get_template('campaign_sheet.html')
         if tl and tl[0]:
             name = tl[0].campaign_obj.name
@@ -2960,4 +2984,70 @@ class poms_service:
         return self.show_dimension_files(c.experiment, dims)
 
 
+    #----------------
+ 
+    def get_efficiency(self, campaign_list, tmin, tmax):
+        totcpu = 0
+        totwall = 0
+        efflist = []
+        for c in campaign_list:
+	    tl = (cherrypy.request.db.query(Task).
+		options(joinedload(Task.campaign_obj)).
+                options(joinedload(Task.jobs)).
+                filter(Task.campaign_id == c.campaign_id,
+                       Task.created >= tmin, Task.created < tmax ).
+                all())
+            for t in tl:
+                for job in t.jobs:
+                    if job.cpu_time and job.wall_time:
+                        totcpu += job.cpu_time
+                        totwall += job.wall_time
+            if totwall == 0:
+               totwall = 0.0001
+
+            efflist.append( int(totcpu * 100.0 / totwall))
+
+        return efflist
+
+    def get_pending_for_campaigns(self, campaign_list, tmin, tmax):
+
+        task_list_list = []
+
+        for c in campaign_list:
+	    tl = (cherrypy.request.db.query(Task).
+		options(
+	 	     joinedload(Task.campaign_obj).
+	             joinedload(Campaign.campaign_definition_obj)).
+                filter(Task.campaign_id == c.campaign_id, 
+                       Task.created >= tmin, Task.created < tmax ).
+                all())
+            task_list_list.append(tl) 
+
+        return self.get_pending_for_task_lists(task_list_list)
+
+    def get_pending_for_task_lists(self, task_list_list):
+        dimlist=[]
+        experiment = None
+        for tl in task_list_list:
+            diml = ["("]
+            for task in tl:
+                diml.append("(project_name %s" % task.project)
+                diml.append("minus (")
+                experiment = task.campaign_obj.campaign_definition_obj.experiment
+                sep = ""
+                for pat in str(task.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
+                     diml.append(sep)
+                     diml.append("isparentof: ( file_name '%s' and version '%s' )" % (pat, task.campaign_obj.software_version))
+                     sep = "or"
+                diml.append(")")
+                diml.append(")")
+                diml.append("union")
+
+	    diml[-1] = ")"
+	    dimlist.append(" ".join(diml))
+
+        cherrypy.log("get_pending_for_task_lists: dimlist: %s" % dimlist)
+
+	count_list = cherrypy.request.samweb_lite.count_files_list(experiment,dimlist)
+        return count_list
 
