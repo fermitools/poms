@@ -10,7 +10,7 @@ import subprocess
 import select
 from collections import OrderedDict
 
-from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, create_engine, null, desc, text, func, exc, distinct
+from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_,  create_engine, null, desc, text, func, exc, distinct
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -1422,10 +1422,14 @@ class poms_service:
         }
 
         es_efficiency_response = es.search(index='fifebatch-jobs', types=['job'], query=query)
-        if "fields" in es_efficiency_response.get("hits").get("hits")[0].keys():
-            efficiency = int(es_efficiency_response.get('hits').get('hits')[0].get('fields').get('efficiency')[0] * 100)
-        else:
-            efficiency = None
+        try:
+            if es_efficiency_response and "fields" in es_efficiency_response.get("hits").get("hits")[0].keys():
+                efficiency = int(es_efficiency_response.get('hits').get('hits')[0].get('fields').get('efficiency')[0] * 100)
+            else:
+                efficiency = None
+        except:
+	    efficiency = None
+
         #ends get cpu efficiency
 
         task_jobsub_job_id = self.task_min_job(job_info.Job.task_id)
@@ -1500,17 +1504,19 @@ class poms_service:
         counts = {}
         counts_keys = {}
 
-        pendings = self.get_pending_for_campaigns(cl, tmin, tmax)
+        dimlist, pendings = self.get_pending_for_campaigns(cl, tmin, tmax)
         effs = self.get_efficiency(cl, tmin, tmax)
         
-        for i, c in enumerate(cl):
+        i = 0
+        for c in cl:
             counts[c.campaign_id] = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
             counts[c.campaign_id]['efficiency'] = effs[i]
             counts[c.campaign_id]['pending'] = pendings[i]
             counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
+            i = i + 1
 
         template = self.jinja_env.get_template('show_campaigns.html')
-        return template.render( In= ("" if active == True else "In"), services=self.service_status_hier('All'), counts = counts, counts_keys = counts_keys, cl = cl, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', pomspath=self.path, help_page="ShowCampaignsHelp")
+        return template.render( In= ("" if active == True else "In"), services=self.service_status_hier('All'), counts = counts, counts_keys = counts_keys, cl = cl, tmins = tmins, tmaxs = tmaxs, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', dimlist = dimlist, pomspath=self.path, help_page="ShowCampaignsHelp")
 
     @cherrypy.expose
     def campaign_info(self, campaign_id ):
@@ -2158,7 +2164,10 @@ class poms_service:
     @cherrypy.expose
     def show_dimension_files(self, experiment, dims):
 
-        flist = cherrypy.request.samweb_lite.list_files(experiment, dims)
+        try:
+            flist = cherrypy.request.samweb_lite.list_files(experiment, dims)
+        except ValueError:
+            flist = []
 
         template = self.jinja_env.get_template('show_dimension_files.html')
         return template.render(flist = flist, dims = dims,  current_experimenter=cherrypy.session.get('experimenter'),  statusmap = [], pomspath=self.path,help_page="ShowDimensionFilesHelp")
@@ -2987,31 +2996,41 @@ class poms_service:
     #----------------
  
     def get_efficiency(self, campaign_list, tmin, tmax):
-        totcpu = 0
-        totwall = 0
+        id_list = []
+        for c in campaign_list:
+            id_list.append(c.campaign_id)
+
+        rows = (cherrypy.request.db.query( func.sum(Job.cpu_time), func.sum(Job.wall_time),Task.campaign_id).
+                filter(Job.task_id == Task.task_id, 
+                       Task.campaign_id.in_(id_list),
+                       Task.created >= tmin, Task.created < tmax ).
+                group_by(Task.campaign_id).all())
+ 
+        cherrypy.log("got rows:")
+        for r in rows:
+            cherrypy.log("%s" % repr(r))
+
+        mapem={}
+        for totcpu, totwall, campaign_id in rows:
+            if totcpu != None and totwall != None:
+                mapem[campaign_id] = int(totcpu * 100.0 / totwall)
+            else:
+                mapem[campaign_id] = -1
+
+        cherrypy.log("got map: %s" % repr(mapem))
+
         efflist = []
         for c in campaign_list:
-	    tl = (cherrypy.request.db.query(Task).
-		options(joinedload(Task.campaign_obj)).
-                options(joinedload(Task.jobs)).
-                filter(Task.campaign_id == c.campaign_id,
-                       Task.created >= tmin, Task.created < tmax ).
-                all())
-            for t in tl:
-                for job in t.jobs:
-                    if job.cpu_time and job.wall_time:
-                        totcpu += job.cpu_time
-                        totwall += job.wall_time
-            if totwall == 0:
-               totwall = 0.0001
+            efflist.append(mapem.get(c.campaign_id, -2))
 
-            efflist.append( int(totcpu * 100.0 / totwall))
-
+        cherrypy.log("got list: %s" % repr(efflist))
         return efflist
 
     def get_pending_for_campaigns(self, campaign_list, tmin, tmax):
 
         task_list_list = []
+
+        cherrypy.log("in get_pending_for_campaigns, tmin %s tmax %s" % (tmin, tmax))
 
         for c in campaign_list:
 	    tl = (cherrypy.request.db.query(Task).
@@ -3028,9 +3047,12 @@ class poms_service:
     def get_pending_for_task_lists(self, task_list_list):
         dimlist=[]
         experiment = None
+        cherrypy.log("get_pending_for_task_lists: task_list_list (%d): %s" % (len(task_list_list),task_list_list))
         for tl in task_list_list:
             diml = ["("]
             for task in tl:
+                #if task.project == None:
+                #    continue
                 diml.append("(project_name %s" % task.project)
                 diml.append("minus (")
                 experiment = task.campaign_obj.campaign_definition_obj.experiment
@@ -3044,10 +3066,14 @@ class poms_service:
                 diml.append("union")
 
 	    diml[-1] = ")"
+
+            if len(diml) <= 1:
+               diml[0] = "project_name no_project_info"
+
 	    dimlist.append(" ".join(diml))
 
-        cherrypy.log("get_pending_for_task_lists: dimlist: %s" % dimlist)
+        cherrypy.log("get_pending_for_task_lists: dimlist (%d): %s" % (len(dimlist), dimlist))
 
 	count_list = cherrypy.request.samweb_lite.count_files_list(experiment,dimlist)
-        return count_list
+        return dimlist, count_list
 

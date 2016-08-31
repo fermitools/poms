@@ -86,11 +86,24 @@
      </tr>
 
      {% for c in cl %}
+     {% set outer_loop = loop %}
             <tr>
             <td>{{c.experiment}}</td>
             <td> <a href="{{pomspath}}/campaign_info?campaign_id={{c.campaign_id}}">{{c.name}}</a></td>
             {% for k in counts_keys[c.campaign_id] %}
-              {% if k %}
+              {% if k == "efficiency" %}
+                <td>
+                  <a href="job_table?campaign_id={{c.campaign_id}}&job_status=Completed&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
+                    {{counts[c.campaign_id][k]}}
+                  </a>
+                </td>
+              {% elif k == "pending" %}
+                <td>
+                  <a href="show_dimension_files?experiment={{c.experiment}}&dims={{dimlist[outer_loop.index0]}}">
+                    {{counts[c.campaign_id][k]}}
+                  </a>
+                </td>
+              {% elif k %}
                 <td>
                   <a href="job_table?campaign_id={{c.campaign_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
                     {{counts[c.campaign_id][k]}}

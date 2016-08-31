@@ -376,7 +376,7 @@
 
                 </table>  <!--ends root table-->
 
-<small>{{es_response.get('hits').get('total')}} records in {{es_response.get('took')}} ms</small>
+<small>{{es_response.get('hits',{}).get('total',0)}} records in {{es_response.get('took',0)}} ms</small>
 
 
 
