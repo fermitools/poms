@@ -220,7 +220,7 @@ class jobsub_q_scraper:
 	        pass
 
             n = gc.collect()
-            print "gc.collect() returns %d unreachable" % n
+            #print "gc.collect() returns %d unreachable" % n
 
 if __name__ == '__main__':
     debug = 0
@@ -232,7 +232,7 @@ if __name__ == '__main__':
         js.poll()
     except KeyboardInterrupt:
         n = gc.collect()
-        print "gc.collect() returns %d unreachable" % n
-        print "Remaining garbage:"
-        pprint.pprint(gc.garbage)
+        #print "gc.collect() returns %d unreachable" % n
+        #print "Remaining garbage:"
+        #pprint.pprint(gc.garbage)
     
