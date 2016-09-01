@@ -3053,11 +3053,13 @@ class poms_service:
             for task in tl:
                 #if task.project == None:
                 #    continue
-                diml.append("(project_name %s" % task.project)
+                diml.append("(snapshot_for_project_name %s" % task.project)
                 diml.append("minus (")
                 experiment = task.campaign_obj.campaign_definition_obj.experiment
                 sep = ""
                 for pat in str(task.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
+                     if (pat == "None"):
+                         pat = "%"
                      diml.append(sep)
                      diml.append("isparentof: ( file_name '%s' and version '%s' )" % (pat, task.campaign_obj.software_version))
                      sep = "or"
