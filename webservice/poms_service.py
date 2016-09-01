@@ -1096,7 +1096,7 @@ class poms_service:
 		 for pat in str(task.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
 		     if pat == 'None':
 			pat = '%'
-		     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, task.campaign_obj.software_version)
+		     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, task.campaign_obj.software_version)
                  lookup_dims_list.append(allkiddims)
             else:
                  # we don't have a project, guess off of located jobs
@@ -1122,7 +1122,8 @@ class poms_service:
             # this is using a 90% threshold, this ought to be
             # a tunable in the campaign_definition.  Basically we consider it
             # located if 90% of the files it consumed have suitable kids...
-            cfrac = lookup_task_list[i].campaign_obj.campaign_def_obj.cfrac
+            # cfrac = lookup_task_list[i].campaign_obj.campaign_definition_obj.cfrac
+            cfrac = 0.9
             threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
             thresholds.append(threshold)
             if float(count_list[i]) >= threshold:
@@ -2213,6 +2214,7 @@ class poms_service:
                 .all())
         psl = self.project_summary_for_tasks(tl)        # Get project summary list for a given task list in one query
 
+        # XXX should be based on Task create date, not job updated date..
         el = cherrypy.request.db.query(distinct(Job.user_exe_exit_code)).filter(Job.updated >= tmin, Job.updated <= tmax).all()
         
 	experiment, = cherrypy.request.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).one()
@@ -2294,10 +2296,6 @@ class poms_service:
             totjobs += len(task.jobs)
 
             for job in task.jobs:
-                # BZZT -- wrong.  consider all jobs from this submission/task
-                # dont consider jobs outside of our window even if the task is
-                #if job.updated < tmin or job.updated > tmax:
-                #    continue
 
                 if job.cpu_time and job.wall_time:
                     totcpu += job.cpu_time
@@ -2316,6 +2314,7 @@ class poms_service:
         # initially we just added a day to the query range, so we compute a row of totals we don't use..
         # --- but that doesn't work on new projects...
         # add a row to the table on the day boundary
+        daytasks.append(tasklist)
         outrow = []
         outrow.append(daynames[day])
         if date:
@@ -2336,10 +2335,9 @@ class poms_service:
         # get pending counts for the task list for each day
         # and fill in the 7th column...
         #
-        pendings = self.get_pending_for_task_lists( daytasks )
+        dimlist, pendings = self.get_pending_for_task_lists( daytasks )
         for i in range(len(pendings)):
             outrows[i][7] = pendings[i]
-  
             
         template = self.jinja_env.get_template('campaign_sheet.html')
         if tl and tl[0]:
@@ -2349,6 +2347,7 @@ class poms_service:
         return template.render(name=name,
                                 columns=columns,
                                 datarows=outrows,
+                                dimlist=dimlist,
                                 tmaxs=tmaxs,
                                 prev=prevlink,
                                 next=nextlink,
@@ -2513,7 +2512,7 @@ class poms_service:
               self.launch_jobs(cd.uses_camp_id)
            else:
               i = i + 1
-              dims = "ischildof: (snapshot_for_project %s and version %s and file_name like '%s'" % (t.project, t.campaign_obj.software_version, cd.file_patterns)
+              dims = "ischildof: (snapshot_for_project %s and version %s and file_name like '%s' )" % (t.project, t.campaign_obj.software_version, cd.file_patterns)
               dname = "poms_depends_%d_%d" % (t.task_id,i)
  
               cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, dname, dims)
@@ -2767,16 +2766,6 @@ class poms_service:
         response["results"] = results
         return json.dumps(response)
 
-
-
-
-
-
-
-
-
-
-
     @cherrypy.expose
     def jobs_eff_histo(self, campaign_id, tmax = None, tmin = None, tdays = 1 ):
         """  use
@@ -2801,7 +2790,7 @@ class poms_service:
         q = q.join(Job.task_obj)
         q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == campaign_id)
         q = q.filter(Job.wall_time > 0, Job.wall_time > Job.cpu_time)
-        q = q.filter(Job.updated <= tmax, Job.updated >= tmin)
+        q = q.filter(Task.created < tmax, Task.created >= tmin)
         q = q.group_by(func.floor(Job.cpu_time*10/Job.wall_time))
         q = q.order_by((func.floor(Job.cpu_time*10/Job.wall_time)))
 
@@ -2977,7 +2966,7 @@ class poms_service:
             for pat in str(c.campaign_definition_obj.output_file_patterns).split(','):
                 if pat == "None":
                    pat = "%"
-                dims = "%s %s isparentof: ( file_name '%s' and version '%s' ) " % (dims, sep, pat, t.campaign_obj.software_version)
+                dims = "%s %s isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (dims, sep, pat, t.campaign_obj.software_version)
                 sep = "and"
                 cherrypy.log("dims now: %s" % dims)
             dims = dims + ")"
@@ -3003,6 +2992,8 @@ class poms_service:
         rows = (cherrypy.request.db.query( func.sum(Job.cpu_time), func.sum(Job.wall_time),Task.campaign_id).
                 filter(Job.task_id == Task.task_id, 
                        Task.campaign_id.in_(id_list),
+                       Job.cpu_time > 0,
+                       Job.wall_time > 0,
                        Task.created >= tmin, Task.created < tmax ).
                 group_by(Task.campaign_id).all())
  
@@ -3054,14 +3045,15 @@ class poms_service:
                 #if task.project == None:
                 #    continue
                 diml.append("(snapshot_for_project_name %s" % task.project)
-                diml.append("minus ( snapshot for project name %s and (" % task.project)
-                experiment = task.campaign_obj.campaign_definition_obj.experiment
+                diml.append("minus ( snapshot_for_project_name %s and (" % task.project)
+                if experiment == None:
+                    experiment = task.campaign_obj.campaign_definition_obj.experiment
                 sep = ""
                 for pat in str(task.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
                      if (pat == "None"):
                          pat = "%"
                      diml.append(sep)
-                     diml.append("isparentof: ( file_name '%s' and version '%s' )" % (pat, task.campaign_obj.software_version))
+                     diml.append("isparentof: ( file_name '%s' and version '%s' with availability physical )" % (pat, task.campaign_obj.software_version))
                      sep = "or"
                 diml.append(")")
                 diml.append(")")

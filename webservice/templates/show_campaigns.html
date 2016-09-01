@@ -104,7 +104,11 @@
               {% elif k == "pending" %}
                 <td>
                   <a href="show_dimension_files?experiment={{c.experiment}}&dims={{dimlist[outer_loop.index0]}}">
+                   {% if counts[c.campaign_id][k] >= 0 %}
                     {{counts[c.campaign_id][k]}}
+                   {% else %}
+                    -
+                   {% endif %}
                   </a>
                 </td>
               {% elif k %}
