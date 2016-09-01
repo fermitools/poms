@@ -93,7 +93,7 @@
             {% for k in counts_keys[c.campaign_id] %}
               {% if k == "efficiency" %}
                 <td>
-                  <a href="job_eff_histo?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
+                  <a href="jobs_eff_histo?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
                     {{counts[c.campaign_id][k]}}
                   </a>
                 </td>
