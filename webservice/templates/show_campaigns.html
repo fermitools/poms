@@ -93,7 +93,7 @@
             {% for k in counts_keys[c.campaign_id] %}
               {% if k == "efficiency" %}
                 <td>
-                  <a href="jobs_eff_histo?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
+                  <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
                    {% if counts[c.campaign_id][k] >= 0 %}
                     {{counts[c.campaign_id][k]}}
                    {% else %}
@@ -103,7 +103,7 @@
                 </td>
               {% elif k == "pending" %}
                 <td>
-                  <a href="show_dimension_files?experiment={{c.experiment}}&dims={{dimlist[outer_loop.index0]}}">
+                  <a href="{{pomspath}}/show_dimension_files?experiment={{c.experiment}}&dims={{dimlist[outer_loop.index0]}}">
                    {% if counts[c.campaign_id][k] >= 0 %}
                     {{counts[c.campaign_id][k]}}
                    {% else %}
@@ -113,7 +113,7 @@
                 </td>
               {% elif k %}
                 <td>
-                  <a href="job_table?campaign_id={{c.campaign_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
+                  <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
                     {{counts[c.campaign_id][k]}}
                   </a>
                  </td>
