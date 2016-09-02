@@ -13,6 +13,9 @@ class Elasticsearch:
         else:
             self.base_url=cherrypy.config.get('elasticsearch_base_url').strip('"')
 
+        self.cert=cherrypy.config.get('elasticsearch_cert').strip('"')
+        self.key=cherrypy.config.get('elasticsearch_key').strip('"')
+
         requests.packages.urllib3.disable_warnings()
 
     def search(self, **kwargs):
@@ -46,7 +49,7 @@ class Elasticsearch:
         url_bits = [self.base_url, index, doc_type]
         url = "/".join(url_bits)
         payload = json.dumps(body)
-        r = requests.post(url, data=payload)
+        r = requests.post(url, data=payload, cert=(self.cert, self.key), verify=False)
         #print r.text
         #print r.status_code
         return r.json()
@@ -139,16 +142,14 @@ if __name__ == '__main__':
 
     print "*" * 100
 
-    """
     #example of sending a record where datetimes will be serialized
     payload = {'timestamp': datetime.now(), 'message': 'trying out elasticsearch with poms', 'user': 'mgheith'}
-    response = es.index(index='poms-2016-08-11', doc_type='my-poms-type', body=payload)
+    response = es.index(index='poms-2016-09-02', doc_type='my-poms-type', body=payload)
     pprint.pprint(response)
 
     print "*" * 100
 
     #example of sending a record where datetimes will not be serialized
-    payload = {'timestamp': '2016-08-11T20:00:00', 'message': 'trying out elasticsearch with poms not serialized', 'user': 'mgheith'}
-    response = es.index(index='poms-2016-08-11', doc_type='my-poms-type', body=payload)
+    payload = {'timestamp': '2016-09-02T20:00:00', 'message': 'trying out elasticsearch with poms not serialized', 'user': 'mgheith'}
+    response = es.index(index='poms-2016-09-02', doc_type='my-poms-type', body=payload)
     pprint.pprint(response)
-    """
