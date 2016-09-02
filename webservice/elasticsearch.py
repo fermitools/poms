@@ -143,7 +143,7 @@ if __name__ == '__main__':
     print "*" * 100
 
     #example of sending a record where datetimes will be serialized
-    payload = {'timestamp': datetime.now(), 'message': 'trying out elasticsearch with poms', 'user': 'mgheith'}
+    payload = {'timestamp': datetime.utcnow(), 'message': 'trying out elasticsearch with poms', 'user': 'mgheith'}
     response = es.index(index='poms-2016-09-02', doc_type='my-poms-type', body=payload)
     pprint.pprint(response)
 
