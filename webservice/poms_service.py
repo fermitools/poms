@@ -3037,6 +3037,7 @@ class poms_service:
 
     def get_pending_for_task_lists(self, task_list_list):
         dimlist=[]
+        explist=[]
         experiment = None
         cherrypy.log("get_pending_for_task_lists: task_list_list (%d): %s" % (len(task_list_list),task_list_list))
         for tl in task_list_list:
@@ -3046,8 +3047,7 @@ class poms_service:
                 #    continue
                 diml.append("(snapshot_for_project_name %s" % task.project)
                 diml.append("minus ( snapshot_for_project_name %s and (" % task.project)
-                if experiment == None:
-                    experiment = task.campaign_obj.campaign_definition_obj.experiment
+                  
                 sep = ""
                 for pat in str(task.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
                      if (pat == "None"):
@@ -3066,9 +3066,11 @@ class poms_service:
                diml[0] = "project_name no_project_info"
 
 	    dimlist.append(" ".join(diml))
+	    explist.append(task.campaign_obj.campaign_definition_obj.experiment)
 
         cherrypy.log("get_pending_for_task_lists: dimlist (%d): %s" % (len(dimlist), dimlist))
 
-	count_list = cherrypy.request.samweb_lite.count_files_list(experiment,dimlist)
+	count_list = cherrypy.request.samweb_lite.count_files_list(explist,dimlist)
+        cherrypy.log("get_pending_for_task_lists: count_list (%d): %s" % (len(dimlist), count_list))
         return dimlist, count_list
 

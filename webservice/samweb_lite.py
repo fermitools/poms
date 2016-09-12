@@ -125,8 +125,13 @@ class samweb_lite:
                r =  requests.get(url,verify=False)
             return r
                
+        # if given an individual experiment, make it a list for
+        # all the fetches
+        if isinstance(experiment,basestring):
+            experiment = [ experiment ] * len(dims_list)
+
         base = "http://samweb.fnal.gov:8480"
-        urls = ["%s/sam/%s/api/files/count?%s" % (base, experiment, urllib.urlencode({"dims":dims})) for dims in dims_list]
+        urls = ["%s/sam/%s/api/files/count?%s" % (base, experiment[i], urllib.urlencode({"dims":dims_list[i]})) for i in range(len(dims_list))]
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             replies = executor.map(getit, urls)
         infos = []
