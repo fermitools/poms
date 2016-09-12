@@ -27,6 +27,8 @@ import pprint
 import version
 
 
+global_version="unknown"
+
 def error_response():
     dump = ""
     if cherrypy.config.get("dump",True):
@@ -36,7 +38,7 @@ def error_response():
     jinja_env = Environment(loader=PackageLoader('webservice','templates'))
     template = jinja_env.get_template('error_response.html')
     path = cherrypy.config.get("pomspath","/poms")
-    body = template.render(current_experimenter=cherrypy.session.get('experimenter'),message=message,pomspath=path,dump=dump, version=self.version)
+    body = template.render(current_experimenter=cherrypy.session.get('experimenter'),message=message,pomspath=path,dump=dump, version=global_version)
 
     cherrypy.response.status = 500
     cherrypy.response.headers['content-type'] = 'text/html'
@@ -91,6 +93,7 @@ class poms_service:
         cherrypy.config.update({'poms.launches': 'allowed'})
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
+        global_version = self.version
 
     @cherrypy.expose
     def headers(self):
@@ -3069,7 +3072,11 @@ class poms_service:
                diml[0] = "project_name no_project_info"
 
 	    dimlist.append(" ".join(diml))
-	    explist.append(task.campaign_obj.campaign_definition_obj.experiment)
+
+            if len(tl):
+	        explist.append(tl[0].campaign_obj.campaign_definition_obj.experiment)
+            else:
+                explist.append("samdev")
 
         cherrypy.log("get_pending_for_task_lists: dimlist (%d): %s" % (len(dimlist), dimlist))
 
