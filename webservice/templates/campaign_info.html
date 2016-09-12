@@ -134,11 +134,132 @@ $( document ).ready(function() {
 
 </script>
 
+  <div class="ui segment raised ">
 
 
+   <table class="ui celled table unstackable">
+     <tr>
+      <th colspan=3 align="center">Active Jobs </th>
+      <th colspan=3 align="center">Jobs in {{time_range_string}}</th>
+      <th colspan=2 align="center">Stats</th>
+     </tr>
+     <tr>
+        <th>Idle 
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+        <th>Running
+        <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+        <th>Held
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+        <th>Completed
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+        <th>Located
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+        <th>Removed
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+        <th>%Efficiency 
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+        <th>Pending
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+        </th>
+     </tr>
 
-  <div class="ui">
-     <div class="ui segment raised floated left">
+     {% for c in cl %}
+     {% set outer_loop = loop %}
+            <tr>
+            {% for k in counts_keys[c.campaign_id] %}
+              {% if k == "efficiency" %}
+                <td>
+                  <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
+                   {% if counts[c.campaign_id][k] >= 0 %}
+                    {{counts[c.campaign_id][k]}}
+                   {% else %}
+                    -
+                   {% endif %}
+                  </a>
+                </td>
+              {% elif k == "pending" %}
+                <td>
+                  <a href="{{pomspath}}/show_dimension_files?experiment={{c.experiment}}&dims={{dimlist[outer_loop.index0]}}">
+                   {% if counts[c.campaign_id][k] >= 0 %}
+                    {{counts[c.campaign_id][k]}}
+                   {% else %}
+                    -
+                   {% endif %}
+                  </a>
+                </td>
+              {% elif k %}
+                <td>
+                  <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
+                    {{counts[c.campaign_id][k]}}
+                  </a>
+                 </td>
+               {%endif%}
+            {% endfor %}
+         </tr>
+
+     {% endfor %}
+
+    </table>
+  </div>
+
+
+  <div class="ui horizontal segments">
+
+    <div class="ui segment raised">
+         <h3>Actions</h3>
+         <div class=menu>
+	      <div class=item>
+	       <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{Campaign_info.Campaign.campaign_id}}&tmax={{tmaxs}}">
+		   <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job Efficiency Histogram
+	       </a>
+	      </div>
+	      <div class=item>
+	       <a href="{{pomspath}}/campaign_sheet?campaign_id={{Campaign_info.Campaign.campaign_id}}&tmax={{tmaxs}}">
+		<i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i>Day by Day Spreadsheet
+	       </a>
+	      </div>
+	      <div class=item>
+	      <a href="{{pomspath}}/campaign_time_bars?campaign_id={{Campaign_info.Campaign.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}">
+		<i class="external tasks icon" data-content="Submissions for Campaign Time Bars" data-variation="basic"></i>Submission Time Bars
+	      </a>
+	      </div>
+	    <!-- this stuff is reached via Campaign Submission File now(?) --mengel
+	      <div class=item>
+	      <a href="{{pomspath}}/inflight_files?campaign_id={{Campaign_info.Campaign.campaign_id}}">
+		<i class="external plane icon" data-content="In-Flight File Information" data-variation="basic"></i>Inflight Files
+	      </a>
+	      </div>
+	      <div class=item>
+	      <a href="{{pomspath}}/actual_pending_files?count_or_list=c&campaign_id={{Campaign_info.Campaign.campaign_id}}">
+		<i class="external spinner icon" data-content="Pending File Information" data-variation="basic"></i>Pending Files for Recent Jobs
+	      </a>
+	      </div>
+	    -->
+	      <div class=item>
+		<a href="{{pomspath}}/campaign_task_files?campaign_id={{Campaign_info.Campaign.campaign_id}}"><i class="external file icon" data-content="List file statistics for Submissions for Campaign" data-variation="basic"></i>Campaign Submission Files</a>
+	      </div>
+	      <div class=item>
+		<a href="{{pomspath}}/launch_jobs?campaign_id={{Campaign_info.Campaign.campaign_id}}"><i class="external rocket icon" data-content="Immediately Launch Submissions for Campaign" data-variation="basic"></i>Launch Campaign Jobs Now</a>
+	      </div>
+	      <div class=item>
+		<a href="{{pomspath}}/kill_jobs?campaign_id={{Campaign_info.Campaign.campaign_id}}"><i class="external trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i>Kill Jobs for Campaign</a>
+	       </div>
+	      <div class=item>
+	      <a href="{{pomspath}}/schedule_launch?campaign_id={{Campaign_info.Campaign.campaign_id}}">
+		 <i class="external calendar icon" data-content="Schedule Future Launches" data-variation="basic"></i>Schedule Future Job Launches
+	      </a>
+	      </div>
+          </div> <!-- class=menu -->
+     </div>  <!-- class=ui segment raised -->
+
+   <div class="ui segment raised">
     <h3>Campaign</h3>
     <b>Name</b>: {{Campaign_info.Campaign.name}}<br>
     <b>Experiment</b>: {{Campaign_info.Campaign.experiment}}<br>
@@ -154,58 +275,9 @@ $( document ).ready(function() {
     <b>Active</b>: {{Campaign_info.Campaign.active}} 
     </div>
 
+  </div>
 
-    <div class="ui segment raised floated left">
-         <h3>Actions</h3>
-         <div class=menu>
-          <div class=item>
-           <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{Campaign_info.Campaign.campaign_id}}&tmax={{tmaxs}}">
-               <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job Efficiency Histogram
-           </a>
-          </div>
-          <div class=item>
-           <a href="{{pomspath}}/campaign_sheet?campaign_id={{Campaign_info.Campaign.campaign_id}}&tmax={{tmaxs}}">
-            <i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i>Day by Day Spreadsheet
-           </a>
-          </div>
-          <div class=item>
-          <a href="{{pomspath}}/campaign_time_bars?campaign_id={{Campaign_info.Campaign.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}">
-            <i class="external tasks icon" data-content="Submissions for Campaign Time Bars" data-variation="basic"></i>Submission Time Bars
-          </a>
-          </div>
-        <!-- this stuff is reached via Campaign Submission File now(?) --mengel
-          <div class=item>
-          <a href="{{pomspath}}/inflight_files?campaign_id={{Campaign_info.Campaign.campaign_id}}">
-            <i class="external plane icon" data-content="In-Flight File Information" data-variation="basic"></i>Inflight Files
-          </a>
-          </div>
-          <div class=item>
-          <a href="{{pomspath}}/actual_pending_files?count_or_list=c&campaign_id={{Campaign_info.Campaign.campaign_id}}">
-            <i class="external spinner icon" data-content="Pending File Information" data-variation="basic"></i>Pending Files for Recent Jobs
-          </a>
-          </div>
-        -->
-          <div class=item>
-            <a href="{{pomspath}}/campaign_task_files?campaign_id={{Campaign_info.Campaign.campaign_id}}"><i class="external file icon" data-content="List file statistics for Submissions for Campaign" data-variation="basic"></i>Campaign Submission Files</a>
-          </div>
-          <div class=item>
-            <a href="{{pomspath}}/launch_jobs?campaign_id={{Campaign_info.Campaign.campaign_id}}"><i class="external rocket icon" data-content="Immediately Launch Submissions for Campaign" data-variation="basic"></i>Launch Campaign Jobs Now</a>
-          </div>
-          <div class=item>
-            <a href="{{pomspath}}/kill_jobs?campaign_id={{Campaign_info.Campaign.campaign_id}}"><i class="external trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i>Kill Jobs for Campaign</a>
-           </div>
-          <div class=item>
-          <a href="{{pomspath}}/schedule_launch?campaign_id={{Campaign_info.Campaign.campaign_id}}">
-             <i class="external calendar icon" data-content="Schedule Future Launches" data-variation="basic"></i>Schedule Future Job Launches
-          </a>
-          </div>
-          </div>
-         </div>
-     </div>
-
-	<div style="clear: both;">&nbsp;</div>
-
-     <div class="ui segment raised floated left">
+     <div class="ui segment raised ">
     <h3>Campaign Definition</h3>
 
     <b>Name</b>: {{Campaign_definition_info.CampaignDefinition.name}}<br>
@@ -219,55 +291,8 @@ $( document ).ready(function() {
     <b>Output File Patterns</b>: {{Campaign_definition_info.CampaignDefinition.output_file_patterns}}<br>
     <b>
     </div>
-
-    <div style="clear: both;">&nbsp;</div>
-     <div class="ui segment raised floated left">
-    <h3>Tags</h3>
-
-    <div class="ui search">
-        <div class="ui left icon input">
-           <input type="text" id="tag_field" name="tag" placeholder="Enter tag" class="prompt">
-           <i class="tag icon"></i>
-        </div>
-
-        <button class="ui icon small blue button" id="add_button">
-          <i class="plus icon"></i>
-        </button>
-        <div id="response" style="display:inline; vertical-align: bottom; font-style: italic;"></div>
-
-        <div class="results"></div>
-    </div>
-
-
-    <div id="tag_container">
-    {% for tag in tags %}
-        <i class="trash outline icon link poms_tag" id="{{Campaign_info.Campaign.campaign_id}}_{{tag.tag_id}}"></i>
-        <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label" id="{{Campaign_info.Campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
-    <!--    <br/></br>   -->
-    {% endfor %}
-    </div>
-
-    </div>
-
-</div>
-
-
-
- <div class="ui segment raised floated left">
-   <h3>Recent Launch Outputs </h3>
-   <ul>
-   {%for f in launch_flist|sort(reverse=True)%}
-      <li>
-      <a href="list_launch_file?campaign_id={{Campaign_info.Campaign.campaign_id}}&fname={{f}}">{{f}}</a>
-   {%endfor%}
-   </ul>
- </div>
-
-
-
-<!--new div for launch templates-->
-
-    <div class="ui segment raised floated left">
+  </div>
+    <div class="ui segment raised">
     <h3>Launch Template</h3>
     <b>Name</b>: {{Launch_template_info.LaunchTemplate.name}}<br>
     <b>Launch Host</b>: {{Launch_template_info.LaunchTemplate.launch_host}}<br>
@@ -278,8 +303,44 @@ $( document ).ready(function() {
     </div>
 
 
+    <div class="ui segment raised ">
+	<h3>Tags</h3>
 
-<!--ends launch templates div-->
+	<div class="ui search">
+	    <div class="ui left icon input">
+	       <input type="text" id="tag_field" name="tag" placeholder="Enter tag" class="prompt">
+	       <i class="tag icon"></i>
+	    </div>
+
+	    <button class="ui icon small blue button" id="add_button">
+	      <i class="plus icon"></i>
+	    </button>
+	    <div id="response" style="display:inline; vertical-align: bottom; font-style: italic;"></div>
+
+	    <div class="results"></div>
+	</div>
+
+
+	<div id="tag_container">
+	{% for tag in tags %}
+	    <i class="trash outline icon link poms_tag" id="{{Campaign_info.Campaign.campaign_id}}_{{tag.tag_id}}"></i>
+	    <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label" id="{{Campaign_info.Campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
+	<!--    <br/></br>   -->
+	{% endfor %}
+	</div>
+
+    </div>
+
+ <div class="ui segment raised">
+   <h3>Recent Launch Outputs </h3>
+   <ul>
+   {%for f in launch_flist|sort(reverse=True)%}
+      <li>
+      <a href="list_launch_file?campaign_id={{Campaign_info.Campaign.campaign_id}}&fname={{f}}">{{f}}</a>
+   {%endfor%}
+   </ul>
+ </div>
+
 
 
 <script>

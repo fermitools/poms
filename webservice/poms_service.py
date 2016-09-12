@@ -1525,7 +1525,10 @@ class poms_service:
         return template.render( In= ("" if active == True else "In"), services=self.service_status_hier('All'), counts = counts, counts_keys = counts_keys, cl = cl, tmins = tmins, tmaxs = tmaxs, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', dimlist = dimlist, pomspath=self.path, help_page="ShowCampaignsHelp", version=self.version)
 
     @cherrypy.expose
-    def campaign_info(self, campaign_id ):
+    def campaign_info(self, campaign_id, tmin = None, tmax = None, tdays = None):
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'campaign_info?')
+
+        campaign_id = int(campaign_id)
 
         Campaign_info = cherrypy.request.db.query(Campaign, Experimenter).filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id).first()
         Campaign_definition_info =  cherrypy.request.db.query(CampaignDefinition, Experimenter).filter(CampaignDefinition.campaign_definition_id == Campaign_info.Campaign.campaign_definition_id, CampaignDefinition.creator == Experimenter.experimenter_id ).first()
@@ -1534,6 +1537,19 @@ class poms_service:
 
         launched_campaigns = cherrypy.request.db.query(CampaignSnapshot).filter(CampaignSnapshot.campaign_id == campaign_id).all()
 
+        #
+        # cloned from show_campaigns, but for a one row table..
+        #
+        cl = [Campaign_info[0]]
+        counts = {}
+        counts_keys = {}
+        dimlist, pendings = self.get_pending_for_campaigns(cl, tmin, tmax)
+        effs = self.get_efficiency(cl, tmin, tmax)
+        counts[campaign_id] = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
+        counts[campaign_id]['efficiency'] = effs[0]
+        counts[campaign_id]['pending'] = pendings[0]
+        counts_keys[campaign_id] = counts[campaign_id].keys()
+        #
         # any launch outputs to look at?
         #
         dirname="%s/private/logs/poms/launches/campaign_%s" % (
@@ -1542,7 +1558,7 @@ class poms_service:
         launch_flist = map(os.path.basename, launch_flist)
 
         template = self.jinja_env.get_template('campaign_info.html')
-        return template.render(  Campaign_info = Campaign_info, Campaign_definition_info = Campaign_definition_info, Launch_template_info = Launch_template_info, tags=tags, launched_campaigns=launched_campaigns, launch_flist = launch_flist, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp", version=self.version)
+        return template.render(  Campaign_info = Campaign_info, Campaign_definition_info = Campaign_definition_info, Launch_template_info = Launch_template_info, tags=tags, launched_campaigns=launched_campaigns, dimlist= dimlist, cl = cl, counts_keys = counts_keys, counts = counts, launch_flist = launch_flist, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp", version=self.version)
 
     @cherrypy.expose
     def list_task_logged_files(self, task_id):
