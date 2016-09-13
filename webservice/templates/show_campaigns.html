@@ -1,7 +1,11 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS:{{In}}Active Campaigns</title>
+    <title>POMS:{{In}}Active Campaigns
+       {%if limit_experiment %}
+           for {{limit_experiment}}
+       {%endif%}
+   </title>
 {%endblock%}
 
 
@@ -17,6 +21,9 @@
 {%block header%}
 <h1 class="ui header">
      Campaigns{%include 'help_button.html'%}
+       {%if limit_experiment %}
+           for {{limit_experiment}}
+       {%endif%}
 </h1>
 {%endblock%}
 
@@ -24,7 +31,11 @@
 
 
 {%block subheader%}
-<h2 class="ui dividing header">{{In}}Active Campaigns <!--for {{time_range_string}}--></h2>
+<h2 class="ui dividing header">{{In}}Active Campaigns <!--for {{time_range_string}}-->
+       {%if limit_experiment %}
+           for {{limit_experiment}}
+       {%endif%}
+</h2>
 <a href="{{prev}}">&lt;previous {{days}} days</a> | 
 <a href="{{next}}">next {{days}} days &gt;</a>
 

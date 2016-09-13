@@ -1490,7 +1490,7 @@ class poms_service:
         # if we want to handle hours / weeks nicely, we should do
         # it here.
         plural =  's' if tdays > 1.0 else ''
-        tranges = '%f day%s ending <span class="tmax">%s</span>' % (tdays, plural, tmaxs)
+        tranges = '%6.1f day%s ending <span class="tmax">%s</span>' % (tdays, plural, tmaxs)
 
         # redundant, but trying to rule out tz woes here...
         tmin = tmin.replace(tzinfo = utc)
@@ -1501,11 +1501,16 @@ class poms_service:
 
        
     @cherrypy.expose
-    def show_campaigns(self,tmin = None, tmax = None, tdays = 1, active = True):
+    def show_campaigns(self,experiment = None, tmin = None, tmax = None, tdays = 1, active = True):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
-        cl = cherrypy.request.db.query(Campaign).filter(Campaign.active == active ).order_by(Campaign.experiment).all()
+        cq = cherrypy.request.db.query(Campaign).filter(Campaign.active == active ).order_by(Campaign.experiment)
+
+        if experiment:
+            cq = cq.filter(Campaign.experiment == experiment)
+
+        cl = cq.all()
 
         counts = {}
         counts_keys = {}
@@ -1522,15 +1527,21 @@ class poms_service:
             i = i + 1
 
         template = self.jinja_env.get_template('show_campaigns.html')
-        return template.render( In= ("" if active == True else "In"), services=self.service_status_hier('All'), counts = counts, counts_keys = counts_keys, cl = cl, tmins = tmins, tmaxs = tmaxs, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', dimlist = dimlist, pomspath=self.path, help_page="ShowCampaignsHelp", version=self.version)
+        return template.render( In= ("" if active == True else "In"), limit_experiment = experiment, services=self.service_status_hier('All'), counts = counts, counts_keys = counts_keys, cl = cl, tmins = tmins, tmaxs = tmaxs, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', dimlist = dimlist, pomspath=self.path, help_page="ShowCampaignsHelp", version=self.version)
 
     @cherrypy.expose
     def campaign_info(self, campaign_id, tmin = None, tmax = None, tdays = None):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'campaign_info?')
-
         campaign_id = int(campaign_id)
 
         Campaign_info = cherrypy.request.db.query(Campaign, Experimenter).filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id).first()
+        
+        # default to time window of campaign
+        if tmin == None and tdays == None and tdays == None:
+            tmin = Campaign_info.Campaign.created
+            tmax = datetime.now(utc)
+
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'campaign_info?')
+
         Campaign_definition_info =  cherrypy.request.db.query(CampaignDefinition, Experimenter).filter(CampaignDefinition.campaign_definition_id == Campaign_info.Campaign.campaign_definition_id, CampaignDefinition.creator == Experimenter.experimenter_id ).first()
         Launch_template_info = cherrypy.request.db.query(LaunchTemplate, Experimenter).filter(LaunchTemplate.launch_id == Campaign_info.Campaign.launch_id, LaunchTemplate.creator == Experimenter.experimenter_id).first()
         tags = cherrypy.request.db.query(Tag).filter(CampaignsTags.campaign_id==campaign_id, CampaignsTags.tag_id==Tag.tag_id).all()
@@ -1558,7 +1569,7 @@ class poms_service:
         launch_flist = map(os.path.basename, launch_flist)
 
         template = self.jinja_env.get_template('campaign_info.html')
-        return template.render(  Campaign_info = Campaign_info, Campaign_definition_info = Campaign_definition_info, Launch_template_info = Launch_template_info, tags=tags, launched_campaigns=launched_campaigns, dimlist= dimlist, cl = cl, counts_keys = counts_keys, counts = counts, launch_flist = launch_flist, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp", version=self.version)
+        return template.render(  Campaign_info = Campaign_info, time_range_string = time_range_string, tmins = tmins, tmaxs = tmaxs, Campaign_definition_info = Campaign_definition_info, Launch_template_info = Launch_template_info, tags=tags, launched_campaigns=launched_campaigns, dimlist= dimlist, cl = cl, counts_keys = counts_keys, counts = counts, launch_flist = launch_flist, current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 0, pomspath=self.path,help_page="CampaignInfoHelp", version=self.version)
 
     @cherrypy.expose
     def list_task_logged_files(self, task_id):
@@ -2818,8 +2829,11 @@ class poms_service:
 
         total = 0
         vals = {}
+        maxv = 0.01
         for row in q.all():
             vals[row[1]] = row[0]
+            if row[0] > maxv:
+               maxv = row[0]
             total += row[0]
 
         c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
@@ -2827,7 +2841,7 @@ class poms_service:
         # return "Not yet implemented"
 
         template = self.jinja_env.get_template('jobs_eff_histo.html')
-        return template.render(  c = c, total = total, vals = vals, tmaxs = tmaxs, campaign_id=campaign_id, tdays = tdays, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, pomspath=self.path, help_page="JobEfficiencyHistoHelp", version=self.version)
+        return template.render(  c = c, maxv = maxv, total = total, vals = vals, tmaxs = tmaxs, campaign_id=campaign_id, tdays = tdays, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, pomspath=self.path, help_page="JobEfficiencyHistoHelp", version=self.version)
 
     @cherrypy.expose
     def list_launch_file(self, campaign_id, fname ):
@@ -2944,7 +2958,22 @@ class poms_service:
              cherrypy.request.db.commit()
 
     @cherrypy.expose
+    def mark_campaign_active(self, campaign_id, is_active):
+
+ 
+        c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        if c and (cherrypy.session.get('experimenter').is_authorized(c.experiment) or self.can_report_data()):
+            c.active=(is_active == 'True')
+            cherrypy.request.db.add(c)
+            cherrypy.request.db.commit()
+            raise cherrypy.HTTPRedirect("campaign_info?campaign_id=%s" % campaign_id)
+        else:
+            raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
+
+    @cherrypy.expose
     def make_stale_campaigns_inactive(self):
+        if not can_report_data(): 
+             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         lastweek = datetime.now(utc) - timedelta(days=7)
         cp = cherrypy.request.db.query(Task.campaign_id).filter(Task.created > lastweek).group_by(Task.campaign_id).all()
         sc = []

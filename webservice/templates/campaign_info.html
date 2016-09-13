@@ -139,7 +139,7 @@ $( document ).ready(function() {
 
    <table class="ui celled table unstackable">
      <tr>
-      <th colspan=3 align="center">Active Jobs </th>
+      <th colspan=3 align="center">Active Campaign Jobs </th>
       <th colspan=3 align="center">Jobs in {{time_range_string}}</th>
       <th colspan=2 align="center">Stats</th>
      </tr>
@@ -230,18 +230,6 @@ $( document ).ready(function() {
 		<i class="external tasks icon" data-content="Submissions for Campaign Time Bars" data-variation="basic"></i>Submission Time Bars
 	      </a>
 	      </div>
-	    <!-- this stuff is reached via Campaign Submission File now(?) --mengel
-	      <div class=item>
-	      <a href="{{pomspath}}/inflight_files?campaign_id={{Campaign_info.Campaign.campaign_id}}">
-		<i class="external plane icon" data-content="In-Flight File Information" data-variation="basic"></i>Inflight Files
-	      </a>
-	      </div>
-	      <div class=item>
-	      <a href="{{pomspath}}/actual_pending_files?count_or_list=c&campaign_id={{Campaign_info.Campaign.campaign_id}}">
-		<i class="external spinner icon" data-content="Pending File Information" data-variation="basic"></i>Pending Files for Recent Jobs
-	      </a>
-	      </div>
-	    -->
 	      <div class=item>
 		<a href="{{pomspath}}/campaign_task_files?campaign_id={{Campaign_info.Campaign.campaign_id}}"><i class="external file icon" data-content="List file statistics for Submissions for Campaign" data-variation="basic"></i>Campaign Submission Files</a>
 	      </div>
@@ -255,6 +243,17 @@ $( document ).ready(function() {
 	      <a href="{{pomspath}}/schedule_launch?campaign_id={{Campaign_info.Campaign.campaign_id}}">
 		 <i class="external calendar icon" data-content="Schedule Future Launches" data-variation="basic"></i>Schedule Future Job Launches
 	      </a>
+	      </div>
+	      <div class=item>
+              {% if Campaign_info.Campaign.active %}
+	      <a href="{{pomspath}}/mark_campaign_active?campaign_id={{Campaign_info.Campaign.campaign_id}}&is_active=False">
+		 <i class="external hide icon" data-content="Mark Campaign Inactive" data-variation="basic"></i>Mark Campaign Inactive
+	      </a>
+              {% else %}
+	      <a href="{{pomspath}}/mark_campaign_active?campaign_id={{Campaign_info.Campaign.campaign_id}}&is_active=True">
+		 <i class="external unhide icon" data-content="Mark Campaign Active" data-variation="basic"></i>Mark Campaign Active
+	      </a>
+              {% endif %}
 	      </div>
           </div> <!-- class=menu -->
      </div>  <!-- class=ui segment raised -->
