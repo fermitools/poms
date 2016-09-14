@@ -99,6 +99,14 @@ class poms_service:
     def headers(self):
         return repr(cherrypy.request.headers)
 
+
+    @cherrypy.expose
+    def sign_out(self):
+        cherrypy.lib.sessions.expire()
+        log_out_url = "https://" + self.hostname + "/Shibboleth.sso/Logout"
+        raise cherrypy.HTTPRedirect(log_out_url)
+
+
     @cherrypy.expose
     def index(self):
         template = self.jinja_env.get_template('index.html')
