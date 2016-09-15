@@ -61,6 +61,7 @@ class jobsub_q_scraper:
             if conn: del conn
 
     def call_wrapup_tasks(self):
+        conn = None
         try:
             conn = urllib2.urlopen(self.job_reporter.report_url + '/wrapup_tasks')
             text = conn.read()
