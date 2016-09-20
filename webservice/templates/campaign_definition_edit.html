@@ -44,7 +44,7 @@
   </select>
 
   {% if data.curr_experiment is defined %} 
-  <table class="ui sortable celled table">
+  <table class="ui sortable single line celled table">
     <thead>
       <tr>
 	<th></th>
@@ -63,7 +63,8 @@
 	<td class="collapsing">
           {% if data.authorized==True %}
 	  <i class="large edit link blue icon"  onclick="edit_definition({{loop.index}});"></i>
-	  <i class="large trash link blue icon" onclick="delete_definition('{{row.CampaignDefinition.campaign_definition_id}}');"></i>
+	  <i class="large copy icon link blue icon" onclick="edit_definition({{loop.index}},'CLONE');"></i>
+	  <i class="large trash link blue icon" onclick="delete_definition('{{row.CampaignDefinition.name}}','{{row.CampaignDefinition.campaign_definition_id}}');"></i>
 	  {% else %}
 	  <i class="disabled large edit link blue icon">
 	  <i class="disabled large trash link blue icon">
@@ -88,7 +89,7 @@
     </tbody>
     <tfoot>
       <tr>
-	<th colspan="6">
+	<th colspan="8">
 	  <button class="ui labled teal icon button" onclick="add_definition();return false;" {{ 'disabled' if (data.authorized==False) }}>
 	    <i class="icon add square"></i>
 	    Add 
@@ -429,24 +430,30 @@ function ep_down_button(current_row) {
   } 
 }
 		  
-  function delete_definition(name) {
-    var definition = name; 
+  function delete_definition(name,campaign_definition_id) {
+    var cdname = name; 
     $("#confirm_modal_message").text("Delete the campaign definition named " +name+" ?")
     mod_form = $("#confirm_modal").modal({
     closable  : false,
     onApprove : function(){
       $("#action").val('delete');
-      $("<input>").attr({'type':'hidden','name': 'name', 'value': definition}).appendTo("#campaign_definition_form");
+      $("<input>").attr({'type':'hidden','name': 'name', 'value': cdname}).appendTo("#campaign_definition_form");
+      $("<input>").attr({'type':'hidden','name': 'campaign_definition_id', 'value': campaign_definition_id}).appendTo("#campaign_definition_form");
       $("#campaign_definition_form").submit();
     },
     }).modal('show');
   }
 
-  function edit_definition(index) {
+  function edit_definition(index,clone) {
+    if (typeof clone === 'undefined') {
+      $("#ae_definition_action").val("edit");
+      $("#ae_definition_name").val( $("#cdf_name_"+index).text() );
+    } else {
+      $("#ae_definition_action").val("add");
+      $("#ae_definition_name").val( "CLONE OF: " + $("#cdf_name_"+index).text() );
+    }
     $("#ae_experiment").text("Campaign Definition Editor  ({{ data.curr_experiment if data.curr_experiment is defined}})");
-    $("#ae_definition_action").val("edit");
     $("#ae_campaign_definition_id").val( $("#cdf_id_"+index).text()  );
-    $("#ae_definition_name").val( $("#cdf_name_"+index).text() );
     $("#ae_launch_script").val( $("#cdf_script_"+index).text() );
     $("#ae_definition_parameters_text").val( $("#cdf_definition_"+index).text() );
     $("#ae_definition_parameters").val( $("#cdf_definition_"+index).text() );
