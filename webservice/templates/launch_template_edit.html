@@ -43,7 +43,7 @@
   </select>
 
   {% if data.curr_experiment is defined %} 
-  <table class="ui sortable celled table">
+  <table class="ui sortable single line celled table">
     <thead>
       <tr>
 	<th></th>
@@ -59,6 +59,7 @@
 	<td class="collapsing">
           {% if data.authorized==True %}
 	  <i class="large edit link blue icon"  onclick="edit_template('{{row.LaunchTemplate.launch_id}}','{{row.LaunchTemplate.name}}','{{row.LaunchTemplate.launch_host}}','{{row.LaunchTemplate.launch_account}}','{{row.LaunchTemplate.launch_setup|e}}');"></i>
+	  <i class="large copy link blue icon"  onclick="edit_template('{{row.LaunchTemplate.launch_id}}','{{row.LaunchTemplate.name}}','{{row.LaunchTemplate.launch_host}}','{{row.LaunchTemplate.launch_account}}','{{row.LaunchTemplate.launch_setup|e}}','CLONE');"></i>
 	  <i class="large trash link blue icon" onclick="delete_template('{{row.LaunchTemplate.name}}'); "></i>
 	  {% else %}
 	  <i class="disabled large edit link blue icon">
@@ -184,11 +185,16 @@ $("#experiment").change(function() {
     }).modal('show');
   }
 
-  function edit_template(launch_id, name, launch_host, launch_account, launch_setup) {
+  function edit_template(launch_id, name, launch_host, launch_account, launch_setup, clone) {
+    if (typeof clone === 'undefined') {
+      $("#ae_launch_action").val("edit");
+      $("#ae_launch_name").val(name)
+    } else {
+      $("#ae_launch_action").val("add");
+      $("#ae_launch_name").val("CLONE OF: " + name)
+    }
     $("#template_header").text("Launch Template Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
-    $("#ae_launch_action").val("edit")
     $("#ae_launch_id").val(launch_id)
-    $("#ae_launch_name").val(name)
     $("#ae_launch_host").val(launch_host)
     $("#ae_launch_account").val(launch_account)
     $("#ae_launch_setup").val(launch_setup)
