@@ -789,6 +789,11 @@ class poms_service:
             launch_id = kwargs.pop('ae_launch_id')
             experimenter_id = kwargs.pop('experimenter_id')
             depends = kwargs.pop('ae_depends')
+            cherrypy.log("*"*80)
+            cherrypy.log("*"*80)
+            cherrypy.log("active %s" % active)
+            cherrypy.log("*"*80)
+            cherrypy.log("*"*80)
             if depends and depends != "[]":
                 depends = json.loads(depends)
             else:
@@ -807,6 +812,8 @@ class poms_service:
                 else:
                     columns = {"name":                  name,
                                "vo_role":               vo_role,
+                               "active":                active,
+                               "cs_split_type":         split_type,
                                "software_version":      software_version,
                                "dataset" :              dataset,
                                "param_overrides":       param_overrides,
@@ -844,7 +851,10 @@ class poms_service:
             # for testing ui...
             #data['authorized'] = True
 
-            state = kwargs.pop('state')
+            state = kwargs.pop('state',None)
+            if state == None:
+                state = cherrypy.session.get('campaign_edit.state','state_active')
+            cherrypy.session['campaign_edit.state'] = state
             data['state'] = state
             data['curr_experiment'] = exp
             data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
@@ -853,7 +863,7 @@ class poms_service:
                 cquery = cquery.filter(Campaign.active==True)
             elif state == 'state_inactive':
                 cquery = cquery.filter(Campaign.active==False)
-            cquery.order_by(Campaign.name)
+            cquery = cquery.order_by(Campaign.name)
             data['campaigns'] = cquery
             data['definitions'] = db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
             data['templates'] = db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)

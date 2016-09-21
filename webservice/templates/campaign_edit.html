@@ -138,7 +138,7 @@
   </div>
   <div class="actions">
     <div class="two fluid ui buttons">
-      <button class="ui pink deny button">
+      <button class="ui red deny button">
 	No
       </button>
       <button id="approved_btn" class="ui teal approve button">
@@ -164,15 +164,22 @@
           <label>VO Role</label>
           <input type="text" id="ae_vo_role" name="ae_vo_role">
 	</div>
-	<div class="field">
-          <label>Active</label>
-          <input type="text" id="ae_active" name="ae_active">
+
+	<div>
+	  <label>State</label>
+	  <br/>
+	  <select class="ui dropdown" name="ae_active" id="ae_active">
+	    <option value="True" >Active</option>
+	    <option value="False">Inactive</option>
+	  </select>
 	</div>
+
 	<div class="field">
           <label>Software Version</label>
           <input type="text" id="ae_software_version" name="ae_software_version">
 	</div>
       </div>
+
       <div class="two fields">
 	<div class="field">
           <label>Dataset</label>
@@ -197,22 +204,14 @@
       </div>
       <h4 class="ui horizontal divider">Launch Template</h4>
       <div class="three fields">
+	
 	<div>
-	  <br/>
-	<div class="ui floating dropdown labled icon button">
-	  <input type="hidden"  name="ae_launch_id" id="ae_launch_id">
-	  <i class="dropdown icon"></i>
-	  <span class="text">Select Template</span>
-	  <div class="menu">
-	    <div class="ui icon search input">
-	      <i class="search icon"></i>
-	      <input type="text" placeholder="Search tags...">
-	    </div>
+	  <label>Launch Template</label><br/>
+	  <select class="ui dropdown" name="ae_launch_id" id="ae_launch_id"
 	    {% for row in data.templates %}
-	    <div class="item" data-value="{{row.launch_id}}" >{{row.name}}</div>
+	    <option value={{row.launch_id}}>{{row.name}}</option>
 	    {% endfor %}
-	  </div>
-	</div>
+	  </select>
 	</div>
 	<div class="field">
           <label>Host</label>
@@ -230,21 +229,12 @@
       <h4 class="ui horizontal divider">Campaign Definition</h4>
       <div class="three fields">
 	<div>
-	  <br/>
-	<div class="ui floating dropdown labled icon button">
-	  <input type="hidden"  name="ae_campaign_definition_id" id="ae_campaign_definition_id">
-	  <i class="dropdown icon"></i>
-	  <span class="text">Select Definition</span>
-	  <div class="menu">
-	    <div class="ui icon search input">
-	      <i class="search icon"></i>
-	      <input type="text" placeholder="Search tags...">
-	    </div>
+	  <label>Campaign Definition</label><br/>
+	  <select class="ui dropdown" name="ae_campaign_definition_id" id="ae_campaign_definition_id">
 	    {% for row in data.definitions %}
-	    <div class="item" data-value="{{row.campaign_definition_id}}" >{{row.name}}</div>
+	    <option value="{{row.campaign_definition_id}}">{{row.name}}</option>
 	    {% endfor %}
-	  </div>
-	  </div>
+	  </select>
 	</div>
 	<div class="field">
           <label>Input Files/Job</label>
@@ -266,7 +256,7 @@
 	</div>
       </div>
       <div class="actions">
-	<div class="ui button deny pink">Cancel</div>
+	<div class="ui button deny red">Cancel</div>
 	<input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
       </div>      
       <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
@@ -301,7 +291,7 @@
 	  <tr>
 	    <th colspan="3">
 	      <div class="actions">
-		<button class="ui button deny pink">Cancel</button>
+		<button class="ui button deny red">Cancel</button>
 		<button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
 	      </div>
 	    </th>
@@ -348,7 +338,7 @@
 	  <tr>
 	    <th colspan="2">
 	      <div class="actions">
-		<button class="ui button deny pink">Cancel</button>
+		<button class="ui button deny red">Cancel</button>
 		<button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
 	      </div>
 	    </th>
@@ -619,7 +609,7 @@ function edit_campaign(index,clone) {
   }
   $("#ae_experiment").text("Campaign Editor  ({{ data.curr_experiment if data.curr_experiment is defined}})");
   $("#ae_campaign_id").val( $("#c_campaign_id_"+index).text()  );
-  $("#ae_active").val( $("#c_active_"+index).text() );
+  $("#ae_active").val( $("#c_active_"+index).text() ).trigger('change');
   $("#ae_vo_role").val( $("#c_vo_role_"+index).text() );
   $("#ae_software_version").val( $("#c_software_version_"+index).text() );
   $("#ae_dataset").val( $("#c_dataset_"+index).text() );

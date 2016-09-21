@@ -103,7 +103,7 @@
   </div>
   <div class="actions">
     <div class="two fluid ui buttons">
-      <button class="ui pink deny button">
+      <button class="ui red deny button">
 	No
       </button>
       <button id="approved_btn" class="ui teal approve button">
@@ -143,7 +143,7 @@
       </div>
     </div>
     <div class="actions">
-      <div class="ui button deny pink">Cancel</div>
+      <div class="ui button deny red">Cancel</div>
       <input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
     </div>
     <input type="hidden" name="experiment" id="ae_experiment" value="{{data.curr_experiment}}">
