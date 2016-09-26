@@ -25,6 +25,9 @@ import gc
 from elasticsearch import Elasticsearch
 import pprint
 
+import CalendarPOMS ####Added by Felipe
+
+
 def error_response():
     dump = ""
     if cherrypy.config.get("dump",True):
@@ -173,159 +176,54 @@ class poms_service:
         else:
             raise cherrypy.HTTPRedirect(".")
 
+
+##########
+#Felipe modify from here
     @cherrypy.expose
     def calendar_json(self, start, end, timezone, _):
         cherrypy.response.headers['Content-Type'] = "application/json"
-        list = []
-        rows = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).filter(ServiceDowntime.downtime_started.between(start, end)).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(~Service.name.endswith("sam")).all()
-        for row in rows:
-
-            if row.ServiceDowntime.downtime_type == 'scheduled':
-                editable = 'true'
-            else:
-                editable = 'false'
-
-            if row.Service.name.lower().find("sam") != -1:
-                color = "#73ADA2"
-            elif row.Service.name.lower().find("fts") != -1:
-                color = "#5D8793"
-            elif row.Service.name.lower().find("dcache") != -1:
-                color = "#1BA8DD"
-            elif row.Service.name.lower().find("enstore") != -1:
-                color = "#2C7BE0"
-            elif row.Service.name.lower().find("fifebatch") != -1:
-                color = "#21A8BD"
-            else:
-                color = "red"
-
-
-            list.append({'start_key': str(row.ServiceDowntime.downtime_started), 'title': row.Service.name, 's_id': row.ServiceDowntime.service_id, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended), 'editable': editable, 'color': color})
-        return json.dumps(list)
+        return json.dumps(CalendarPOMS.calendar_json(cherrypy.request.db, start, end, timezone))
 
 
     @cherrypy.expose
     def calendar(self):
         template = self.jinja_env.get_template('calendar.html')
-        rows = cherrypy.request.db.query(Service).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(Service.name != "FifeBatch").filter(~Service.name.endswith("sam")).all()
-        return template.render(rows=rows,current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="CalendarHelp")
-
-
+	rows = CalendarPOMS.calendar(cherrypy.request.db)
+        return template.render(rows=rows, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="CalendarHelp")
 
     @cherrypy.expose
     def add_event(self, title, start, end):
         #title should be something like minos_sam:27 DCache:12 All:11 ...
-
-        start_dt = datetime.fromtimestamp(float(start), tz=utc)
-        end_dt = datetime.fromtimestamp(float(end), tz=utc)
-
-        s = cherrypy.request.db.query(Service).filter(Service.name == title).first()
-        if s:
-            try:
-                #we got a service id
-                d = ServiceDowntime()
-                d.service_id = s.service_id
-                d.downtime_started = start_dt
-                d.downtime_ended = end_dt
-                d.downtime_type = 'scheduled'
-                cherrypy.request.db.add(d)
-                cherrypy.request.db.commit()
-                return "Ok."
-            except exc.IntegrityError:
-                return "This item already exists."
-
-        else:
-            #no service id
-            return "Oops."
-
-
+	return CalendarPOMS.add_event.calendar(cherrypy.request.db,title, start, end)
 
     @cherrypy.expose
     def edit_event(self, title, start, new_start, end, s_id):  #even though we pass in the s_id we should not rely on it because they can and will change the service name
-
-        s = cherrypy.request.db.query(Service).filter(Service.name == title).first()
-
-        new_start_dt = datetime.fromtimestamp(float(new_start), tz=utc)
-        end_dt = datetime.fromtimestamp(float(end), tz=utc)
-
-        record = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.downtime_started==start).filter(ServiceDowntime.service_id == s_id).first()
-        if record and record.ServiceDowntime.downtime_type == 'scheduled':
-            record.ServiceDowntime.service_id = s.service_id
-            record.ServiceDowntime.downtime_started = new_start_dt
-            record.ServiceDowntime.downtime_ended = end_dt
-            cherrypy.request.db.commit()
-            return "Ok."
-        else:
-            return "Oops."
-
-
+        return CalendarPOMS.edit_event(cherrypy.request.db, title, start, new_start, end, s_id)
 
     @cherrypy.expose
     def service_downtimes(self):
         template = self.jinja_env.get_template('service_downtimes.html')
-        rows = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).all()
-        return template.render(rows=rows,current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="ServiceDowntimesHelp")
-
+	rows = CalendarPOMS.service_downtimes(cherrypy.request.db)
+        return template.render(rows = rows,current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="ServiceDowntimesHelp")
 
     @cherrypy.expose
     def update_service(self, name, parent, status, host_site, total, failed, description):
-        s = cherrypy.request.db.query(Service).filter(Service.name == name).first()
+       	return CalendarPOMS.update_service(cherrypy.request.db, cherrypy.log, name, parent, status, host_site, total, failed, description)
 
-
-        if parent:
-            p = cherrypy.request.db.query(Service).filter(Service.name == parent).first()
-            cherrypy.log("got parent %s -> %s" % (parent, p))
-            if not p:
-                p = Service()
-                p.name = parent
-                p.status = "unknown"
-                p.host_site = "unknown"
-                p.updated = datetime.now(utc)
-                cherrypy.request.db.add(p)
-        else:
-            p = None
-
-        if not s:
-            s = Service()
-            s.name = name
-            s.parent_service_obj = p
-            s.updated =  datetime.now(utc)
-            s.host_site = host_site
-            s.status = "unknown"
-            cherrypy.request.db.add(s)
-            s = cherrypy.request.db.query(Service).filter(Service.name == name).first()
-
-        if s.status != status and status == "bad" and s.service_id:
-            # start downtime, if we aren't in one
-            d = cherrypy.request.db.query(ServiceDowntime).filter(ServiceDowntime.service_id == s.service_id ).order_by(desc(ServiceDowntime.downtime_started)).first()
-            if (d == None or d.downtime_ended != None):
-                d = ServiceDowntime()
-                d.service_id = s.service_id
-                d.downtime_started = datetime.now(utc)
-                d.downtime_ended = None
-                d.downtime_type = 'actual'
-                cherrypy.request.db.add(d)
-
-        if s.status != status and status == "good":
-            # end downtime, if we're in one
-            d = cherrypy.request.db.query(ServiceDowntime).filter(ServiceDowntime.service_id == s.service_id ).order_by(desc(ServiceDowntime.downtime_started)).first()
-            if d:
-                if d.downtime_ended == None:
-                    d.downtime_ended = datetime.now(utc)
-                    cherrypy.request.db.add(d)
-
-        s.parent_service_obj = p
-        s.status = status
-        s.host_site = host_site
-        s.updated = datetime.now(utc)
-        s.description = description
-        s.items = total
-        s.failed_items = failed
-        cherrypy.request.db.add(s)
-        cherrypy.request.db.commit()
-
-        return "Ok."
 
     @cherrypy.expose
+    def service_status(self, under = 'All'):
+        template = self.jinja_env.get_template('service_status.html')
+	list=CalendarPOMS.service_status (cherrypy.request, under)
+        return template.render(list=list, name=under,current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="ServiceStatusHelp")
+
+    def service_status_hier(self, under = 'All', depth = 0):
+        CalendarPOMS.service_status_hier (cherrypy.request, under, depth)
+
+# to here
+#######################
+
+   @cherrypy.expose
     def new_task_for_campaign(self, campaign_name, command_executed, experimenter_name, dataset_name = None):
         c = cherrypy.request.db.query(Campaign).filter(Campaign.name == campaign_name).first()
         e = cherrypy.request.db.query(Experimenter).filter(like_)(Experimenter.email,"%s@%%" % experimenter_name ).first()
@@ -347,71 +245,7 @@ class poms_service:
         cherrypy.request.db.commit()
         return "Task=%d" % t.task_id
 
-    @cherrypy.expose
-    def service_status(self, under = 'All'):
-        prev = None
-        prevparent = None
-        p = cherrypy.request.db.query(Service).filter(Service.name == under).first()
-        list = []
-        for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).all():
 
-            if s.host_site:
-                 url = s.host_site
-            else:
-                 url = "./service_status?under=%s" % s.name
-
-            list.append({'name': s.name,'status': s.status, 'url': url})
-
-        template = self.jinja_env.get_template('service_status.html')
-        return template.render(list=list, name=under,current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="ServiceStatusHelp")
-
-    def service_status_hier(self, under = 'All', depth = 0):
-        p = cherrypy.request.db.query(Service).filter(Service.name == under).first()
-        if depth == 0:
-            res = '<div class="ui accordion styled">\n'
-        else:
-            res = ''
-        active = ""
-        for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(Service.name).all():
-             posneg = {"good": "positive", "degraded": "orange", "bad": "negative"}.get(s.status, "")
-             icon = {"good": "checkmark", "bad": "remove", "degraded": "warning sign"}.get(s.status,"help circle")
-             if s.host_site:
-                 res = res + """
-                     <div class="title %s">
-                      <i class="dropdown icon"></i>
-                      <button class="ui button %s tbox_delayed" data-content="%s" data-variation="basic">
-                         %s (%d/%d)
-                         <i class="icon %s"></i>
-                       </button>
-                     </div>
-                     <div  class="content %s">
-                         <a target="_blank" href="%s">
-                         <i class="icon external"></i>
-                         source webpage
-                         </a>
-                     </div>
-                  """ % (active, posneg, s.description, s.name, s.failed_items, s.items, icon, active, s.host_site)
-             else:
-                 res = res + """
-                    <div class="title %s">
-                      <i class="dropdown icon"></i>
-                      <button class="ui button %s tbox_delayed" data-content="%s" data-variation="basic">
-                       %s (%d/%d)
-                      <i class="icon %s"></i>
-                      </button>
-                    </div>
-                    <div class="content %s">
-                      <p>components:</p>
-                      %s
-                    </div>
-                 """ % (active, posneg, s.description, s.name, s.failed_items, s.items, icon, active,  self.service_status_hier(s.name, depth + 1))
-             active = ""
-
-        if depth == 0:
-            res = res + "</div>"
-        return res
-
-    experimentlist = [ ['nova','nova'],['minerva','minerva']]
 
     def make_admin_map(self):
         """
