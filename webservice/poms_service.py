@@ -789,11 +789,6 @@ class poms_service:
             launch_id = kwargs.pop('ae_launch_id')
             experimenter_id = kwargs.pop('experimenter_id')
             depends = kwargs.pop('ae_depends')
-            cherrypy.log("*"*80)
-            cherrypy.log("*"*80)
-            cherrypy.log("active %s" % active)
-            cherrypy.log("*"*80)
-            cherrypy.log("*"*80)
             if depends and depends != "[]":
                 depends = json.loads(depends)
             else:
@@ -809,6 +804,8 @@ class poms_service:
                                  creator=experimenter_id, created=datetime.now(utc))
 
                     db.add(c)
+                    db.flush()
+                    campaign_id = c.campaign_id
                 else:
                     columns = {"name":                  name,
                                "vo_role":               vo_role,

@@ -207,7 +207,8 @@
 	
 	<div>
 	  <label>Launch Template</label><br/>
-	  <select class="ui dropdown" name="ae_launch_id" id="ae_launch_id"
+	  <select class="ui dropdown" name="ae_launch_id" id="ae_launch_id">
+	    <option value=""></option>
 	    {% for row in data.templates %}
 	    <option value={{row.launch_id}}>{{row.name}}</option>
 	    {% endfor %}
@@ -231,6 +232,7 @@
 	<div>
 	  <label>Campaign Definition</label><br/>
 	  <select class="ui dropdown" name="ae_campaign_definition_id" id="ae_campaign_definition_id">
+	    <option value=""></option>
 	    {% for row in data.definitions %}
 	    <option value="{{row.campaign_definition_id}}">{{row.name}}</option>
 	    {% endfor %}
@@ -285,8 +287,7 @@
 	    <th></th>
 	  </tr>
 	</thead>
-	<tbody id="ep_tbody">
-	</tbody>
+	<tbody id="ep_tbody"></tbody>
 	<tfoot>
 	  <tr>
 	    <th colspan="3">
@@ -410,9 +411,10 @@ function create_row(index, key, value) {
 var ep_parms = [];
 
 $("#edit_param_modal_btn").click(function() {
+  $("#ep_tbody").empty("");
+  ep_parms = [];
   var parms_str = $("#ae_param_overrides").val();
   if (parms_str != "") {
-    //ep_parms = eval ("(" + parms_str + ")");
     ep_parms = JSON.parse(parms_str);
   }
   ep_build_table_body();
@@ -446,6 +448,9 @@ $("input[name=state]").click(function() {
 $("#edit_depends_modal_btn").click(function() {
   //mwm
   var depends = $("#ae_depends").val();
+  if (depends == "[]") {
+    depends = '{"campaigns": [], "file_patterns": []}';
+  }
   var dlists = JSON.parse(depends);
   var i;
   for (i = 0 ; i < dlists['campaigns'].length; i++ ) {
@@ -498,7 +503,7 @@ function ep_build_parms_string() {
       break;
     }
   }
-  parms += "]"
+  parms += "]";
   return [message, parms];
 } 
 
@@ -538,7 +543,7 @@ function ep_build_table_body() {
 
 function rebuild_ep_parms() {
   ep_parms = []
-  var rowCount = $("#ep_table >tbody >tr").length;
+  var rowCount = $("#ep_tbody").children().length;
   for (index=0; index< rowCount; index++) {
     var ep_key = "#ep_key_" + index;
     var ep_val = "#ep_val_" + index;
@@ -600,22 +605,23 @@ function edit_campaign(index,clone) {
     $("#ae_campaign_name").val( $("#c_name_"+index).text() );
     $("#ae_depends").val( $("#c_depends_"+index).text() );
     $("#ae_depends_text").val( $.trim( $("#c_depends_"+index).text() ));
+    $("#ae_campaign_id").val( $("#c_campaign_id_"+index).text()  );
   } else {
+    $("#ae_campaign_id").val(0);
     $("#ae_definition_action").val("add");
     $("#ae_campaign_name").val( "CLONE OF: " + $("#c_name_"+index).text() );
     // campaign_depends records are NOT cloned.
-    $("#ae_depends").val( "[]" );  
-    $("#ae_depends_text").val( "[]" );
+    $("#ae_depends").val( '{"campaigns": [], "file_patterns": []}' );  
+    $("#ae_depends_text").val( '{"campaigns": [], "file_patterns": []}' );  
   }
   $("#ae_experiment").text("Campaign Editor  ({{ data.curr_experiment if data.curr_experiment is defined}})");
-  $("#ae_campaign_id").val( $("#c_campaign_id_"+index).text()  );
   $("#ae_active").val( $("#c_active_"+index).text() ).trigger('change');
   $("#ae_vo_role").val( $("#c_vo_role_"+index).text() );
   $("#ae_software_version").val( $("#c_software_version_"+index).text() );
   $("#ae_dataset").val( $("#c_dataset_"+index).text() );
   $("#ae_split_type").val( $("#c_split_type_"+index).text() );
   $("#ae_param_overrides_text").val( $("#c_param_overrides_"+index).text() );
-  $("#ae_param_overrides_text").val( $("#c_param_overrides_"+index).text() );
+  $("#ae_param_overrides").val( $("#c_param_overrides_"+index).text() );
   $("#ae_campaign_definition_id").val( $("#c_campaign_definition_id_"+index).text() );
   $("#ae_launch_id").val( $("#c_launch_id_"+index).text() );
   // Trigger the change function which will load associated fields
