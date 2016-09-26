@@ -1132,7 +1132,7 @@ class poms_service:
             cfrac = 0.9
             threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
             thresholds.append(threshold)
-            if float(count_list[i]) >= threshold:
+            if float(count_list[i]) >= threshold and threshold > 0:
                 n_located = n_located + 1
                 task = lookup_task_list[i]
                 task.status = "Located"
