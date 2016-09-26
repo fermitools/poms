@@ -23,6 +23,7 @@ class Mail:
         msg['From'] = self.sender
         msg['To'] = to
 
+        s = None
         try:
             s = smtplib.SMTP(self.server)
             s.set_debuglevel(self.debug)
@@ -30,7 +31,8 @@ class Mail:
         except Exception, e:
             print 'oops: %s' % e
         finally:
-            s.quit()
+            if s:
+                s.quit()
 
 
 if __name__ == '__main__':

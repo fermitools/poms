@@ -85,9 +85,16 @@ class job_reporter:
 	    except (urllib2.HTTPError, urllib2.URLError) as e:
 		errtext = str(e)
 		sys.stderr.write("Excpetion:")
+
+
 		if uh:
 		    sys.stderr.write("HTTP fetch status %d" %  uh.getcode())
                     del uh
+
+                # don't retry on 401's...
+                if uh.getcode() == 401:
+                    return ""
+
 		sys.stderr.write(errtext)
 		sys.stderr.write("--------")
 

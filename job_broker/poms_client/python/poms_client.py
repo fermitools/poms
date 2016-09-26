@@ -4,7 +4,7 @@ import urllib
 import urllib2
 
 def register_poms_campaign(campaign_name, user = None, experiment = None, version = None, dataset = None, campaign_definition = None, test = None):
-    
+    return int(
     make_poms_call( 
 	method = 'register_poms_campaign',
 	campaign_name = campaign_name,
@@ -13,18 +13,20 @@ def register_poms_campaign(campaign_name, user = None, experiment = None, versio
 	version = version,
 	dataset = dataset,
 	campaign_definition = campaign_definition,
-	test = test)
+	test = test).replace('Campaign=',''))
 
 def get_task_id_for(campaign, user = None, command_executed = None, input_dataset = None, parent_task_id = None, test = None, experiment = None):
 
-    make_poms_call( 
+    return int(
+       make_poms_call( 
          method = 'get_task_id_for',
 	 campaign = campaign,
 	 user = user,
 	 command_executed = command_executed,
 	 input_dataset = input_dataset,
 	 parent_task_id = parent_task_id,
-	 test = test)
+	 test = test).replace('Task=','')
+        )
 
 def make_poms_call(**kwargs):
 
@@ -42,13 +44,17 @@ def make_poms_call(**kwargs):
             del kwargs[k]
 
     c = urllib2.urlopen("%s/%s" % (base,method), urllib.urlencode(kwargs));
-    print c.read()
+    res = c.read()
+    print res
+    return res
   
 
 
 if __name__ == '__main__':
     # simple tests...
-    make_poms_call(test=True, method="active_jobs")
-    get_task_id_for(test = True, campaign=14, command_executed="fake test job")
-    register_poms_campaign("mwm_client_test",  user = "mengel", experiment = "samdev", version = "v0_0", dataset = "mwm_test_data", test = True)
+    res = make_poms_call(test=True, method="active_jobs")
+    tid = get_task_id_for(test = True, campaign=14, command_executed="fake test job")
+    cid = register_poms_campaign("mwm_client_test",  user = "mengel", experiment = "samdev", version = "v0_0", dataset = "mwm_test_data", test = True)
+    print "got task id ", tid
+    print "got campaign id ", cid
 

@@ -331,10 +331,28 @@ function validateQuickSearchForm(formid)
 
 
                     {% if current_experimenter is defined %}
-                       <div class="ui right floated segment">
+                       <div class="ui right floated segment" id="auth_info" style="z-index: 1">
                        <i class="user icon"></i>
                        {{current_experimenter.first_name}} {{current_experimenter.last_name}}
+
+                           <div class="ui dimmer">
+                             <div class="content">
+                               <div class="center">
+                                 <div class="ui small primary button" id="sign_out"> <i class="sign out icon"></i> Sign Out</div>
+                               </div>
+                             </div>
+                           </div>
+
                        </div>
+
+
+
+<script>
+$( "#sign_out" ).click(function() {
+  window.location.href="sign_out"
+});
+</script>
+
                     {% endif %}
                         <div class="ui container">
                             <div class="introduction">
@@ -373,16 +391,14 @@ function validateQuickSearchForm(formid)
 
 
                         </div>
-                        
+
                     </div>  <!--ends main ui intro container-->
                     
                     
-                    
-                    
+                    <div class="ui mini label" style="float:right;">{{version}}</div>
                     
                     
                 </div>  <!--ends article-->
-                
                 
                 
                 
@@ -395,7 +411,6 @@ function validateQuickSearchForm(formid)
                         
             
             
-        
             
 
         </div>  <!--ends pusher-->
@@ -455,6 +470,9 @@ $('.tbox_delayed')
 
 
 
+<script>
+$( document ).ready(function() { $('#auth_info').dimmer({on: 'hover'}); });
+</script>
 
 
                                 
