@@ -99,6 +99,14 @@ class poms_service:
     def headers(self):
         return repr(cherrypy.request.headers)
 
+
+    @cherrypy.expose
+    def sign_out(self):
+        cherrypy.lib.sessions.expire()
+        log_out_url = "https://" + self.hostname + "/Shibboleth.sso/Logout"
+        raise cherrypy.HTTPRedirect(log_out_url)
+
+
     @cherrypy.expose
     def index(self):
         template = self.jinja_env.get_template('index.html')
@@ -587,10 +595,11 @@ class poms_service:
             try:
                 db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).delete()
                 db.commit()
-            except:
-                db.rollback()
-                message = "The template, %s, is in use and may not be deleted." % name
+            except Exception, e:
+                message = "The launch template, %s, has been used and may not be deleted." % name
+                cherrypy.log(message)
                 cherrypy.log(e.message)
+                db.rollback()
 
         if action == 'add' or action == 'edit':
             ae_launch_id = kwargs.pop('ae_launch_id')
@@ -647,13 +656,16 @@ class poms_service:
 
         if action == 'delete':
             name = kwargs.pop('name')
+            cid = kwargs.pop('campaign_definition_id')
             try:
-                db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).filter(CampaignDefinition.name==name).delete()
+                db.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id==cid).delete()
+                db.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==cid).delete()
                 db.commit()
-            except:
-                db.rollback()
-                message = "The campaign definition, %s, is in use and may not be deleted." % name
+            except Exception, e:
+                message = "The campaign definition, %s, has been used and may not be deleted." % name
                 cherrypy.log(message)
+                cherrypy.log(e.message)
+                db.rollback()
 
         if action == 'add' or action == 'edit':
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
@@ -751,14 +763,18 @@ class poms_service:
         exp = kwargs.pop('experiment',None)
 
         if action == 'delete':
+            campaign_id = kwargs.pop('campaign_id')
             name = kwargs.pop('name')
             try:
-                db.query(Campaign).filter(Campaign.experiment==exp).filter(Campaign.name==name).delete()
+                db.query(CampaignDependency).filter(or_(CampaignDependency.needs_camp_id==campaign_id,
+                                                        CampaignDependency.uses_camp_id==campaign_id)).delete()
+                db.query(Campaign).filter(Campaign.campaign_id==campaign_id).delete()
                 db.commit()
-            except:
-                db.rollback()
-                message = "The campaign definition, %s, has been used and may not be deleted." % name
+            except Exception, e:
+                message = "The campaign, %s, has been used and may not be deleted." % name
                 cherrypy.log(message)
+                cherrypy.log(e.message)
+                db.rollback()
 
         if action == 'add' or action == 'edit':
             campaign_id = kwargs.pop('ae_campaign_id')
@@ -788,9 +804,13 @@ class poms_service:
                                  creator=experimenter_id, created=datetime.now(utc))
 
                     db.add(c)
+                    db.flush()
+                    campaign_id = c.campaign_id
                 else:
                     columns = {"name":                  name,
                                "vo_role":               vo_role,
+                               "active":                active,
+                               "cs_split_type":         split_type,
                                "software_version":      software_version,
                                "dataset" :              dataset,
                                "param_overrides":       param_overrides,
@@ -825,12 +845,23 @@ class poms_service:
 
         # Find campaigns
         if exp: # cuz the default is find
-            data['curr_experiment'] = exp
-            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
             # for testing ui...
             #data['authorized'] = True
 
-            data['campaigns'] = db.query(Campaign).filter(Campaign.experiment==exp).order_by(Campaign.name)
+            state = kwargs.pop('state',None)
+            if state == None:
+                state = cherrypy.session.get('campaign_edit.state','state_active')
+            cherrypy.session['campaign_edit.state'] = state
+            data['state'] = state
+            data['curr_experiment'] = exp
+            data['authorized'] = cherrypy.session.get('experimenter').is_authorized(exp)
+            cquery = db.query(Campaign).filter(Campaign.experiment==exp)
+            if state == 'state_active':
+                cquery = cquery.filter(Campaign.active==True)
+            elif state == 'state_inactive':
+                cquery = cquery.filter(Campaign.active==False)
+            cquery = cquery.order_by(Campaign.name)
+            data['campaigns'] = cquery
             data['definitions'] = db.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
             data['templates'] = db.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
             cids = [c.campaign_id for c in data['campaigns'].all()]
