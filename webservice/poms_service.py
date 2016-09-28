@@ -97,6 +97,7 @@ class poms_service:
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
         global_version = self.version
+	self.calendarPOMS = CalendarPOMS.CalendarPOMS()
 
     @cherrypy.expose
     def headers(self):
@@ -191,53 +192,100 @@ class poms_service:
             raise cherrypy.HTTPRedirect(".")
 
 
-##########
-#Felipe modify from here
+######
     @cherrypy.expose
     def calendar_json(self, start, end, timezone, _):
         cherrypy.response.headers['Content-Type'] = "application/json"
-        return json.dumps(CalendarPOMS.calendar_json(cherrypy.request.db, start, end, timezone))
+        return json.dumps(self.calendarPOMS.calendar_json(cherrypy.request.db, start, end, timezone, _))
 
 
     @cherrypy.expose
     def calendar(self):
         template = self.jinja_env.get_template('calendar.html')
-	rows = CalendarPOMS.calendar(cherrypy.request.db)
+	rows = self.calendarPOMS.calendar(dbhandle = cherrypy.request.db)
         return template.render(rows=rows, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="CalendarHelp")
 
     @cherrypy.expose
     def add_event(self, title, start, end):
         #title should be something like minos_sam:27 DCache:12 All:11 ...
-	return CalendarPOMS.add_event.calendar(cherrypy.request.db,title, start, end)
+	return self.calendarPOMS.add_event.calendar(cherrypy.request.db,title, start, end)
 
     @cherrypy.expose
     def edit_event(self, title, start, new_start, end, s_id):  #even though we pass in the s_id we should not rely on it because they can and will change the service name
-        return CalendarPOMS.edit_event(cherrypy.request.db, title, start, new_start, end, s_id)
+        return self.calendarPOMS.edit_event(cherrypy.request.db, title, start, new_start, end, s_id)
 
     @cherrypy.expose
     def service_downtimes(self):
         template = self.jinja_env.get_template('service_downtimes.html')
-	rows = CalendarPOMS.service_downtimes(cherrypy.request.db)
+	rows = self.calendarPOMS.service_downtimes(cherrypy.request.db)
         return template.render(rows = rows,current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="ServiceDowntimesHelp")
 
     @cherrypy.expose
     def update_service(self, name, parent, status, host_site, total, failed, description):
-       	return CalendarPOMS.update_service(cherrypy.request.db, cherrypy.log, name, parent, status, host_site, total, failed, description)
+       	return self.calendarPOMS.update_service(cherrypy.request.db, cherrypy.log, name, parent, status, host_site, total, failed, description)
 
 
     @cherrypy.expose
     def service_status(self, under = 'All'):
         template = self.jinja_env.get_template('service_status.html')
-	list=CalendarPOMS.service_status (cherrypy.request, under)
+	list=self.calendarPOMS.service_status (cherrypy.request.db, under)
         return template.render(list=list, name=under,current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="ServiceStatusHelp")
-
+    '''
+    Apparently this function is not related with Calendar
     def service_status_hier(self, under = 'All', depth = 0):
-        CalendarPOMS.service_status_hier (cherrypy.request, under, depth)
+        self.calendarPOMS.service_status_hier (cherrypy.request.db, under, depth)
+    '''
 
-# to here
-#######################
+    #print "Check where should be this function." 
+    def service_status_hier(self, under = 'All', depth = 0):
+        p = cherrypy.request.db.query(Service).filter(Service.name == under).first()
+        if depth == 0:
+            res = '<div class="ui accordion styled">\n'
+        else:
+            res = ''
+        active = ""
+        for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(Service.name).all():
+             posneg = {"good": "positive", "degraded": "orange", "bad": "negative"}.get(s.status, "")
+             icon = {"good": "checkmark", "bad": "remove", "degraded": "warning sign"}.get(s.status,"help circle")
+             if s.host_site:
+                 res = res + """
+                     <div class="title %s">
+                      <i class="dropdown icon"></i>
+                      <button class="ui button %s tbox_delayed" data-content="%s" data-variation="basic">
+                         %s (%d/%d)
+                         <i class="icon %s"></i>
+                       </button>
+                     </div>
+                     <div  class="content %s">
+                         <a target="_blank" href="%s">
+                         <i class="icon external"></i>
+                         source webpage
+                         </a>
+                     </div>
+                  """ % (active, posneg, s.description, s.name, s.failed_items, s.items, icon, active, s.host_site)
+             else:
+                 res = res + """
+                    <div class="title %s">
+                      <i class="dropdown icon"></i>
+                      <button class="ui button %s tbox_delayed" data-content="%s" data-variation="basic">
+                       %s (%d/%d)
+                      <i class="icon %s"></i>
+                      </button>
+                    </div>
+                    <div class="content %s">
+                      <p>components:</p>
+                      %s
+                    </div>
+                 """ % (active, posneg, s.description, s.name, s.failed_items, s.items, icon, active,  self.service_status_hier(s.name, depth + 1))
+             active = ""
 
-   @cherrypy.expose
+        if depth == 0:
+            res = res + "</div>"
+        return res
+
+####
+
+    @cherrypy.expose
     def new_task_for_campaign(self, campaign_name, command_executed, experimenter_name, dataset_name = None):
         c = cherrypy.request.db.query(Campaign).filter(Campaign.name == campaign_name).first()
         e = cherrypy.request.db.query(Experimenter).filter(like_)(Experimenter.email,"%s@%%" % experimenter_name ).first()
@@ -258,7 +306,9 @@ class poms_service:
         cherrypy.request.db.add(t)
         cherrypy.request.db.commit()
         return "Task=%d" % t.task_id
+ 
 
+    def make_admin_map(self):
         """
             make self.admin_map a map of strings to model class names
             and self.pk_map a map of primary keys for that class

@@ -3,7 +3,7 @@
 
 
 # CalendarPOMS.calendar_json(cherrypy.request.db,start, end, timezone)
-def calendar_json(self, dbhandle,start, end, timezone):
+def calendar_json(self, dbhandle,start, end, timezone, _):
         rows = dbhandle.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).filter(ServiceDowntime.downtime_started.between(start, end)).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(~Service.name.endswith("sam")).all()
         list=[]
         for row in rows:
@@ -44,7 +44,7 @@ def add_event(self, dbhandle,title, start, end):
         end_dt = datetime.fromtimestamp(float(end), tz=utc)
 	s = dbhandle.query(Service).filter(Service.name == title).first()
 
-	 if s:
+	if s:
             try:
                 #we got a service id
                 d = ServiceDowntime()
@@ -194,7 +194,6 @@ def service_status_hier(self, dbhandle, under = 'All', depth = 0):
             res = res + "</div>"
         return res
 
-    experimentlist = [ ['nova','nova'],['minerva','minerva']]
 
 
 
