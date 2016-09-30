@@ -98,6 +98,7 @@ class poms_service:
         self.version = version.get_version()
         global_version = self.version
 	self.calendarPOMS = CalendarPOMS.CalendarPOMS()
+	self.dbadminPOMS = DBadminPOMS.DBadminPOMS()
 
     @cherrypy.expose
     def headers(self):
@@ -193,6 +194,8 @@ class poms_service:
 
 
 ######
+#CALENDAR
+#Using CalendarPOMS.py module
     @cherrypy.expose
     def calendar_json(self, start, end, timezone, _):
         cherrypy.response.headers['Content-Type'] = "application/json"
@@ -230,13 +233,15 @@ class poms_service:
         template = self.jinja_env.get_template('service_status.html')
 	list=self.calendarPOMS.service_status (cherrypy.request.db, under)
         return template.render(list=list, name=under,current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path,help_page="ServiceStatusHelp")
+######
+
+######
+    #print "Check where should be this function." 
     '''
     Apparently this function is not related with Calendar
     def service_status_hier(self, under = 'All', depth = 0):
         self.calendarPOMS.service_status_hier (cherrypy.request.db, under, depth)
     '''
-
-    #print "Check where should be this function." 
     def service_status_hier(self, under = 'All', depth = 0):
         p = cherrypy.request.db.query(Service).filter(Service.name == under).first()
         if depth == 0:
@@ -327,99 +332,29 @@ class poms_service:
                          self.pk_map[k] = fieldname
         cherrypy.log(" ---- admin map: %s " % repr(self.admin_map))
         cherrypy.log(" ---- pk_map: %s " % repr(self.pk_map))
-
+#####
+#dbadminPOMS
     @cherrypy.expose
     def raw_tables(self):
-        if not self.can_db_admin():
-             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
+	    if not self.can_db_admin():
+		    raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
         return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="RawTablesHelp", version=self.version)
-
     @cherrypy.expose
     def user_edit(self, *args, **kwargs):
-        db = cherrypy.request.db
-        message = None
-        data = {}
-        email = kwargs.pop('email',None)
-        action = kwargs.pop('action',None)
-
-        if action == 'membership':
-            # To update memberships set all the tags to false and then reset the needed ones to true.
-            e_id = kwargs.pop('experimenter_id',None)
-            db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e_id).update({"active":False})
-            for key,exp in kwargs.items():
-                updated = (
-                    db.query(ExperimentsExperimenters)
-                    .filter(ExperimentsExperimenters.experimenter_id==e_id)
-                    .filter(ExperimentsExperimenters.experiment==exp).update({"active":True})
-                    )
-                if updated==0:
-                    EE = ExperimentsExperimenters()
-                    EE.experimenter_id = e_id
-                    EE.experiment = exp
-                    EE.active = True
-                    cherrypy.request.db.add( EE )
-            db.commit()
-
-        elif action == "add":
-            if db.query(Experimenter).filter(Experimenter.email==email).one():
-                message = "An experimenter with the email %s already exists" %  email
-            else:
-                experimenter = Experimenter()
-                experimenter.first_name = kwargs.get('first_name')
-                experimenter.last_name = kwargs.get('last_name')
-                experimenter.email = email
-                db.add( experimenter)
-                db.commit()
-
-        elif action == "edit":
-            values = {"first_name" : kwargs.get('first_name'),
-                      "last_name"  : kwargs.get('last_name'),
-                      "email"      : email}
-            db.query(Experimenter).filter(Experimenter.experimenter_id==kwargs.get('experimenter_id')).update(values)
-            db.commit()
-
-        if email:
-            experimenter = db.query(Experimenter).filter(Experimenter.email == email ).first()
-            if experimenter == None:
-                message = "There is no experimenter with the email %s" % email
-            else:
-                data['experimenter'] = experimenter
-                # Experiments that are members of an experiment can be active or inactive
-                data['member_of_exp'] = db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
-                # Experimenters that were never a member of an experiment will not have an entry in the experiments_experimenters table for that experiment
-                subquery = db.query(ExperimentsExperimenters.experiment).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
-                data['not_member_of_exp'] = db.query(Experiment).filter(~Experiment.experiment.in_(subquery))
-
-        db.commit()
-
-        data['message'] = message
+        data = self.experimentPOMS.user_edit(cherrypy.request.db, *args, **kwargs)
         template = self.jinja_env.get_template('user_edit.html')
         return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="EditUsersHelp", version=self.version)
 
     @cherrypy.expose
     def experiment_members(self, *args, **kwargs):
-        db = cherrypy.request.db
-        exp = kwargs['experiment']
-        query = (db.query(Experiment,ExperimentsExperimenters,Experimenter)
-                 .join(ExperimentsExperimenters).join(Experimenter)
-                 .filter(Experiment.name==exp)
-                 .order_by(ExperimentsExperimenters.active.desc(),Experimenter.last_name)
-                 )
-        trows=""
-        for experiment, e2e, experimenter in query:
-            active = "No"
-            if e2e.active:
-                active="Yes"
-            trow = """<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>""" % (experimenter.first_name, experimenter.last_name, experimenter.email, active)
-            trows = "%s%s" % (trows,trow)
+        trows = self.dbadminPOMS.experiment_members(cherrypy.request.db, *args, **kwargs) 
         return json.dumps(trows)
 
     @cherrypy.expose
     def experiment_edit(self, message=None):
-        db = cherrypy.request.db
-        experiments = db.query(Experiment).order_by(Experiment.experiment)
+	experiments=self.dbadminPOMS.experiment_edit(cherrypy.request.db)
         template = self.jinja_env.get_template('experiment_edit.html')
         return template.render(message=message, experiments=experiments, current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="ExperimentEditHelp", version=self.version)
@@ -429,37 +364,9 @@ class poms_service:
         db = cherrypy.request.db
         if not self.can_db_admin():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-
-        message = None
-        # Add new experiment, if any
-        try:
-            experiment = kwargs.pop('experiment')
-            name = kwargs.pop('name')
-            try:
-                db.query(Experiment).filter(Experiment.experiment==experiment).one()
-                message = "Experiment, %s,  already exists." % experiment
-            except NoResultFound:
-                exp = Experiment(experiment=experiment, name=name)
-                cherrypy.request.db.add(exp)
-                cherrypy.request.db.commit()
-        except KeyError:
-            pass
-        # Delete experiment(s), if any were selected
-        try:
-            experiment = None
-            for experiment in kwargs:
-                db.query(Experiment).filter(Experiment.experiment==experiment).delete()
-            cherrypy.request.db.commit()
-        except IntegrityError, e:
-            message = "The experiment, %s, is used and may not be deleted." % experiment
-            cherrypy.log(e.message)
-            db.rollback()
-        except SQLAlchemyError, e:
-            cherrypy.request.db.rollback()
-            message = "SqlAlchemy error - %s" % e.message
-            cherrypy.log(e.message)
-
+        message = self.experimentPOMS.experiment_authorize(cherrypy.request.db, cherrypy.log, *args, **kwargs):
         return self.experiment_edit(message)
+#####
 
     @cherrypy.expose
     def launch_template_edit(self, *args, **kwargs):
