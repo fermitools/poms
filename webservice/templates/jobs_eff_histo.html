@@ -1,7 +1,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS:Job efficiency in Campaign {{campaign_id}} </title>
+    <title>POMS:Job efficiency in Campaign Layer {{campaign_id}} </title>
 {%endblock%}
 
 
@@ -9,11 +9,11 @@
 <div class="ui breadcrumb" style="margin-top: -45px;">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
-  <a href="{{pomspath}}/show_campaigns/" class="section">Campaigns</a>
+  <a href="{{pomspath}}/show_campaigns/" class="section">Campaign Layers</a>
   <div class="divider"> / </div>
   <a href="{{pomspath}}/campaign_info?campaign_id={{campaign_id}}" class="section">{{c.name}}</a>
   <div class="divider"> / </div>
-  <div class="section">Jobs efficiency in campaign {{campaign_id}}</div>
+  <div class="section">Jobs efficiency in campaign layer {{campaign_id}}</div>
 </div>
 {%endblock%}
 

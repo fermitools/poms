@@ -92,7 +92,7 @@ $(function() {
                 </div>
             </div>
             <div class="field">
-                <label>Campaign Definition ID</label>
+                <label>Job Type ID</label>
                 <div class="ui input">
                     <input type="text" name="campaign_def_id" value="{{filtered_fields.get("campaign_def_id", "")}}" placeholder="">
                 </div>
@@ -208,7 +208,7 @@ $(function() {
 <br/>
 <div class="ui checkbox" style="padding-bottom:5px;">
   <input type="checkbox" name="campaign_checkbox" {{filtered_fields.get("campaign_checkbox")}}>
-  <label style="color:white;"><b>Campaign</b></label>
+  <label style="color:white;"><b>Campaign Layer</b></label>
 </div>
 
 <br/>
@@ -280,7 +280,7 @@ $( "#search_button" ).click(function() {
       <!-- span2 {{span2}} -->
       {%if filtered_fields.get("task_checkbox") == 'checked'%}  <th class="" colspan="{{span2|length}}">Task fields</th>  {%endif%}
       {%set span3 = campcolumns|length %}
-      {%if filtered_fields.get("campaign_checkbox") == 'checked'%}  <th class="" colspan="{{span3}}">Campaign fields</th>  {%endif%}
+      {%if filtered_fields.get("campaign_checkbox") == 'checked'%}  <th class="" colspan="{{span3}}">Campaign layer fields</th>  {%endif%}
     </tr>
     <tr>
     {%for col in jobcolumns%}

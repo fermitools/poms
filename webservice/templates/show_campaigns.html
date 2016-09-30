@@ -1,7 +1,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS:{{In}}Active Campaigns
+    <title>POMS:{{In}}Active Campaign Layers
        {%if limit_experiment %}
            for {{limit_experiment}}
        {%endif%}
@@ -13,14 +13,14 @@
 <div class="ui breadcrumb" style="margin-top: -45px;">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
-  <div class="section">Campaigns</div>
+  <div class="section">Campaign Layers</div>
 </div>
 {%endblock%}
 
 
 {%block header%}
 <h1 class="ui header">
-     Campaigns{%include 'help_button.html'%}
+     Campaign Layers{%include 'help_button.html'%}
        {%if limit_experiment %}
            for {{limit_experiment}}
        {%endif%}
@@ -31,7 +31,7 @@
 
 
 {%block subheader%}
-<h2 class="ui dividing header">{{In}}Active Campaigns <!--for {{time_range_string}}-->
+<h2 class="ui dividing header">{{In}}Active Campaign Layers <!--for {{time_range_string}}-->
        {%if limit_experiment %}
            for {{limit_experiment}}
        {%endif%}
@@ -60,7 +60,7 @@
 
    <table class="ui celled table unstackable">
      <tr>
-       <th colspan=2 align="center"> Campaign 
+       <th colspan=2 align="center"> Campaign Layer
         <a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Campaign"><i style="float: none" class="grey help circle link icon"></i></a>
       </th>
       <th colspan=3 align="center">Active Jobs </th>
