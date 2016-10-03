@@ -2,10 +2,14 @@
 
 '''
 This module contain the methods that allow to modify the data. 
-List of methods: user_edit, experiment_members     
+List of methods: user_edit, experiment_members, experiment edit, experiment_authorize.       
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White. 
 Date: September 30, 2016. 
 '''
+
+
+from model.poms_model import Experimenter, Experiment, ExperimentsExperimenters
+
 class DBadminPOMS:
 	#def user_edit(self, db = cherrypy.request.db,email = None, action = None, *args, **kwargs):
 	def user_edit(self, dbhandle, *args, **kwargs):
@@ -89,7 +93,7 @@ class DBadminPOMS:
 		return(dbhandle.query(Experiment).order_by(Experiment.experiment))
 
 		
-	def experiment_authorize(self, dbhandle, loghandle *args, **kwargs):
+	def experiment_authorize(self, dbhandle, loghandle, *args, **kwargs):
 		message = None
 		# Add new experiment, if any
 		try:
@@ -104,6 +108,7 @@ class DBadminPOMS:
 			dbhandle.commit()
 		except KeyError:
 		    pass
+	
 		# Delete experiment(s), if any were selected
 		try:
 		    experiment = None
