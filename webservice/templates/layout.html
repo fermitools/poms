@@ -125,8 +125,17 @@
             <div class="item">
               <div class="header">Campaign Layers</div>
               <div class="menu">
+		{% if current_experimenter is defined %}
+                {%for e in current_experimenter.authorized_for.keys()%}
+                {%if e != 'root'%}
+                <a class="item" href="{{pomspath}}/show_campaigns?experiment={{e}}">
+                  Active for {{e}}
+                </a>
+                {%endif%}
+                {%endfor%}
+                {%endif%}
                 <a class="item" href="{{pomspath}}/show_campaigns">
-                  Active
+                  All Active
                 </a>
                 <a class="item" href="{{pomspath}}/show_campaigns?active=False">
                   InActive
@@ -247,8 +256,17 @@
             <div class="item">
               <div class="header">Campaign Layers</div>
               <div class="menu">
+		{% if current_experimenter is defined %}
+                {%for e in current_experimenter.authorized_for.keys()%}
+                {%if e != 'root'%}
+                <a class="item" href="{{pomspath}}/show_campaigns?experiment={{e}}">
+                  Active for {{e}}
+                </a>
+                {%endif%}
+                {%endfor%}
+                {%endif%}
                 <a class="item" href="{{pomspath}}/show_campaigns">
-                  Active
+                  All Active
                 </a>
                 <a class="item" href="{{pomspath}}/show_campaigns?active=False">
                   InActive
