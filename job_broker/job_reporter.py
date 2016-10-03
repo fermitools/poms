@@ -63,7 +63,7 @@ class job_reporter:
         data.update(kwargs)
 
         if self.debug:
-           sys.stdout.write("reporting: %s\n" %  data )
+           sys.stdout.write("%s: reporting: %s\n" %  (time.asctime(), data) )
            sys.stdout.flush()
 
         retries = 3
@@ -92,7 +92,7 @@ class job_reporter:
                     del uh
 
                 # don't retry on 401's...
-                if uh.getcode() == 401:
+                if uh and uh.getcode() in [401,404]:
                     return ""
 
 		sys.stderr.write(errtext)
