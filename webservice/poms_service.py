@@ -2429,6 +2429,7 @@ class poms_service:
     def kill_jobs(self, campaign_id=None, task_id=None, job_id=None, confirm=None):
         jjil = []
         jql = None
+        t = None
         if campaign_id != None or task_id != None:
             if campaign_id != None:
                 tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id, Task.status != 'Completed', Task.status != 'Located').all()

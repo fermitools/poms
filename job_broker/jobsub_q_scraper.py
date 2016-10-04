@@ -220,6 +220,12 @@ class jobsub_q_scraper:
 	        traceback.print_exc()
 	        pass
 
+            sys.stderr.write("%s pausing...\n" % time.asctime())
+            sys.stderr.flush()
+            time.sleep(30)
+            sys.stderr.write("%s done...\n" % time.asctime())
+            sys.stderr.flush()
+
             n = gc.collect()
             #print "gc.collect() returns %d unreachable" % n
 

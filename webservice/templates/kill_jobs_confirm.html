@@ -35,9 +35,9 @@
      {% if campaign_id is not none %}
         Campaign Layer {{task.campaign_obj.name}}, Submission(s) {{jjil|join(', ')}}
      {% elif task_id is not none %}
-       Submissions(s) {{jjil}}
+       Submissions(s) {{jjil|join(', ')}}
      {% elif job_id is not none %}
-       Job(s) {{jjil}}
+       Job(s) {{jjil|join(', ')}}
      {% endif %}
     ? <br>
 
