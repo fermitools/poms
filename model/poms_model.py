@@ -175,6 +175,9 @@ class Task(Base):
     updated = Column(DateTime(True))
     command_executed = Column(Text)
     project = Column(Text)
+    launch_snapshot_id = Column(ForeignKey(u'launch_template_snapshots.launch_snapshot_id'), nullable=True, index=True)
+    campaign_snapshot_id = Column(ForeignKey(u'campaign_snapshots.campaign_snapshot_id'), nullable=True, index=True)
+    campaign_definition_snap_id = Column(ForeignKey(u'campaign_definition_snapshots.campaign_definition_snap_id'), nullable=True, index=True)
     recovery_position = Column(Integer)
     recovery_tasks_parent = Column(ForeignKey(u'tasks.task_id'),index=True)
 
@@ -182,8 +185,10 @@ class Task(Base):
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Task.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Task.updater == Experimenter.experimenter_id')
     parent_obj = relationship(u'Task', remote_side=[task_id],foreign_keys=recovery_tasks_parent)
+    launch_template_snap_obj = relationship(u'LaunchTemplateSnapshot', foreign_keys=launch_snapshot_id)
+    campaign_snap_obj = relationship(u'CampaignSnapshot', foreign_keys=campaign_snapshot_id)
+    campaign_definition_snap_obj = relationship(u'CampaignDefinitionSnapshot', foreign_keys=campaign_definition_snap_id)
     jobs = relationship(u'Job', order_by = "Job.job_id")
-
 
 class TaskHistory(Base):
     __tablename__ = 'task_histories'

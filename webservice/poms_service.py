@@ -2126,9 +2126,10 @@ class poms_service:
         if parent_task_id != None and parent_task_id != "None":
             t.recovery_tasks_parent = int(parent_task_id)
 
+        self.snapshot_parts(t, t.campaign_id)
+
         cherrypy.request.db.add(t)
         cherrypy.request.db.commit()
-        self.snapshot_parts(t.campaign_id)
         return "Task=%d" % t.task_id
 
     @cherrypy.expose
@@ -2971,12 +2972,12 @@ class poms_service:
 
         raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id )
 
-    def snapshot_parts(self, campaign_id):
+    def snapshot_parts(self, t, campaign_id):
          c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-         for table, snaptable, field, sfield, tid in [
-		[Campaign,CampaignSnapshot,Campaign.campaign_id,CampaignSnapshot.campaign_id,c.campaign_id], 
-		[CampaignDefinition, CampaignDefinitionSnapshot,CampaignDefinition.campaign_definition_id, CampaignDefinitionSnapshot.campaign_definition_id, c.campaign_definition_id], 
-                [LaunchTemplate ,LaunchTemplateSnapshot,LaunchTemplate.launch_id,LaunchTemplateSnapshot.launch_id,  c.launch_id]]:
+         for table, snaptable, field, sfield, tid , tfield in [
+		[Campaign,CampaignSnapshot,Campaign.campaign_id,CampaignSnapshot.campaign_id,c.campaign_id, 'campaign_snap_obj' ], 
+		[CampaignDefinition, CampaignDefinitionSnapshot,CampaignDefinition.campaign_definition_id, CampaignDefinitionSnapshot.campaign_definition_id, c.campaign_definition_id, 'campaign_definition_snap_obj'], 
+                [LaunchTemplate ,LaunchTemplateSnapshot,LaunchTemplate.launch_id,LaunchTemplateSnapshot.launch_id,  c.launch_id, 'launch_definition_snap_obj']]:
               
              i = cherrypy.request.db.query(func.max(snaptable.updated)).filter(sfield == tid).first()
              j = cherrypy.request.db.query(table).filter(field == tid).first()
@@ -2985,8 +2986,10 @@ class poms_service:
                 columns = j._sa_instance_state.class_.__table__.columns
                 for fieldname in columns.keys():
                      setattr(newsnap, fieldname, getattr(j,fieldname))     
+                setattr(t, tfield, newsnap)
                 cherrypy.request.db.add(newsnap)
-             cherrypy.request.db.commit()
+	 cherrypy.request.db.add(t)
+         cherrypy.request.db.commit()
 
     @cherrypy.expose
     def mark_campaign_active(self, campaign_id, is_active):
