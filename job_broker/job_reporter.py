@@ -82,24 +82,27 @@ class job_reporter:
 
 		return res
 
-	    except (urllib2.HTTPError, urllib2.URLError) as e:
-		errtext = str(e)
-		sys.stderr.write("Excpetion:")
 
+	    except (urllib2.HTTPError) as e:
+		sys.stderr.write("Exception: HTTP error %d" % e.code)
+		sys.stderr.write("\n--------\n")
+                sys.stderr.flush()
 
-		if uh:
-		    sys.stderr.write("HTTP fetch status %d" %  uh.getcode())
-                    del uh
 
                 # don't retry on 401's...
-                if uh and uh.getcode() in [401,404]:
+                if e.code in [401,404]:
+                    del e
                     return ""
 
-		sys.stderr.write(errtext)
-		sys.stderr.write("--------")
+		del e
+                time.sleep(5)
+                retries = retries - 1
 
-                del e
-
+	    except (urllib2.URLError) as e:
+		errtext = str(e)
+		sys.stderr.write("Exception:" + errtext)
+		sys.stderr.write("\n--------\n")
+                sys.stderr.flush()
                 time.sleep(5)
                 retries = retries - 1
                 
