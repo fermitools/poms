@@ -13,10 +13,21 @@ class Elasticsearch:
         else:
             self.base_url=cherrypy.config.get('elasticsearch_base_url').strip('"')
 
+        configfile = "poms.ini"
+        cherrypy.config.update(configfile) 
         self.cert=cherrypy.config.get('elasticsearch_cert').strip('"')
         self.key=cherrypy.config.get('elasticsearch_key').strip('"')
 
         requests.packages.urllib3.disable_warnings()
+
+    def indices(self, **kwargs):
+        url_bits = []
+        url_bits.append(self.base_url)
+        url_bits.append('_cat')
+        url_bits.append('indices?v')
+        url = "/".join(url_bits)
+        r = requests.get(url, verify=False)
+        return r.text
 
     def search(self, **kwargs):
         url_bits = []
@@ -71,6 +82,8 @@ if __name__ == '__main__':
 
     es = Elasticsearch(debug=1)
 
+    print "Indices: ", es.indices()
+
     #example of basic searching and getting particular fields from object
     query = {
         'query' : {
@@ -88,7 +101,7 @@ if __name__ == '__main__':
         print record.get('_source').get('event_message')
         print "*" * 13
 
-    print "*" * 100
+    print "*" * 80 
 
     #emample of searching by field
     query = {
@@ -100,7 +113,7 @@ if __name__ == '__main__':
     response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
     pprint.pprint(response)
 
-    print "*" * 100
+    print "*" * 80 
 
     #example of iterating the result set
     query = {
@@ -116,7 +129,7 @@ if __name__ == '__main__':
             print str(k) + ": " + str(v)
         print "---"
 
-    print "*" * 100
+    print "*" * 80 
 
     #example of specifying a from and a size which can be useful for pagination
     query = {
@@ -128,7 +141,7 @@ if __name__ == '__main__':
     response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
     pprint.pprint(response)
 
-    print "*" * 100
+    print "*" * 80 
 
     #example of sorting by date
     query = {
@@ -140,16 +153,41 @@ if __name__ == '__main__':
     response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
     pprint.pprint(response)
 
-    print "*" * 100
+    print "*" * 80 
 
     #example of sending a record where datetimes will be serialized
     payload = {'timestamp': datetime.utcnow(), 'message': 'trying out elasticsearch with poms', 'user': 'mgheith'}
     response = es.index(index='poms-2016-09-02', doc_type='my-poms-type', body=payload)
     pprint.pprint(response)
 
-    print "*" * 100
+    print "*" * 80 
 
     #example of sending a record where datetimes will not be serialized
     payload = {'timestamp': '2016-09-02T20:00:00', 'message': 'trying out elasticsearch with poms not serialized', 'user': 'mgheith'}
     response = es.index(index='poms-2016-09-02', doc_type='my-poms-type', body=payload)
+    pprint.pprint(response)
+
+    print "= " * 40
+
+    query = {
+        "sort" : [{ "@timestamp" : {"order" : "asc"}}],
+        "query" : {
+           "bool": {  
+              "must": {
+		    "range" : {
+		       'timestamp' : {
+			      'gte': "now-5m",
+			      'lte': "now", 
+			}
+		  }
+               },
+               "must": {
+                    "exists": { "field": "env.POMS_TASK_ID" }
+                
+              }
+          }
+       }
+    }
+    #response = es.search(index='fifebatch-logs-*', types=['job'], query=query)
+    response = es.search(index='fifebatch-jobs.*', type=['job'], query=query)
     pprint.pprint(response)
