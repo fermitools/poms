@@ -1,7 +1,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>Task {{jobsub_job_id}} Logged Files </title>
+    <title>Submission {{jobsub_job_id}} Logged Files </title>
 {%endblock%}
 
 
@@ -13,7 +13,7 @@
   <div class="divider"> / </div>
   <div class="section"> <a href="{{pomspath}}/campaign_task_files?campaign_id={{campaign.campaign_id}}">Campaign Layer {{campaign.name}} File Info by Submission</a></div>
   <div class="divider"> / </div>
-  <div class="section"> <a href="{{pomspath}}/show_campaigns">Task {{jobsub_job_id}} Logged files</a></div>
+  <div class="section"> <a href="{{pomspath}}/show_campaigns">Submission {{jobsub_job_id}} Logged files</a></div>
 </div>	
 {%endblock%}
 
