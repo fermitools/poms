@@ -1775,11 +1775,11 @@ class poms_service:
             items.append(fakerow(task_id = th.task_id,
                                   created = th.created.replace(tzinfo = utc),
                                   tmin = th.task_obj.created - timedelta(minutes=15),
-                                  tmax = th.task_obj.updated + timedelta(hours=6.5),
+                                  tmax = th.task_obj.updated,
                                   status = th.status,
                                   jobsub_job_id = jjid))
 
-        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(tmin)19.19s&tmax=%(tmax)19.19s',extramap = extramap )
+        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template = self.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(tmin)19.19s&tdays=1',extramap = extramap )
 
         return template.render( job_counts = job_counts, blob = blob, name = name, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, extramap = extramap, help_page="CampaignTimeBarsHelp", version=self.version)
 

@@ -186,9 +186,13 @@ class jobsub_q_scraper:
 		    # we could get a false alarm here if condor_q fails...
 		    # thats why we only do this if our close() returned 0/None.
                     # and we make sure we didn't see it two runs in a row...
+                    print "reporting %s as completed" % jobsub_job_id
+
 		    self.job_reporter.report_status(
 			jobsub_job_id = jobsub_job_id,
 			status = "Completed")
+        else:
+            print "error code: %s from condor_q" % res
 
         self.call_wrapup_tasks()
 
