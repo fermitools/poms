@@ -32,6 +32,8 @@ global_version="unknown"
 import CalendarPOMS
 import DBadminPOMS
 import CampaignsPOMS
+import JobsPOMS
+import TaskPOMS
 
 def error_response():
     dump = ""
@@ -101,7 +103,8 @@ class poms_service:
 	self.calendarPOMS = CalendarPOMS.CalendarPOMS()
 	self.dbadminPOMS = DBadminPOMS.DBadminPOMS()
 	self.campaignsPOMS = CampaignsPOMS.CampaignsPOMS()
-
+	self.jobPOMS = JobsPOMS.JobsPOMS(self)
+	self.taskPOMS = TaskPOMS.TaskPOMS(self)
 
     @cherrypy.expose
     def headers(self):
@@ -516,49 +519,14 @@ class poms_service:
             res.append( {"key": getattr(i,primkey,''), "value": getattr(i,'name',getattr(i,'email','unknown'))})
         return res
 
-    @cherrypy.expose
-    def create_task(self, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor = None ):
-         if not can_create_task():
-             return "Not Allowed"
-         first,last,email = creator.split(' ')
-         creator = self.get_or_add_experimenter(first, last, email)
-         exp = self.get_or_add_experiment(experiment)
-         td = self.get_or_add_taskdef(taskdef, creator, exp)
-         camp = self.get_or_add_campaign(exp,td,creator)
-         t = Task()
-         t.campaign_id = camp.campaign_id
-         #t.campaign_definition_id = td.campaign_definition_id
-         t.task_order = 0
-         t.input_dataset = input_dataset
-         t.output_dataset = output_dataset
-         t.waitingfor = waitingfor
-         t.order = 0
-         t.creator = creator.experimenter_id
-         t.created = datetime.now(utc)
-         t.status = "created"
-         t.task_parameters = params
-         t.waiting_threshold = 5
-         t.updater = creator.experimenter_id
-         t.updated = datetime.now(utc)
-
-         cherrypy.request.db.add(t)
-         cherrypy.request.db.commit()
-         return str(t.task_id)
+#######
+#JobPOMS
 
     @cherrypy.expose
     def active_jobs(self):
          cherrypy.response.headers['Content-Type']= 'application/json'
-         res = [ "[" ]
-         sep=""
-         for job in cherrypy.request.db.query(Job).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").all():
-              if job.jobsub_job_id == "unknown":
-                   continue
-              res.append( '%s "%s"' % (sep, job.jobsub_job_id))
-              sep = ","
-         res.append( "]" )
-         res = "".join(res)
-         gc.collect(2)
-         return res
+         #print "Im here"
+	 return self.jobsPOMS.active_jobs(cherrypy.request.db)
 
     @cherrypy.expose
     def report_declared_files(self, flist):
@@ -569,340 +537,43 @@ class poms_service:
     @cherrypy.expose
     def output_pending_jobs(self):
          cherrypy.response.headers['Content-Type']= 'application/json'
-         res = {}
-         sep=""
-         preve = None
-         prevj = None
-         for e, jobsub_job_id, fname  in cherrypy.request.db.query(Campaign.experiment,Job.jobsub_job_id,JobFile.file_name).join(Task).filter(Task.campaign_id == Campaign.campaign_id, Job.jobsub_job_id != "unknown", Job.task_id == Task.task_id, Job.job_id == JobFile.job_id, Job.status == "Completed", JobFile.declared == None, JobFile.file_type == 'output').order_by(Campaign.experiment,Job.jobsub_job_id).all():
-              if preve != e:
-                  preve = e
-                  res[e] = {}
-              if prevj != jobsub_job_id:
-                  prevj = jobsub_job_id
-                  res[e][jobsub_job_id] = []
-              res[e][jobsub_job_id].append(fname)
-         sres =  json.dumps(res)
-         res = None
-         return sres
+         return self.jobsPOMS.output_pending_jobs(cherrypy.request.db)
+
+    @cherrypy.expose
+    def update_job(self, task_id, jobsub_job_id,  **kwargs):
+	 cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
+	 if not self.can_report_data():
+	      cherrypy.log("update_job: not allowed")
+	      return "Not Allowed"
+	 return (self.JobsPOMS.update_job(self, cherrypy.request.db, cherrypy.log, cherrypy.response.status, task_id, jobsub_job_id,  **kwargs)) ####Here 
+
+
+
+
+######
+#TaskPOMS
+     
+    @cherrypy.expose
+    def create_task(self, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor):
+         if not can_create_task():
+             return "Not Allowed"
+         return (self.taskPOMS.create_task(cherrypy.request.db,experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor))
 
     @cherrypy.expose
     def wrapup_tasks(self):
         cherrypy.response.headers['Content-Type'] = "text/plain"
-        now =  datetime.now(utc)
-        res = ["wrapping up:"]
-        for task in cherrypy.request.db.query(Task).options(subqueryload(Task.jobs)).filter(Task.status != "Completed", Task.status != "Located").all():
-             total = 0
-             running = 0
-             for j in task.jobs:
-                 total = total + 1
-                 if j.status != "Completed" and j.status != "Located":
-                     running = running + 1
-
-             res.append("Task %d total %d running %d " % (task.task_id, total, running))
-
-             if (total > 0 and running == 0) or (total == 0 and  now - task.created > timedelta(days= 2)):
-                 task.status = "Completed"
-                 task.updated = datetime.now(utc)
-                 cherrypy.request.db.add(task)
-
-        # mark them all completed, so we can look them over..
-        cherrypy.request.db.commit()
-
-        lookup_task_list = []
-        lookup_dims_list = []
-        n_completed = 0
-        n_stale = 0
-        n_project = 0
-        n_located = 0
-        for task in cherrypy.request.db.query(Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_obj,Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
-            n_completed = n_completed + 1
-            # if it's been 2 days, just declare it located; its as 
-            # located as its going to get...
-            if (now - task.updated > timedelta(days=2)):
-                 n_located = n_located + 1
-                 n_stale = n_stale + 1
-                 task.status = "Located"
-                 task.updated = datetime.now(utc)
-                 cherrypy.request.db.add(task)
-                 if not self.launch_recovery_if_needed(task.task_id):
-                     self.launch_dependents_if_needed(task.task_id)
-            elif task.project:
-                 # task had a sam project, add to the list to look
-                 # up in sam
-                 n_project = n_project + 1
-                 lookup_task_list.append(task)
-                 basedims = "snapshot_for_project_name %s " % task.project
-		 allkiddims = basedims
-		 for pat in str(task.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
-		     if pat == 'None':
-			pat = '%'
-		     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, task.campaign_obj.software_version)
-                 lookup_dims_list.append(allkiddims)
-            else:
-                 # we don't have a project, guess off of located jobs
-                 locflag = True
-                 for j in task.jobs:
-                     if j.status != "Located":
-                         locaflag = False
-                 if locflag:
-                     n_located = n_located + 1
-                     task.status = "Located"
-                     task.updated = datetime.now(utc)
-                     cherrypy.request.db.add(task)
-                     if not self.launch_recovery_if_needed(task.task_id):
-                         self.launch_dependents_if_needed(task.task_id)
-
-        cherrypy.request.db.commit()
-        
-        summary_list = cherrypy.request.samweb_lite.fetch_info_list(lookup_task_list)
-        count_list = cherrypy.request.samweb_lite.count_files_list(task.campaign_obj.experiment,lookup_dims_list)
-        thresholds = []
-        for i in range(len(summary_list)):
-            # XXX
-            # this is using a 90% threshold, this ought to be
-            # a tunable in the campaign_definition.  Basically we consider it
-            # located if 90% of the files it consumed have suitable kids...
-            # cfrac = lookup_task_list[i].campaign_obj.campaign_definition_obj.cfrac
-            cfrac = 0.9
-            threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
-            thresholds.append(threshold)
-            if float(count_list[i]) >= threshold:
-                n_located = n_located + 1
-                task = lookup_task_list[i]
-                task.status = "Located"
-                task.updated = datetime.now(utc)
-                cherrypy.request.db.add(task)
-
-                if not self.launch_recovery_if_needed(task.task_id):
-                    self.launch_dependents_if_needed(task.task_id)
-
-        res.append("Counts: completed: %d stale: %d project %d: located %d" %
-        	(n_completed, n_stale , n_project, n_located))
-                
-        res.append("count_list: %s" % count_list)
-        res.append("thresholds: %s" % thresholds)
-        res.append("lookup_dims_list: %s" % lookup_dims_list)
-
-        cherrypy.request.db.commit()
-
-        return "\n".join(res)
+        return "\n".join(self.jobsPOMS.wrapup_task(cherrypy.request.db, cherrypy.request.samweb_lite))
 
     def compute_status(self, task):
-        st = self.job_counts(task_id = task.task_id)
-        if task.status == "Located":
-            return task.status
-        res = "Idle"
-        if (st['Held'] > 0):
-            res = "Held"
-        if (st['Running'] > 0):
-            res = "Running"
-        if (st['Completed'] > 0 and st['Idle'] == 0 and st['Held'] == 0):
-            res = "Completed"
-            # no, not here we wait for "Located" status..
-            #if task.status != "Completed":
-            #    if not self.launch_recovery_if_needed(task.task_id):
-            #        self.launch_dependents_if_needed(task.task_id)
-        return res
-
-    @cherrypy.expose
-    def update_job(self, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
-         cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
-
-         if not self.can_report_data():
-              cherrypy.log("update_job: not allowed")
-              return "Not Allowed"
-
-         if task_id:
-             task_id = int(task_id)
-
-         host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
-
-         jl = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
-         first = True
-         j = None
-         for ji in jl:
-             if first:
-                j = ji
-                first = False
-             else:
-                #
-                # we somehow got multiple jobs with the sam jobsub_job_id
-                #
-                # mark the others as dups
-                ji.jobsub_job_id="dup_"+ji.jobsub_job_id
-                cherrypy.request.db.add(ji)
-                # steal any job_files
-	        files =  [x.file_name for x in j.job_files ]
-                for jf in ji.job_files:
-                    if jf.file_name not in files:
-                        njf = JobFile(file_name = jf.file_name, file_type = jf.file_type, created =  jf.created, job_obj = j)
-                        cherrypy.request.db.add(njf)
-
-                cherrypy.request.db.delete(ji)
-                cherrypy.request.db.flush()
-                    
-         if not j and task_id:
-             t = cherrypy.request.db.query(Task).filter(Task.task_id==task_id).first()
-             if t == None:
-                 cherrypy.log("update_job -- no such task yet")
-                 cherrypy.response.status="404 Task Not Found"
-                 return "No such task"
-             cherrypy.log("update_job: creating new job")
-             j = Job()
-             j.jobsub_job_id = jobsub_job_id.rstrip("\n")
-             j.created = datetime.now(utc)
-             j.updated = datetime.now(utc)
-             j.task_id = task_id
-             j.task_obj = t
-             j.output_files_declared = False
-             j.cpu_type = ''
-             j.node_name = ''
-             j.host_site = ''
-             j.status = 'Idle'
-
-
-         if j:
-             cherrypy.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
-
-             for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
-
-                 if field == 'status' and j.status == "Located":
-                     # stick at Located, don't roll back to Completed,etc.
-                     continue
-
-                 if kwargs.get(field, None):
-                    setattr(j,field,kwargs[field].rstrip("\n"))
-                 if not getattr(j,field, None):
-                    if field != 'user_exe_exit_code':
-                        setattr(j,field,'unknown')
-
-             if kwargs.get('output_files_declared', None) == "True":
-                 if j.status == "Completed" :
-                     j.output_files_declared = True
-                     j.status = "Located"
-
-             for field in ['project','recovery_tasks_parent' ]:
-                 if kwargs.get("task_%s" % field, None) and kwargs.get("task_%s" % field) != "None" and j.task_obj:
-                    setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
-                    cherrypy.log("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field, kwargs["task_%s"%field])))
-
-
-             for field in [ 'cpu_time', 'wall_time']:
-                 if kwargs.get(field, None) and kwargs[field] != "None":
-                    setattr(j,field,float(kwargs[field].rstrip("\n")))
-
-             if kwargs.get('output_file_names', None):
-                 cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
-                 if j.job_files:
-                     files =  [x.file_name for x in j.job_files if x.file_type == 'output']
-                 else:
-                     files = []
-
-                 newfiles = kwargs['output_file_names'].split(' ')
-                 for f in newfiles:
-                     if not f in files:
-                         if len(f) < 2 or f[0] == '-':  # ignore '0', '-D', etc...
-                             continue
-                         if f.find("log") >= 0:
-                             ftype = "log"
-                         else:
-                             ftype = "output"
-
-                         jf = JobFile(file_name = f, file_type = ftype, created =  datetime.now(utc), job_obj = j)
-                         j.job_files.append(jf)
-                         cherrypy.request.db.add(jf)
-
-             if kwargs.get('input_file_names', None):
-                 cherrypy.log("saw input_file_names: %s" % kwargs['input_file_names'])
-                 if j.job_files:
-                     files =  [x.file_name for x in j.job_files if x.file_type == 'input']
-                 else:
-                     files = []
-
-                 newfiles = kwargs['input_file_names'].split(' ')
-                 for f in newfiles:
-
-                     if len(f) < 2 or f[0] == '-':  # ignore '0', '-D', etc...
-                         continue
-
-                     if not f in files:
-                         jf = JobFile(file_name = f, file_type = "input", created =  datetime.now(utc), job_obj = j)
-                         cherrypy.request.db.add(jf)
-
-
-             if j.cpu_type == None:
-                 j.cpu_type = ''
-
-             cherrypy.log("update_job: db add/commit job status %s " %  j.status)
-
-             j.updated =  datetime.now(utc)
-
-             if j.task_obj:
-                 newstatus = self.compute_status(j.task_obj)
-                 if newstatus != j.task_obj.status:
-                     j.task_obj.status = newstatus
-                     j.task_obj.updated = datetime.now(utc)
-                     j.task_obj.campaign_obj.active = True
-
-             cherrypy.request.db.add(j)
-	     cherrypy.request.db.commit()
-
-             cherrypy.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
- 
-         return "Ok."
+        return self.taskPOMS.compute_status(task)
 
               
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ):
+	
+	self.jobsPOMS.show_task_jobs(self, task_id, tmax, tmin, tdays)
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=%s' % task_id)
-
-        jl = cherrypy.request.db.query(JobHistory,Job).filter(Job.job_id == JobHistory.job_id, Job.task_id==task_id ).order_by(JobHistory.job_id,JobHistory.created).all()
-        tg = time_grid.time_grid()
-        class fakerow:
-            def __init__(self, **kwargs):
-                self.__dict__.update(kwargs)
-        items = []
-        extramap = {}
-        laststatus = None
-        lastjjid = None
-        for jh, j in jl:
-            if j.jobsub_job_id:
-                jjid= j.jobsub_job_id.replace('fifebatch','').replace('.fnal.gov','')
-            else:
-                jjid= 'j' + str(jh.job_id)
-
-            if j.status != "Completed" and j.status != "Located":
-                extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d"><i class="ui trash icon"></i></a>' % (self.path, jh.job_id)
-            else:
-                extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
-            if jh.status != laststatus or jjid != lastjjid:
-                items.append(fakerow(job_id = jh.job_id,
-                                  created = jh.created.replace(tzinfo=utc),
-                                  status = jh.status,
-                                  jobsub_job_id = jjid))
-            laststatus = jh.status
-            lastjjid = jjid
-
-        job_counts = self.format_job_counts(task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
-        key = tg.key(fancy=1)
-
-        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)
-        #screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)
-
-        if len(jl) > 0:
-            campaign_id = jl[0][1].task_obj.campaign_id
-            cname = jl[0][1].task_obj.campaign_obj.name
-        else:
-            campaign_id = 'unknown'
-            cname = 'unknown'
-
-        task_jobsub_id = self.task_min_job(task_id)
-
-        template = self.jinja_env.get_template('show_task_jobs.html')
-        return template.render( blob=blob, job_counts = job_counts,  taskid = task_id, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'), extramap = extramap, do_refresh = 1, key = key, pomspath=self.path,help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id, campaign_id = campaign_id,cname = cname, version=self.version)
-
-
+    
     @cherrypy.expose
     def triage_job(self, job_id, tmin = None, tmax = None, tdays = None, force_reload = False):
         # we don't really use these for anything but we might want to
@@ -925,11 +596,6 @@ class poms_service:
         last = job_history[len(job_history)-1].created
 
         downtimes1 = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id)\
-        .filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(~Service.name.endswith("sam"))\
-        .filter(first >= ServiceDowntime.downtime_started).filter(first < ServiceDowntime.downtime_ended)\
-        .filter(last >= ServiceDowntime.downtime_started).filter(last < ServiceDowntime.downtime_ended).all()
-
-        downtimes2 = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id)\
         .filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(~Service.name.endswith("sam"))\
         .filter(ServiceDowntime.downtime_started >= first).filter(ServiceDowntime.downtime_started < last)\
         .filter(ServiceDowntime.downtime_ended >= first).filter(ServiceDowntime.downtime_ended < last).all()
@@ -2640,6 +2306,49 @@ class poms_service:
                      diml.append(sep)
                      diml.append("isparentof: ( file_name '%s' and version '%s' with availability physical )" % (pat, task.campaign_obj.software_version))
                      sep = "or"
+                diml.append(")")
+                diml.append(")")
+                diml.append(")")
+                diml.append("union")
+
+	    diml[-1] = ")"
+
+            if len(diml) <= 1:
+               diml[0] = "project_name no_project_info"
+
+	    dimlist.append(" ".join(diml))
+
+            if len(tl):
+	        explist.append(tl[0].campaign_obj.campaign_definition_obj.experiment)
+            else:
+                explist.append("samdev")
+
+        cherrypy.log("get_pending_for_task_lists: dimlist (%d): %s" % (len(dimlist), dimlist))
+
+	count_list = cherrypy.request.samweb_lite.count_files_list(explist,dimlist)
+        cherrypy.log("get_pending_for_task_lists: count_list (%d): %s" % (len(dimlist), count_list))
+        return dimlist, count_list
+
+import cherrypy
+import glob
+import os
+import time
+import time_grid
+import json
+import urllib
+import socket
+import subprocess
+import select
+from collections import OrderedDict
+
+from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_,  create_engine, null, desc, text, func, exc, distinct
+from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from datetime import datetime, tzinfo,timedelta
+from jinja2 import Environment, PackageLoader
+                diml.append(")")
+                diml.append(")")
                 diml.append(")")
                 diml.append(")")
                 diml.append(")")
