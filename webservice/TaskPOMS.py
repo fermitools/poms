@@ -151,7 +151,7 @@ class TaskPOMS:
 
 
 
-	 def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ):
+	def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ):
 
 		tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=%s' % task_id)
 
