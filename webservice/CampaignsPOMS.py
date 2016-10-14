@@ -39,18 +39,19 @@ class CampaignsPOMS():
 			try:
 				if action == 'add':
 					template = LaunchTemplate(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host, launch_account=ae_launch_account,
-						launch_setup=ae_launch_setup,creator = experimenter_id, created = datetime.now(utc))
-						dbhandle.add(template)
-			else:
-				columns = {"name":           ae_launch_name,
-				       "launch_host":    ae_launch_host,
-				       "launch_account": ae_launch_account,
-				       "launch_setup":   ae_launch_setup,
-				       "updated":        datetime.now(utc),
-				       "updater":        experimenter_id
-				       }
-				template = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).update(columns)
-		    except IntegrityError, e:
+												launch_setup=ae_launch_setup,creator = experimenter_id, created = datetime.now(utc))
+					dbhandle.add(template)
+				else:
+					columns = {
+								"name":           ae_launch_name,
+								"launch_host":    ae_launch_host,
+								"launch_account": ae_launch_account,
+								"launch_setup":   ae_launch_setup,
+								"updated":        datetime.now(utc),
+								"updater":        experimenter_id
+								}
+					template = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).update(columns)
+			except IntegrityError, e:
 				message = "Integrity error - you are most likely using a name which already exists in database."
 				loghandle(e.message)
 				dbhandle.rollback()
@@ -66,7 +67,6 @@ class CampaignsPOMS():
 			data['curr_experiment'] = exp
 			data['authorized'] = seshandle('experimenter').is_authorized(exp)
 			data['templates'] = dbhandle(LaunchTemplate,Experiment).join(Experiment).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
-
 		data['message'] = message
 		return data
 
@@ -111,27 +111,28 @@ class CampaignsPOMS():
 					dbhandle.add(cd)
 					dbhandle.flush()
 					campaign_definition_id = cd.campaign_definition_id
-			else:
-				columns = {"name":                  name,
-					"input_files_per_job":   input_files_per_job,
-					"output_files_per_job":  output_files_per_job,
-					"output_file_patterns":  output_file_patterns,
-					"launch_script":         launch_script,
-					"definition_parameters": definition_parameters,
-					"updated":               datetime.now(utc),
-					"updater":               experimenter_id
-					}
+				else:
+					columns = {
+								"name":                  name,
+								"input_files_per_job":   input_files_per_job,
+								"output_files_per_job":  output_files_per_job,
+								"output_file_patterns":  output_file_patterns,
+								"launch_script":         launch_script,
+								"definition_parameters": definition_parameters,
+								"updated":               datetime.now(utc),
+								"updater":               experimenter_id
+								}
 					cd = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).update(columns)
 
 			# now fixup recoveries -- clean out existing ones, and
 			# add listed ones.
-			dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == campaign_definition_id).delete()
-			i = 0
-			for rtn in json.loads(recoveries):
-				rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rtn).first()
-				cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt)
-				dbhandle.add(cr)
-			dbhandle.commit()
+				dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == campaign_definition_id).delete()
+				i = 0
+				for rtn in json.loads(recoveries):
+					rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rtn).first()
+					cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt)
+					dbhandle.add(cr)
+				dbhandle.commit()
 			except IntegrityError, e:
 				message = "Integrity error - you are most likely using a name which already exists in database."
 				loghandle(e.message)
@@ -158,10 +159,10 @@ class CampaignsPOMS():
 			cids = [row[0].campaign_definition_id for row in data['definitions'].all()]
 			recs_dict = {}
 			for cid in cids:
-			recs = (dbhandle.query(CampaignRecovery).join(CampaignDefinition).options(joinedload(CampaignRecovery.recovery_type))
-				.filter(CampaignRecovery.campaign_definition_id == cid,CampaignDefinition.experiment == exp)
-				.order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
-			rec_list  = []
+				recs = (dbhandle.query(CampaignRecovery).join(CampaignDefinition).options(joinedload(CampaignRecovery.recovery_type))
+					.filter(CampaignRecovery.campaign_definition_id == cid,CampaignDefinition.experiment == exp)
+					.order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
+				rec_list  = []
 			for rec in recs:
 				rec_list.append(rec.recovery_type.name )
 			recs_dict[cid] = json.dumps(rec_list)
@@ -220,79 +221,75 @@ class CampaignsPOMS():
 					dbhandle.add(c)
 					dbhandle.flush() ##### Is this flush() necessary or better a commit ?
 					campaign_id = c.campaign_id
-			else:
-				columns = {"name":                  name,
-						"vo_role":               vo_role,
-						"active":                active,
-						"cs_split_type":         split_type,
-						"software_version":      software_version,
-						"dataset" :              dataset,
-						"param_overrides":       param_overrides,
-						"campaign_definition_id":campaign_definition_id,
-						"launch_id":             launch_id,
-						"updated":               datetime.now(utc),
-						"updater":               experimenter_id
-						} ######IM HERE PIPE
-			cd = dbhandle.query(Campaign).filter(Campaign.campaign_id==campaign_id).update(columns)
+				else:
+					columns = {
+								"name":                  name,
+								"vo_role":               vo_role,
+								"active":                active,
+								"cs_split_type":         split_type,
+								"software_version":      software_version,
+								"dataset" :              dataset,
+								"param_overrides":       param_overrides,
+								"campaign_definition_id":campaign_definition_id,
+								"launch_id":             launch_id,
+								"updated":               datetime.now(utc),
+								"updater":               experimenter_id
+								}
+					cd = dbhandle.query(Campaign).filter(Campaign.campaign_id==campaign_id).update(columns)
 			# now redo dependencies
-			dbhandle.query(CampaignDependency).filter(CampaignDependency.uses_camp_id == campaign_id).delete()
-			loghandle("depends for %s are: %s" % (campaign_id, depends))
-			depcamps = dbhandle.query(Campaign).filter(Campaign.name.in_(depends['campaigns'])).all()
-
-			for i in range(len(depcamps)):
-
-			    loghandle("trying to add dependency for: %s" % depcamps[i].name)
-			    d = CampaignDependency(uses_camp_id = campaign_id, needs_camp_id = depcamps[i].campaign_id, file_patterns=depends['file_patterns'][i])
-			    dbhandle.add(d)
-			dbhandle.commit()
-
-		    except IntegrityError, e:
-			message = "Integrity error - you are most likely using a name which already exists in database."
-			loghandle(e.message)
-			dbhandle.rollback()
-		    except SQLAlchemyError, e:
-			message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
-			loghandle(e.message)
-			dbhandle.rollback()
-		    else:
-			dbhandle.commit()
+				dbhandle.query(CampaignDependency).filter(CampaignDependency.uses_camp_id == campaign_id).delete()
+				loghandle("depends for %s are: %s" % (campaign_id, depends))
+				depcamps = dbhandle.query(Campaign).filter(Campaign.name.in_(depends['campaigns'])).all()
+				for i in range(len(depcamps)):
+					loghandle("trying to add dependency for: %s" % depcamps[i].name)
+					d = CampaignDependency(uses_camp_id = campaign_id, needs_camp_id = depcamps[i].campaign_id, file_patterns=depends['file_patterns'][i])
+					dbhandle.add(d)
+				dbhandle.commit()
+			except IntegrityError, e:
+				message = "Integrity error - you are most likely using a name which already exists in database."
+				loghandle(e.message)
+				dbhandle.rollback()
+			except SQLAlchemyError, e:
+				message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
+				loghandle(e.message)
+				dbhandle.rollback()
+			else:
+				dbhandle.commit()
 
 		# Find campaigns
 		if exp: # cuz the default is find
-		    # for testing ui...
-		    #data['authorized'] = True
-
-		    state = kwargs.pop('state',None)
-		    if state == None:
-			state = sesshandle.get('campaign_edit.state','state_active')
-		    sesshandle['campaign_edit.state'] = state
-		    data['state'] = state
-		    data['curr_experiment'] = exp
-		    data['authorized'] = sesshandle.get('experimenter').is_authorized(exp)
-		    cquery = dbhandle.query(Campaign).filter(Campaign.experiment==exp)
-		    if state == 'state_active':
-			cquery = cquery.filter(Campaign.active==True)
-		    elif state == 'state_inactive':
-			cquery = cquery.filter(Campaign.active==False)
-		    cquery = cquery.order_by(Campaign.name)
-		    data['campaigns'] = cquery
-		    data['definitions'] = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
-		    data['templates'] = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
-		    cids = [c.campaign_id for c in data['campaigns'].all()]
-		    depends = {}
-		    for cid in cids:
-			sql = (db.query(CampaignDependency.uses_camp_id, Campaign.name, CampaignDependency.file_patterns )
-			       .filter(CampaignDependency.uses_camp_id == cid,
-				       Campaign.campaign_id == CampaignDependency.needs_camp_id))
-			deps = {"campaigns"     : [row[1] for row  in sql.all()],
-				"file_patterns" : [row[2] for row  in sql.all()]
-				}
-			depends[cid] = json.dumps(deps)
-		    data['depends'] = depends
-
+			# for testing ui...
+			#data['authorized'] = True
+			state = kwargs.pop('state',None)
+			if state == None:
+				state = sesshandle.get('campaign_edit.state','state_active')
+			sesshandle['campaign_edit.state'] = state
+			data['state'] = state
+			data['curr_experiment'] = exp
+			data['authorized'] = sesshandle.get('experimenter').is_authorized(exp)
+			cquery = dbhandle.query(Campaign).filter(Campaign.experiment==exp)
+			if state == 'state_active':
+				cquery = cquery.filter(Campaign.active==True)
+			elif state == 'state_inactive':
+				cquery = cquery.filter(Campaign.active==False)
+			cquery = cquery.order_by(Campaign.name)
+			data['campaigns'] = cquery
+			data['definitions'] = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.experiment==exp).order_by(CampaignDefinition.name)
+			data['templates'] = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
+			cids = [c.campaign_id for c in data['campaigns'].all()]
+			depends = {}
+			for cid in cids:
+				sql = (db.query(CampaignDependency.uses_camp_id, Campaign.name, CampaignDependency.file_patterns )
+						.filter(CampaignDependency.uses_camp_id == cid,
+						Campaign.campaign_id == CampaignDependency.needs_camp_id))
+				deps = {
+						"campaigns"     : [row[1] for row  in sql.all()],
+						"file_patterns" : [row[2] for row  in sql.all()]
+						}
+				depends[cid] = json.dumps(deps)
+			data['depends'] = depends
 		data['message'] = message
 		return data
-
 
 	def campaign_edit_query(self, dbhandle, *args, **kwargs):
 		data = {}
@@ -300,19 +297,19 @@ class CampaignsPOMS():
 		ae_campaign_definition_id = kwargs.pop('ae_campaign_definition_id',None)
 
 		if ae_launch_id:
-		    template = {}
-		    temp = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).first()
-		    template['launch_host'] = temp.launch_host
-		    template['launch_account'] = temp.launch_account
-		    template['launch_setup'] = temp.launch_setup
-		    data['template'] = template
+			template = {}
+			temp = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).first()
+			template['launch_host'] = temp.launch_host
+			template['launch_account'] = temp.launch_account
+			template['launch_setup'] = temp.launch_setup
+			data['template'] = template
 
 		if ae_campaign_definition_id:
-		    definition = {}
-		    cdef = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==ae_campaign_definition_id).first()
-		    definition['input_files_per_job'] = cdef.input_files_per_job
-		    definition['output_files_per_job'] = cdef.output_files_per_job
-		    definition['launch_script'] = cdef.launch_script
-		    definition['definition_parameters'] = cdef.definition_parameters
-		    data['definition'] = definition
+			definition = {}
+			cdef = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==ae_campaign_definition_id).first()
+			definition['input_files_per_job'] = cdef.input_files_per_job
+			definition['output_files_per_job'] = cdef.output_files_per_job
+			definition['launch_script'] = cdef.launch_script
+			definition['definition_parameters'] = cdef.definition_parameters
+			data['definition'] = definition
 		return json.dumps(data)

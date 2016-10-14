@@ -2,7 +2,8 @@
 '''
 This module contain the methods that handle the Task.
 List of methods: wrapup_tasks,
-Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
+Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py
+written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
 #from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile
@@ -47,8 +48,6 @@ class TaskPOMS:
 		return str(t.task_id)
 
 
-
-
 	def wrapup_tasks(self, dbhandle, samhandle): # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
 		now =  datetime.now(utc)
 		res = ["wrapping up:"]
@@ -59,9 +58,7 @@ class TaskPOMS:
 				total = total + 1
 				if j.status != "Completed" and j.status != "Located":
 					running = running + 1
-
 			res.append("Task %d total %d running %d " % (task.task_id, total, running))
-
 			if (total > 0 and running == 0) or (total == 0 and  now - task.created > timedelta(days= 2)):
 				task.status = "Completed"
 				task.updated = datetime.now(utc)
@@ -69,7 +66,6 @@ class TaskPOMS:
 
 		# mark them all completed, so we can look them over..
 		dbhandle.commit()
-
 		lookup_task_list = []
 		lookup_dims_list = []
 		n_completed = 0
@@ -115,7 +111,6 @@ class TaskPOMS:
 						self.poms_services.launch_dependents_if_needed(task.task_id)
 
 		dbhandle.commit()
-
 		summary_list = samhandle.fetch_info_list(lookup_task_list)
 		count_list = samhandle.samweb_lite.count_files_list(task.campaign_obj.experiment,lookup_dims_list)
 		thresholds = []
@@ -134,12 +129,11 @@ class TaskPOMS:
 				task.status = "Located"
 				task.updated = datetime.now(utc)
 				dbhandle.add(task)
-
 				if not self.poms_service.launch_recovery_if_needed(task.task_id):
 					self.poms_servicelaunch_dependents_if_needed(task.task_id)
 
 		res.append("Counts: completed: %d stale: %d project %d: located %d" %
-			(n_completed, n_stale , n_project, n_located))
+					(n_completed, n_stale , n_project, n_located))
 
 		res.append("count_list: %s" % count_list)
 		res.append("thresholds: %s" % thresholds)
@@ -185,7 +179,6 @@ class TaskPOMS:
 
 		job_counts = self.poms_service.format_job_counts(task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
 		key = tg.key(fancy=1)
-
 		blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)
 		#screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)
 
@@ -197,14 +190,11 @@ class TaskPOMS:
 			cname = 'unknown'
 
 		task_jobsub_id = self.poms_service.task_min_job(task_id)
-
-
 		return_tuple=(blob, job_counts,task_id, str(tmin)[:16], str(tmax)[:16], extramap, key, task_jobsub_id, campaign_id, cname)
 		return return_tuple
 
 ###
 #No expose methods.
-
 	def compute_status(self, task):
 		st = self.poms_service.job_counts(task_id = task.task_id)
 		if task.status == "Located":
