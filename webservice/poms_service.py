@@ -10,7 +10,7 @@ import subprocess
 import select
 from collections import OrderedDict
 
-from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_,  create_engine, null, desc, text, func, exc, distinct
+from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, not_,  create_engine, null, desc, text, func, exc, distinct
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -1890,9 +1890,13 @@ class poms_service:
         # this one for our effeciency percentage decile...
         # i.e. if you want jobs in the 80..90% eficiency range
         # you ask for eff_d == 8...
+        # ... or with eff_d of -1, one where we don't have good cpu/wall time data
         #
         if eff_d:
-            q = q.filter(Job.wall_time != 0.0, func.floor(Job.cpu_time *10/Job.wall_time)== eff_d )
+            if eff_d == "-1":
+                q = q.filter(not_(and_(Job.cpu_time > 0.0, Job.wall_time >= Job.cpu_time)))
+            else:
+                q = q.filter(Job.wall_time != 0.0, func.floor(Job.cpu_time *10/Job.wall_time)== eff_d )
             filtered_fields['eff_d'] = eff_d
 
         if jobsub_job_id:
@@ -2269,9 +2273,10 @@ class poms_service:
                      outrow.append(str(totjobfails))
                      outrow.append(str(outfiles))
                      outrow.append("")  # we will get pending counts in a minute
-                     if totwall == 0.0:
-                        totwall = 0.001
-                     outrow.append(str(int(totcpu * 100.0 / totwall)))
+                     if totwall == 0.0 or totcpu == 0.0:
+                         outrow.append("-")
+                     else:
+                         outrow.append(str(int(totcpu * 100.0 / totwall)))
                      for e in exitcodes:
                          outrow.append(exitcounts[e])
                      outrows.append(outrow)
@@ -2283,8 +2288,8 @@ class poms_service:
                 totjobfails = 0
                 outfiles = 0
                 infiles = 0
-                totcpu = 0
-                totwall = 0
+                totcpu = 0.0
+                totwall = 0.0
                 tasklist = []
                 for e in exitcodes:
                     exitcounts[e] = 0
@@ -2333,6 +2338,10 @@ class poms_service:
         outrow.append(str(totjobfails))
         outrow.append(str(outfiles))
         outrow.append("") # we will get pending counts in a minute
+	if totwall == 0.0 or totcpu == 0.0:
+	    outrow.append("-")
+	else:
+	    outrow.append(str(int(totcpu * 100.0 / totwall)))
         for e in exitcodes:
             outrow.append(exitcounts[e])
         outrows.append(outrow)
@@ -2791,20 +2800,29 @@ class poms_service:
              jobs with a given efficiency...
              Need to add efficiency  (cpu_time/wall_time) as a param to
              jobs_table...
+
          """
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'jobs_eff_histo?campaign_id=%s&' % campaign_id)
 
         q = cherrypy.request.db.query(func.count(Job.job_id), func.floor(Job.cpu_time *10/Job.wall_time))
         q = q.join(Job.task_obj)
         q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == campaign_id)
-        q = q.filter(Job.wall_time > 0, Job.wall_time > Job.cpu_time)
+        q = q.filter(Job.cpu_time > 0, Job.wall_time >= Job.cpu_time)
         q = q.filter(Task.created < tmax, Task.created >= tmin)
         q = q.group_by(func.floor(Job.cpu_time*10/Job.wall_time))
         q = q.order_by((func.floor(Job.cpu_time*10/Job.wall_time)))
 
+        qz = cherrypy.request.db.query(func.count(Job.job_id))
+        qz = qz.join(Job.task_obj)
+        qz = qz.filter(Job.task_id == Task.task_id, Task.campaign_id == campaign_id)
+        qz = qz.filter(not_(and_(Job.cpu_time > 0, Job.wall_time >= Job.cpu_time)))
+        nodata = qz.first()
+
         total = 0
-        vals = {}
+        vals = {-1: nodata[0]}
         maxv = 0.01
+        if nodata[0] > maxv:
+           maxv = nodata[0]
         for row in q.all():
             vals[row[1]] = row[0]
             if row[0] > maxv:
@@ -2929,8 +2947,10 @@ class poms_service:
                 columns = j._sa_instance_state.class_.__table__.columns
                 for fieldname in columns.keys():
                      setattr(newsnap, fieldname, getattr(j,fieldname))     
-                setattr(t, tfield, newsnap)
                 cherrypy.request.db.add(newsnap)
+             else:
+                newsnap = j
+             setattr(t, tfield, newsnap)
 	 cherrypy.request.db.add(t)
          cherrypy.request.db.commit()
 
