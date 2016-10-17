@@ -2987,8 +2987,10 @@ class poms_service:
                 columns = j._sa_instance_state.class_.__table__.columns
                 for fieldname in columns.keys():
                      setattr(newsnap, fieldname, getattr(j,fieldname))     
-                setattr(t, tfield, newsnap)
                 cherrypy.request.db.add(newsnap)
+             else:
+                newsnap = j
+             setattr(t, tfield, newsnap)
 	 cherrypy.request.db.add(t)
          cherrypy.request.db.commit()
 
