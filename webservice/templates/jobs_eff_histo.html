@@ -47,14 +47,18 @@
            <div "postion: absolute; top: 0; left: 0; width:4em; text-align: right;">Eff.</div> 
            <div style="position: absolute; top:0; left: 4em;">Count</div>
        </div>
-     {% for row in range(10) %}
+     {% for row in range(-1,10) %}
         <div class="row" style="width: 100%; height: 2em; position: relative;">
+           {% if row == -1 %}
+           <div "postion: absolute; top: 0; left: 0; width:4em; text-align: right;">Unk.</div> 
+           {%else%}
            <div "postion: absolute; top: 0; left: 0; width:4em; text-align: right;">{{row|int}}0-{{row|int}}9%</div> 
+           {%endif%}
            <a href="job_table?eff_d={{row}}&campaign_id={{campaign_id}}&tmax={{tmaxs}}&tdays={{tdays}}"><div style="position: absolute; top:0; left: 4em;  background: #808080; width:{{0.6+vals.get(row,0) * 60 / maxv}}em;color: #ffffff;">{{vals.get(row,0)}}</div></a>
        </div>
      {% endfor %}
      </div>
-     Note: jobs without cpu time/wallclock time in Condor stats are omitted.
+     Note: jobs without cpu time/wallclock time in Condor stats are listed as "Unk."
   </div>
 
 
