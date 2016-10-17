@@ -3007,7 +3007,7 @@ class poms_service:
                      setattr(newsnap, fieldname, getattr(j,fieldname))     
                 cherrypy.request.db.add(newsnap)
              else:
-                newsnap = j
+                newsnap = cherrypy.request.db.query(snaptable).filter(snaptable.updated == i[0]).first()
              setattr(t, tfield, newsnap)
 	 cherrypy.request.db.add(t)
          cherrypy.request.db.commit()
