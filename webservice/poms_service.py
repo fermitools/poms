@@ -134,13 +134,6 @@ class poms_service:
         pprint.pprint(es_response)
         return template.render(pomspath=self.path, es_response=es_response)
 
-    def can_create_task(self):
-        ra =  cherrypy.request.headers.get('Remote-Addr', None)
-        cherrypy.log("can_create_task: Remote-addr: %s" %  ra)
-        if ra.startswith('131.225.67.'):
-            return 1
-        return 0
-
     def can_report_data(self):
         xff = cherrypy.request.headers.get('X-Forwarded-For', None)
         ra =  cherrypy.request.headers.get('Remote-Addr', None)
@@ -338,28 +331,6 @@ class poms_service:
         cherrypy.request.db.commit()
 
         return "Ok."
-
-    @cherrypy.expose
-    def new_task_for_campaign(self, campaign_name, command_executed, experimenter_name, dataset_name = None):
-        c = cherrypy.request.db.query(Campaign).filter(Campaign.name == campaign_name).first()
-        e = cherrypy.request.db.query(Experimenter).filter(like_)(Experimenter.email,"%s@%%" % experimenter_name ).first()
-        t = Task()
-        t.campaign_id = c.campaign_id
-        t.campaign_definition_id = c.campaign_definition_id
-        t.task_order = 0
-        t.input_dataset = "-"
-        t.output_dataset = "-"
-        t.status = 'started'
-        t.created = datetime.now(utc)
-        t.updated = datetime.now(utc)
-        t.updater = e.experimenter_id
-        t.creator = e.experimenter_id
-        t.command_executed = command_executed
-        if dataset_name:
-            t.input_dataset = dataset_name
-        cherrypy.request.db.add(t)
-        cherrypy.request.db.commit()
-        return "Task=%d" % t.task_id
 
     @cherrypy.expose
     def service_status(self, under = 'All'):
@@ -1012,35 +983,6 @@ class poms_service:
         for i in cherrypy.request.db.query(eclass).order_by(primkey).all():
             res.append( {"key": getattr(i,primkey,''), "value": getattr(i,'name',getattr(i,'email','unknown'))})
         return res
-
-    @cherrypy.expose
-    def create_task(self, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor = None ):
-         if not can_create_task():
-             return "Not Allowed"
-         first,last,email = creator.split(' ')
-         creator = self.get_or_add_experimenter(first, last, email)
-         exp = self.get_or_add_experiment(experiment)
-         td = self.get_or_add_taskdef(taskdef, creator, exp)
-         camp = self.get_or_add_campaign(exp,td,creator)
-         t = Task()
-         t.campaign_id = camp.campaign_id
-         #t.campaign_definition_id = td.campaign_definition_id
-         t.task_order = 0
-         t.input_dataset = input_dataset
-         t.output_dataset = output_dataset
-         t.waitingfor = waitingfor
-         t.order = 0
-         t.creator = creator.experimenter_id
-         t.created = datetime.now(utc)
-         t.status = "created"
-         t.task_parameters = params
-         t.waiting_threshold = 5
-         t.updater = creator.experimenter_id
-         t.updated = datetime.now(utc)
-
-         cherrypy.request.db.add(t)
-         cherrypy.request.db.commit()
-         return str(t.task_id)
 
     @cherrypy.expose
     def active_jobs(self):
