@@ -2938,7 +2938,7 @@ class poms_service:
          for table, snaptable, field, sfield, tid , tfield in [
 		[Campaign,CampaignSnapshot,Campaign.campaign_id,CampaignSnapshot.campaign_id,c.campaign_id, 'campaign_snap_obj' ], 
 		[CampaignDefinition, CampaignDefinitionSnapshot,CampaignDefinition.campaign_definition_id, CampaignDefinitionSnapshot.campaign_definition_id, c.campaign_definition_id, 'campaign_definition_snap_obj'], 
-                [LaunchTemplate ,LaunchTemplateSnapshot,LaunchTemplate.launch_id,LaunchTemplateSnapshot.launch_id,  c.launch_id, 'launch_definition_snap_obj']]:
+                [LaunchTemplate ,LaunchTemplateSnapshot,LaunchTemplate.launch_id,LaunchTemplateSnapshot.launch_id,  c.launch_id, 'launch_template_snap_obj']]:
               
              i = cherrypy.request.db.query(func.max(snaptable.updated)).filter(sfield == tid).first()
              j = cherrypy.request.db.query(table).filter(field == tid).first()
