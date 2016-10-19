@@ -61,6 +61,7 @@ class jobsub_q_scraper:
             if conn: del conn
 
     def call_wrapup_tasks(self):
+        conn = None
         try:
             conn = urllib2.urlopen(self.job_reporter.report_url + '/wrapup_tasks')
             text = conn.read()
@@ -88,7 +89,7 @@ class jobsub_q_scraper:
         # for now we have a for loop and use condor_q, in future
         # we hope to be able to use jobsub_q with -format...
 
-        f = os.popen("for n in 1 2; do m=$((n+2)); condor_q -pool fifebatchhead$m.fnal.gov -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format \"%d;SCHEDD=fifebatch$n.fnal.gov;\" ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'xxx=%d\\n' ProcID && break; done", "r")
+        f = os.popen("for n in 1 2; do m=$((n+2)); condor_q -pool fifebatchhead$m.fnal.gov -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID && break; done", "r")
         for line in f:
 
             line = line.rstrip('\n')
@@ -185,9 +186,13 @@ class jobsub_q_scraper:
 		    # we could get a false alarm here if condor_q fails...
 		    # thats why we only do this if our close() returned 0/None.
                     # and we make sure we didn't see it two runs in a row...
+                    print "reporting %s as completed" % jobsub_job_id
+
 		    self.job_reporter.report_status(
 			jobsub_job_id = jobsub_job_id,
 			status = "Completed")
+        else:
+            print "error code: %s from condor_q" % res
 
         self.call_wrapup_tasks()
 
@@ -218,6 +223,12 @@ class jobsub_q_scraper:
 	        print "Exception!"
 	        traceback.print_exc()
 	        pass
+
+            sys.stderr.write("%s pausing...\n" % time.asctime())
+            sys.stderr.flush()
+            time.sleep(30)
+            sys.stderr.write("%s done...\n" % time.asctime())
+            sys.stderr.flush()
 
             n = gc.collect()
             #print "gc.collect() returns %d unreachable" % n

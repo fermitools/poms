@@ -18,12 +18,12 @@
 <div class="ui breadcrumb" style="margin-top: -45px;">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
-  <div class="section">Campaigns</div>
+  <div class="section">Campaign Layers</div>
 </div>
 {%endblock%}
 
 {%block header%}
-<h1 class="ui header">Campaigns {%include 'help_button.html'%}</h1>
+<h1 class="ui header">Campaign Layers {%include 'help_button.html'%}</h1>
 {%endblock%}
 
 {%block subheader%}
@@ -126,7 +126,7 @@
 <div class="ui modal" id="confirm_modal">
   <i class="close icon"></i>
   <div class="header">
-    Delete Campaign
+    Delete Campaign Layer
   </div>
   <div class="image content">
     <div class="image">
@@ -151,14 +151,14 @@
 
 <div class="ui modal" id="campaign_add_edit_modal">
   <i class="close icon"></i>
-  <h3 class="block header" id="ae_experiment">Campaign Editor SPUD</h3>
+  <h3 class="block header" id="ae_experiment">Campaign Layer Editor SPUD</h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
     <form id="campaign_add_edit_form" class="ui form" method="POST" action="campaign_edit">
       <div class="four fields">
 	<div class="field">
           <label>Name</label>
-          <input type="text" id="ae_campaign_name" name="ae_campaign_name" placeholder="Campaign Name">
+          <input type="text" id="ae_campaign_name" name="ae_campaign_name" placeholder="Campaign Layer Name">
 	</div>
 	<div class="field">
           <label>VO Role</label>
@@ -227,10 +227,10 @@
 	<label>Setup</label>
 	<input type="text" id="ae_launch_setup" disabled>
       </div>
-      <h4 class="ui horizontal divider">Campaign Definition</h4>
+      <h4 class="ui horizontal divider">Job Type</h4>
       <div class="three fields">
 	<div>
-	  <label>Campaign Definition</label><br/>
+	  <label>Job Type</label><br/>
 	  <select class="ui dropdown" name="ae_campaign_definition_id" id="ae_campaign_definition_id">
 	    <option value=""></option>
 	    {% for row in data.definitions %}
@@ -307,14 +307,14 @@
 <div class="ui small modal" id="edit_depends_modal">
   <i class="close icon"></i>
   <div class="header">
-    Campaign Dependency Editor
+    Campaign Layer Dependency Editor
   </div>
   <div class="ui text container">
     <div class="scrollable">
       <table class="ui celled table" id="ep_table">
 	<thead>
 	  <tr>
-	    <th>Campaign</th>
+	    <th>Campaign Layer</th>
 	    <th>File Pattern</th>
 	  </tr>
 	</thead>
@@ -614,7 +614,7 @@ function edit_campaign(index,clone) {
     $("#ae_depends").val( '{"campaigns": [], "file_patterns": []}' );  
     $("#ae_depends_text").val( '{"campaigns": [], "file_patterns": []}' );  
   }
-  $("#ae_experiment").text("Campaign Editor  ({{ data.curr_experiment if data.curr_experiment is defined}})");
+  $("#ae_experiment").text("Campaign Layer Editor  ({{ data.curr_experiment if data.curr_experiment is defined}})");
   $("#ae_active").val( $("#c_active_"+index).text() ).trigger('change');
   $("#ae_vo_role").val( $("#c_vo_role_"+index).text() );
   $("#ae_software_version").val( $("#c_software_version_"+index).text() );
@@ -633,7 +633,7 @@ function edit_campaign(index,clone) {
 
 function add_campaign() {
   $("#campaign_add_edit_modal").form('reset');
-  $("#ae_experiment").text("Campaign Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
+  $("#ae_experiment").text("Campaign Layer Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
   $("#campaign_add_edit_modal").modal({}).modal('show');
 }
 

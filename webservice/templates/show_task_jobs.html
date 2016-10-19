@@ -9,9 +9,9 @@
 <div class="ui breadcrumb" style="margin-top: -45px;">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
-  <a href="{{pomspath}}/show_campaigns/" class="section">Campaigns</a>
+  <a href="{{pomspath}}/show_campaigns/" class="section">Campaign Layers</a>
   <div class="divider"> / </div>
-  <a href="{{pomspath}}/campaign_time_bars?campaign_id={{campaign_id}}" class="section">Campaign {{cname}}</a>
+  <a href="{{pomspath}}/campaign_time_bars?campaign_id={{campaign_id}}" class="section">Campaign Layer {{cname}}</a>
   <div class="divider"> / </div>
   <div class="section">Jobs in submission {{taskid}}</div>
 </div>
@@ -20,14 +20,14 @@
 
 {%block header%}
 <h1 class="ui header">
-     Task {{task_jobsub_id}} Jobs{%include 'help_button.html'%}
+     Submission {{task_jobsub_id}} Jobs{%include 'help_button.html'%}
 </h1>
 {%endblock%}
 
 
 
 {%block subheader%}
-<h2 class="ui dividing header">Task {{task_jobsub_id}} jobs:</h2>
+<h2 class="ui dividing header">Submission {{task_jobsub_id}} jobs:</h2>
 {%endblock%}
 
 
