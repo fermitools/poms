@@ -1034,7 +1034,7 @@ class poms_service:
              running = 0
              for j in task.jobs:
                  total = total + 1
-                 if j.status != "Completed" and j.status != "Located":
+                 if j.status != "Completed" and j.status != "Located" and j.status != "Removed":
                      running = running + 1
 
              res.append("Task %d total %d running %d " % (task.task_id, total, running))
@@ -1234,6 +1234,8 @@ class poms_service:
                  cherrypy.log("saw output_file_names: %s" % kwargs['output_file_names'])
                  if j.job_files:
                      files =  [x.file_name for x in j.job_files if x.file_type == 'output']
+                     # don't include metadata files
+                     files =  [ f for f in files if f.find('.json') == -1 and f.find('.metadata') == -1]
                  else:
                      files = []
 
