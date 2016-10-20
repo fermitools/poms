@@ -1049,6 +1049,7 @@ class poms_service:
 
         lookup_task_list = []
         lookup_dims_list = []
+        lookup_exp_list = []
         n_completed = 0
         n_stale = 0
         n_project = 0
@@ -1069,13 +1070,14 @@ class poms_service:
                  # task had a sam project, add to the list to look
                  # up in sam
                  n_project = n_project + 1
-                 lookup_task_list.append(task)
                  basedims = "snapshot_for_project_name %s " % task.project
 		 allkiddims = basedims
 		 for pat in str(task.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
 		     if pat == 'None':
 			pat = '%'
 		     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, task.campaign_obj.software_version)
+                 lookup_exp_list.append(task.campaign_obj.experiment)
+                 lookup_task_list.append(task)
                  lookup_dims_list.append(allkiddims)
             else:
                  # we don't have a project, guess off of located jobs
@@ -1094,14 +1096,16 @@ class poms_service:
         cherrypy.request.db.commit()
         
         summary_list = cherrypy.request.samweb_lite.fetch_info_list(lookup_task_list)
-        count_list = cherrypy.request.samweb_lite.count_files_list(task.campaign_obj.experiment,lookup_dims_list)
+        count_list = cherrypy.request.samweb_lite.count_files_list(lookup_exp_list,lookup_dims_list)
         thresholds = []
+	cherrypy.log("wrapup_tasks: summary_list: %s" % repr(summary_list))
         for i in range(len(summary_list)):
             # XXX
             # this is using a 90% threshold, this ought to be
             # a tunable in the campaign_definition.  Basically we consider it
             # located if 90% of the files it consumed have suitable kids...
             # cfrac = lookup_task_list[i].campaign_obj.campaign_definition_obj.cfrac
+
             cfrac = 0.9
             threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
             thresholds.append(threshold)
