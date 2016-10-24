@@ -2535,7 +2535,7 @@ class poms_service:
               self.launch_jobs(cd.uses_camp_id)
            else:
               i = i + 1
-              dims = "ischildof: (snapshot_for_project_name %s and version %s and file_name like '%s' )" % (t.project, t.campaign_obj.software_version, cd.file_patterns)
+              dims = "ischildof: (snapshot_for_project_name %s) and version %s and file_name like '%s'" % (t.project, t.campaign_obj.software_version, cd.file_patterns)
               dname = "poms_depends_%d_%d" % (t.task_id,i)
  
               cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, dname, dims)
