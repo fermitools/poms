@@ -2187,7 +2187,7 @@ class poms_service:
             flist = []
 
         template = self.jinja_env.get_template('show_dimension_files.html')
-        return template.render(flist = flist, dims = dims,  current_experimenter=cherrypy.session.get('experimenter'),   statusmap = [], pomspath=self.path,help_page="ShowDimensionFilesHelp", version=self.version)
+        return template.render(flist = flist, dims = dims,  current_experimenter=cherrypy.session.get('experimenter'),   statusmap = [], pomspath=self.path,help_page="ShowDimensionFilesHelp", experiment = experiment, version=self.version)
 
     @cherrypy.expose
     def inflight_files(self, campaign_id=None, task_id=None):
