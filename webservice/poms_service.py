@@ -1054,9 +1054,9 @@ class poms_service:
         n_stale = 0
         n_project = 0
         n_located = 0
-        # query with a for_update so we don't have two updates mark
+        # query with a with_for_update so we don't have two updates mark
         # it Located and possibly also launch jobs.
-        for task in cherrypy.request.db.query(Task).for_update(of=Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_obj,Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
+        for task in cherrypy.request.db.query(Task).with_for_update(of=Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_obj,Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as 
             # located as its going to get...
@@ -1141,7 +1141,7 @@ class poms_service:
             res = "Held"
         if (st['Running'] > 0):
             res = "Running"
-        if (st['Completed'] > 0 and st['Idle'] == 0 and st['Held'] == 0):
+        if (st['Completed'] > 0 and st['Idle'] == 0 and st['Held'] == 0 and st['Running'] == 0):
             res = "Completed"
             # no, not here we wait for "Located" status..
             #if task.status != "Completed":
@@ -1162,7 +1162,7 @@ class poms_service:
 
          host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
 
-         jl = cherrypy.request.db.query(Job).for_update(of=Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
+         jl = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
          first = True
          j = None
          for ji in jl:
