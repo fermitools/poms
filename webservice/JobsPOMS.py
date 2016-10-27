@@ -166,7 +166,7 @@ class JobsPOMS:
 			loghandle("update_job: db add/commit job status %s " %  j.status)
 			j.updated =  datetime.now(utc)
 			if j.task_obj:
-				newstatus = self.compute_status(j.task_obj)
+				newstatus = self.poms_service.compute_status(j.task_obj)
 				if newstatus != j.task_obj.status:
 					j.task_obj.status = newstatus
 					j.task_obj.updated = datetime.now(utc)
