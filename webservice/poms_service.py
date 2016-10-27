@@ -1054,7 +1054,9 @@ class poms_service:
         n_stale = 0
         n_project = 0
         n_located = 0
-        for task in cherrypy.request.db.query(Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_obj,Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
+        # query with a for_update so we don't have two updates mark
+        # it Located and possibly also launch jobs.
+        for task in cherrypy.request.db.query(Task).for_update(of=Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_obj,Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as 
             # located as its going to get...
@@ -1064,8 +1066,8 @@ class poms_service:
                  task.status = "Located"
                  task.updated = datetime.now(utc)
                  cherrypy.request.db.add(task)
-                 if not self.launch_recovery_if_needed(task.task_id):
-                     self.launch_dependents_if_needed(task.task_id)
+                 if not self.launch_recovery_if_needed(task):
+                     self.launch_dependents_if_needed(task)
             elif task.project:
                  # task had a sam project, add to the list to look
                  # up in sam
@@ -1090,8 +1092,8 @@ class poms_service:
                      task.status = "Located"
                      task.updated = datetime.now(utc)
                      cherrypy.request.db.add(task)
-                     if not self.launch_recovery_if_needed(task.task_id):
-                         self.launch_dependents_if_needed(task.task_id)
+                     if not self.launch_recovery_if_needed(task):
+                         self.launch_dependents_if_needed(task)
 
         cherrypy.request.db.commit()
         
@@ -1116,8 +1118,8 @@ class poms_service:
                 task.updated = datetime.now(utc)
                 cherrypy.request.db.add(task)
 
-                if not self.launch_recovery_if_needed(task.task_id):
-                    self.launch_dependents_if_needed(task.task_id)
+                if not self.launch_recovery_if_needed(task):
+                    self.launch_dependents_if_needed(task)
 
         res.append("Counts: completed: %d stale: %d project %d: located %d" %
         	(n_completed, n_stale , n_project, n_located))
@@ -1143,8 +1145,8 @@ class poms_service:
             res = "Completed"
             # no, not here we wait for "Located" status..
             #if task.status != "Completed":
-            #    if not self.launch_recovery_if_needed(task.task_id):
-            #        self.launch_dependents_if_needed(task.task_id)
+            #    if not self.launch_recovery_if_needed(task):
+            #        self.launch_dependents_if_needed(task)
         return res
 
     @cherrypy.expose
@@ -1160,7 +1162,7 @@ class poms_service:
 
          host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
 
-         jl = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
+         jl = cherrypy.request.db.query(Job).for_update(of=Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
          first = True
          j = None
          for ji in jl:
@@ -1352,7 +1354,7 @@ class poms_service:
     def triage_job(self, job_id, tmin = None, tmax = None, tdays = None, force_reload = False):
         # we don't really use these for anything but we might want to
         # pass them into a template to set time ranges...
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'show_campaigns?')
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'triage_job?job_id=%s' % job_id)
 
         job_file_list = self.job_file_list(job_id, force_reload)
         template = self.jinja_env.get_template('triage_job.html')
@@ -1773,7 +1775,7 @@ class poms_service:
 
         # we don't really use these for anything but we might want to
         # pass them into a template to set time ranges...
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'show_campaigns?')
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'job_file_contents')
 
         j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
@@ -2409,7 +2411,11 @@ class poms_service:
                 tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id, Task.status != 'Completed', Task.status != 'Located').all()
             else:
                 tl = cherrypy.request.db.query(Task).filter(Task.task_id == task_id).all()
-            c = tl[0].campaign_obj
+            if len(tl) > 0:
+                c = tl[0].campaign_obj
+            else:
+                c =  cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+
             for t in tl:
                 tjid = self.task_min_job(t.task_id)
                 cherrypy.log("kill_jobs: task_id %s -> tjid %s" % (t.task_id, tjid))
@@ -2419,14 +2425,14 @@ class poms_service:
                 if tjid:
                     jjil.append(tjid.replace('.0',''))
         else:
-            jql = cherrypy.request.db.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Located').all()
+            jql = cherrypy.request.db.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Located', Job.status != 'Held').all()
             c = jql[0].task_obj.campaign_obj
             for j in jql:
                 jjil.append(j.jobsub_job_id)
 
         if confirm == None:
             template = self.jinja_env.get_template('kill_jobs_confirm.html')
-            return template.render(current_experimenter=cherrypy.session.get('experimenter'),  jjil = jjil, task = t, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="KilledJobsHelp", version=self.version)
+            return template.render(current_experimenter=cherrypy.session.get('experimenter'),  jjil = jjil, task = t, c = c, campaign_id = campaign_id, task_id = task_id, job_id = job_id, pomspath=self.path,help_page="KilledJobsHelp", version=self.version)
         else:
             group = c.experiment
             if group == 'samdev': group = 'fermilab'
@@ -2537,12 +2543,12 @@ class poms_service:
             cherrypy.config.update({'poms.launches': hold})
         raise cherrypy.HTTPRedirect(self.path + "/")
 
-    def launch_dependents_if_needed(self, task_id):
-        cherrypy.log("Entering launch_dependents_if_needed(%s)" % task_id)
+    def launch_dependents_if_needed(self, t):
+        cherrypy.log("Entering launch_dependents_if_needed(%s)" % t.task_id)
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
             return 1
-        t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
+        #t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
         cdlist = cherrypy.request.db.query(CampaignDependency).filter(CampaignDependency.needs_camp_id == t.campaign_obj.campaign_id).all()
 
         i = 0
@@ -2557,6 +2563,7 @@ class poms_service:
  
               cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, dname, dims)
               self.launch_jobs(cd.uses_camp_id, dataset_override = dname)
+        
         return 1
 
     def get_recovery_list_for_campaign_def(self, campaign_def):
@@ -2570,13 +2577,14 @@ class poms_service:
 
         return rlist
 
-    def launch_recovery_if_needed(self, task_id):
-        cherrypy.log("Entering launch_recovery_if_needed(%s)" % task_id)
+    def launch_recovery_if_needed(self, t):
+        cherrypy.log("Entering launch_recovery_if_needed(%s)" % t.task_id)
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
             return 1
 
-        t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
+        # sigh, we should pass the task  object in, not look it up again...
+        #t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
         # if this is itself a recovery job, we go back to our parent
         # to do all the work, because it has the counters, etc.
         if t.parent_obj:
@@ -2586,6 +2594,8 @@ class poms_service:
 
         if t.recovery_position == None:
            t.recovery_position = 0
+
+        cherrypy.log("launch_recovery_if_needed(%s): recovery_position %d" % (t.task_id, t.recovery_position))
 
         while t.recovery_position != None and t.recovery_position < len(rlist):
             rtype = rlist[t.recovery_position].recovery_type
@@ -2609,9 +2619,13 @@ class poms_service:
 
             nfiles = cherrypy.request.samweb_lite.count_files(t.campaign_obj.experiment,recovery_dims)
 
+            cherrypy.log("launch_recovery_if_needed(%s): nfiles %d" % (t.task_id, nfiles))
+
 	    t.recovery_position = t.recovery_position + 1
             cherrypy.request.db.add(t)
-            cherrypy.request.db.commit()
+            # don't commit here, it will unlock our row preventing 
+            # overlapping launches..
+            # cherrypy.request.db.commit()
  
             if nfiles > 0:
                 rname = "poms_recover_%d_%d" % (t.task_id,t.recovery_position)
@@ -3096,13 +3110,22 @@ class poms_service:
         cherrypy.log("in get_pending_for_campaigns, tmin %s tmax %s" % (tmin, tmax))
 
         for c in campaign_list:
+                
 	    tl = (cherrypy.request.db.query(Task).
-		options(
+	   	 options(
 	 	     joinedload(Task.campaign_obj).
 	             joinedload(Campaign.campaign_definition_obj)).
-                filter(Task.campaign_id == c.campaign_id, 
+                 filter(Task.campaign_id == c.campaign_id, 
                        Task.created >= tmin, Task.created < tmax ).
-                all())
+                 order_by(Task.created).
+                 all())
+
+            if c.cs_split_type in ['draining', 'None', None]:
+                # if it is a draining dataset, the pending for
+                # the latest task is sufficient, which is a big time
+                # saver...
+	        tl = tl[:1]
+
             task_list_list.append(tl) 
 
         return self.get_pending_for_task_lists(task_list_list)
