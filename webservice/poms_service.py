@@ -1490,6 +1490,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
 
 	experiment, = cherrypy.request.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).one()
 
+        tasklist = []
 	exitcodes = []
         for e in el:
             exitcodes.append(e[0])
