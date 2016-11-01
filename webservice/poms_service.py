@@ -787,8 +787,8 @@ class poms_service:
         # inhale all the campaign related task info for the time window
         # in one fell swoop
         #
-
-	tl = (cherrypy.request.db.query(Task).
+		###Error maybe an indentation error
+		tl = (cherrypy.request.db.query(Task).
 		options(joinedload(Task.campaign_obj)).
                 options(joinedload(Task.jobs).joinedload(Job.job_files)).
                 filter(Task.campaign_id == campaign_id,
