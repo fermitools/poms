@@ -567,8 +567,8 @@ class poms_service:
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ): ### Need to be tested HERE
-	   blob, job_counts, task_id, tmin, tmax, extramap, key, task_jobsub_id, campaign_id, cname = self.jobsPOMS.show_task_jobs(self, task_id, tmax, tmin, tdays)
-       return template.render( blob = blob, job_counts = job_counts,  taskid = task_id, tmin = tmin, tmax = tmax, current_experimenter = cherrypy.session.get('experimenter'),
+        blob, job_counts, task_id, tmin, tmax, extramap, key, task_jobsub_id, campaign_id, cname = self.jobsPOMS.show_task_jobs(self, task_id, tmax, tmin, tdays)
+        return template.render( blob = blob, job_counts = job_counts,  taskid = task_id, tmin = tmin, tmax = tmax, current_experimenter = cherrypy.session.get('experimenter'),
                                extramap = extramap, do_refresh = 1, key = key, pomspath=self.path, help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id,
                                campaign_id = campaign_id,cname = cname, version=self.version)
 
@@ -787,8 +787,7 @@ class poms_service:
         # inhale all the campaign related task info for the time window
         # in one fell swoop
         #
-		###Error maybe an indentation error
-		tl = (cherrypy.request.db.query(Task).
+        tl = (cherrypy.request.db.query(Task).
 		options(joinedload(Task.campaign_obj)).
                 options(joinedload(Task.jobs).joinedload(Job.job_files)).
                 filter(Task.campaign_id == campaign_id,
@@ -905,8 +904,7 @@ class poms_service:
 
 
     @cherrypy.expose
-    def campaign_time_bars(self, campaign_id = None, tag = None, tmin = None, t
-max = None, tdays = 1):
+    def campaign_time_bars(self, campaign_id = None, tag = None, tmin = None, tmax = None, tdays = 1):
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
 
         tg = time_grid.time_grid()
