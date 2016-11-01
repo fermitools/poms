@@ -130,6 +130,8 @@ class JobsPOMS:
 				loghandle("saw output_file_names: %s" % kwargs['output_file_names'])
 				if j.job_files:
 					files =  [x.file_name for x in j.job_files if x.file_type == 'output']
+					# don't include metadata files
+					files =  [ f for f in files if f.find('.json') == -1 and f.find('.metadata') == -1] ###Included in the merge
 				else:
 					files = []
 

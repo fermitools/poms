@@ -2177,6 +2177,7 @@ class poms_service:
 
         raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id )
 
+
     def snapshot_parts(self, t, campaign_id):
          c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
          for table, snaptable, field, sfield, tid , tfield in [
@@ -2312,6 +2313,7 @@ class poms_service:
         cherrypy.log("got list: %s" % repr(efflist))
         return efflist
 
+
     def get_pending_for_campaigns(self, campaign_list, tmin, tmax):
 
         task_list_list = []
@@ -2329,6 +2331,7 @@ class poms_service:
             task_list_list.append(tl)
 
         return self.get_pending_for_task_lists(task_list_list)
+
 
     def get_pending_for_task_lists(self, task_list_list):
         dimlist=[]
