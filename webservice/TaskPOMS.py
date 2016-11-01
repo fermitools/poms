@@ -68,11 +68,12 @@ class TaskPOMS:
 		dbhandle.commit()
 		lookup_task_list = []
 		lookup_dims_list = []
+                lookup_exp_list = []
 		n_completed = 0
 		n_stale = 0
 		n_project = 0
 		n_located = 0
-		for task in dbhandle.query(Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_obj,Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
+		for task in dbhandle.query(Task).with_for_update(of=Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_obj,Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
 			n_completed = n_completed + 1
 			# if it's been 2 days, just declare it located; its as
 			# located as its going to get...
@@ -88,13 +89,14 @@ class TaskPOMS:
 				# task had a sam project, add to the list to look
 				# up in sam
 				n_project = n_project + 1
-				lookup_task_list.append(task)
 				basedims = "snapshot_for_project_name %s " % task.project
 				allkiddims = basedims
 				for pat in str(task.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
 					if pat == 'None':
 						pat = '%'
 					allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, task.campaign_obj.software_version)
+                                lookup_exp_list.append(task.campaign_obj.experiment)
+				lookup_task_list.append(task)
 				lookup_dims_list.append(allkiddims)
 			else:
 				# we don't have a project, guess off of located jobs
@@ -112,8 +114,10 @@ class TaskPOMS:
 
 		dbhandle.commit()
 		summary_list = samhandle.fetch_info_list(lookup_task_list)
-		count_list = samhandle.samweb_lite.count_files_list(task.campaign_obj.experiment,lookup_dims_list)
+		count_list = samhandle.samweb_lite.count_files_list(lookup_exp_list,lookup_dims_list)
 		thresholds = []
+                cherrypy.log("wrapup_tasks: summary_list: %s" % repr(summary_list))
+
 		for i in range(len(summary_list)):
 			# XXX
 			# this is using a 90% threshold, this ought to be

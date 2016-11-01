@@ -316,7 +316,12 @@ $( "#search_button" ).click(function() {
       <tr>
          {%for col in jobcolumns%}
             {% if loop.first %}
-              <td><a href="{{pomspath}}/triage_job?job_id={{job[col]}}&tmin={{tmin}}"><i class="level down icon"></i> </a></td>
+              <td>
+                <a href="{{pomspath}}/triage_job?job_id={{job[col]}}&tmin={{tmin}}"><i class="level down icon"></i> </a>
+                {% if job['status'] != "Completed" and job['status'] != "Located"] and job['status'] != "Removed"] %}
+                <a href="%s/kill_jobs?job_id={{job['jobsub_job_id']}}"><i class="ui trash icon"></i></a>
+                {%endif%}
+              </td>
             {% else %}
              {% if not col in hidecolumns %}
               <td>{{job[col]}}</td>
