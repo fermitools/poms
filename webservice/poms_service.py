@@ -1492,6 +1492,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
 
         tasklist = []
 	exitcodes = []
+        totwall = 0
         for e in el:
             exitcodes.append(e[0])
 
