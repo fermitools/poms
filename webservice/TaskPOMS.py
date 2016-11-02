@@ -7,14 +7,13 @@ written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
 #from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile
-#from datetime import datetime
+from datetime import datetime
 #from LaunchPOMS import launch_recovery_if_needed
 #from poms_service import poms_service
 
 import time_grid
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from utc import utc
-import datetime
 
 from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
 
@@ -119,9 +118,9 @@ class TaskPOMS:
 
         dbhandle.commit()
         summary_list = samhandle.fetch_info_list(lookup_task_list)
-        count_list = samhandle.samweb_lite.count_files_list(lookup_exp_list,lookup_dims_list)
+        count_list = samhandle.count_files_list(lookup_exp_list,lookup_dims_list)
         thresholds = []
-	cherrypy.log("wrapup_tasks: summary_list: %s" % repr(summary_list))
+	#cherrypy.log("wrapup_tasks: summary_list: %s" % repr(summary_list))
 
         for i in range(len(summary_list)):
             # XXX
