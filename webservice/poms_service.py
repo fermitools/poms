@@ -86,7 +86,6 @@ def popen_read_with_timeout(cmd, totaltime = 30):
 
 class poms_service:
 
-
     _cp_config = {'request.error_response': error_response,
                   'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()),'/templates/page_not_found.html')
                   }
@@ -559,7 +558,7 @@ class poms_service:
     @cherrypy.expose
     def wrapup_tasks(self):
         cherrypy.response.headers['Content-Type'] = "text/plain"
-        return "\n".join(self.tasksPOMS.wrapup_task(cherrypy.request.db, cherrypy.request.samweb_lite))
+        return "\n".join(self.tasksPOMS.wrapup_tasks(cherrypy.request.db, cherrypy.request.samweb_lite))
 
     def compute_status(self, task):
         return self.tasksPOMS.compute_status(task)
