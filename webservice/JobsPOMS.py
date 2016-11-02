@@ -64,8 +64,8 @@ class JobsPOMS:
         j = None
         for ji in jl:
             if first:
-                 j = ji
-               first = False
+                j = ji
+                first = False
             else:
             # we somehow got multiple jobs with the sam jobsub_job_id
             # mark the others as dups
