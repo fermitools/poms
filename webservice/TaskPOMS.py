@@ -70,7 +70,7 @@ class TaskPOMS:
         dbhandle.commit()
         lookup_task_list = []
         lookup_dims_list = []
-                lookup_exp_list = []
+	lookup_exp_list = []
         n_completed = 0
         n_stale = 0
         n_project = 0
@@ -97,15 +97,17 @@ class TaskPOMS:
                     if pat == 'None':
                         pat = '%'
                     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, task.campaign_obj.software_version)
-                                lookup_exp_list.append(task.campaign_obj.experiment)
+		lookup_exp_list.append(task.campaign_obj.experiment)
                 lookup_task_list.append(task)
                 lookup_dims_list.append(allkiddims)
             else:
                 # we don't have a project, guess off of located jobs
-                 locflag = True
+
+                locflag = True
                 for j in task.jobs:
                     if j.status != "Located":
-                        locaflag = False
+                        locflag = False
+
                 if locflag:
                     n_located = n_located + 1
                     task.status = "Located"
@@ -118,7 +120,7 @@ class TaskPOMS:
         summary_list = samhandle.fetch_info_list(lookup_task_list)
         count_list = samhandle.samweb_lite.count_files_list(lookup_exp_list,lookup_dims_list)
         thresholds = []
-                cherrypy.log("wrapup_tasks: summary_list: %s" % repr(summary_list))
+	cherrypy.log("wrapup_tasks: summary_list: %s" % repr(summary_list))
 
         for i in range(len(summary_list)):
             # XXX
