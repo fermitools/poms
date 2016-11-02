@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
+from utc import utc
 ### This module contain the methods that handle the 
 ### List of methods: def list_task_logged_files, campaign_task_files, job_file_list
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.

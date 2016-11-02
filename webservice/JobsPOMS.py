@@ -7,6 +7,8 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 
 from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile
 from datetime import datetime
+from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
+from utc import utc
 #from LaunchPOMS import launch_recovery_if_needed
 #from poms_service import poms_service
 
@@ -50,7 +52,7 @@ class JobsPOMS:
 		return sres
 
 
-	def update_job(self, dbhandle, loghandle, rpstatus, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
+	def update_job(self, dbhandle, loghandle, rpstatus, task_id, jobsub_job_id, **kwargs):
 
 		if task_id:
 			task_id = int(task_id)
@@ -62,22 +64,22 @@ class JobsPOMS:
 		j = None
 		for ji in jl:
 			if first:
-				j = ji
-				first = False
+		  	   j = ji
+			   first = False
 			else:
 			# we somehow got multiple jobs with the sam jobsub_job_id
 			# mark the others as dups
-				ji.jobsub_job_id="dup_"+ji.jobsub_job_id
-				dbhandle.add(ji)
-			# steal any job_files
-			files =  [x.file_name for x in j.job_files ]
-			for jf in ji.job_files:
-				if jf.file_name not in files:
-					njf = JobFile(file_name = jf.file_name, file_type = jf.file_type, created =  jf.created, job_obj = j)
-					dbhandle.add(njf)
+			    ji.jobsub_job_id="dup_"+ji.jobsub_job_id
+			    dbhandle.add(ji)
+			    # steal any job_files
+			    files =  [x.file_name for x in j.job_files ]
+			    for jf in ji.job_files:
+				    if jf.file_name not in files:
+					    njf = JobFile(file_name = jf.file_name, file_type = jf.file_type, created =  jf.created, job_obj = j)
+					    dbhandle.add(njf)
 
-			dbhandle.delete(ji)
-			dbhandle.flush()      #######################should we change this for dbhandle.commit()
+			    dbhandle.delete(ji)
+			    dbhandle.flush()      #######################should we change this for dbhandle.commit()
 
 		if not j and task_id:
 			t = dbhandle.query(Task).filter(Task.task_id==task_id).first()

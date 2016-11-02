@@ -8,6 +8,8 @@
 
 # CalendarPOMS.calendar_json(cherrypy.request.db,start, end, timezone)
 from model.poms_model import Service, ServiceDowntime, Experimenter
+from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
+from utc import utc
 
 class CalendarPOMS:
 

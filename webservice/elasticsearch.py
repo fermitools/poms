@@ -3,6 +3,7 @@ import pprint
 import json
 import cherrypy
 from datetime import datetime
+from utc import utc
 
 class Elasticsearch:
 

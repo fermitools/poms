@@ -103,8 +103,8 @@ class poms_service:
 	self.calendarPOMS = CalendarPOMS.CalendarPOMS()
 	self.dbadminPOMS = DBadminPOMS.DBadminPOMS()
 	self.campaignsPOMS = CampaignsPOMS.CampaignsPOMS()
-	self.jobPOMS = JobsPOMS.JobsPOMS(self)
-	self.taskPOMS = TaskPOMS.TaskPOMS(self)
+	self.jobsPOMS = JobsPOMS.JobsPOMS(self)
+	self.tasksPOMS = TaskPOMS.TaskPOMS(self)
 
     @cherrypy.expose
     def headers(self):
@@ -545,7 +545,7 @@ class poms_service:
 	 if not self.can_report_data():
 	      cherrypy.log("update_job: not allowed")
 	      return "Not Allowed"
-	 return (self.JobsPOMS.update_job(self, cherrypy.request.db, cherrypy.log, cherrypy.response.status, task_id, jobsub_job_id,  **kwargs)) ####Here
+	 return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log, cherrypy.response.status, task_id, jobsub_job_id, **kwargs)) ####Here
 
 
 ######
@@ -554,15 +554,15 @@ class poms_service:
     def create_task(self, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor):
          if not can_create_task():
              return "Not Allowed"
-         return (self.taskPOMS.create_task(cherrypy.request.db,experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor))
+         return (self.tasksPOMS.create_task(cherrypy.request.db,experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor))
 
     @cherrypy.expose
     def wrapup_tasks(self):
         cherrypy.response.headers['Content-Type'] = "text/plain"
-        return "\n".join(self.jobsPOMS.wrapup_task(cherrypy.request.db, cherrypy.request.samweb_lite))
+        return "\n".join(self.tasksPOMS.wrapup_task(cherrypy.request.db, cherrypy.request.samweb_lite))
 
     def compute_status(self, task):
-        return self.taskPOMS.compute_status(task)
+        return self.tasksPOMS.compute_status(task)
 
 
     @cherrypy.expose
