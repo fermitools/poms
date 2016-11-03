@@ -1342,7 +1342,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
                    user = u.experimenter_id
 
          if campaign_definition != None and campaign_definition != "None":
-              cd = cherrypy.request.db.query(CampaignDefinition).filter(Campaign.name == campaign_definition, Campaign.experiment == experiment).first()
+              cd = cherrypy.request.db.query(CampaignDefinition).filter(CampaignDefinition.name == campaign_definition, Campaign.experiment == experiment).first()
          else:
               cd = cherrypy.request.db.query(CampaignDefinition).filter(CampaignDefinition.name.like("%generic%"), Campaign.experiment == experiment).first()
 
