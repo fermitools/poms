@@ -5,9 +5,14 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
 from model.poms_model import JobHistory,  Job, Task, Campaign, CampaignDefinition, JobFile, Experimenter, Experiment, ExperimentsExperimenters
+from elasticsearch import Elasticsearch
 
 
 class TriagePOMS():
+
+
+    def __init__(self, ps):
+        self.poms_service=ps
 
 
     def job_counts(self, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = None):
@@ -262,7 +267,6 @@ class TriagePOMS():
         #raise cherrypy.HTTPRedirect("%s/failed_jobs_by_whatever?f=user_exe_exit_code&tdays=%s" % (self.path, tdays))
 
 
-    @cherrypy.expose
     def failed_jobs_by_whatever(self, dbhandle, loghandle, tmin = None, tmax =  None, tdays = 1 , f = [], go = None):
         # deal with single/multiple argument silliness
         if isinstance(f, basestring):
