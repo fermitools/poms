@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ### This module contain the methods that handle the
-### List of methods:
+### List of methods: list_generic, edit_screen_generic, update_generic, update_for, edit_screen_for,
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### November, 2016.
 
