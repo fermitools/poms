@@ -6,7 +6,11 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 '''
 
 from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile
-from datetime import datetime
+from datetime import datetime, timedelta
+from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
+from utc import utc
+import gc
+import json
 #from LaunchPOMS import launch_recovery_if_needed
 #from poms_service import poms_service
 
@@ -51,7 +55,6 @@ class JobsPOMS:
 
 
     def update_job(self, dbhandle, loghandle, rpstatus, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
-
         if task_id:
             task_id = int(task_id)
 
@@ -69,15 +72,16 @@ class JobsPOMS:
             # mark the others as dups
                 ji.jobsub_job_id="dup_"+ji.jobsub_job_id
                 dbhandle.add(ji)
-            # steal any job_files
-            files =  [x.file_name for x in j.job_files ]
-            for jf in ji.job_files:
-                if jf.file_name not in files:
-                    njf = JobFile(file_name = jf.file_name, file_type = jf.file_type, created =  jf.created, job_obj = j)
-                    dbhandle.add(njf)
+                # steal any job_files
+                files =  [x.file_name for x in j.job_files ]
+                for jf in ji.job_files:
+                    if jf.file_name not in files:
+                        njf = JobFile(file_name = jf.file_name, file_type = jf.file_type, created =  jf.created, job_obj = j)
+                        dbhandle.add(njf)
 
-            dbhandle.delete(ji)
-            dbhandle.flush()      #######################should we change this for dbhandle.commit()
+                dbhandle.delete(ji)
+                dbhandle.flush()      #######################should we change this for dbhandle.commit()
+
 
         if not j and task_id:
             t = dbhandle.query(Task).filter(Task.task_id==task_id).first()

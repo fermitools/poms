@@ -86,7 +86,6 @@ def popen_read_with_timeout(cmd, totaltime = 30):
 
 class poms_service:
 
-
     _cp_config = {'request.error_response': error_response,
                   'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()),'/templates/page_not_found.html')
                   }
@@ -103,8 +102,8 @@ class poms_service:
 	self.calendarPOMS = CalendarPOMS.CalendarPOMS()
 	self.dbadminPOMS = DBadminPOMS.DBadminPOMS()
 	self.campaignsPOMS = CampaignsPOMS.CampaignsPOMS()
-	self.jobPOMS = JobsPOMS.JobsPOMS(self)
-	self.taskPOMS = TaskPOMS.TaskPOMS(self)
+	self.jobsPOMS = JobsPOMS.JobsPOMS(self)
+	self.tasksPOMS = TaskPOMS.TaskPOMS(self)
 
     @cherrypy.expose
     def headers(self):
@@ -545,7 +544,7 @@ class poms_service:
 	 if not self.can_report_data():
 	      cherrypy.log("update_job: not allowed")
 	      return "Not Allowed"
-	 return (self.JobsPOMS.update_job(self, cherrypy.request.db, cherrypy.log, cherrypy.response.status, task_id, jobsub_job_id,  **kwargs)) ####Here
+	 return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log, cherrypy.response.status, task_id, jobsub_job_id, **kwargs)) ####Here
 
 
 ######
@@ -554,15 +553,15 @@ class poms_service:
     def create_task(self, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor):
          if not can_create_task():
              return "Not Allowed"
-         return (self.taskPOMS.create_task(cherrypy.request.db,experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor))
+         return (self.tasksPOMS.create_task(cherrypy.request.db,experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor))
 
     @cherrypy.expose
     def wrapup_tasks(self):
         cherrypy.response.headers['Content-Type'] = "text/plain"
-        return "\n".join(self.jobsPOMS.wrapup_task(cherrypy.request.db, cherrypy.request.samweb_lite))
+        return "\n".join(self.tasksPOMS.wrapup_tasks(cherrypy.request.db, cherrypy.log, cherrypy.request.samweb_lite))
 
     def compute_status(self, task):
-        return self.taskPOMS.compute_status(task)
+        return self.tasksPOMS.compute_status(task)
 
 
     @cherrypy.expose
@@ -941,7 +940,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
              job_counts_list.append(cp.name)
              job_counts_list.append( self.format_job_counts(campaign_id = cp.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string))
              cidl.append(cp.campaign_id)
-        
+
         job_counts = "\n".join(job_counts_list)
 
         qr = cherrypy.request.db.query(TaskHistory).join(Task).filter(Task.campaign_id.in_(cidl), TaskHistory.task_id == Task.task_id , or_(and_(Task.created > tmin, Task.created < tmax),and_(Task.updated > tmin, Task.updated < tmax)) ).order_by(TaskHistory.task_id,TaskHistory.created).all()
