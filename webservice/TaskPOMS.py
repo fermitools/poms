@@ -50,7 +50,7 @@ class TaskPOMS:
         return str(t.task_id)
 
 
-    def wrapup_tasks(self, dbhandle, samhandle): # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
+    def wrapup_tasks(self, dbhandle, loghandle, samhandle): # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
         now =  datetime.now(utc)
         res = ["wrapping up:"]
         for task in dbhandle.query(Task).options(subqueryload(Task.jobs)).filter(Task.status != "Completed", Task.status != "Located").all():
@@ -70,7 +70,7 @@ class TaskPOMS:
         dbhandle.commit()
         lookup_task_list = []
         lookup_dims_list = []
-	lookup_exp_list = []
+        lookup_exp_list = []
         n_completed = 0
         n_stale = 0
         n_project = 0
@@ -97,12 +97,12 @@ class TaskPOMS:
                     if pat == 'None':
                         pat = '%'
                     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, task.campaign_obj.software_version)
-		lookup_exp_list.append(task.campaign_obj.experiment)
+
+                lookup_exp_list.append(task.campaign_obj.experiment)
                 lookup_task_list.append(task)
                 lookup_dims_list.append(allkiddims)
             else:
                 # we don't have a project, guess off of located jobs
-
                 locflag = True
                 for j in task.jobs:
                     if j.status != "Located":
@@ -120,7 +120,7 @@ class TaskPOMS:
         summary_list = samhandle.fetch_info_list(lookup_task_list)
         count_list = samhandle.count_files_list(lookup_exp_list,lookup_dims_list)
         thresholds = []
-	#cherrypy.log("wrapup_tasks: summary_list: %s" % repr(summary_list))
+        loghandle("wrapup_tasks: summary_list: %s" % repr(summary_list)) ### Check if that is working
 
         for i in range(len(summary_list)):
             # XXX

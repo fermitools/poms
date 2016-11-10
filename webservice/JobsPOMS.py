@@ -54,8 +54,7 @@ class JobsPOMS:
         return sres
 
 
-    def update_job(self, dbhandle, loghandle, rpstatus, task_id, jobsub_job_id, **kwargs):
-
+    def update_job(self, dbhandle, loghandle, rpstatus, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
         if task_id:
             task_id = int(task_id)
 
@@ -82,6 +81,7 @@ class JobsPOMS:
 
                 dbhandle.delete(ji)
                 dbhandle.flush()      #######################should we change this for dbhandle.commit()
+
 
         if not j and task_id:
             t = dbhandle.query(Task).filter(Task.task_id==task_id).first()
