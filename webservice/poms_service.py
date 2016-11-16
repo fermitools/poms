@@ -2131,12 +2131,8 @@ class poms_service:
          else:
               cd = cherrypy.request.db.query(CampaignDefinition).filter(CampaignDefinition.name.like("%generic%"), Campaign.experiment == experiment).first()
 
-         ld = cherrypy.request.db.query(LaunchTemplate).filter(LaunchTemplate.name.like("%generic%")).first()
+         ld = cherrypy.request.db.query(LaunchTemplate).filter(LaunchTemplate.name.like("%generic%"), LaunchTemplate.experiment == experiment).first()
 
-         if cd == None:
-              # pick *any* generic one...
-              cd = cherrypy.request.db.query(CampaignDefinition).filter(Campaign.name.like("%generic%")).first()
-          
          cherrypy.log("campaign_definition = %s " % cd)
          c = cherrypy.request.db.query(Campaign).filter( Campaign.experiment == experiment, Campaign.name == campaign_name).first()
          if c:
