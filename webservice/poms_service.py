@@ -1029,6 +1029,11 @@ class poms_service:
         cherrypy.response.headers['Content-Type'] = "text/plain"
         now =  datetime.now(utc)
         res = ["wrapping up:"]
+
+        #
+        # make jobs which completed with no output files located.
+        subq = cherrypy.request.db.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
+        cherrypy.request.db.query(Job).filter(subq == 0).update({'status':'Located'})
         for task in cherrypy.request.db.query(Task).options(subqueryload(Task.jobs)).filter(Task.status != "Completed", Task.status != "Located").all():
              total = 0
              running = 0
