@@ -1064,6 +1064,9 @@ class poms_service:
                  n_located = n_located + 1
                  n_stale = n_stale + 1
                  task.status = "Located"
+                 for j in task.jobs:
+                     j.status = "Located"
+                     j.output_files_declared = True
                  task.updated = datetime.now(utc)
                  cherrypy.request.db.add(task)
                  if not self.launch_recovery_if_needed(task):
@@ -1090,6 +1093,9 @@ class poms_service:
                  if locflag:
                      n_located = n_located + 1
                      task.status = "Located"
+		     for j in task.jobs:
+			 j.status = "Located"
+			 j.output_files_declared = True
                      task.updated = datetime.now(utc)
                      cherrypy.request.db.add(task)
                      if not self.launch_recovery_if_needed(task):
@@ -1115,6 +1121,9 @@ class poms_service:
                 n_located = n_located + 1
                 task = lookup_task_list[i]
                 task.status = "Located"
+                for j in task.jobs:
+                    j.status = "Located"
+                    j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 cherrypy.request.db.add(task)
 
