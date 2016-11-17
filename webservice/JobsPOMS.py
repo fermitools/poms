@@ -182,3 +182,8 @@ class JobsPOMS:
             loghandle("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
 
         return "Ok."
+
+
+    def test_job_counts(self, task_id = None, campaign_id = None): 
+        res = self.poms_service.job_counts(task_id, campaign_id)
+        return repr(res) + self.poms_service.format_job_counts(task_id, campaign_id)

@@ -155,7 +155,7 @@ class TaskPOMS:
 
     def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ):
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=%s' % task_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=%s' % task_id)
 
         jl = dbhandle.query(JobHistory,Job).filter(Job.job_id == JobHistory.job_id, Job.task_id==task_id ).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = self.poms_service.time_grid.time_grid()
@@ -197,7 +197,7 @@ class TaskPOMS:
             campaign_id = 'unknown'
             cname = 'unknown'
 
-        task_jobsub_id = self.poms_service.task_min_job(task_id)
+        task_jobsub_id = self.poms_service.tasksPOMS.task_min_job(task_id)
         return_tuple=(blob, job_counts,task_id, str(tmin)[:16], str(tmax)[:16], extramap, key, task_jobsub_id, campaign_id, cname)
         return return_tuple
 
@@ -219,3 +219,16 @@ class TaskPOMS:
             #    if not self.launch_recovery_if_needed(task.task_id):
             #        self.launch_dependents_if_needed(task.task_id)
         return res
+
+
+    def task_min_job(self, dbhandle, task_id): 
+        # find the job with the logs -- minimum jobsub_job_id for this task
+        # also will be nickname for the task...
+        if ( self.poms_service.task_min_job_cache.has_key(task_id) ):
+           return self.poms_service.task_min_job_cache.get(task_id)
+        j = dbhandle.query(Job).filter( Job.task_id == task_id ).order_by(Job.jobsub_job_id).first()
+        if j:
+            self.poms_service.task_min_job_cache[task_id] = j.jobsub_job_id
+            return j.jobsub_job_id
+        else:
+            return None
