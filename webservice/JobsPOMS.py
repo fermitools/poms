@@ -133,13 +133,14 @@ class JobsPOMS:
             if kwargs.get('output_file_names', None):
                 loghandle("saw output_file_names: %s" % kwargs['output_file_names'])
                 if j.job_files:
-                    files =  [x.file_name for x in j.job_files if x.file_type == 'output']
-                    # don't include metadata files
-                    files =  [ f for f in files if f.find('.json') == -1 and f.find('.metadata') == -1] ###Included in the merge
+                    files =  [x.file_name for x in j.job_files ]
                 else:
                     files = []
 
                 newfiles = kwargs['output_file_names'].split(' ')
+		# don't include metadata files
+		newfiles =  [ f for f in newfiles if f.find('.json') == -1 and f.find('.metadata') == -1] 
+                ###Included in the merge
                 for f in newfiles:
                     if not f in files:
                         if len(f) < 2 or f[0] == '-':  # ignore '0', '-D', etc...

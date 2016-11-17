@@ -53,6 +53,13 @@ class TaskPOMS:
     def wrapup_tasks(self, dbhandle, loghandle, samhandle): # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
         now =  datetime.now(utc)
         res = ["wrapping up:"]
+
+        #
+        # make jobs which completed with no output files located.
+        subq = cherrypy.request.db.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
+        cherrypy.request.db.query(Job).filter(subq == 0).update({'status':'Located'})
+        #
+        # check active tasks to see if they're completed/located
         for task in dbhandle.query(Task).options(subqueryload(Task.jobs)).filter(Task.status != "Completed", Task.status != "Located").all():
             total = 0
             running = 0
@@ -83,6 +90,9 @@ class TaskPOMS:
                 n_located = n_located + 1
                 n_stale = n_stale + 1
                 task.status = "Located"
+                for j in task.jobs:
+                    j.status = "Located"
+                    j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
                 if not self.poms_service.launch_recovery_if_needed(task.task_id):
@@ -111,6 +121,9 @@ class TaskPOMS:
                 if locflag:
                     n_located = n_located + 1
                     task.status = "Located"
+		    for j in task.jobs:
+			j.status = "Located"
+			j.output_files_declared = True
                     task.updated = datetime.now(utc)
                     cherrypy.request.db.add(task)
                     if not self.poms_service.launch_recovery_if_needed(task.task_id):
@@ -135,6 +148,9 @@ class TaskPOMS:
                 n_located = n_located + 1
                 task = lookup_task_list[i]
                 task.status = "Located"
+                for j in task.jobs:
+                    j.status = "Located"
+                    j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
                 if not self.poms_service.launch_recovery_if_needed(task.task_id):
