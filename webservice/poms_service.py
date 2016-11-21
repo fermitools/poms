@@ -396,7 +396,7 @@ class poms_service:
 
     @cherrypy.expose
     def campaign_definition_edit(self, *args, **kwargs):
-        data = self.campaignsPOMS.campaign_definition_edit(self, cherrypy.request.db, cherrypy.log, cherrypy.session.get, *args, **kwargs)
+        data = self.campaignsPOMS.campaign_definition_edit(cherrypy.request.db, cherrypy.log, cherrypy.session.get, *args, **kwargs)
         template = self.jinja_env.get_template('campaign_definition_edit.html')
         return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="CampaignDefinitionEditHelp", version=self.version)
