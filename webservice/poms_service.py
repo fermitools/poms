@@ -35,6 +35,9 @@ import CampaignsPOMS
 import JobsPOMS
 import TaskPOMS
 import UtilsPOMS
+import TagsPOMS
+import TriagePOMS
+import FilesPOMS
 
 def error_response():
     dump = ""
