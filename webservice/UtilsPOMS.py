@@ -6,7 +6,7 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
 from model.poms_model import  Job
-from datetime import datetime
+from datetime import datetime, tzinfo,timedelta
 from utc import utc
 
 
