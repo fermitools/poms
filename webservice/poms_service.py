@@ -389,14 +389,14 @@ class poms_service:
 #CampaignsPOMS
     @cherrypy.expose
     def launch_template_edit(self, *args, **kwargs):
-        data = self.CampaignsPOMS.launch_template_edit(cherrypy.request.db, cherrypy.log, cherrypy.session.get, *args, **kwargs)
+        data = self.campaignsPOMS.launch_template_edit(cherrypy.request.db, cherrypy.log, cherrypy.session.get, *args, **kwargs)
         template = self.jinja_env.get_template('launch_template_edit.html')
         return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="LaunchTemplateEditHelp", version=self.version)
 
     @cherrypy.expose
     def campaign_definition_edit(self, *args, **kwargs):
-        data = self.CampaignsPOMS.campaign_definition_edit(self, cherrypy.request.db, cherrypy.log, cherrypy.session.get, *args, **kwargs)
+        data = self.campaignsPOMS.campaign_definition_edit(self, cherrypy.request.db, cherrypy.log, cherrypy.session.get, *args, **kwargs)
         template = self.jinja_env.get_template('campaign_definition_edit.html')
         return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="CampaignDefinitionEditHelp", version=self.version)
@@ -404,14 +404,14 @@ class poms_service:
 
     @cherrypy.expose
     def campaign_edit(self, *args, **kwargs):
-        data = self.CampaignsPOMS.campaign_edit(cherrypy.request.db, cherrypy.log, cherrypy.session, *args, **kwargs)
+        data = self.campaignsPOMS.campaign_edit(cherrypy.request.db, cherrypy.log, cherrypy.session, *args, **kwargs)
         template = self.jinja_env.get_template('campaign_edit.html')
         return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="CampaignEditHelp", version=self.version)
 
     @cherrypy.expose
     def campaign_edit_query(self, *args, **kwargs):
-        data = self.CampaignsPOMS.campaign_edit(cherrypy.request.db)
+        data = self.campaignsPOMS.campaign_edit(cherrypy.request.db)
         return json.dumps(data)
 #--------------------------------------
 
