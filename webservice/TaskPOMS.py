@@ -201,7 +201,7 @@ class TaskPOMS:
             laststatus = jh.status
             lastjjid = jjid
 
-        job_counts = self.poms_service.format_job_counts(task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
+        job_counts = self.poms_service.filesPOMS.format_job_counts(task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
         key = tg.key(fancy=1)
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)
         #screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)
@@ -237,7 +237,7 @@ class TaskPOMS:
         return res
 
 
-    def task_min_job(self, dbhandle, task_id): 
+    def task_min_job(self, dbhandle, task_id):
         # find the job with the logs -- minimum jobsub_job_id for this task
         # also will be nickname for the task...
         if ( self.poms_service.task_min_job_cache.has_key(task_id) ):

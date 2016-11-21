@@ -139,7 +139,7 @@ class JobsPOMS:
 
                 newfiles = kwargs['output_file_names'].split(' ')
 		# don't include metadata files
-		newfiles =  [ f for f in newfiles if f.find('.json') == -1 and f.find('.metadata') == -1] 
+		newfiles =  [ f for f in newfiles if f.find('.json') == -1 and f.find('.metadata') == -1]
                 ###Included in the merge
                 for f in newfiles:
                     if not f in files:
@@ -173,7 +173,7 @@ class JobsPOMS:
             loghandle("update_job: db add/commit job status %s " %  j.status)
             j.updated =  datetime.now(utc)
             if j.task_obj:
-                newstatus = self.poms_service.compute_status(j.task_obj)
+                newstatus = self.poms_service.taskPOMS.compute_status(j.task_obj)
                 if newstatus != j.task_obj.status:
                     j.task_obj.status = newstatus
                     j.task_obj.updated = datetime.now(utc)
@@ -185,6 +185,6 @@ class JobsPOMS:
         return "Ok."
 
 
-    def test_job_counts(self, task_id = None, campaign_id = None): 
+    def test_job_counts(self, task_id = None, campaign_id = None):
         res = self.poms_service.job_counts(task_id, campaign_id)
-        return repr(res) + self.poms_service.format_job_counts(task_id, campaign_id)
+        return repr(res) + self.poms_service.filesPOMS.format_job_counts(task_id, campaign_id)

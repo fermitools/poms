@@ -13,39 +13,45 @@ from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment,
         self.poms_service=ps
 
 
-    def link_tags(self, dbhandle, campaign_id, tag_name, experiment):
-        response = {}
-        tag = dbhandle.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()
-        if tag:  #we have a tag in the db for this experiment so go ahead and do the linking
-            try:
-                ct = CampaignsTags()
-                ct.campaign_id = campaign_id
-                ct.tag_id = tag.tag_id
-                dbhandle.add(ct)
-                dbhandle.commit()
-                response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": tag.tag_name, "msg": "OK"}
-                return json.dumps(response)
-            except exc.IntegrityError:
-                response = {"msg": "This tag already exists."}
-                return json.dumps(response)
-        else:  #we do not have a tag in the db for this experiment so create the tag and then do the linking
-            try:
-                t = Tag()
-                t.tag_name = tag_name
-                t.experiment = experiment
-                dbhandle.add(t)
-                cherrypy.request.db.commit()
+    def link_tags(self, ses_get, dbhandle, campaign_id, tag_name, experiment):
+        if ses_get('experimenter').is_authorized(experiment):
+            response = {}
+            tag = dbhandle.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()
+            if tag:  #we have a tag in the db for this experiment so go ahead and do the linking
+                try:
+                    ct = CampaignsTags()
+                    ct.campaign_id = campaign_id
+                    ct.tag_id = tag.tag_id
+                    dbhandle.add(ct)
+                    dbhandle.commit()
+                    response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": tag.tag_name, "msg": "OK"}
+                    return json.dumps(response)
+                except exc.IntegrityError:
+                    response = {"msg": "This tag already exists."}
+                    return json.dumps(response)
+            else:  #we do not have a tag in the db for this experiment so create the tag and then do the linking
+                try:
+                    t = Tag()
+                    t.tag_name = tag_name
+                    t.experiment = experiment
+                    dbhandle.add(t)
+                    cherrypy.request.db.commit()
 
-                ct = CampaignsTags()
-                ct.campaign_id = campaign_id
-                ct.tag_id = t.tag_id
-                dbhandle.add(ct)
-                dbhandle.commit()
-                response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": t.tag_name, "msg": "OK"}
-                return json.dumps(response)
-            except exc.IntegrityError:
-                response = {"msg": "This tag already exists."}
-                return json.dumps(response)
+                    ct = CampaignsTags()
+                    ct.campaign_id = campaign_id
+                    ct.tag_id = t.tag_id
+                    dbhandle.add(ct)
+                    dbhandle.commit()
+                    response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": t.tag_name, "msg": "OK"}
+                    return json.dumps(response)
+                except exc.IntegrityError:
+                    response = {"msg": "This tag already exists."}
+                    return json.dumps(response)
+
+        else:
+            response = {"msg": "You are not authorized to add tags."}
+            return json.dumps(response)
+
 
 
     def delete_campaigns_tags(self, dbhandle, ses_get, campaign_id, tag_id, experiment):
@@ -59,7 +65,7 @@ from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment,
         return json.dumps(response)
 
 
-    def search_tags(self, q):
+    def search_tags(self, dbhandle, q):
 
         q_list = q.split(" ")
         query = dbhandle.query(Campaign).filter(CampaignsTags.tag_id == Tag.tag_id, Tag.tag_name.in_(q_list), Campaign.campaign_id == CampaignsTags.campaign_id).group_by(Campaign.campaign_id).having(func.count(Campaign.campaign_id) == len(q_list))
