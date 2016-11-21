@@ -107,7 +107,7 @@ class poms_service:
         self.taskPOMS = TaskPOMS.TaskPOMS(self)
         self.utilsPOMS = UtilsPOMS.UtilsPOMS(self)
         self.tagsPOMS = TagsPOMS.TagsPOMS(self)
-        self.filesPOMS = filesPOMS.filesPOMS(self)
+        self.filesPOMS = FilesPOMS.Files_status(self)
 
         self.triagePOMS=TriagePOMS.TriagePOMS(self)
 
