@@ -273,6 +273,7 @@ class CampaignDefinitionSnapshot(Base):
     definition_parameters = Column(JSON)
     input_files_per_job = Column(Integer)
     output_files_per_job = Column(Integer)
+    output_file_patterns = Column(Text)
     creator = Column(Integer, nullable=False)
     created = Column(DateTime(True), nullable=False)
     updater = Column(Integer)

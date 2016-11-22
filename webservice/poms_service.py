@@ -1082,7 +1082,7 @@ class poms_service:
                  n_project = n_project + 1
                  basedims = "snapshot_for_project_name %s " % task.project
 		 allkiddims = basedims
-		 for pat in str(task.campaign_snap_obj.campaign_definition_obj.output_file_patterns).split(','):
+		 for pat in str(task.campaign_definition_snap_obj.output_file_patterns).split(','):
 		     if pat == 'None':
 			pat = '%'
 		     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, task.campaign_snap_obj.software_version)
@@ -1117,7 +1117,7 @@ class poms_service:
             # this is using a 90% threshold, this ought to be
             # a tunable in the campaign_definition.  Basically we consider it
             # located if 90% of the files it consumed have suitable kids...
-            # cfrac = lookup_task_list[i].campaign_snap_obj.campaign_definition_obj.cfrac
+            # cfrac = lookup_task_list[i].campaign_definition_snap_obj.cfrac
 
             cfrac = 0.9
             threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
@@ -1625,7 +1625,7 @@ class poms_service:
 
              allkiddecldims = basedims
              allkiddims = basedims
-             for pat in str(t.campaign_snap_obj.campaign_definition_obj.output_file_patterns).split(','):
+             for pat in str(t.campaign_definition_snap_obj.output_file_patterns).split(','):
                  if pat == 'None':
                     pat = '%'
                  allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, t.campaign_snap_obj.software_version)
@@ -2600,7 +2600,7 @@ class poms_service:
         if t.parent_obj:
            t = t.parent_obj
 
-        rlist = self.get_recovery_list_for_campaign_def(t.campaign_snap_obj.campaign_definition_obj)
+        rlist = self.get_recovery_list_for_campaign_def(t.campaign_definition_snap_obj)
 
         if t.recovery_position == None:
            t.recovery_position = 0
@@ -2616,8 +2616,8 @@ class poms_service:
                  recovery_dims = "snapshot_for_project_name %s and process_status != 'ok'" % t.project
             elif rtype.name == 'pending_files':
                  recovery_dims = "snapshot_for_project_name %s " % t.project
-                 if t.campaign_snap_obj.campaign_definition_obj.output_file_types:
-                     oftypelist = campaign_snap_obj.campaign_definition_obj.output_file_types.split(",") 
+                 if t.campaign_definition_snap_obj.output_file_types:
+                     oftypelist = campaign_definition_snap_obj.output_file_types.split(",") 
                  else:
                      oftypelist = ["%"]
 
@@ -3122,9 +3122,7 @@ class poms_service:
         for c in campaign_list:
                 
 	    tl = (cherrypy.request.db.query(Task).
-	   	 options(
-	 	     joinedload(Task.campaign_snap_obj).
-	             joinedload(Campaign.campaign_definition_obj)).
+	   	 options( joinedload(Task.campaign_snap_obj)).
                  filter(Task.campaign_id == c.campaign_id, 
                        Task.created >= tmin, Task.created < tmax ).
                  order_by(Task.created).
@@ -3154,7 +3152,7 @@ class poms_service:
                 diml.append("minus ( snapshot_for_project_name %s and (" % task.project)
                   
                 sep = ""
-                for pat in str(task.campaign_snap_obj.campaign_definition_obj.output_file_patterns).split(','):
+                for pat in str(task.campaign_definition_snap_obj.output_file_patterns).split(','):
                      if (pat == "None"):
                          pat = "%"
                      diml.append(sep)
@@ -3173,7 +3171,7 @@ class poms_service:
 	    dimlist.append(" ".join(diml))
 
             if len(tl):
-	        explist.append(tl[0].campaign_snap_obj.campaign_definition_obj.experiment)
+	        explist.append(tl[0].campaign_definition_snap_obj.experiment)
             else:
                 explist.append("samdev")
 
