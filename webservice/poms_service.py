@@ -775,7 +775,7 @@ class poms_service:
         jobsub_job_id = self.task_min_job(task_id)
         fl = cherrypy.request.db.query(JobFile).join(Job).filter(Job.task_id == task_id, JobFile.job_id == Job.job_id).all()
         template = self.jinja_env.get_template('list_task_logged_files.html')
-        return template.render(fl = fl, campaign = t.campaign_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
+        return template.render(fl = fl, campaign = t.campaign_snap_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -787,7 +787,7 @@ class poms_service:
         # in one fell swoop
         #
         tl = (cherrypy.request.db.query(Task).
-		options(joinedload(Task.campaign_obj)).
+		options(joinedload(Task.campaign_snap_obj)).
                 options(joinedload(Task.jobs).joinedload(Job.job_files)).
                 filter(Task.campaign_id == campaign_id,
                        Task.created >= tmin, Task.created < tmax ).
@@ -798,7 +798,7 @@ class poms_service:
         # find any tasks in that window, look it up
         #
         if len(tl) > 0:
-            c = tl[0].campaign_obj
+            c = tl[0].campaign_snap_obj
         else:
             c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
 
@@ -819,7 +819,7 @@ class poms_service:
              basedims = "snapshot_for_project_name %s " % t.project
              base_dim_list.append(basedims)
 
-             somekiddims = "%s and isparentof: (version %s)" % (basedims, t.campaign_obj.software_version)
+             somekiddims = "%s and isparentof: (version %s)" % (basedims, t.campaign_snap_obj.software_version)
              some_kids_needed.append(somekiddims)
 
              somekidsdecldims = "%s and isparentof: (version %s with availability anylocation )" % (basedims, t.campaign_obj.software_version)
@@ -827,7 +827,7 @@ class poms_service:
 
              allkiddecldims = basedims
              allkiddims = basedims
-             for pat in str(t.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
+             for pat in str(t.campaign_snap_obj.campaign_definition_obj.output_file_patterns).split(','):
                  if pat == 'None':
                     pat = '%'
                  allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, t.campaign_obj.software_version)
@@ -984,11 +984,11 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
 
     @cherrypy.expose
     def job_file_list(self, job_id,force_reload = False):
-        j = cherrypy.request.db.query(Job).options(joinedload(Job.task_obj).joinedload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
+        j = cherrypy.request.db.query(Job).options(joinedload(Job.task_obj).joinedload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         jobsub_job_id = self.task_min_job(j.task_id)
-        role = j.task_obj.campaign_obj.vo_role
-        return cherrypy.request.jobsub_fetcher.index(jobsub_job_id,j.task_obj.campaign_obj.experiment ,role, force_reload)
+        role = j.task_obj.campaign_snap_obj.vo_role
+        return cherrypy.request.jobsub_fetcher.index(jobsub_job_id,j.task_obj.campaign_snap_obj.experiment ,role, force_reload)
 
 
     @cherrypy.expose
@@ -999,12 +999,12 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
         # pass them into a template to set time ranges...
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
-        j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
+        j = cherrypy.request.db.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         jobsub_job_id = self.task_min_job(j.task_id)
         cherrypy.log("found job: %s " % jobsub_job_id)
-        role = j.task_obj.campaign_obj.vo_role
-        job_file_contents = cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role)
+        role = j.task_obj.campaign_snap_obj.vo_role
+        job_file_contents = cherrypy.request.jobsub_fetcher.contents(file, j.jobsub_job_id,j.task_obj.campaign_snap_obj.experiment,role)
         template = self.jinja_env.get_template('job_file_contents.html')
         return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version)
 
@@ -1401,7 +1401,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
 
     def project_summary_for_task(self, task_id):
         t = cherrypy.request.db.query(Task).filter(Task.task_id == task_id).first()
-        return cherrypy.request.samweb_lite.fetch_info(t.campaign_obj.experiment, t.project)
+        return cherrypy.request.samweb_lite.fetch_info(t.campaign_snap_obj.experiment, t.project)
 
 
     def project_summary_for_tasks(self, task_list):
