@@ -103,7 +103,7 @@ class TaskPOMS:
                 n_project = n_project + 1
                 basedims = "snapshot_for_project_name %s " % task.project
                 allkiddims = basedims
-                for pat in str(task.campaign_snap_obj.campaign_definition_obj.output_file_patterns).split(','):
+                for pat in str(task.campaign_definition_snap_obj.output_file_patterns).split(','):
                     if pat == 'None':
                         pat = '%'
                     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, task.campaign_snap_obj.software_version)
@@ -140,7 +140,7 @@ class TaskPOMS:
             # this is using a 90% threshold, this ought to be
             # a tunable in the campaign_definition.  Basically we consider it
             # located if 90% of the files it consumed have suitable kids...
-            # cfrac = lookup_task_list[i].campaign_obj.campaign_definition_obj.cfrac
+            # cfrac = lookup_task_list[i].campaign_definition_snap_obj.cfrac
             cfrac = 0.9
             threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
             thresholds.append(threshold)

@@ -20,14 +20,14 @@ class Files_status():
         fl = dbhandle.query(JobFile).join(Job).filter(Job.task_id == task_id, JobFile.job_id == Job.job_id).all()
         return fl, t, jobsub_job_id
         #DELETE: template = self.poms_service.jinja_env.get_template('list_task_logged_files.html')
-        #return template.render(fl = fl, campaign = t.campaign_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
+        #return template.render(fl = fl, campaign = t.campaign_snap_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
 
     def campaign_task_files(self, dbhandle, loghandle, samhandle, campaign_id, tmin = None, tmax = None, tdays = 1):
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.handle_dates(tmin,tmax,tdays,'campaign_task_files?campaign_id=%s&' % campaign_id)
         # inhale all the campaign related task info for the time window
         # in one fell swoop
         tl = (    dbhandle.query(Task).
-                options(joinedload(Task.campaign_obj)).
+                options(joinedload(Task.campaign_snap_obj)).
                 options(joinedload(Task.campaign_snap_obj)).
                 options(joinedload(Task.jobs).joinedload(Job.job_files)).
                 filter(Task.campaign_id == campaign_id,
@@ -38,7 +38,7 @@ class Files_status():
         # find any tasks in that window, look it up
         #
         if len(tl) > 0:
-            c = tl[0].campaign_obj
+            c = tl[0].campaign_snap_obj
             cs = tl[0].campaign_snap_obj
         else:
             c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
@@ -67,7 +67,7 @@ class Files_status():
 
             allkiddecldims = basedims
             allkiddims = basedims
-            for pat in str(t.campaign_snap_obj.campaign_definition_obj.output_file_patterns).split(','):
+            for pat in str(t.campaign_definition_snap_obj.output_file_patterns).split(','):
                 if pat == 'None':
                     pat = '%'
                 allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, t.campaign_snap_obj.software_version)
@@ -398,7 +398,7 @@ class Files_status():
             outrows[i][7] = pendings[i]
 
         if tl and tl[0]:
-            name = tl[0].campaign_obj.name
+            name = tl[0].campaign_snap_obj.name
 
         else:
             name = ''

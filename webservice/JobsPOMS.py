@@ -177,7 +177,7 @@ class JobsPOMS:
                 if newstatus != j.task_obj.status:
                     j.task_obj.status = newstatus
                     j.task_obj.updated = datetime.now(utc)
-                    j.task_obj.campaign_obj.active = True
+                    j.task_obj.campaign_snap_obj.active = True
             dbhandle.add(j)
             dbhandle.commit()
             loghandle("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
