@@ -178,7 +178,7 @@ class Files_status():
         ck = counts.keys()
         res = [ '<div><b>Job States</b><br>',
                 '<table class="ui celled table unstackable">',
-                '<tr><th colspan=3>Active</th><th colspan=2>In %s</th></tr>' % range_string,
+                '<tr><th>Total</th><th colspan=3>Active</th><th colspan=2>In %s</th></tr>' % range_string,
                 '<tr>' ]
         for k in ck:
             res.append( "<th>%s</th>" % k )
