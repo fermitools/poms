@@ -19,7 +19,7 @@ class TriagePOMS():
 
     def job_counts(self, dbhandle, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = None): ### This one method was deleted from the main script
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'job_counts')
-        q = dbhandle.query(func.count(Job.status),Job.status). group_by(Job.status)
+        q = dbhandle.query(func.count(Job.status),Job.status).group_by(Job.status)
         if tmax != None:
             q = q.filter(Job.updated <= tmax, Job.updated >= tmin)
 
