@@ -14,7 +14,7 @@ class TriagePOMS():
 
 
     def __init__(self, ps):
-        self.poms_service=ps
+        self.poms_service = ps
 
 
     def job_counts(self, dbhandle, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = None): ### This one method was deleted from the main script
