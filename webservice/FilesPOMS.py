@@ -219,7 +219,7 @@ class Files_status():
         else:
             status_response="404 Permission Denied."
             return "Neither Campaign nor Task found"
-        outlist = self.poms_service.get_inflight( dbhandle, campaign_id=campaign_id, task_id= task_id)
+        outlist = self.poms_service.filesPOMS.get_inflight( dbhandle, campaign_id=campaign_id, task_id= task_id)
         statusmap = {}
         if c:
             fss_file = "%s/%s_files.db" % (cherrypy.config.get("ftsscandir"), c.experiment)

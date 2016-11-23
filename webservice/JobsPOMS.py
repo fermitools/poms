@@ -138,8 +138,8 @@ class JobsPOMS:
                     files = []
 
                 newfiles = kwargs['output_file_names'].split(' ')
-		# don't include metadata files
-		newfiles =  [ f for f in newfiles if f.find('.json') == -1 and f.find('.metadata') == -1]
+            # don't include metadata files
+            newfiles =  [ f for f in newfiles if f.find('.json') == -1 and f.find('.metadata') == -1]
                 ###Included in the merge
                 for f in newfiles:
                     if not f in files:

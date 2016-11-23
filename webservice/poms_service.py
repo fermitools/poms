@@ -39,6 +39,7 @@ import TagsPOMS
 import TriagePOMS
 import FilesPOMS
 
+
 def error_response():
     dump = ""
     if cherrypy.config.get("dump",True):
@@ -111,7 +112,6 @@ class poms_service:
         self.utilsPOMS = UtilsPOMS.UtilsPOMS(self)
         self.tagsPOMS = TagsPOMS.TagsPOMS(self)
         self.filesPOMS = FilesPOMS.Files_status(self)
-
         self.triagePOMS=TriagePOMS.TriagePOMS(self)
 
     @cherrypy.expose
@@ -411,7 +411,7 @@ class poms_service:
 
     @cherrypy.expose
     def campaign_edit_query(self, *args, **kwargs):
-        data = self.campaignsPOMS.campaign_edit(cherrypy.request.db)
+        data = self.campaignsPOMS.campaign_edit_query(cherrypy.request.db, *args, **kwargs)
         return json.dumps(data)
 #--------------------------------------
 
@@ -552,11 +552,17 @@ class poms_service:
 
     @cherrypy.expose
     def update_job(self, task_id, jobsub_job_id,  **kwargs):
-	 cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
-	 if not self.can_report_data():
-	      cherrypy.log("update_job: not allowed")
-	      return "Not Allowed"
-	 return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log, cherrypy.response.status, task_id, jobsub_job_id, **kwargs)) ####Here
+        cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
+        if not self.can_report_data():
+            cherrypy.log("update_job: not allowed")
+            return "Not Allowed"
+        return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log, cherrypy.response.status, task_id, jobsub_job_id, **kwargs))
+
+
+    @cherrypy.expose
+    def test_job_counts(self, task_id = None, campaign_id = None):
+        res = self.triagePOMS.job_counts(cherrypy.request.db, task_id, campaign_id)
+        return repr(res) + self.filesPOMS.format_job_counts(task_id, campaign_id)
 
 
 ########################
@@ -572,9 +578,6 @@ class poms_service:
         cherrypy.response.headers['Content-Type'] = "text/plain"
         return "\n".join(self.taskPOMS.wrapup_tasks(cherrypy.request.db, cherrypy.log, cherrypy.request.samweb_lite))
 
-    def compute_status(self, task):
-        return self.taskPOMS.compute_status(task)
-
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ): ### Need to be tested HERE
@@ -589,72 +592,14 @@ class poms_service:
 #------------------------
 
 
+##########
+#TriagePOMS
+
+
     @cherrypy.expose
     def triage_job(self, job_id, tmin = None, tmax = None, tdays = None, force_reload = False):
-        # we don't really use these for anything but we might want to
-        # pass them into a template to set time ranges...
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
-
-        job_file_list = self.job_file_list(job_id, force_reload)
+        job_file_list, job_info, job_history, downtimes, output_file_names_list, es_response, efficiency, tmin = self.triagePOMS.triage_job(dbhandle, job_id, tmin, tmax, tdays, force_reload)
         template = self.jinja_env.get_template('triage_job.html')
-
-        output_file_names_list = []
-
-        job_info = cherrypy.request.db.query(Job, Task, CampaignDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Campaign.campaign_definition_id==CampaignDefinition.campaign_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
-
-        job_history = cherrypy.request.db.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
-
-        output_file_names_list = [x.file_name for x in job_info[0].job_files if x.file_type == "output"]
-
-        #begins service downtimes
-        first = job_history[0].created
-        last = job_history[len(job_history)-1].created
-
-        downtimes1 = cherrypy.request.db.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id)\
-        .filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(~Service.name.endswith("sam"))\
-        .filter(ServiceDowntime.downtime_started >= first).filter(ServiceDowntime.downtime_started < last)\
-        .filter(ServiceDowntime.downtime_ended >= first).filter(ServiceDowntime.downtime_ended < last).all()
-
-        downtimes = downtimes1 + downtimes2
-        #ends service downtimes
-
-
-        #begins condor event logs
-        es = Elasticsearch()
-
-        query = {
-            'sort' : [{ '@timestamp' : {'order' : 'asc'}}],
-            'size' : 100,
-            'query' : {
-                'term' : { 'jobid' : job_info.Job.jobsub_job_id }
-            }
-        }
-
-        es_response= es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
-        #ends condor event logs
-
-
-        #get cpu efficiency
-        query = {
-            'fields' : ['efficiency'],
-            'query' : {
-                'term' : { 'jobid' : job_info.Job.jobsub_job_id }
-            }
-        }
-
-        es_efficiency_response = es.search(index='fifebatch-jobs', types=['job'], query=query)
-        try:
-            if es_efficiency_response and "fields" in es_efficiency_response.get("hits").get("hits")[0].keys():
-                efficiency = int(es_efficiency_response.get('hits').get('hits')[0].get('fields').get('efficiency')[0] * 100)
-            else:
-                efficiency = None
-        except:
-	    efficiency = None
-
-        #ends get cpu efficiency
-
-        task_jobsub_job_id = self.taskPOMS.task_min_job(job_info.Job.task_id)
-
         return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, efficiency=efficiency, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'),  pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id, version=self.version)
 
 
@@ -678,7 +623,7 @@ class poms_service:
 
         i = 0
         for c in cl:
-            counts[c.campaign_id] = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
+            counts[c.campaign_id] = self.triagePOMS.job_counts(cherrypy.request.db, tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
             counts[c.campaign_id]['efficiency'] = effs[i]
             counts[c.campaign_id]['pending'] = pendings[i]
             counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
@@ -714,7 +659,7 @@ class poms_service:
         counts_keys = {}
         dimlist, pendings = self.get_pending_for_campaigns(cl, tmin, tmax)
         effs = self.get_efficiency(cl, tmin, tmax)
-        counts[campaign_id] = self.job_counts(tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
+        counts[campaign_id] = self.triagePOMS.job_counts(cherrypy.request.db,tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
         counts[campaign_id]['efficiency'] = effs[0]
         counts[campaign_id]['pending'] = pendings[0]
         counts_keys[campaign_id] = counts[campaign_id].keys()
@@ -762,7 +707,7 @@ class poms_service:
     def inflight_files(self, campaign_id=None, task_id=None):
         outlist, statusmap, c = self.filesPOMS.inflight_files( cherrypy.request.db, cherrypy.response.status, campaign_id, task_id)
         template = self.jinja_env.get_template('inflight_files.html')
-        return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),   statusmap = statusmap, c = c, jjid= self.taskPOMS.task_min_job(task_id),campaign_id = campaign_id, task_id = task_id, pomspath=self.path,help_page="PendingFilesJobsHelp", version=self.version)
+        return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),   statusmap = statusmap, c = c, jjid= self.task_min_job(task_id),campaign_id = campaign_id, task_id = task_id, pomspath=self.path,help_page="PendingFilesJobsHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -817,7 +762,7 @@ class poms_service:
                 self.__dict__.update(kwargs)
 
         sl = []
-        # sl.append(self.filesPOMS.format_job_counts())
+        # sl.append(self.filesPOMS.format_self.triagePOMS.job_counts(cherrypy.request.db,))
 
         q = cherrypy.request.db.query(Campaign)
         if campaign_id != None:
@@ -849,7 +794,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
         items = []
         extramap = {}
         for th in qr:
-            jjid = self.taskPOMS.task_min_job(th.task_id)
+            jjid = self.task_min_job(th.task_id)
             if not jjid:
                 jjid= 't' + str(th.task_id)
             else:
@@ -871,195 +816,12 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
         return template.render( job_counts = job_counts, blob = blob, name = name, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, extramap = extramap, help_page="CampaignTimeBarsHelp", version=self.version)
 
 
-
-    @cherrypy.expose
-    def test_job_counts(self, task_id = None, campaign_id = None):
-        res = self.job_counts(task_id, campaign_id)
-        return repr(res) + self.filesPOMS.format_job_counts(task_id, campaign_id)
-
-
-    def job_counts(self, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = None):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.utilsPOMS.handle_dates(tmin, tmax,tdays,'job_counts')
-
-        q = cherrypy.request.db.query(func.count(Job.status),Job.status). group_by(Job.status)
-        if tmax != None:
-            q = q.filter(Job.updated <= tmax, Job.updated >= tmin)
-
-        if task_id:
-            q = q.filter(Job.task_id == task_id)
-
-        if campaign_id:
-            q = q.join(Task,Job.task_id == Task.task_id).filter( Task.campaign_id == campaign_id)
-
-        out = OrderedDict([("Idle",0),( "Running",0),( "Held",0),( "Completed",0), ("Located",0),("Removed",0)])
-        for row in  q.all():
-            # this rather bizzare hoseyness is because we want
-            # "Running" to also match "running: copying files in", etc.
-            # so we ignore the first character and do a match
-            if row[1][1:7] == "unning":
-                short = "Running"
-            else:
-                short = row[1]
-            out[short] = out.get(short,0) + int(row[0])
-
-        return out
-
-
+#######
+#TriagePOMS
     @cherrypy.expose
     def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, name=None,campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None, eff_d = None):
-
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.utilsPOMS.handle_dates(tmin, tmax,tdays,'job_table?')
-        extra = ""
-        filtered_fields = {}
-
-        q = cherrypy.request.db.query(Job,Task,Campaign)
-        q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == Campaign.campaign_id)
-        q = q.filter(Job.updated >= tmin, Job.updated <= tmax)
-
-        if keyword:
-            q = q.filter( Task.project.like("%%%s%%" % keyword) )
-            extra = extra + "with keyword %s" % keyword
-            filtered_fields['keyword'] = keyword
-
-        if task_id:
-            q = q.filter( Task.task_id == int(task_id))
-            extra = extra + "in task id %s" % task_id
-            filtered_fields['task_id'] = task_id
-
-        if campaign_id:
-            q = q.filter( Task.campaign_id == int(campaign_id))
-            extra = extra + "in campaign id %s" % campaign_id
-            filtered_fields['campaign_id'] = campaign_id
-
-        if experiment:
-            q = q.filter( Campaign.experiment == experiment)
-            extra = extra + "in experiment %s" % experiment
-            filtered_fields['experiment'] = experiment
-
-        if dataset:
-            q = q.filter( Campaign.dataset == dataset)
-            extra = extra + "in dataset %s" % dataset
-            filtered_fields['dataset'] = dataset
-
-        if campaign_name:
-            q = q.filter(Campaign.name == campaign_name)
-            filtered_fields['campaign_name'] = campaign_name
-
-        # alias for failed_jobs_by_whatever
-        if name:
-            q = q.filter(Campaign.name == name)
-            filtered_fields['campaign_name'] = name
-
-        if campaign_def_id:
-            q = q.filter(Campaign.campaign_definition_id == campaign_def_id)
-            filtered_fields['campaign_def_id'] = campaign_def_id
-
-        if vo_role:
-            q = q.filter(Campaign.vo_role == vo_role)
-            filtered_fields['vo_role'] = vo_role
-
-        if input_dataset:
-            q = q.filter(Task.input_dataset == input_dataset)
-            filtered_fields['input_dataset'] = input_dataset
-
-        if output_dataset:
-            q = q.filter(Task.output_dataset == output_dataset)
-            filtered_fields['output_dataset'] = output_dataset
-
-        if task_status:
-            q = q.filter(Task.status == task_status)
-            filtered_fields['task_status'] = task_status
-
-        if project:
-            q = q.filter(Task.project == project)
-            filtered_fields['project'] = project
-
-        #
-        # this one for our effeciency percentage decile...
-        # i.e. if you want jobs in the 80..90% eficiency range
-        # you ask for eff_d == 8...
-        # ... or with eff_d of -1, one where we don't have good cpu/wall time data
-        #
-        if eff_d:
-            if eff_d == "-1":
-                q = q.filter(not_(and_(Job.cpu_time > 0.0, Job.wall_time >= Job.cpu_time)))
-            else:
-                q = q.filter(Job.wall_time != 0.0, func.floor(Job.cpu_time *10/Job.wall_time)== eff_d )
-            filtered_fields['eff_d'] = eff_d
-
-        if jobsub_job_id:
-            q = q.filter(Job.jobsub_job_id == jobsub_job_id)
-            filtered_fields['jobsub_job_id'] = jobsub_job_id
-
-        if node_name:
-            q = q.filter(Job.node_name == node_name)
-            filtered_fields['node_name'] = node_name
-
-        if cpu_type:
-            q = q.filter(Job.cpu_type == cpu_type)
-            filtered_fields['cpu_type'] = cpu_type
-
-        if host_site:
-            q = q.filter(Job.host_site == host_site)
-            filtered_fields['host_site'] = host_site
-
-        if job_status:
-            # this rather bizzare hoseyness is because we want
-            # "Running" to also match "running: copying files in", etc.
-            # so we ignore the first character and do a "like" match
-            # on the rest...
-            q = q.filter(Job.status.like('%' + job_status[1:] + '%'))
-            filtered_fields['job_status'] = job_status
-
-        if user_exe_exit_code:
-            q = q.filter(Job.user_exe_exit_code == int(user_exe_exit_code))
-            extra = extra + "with exit code %s" % user_exe_exit_code
-            filtered_fields['user_exe_exit_code'] = user_exe_exit_code
-
-        if output_files_declared:
-            q = q.filter(Job.output_files_declared == output_files_declared)
-            filtered_fields['output_files_declared'] = output_files_declared
-
-
-        jl = q.all()
-
-
-        if jl:
-            jobcolumns = jl[0][0]._sa_instance_state.class_.__table__.columns.keys()
-            taskcolumns = jl[0][1]._sa_instance_state.class_.__table__.columns.keys()
-            campcolumns = jl[0][2]._sa_instance_state.class_.__table__.columns.keys()
-        else:
-            jobcolumns = []
-            taskcolumns = []
-            campcolumns = []
-
-        if bool(sift):
-            campaign_box = task_box = job_box = ""
-
-            if campaign_checkbox == "on":
-                campaign_box = "checked"
-            else:
-                campcolumns = []
-            if task_checkbox == "on":
-                task_box = "checked"
-            else:
-                taskcolumns = []
-            if job_checkbox == "on":
-                job_box = "checked"
-            else:
-                jobcolumns = []
-
-            filtered_fields_checkboxes = {"campaign_checkbox": campaign_box, "task_checkbox": task_box, "job_checkbox": job_box}
-            filtered_fields.update(filtered_fields_checkboxes)
-
-            prevlink = prevlink + "&" + urllib.urlencode(filtered_fields).replace("checked", "on") + "&sift=" + str(sift)
-            nextlink = nextlink + "&" + urllib.urlencode(filtered_fields).replace("checked", "on") + "&sift=" + str(sift)
-        else:
-            filtered_fields_checkboxes = {"campaign_checkbox": "checked", "task_checkbox": "checked", "job_checkbox": "checked"}  #setting this for initial page visit
-            filtered_fields.update(filtered_fields_checkboxes)
-
-        hidecolumns = [ 'task_id', 'campaign_id', 'created', 'creator', 'updated', 'updater', 'command_executed', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
-
+        ###The pass of the arguments is ugly we will fix that later.
+        jl, jobcolumns, taskcolumns, campcolumns, tmins, tmaxs, prevlink, nextlink, tdays, extra, hidecolumns, filtered_fields, time_range_string = self.triagePOMS.job_table(cherrypy.request.db, tmin, tmax, tdays, task_id, campaign_id, experimen, sift, campaign_name, name,campaign_def_id, vo_role, input_dataset, output_dataset, task_status, project, jobsub_job_id, node_name, cpu_type, host_site, job_status, user_exe_exit_code, output_files_declared, campaign_checkbox, task_checkbox, job_checkbox, ignore_me, keyword, dataset, eff_d)
         template = self.jinja_env.get_template('job_table.html')
         return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns, filtered_fields=filtered_fields, time_range_string = time_range_string, pomspath=self.path,help_page="JobTableHelp", version=self.version)
 
@@ -1071,62 +833,11 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
 
     @cherrypy.expose
     def failed_jobs_by_whatever(self, tmin = None, tmax =  None, tdays = 1 , f = [], go = None):
-        # deal with single/multiple argument silliness
-        if isinstance(f, basestring):
-            f = [f]
-
-        if not 'experiment' in f:
-            f.append('experiment')
-
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.utilsPOMS.handle_dates(tmin, tmax,tdays,'failed_jobs_by_whatever?%s&' % ('&'.join(['f=%s'%x for x in f] )))
-
-        #
-        # build up:
-        # * a group-by-list (gbl)
-        # * a query-args-list (quargs)
-        # * a columns list
-        #
-        gbl = []
-        qargs = []
-        columns = []
-
-
-        for field in f:
-            if f == None:
-                continue
-            columns.append(field)
-            if hasattr(Job,field):
-               gbl.append(getattr(Job, field))
-               qargs.append(getattr(Job, field))
-            elif hasattr(Campaign,field):
-               gbl.append(getattr(Campaign, field))
-               qargs.append(getattr(Campaign, field))
-
-        possible_columns = [
-          # job fields
-          'node_name', 'cpu_type', 'host_site', 'user_exe_exit_code',
-          # campaign fields
-          'name', 'vo_role', 'dataset', 'software_version', 'experiment'
-        ]
-
-        qargs.append(func.count(Job.job_id))
-        columns.append("count")
-
-        #
-        #
-        #
-        q = cherrypy.request.db.query(*qargs)
-        q = q.join(Task,Campaign)
-        q = q.filter(Job.updated >= tmin, Job.updated <= tmax, Job.user_exe_exit_code != 0)
-        q = q.group_by(*gbl).order_by(desc(func.count(Job.job_id)))
-
-        jl = q.all()
-        if jl:
-            cherrypy.log( "got jobtable %s " % repr( jl[0].__dict__) )
-
+        jl, possible_columns, columns, tmins, tmaxs, tdays, prevlink, nextlink, time_range_string, tdays = self.triagePOMS.failed_jobs_by_whatever(cherrypy.request.db, cherrypy.log, tmin, tmax, tdays, f, go)
         template = self.jinja_env.get_template('failed_jobs_by_whatever.html')
 
         return template.render(joblist=jl, possible_columns = possible_columns, columns = columns, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0,  tmin=tmins, tmax =tmaxs,  tdays=tdays, prev= prevlink,  next = nextlink, time_range_string = time_range_string, days = tdays, pomspath=self.path,help_page="JobsByExitcodeHelp", version=self.version)
+#-------------------
 
 
     @cherrypy.expose
@@ -1253,7 +964,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
                 tl = cherrypy.request.db.query(Task).filter(Task.task_id == task_id).all()
             c = tl[0].campaign_obj
             for t in tl:
-                tjid = self.taskPOMS.task_min_job(t.task_id)
+                tjid = self.task_min_job(t.task_id)
                 cherrypy.log("kill_jobs: task_id %s -> tjid %s" % (t.task_id, tjid))
                 # for tasks/campaigns, kill the whole group of jobs
                 # by getting the leader's jobsub_job_id and taking off
