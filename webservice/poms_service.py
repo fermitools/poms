@@ -1810,7 +1810,7 @@ class poms_service:
         ck = counts.keys()
         res = [ '<div><b>Job States</b><br>',
                 '<table class="ui celled table unstackable">',
-                '<tr><th colspan=3>Active</th><th colspan=2>In %s</th></tr>' % range_string,
+                '<tr><th>Total</th><th colspan=3>Active</th><th colspan=2>In %s</th></tr>' % range_string,
                 '<tr>' ]
         for k in ck:
             res.append( "<th>%s</th>" % k )
@@ -1842,7 +1842,7 @@ class poms_service:
         if campaign_id:
             q = q.join(Task,Job.task_id == Task.task_id).filter( Task.campaign_id == campaign_id)
 
-        out = OrderedDict([("Idle",0),( "Running",0),( "Held",0),( "Completed",0), ("Located",0),("Removed",0)])
+        out = OrderedDict([("All",0),("Idle",0),( "Running",0),( "Held",0),( "Completed",0), ("Located",0),("Removed",0)])
         for row in  q.all():
             # this rather bizzare hoseyness is because we want
             # "Running" to also match "running: copying files in", etc.
@@ -1852,6 +1852,7 @@ class poms_service:
             else:
                 short = row[1]
             out[short] = out.get(short,0) + int(row[0])
+            out["All"] = out.get("All",0) + int(row[0])
 
         return out
 
