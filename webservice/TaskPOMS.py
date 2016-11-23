@@ -82,7 +82,7 @@ class TaskPOMS:
         n_stale = 0
         n_project = 0
         n_located = 0
-        for task in dbhandle.query(Task).with_for_update(of=Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_obj,Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
+        for task in dbhandle.query(Task).with_for_update(of=Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_snap_obj,Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as
             # located as its going to get...
@@ -103,12 +103,12 @@ class TaskPOMS:
                 n_project = n_project + 1
                 basedims = "snapshot_for_project_name %s " % task.project
                 allkiddims = basedims
-                for pat in str(task.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
+                for pat in str(task.campaign_definition_snap_obj.output_file_patterns).split(','):
                     if pat == 'None':
                         pat = '%'
-                    allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, task.campaign_obj.software_version)
+                    allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, task.campaign_snap_obj.software_version)
 
-                lookup_exp_list.append(task.campaign_obj.experiment)
+                lookup_exp_list.append(task.campaign_snap_obj.experiment)
                 lookup_task_list.append(task)
                 lookup_dims_list.append(allkiddims)
             else:
@@ -140,7 +140,7 @@ class TaskPOMS:
             # this is using a 90% threshold, this ought to be
             # a tunable in the campaign_definition.  Basically we consider it
             # located if 90% of the files it consumed have suitable kids...
-            # cfrac = lookup_task_list[i].campaign_obj.campaign_definition_obj.cfrac
+            # cfrac = lookup_task_list[i].campaign_definition_snap_obj.cfrac
             cfrac = 0.9
             threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
             thresholds.append(threshold)
@@ -208,7 +208,7 @@ class TaskPOMS:
 
         if len(jl) > 0:
             campaign_id = jl[0][1].task_obj.campaign_id
-            cname = jl[0][1].task_obj.campaign_obj.name
+            cname = jl[0][1].task_obj.campaign_snap_obj.name
         else:
             campaign_id = 'unknown'
             cname = 'unknown'

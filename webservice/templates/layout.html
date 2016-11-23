@@ -127,7 +127,7 @@
               <div class="menu">
 		{% if current_experimenter is defined %}
                 {%for e in current_experimenter.authorized_for.keys()%}
-                {%if e != 'root'%}
+                {%if e != 'root' and current_experimenter.authorized_for[e] %}
                 <a class="item" href="{{pomspath}}/show_campaigns?experiment={{e}}">
                   Active for {{e}}
                 </a>
@@ -258,7 +258,7 @@
               <div class="menu">
 		{% if current_experimenter is defined %}
                 {%for e in current_experimenter.authorized_for.keys()%}
-                {%if e != 'root'%}
+                {%if e != 'root' and current_experimenter.authorized_for[e] %}
                 <a class="item" href="{{pomspath}}/show_campaigns?experiment={{e}}">
                   Active for {{e}}
                 </a>

@@ -55,7 +55,7 @@ class samweb_lite:
         """
         #~ return [ {"tot_consumed": 0, "tot_unknown": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
         base = "http://samweb.fnal.gov:8480"
-        urls = ["%s/sam/%s/api/projects/name/%s/summary?format=json" % (base, t.campaign_obj.experiment, t.project) for t in task_list]
+        urls = ["%s/sam/%s/api/projects/name/%s/summary?format=json" % (base, t.campaign_snap_obj.experiment, t.project) for t in task_list]
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             replies = executor.map(requests.get, urls)
         infos = []
