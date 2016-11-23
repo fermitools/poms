@@ -16,14 +16,14 @@ class Files_status():
 
     def list_task_logged_files(self, dbhandle, task_id):
         t =  dbhandle.query(Task).filter(Task.task_id== task_id).first()
-        jobsub_job_id = self.poms_service.task_min_job(task_id)
+        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(task_id)
         fl = dbhandle.query(JobFile).join(Job).filter(Job.task_id == task_id, JobFile.job_id == Job.job_id).all()
         return fl, t, jobsub_job_id
         #DELETE: template = self.poms_service.jinja_env.get_template('list_task_logged_files.html')
         #return template.render(fl = fl, campaign = t.campaign_snap_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
 
     def campaign_task_files(self, dbhandle, loghandle, samhandle, campaign_id, tmin = None, tmax = None, tdays = 1):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.handle_dates(tmin,tmax,tdays,'campaign_task_files?campaign_id=%s&' % campaign_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'campaign_task_files?campaign_id=%s&' % campaign_id)
         # inhale all the campaign related task info for the time window
         # in one fell swoop
         tl = (    dbhandle.query(Task).
@@ -117,7 +117,7 @@ class Files_status():
                         logdelivered = logdelivered + 1
                     if f.file_type == "output":
                         logkids = logkids + 1
-            task_jobsub_job_id = self.poms_service.task_min_job(t.task_id)
+            task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(t.task_id)
             if task_jobsub_job_id == None:
                 task_jobsub_job_id = "t%s" % t.task_id
             datarows.append([
@@ -145,20 +145,26 @@ class Files_status():
     def job_file_list(self, dbhandle, jobhandle, job_id, force_reload = False): ##Should this funcion be here or at the main script ????
         j = dbhandle.query(Job).options(joinedload(Job.task_obj).joinedload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
+<<<<<<< HEAD
         jobsub_job_id = self.poms_service.task_min_job(j.task_id)
         role = j.task_obj.campaign_snap_obj.vo_role
         return jobhandle.index(jobsub_job_id,j.task_obj.campaign_snap_obj.experiment,role, force_reload)
+=======
+        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(j.task_id)
+        role = j.task_obj.campaign_obj.vo_role
+        return jobhandle.index(jobsub_job_id,j.task_obj.campaign_obj.experiment,role, force_reload)
+>>>>>>> fdc969325e206d564e8141f555f843744fcffe8f
 
     def job_file_contents(self, dbhandle, loghandle, jobhandle, job_id, task_id, file, tmin = None, tmax = None, tdays = None):
         #jobhandle = cherrypy.request.jobsub_fetcher
 
         # we don't really use these for anything but we might want to
         # pass them into a template to set time ranges...
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.handle_dates(tmin,tmax,tdays,'show_campaigns?')
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
         ### You don't use many of those arguments, is just because you need one of them then you call the whole method ???????
         j = dbhandle.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
-        jobsub_job_id = self.poms_service.task_min_job(j.task_id)
+        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(j.task_id)
         loghandle("found job: %s " % jobsub_job_id)
         role = j.task_obj.campaign_snap_obj.vo_role
         job_file_contents = jobhandle.contents(file, j.jobsub_job_id,j.task_obj.campaign_snap_obj.experiment,role)
@@ -260,7 +266,7 @@ class Files_status():
 
         daynames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"]
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s&' % campaign_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s&' % campaign_id)
 
         tl = (dbhandle.query(Task)
                 .filter(Task.campaign_id==campaign_id, Task.created > tmin, Task.created < tmax)
@@ -425,7 +431,7 @@ class Files_status():
         #######################
 
     def actual_pending_files(self, dbhandle, loghandle, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_services.handle_dates(tmin, tmax,tdays,'actual_pending_files?count_or_list=%s&%s=%s&' %
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_services.utilsPOMS.handle_dates(tmin, tmax,tdays,'actual_pending_files?count_or_list=%s&%s=%s&' %
                                                                     (count_or_list,'campaign_id',campaign_id) if campaign_id else (count_or_list,'task_id',task_id))
 
         tl = (dbhandle.query(Task).

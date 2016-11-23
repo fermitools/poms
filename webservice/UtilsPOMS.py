@@ -5,6 +5,7 @@
 ### List of methods: handle_dates, quick_search, jump_to_job, test_job_counts, task_min_job
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
+from model.poms_model import  Job
 from datetime import datetime
 from utc import utc
 
@@ -14,7 +15,7 @@ class UtilsPOMS():
     def __init__(self, ps):
         self.poms_service = ps
 
-    def handle_dates(self,tmin, tmax, tdays, baseurl):
+    def handle_dates(self,tmin, tmax, tdays, baseurl): #this method was deleted from the main script
         """
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,tranges = self.handle_dates(tmax, tdays, name)
         assuming tmin, tmax, are date strings or None, and tdays is
@@ -82,21 +83,7 @@ class UtilsPOMS():
         else:
             search_term = search_term.replace("+", " ")
             query = urllib.urlencode({'q' : search_term})
-            raise redirect ("%s/search_tags?%s" % (self.poms_service.path, query))
-
-    def jump_to_job(self, dbhandle, redirect ,jobsub_job_id, **kwargs ):  #should this be in utils??? # how to handle the redirection
-
-        job = dbhandle.query(Job).filter(Job.jobsub_job_id == jobsub_job_id).first()
-        if job != None:
-            tmins =  datetime.now(utc).strftime("%Y-%m-%d+%H:%M:%S")
-            raise redirect("triage_job?job_id=%d&tmin=%s" % (job.job_id, tmins))
-        else:
-            raise redirect(".")
-
-########______________________
-    def test_job_counts(self, task_id = None, campaign_id = None):  ####Should this be here or in JobsPOMS??? should it belong to a module?
-        res = self.poms_service.job_counts(task_id, campaign_id)
-        return repr(res) + self.poms_service.format_job_counts(task_id, campaign_id)
+            raise redirect("%s/search_tags?%s" % (self.poms_service.path, query))
 
 
 #########_____________________

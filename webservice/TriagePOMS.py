@@ -18,7 +18,7 @@ class TriagePOMS():
 
 
     def job_counts(self, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = None):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.handle_dates(tmin, tmax,tdays,'job_counts')
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'job_counts')
 
         q = dbhandle.query(func.count(Job.status),Job.status). group_by(Job.status)
         if tmax != None:
@@ -47,7 +47,7 @@ class TriagePOMS():
         def triage_job(self, dbhandle, job_id, tmin = None, tmax = None, tdays = None, force_reload = False):
             # we don't really use these for anything but we might want to
             # pass them into a template to set time ranges...
-            tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.handle_dates(tmin,tmax,tdays,'show_campaigns?')
+            tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
             job_file_list = self.poms_service.job_file_list(job_id, force_reload)
             output_file_names_list = []
             job_info = dbhandle.query(Job, Task, CampaignDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Campaign.campaign_definition_id==CampaignDefinition.campaign_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
@@ -101,7 +101,7 @@ class TriagePOMS():
 
             #ends get cpu efficiency
 
-            task_jobsub_job_id = self.poms_service.task_min_job(job_info.Job.task_id)
+            task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(job_info.Job.task_id)
             return job_file_list, job_info, job_history, downtimes, output_file_names_list, es_response, efficiency, tmin
 
             #return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, efficiency=efficiency, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id, version=self.version)
@@ -109,7 +109,7 @@ class TriagePOMS():
 
     def job_table(self, dbhandle, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, name=None,campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None, eff_d = None):
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.handle_dates(tmin, tmax,tdays,'job_table?')
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'job_table?')
         extra = ""
         filtered_fields = {}
 
@@ -277,7 +277,7 @@ class TriagePOMS():
         if not 'experiment' in f:
             f.append('experiment')
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.handle_dates(tmin, tmax,tdays,'failed_jobs_by_whatever?%s&' % ('&'.join(['f=%s'%x for x in f] )))
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'failed_jobs_by_whatever?%s&' % ('&'.join(['f=%s'%x for x in f] )))
 
         #
         # build up:
