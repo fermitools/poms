@@ -7,6 +7,7 @@
 from model.poms_model import JobHistory,  Job, Task, Campaign, CampaignDefinition, JobFile, Experimenter, Experiment, ExperimentsExperimenters
 from elasticsearch import Elasticsearch
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager ###Double check you need it
+from sqlalchemy import func
 from utc import utc ###Double check if you real
 
 

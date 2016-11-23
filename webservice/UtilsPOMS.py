@@ -15,7 +15,7 @@ class UtilsPOMS():
     def __init__(self, ps):
         self.poms_service = ps
 
-    def handle_dates(self,tmin, tmax, tdays, baseurl): #this method was deleted from the main script
+    def handle_dates(self, tmin, tmax, tdays, baseurl): #this method was deleted from the main script
         """
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,tranges = self.handle_dates(tmax, tdays, name)
         assuming tmin, tmax, are date strings or None, and tdays is
