@@ -681,7 +681,7 @@ class poms_service:
     def list_task_logged_files(self, task_id):
         fl, t, jobsub_job_id = self.filesPOMS.list_task_logged_files(cherrypy.request.db, task_id)
         template = self.jinja_env.get_template('list_task_logged_files.html')
-        return template.render(fl = fl, campaign = t.campaign_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
+        return template.render(fl = fl, campaign = t.campaign_snap_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -693,12 +693,12 @@ class poms_service:
 
     @cherrypy.expose
     def job_file_list(self, job_id,force_reload = False): ##Ask Marc to check this in the module
-        return self.FilesPOMS.job_file_list(cherrypy.request.db, cherrypy.request.jobsub_fetcher, job_id, force_reload)
+        return self.filesPOMS.job_file_list(cherrypy.request.db, cherrypy.request.jobsub_fetcher, job_id, force_reload)
 
 
     @cherrypy.expose
     def job_file_contents(self, job_id, task_id, file, tmin = None, tmax = None, tdays = None):
-        job_file_contents, tmin = job_file_contents(self, cherrypy.request.db, cherrypy.log,  cherrypy.request.jobsub_fetcher, job_id, task_id, file, tmin, tmax, tdays)
+        job_file_contents, tmin = self.filesPOMS.job_file_contents(cherrypy.request.db, cherrypy.log,  cherrypy.request.jobsub_fetcher, job_id, task_id, file, tmin, tmax, tdays)
         template = self.jinja_env.get_template('job_file_contents.html')
         return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version)
 
@@ -816,8 +816,6 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
         return template.render( job_counts = job_counts, blob = blob, name = name, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, extramap = extramap, help_page="CampaignTimeBarsHelp", version=self.version)
 
 
-#######
-#TriagePOMS
     @cherrypy.expose
     def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, name=None,campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None, eff_d = None):
         ###The pass of the arguments is ugly we will fix that later.
@@ -940,16 +938,12 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
 
     def project_summary_for_task(self, task_id):
         t = cherrypy.request.db.query(Task).filter(Task.task_id == task_id).first()
-        return cherrypy.request.samweb_lite.fetch_info(t.campaign_obj.experiment, t.project)
+        return cherrypy.request.samweb_lite.fetch_info(t.campaign_snap_obj.experiment, t.project)
 
 
     def project_summary_for_tasks(self, task_list):
         return cherrypy.request.samweb_lite.fetch_info_list(task_list)
         #~ return [ {"tot_consumed": 0, "tot_failed": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
-
-
-
-
 
 
     @cherrypy.expose
@@ -962,7 +956,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
                 tl = cherrypy.request.db.query(Task).filter(Task.campaign_id == campaign_id, Task.status != 'Completed', Task.status != 'Located').all()
             else:
                 tl = cherrypy.request.db.query(Task).filter(Task.task_id == task_id).all()
-            c = tl[0].campaign_obj
+            c = tl[0].campaign_snap_obj
             for t in tl:
                 tjid = self.task_min_job(t.task_id)
                 cherrypy.log("kill_jobs: task_id %s -> tjid %s" % (t.task_id, tjid))
@@ -973,7 +967,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
                     jjil.append(tjid.replace('.0',''))
         else:
             jql = cherrypy.request.db.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Located').all()
-            c = jql[0].task_obj.campaign_obj
+            c = jql[0].task_obj.campaign_snap_obj
             for j in jql:
                 jjil.append(j.jobsub_job_id)
 
@@ -1098,19 +1092,19 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
             return 1
-        cdlist = cherrypy.request.db.query(CampaignDependency).filter(CampaignDependency.needs_camp_id == t.campaign_obj.campaign_id).all()
+        cdlist = cherrypy.request.db.query(CampaignDependency).filter(CampaignDependency.needs_camp_id == t.campaign_snap_obj.campaign_id).all()
 
         i = 0
         for cd in cdlist:
-           if cd.uses_camp_id == t.campaign_obj.campaign_id:
+           if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
               # self-reference, just do a normal launch
               self.launch_jobs(cd.uses_camp_id)
            else:
               i = i + 1
-              dims = "ischildof: (snapshot_for_project %s) and version %s and file_name like '%s' " % (t.project, t.campaign_obj.software_version, cd.file_patterns)
+              dims = "ischildof: (snapshot_for_project %s) and version %s and file_name like '%s' " % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
               dname = "poms_depends_%d_%d" % (t.task_id,i)
 
-              cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, dname, dims)
+              cherrypy.request.samweb_lite.create_definition(t.campaign_snap_obj.experiment, dname, dims)
               self.launch_jobs(cd.uses_camp_id, dataset_override = dname)
         return 1
 
@@ -1138,7 +1132,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
         if t.parent_obj:
            t = t.parent_obj
 
-        rlist = self.get_recovery_list_for_campaign_def(t.campaign_obj.campaign_definition_obj)
+        rlist = self.get_recovery_list_for_campaign_def(t.campaign_definition_snap_obj)
 
         if t.recovery_position == None:
            t.recovery_position = 0
@@ -1152,18 +1146,18 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
                  recovery_dims = "snapshot_for_project_name %s and process_status != 'ok'" % t.project
             elif rtype.name == 'pending_files':
                  recovery_dims = "snapshot_for_project_name %s " % t.project
-                 if t.campaign_obj.campaign_definition_obj.output_file_types:
-                     oftypelist = campaign_obj.campaign_definition_obj.output_file_types.split(",")
+                 if t.campaign_definition_snap_obj.output_file_types:
+                     oftypelist = campaign_definition_snap_obj.output_file_types.split(",")
                  else:
                      oftypelist = ["%"]
 
                  for oft in oftypelist:
-                     recovery_dims = recovery_dims + "minus isparent: ( version %s and file_name like %s) " % (t.campaign_obj.software_version, oft)
+                     recovery_dims = recovery_dims + "minus isparent: ( version %s and file_name like %s) " % (t.campaign_snap_obj.software_version, oft)
             else:
                  # default to consumed status(?)
                  recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
 
-            nfiles = cherrypy.request.samweb_lite.count_files(t.campaign_obj.experiment,recovery_dims)
+            nfiles = cherrypy.request.samweb_lite.count_files(t.campaign_snap_obj.experiment,recovery_dims)
 
 	    t.recovery_position = t.recovery_position + 1
             cherrypy.request.db.add(t)
@@ -1172,12 +1166,12 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
             if nfiles > 0:
                 rname = "poms_recover_%d_%d" % (t.task_id,t.recovery_position)
 
-                cherrypy.log("launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s" % (t.campaign_obj.experiment, rname, recovery_dims))
+                cherrypy.log("launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s" % (t.campaign_snap_obj.experiment, rname, recovery_dims))
 
-                cherrypy.request.samweb_lite.create_definition(t.campaign_obj.experiment, rname, recovery_dims)
+                cherrypy.request.samweb_lite.create_definition(t.campaign_snap_obj.experiment, rname, recovery_dims)
 
 
-                self.launch_jobs(t.campaign_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id)
+                self.launch_jobs(t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id)
                 return 1
 
         return 0
@@ -1513,10 +1507,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
         cherrypy.request.db.commit()
 
         return "Marked inactive stale: " + ",".join(res)
-
-
-
-    #----------------
+#----------------
 
     def get_efficiency(self, campaign_list, tmin, tmax):
         id_list = []
@@ -1561,7 +1552,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
         for c in campaign_list:
 	    tl = (cherrypy.request.db.query(Task).
 		options(
-	 	     joinedload(Task.campaign_obj).
+	 	     joinedload(Task.campaign_snap_obj).
 	             joinedload(Campaign.campaign_definition_obj)).
                 filter(Task.campaign_id == c.campaign_id,
                        Task.created >= tmin, Task.created < tmax ).
@@ -1585,11 +1576,11 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
                 diml.append("minus ( snapshot_for_project_name %s and (" % task.project)
 
                 sep = ""
-                for pat in str(task.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
+                for pat in str(task.campaign_definition_snap_obj.output_file_patterns).split(','):
                      if (pat == "None"):
                          pat = "%"
                      diml.append(sep)
-                     diml.append("isparentof: ( file_name '%s' and version '%s' with availability physical )" % (pat, task.campaign_obj.software_version))
+                     diml.append("isparentof: ( file_name '%s' and version '%s' with availability physical )" % (pat, task.campaign_snap_obj.software_version))
                      sep = "or"
                 diml.append(")")
                 diml.append(")")
@@ -1604,7 +1595,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
 	    dimlist.append(" ".join(diml))
 
             if len(tl):
-	        explist.append(tl[0].campaign_obj.campaign_definition_obj.experiment)
+	        explist.append(tl[0].campaign_definition_snap_obj.experiment)
             else:
                 explist.append("samdev")
 

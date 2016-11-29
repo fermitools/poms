@@ -2,6 +2,7 @@
 
 import urllib
 import urllib2
+import os
 
 def register_poms_campaign(campaign_name, user = None, experiment = None, version = None, dataset = None, campaign_definition = None, test = None):
     return int(
@@ -33,15 +34,20 @@ def make_poms_call(**kwargs):
     method = kwargs.get("method")
     del kwargs["method"]
 
+
     if kwargs.get("test"):
         base='http://fermicloud045.fnal.gov:8080/poms/'
         del kwargs["test"]
     else:
         base='http://pomsgpvm01.fnal.gov:8080/poms/'
 
+
     for k in kwargs.keys():
         if kwargs[k] == None:
             del kwargs[k]
+
+    if os.environ.get("POMS_CLIENT_DEBUG", None):
+        print "poms_client: making call %s( %s ) at %s" % (method, kwargs, base)
 
     c = urllib2.urlopen("%s/%s" % (base,method), urllib.urlencode(kwargs));
     res = c.read()
