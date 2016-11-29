@@ -6,7 +6,7 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
 from model.poms_model import  Job
-from datetime import datetime
+from datetime import datetime, tzinfo,timedelta
 from utc import utc
 
 
@@ -15,7 +15,7 @@ class UtilsPOMS():
     def __init__(self, ps):
         self.poms_service = ps
 
-    def handle_dates(self,tmin, tmax, tdays, baseurl): #this method was deleted from the main script
+    def handle_dates(self, tmin, tmax, tdays, baseurl): #this method was deleted from the main script
         """
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,tranges = self.handle_dates(tmax, tdays, name)
         assuming tmin, tmax, are date strings or None, and tdays is

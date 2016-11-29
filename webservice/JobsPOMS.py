@@ -15,7 +15,7 @@ import json
 #from poms_service import poms_service
 
 
-class JobsPOMS:
+class JobsPOMS():
 
     def __init__(self, ps):
         self.poms_service=ps

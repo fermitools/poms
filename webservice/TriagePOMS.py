@@ -7,6 +7,8 @@
 from model.poms_model import JobHistory,  Job, Task, Campaign, CampaignDefinition, JobFile, Experimenter, Experiment, ExperimentsExperimenters
 from elasticsearch import Elasticsearch
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager ###Double check you need it
+from sqlalchemy import func
+from collections import OrderedDict
 from utc import utc ###Double check if you real
 
 
@@ -14,13 +16,12 @@ class TriagePOMS():
 
 
     def __init__(self, ps):
-        self.poms_service=ps
+        self.poms_service = ps
 
 
-    def job_counts(self, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = None):
+    def job_counts(self, dbhandle, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = None): ### This one method was deleted from the main script
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'job_counts')
-
-        q = dbhandle.query(func.count(Job.status),Job.status). group_by(Job.status)
+        q = dbhandle.query(func.count(Job.status),Job.status).group_by(Job.status)
         if tmax != None:
             q = q.filter(Job.updated <= tmax, Job.updated >= tmin)
 
@@ -102,7 +103,7 @@ class TriagePOMS():
 
             #ends get cpu efficiency
 
-            task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(job_info.Job.task_id)
+            task_jobsub_job_id = self.poms_service.task_min_job(job_info.Job.task_id)
             return job_file_list, job_info, job_history, downtimes, output_file_names_list, es_response, efficiency, tmin
 
             #return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, efficiency=efficiency, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id, version=self.version)
@@ -235,7 +236,7 @@ class TriagePOMS():
             taskcolumns = []
             campcolumns = []
 
-        if bool(sift):
+        if sift:  #it was bool(sift)
             campaign_box = task_box = job_box = ""
 
             if campaign_checkbox == "on":
@@ -264,10 +265,6 @@ class TriagePOMS():
 
         #template = self.jinja_env.get_template('job_table.html')
         return jl, jobcolumns, taskcolumns, campcolumns, tmins, tmaxs, prevlink, nextlink, tdays, extra, hidecolumns, filtered_fields, time_range_string
-
-
-    #def jobs_by_exitcode(self, tmin = None, tmax =  None, tdays = 1 ):
-        #raise cherrypy.HTTPRedirect("%s/failed_jobs_by_whatever?f=user_exe_exit_code&tdays=%s" % (self.path, tdays))
 
 
     def failed_jobs_by_whatever(self, dbhandle, loghandle, tmin = None, tmax =  None, tdays = 1 , f = [], go = None):
