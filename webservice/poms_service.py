@@ -1061,7 +1061,7 @@ class poms_service:
         n_located = 0
         # query with a with_for_update so we don't have two updates mark
         # it Located and possibly also launch jobs.
-        for task in cherrypy.request.db.query(Task).with_for_update(of=Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_snap_obj,Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
+        for task in cherrypy.request.db.query(Task).with_for_update(of=Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_snap_obj,Task.campaign_definition_snap_obj)).filter(Task.status == "Completed").all():
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as 
             # located as its going to get...
@@ -1170,6 +1170,9 @@ class poms_service:
          if not self.can_report_data():
               cherrypy.log("update_job: not allowed")
               return "Not Allowed"
+
+         if task_id == "None":
+             task_id = None
 
          if task_id:
              task_id = int(task_id)
