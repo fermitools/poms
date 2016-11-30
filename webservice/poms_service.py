@@ -113,6 +113,7 @@ class poms_service:
         self.tagsPOMS = TagsPOMS.TagsPOMS(self)
         self.filesPOMS = FilesPOMS.Files_status(self)
         self.triagePOMS=TriagePOMS.TriagePOMS(self)
+        self.accessPOMS=AccessPOMS.AccessPOMS()
 
     @cherrypy.expose
     def headers(self):
@@ -153,45 +154,8 @@ class poms_service:
         return template.render(pomspath=self.path, es_response=es_response)
 
 
-    def can_report_data(self):
-        xff = cherrypy.request.headers.get('X-Forwarded-For', None)
-        ra =  cherrypy.request.headers.get('Remote-Addr', None)
-        user = cherrypy.request.headers.get('X-Shib-Userid', None)
-        cherrypy.log("can_report_data: Remote-addr: %s" %  ra)
-        if ra.startswith('131.225.67.'):
-            return 1
-        if ra.startswith('131.225.80.'):
-            return 1
-        if ra == '127.0.0.1' and xff and xff.startswith('131.225.67'):
-             # case for fifelog agent..
-             return 1
-        if ra != '127.0.0.1' and xff and xff.startswith('131.225.80'):
-             # case for jobsub_q agent (currently on bel-kwinith...)
-             return 1
-        if ra == '127.0.0.1' and xff == None:
-             # case for local agents
-             return 1
-        if (cherrypy.session.get('experimenter')).is_root():
-             # special admins
-             return 1
-        return 0
-
-
-    def can_db_admin(self):
-        xff = cherrypy.request.headers.get('X-Forwarded-For', None)
-        ra =  cherrypy.request.headers.get('Remote-Addr', None)
-        user = cherrypy.request.headers.get('X-Shib-Userid', None)
-        if ra in ['127.0.0.1','131.225.80.97'] and xff == None:
-             # case for local agents
-             return 1
-        if (cherrypy.session.get('experimenter')).is_root():
-             # special admins
-             return 1
-        return 0
-
-
 ####################
-#UtilsPOMS
+### UtilsPOMS
 
     @cherrypy.expose
     def quick_search(self, search_term):
@@ -204,7 +168,7 @@ class poms_service:
 #----------------
 
 ##############################
-#CALENDAR
+### CALENDAR
 #Using CalendarPOMS.py module
     @cherrypy.expose
     def calendar_json(self, start, end, timezone, _):
@@ -253,8 +217,6 @@ class poms_service:
     #print "Check where should be this function."
     '''
     Apparently this function is not related with Calendar
-    def service_status_hier(self, under = 'All', depth = 0):
-        self.calendarPOMS.service_status_hier (cherrypy.request.db, under, depth)
     '''
     def service_status_hier(self, under = 'All', depth = 0):
         p = cherrypy.request.db.query(Service).filter(Service.name == under).first()
@@ -350,10 +312,10 @@ class poms_service:
 
 
 #####
-#DBadminPOMS
+### DBadminPOMS
     @cherrypy.expose
     def raw_tables(self):
-    	if not self.can_db_admin():
+    	if not self.accessPOMS.can_db_admin():
 	    raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
         return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'),
@@ -378,7 +340,7 @@ class poms_service:
 
     @cherrypy.expose
     def experiment_authorize(self, *args, **kwargs):
-        if not self.can_db_admin():
+        if not self.accessPOMS.can_db_admin():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         message = self.dbadminPOMS.experiment_authorize(cherrypy.request.db, cherrypy.log, *args, **kwargs)
         return self.experiment_edit(message)
@@ -386,7 +348,7 @@ class poms_service:
 
 
 #################################
-#CampaignsPOMS
+### CampaignsPOMS
     @cherrypy.expose
     def launch_template_edit(self, *args, **kwargs):
         data = self.campaignsPOMS.launch_template_edit(cherrypy.request.db, cherrypy.log, cherrypy.session.get, *args, **kwargs)
@@ -418,7 +380,7 @@ class poms_service:
 
     @cherrypy.expose
     def list_generic(self, classname):
-        if not self.can_db_admin():
+        if not self.accessPOMS.can_db_admin():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         l = self.make_list_for(self.admin_map[classname],self.pk_map[classname])
         template = self.jinja_env.get_template('list_generic.html')
@@ -427,7 +389,7 @@ class poms_service:
 
     @cherrypy.expose
     def edit_screen_generic(self, classname, id = None):
-        if not self.can_db_admin():
+        if not self.accessPOMS.can_db_admin():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         # XXX -- needs to get select lists for foreign key fields...
         return self.edit_screen_for(classname, self.admin_map[classname], 'update_generic', self.pk_map[classname], id, {})
@@ -435,7 +397,7 @@ class poms_service:
 
     @cherrypy.expose
     def update_generic( self, classname, *args, **kwargs):
-        if not self.can_report_data():
+        if not self.accessPOMS.can_report_data( cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get )():
              return "Not allowed"
         return self.update_for(classname, self.admin_map[classname], self.pk_map[classname], *args, **kwargs)
 
@@ -491,7 +453,7 @@ class poms_service:
 
 
     def edit_screen_for( self, classname, eclass, update_call, primkey, primval, valmap):
-        if not self.can_db_admin():
+        if not self.accessPOMS.can_db_admin():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
 
         found = None
@@ -529,7 +491,7 @@ class poms_service:
 
 
 #######
-#JobPOMS
+### JobPOMS
     @cherrypy.expose
     def active_jobs(self):
          cherrypy.response.headers['Content-Type']= 'application/json'
@@ -553,7 +515,7 @@ class poms_service:
     @cherrypy.expose
     def update_job(self, task_id, jobsub_job_id,  **kwargs):
         cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
-        if not self.can_report_data():
+        if not self.accessPOMS.can_report_data( cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get )():
             cherrypy.log("update_job: not allowed")
             return "Not Allowed"
         return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log, cherrypy.response.status, task_id, jobsub_job_id, **kwargs))
@@ -566,7 +528,7 @@ class poms_service:
 
 
 ########################
-#TaskPOMS
+### TaskPOMS
     @cherrypy.expose
     def create_task(self, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor):
          if not can_create_task():
@@ -580,7 +542,7 @@ class poms_service:
 
 
     @cherrypy.expose
-    def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ): ### Need to be tested HERE
+    def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ): ## Need to be tested HERE
         blob, job_counts, task_id, tmin, tmax, extramap, key, task_jobsub_id, campaign_id, cname = self.taskPOMS.show_task_jobs(self, task_id, tmax, tmin, tdays)
         return template.render( blob = blob, job_counts = job_counts,  taskid = task_id, tmin = tmin, tmax = tmax, current_experimenter = cherrypy.session.get('experimenter'),
                                extramap = extramap, do_refresh = 1, key = key, pomspath=self.path, help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id,
@@ -593,14 +555,13 @@ class poms_service:
 
 
 ##########
-#TriagePOMS
-
-
+### TriagePOMS
     @cherrypy.expose
     def triage_job(self, job_id, tmin = None, tmax = None, tdays = None, force_reload = False):
         job_file_list, job_info, job_history, downtimes, output_file_names_list, es_response, efficiency, tmin = self.triagePOMS.triage_job(dbhandle, job_id, tmin, tmax, tdays, force_reload)
         template = self.jinja_env.get_template('triage_job.html')
         return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, efficiency=efficiency, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'),  pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id, version=self.version)
+#---------------------
 
 
     @cherrypy.expose
@@ -676,7 +637,7 @@ class poms_service:
 
 
 #########################
-##FilesPOMS
+### FilesPOMS
     @cherrypy.expose
     def list_task_logged_files(self, task_id):
         fl, t, jobsub_job_id = self.filesPOMS.list_task_logged_files(cherrypy.request.db, task_id)
@@ -1268,7 +1229,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
 
 
 ##############
-#tagsPOMS
+### TagsPOMS
     @cherrypy.expose
     def link_tags(self, campaign_id, tag_name, experiment):
         cherrypy.response.headers['Content-Type'] = 'application/json'
@@ -1477,7 +1438,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
 
 
         c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-        if c and (cherrypy.session.get('experimenter').is_authorized(c.experiment) or self.can_report_data()):
+        if c and (cherrypy.session.get('experimenter').is_authorized(c.experiment) or self.accessPOMS.can_report_data( cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get )()):
             c.active=(is_active == 'True')
             cherrypy.request.db.add(c)
             cherrypy.request.db.commit()
@@ -1488,7 +1449,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
 
     @cherrypy.expose
     def make_stale_campaigns_inactive(self):
-        if not can_report_data():
+        if not self.accessPOMS.can_report_data(cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get)():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         lastweek = datetime.now(utc) - timedelta(days=7)
         cp = cherrypy.request.db.query(Task.campaign_id).filter(Task.created > lastweek).group_by(Task.campaign_id).all()

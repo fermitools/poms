@@ -17,7 +17,7 @@ class TablesPOMS:
 
 
     def list_generic(self, err_res, classname):
-        if not self.poms_service.can_db_admin():
+        if not self.poms_service.accessPOMS.can_db_admin():
             raise err_res(401, 'You are not authorized to access this resource')
         l = self.poms_service.make_list_for(self.admin_map[classname],self.pk_map[classname])
         return l
@@ -25,14 +25,14 @@ class TablesPOMS:
 
     @cherrypy.expose
     def edit_screen_generic(self, err_res, classname, id = None):
-        if not self.poms_service.can_db_admin():
+        if not self.poms_service.accessPOMS.can_db_admin():
             raise err_res(401, 'You are not authorized to access this resource')
         # XXX -- needs to get select lists for foreign key fields...
         return self.poms_service.edit_screen_for(classname, self.poms_service.admin_map[classname], 'update_generic', self.poms_service.pk_map[classname], id, {})
 
 
     def update_generic( self, classname, *args, **kwargs):
-        if not self.poms_service.can_report_data():
+        if not self.poms_service.accessPOMS.can_report_data( cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get )():
             return "Not allowed"
         return self.poms_service.update_for(classname, self.poms_service.admin_map[classname], self.poms_service.pk_map[classname], *args, **kwargs)
 
@@ -89,7 +89,7 @@ class TablesPOMS:
 
 
     def edit_screen_for( self, dbhandle, loghandle, classname, eclass, update_call, primkey, primval, valmap):
-        if not self.poms_service.can_db_admin():
+        if not self.poms_service.accessPOMS.can_db_admin():
             raise err_res(401, 'You are not authorized to access this resource')
 
         found = None
