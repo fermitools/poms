@@ -1061,7 +1061,7 @@ class poms_service:
         n_located = 0
         # query with a with_for_update so we don't have two updates mark
         # it Located and possibly also launch jobs.
-        for task in cherrypy.request.db.query(Task).with_for_update(of=Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_snap_obj)).options(subqueryload(Task.campaign_definition_snap_obj)).filter(Task.status == "Completed").all():
+        for task in cherrypy.request.db.query(Task).with_for_update(of=Task).options(subqueryload(Task.jobs)).filter(Task.status == "Completed").all():
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as 
             # located as its going to get...
@@ -2439,7 +2439,7 @@ class poms_service:
                 if tjid:
                     jjil.append(tjid.replace('.0',''))
         else:
-            jql = cherrypy.request.db.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Located', Job.status != 'Held').all()
+            jql = cherrypy.request.db.query(Job).filter(Job.job_id == int(job_id), Job.status != 'Completed', Job.status != 'Located').all()
             c = jql[0].task_obj.campaign_snap_obj
             for j in jql:
                 jjil.append(j.jobsub_job_id)
