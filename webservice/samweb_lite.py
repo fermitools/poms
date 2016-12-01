@@ -159,7 +159,7 @@ class samweb_lite:
             res = requests.post(url,data=pdict,verify=False,cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"],os.environ["USER"]),"%s/private/gsi/%skey.pem" % (os.environ["HOME"],os.environ["USER"])))
  
             text = res.content
-            cherrypy.log("definitions/create reuturns: %s" % text)
+            cherrypy.log("%s definitions/create returns: %s" % ("Ok" if res.status == 200 else "Error", text))
             res.close()
         except Exception as e:
             cherrypy.log( "Exception creating definition: url %s args %s exception %s" % ( url, pdict, e.args))
