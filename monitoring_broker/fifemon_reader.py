@@ -1,10 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 from ConfigParser import SafeConfigParser
 import re
-import urllib2
 import urllib
-import httplib
+import requests
 import traceback
 import os
 import sys
@@ -16,8 +15,10 @@ import json
 import pycurl
 from StringIO import StringIO
 
+requests.packages.urllib3.disable_warnings()
 
-class status_scraper():
+
+class status_scraper:
 
     def __init__(self,configfile, poms_url):
         self.poms_url = poms_url
@@ -32,6 +33,7 @@ class status_scraper():
         self.failed = {}
         self.parent = {}
         self.paths = {}
+        self.session = requests.Session()
         self.source_urls = {}
         self.url = self.cf.get('global', 'fifemon_url')
         self.debug = int(self.cf.get('global','debug'))
@@ -39,16 +41,39 @@ class status_scraper():
         #
         # login initially...
         #
-        self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
-        self.do_login()
+        #self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
+        #self.do_login()
 
-    def do_login(self):
+    def do_login(self, page):
+	#
+	# First stab at SSO stuff...
+	#
+        l1 = page.find('action="') + 8
+        l2 = page.find('"',l1)
+        path = page[l1:l2]
+        print "got action= path: ", path
         login = self.cf.get('global','login')
         pw = self.cf.get('global','password')
-        print "trying ",self.url + "/login" 
-        res = self.opener.open(self.url + "/login", urllib.urlencode({'user':login, 'password':pw, 'email':''}))
-        print "login gives: ", res.read()
-        res.close()
+        res = self.session.post("https://pingprod.fnal.gov:9031%s" % path, data={"pf.username":login, "pf.pass": pw, "pf.ok": "clicked", "pf.cancel":""})
+        page = res.text
+        print "login gives ", repr(res.text)
+        print "cookies:", self.session.cookies
+        
+        #
+        # this is brittle, we should use regex or something...
+        #
+        l1 = page.find("<form")
+        
+        l1 = page.find('action="', l1) +8
+        l2 = page.find('"', l1)
+        url = page[l1:l2]
+        l1 = page.find('<input type="hidden" name="RelayState" value="')+46
+        l2 = page.find('"', l1)
+        rs = page[l1:l2]
+        l1 = page.find('<input type="hidden" name="SAMLResponse" value="')+48
+        l2 = page.find('"', l1)
+        sr = page[l1:l2]
+        res = self.session.post(url, data={"RelayState":rs, "SAMLResponse":sr})
         
     def flush_cache(self):
         self.page_cache = {}
@@ -58,8 +83,16 @@ class status_scraper():
             
         if not self.page_cache.has_key(path):
             try:
-                res = self.opener.open(self.url+'/api/datasources/proxy/1/render', urllib.urlencode({'target':path, 'from': '-10min', 'until':'-5min', 'format':'json'}))
-                jdata = res.read()
+                res = self.session.post(self.url+'/api/datasources/proxy/1/render', data = {'target':path, 'from': '-10min', 'until':'-5min', 'format':'json'}, verify=False)
+
+                jdata = res.text
+                #
+                # First stab at SSO stuff...
+                #
+                if jdata.find("<title>Sign On</title>") > 0:
+                    self.do_login(jdata)
+                    res = self.session.post(self.url+'/api/datasources/proxy/1/render', data = {'target':path, 'from': '-10min', 'until':'-5min', 'format':'json'}, verify=False)
+                    jdata = res.text
                 print "fetch for ", path, " yeilds: ", jdata
                 self.page_cache[path] = json.loads(jdata)
                 res.close()
@@ -166,15 +199,8 @@ class status_scraper():
         self.report()
 
     def poll(self):
-        count = 30 
         while 1:
             try:
-                # login every so often
-                if count <= 0:
-                   self.do_login()
-                   count = 30
-
-                count = count - 1
 
                 self.one_pass()
 
@@ -203,8 +229,8 @@ class status_scraper():
                 description = s
             report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.source_urls.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.quote_plus(description))
             print "trying: " , report_url
-            c = urllib2.urlopen(report_url)
-            print c.read()
+            c = self.session.get(report_url) 
+            print c.text
             c.close()
 
 ss = status_scraper("fifemon_reader.cfg", "http://localhost:8080/poms")
