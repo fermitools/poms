@@ -82,7 +82,8 @@ class TaskPOMS:
         n_stale = 0
         n_project = 0
         n_located = 0
-        for task in dbhandle.query(Task).with_for_update(of=Task).options(subqueryload(Task.jobs)).options(subqueryload(Task.campaign_snap_obj,Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
+        # try with joinedload()...
+        for task in dbhandle.query(Task).with_for_update(of=Task).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as
             # located as its going to get...

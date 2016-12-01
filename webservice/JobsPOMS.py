@@ -55,12 +55,16 @@ class JobsPOMS():
 
 
     def update_job(self, dbhandle, loghandle, rpstatus, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
+
+        if task_id == "None":
+            task_id = None
+
         if task_id:
             task_id = int(task_id)
 
         host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
 
-        jl = dbhandle.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
+        jl = dbhandle.query(Job).with_for_update(of=Job).options(joinedload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
         first = True
         j = None
         for ji in jl:
