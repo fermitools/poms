@@ -96,7 +96,7 @@ class samweb_lite:
             fl = res.json()
             res.close()
         except:
-            raise
+            traceback.print_exc()
             fl = []
         return fl
 
@@ -109,7 +109,7 @@ class samweb_lite:
             count = int(text)
             res.close()
         except:
-            raise
+            traceback.print_exc()
             count = 0
         return count
 
