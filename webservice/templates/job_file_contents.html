@@ -53,16 +53,20 @@ line-height: 12px;
 }
 </style>
 
-
-<div style = "margin 1 em; border: 2px solid #C0C0C0; padding: 0 0.5em;">
-<pre style = "font-size: 90%; line-height: 80%;">
+<div class="ui existing segment">
+<pre>
 {% for item in job_file_contents %}
 {{item}}
 {% endfor %}
 </pre>
 </div>
+{%endblock%}
 
+{%block final%}
 <script type="text/javascript">
-.off("scroll")
+$( document ).on("load",function() { 
+       $(document).off("scroll")
+       $(document).off("scrollchange"); 
+  } )
 </script>
 {%endblock%}
