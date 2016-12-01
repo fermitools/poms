@@ -1551,9 +1551,8 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
 
         for c in campaign_list:
 	    tl = (cherrypy.request.db.query(Task).
-		options(
-	 	     joinedload(Task.campaign_snap_obj).
-	             joinedload(Campaign.campaign_definition_obj)).
+		options( joinedload(Task.campaign_snap_obj)).
+	        options( joinedload(Task.campaign_definition_snap_obj)).
                 filter(Task.campaign_id == c.campaign_id,
                        Task.created >= tmin, Task.created < tmax ).
                 all())

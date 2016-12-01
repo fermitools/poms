@@ -12,7 +12,7 @@ from utc import utc
 class Files_status():
 
     def __init__(self, ps):
-        poms_service = ps
+        self.poms_service = ps
 
     def list_task_logged_files(self, dbhandle, task_id):
         t =  dbhandle.query(Task).filter(Task.task_id== task_id).first()
