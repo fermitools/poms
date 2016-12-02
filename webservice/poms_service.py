@@ -359,6 +359,12 @@ class poms_service:
         job_counts, blob, name, tmin, tmax, nextlink, prevlink, tdays,key, extramap= self.campaignsPOMS.campaign_time_bars(cherrypy.request.db, cherrypy.HTTPError, campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_time_bars.html')
         return template.render( job_counts = job_counts, blob = blob, name = name, tmin = tmin, tmax, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, extramap = extramap, help_page="CampaignTimeBarsHelp", version=self.version)
+
+
+    @cherrypy.expose
+    def register_poms_campaign(self, experiment,  campaign_name, version, user = None, campaign_definition = None, dataset = "", role = "Analysis", params = []):
+        campaign_id = self.campaignsPOMS.register_poms_campaign(cherrypy.request.db, cherrypy.log, experiment,  campaign_name, version, user, campaign_definition, dataset, role, params)
+        return "Campaign=%d" % campaign_id
 #--------------------------------------
 
 
@@ -422,6 +428,7 @@ class poms_service:
     def test_job_counts(self, task_id = None, campaign_id = None):
         res = self.triagePOMS.job_counts(cherrypy.request.db, task_id, campaign_id)
         return repr(res) + self.filesPOMS.format_job_counts(task_id, campaign_id)
+#----------------------
 
 
 ########################
@@ -446,19 +453,16 @@ class poms_service:
                                campaign_id = campaign_id,cname = cname, version=self.version)
 
 
+    @cherrypy.expose
+    def get_task_id_for(self, campaign, user = None, experiment = None, command_executed = "", input_dataset = "", parent_task_id=None):
+        task_id = self.taskPOMS.get_task_id_for(cherrypy.request.db, campaign, user, experiment, command_executed, input_dataset, parent_task_id)
+        return "Task=%d" % task_id
+
+
     def task_min_job(self, task_id):
-        return taskPOMS.task_min_job(self, cherrypy.request.db, task_id)
+        return taskPOMS.task_min_job(cherrypy.request.db, task_id)
 #------------------------
 
-
-##########
-### TriagePOMS
-    @cherrypy.expose
-    def triage_job(self, job_id, tmin = None, tmax = None, tdays = None, force_reload = False):
-        job_file_list, job_info, job_history, downtimes, output_file_names_list, es_response, efficiency, tmin = self.triagePOMS.triage_job(cherrypy.request.db, job_id, tmin, tmax, tdays, force_reload)
-        template = self.jinja_env.get_template('triage_job.html')
-        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, efficiency=efficiency, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'),  pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id, version=self.version)
-#---------------------
 
 #########################
 ### FilesPOMS
@@ -534,6 +538,16 @@ class poms_service:
 ###Im here
 #----------------------------
 
+
+##########
+### TriagePOMS
+    @cherrypy.expose
+    def triage_job(self, job_id, tmin = None, tmax = None, tdays = None, force_reload = False):
+        job_file_list, job_info, job_history, downtimes, output_file_names_list, es_response, efficiency, tmin = self.triagePOMS.triage_job(cherrypy.request.db, job_id, tmin, tmax, tdays, force_reload)
+        template = self.jinja_env.get_template('triage_job.html')
+        return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, efficiency=efficiency, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'),  pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id, version=self.version)
+
+
     @cherrypy.expose
     def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, name=None,campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None, eff_d = None):
         ###The pass of the arguments is ugly we will fix that later.
@@ -551,98 +565,14 @@ class poms_service:
     def failed_jobs_by_whatever(self, tmin = None, tmax =  None, tdays = 1 , f = [], go = None):
         jl, possible_columns, columns, tmins, tmaxs, tdays, prevlink, nextlink, time_range_string, tdays = self.triagePOMS.failed_jobs_by_whatever(cherrypy.request.db, cherrypy.log, tmin, tmax, tdays, f, go)
         template = self.jinja_env.get_template('failed_jobs_by_whatever.html')
-
         return template.render(joblist=jl, possible_columns = possible_columns, columns = columns, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0,  tmin=tmins, tmax =tmaxs,  tdays=tdays, prev= prevlink,  next = nextlink, time_range_string = time_range_string, days = tdays, pomspath=self.path,help_page="JobsByExitcodeHelp", version=self.version)
 #-------------------
 
 
-    @cherrypy.expose
-    def get_task_id_for(self, campaign, user = None, experiment = None, command_executed = "", input_dataset = "", parent_task_id=None):
-        if user == None:
-             user = 4
-        else:
-             u = cherrypy.request.db.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
-             if u:
-                  user = u.experimenter_id
-        q = cherrypy.request.db.query(Campaign)
-        if campaign[0] in "0123456789":
-            q = q.filter(Campaign.campaign_id == int(campaign))
-        else:
-            q = q.filter(Campaign.name.like("%%%s%%" % campaign))
-
-        if experiment:
-            q = q.filter(Campaign.experiment == experiment)
-
-        c = q.first()
-        tim = datetime.now(utc)
-        t = Task(campaign_id = c.campaign_id,
-                 task_order = 0,
-                 input_dataset = input_dataset,
-                 output_dataset = "",
-                 status = "New",
-                 task_parameters = "{}",
-                 updater = 4,
-                 creator = 4,
-                 created = tim,
-                 updated = tim,
-                 command_executed = command_executed)
-
-        if parent_task_id != None and parent_task_id != "None":
-            t.recovery_tasks_parent = int(parent_task_id)
-
-        self.snapshot_parts(t, t.campaign_id)
-
-        cherrypy.request.db.add(t)
-        cherrypy.request.db.commit()
-        return "Task=%d" % t.task_id
 
 
-    @cherrypy.expose
-    def register_poms_campaign(self, experiment,  campaign_name, version, user = None, campaign_definition = None, dataset = "", role = "Analysis", params = []):
-         if user == None:
-              user = 4
-         else:
-              u = cherrypy.request.db.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
-              if u:
-                   user = u.experimenter_id
 
 
-         if campaign_definition != None and campaign_definition != "None":
-              cd = cherrypy.request.db.query(CampaignDefinition).filter(Campaign.name == campaign_definition, Campaign.experiment == experiment).first()
-         else:
-              cd = cherrypy.request.db.query(CampaignDefinition).filter(CampaignDefinition.name.like("%generic%"), Campaign.experiment == experiment).first()
-
-         ld = cherrypy.request.db.query(LaunchTemplate).filter(LaunchTemplate.name.like("%generic%"), LaunchTemplate.experiment == experiment).first()
-
-         cherrypy.log("campaign_definition = %s " % cd)
-
-         c = cherrypy.request.db.query(Campaign).filter( Campaign.experiment == experiment, Campaign.name == campaign_name).first()
-         if c:
-             changed = False
-         else:
-             c = Campaign(experiment = experiment, name = campaign_name, creator = user, created = datetime.now(utc), software_version = version, campaign_definition_id=cd.campaign_definition_id, launch_id = ld.launch_id, vo_role = role)
-
-         if version:
-               c.software_verison = version
-               changed = True
-
-         if dataset:
-               c.dataset = dataset
-               changed = True
-
-         if user:
-               c.experimenter = user
-               changed = True
-
-         cherrypy.log("register_campaign -- campaign is %s" % c.__dict__)
-
-         if changed:
-                c.updated = datetime.now(utc)
-                c.updator = user
-                cherrypy.request.db.add(c)
-                cherrypy.request.db.commit()
-
-         return "Campaign=%d" % c.campaign_id
 
 
 
@@ -1166,28 +1096,6 @@ class poms_service:
         my_crontab.write()
 
         raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id )
-
-
-    def snapshot_parts(self, t, campaign_id):
-         c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-         for table, snaptable, field, sfield, tid , tfield in [
-		[Campaign,CampaignSnapshot,Campaign.campaign_id,CampaignSnapshot.campaign_id,c.campaign_id, 'campaign_snap_obj' ],
-		[CampaignDefinition, CampaignDefinitionSnapshot,CampaignDefinition.campaign_definition_id, CampaignDefinitionSnapshot.campaign_definition_id, c.campaign_definition_id, 'campaign_definition_snap_obj'],
-                [LaunchTemplate ,LaunchTemplateSnapshot,LaunchTemplate.launch_id,LaunchTemplateSnapshot.launch_id,  c.launch_id, 'launch_template_snap_obj']]:
-
-             i = cherrypy.request.db.query(func.max(snaptable.updated)).filter(sfield == tid).first()
-             j = cherrypy.request.db.query(table).filter(field == tid).first()
-             if (i[0] == None or j == None or j.updated == None or  i[0] < j.updated):
-                newsnap = snaptable()
-                columns = j._sa_instance_state.class_.__table__.columns
-                for fieldname in columns.keys():
-                     setattr(newsnap, fieldname, getattr(j,fieldname))
-                cherrypy.request.db.add(newsnap)
-             else:
-                newsnap = cherrypy.request.db.query(snaptable).filter(snaptable.updated == i[0]).first()
-             setattr(t, tfield, newsnap)
-         cherrypy.request.db.add(t) #Felipe change HERE one tap + space to spaces indentation
-         cherrypy.request.db.commit()
 
 
     @cherrypy.expose

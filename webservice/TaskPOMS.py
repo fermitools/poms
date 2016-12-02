@@ -56,8 +56,8 @@ class TaskPOMS:
 
         #
         # make jobs which completed with no output files located.
-        subq = cherrypy.request.db.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
-        cherrypy.request.db.query(Job).filter(subq == 0).update({'status':'Located'})
+        subq = dbhandle.db.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
+        dbhandle.db.query(Job).filter(subq == 0).update({'status':'Located'})
         #
         # check active tasks to see if they're completed/located
         for task in dbhandle.query(Task).options(subqueryload(Task.jobs)).filter(Task.status != "Completed", Task.status != "Located").all():
@@ -125,7 +125,7 @@ class TaskPOMS:
 			j.status = "Located"
 			j.output_files_declared = True
                     task.updated = datetime.now(utc)
-                    cherrypy.request.db.add(task)
+                    dbhandle.db.add(task)
                     if not self.poms_service.launch_recovery_if_needed(task.task_id):
                         self.poms_services.launch_dependents_if_needed(task.task_id)
 
@@ -248,3 +248,65 @@ class TaskPOMS:
             return j.jobsub_job_id
         else:
             return None
+
+
+    def get_task_id_for(self, dbhandle, campaign, user = None, experiment = None, command_executed = "", input_dataset = "", parent_task_id=None):
+        if user == None:
+             user = 4
+        else:
+             u = dbhandle.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
+             if u:
+                  user = u.experimenter_id
+        q = dbhandle.query(Campaign)
+        if campaign[0] in "0123456789":
+            q = q.filter(Campaign.campaign_id == int(campaign))
+        else:
+            q = q.filter(Campaign.name.like("%%%s%%" % campaign))
+
+        if experiment:
+            q = q.filter(Campaign.experiment == experiment)
+
+        c = q.first()
+        tim = datetime.now(utc)
+        t = Task(campaign_id = c.campaign_id,
+                 task_order = 0,
+                 input_dataset = input_dataset,
+                 output_dataset = "",
+                 status = "New",
+                 task_parameters = "{}",
+                 updater = 4,
+                 creator = 4,
+                 created = tim,
+                 updated = tim,
+                 command_executed = command_executed)
+
+        if parent_task_id != None and parent_task_id != "None":
+            t.recovery_tasks_parent = int(parent_task_id)
+
+        self.poms_service.taskPOMS.snapshot_parts(dbhandle, t, t.campaign_id)
+
+        dbhandle.add(t)
+        dbhandle.commit()
+        return t.task_id
+
+
+    def snapshot_parts(self, dbhandle, t, campaign_id): ###This function was removed from the main script
+         c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+         for table, snaptable, field, sfield, tid , tfield in [
+                [Campaign,CampaignSnapshot,Campaign.campaign_id,CampaignSnapshot.campaign_id,c.campaign_id, 'campaign_snap_obj' ],
+                [CampaignDefinition, CampaignDefinitionSnapshot,CampaignDefinition.campaign_definition_id, CampaignDefinitionSnapshot.campaign_definition_id, c.campaign_definition_id, 'campaign_definition_snap_obj'],
+                [LaunchTemplate ,LaunchTemplateSnapshot,LaunchTemplate.launch_id,LaunchTemplateSnapshot.launch_id,  c.launch_id, 'launch_template_snap_obj']]:
+
+             i = dbhandle.query(func.max(snaptable.updated)).filter(sfield == tid).first()
+             j = dbhandle.db.query(table).filter(field == tid).first()
+             if (i[0] == None or j == None or j.updated == None or  i[0] < j.updated):
+                newsnap = snaptable()
+                columns = j._sa_instance_state.class_.__table__.columns
+                for fieldname in columns.keys():
+                     setattr(newsnap, fieldname, getattr(j,fieldname))
+                dbhandle.db.add(newsnap)
+             else:
+                newsnap = dbhandle.db.query(snaptable).filter(snaptable.updated == i[0]).first()
+             setattr(t, tfield, newsnap)
+         dbhandle.db.add(t) #Felipe change HERE one tap + space to spaces indentation
+         dbhandle.db.commit()

@@ -465,3 +465,50 @@ class CampaignsPOMS():
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template = self.poms_service.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(tmin)19.19s&tdays=1',extramap = extramap )
 
         return job_counts, blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays,key, extramap
+
+
+    def register_poms_campaign(self, dbhandle, loghandle, experiment,  campaign_name, version, user = None, campaign_definition = None, dataset = "", role = "Analysis", params = []):
+         if user == None:
+              user = 4
+         else:
+              u = dbhandle.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
+              if u:
+                   user = u.experimenter_id
+
+
+         if campaign_definition != None and campaign_definition != "None":
+              cd = dbhandle.query(CampaignDefinition).filter(Campaign.name == campaign_definition, Campaign.experiment == experiment).first()
+         else:
+              cd = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name.like("%generic%"), Campaign.experiment == experiment).first()
+
+         ld = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.name.like("%generic%"), LaunchTemplate.experiment == experiment).first()
+
+         dbhandle("campaign_definition = %s " % cd)
+
+         c = dbhandle.query(Campaign).filter( Campaign.experiment == experiment, Campaign.name == campaign_name).first()
+         if c:
+             changed = False
+         else:
+             c = Campaign(experiment = experiment, name = campaign_name, creator = user, created = datetime.now(utc), software_version = version, campaign_definition_id=cd.campaign_definition_id, launch_id = ld.launch_id, vo_role = role)
+
+         if version:
+               c.software_verison = version
+               changed = True
+
+         if dataset:
+               c.dataset = dataset
+               changed = True
+
+         if user:
+               c.experimenter = user
+               changed = True
+
+         dbhandle("register_campaign -- campaign is %s" % c.__dict__)
+
+         if changed:
+                c.updated = datetime.now(utc)
+                c.updator = user
+                dbhandle.add(c)
+                dbhandle.commit()
+
+         return c.campaign_id
