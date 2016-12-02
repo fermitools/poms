@@ -315,3 +315,153 @@ class CampaignsPOMS():
             definition['definition_parameters'] = cdef.definition_parameters
             data['definition'] = definition
         return json.dumps(data)
+
+
+    def new_task_for_campaign(dbhandle , campaign_name, command_executed, experimenter_name, dataset_name = None):
+        c = dbhandle.query(Campaign).filter(Campaign.name == campaign_name).first()
+        e = dbhandle.query(Experimenter).filter(like_)(Experimenter.email,"%s@%%" % experimenter_name ).first()
+        t = Task()
+        t.campaign_id = c.campaign_id
+        t.campaign_definition_id = c.campaign_definition_id
+        t.task_order = 0
+        t.input_dataset = "-"
+        t.output_dataset = "-"
+        t.status = 'started'
+        t.created = datetime.now(utc)
+        t.updated = datetime.now(utc)
+        t.updater = e.experimenter_id
+        t.creator = e.experimenter_id
+        t.command_executed = command_executed
+        if dataset_name:
+            t.input_dataset = dataset_name
+        dbhandle.add(t)
+        dbhandle.commit()
+        return "Task=%d" % t.task_id
+
+
+    def show_campaigns(self, dbhandle, experiment = None, tmin = None, tmax = None, tdays = 1, active = True):
+
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
+
+        cq = dbhandle.query(Campaign).filter(Campaign.active == active ).order_by(Campaign.experiment)
+
+        if experiment:
+            cq = cq.filter(Campaign.experiment == experiment)
+
+        cl = cq.all()
+
+        counts = {}
+        counts_keys = {}
+
+        dimlist, pendings = self.poms_service.get_pending_for_campaigns(cl, tmin, tmax)
+        effs = self.poms_service.get_efficiency(cl, tmin, tmax)
+
+        i = 0
+        for c in cl:
+            counts[c.campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle, tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
+            counts[c.campaign_id]['efficiency'] = effs[i]
+            counts[c.campaign_id]['pending'] = pendings[i]
+            counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
+            i = i + 1
+        return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string
+
+
+    def campaign_info(self, dbhandle, err_res, campaign_id, tmin = None, tmax = None, tdays = None):
+        campaign_id = int(campaign_id)
+
+        Campaign_info = dbhandle.query(Campaign, Experimenter).filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id).first()
+
+        # default to time window of campaign
+        if tmin == None and tdays == None and tdays == None:
+            tmin = Campaign_info.Campaign.created
+            tmax = datetime.now(utc)
+
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'campaign_info?')
+
+        Campaign_definition_info =  dbhandle.query(CampaignDefinition, Experimenter).filter(CampaignDefinition.campaign_definition_id == Campaign_info.Campaign.campaign_definition_id, CampaignDefinition.creator == Experimenter.experimenter_id ).first()
+        Launch_template_info = dbhandle.query(LaunchTemplate, Experimenter).filter(LaunchTemplate.launch_id == Campaign_info.Campaign.launch_id, LaunchTemplate.creator == Experimenter.experimenter_id).first()
+        tags = dbhandle.query(Tag).filter(CampaignsTags.campaign_id==campaign_id, CampaignsTags.tag_id==Tag.tag_id).all()
+
+        launched_campaigns = dbhandle.query(CampaignSnapshot).filter(CampaignSnapshot.campaign_id == campaign_id).all()
+
+        #
+        # cloned from show_campaigns, but for a one row table..
+        #
+        cl = [Campaign_info[0]]
+        counts = {}
+        counts_keys = {}
+        dimlist, pendings = self.poms_service.get_pending_for_campaigns(cl, tmin, tmax)
+        effs = self.poms_service.get_efficiency(cl, tmin, tmax)
+        counts[campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
+        counts[campaign_id]['efficiency'] = effs[0]
+        counts[campaign_id]['pending'] = pendings[0]
+        counts_keys[campaign_id] = counts[campaign_id].keys()
+        #
+        # any launch outputs to look at?
+        #
+        dirname="%s/private/logs/poms/launches/campaign_%s" % (
+           os.environ['HOME'],campaign_id)
+        launch_flist = glob.glob('%s/*' % dirname)
+        launch_flist = map(os.path.basename, launch_flist)
+        return Campaign_info, time_range_string, tmins, tmaxs, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist
+
+
+    def campaign_time_bars(self, dbhandle, campaign_id = None, tag = None, tmin = None, tmax = None, tdays = 1):
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.utilsPOMS.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
+        tg = time_grid.time_grid()
+        key = tg.key()
+
+        class fakerow:
+            def __init__(self, **kwargs):
+                self.__dict__.update(kwargs)
+
+        sl = []
+        # sl.append(self.filesPOMS.format_self.triagePOMS.job_counts(dbhandle,))
+
+        q = dbhandle.query(Campaign)
+        if campaign_id != None:
+            q = q.filter(Campaign.campaign_id == campaign_id)
+            cpl = q.all()
+            name = cpl[0].name
+        elif tag != None and tag != "":
+            q = q.join(CampaignsTags,Tag).filter(Campaign.campaign_id == CampaignsTags.campaign_id,
+                        Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
+            cpl = q.all()
+            name = tag
+        else:
+            err_res="404 Permission Denied."
+            return "Neither Campaign nor Tag found"
+
+        job_counts_list = []
+        cidl = []
+        for cp in cpl:
+             job_counts_list.append(cp.name)
+             job_counts_list.append( self.poms_service.filesPOMS.format_job_counts(campaign_id = cp.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string))
+             cidl.append(cp.campaign_id)
+
+        job_counts = "\n".join(job_counts_list)
+
+        qr = dbhandle.query(TaskHistory).join(Task).filter(Task.campaign_id.in_(cidl), TaskHistory.task_id == Task.task_id , or_(and_(Task.created > tmin, Task.created < tmax),and_(Task.updated > tmin, Task.updated < tmax)) ).order_by(TaskHistory.task_id,TaskHistory.created).all()
+        items = []
+        extramap = {}
+        for th in qr:
+            jjid = self.poms_service.task_min_job(th.task_id)
+            if not jjid:
+                jjid= 't' + str(th.task_id)
+            else:
+                jjid = jjid.replace('fifebatch','').replace('.fnal.gov','')
+            if th.status != "Completed" and th.status != "Located":
+                extramap[jjid] = '<a href="%s/kill_jobs?task_id=%d"><i class="ui trash icon"></i></a>' % (self.path, th.task_id)
+            else:
+                extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
+
+            items.append(fakerow(task_id = th.task_id,
+                                  created = th.created.replace(tzinfo = utc),
+                                  tmin = th.task_obj.created - timedelta(minutes=15),
+                                  tmax = th.task_obj.updated,
+                                  status = th.status,
+                                  jobsub_job_id = jjid))
+
+        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template = self.poms_service.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(tmin)19.19s&tdays=1',extramap = extramap )
+
+        return job_counts, blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays,key, extramap
