@@ -165,11 +165,10 @@ class Files_status():
         job_file_contents = jobhandle.contents(file, j.jobsub_job_id,j.task_obj.campaign_snap_obj.experiment,role)
         return job_file_contents, tmin
         #DELETE template = self.jinja_env.get_template('job_file_contents.html')
-        #DELETE return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version)
+        #DELETE return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version) 
 
-
-    def format_job_counts(self, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = 7, range_string = None): ##This method was deleted from the main script
-        counts = self.poms_service.triagePOMS.job_counts(task_id, campaign_id, tmin, tmax, tdays)
+    def format_job_counts(self, dbhandle, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = 7, range_string = None): ##This method was deleted from the main script
+        counts = self.poms_service.triagePOMS.job_counts( dbhandle, task_id = task_id, campaign_id = campaign_id, tmin = tmin, tmax = tmax, tdays = tdays)
         ck = counts.keys()
         res = [ '<div><b>Job States</b><br>',
                 '<table class="ui celled table unstackable">',

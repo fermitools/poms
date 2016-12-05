@@ -581,14 +581,15 @@ class poms_service:
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ): ### Need to be tested HERE
-        blob, job_counts, task_id, tmin, tmax, extramap, key, task_jobsub_id, campaign_id, cname = self.taskPOMS.show_task_jobs(self, task_id, tmax, tmin, tdays)
+        blob, job_counts, task_id, tmin, tmax, extramap, key, task_jobsub_id, campaign_id, cname = self.taskPOMS.show_task_jobs( cherrypy.request.db, task_id, tmax, tmin, tdays)
+        template = self.jinja_env.get_template('show_task_jobs.html')
         return template.render( blob = blob, job_counts = job_counts,  taskid = task_id, tmin = tmin, tmax = tmax, current_experimenter = cherrypy.session.get('experimenter'),
                                extramap = extramap, do_refresh = 1, key = key, pomspath=self.path, help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id,
                                campaign_id = campaign_id,cname = cname, version=self.version)
 
 
     def task_min_job(self, task_id):
-        return taskPOMS.task_min_job(self, cherrypy.request.db, task_id)
+        return self.taskPOMS.task_min_job( cherrypy.request.db, task_id)
 #------------------------
 
 
@@ -598,7 +599,7 @@ class poms_service:
 
     @cherrypy.expose
     def triage_job(self, job_id, tmin = None, tmax = None, tdays = None, force_reload = False):
-        job_file_list, job_info, job_history, downtimes, output_file_names_list, es_response, efficiency, tmin = self.triagePOMS.triage_job(dbhandle, job_id, tmin, tmax, tdays, force_reload)
+        job_file_list, job_info, job_history, downtimes, output_file_names_list, es_response, efficiency, tmin, task_jobsub_job_id = self.triagePOMS.triage_job(cherrypy.request.db, job_id, tmin, tmax, tdays, force_reload)
         template = self.jinja_env.get_template('triage_job.html')
         return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, efficiency=efficiency, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'),  pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id, version=self.version)
 
@@ -785,7 +786,8 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
         cidl = []
         for cp in cpl:
              job_counts_list.append(cp.name)
-             job_counts_list.append( self.filesPOMS.format_job_counts(campaign_id = cp.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string))
+             print "about to call format_job_counts( %s ,%s, %s, %s )" % (campaign_id, tmin, tmax, tdays)
+             job_counts_list.append( self.filesPOMS.format_job_counts(cherrypy.request.db, campaign_id = cp.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string))
              cidl.append(cp.campaign_id)
 
         job_counts = "\n".join(job_counts_list)

@@ -172,12 +172,12 @@ class TaskPOMS:
 
 
 
-    def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ):
+    def show_task_jobs(self, dbhandle, task_id, tmax = None, tmin = None, tdays = 1 ):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=%s' % task_id)
 
         jl = dbhandle.query(JobHistory,Job).filter(Job.job_id == JobHistory.job_id, Job.task_id==task_id ).order_by(JobHistory.job_id,JobHistory.created).all()
-        tg = self.poms_service.time_grid.time_grid()
+        tg = time_grid.time_grid()
 
         class fakerow:
             def __init__(self, **kwargs):
@@ -204,9 +204,9 @@ class TaskPOMS:
             laststatus = jh.status
             lastjjid = jjid
 
-        job_counts = self.poms_service.filesPOMS.format_job_counts(task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
+        job_counts = self.poms_service.filesPOMS.format_job_counts(dbhandle, task_id = task_id,tmin=tmins,tmax=tmaxs,tdays=tdays, range_string = time_range_string )
         key = tg.key(fancy=1)
-        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)
+        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template=self.poms_service.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)
         #screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)
 
         if len(jl) > 0:
@@ -216,7 +216,7 @@ class TaskPOMS:
             campaign_id = 'unknown'
             cname = 'unknown'
 
-        task_jobsub_id = self.poms_service.tasksPOMS.task_min_job(task_id)
+        task_jobsub_id = self.task_min_job(dbhandle, task_id)
         return_tuple=(blob, job_counts,task_id, str(tmin)[:16], str(tmax)[:16], extramap, key, task_jobsub_id, campaign_id, cname)
         return return_tuple
 
