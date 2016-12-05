@@ -15,7 +15,7 @@ import json
 #from poms_service import poms_service
 
 
-class JobsPOMS:
+class JobsPOMS():
 
     def __init__(self, ps):
         self.poms_service=ps
@@ -54,14 +54,17 @@ class JobsPOMS:
         return sres
 
 
-    def update_job(self, dbhandle, loghandle, rpstatus, task_id, jobsub_job_id, **kwargs):
+    def update_job(self, dbhandle, loghandle, rpstatus, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
+
+        if task_id == "None":
+            task_id = None
 
         if task_id:
             task_id = int(task_id)
 
         host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
 
-        jl = dbhandle.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
+        jl = dbhandle.query(Job).with_for_update(of=Job).options(joinedload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
         first = True
         j = None
         for ji in jl:
@@ -82,6 +85,7 @@ class JobsPOMS:
 
                 dbhandle.delete(ji)
                 dbhandle.flush()      #######################should we change this for dbhandle.commit()
+
 
         if not j and task_id:
             t = dbhandle.query(Task).filter(Task.task_id==task_id).first()
@@ -133,13 +137,14 @@ class JobsPOMS:
             if kwargs.get('output_file_names', None):
                 loghandle("saw output_file_names: %s" % kwargs['output_file_names'])
                 if j.job_files:
-                    files =  [x.file_name for x in j.job_files if x.file_type == 'output']
-                    # don't include metadata files
-                    files =  [ f for f in files if f.find('.json') == -1 and f.find('.metadata') == -1] ###Included in the merge
+                    files =  [x.file_name for x in j.job_files ]
                 else:
                     files = []
 
                 newfiles = kwargs['output_file_names'].split(' ')
+                # don't include metadata files
+                newfiles =  [ f for f in newfiles if f.find('.json') == -1 and f.find('.metadata') == -1]
+                ###Included in the merge
                 for f in newfiles:
                     if not f in files:
                         if len(f) < 2 or f[0] == '-':  # ignore '0', '-D', etc...
@@ -172,13 +177,18 @@ class JobsPOMS:
             loghandle("update_job: db add/commit job status %s " %  j.status)
             j.updated =  datetime.now(utc)
             if j.task_obj:
-                newstatus = self.poms_service.compute_status(j.task_obj)
+                newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, j.task_obj)
                 if newstatus != j.task_obj.status:
                     j.task_obj.status = newstatus
                     j.task_obj.updated = datetime.now(utc)
-                    j.task_obj.campaign_obj.active = True
+                    j.task_obj.campaign_snap_obj.active = True
             dbhandle.add(j)
             dbhandle.commit()
             loghandle("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
 
         return "Ok."
+
+
+    def test_job_counts(self, task_id = None, campaign_id = None):
+        res = self.poms_service.job_counts(task_id, campaign_id)
+        return repr(res) + self.poms_service.format_job_counts(task_id, campaign_id)

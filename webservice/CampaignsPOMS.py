@@ -7,7 +7,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
-from model.poms_model import Experiment
+from model.poms_model import Experiment, Campaign, LaunchTemplate, CampaignDefinition, CampaignRecovery
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from utc import utc
 

@@ -8,7 +8,7 @@ from utc import utc
 class Elasticsearch:
 
     def __init__(self, debug=0):
-        if debug == 1:
+        if debug == 1 or cherrypy.config.get('elasticsearch_base_url') == None:
             self.base_url="https://fifemon-es.fnal.gov"
             #self.base_url="http://sammongpvm01.fnal.gov:9200"
         else:
@@ -16,8 +16,8 @@ class Elasticsearch:
 
         configfile = "poms.ini"
         cherrypy.config.update(configfile) 
-        self.cert=cherrypy.config.get('elasticsearch_cert').strip('"')
-        self.key=cherrypy.config.get('elasticsearch_key').strip('"')
+        self.cert=cherrypy.config.get('elasticsearch_cert','').strip('"')
+        self.key=cherrypy.config.get('elasticsearch_key','').strip('"')
 
         requests.packages.urllib3.disable_warnings()
 

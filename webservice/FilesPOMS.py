@@ -12,22 +12,23 @@ from utc import utc
 class Files_status():
 
     def __init__(self, ps):
-        poms_service = ps
+        self.poms_service = ps
 
     def list_task_logged_files(self, dbhandle, task_id):
         t =  dbhandle.query(Task).filter(Task.task_id== task_id).first()
-        jobsub_job_id = self.poms_service.task_min_job(task_id)
+        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(task_id)
         fl = dbhandle.query(JobFile).join(Job).filter(Job.task_id == task_id, JobFile.job_id == Job.job_id).all()
         return fl, t, jobsub_job_id
         #DELETE: template = self.poms_service.jinja_env.get_template('list_task_logged_files.html')
-        #return template.render(fl = fl, campaign = t.campaign_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
+        #return template.render(fl = fl, campaign = t.campaign_snap_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
 
     def campaign_task_files(self, dbhandle, loghandle, samhandle, campaign_id, tmin = None, tmax = None, tdays = 1):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.handle_dates(tmin,tmax,tdays,'campaign_task_files?campaign_id=%s&' % campaign_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'campaign_task_files?campaign_id=%s&' % campaign_id)
         # inhale all the campaign related task info for the time window
         # in one fell swoop
         tl = (    dbhandle.query(Task).
-                options(joinedload(Task.campaign_obj)).
+                options(joinedload(Task.campaign_snap_obj)).
+                options(joinedload(Task.campaign_snap_obj)).
                 options(joinedload(Task.jobs).joinedload(Job.job_files)).
                 filter(Task.campaign_id == campaign_id,
                 Task.created >= tmin, Task.created < tmax ).all()
@@ -37,9 +38,11 @@ class Files_status():
         # find any tasks in that window, look it up
         #
         if len(tl) > 0:
-            c = tl[0].campaign_obj
+            c = tl[0].campaign_snap_obj
+            cs = tl[0].campaign_snap_obj
         else:
             c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+            cs = c # this is klugy -- does this work?
         #
         # fetch needed data in tandem
         # -- first build lists of stuff to fetch
@@ -56,19 +59,19 @@ class Files_status():
             basedims = "snapshot_for_project_name %s " % t.project
             base_dim_list.append(basedims)
 
-            somekiddims = "%s and isparentof: (version %s)" % (basedims, t.campaign_obj.software_version)
+            somekiddims = "%s and isparentof: (version %s)" % (basedims, t.campaign_snap_obj.software_version)
             some_kids_needed.append(somekiddims)
 
-            somekidsdecldims = "%s and isparentof: (version %s with availability anylocation )" % (basedims, t.campaign_obj.software_version)
+            somekidsdecldims = "%s and isparentof: (version %s with availability anylocation )" % (basedims, t.campaign_snap_obj.software_version)
             some_kids_decl_needed.append(somekidsdecldims)
 
             allkiddecldims = basedims
             allkiddims = basedims
-            for pat in str(t.campaign_obj.campaign_definition_obj.output_file_patterns).split(','):
+            for pat in str(t.campaign_definition_snap_obj.output_file_patterns).split(','):
                 if pat == 'None':
                     pat = '%'
-                allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, t.campaign_obj.software_version)
-                allkiddecldims = "%s and isparentof: ( file_name '%s' and version '%s' with availability anylocation ) " % (allkiddecldims, pat, t.campaign_obj.software_version)
+                allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' ) " % (allkiddims, pat, t.campaign_snap_obj.software_version)
+                allkiddecldims = "%s and isparentof: ( file_name '%s' and version '%s' with availability anylocation ) " % (allkiddecldims, pat, t.campaign_snap_obj.software_version)
             all_kids_needed.append(allkiddims)
             all_kids_decl_needed.append(allkiddecldims)
             logoutfiles = []
@@ -114,7 +117,7 @@ class Files_status():
                         logdelivered = logdelivered + 1
                     if f.file_type == "output":
                         logkids = logkids + 1
-            task_jobsub_job_id = self.poms_service.task_min_job(t.task_id)
+            task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(t.task_id)
             if task_jobsub_job_id == None:
                 task_jobsub_job_id = "t%s" % t.task_id
             datarows.append([
@@ -140,36 +143,36 @@ class Files_status():
 
 
     def job_file_list(self, dbhandle, jobhandle, job_id, force_reload = False): ##Should this funcion be here or at the main script ????
-        j = dbhandle.query(Job).options(joinedload(Job.task_obj).joinedload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
+        j = dbhandle.query(Job).options(joinedload(Job.task_obj).joinedload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         jobsub_job_id = self.poms_service.task_min_job(j.task_id)
-        role = j.task_obj.campaign_obj.vo_role
-        return jobhandle.index(jobsub_job_id,j.task_obj.campaign_obj.experiment,role, force_reload)
+        role = j.task_obj.campaign_snap_obj.vo_role
+        return jobhandle.index(jobsub_job_id,j.task_obj.campaign_snap_obj.experiment,role, force_reload)
+
 
     def job_file_contents(self, dbhandle, loghandle, jobhandle, job_id, task_id, file, tmin = None, tmax = None, tdays = None):
         #jobhandle = cherrypy.request.jobsub_fetcher
 
         # we don't really use these for anything but we might want to
         # pass them into a template to set time ranges...
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.handle_dates(tmin,tmax,tdays,'show_campaigns?')
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
         ### You don't use many of those arguments, is just because you need one of them then you call the whole method ???????
-        j = dbhandle.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_obj)).filter(Job.job_id == job_id).first()
+        j = dbhandle.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
-        jobsub_job_id = self.poms_service.task_min_job(j.task_id)
+        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(j.task_id)
         loghandle("found job: %s " % jobsub_job_id)
-        role = j.task_obj.campaign_obj.vo_role
-        job_file_contents = jobhandle.contents(file, j.jobsub_job_id,j.task_obj.campaign_obj.experiment,role)
+        role = j.task_obj.campaign_snap_obj.vo_role
+        job_file_contents = jobhandle.contents(file, j.jobsub_job_id,j.task_obj.campaign_snap_obj.experiment,role)
         return job_file_contents, tmin
         #DELETE template = self.jinja_env.get_template('job_file_contents.html')
-        #DELETE return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version)
+        #DELETE return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version) 
 
-
-    def format_job_counts(self, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = 7, range_string = None):
-        counts = self.poms_service.job_counts(task_id, campaign_id, tmin, tmax, tdays)
+    def format_job_counts(self, dbhandle, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = 7, range_string = None): ##This method was deleted from the main script
+        counts = self.poms_service.triagePOMS.job_counts( dbhandle, task_id = task_id, campaign_id = campaign_id, tmin = tmin, tmax = tmax, tdays = tdays)
         ck = counts.keys()
         res = [ '<div><b>Job States</b><br>',
                 '<table class="ui celled table unstackable">',
-                '<tr><th colspan=3>Active</th><th colspan=2>In %s</th></tr>' % range_string,
+                '<tr><th>Total</th><th colspan=3>Active</th><th colspan=2>In %s</th></tr>' % range_string,
                 '<tr>' ]
         for k in ck:
             res.append( "<th>%s</th>" % k )
@@ -189,7 +192,7 @@ class Files_status():
         return "".join(res)
 
 
-    def get_inflight(self, dbhandle, campaign_id=None, task_id=None):
+    def get_inflight(self, dbhandle, campaign_id=None, task_id=None): #This method was deleted from the main script
         q = dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
         q = q.filter(Task.campaign_id == Campaign.campaign_id)
         q = q.filter(Task.task_id == Job.task_id)
@@ -218,7 +221,7 @@ class Files_status():
         else:
             status_response="404 Permission Denied."
             return "Neither Campaign nor Task found"
-        outlist = self.poms_service.get_inflight(campaign_id=campaign_id, task_id= task_id)
+        outlist = self.poms_service.filesPOMS.get_inflight( dbhandle, campaign_id=campaign_id, task_id= task_id)
         statusmap = {}
         if c:
             fss_file = "%s/%s_files.db" % (cherrypy.config.get("ftsscandir"), c.experiment)
@@ -242,22 +245,53 @@ class Files_status():
         except ValueError:
             flist = []
         return flits
-        #template = self.jinja_env.get_template('show_dimension_files.html')
-        #return template.render(flist = flist, dims = dims,  current_experimenter=cherrypy.session.get('experimenter'),   statusmap = [], pomspath=self.path,help_page="ShowDimensionFilesHelp", version=self.version)
 
 
-####
-        #def json_project_summary_for_task(self, task_id):
-        #def project_summary_for_task(self, task_id):
-        #def project_summary_for_tasks(self, task_list):
+    def actual_pending_files(self, dbhandle, loghandle, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1):
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_services.utilsPOMS.handle_dates(tmin, tmax,tdays,'actual_pending_files?count_or_list=%s&%s=%s&' %
+                                                                    (count_or_list,'campaign_id',campaign_id) if campaign_id else (count_or_list,'task_id',task_id))
+
+        tl = (dbhandle.query(Task).
+                options(joinedload(Task.campaign_obj)).
+                options(joinedload(Task.jobs).joinedload(Job.job_files)).
+                filter(Task.campaign_id == campaign_id,
+                Task.created >= tmin, Task.created < tmax ).
+                all())
+
+        c = None
+        plist = []
+        for t in tl:
+            if not c:
+                c = t.campaign_obj
+            plist.append(t.project if t.project else 'None')
+
+        if c:
+            dims = "snapshot_for_project_name %s minus (" %  ','.join(plist)
+            sep = ""
+            for pat in str(c.campaign_definition_obj.output_file_patterns).split(','):
+                if pat == "None":
+                    pat = "%"
+                dims = "%s %s isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (dims, sep, pat, t.campaign_obj.software_version)
+                sep = "and"
+                loghandle("dims now: %s" % dims)
+            dims = dims + ")"
+        else:
+            c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id ).first()
+            dims = None
+
+        if None == dims or 'None' == dims:
+            raise ValueError("None == dims in actual_pending_files method")
+        else:
+
+            loghandle("actual pending files: got dims %s" % dims)
+            return c.experiment, dims
 
 
-############Verify Where should be
-    def campaign_sheet(self, dbhandle, loghandle, campaign_id, tmin = None, tmax = None , tdays = 7):
+    def campaign_sheet(self, dbhandle, loghandle, campaign_id, tmin = None, tmax = None , tdays = 7): #maybe at the future for a  ReportsPOMS module
 
         daynames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"]
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s&' % campaign_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s&' % campaign_id)
 
         tl = (dbhandle.query(Task)
                 .filter(Task.campaign_id==campaign_id, Task.created > tmin, Task.created < tmax)
@@ -395,67 +429,9 @@ class Files_status():
             outrows[i][7] = pendings[i]
 
         if tl and tl[0]:
-            name = tl[0].campaign_obj.name
+            name = tl[0].campaign_snap_obj.name
 
         else:
             name = ''
 
         return name, columns, outrows, dimlist, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
-        '''
-        template = self.jinja_env.get_template('campaign_sheet.html') ####Im here
-        return template.render(name=name,
-                                columns=columns,
-                                datarows=outrows,
-                                dimlist=dimlist,
-                                tmaxs=tmaxs,
-                                prev=prevlink,
-                                next=nextlink,
-                                days=tdays,
-                                tmin = str(tmin)[:16],
-                                tmax = str(tmax)[:16],
-                                current_experimenter=cherrypy.session.get('experimenter'),
-                                campaign_id=campaign_id,
-                                experiment=experiment,
-                pomspath=self.path,help_page="CampaignSheetHelp",
-                                version=self.version)
-        '''
-        #######################
-
-    def actual_pending_files(self, dbhandle, loghandle, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_services.handle_dates(tmin, tmax,tdays,'actual_pending_files?count_or_list=%s&%s=%s&' %
-                                                                    (count_or_list,'campaign_id',campaign_id) if campaign_id else (count_or_list,'task_id',task_id))
-
-        tl = (dbhandle.query(Task).
-                options(joinedload(Task.campaign_obj)).
-                options(joinedload(Task.jobs).joinedload(Job.job_files)).
-                filter(Task.campaign_id == campaign_id,
-                Task.created >= tmin, Task.created < tmax ).
-                all())
-
-            c = None
-            plist = []
-            for t in tl:
-                if not c:
-                    c = t.campaign_obj
-                plist.append(t.project if t.project else 'None')
-
-            if c:
-                dims = "snapshot_for_project_name %s minus (" %  ','.join(plist)
-                sep = ""
-                for pat in str(c.campaign_definition_obj.output_file_patterns).split(','):
-                    if pat == "None":
-                        pat = "%"
-                    dims = "%s %s isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (dims, sep, pat, t.campaign_obj.software_version)
-                    sep = "and"
-                    loghandle("dims now: %s" % dims)
-                dims = dims + ")"
-            else:
-                c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id ).first()
-                dims = None
-
-            if None == dims or 'None' == dims:
-                return "Ouch"
-
-            loghandle("actual pending files: got dims %s" % dims)
-
-            return self.poms_service.how_dimension_files(c.experiment, dims)
