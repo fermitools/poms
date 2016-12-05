@@ -72,6 +72,8 @@ class TaskPOMS:
                 task.status = "Completed"
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
+                # and check job logs for final runtime, cpu-time etc.
+                get_joblogs(dbhandle,  jobsub_job_id, task.experiment, task.campaign_snap_obj.role )
 
         # mark them all completed, so we can look them over..
         dbhandle.commit()
