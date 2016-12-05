@@ -42,7 +42,7 @@ def error_response():
 
     cherrypy.response.status = 500
     cherrypy.response.headers['content-type'] = 'text/html'
-    cherrypy.response.body = body
+    cherrypy.response.body = str(body)
     cherrypy.log(dump)
 
 #
