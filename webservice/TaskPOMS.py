@@ -13,7 +13,10 @@ from datetime import datetime
 
 import time_grid
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
+from sqlalchemy import func
 from utc import utc
+from datetime import datetime, timedelta
+
 
 from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
 
@@ -56,8 +59,8 @@ class TaskPOMS:
 
         #
         # make jobs which completed with no output files located.
-        subq = cherrypy.request.db.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
-        cherrypy.request.db.query(Job).filter(subq == 0).update({'status':'Located'})
+        subq = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
+        dbhandle.query(Job).filter(subq == 0).update({'status':'Located'})
         #
         # check active tasks to see if they're completed/located
         for task in dbhandle.query(Task).options(subqueryload(Task.jobs)).filter(Task.status != "Completed", Task.status != "Located").all():
@@ -85,7 +88,7 @@ class TaskPOMS:
         n_project = 0
         n_located = 0
         # try with joinedload()...
-        for task in dbhandle.query(Task).with_for_update(of=Task).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Campaign.campaign_definition_obj)).filter(Task.status == "Completed").all():
+        for task in dbhandle.query(Task).with_for_update(of=Task).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Completed").all():
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as
             # located as its going to get...
@@ -98,8 +101,8 @@ class TaskPOMS:
                     j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
-                if not self.poms_service.launch_recovery_if_needed(task.task_id):
-                    self.poms_service.launch_dependents_if_needed(task.task_id)
+                if not self.poms_service.launch_recovery_if_needed(task):
+                    self.poms_service.launch_dependents_if_needed(task)
             elif task.project:
                 # task had a sam project, add to the list to look
                 # up in sam
@@ -128,9 +131,9 @@ class TaskPOMS:
 			j.status = "Located"
 			j.output_files_declared = True
                     task.updated = datetime.now(utc)
-                    cherrypy.request.db.add(task)
-                    if not self.poms_service.launch_recovery_if_needed(task.task_id):
-                        self.poms_services.launch_dependents_if_needed(task.task_id)
+                    dbhandle.add(task)
+                    if not self.poms_service.launch_recovery_if_needed(task):
+                        self.poms_services.launch_dependents_if_needed(task)
 
         dbhandle.commit()
         summary_list = samhandle.fetch_info_list(lookup_task_list)
@@ -156,8 +159,8 @@ class TaskPOMS:
                     j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
-                if not self.poms_service.launch_recovery_if_needed(task.task_id):
-                    self.poms_servicelaunch_dependents_if_needed(task.task_id)
+                if not self.poms_service.launch_recovery_if_needed(task):
+                    self.poms_servicelaunch_dependents_if_needed(task)
 
         res.append("Counts: completed: %d stale: %d project %d: located %d" %
                     (n_completed, n_stale , n_project, n_located))
@@ -235,8 +238,8 @@ class TaskPOMS:
             res = "Completed"
             # no, not here we wait for "Located" status..
             #if task.status != "Completed":
-            #    if not self.launch_recovery_if_needed(task.task_id):
-            #        self.launch_dependents_if_needed(task.task_id)
+            #    if not self.launch_recovery_if_needed(task):
+            #        self.launch_dependents_if_needed(task)
         return res
 
 
