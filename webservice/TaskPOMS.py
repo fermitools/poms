@@ -193,7 +193,7 @@ class TaskPOMS:
                 jjid= 'j' + str(jh.job_id)
 
             if j.status != "Completed" and j.status != "Located":
-                extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d"><i class="ui trash icon"></i></a>' % (self.path, jh.job_id)
+                extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d"><i class="ui trash icon"></i></a>' % (self.poms_service.path, jh.job_id)
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
             if jh.status != laststatus or jjid != lastjjid:
@@ -222,8 +222,8 @@ class TaskPOMS:
 
 ###
 #No expose methods.
-    def compute_status(self, task):
-        st = self.poms_service.job_counts(task_id = task.task_id)
+    def compute_status(self, dbhandle, task):
+        st = self.poms_service.triagePOMS.job_counts(dbhandle, task_id = task.task_id)
         if task.status == "Located":
             return task.status
         res = "Idle"

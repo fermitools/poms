@@ -194,6 +194,7 @@ class poms_service:
 #UtilsPOMS
 
     @cherrypy.expose
+
     def quick_search(self, search_term):
         self.utilsPOMS.quick_search(cherrypy.request.db, cherrypy.HTTPRedirect, search_term)
 
