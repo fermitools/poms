@@ -1074,7 +1074,7 @@ class poms_service:
                      j.output_files_declared = True
                  task.updated = datetime.now(utc)
                  cherrypy.request.db.add(task)
-                 if not self.launch_recovery_if_needed(task):
+                 if not self.launch_recovery_if_needed(cherrypy.request.db,task):
                      self.launch_dependents_if_needed(task)
             elif task.project:
                  # task had a sam project, add to the list to look
@@ -1103,7 +1103,7 @@ class poms_service:
 			 j.output_files_declared = True
                      task.updated = datetime.now(utc)
                      cherrypy.request.db.add(task)
-                     if not self.launch_recovery_if_needed(task):
+                     if not self.launch_recovery_if_needed(cherrypy.request.db, task):
                          self.launch_dependents_if_needed(task)
 
         cherrypy.request.db.commit()
@@ -2557,7 +2557,7 @@ class poms_service:
             cherrypy.config.update({'poms.launches': hold})
         raise cherrypy.HTTPRedirect(self.path + "/")
 
-    def launch_dependents_if_needed(self, t):
+    def launch_dependents_if_needed( self, t):
         cherrypy.log("Entering launch_dependents_if_needed(%s)" % t.task_id)
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
@@ -2571,8 +2571,14 @@ class poms_service:
               # self-reference, just do a normal launch
               self.launch_jobs(cd.uses_camp_id)
            else:
+              if getattr(t.campaign_definition_snap_obj,'is_data_transfer'):
+                  # if a data handling layer ( to be added ) our intput is
+                  # its input...
+                  dims = "snapshot for project_name %s" % t.project
+              else:
+                  # our intput is the output of our task's project inputs
+                  dims = "ischildof: (snapshot_for_project_name %s) and version %s and file_name like '%s'" % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
               i = i + 1
-              dims = "ischildof: (snapshot_for_project_name %s) and version %s and file_name like '%s'" % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
               dname = "poms_depends_%d_%d" % (t.task_id,i)
  
               cherrypy.request.samweb_lite.create_definition(t.campaign_snap_obj.experiment, dname, dims)
