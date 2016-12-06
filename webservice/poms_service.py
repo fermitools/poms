@@ -2591,18 +2591,18 @@ class poms_service:
 
         return rlist
 
-    def launch_recovery_if_needed(self, t):
+    def launch_recovery_if_needed(dbhandle, self, t):
         cherrypy.log("Entering launch_recovery_if_needed(%s)" % t.task_id)
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
             return 1
 
-        # sigh, we should pass the task  object in, not look it up again...
-        #t = cherrypy.request.db.query(Task).options(joinedload(Task.campaign_snap_obj).joinedload(Campaign.campaign_definition_obj)).filter(Task.task_id == task_id).first()
         # if this is itself a recovery job, we go back to our parent
         # to do all the work, because it has the counters, etc.
-        if t.parent_obj:
-           t = t.parent_obj
+        # -- actaully look it up with a with_for_update so we lock it
+        #    and avoid multiple launches of same recovery
+        if t.recovery_tasks_parent
+           t = dbhandle.query(Task).with_for_update(on=Task).filter(Task.task_id == t.recovery_tasks_parent).first()
 
         rlist = self.get_recovery_list_for_campaign_def(t.campaign_definition_snap_obj)
 
@@ -2647,7 +2647,6 @@ class poms_service:
                 cherrypy.log("launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s" % (t.campaign_snap_obj.experiment, rname, recovery_dims))
 
                 cherrypy.request.samweb_lite.create_definition(t.campaign_snap_obj.experiment, rname, recovery_dims)
-
             
                 self.launch_jobs(t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id)
                 return 1
