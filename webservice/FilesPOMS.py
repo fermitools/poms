@@ -7,6 +7,7 @@
 
 from model.poms_model import Experimenter, Experiment, ExperimentsExperimenters, Job, Task, Campaign, JobFile
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
+from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, not_,  create_engine, null, desc, text, func, exc, distinct
 from utc import utc
 
 class Files_status():
@@ -117,7 +118,7 @@ class Files_status():
                         logdelivered = logdelivered + 1
                     if f.file_type == "output":
                         logkids = logkids + 1
-            task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(t.task_id)
+            task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, t.task_id)
             if task_jobsub_job_id == None:
                 task_jobsub_job_id = "t%s" % t.task_id
             datarows.append([
@@ -132,7 +133,7 @@ class Files_status():
                             [ psummary.get('tot_skipped',0),  listfiles % base_dim_list[i] + " and consumed_status skipped"],
                             [some_kids_decl_list[i], listfiles % some_kids_needed[i] ],
                             [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                            [len(self.poms_service.get_inflight(task_id=t.task_id)), "./inflight_files?task_id=%d" % t.task_id],
+                            [len(self.get_inflight(dbhandle, task_id=t.task_id)), "./inflight_files?task_id=%d" % t.task_id],
                             [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
                             [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                 ])
@@ -221,7 +222,7 @@ class Files_status():
         else:
             status_response="404 Permission Denied."
             return "Neither Campaign nor Task found"
-        outlist = self.poms_service.filesPOMS.get_inflight( dbhandle, campaign_id=campaign_id, task_id= task_id)
+        outlist = self.get_inflight( dbhandle, campaign_id=campaign_id, task_id= task_id)
         statusmap = {}
         if c:
             fss_file = "%s/%s_files.db" % (cherrypy.config.get("ftsscandir"), c.experiment)
@@ -244,7 +245,7 @@ class Files_status():
             flist = samhandle.list_files(experiment, dims)
         except ValueError:
             flist = []
-        return flits
+        return flist
 
 
     def actual_pending_files(self, dbhandle, loghandle, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1):
@@ -424,7 +425,7 @@ class Files_status():
         # get pending counts for the task list for each day
         # and fill in the 7th column...
         #
-        dimlist, pendings = self.poms_services.get_pending_for_task_lists( daytasks )
+        dimlist, pendings = self.poms_service.get_pending_for_task_lists( daytasks )
         for i in range(len(pendings)):
             outrows[i][7] = pendings[i]
 
@@ -434,4 +435,4 @@ class Files_status():
         else:
             name = ''
 
-        return name, columns, outrows, dimlist, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
+        return name, columns, outrows, dimlist, experiment, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]

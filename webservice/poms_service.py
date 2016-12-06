@@ -688,7 +688,7 @@ class poms_service:
 
     @cherrypy.expose
     def campaign_task_files(self, campaign_id, tmin = None, tmax = None, tdays = 1):
-        c, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays = self.campaign_task_files(cherrypy.request.db, cherrypy.log, cherrypy.request.samweb_lite, campaign_id, tmin, tmax, tdays)
+        c, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays = self.filesPOMS.campaign_task_files(cherrypy.request.db, cherrypy.log, cherrypy.request.samweb_lite, campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_task_files.html')
         return template.render(name = c.name if c else "", columns = columns, datarows = datarows, tmin=tmins, tmax=tmaxs,  prev=prevlink, next=nextlink, days=tdays, current_experimenter=cherrypy.session.get('experimenter'),  campaign_id = campaign_id, pomspath=self.path,help_page="CampaignTaskFilesHelp", version=self.version)
 
@@ -731,7 +731,7 @@ class poms_service:
 
     @cherrypy.expose
     def campaign_sheet(self, campaign_id, tmin = None, tmax = None , tdays = 7):
-        name, columns, outrows, dimlist, tmaxs, prevlink, nextlink, tdays, tmin, tmax = campaign_sheet(cherrypy.request.db, cherrypy.log, campaign_id, tmin, tmax, tdays)
+        name, columns, outrows, dimlist, experiment, tmaxs, prevlink, nextlink, tdays, tmin, tmax = self.filesPOMS.campaign_sheet(cherrypy.request.db, cherrypy.log, campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_sheet.html')
         return template.render(name=name,
                                 columns=columns,
@@ -787,7 +787,6 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
         cidl = []
         for cp in cpl:
              job_counts_list.append(cp.name)
-             print "about to call format_job_counts( %s ,%s, %s, %s )" % (campaign_id, tmin, tmax, tdays)
              job_counts_list.append( self.filesPOMS.format_job_counts(cherrypy.request.db, campaign_id = cp.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string))
              cidl.append(cp.campaign_id)
 
@@ -822,7 +821,7 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
     @cherrypy.expose
     def job_table(self, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, name=None,campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None, eff_d = None):
         ###The pass of the arguments is ugly we will fix that later.
-        jl, jobcolumns, taskcolumns, campcolumns, tmins, tmaxs, prevlink, nextlink, tdays, extra, hidecolumns, filtered_fields, time_range_string = self.triagePOMS.job_table(cherrypy.request.db, tmin, tmax, tdays, task_id, campaign_id, experimen, sift, campaign_name, name,campaign_def_id, vo_role, input_dataset, output_dataset, task_status, project, jobsub_job_id, node_name, cpu_type, host_site, job_status, user_exe_exit_code, output_files_declared, campaign_checkbox, task_checkbox, job_checkbox, ignore_me, keyword, dataset, eff_d)
+        jl, jobcolumns, taskcolumns, campcolumns, tmins, tmaxs, prevlink, nextlink, tdays, extra, hidecolumns, filtered_fields, time_range_string = self.triagePOMS.job_table(cherrypy.request.db, tmin, tmax, tdays, task_id, campaign_id, experiment, sift, campaign_name, name,campaign_def_id, vo_role, input_dataset, output_dataset, task_status, project, jobsub_job_id, node_name, cpu_type, host_site, job_status, user_exe_exit_code, output_files_declared, campaign_checkbox, task_checkbox, job_checkbox, ignore_me, keyword, dataset, eff_d)
         template = self.jinja_env.get_template('job_table.html')
         return template.render(joblist=jl, jobcolumns = jobcolumns, taskcolumns = taskcolumns, campcolumns = campcolumns, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0,  tmin=tmins, tmax =tmaxs,  prev= prevlink,  next = nextlink, days = tdays, extra = extra, hidecolumns = hidecolumns, filtered_fields=filtered_fields, time_range_string = time_range_string, pomspath=self.path,help_page="JobTableHelp", version=self.version)
 
