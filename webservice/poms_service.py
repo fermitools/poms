@@ -1127,13 +1127,14 @@ Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
     def launch_recovery_if_needed(self, t):
         cherrypy.log("Entering launch_recovery_if_needed(%s)" % t.task_id)
 	if not cherrypy.config.get("poms.launch_recovery_jobs",False):
-            # XXX should queue for later?!?
             return 1
 
         # if this is itself a recovery job, we go back to our parent
         # to do all the work, because it has the counters, etc.
-        if t.parent_obj:
+        cycleprev = 0
+        while t.parent_obj and cycleprev < 20:
            t = t.parent_obj
+           cycleprev = cycleprev + 1
 
         rlist = self.get_recovery_list_for_campaign_def(t.campaign_definition_snap_obj)
 

@@ -101,8 +101,6 @@ class TaskPOMS:
                     j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
-                if not self.poms_service.launch_recovery_if_needed(task):
-                    self.poms_service.launch_dependents_if_needed(task)
             elif task.project:
                 # task had a sam project, add to the list to look
                 # up in sam
@@ -132,10 +130,11 @@ class TaskPOMS:
 			j.output_files_declared = True
                     task.updated = datetime.now(utc)
                     dbhandle.add(task)
-                    if not self.poms_service.launch_recovery_if_needed(task):
-                        self.poms_services.launch_dependents_if_needed(task)
 
-        dbhandle.commit()
+            if t.status == "Located":
+	        if not self.poms_service.launch_recovery_if_needed(task):
+	            self.poms_services.launch_dependents_if_needed(task)
+
         summary_list = samhandle.fetch_info_list(lookup_task_list)
         count_list = samhandle.count_files_list(lookup_exp_list,lookup_dims_list)
         thresholds = []
@@ -153,14 +152,15 @@ class TaskPOMS:
             if float(count_list[i]) >= threshold and threshold > 0:
                 n_located = n_located + 1
                 task = lookup_task_list[i]
-                task.status = "Located"
+                if task.status == "Completed":
+                    task.status = "Located"
+	            if not self.poms_service.launch_recovery_if_needed(task):
+	                self.poms_services.launch_dependents_if_needed(task)
                 for j in task.jobs:
                     j.status = "Located"
                     j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
-                if not self.poms_service.launch_recovery_if_needed(task):
-                    self.poms_servicelaunch_dependents_if_needed(task)
 
         res.append("Counts: completed: %d stale: %d project %d: located %d" %
                     (n_completed, n_stale , n_project, n_located))
@@ -169,10 +169,13 @@ class TaskPOMS:
         res.append("thresholds: %s" % thresholds)
         res.append("lookup_dims_list: %s" % lookup_dims_list)
 
+        #
+        # move launch stuff to one place, so we can 
+        #
+
         dbhandle.commit()
 
         return "\n".join(res)
-
 
 
     def show_task_jobs(self, dbhandle, task_id, tmax = None, tmin = None, tdays = 1 ):
