@@ -75,7 +75,7 @@ class jobsub_fetcher():
 if __name__ == "__main__":
      
     jf = jobsub_fetcher()
-    jobid="15156042.0@fifebatch2.fnal.gov"
+    jobid="15200109.0@fifebatch2.fnal.gov"
     flist = jf.index(jobid, "samdev", "Analysis") 
     print "------------------"
     print flist
