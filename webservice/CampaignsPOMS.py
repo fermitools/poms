@@ -9,7 +9,11 @@ Date: September 30, 2016.
 
 from model.poms_model import Experiment, Campaign, LaunchTemplate, CampaignDefinition, CampaignRecovery
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
+from crontab import CronTab
 from utc import utc
+import os
+import glob
+
 
 
 class CampaignsPOMS():
@@ -339,7 +343,7 @@ class CampaignsPOMS():
         return "Task=%d" % t.task_id
 
 
-    def show_campaigns(self, dbhandle, experiment = None, tmin = None, tmax = None, tdays = 1, active = True):
+    def show_campaigns(self, dbhandle, loghandle, experiment = None, tmin = None, tmax = None, tdays = 1, active = True):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
@@ -354,7 +358,7 @@ class CampaignsPOMS():
         counts_keys = {}
 
         dimlist, pendings = self.poms_service.get_pending_for_campaigns(cl, tmin, tmax)
-        effs = self.poms_service.get_efficiency(cl, tmin, tmax)
+        effs = self.jobsPOMS.get_efficiency(dbhandle, loghandle, cl, tmin, tmax)
 
         i = 0
         for c in cl:
@@ -366,7 +370,7 @@ class CampaignsPOMS():
         return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string
 
 
-    def campaign_info(self, dbhandle, err_res, campaign_id, tmin = None, tmax = None, tdays = None):
+    def campaign_info(self, dbhandle, ,loghandle, err_res, campaign_id, tmin = None, tmax = None, tdays = None):
         campaign_id = int(campaign_id)
 
         Campaign_info = dbhandle.query(Campaign, Experimenter).filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id).first()
@@ -390,8 +394,8 @@ class CampaignsPOMS():
         cl = [Campaign_info[0]]
         counts = {}
         counts_keys = {}
-        dimlist, pendings = self.poms_service.get_pending_for_campaigns(cl, tmin, tmax)
-        effs = self.poms_service.get_efficiency(cl, tmin, tmax)
+        dimlist, pendings = self.poms_service.get_pending_for_campaigns(dbhandle, loghandle, cl, tmin, tmax)
+        effs = self.jobsPOMS.get_efficiency(dbhandle, loghandle, cl,tmin, tmax)
         counts[campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
         counts[campaign_id]['efficiency'] = effs[0]
         counts[campaign_id]['pending'] = pendings[0]
@@ -512,3 +516,200 @@ class CampaignsPOMS():
                 dbhandle.commit()
 
          return c.campaign_id
+
+
+    def get_dataset_for(self, dbhandle, err_res, camp):
+        res = None
+
+        if camp.cs_split_type == None or camp.cs_split_type in [ '', 'draining','None' ]:
+            # no split to do, it is a draining datset, etc.
+            res =  camp.dataset
+
+        elif camp.cs_split_type == 'list':
+            j# we were given a list of datasets..
+            l = camp.dataset.split(',')
+            if camp.cs_last_split == '' or camp.cs_last_split == None:
+                camp.cs_last_split = -1
+            camp.cs_last_split += 1
+
+            if camp.cs_last_split >= len(l):
+                raise err_res(404, 'No more splits in this campaign')
+
+            res = l[camp.cs_last_split]
+
+            dbhandle.add(camp)
+            dbhandle.commit()
+
+        elif camp.cs_split_type.startswith('mod_'):
+            m = int(camp.cs_split_type[4:])
+            if camp.cs_last_split == '' or camp.cs_last_split == None:
+                camp.cs_last_split = -1
+            camp.cs_last_split += 1
+
+            if camp.cs_last_split >= m:
+                raise err_res(404, 'No more splits in this campaign')
+            new = camp.dataset + "_slice%d" % camp.cs_last_split
+            cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new,  "defname: %s with stride %d offset %d" % (camp.dataset, m, camp.cs_last_split))
+
+            res = new
+
+            dbhandle.add(camp)
+            dbhandle.commit()
+
+        elif camp.cs_split_type == 'new':
+            # save time *before* we define things, so we don't miss any
+            # and knock off an estimated FTS delay
+            est_fts_delay = 1800 # half an hour?
+            t = time.time() - 1800
+
+            if camp.cs_last_split == '' or camp.cs_last_split == None:
+                new = camp.dataset
+            else:
+                new = camp.dataset + "_since_%s" % int(camp.cs_last_split)
+                cherrypy.request.samweb_lite.create_definition(
+                  camp.campaign_definition_obj.experiment,
+                  new,
+                  "defname: %s and end_time > '%s' and end_time <= '%s'" % (
+                     camp.dataset,
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(camp.cs_last_split)),
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(t)))
+                )
+
+            # mark end time for start of next run
+            camp.cs_last_split = t
+            res = new
+
+            dbhandle.add(camp)
+            dbhandle.commit()
+
+        elif camp.cs_split_type == 'new_local':
+            # save time *before* we define things, so we don't miss any
+            # and knock off an estimated FTS delay
+            est_fts_delay = 1800 # half an hour?
+            t = time.time() - 1800
+
+            if camp.cs_last_split == '' or camp.cs_last_split == None:
+                new = camp.dataset
+            else:
+                new = camp.dataset + "_since_%s" % int(camp.cs_last_split)
+                cherrypy.request.samweb_lite.create_definition(
+                  camp.campaign_definition_obj.experiment,
+                  new,
+                  "defname: %s and end_time > '%s' and end_time <= '%s'" % (
+                     camp.dataset,
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(camp.cs_last_split)),
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(t)))
+                )
+
+            # mark end time for start of next run
+            camp.cs_last_split = t
+            res = new
+
+            dbhandle.add(camp)
+            dbhandle.commit()
+        return res
+
+
+    def list_launch_file(self, campaign_id, fname ):
+        dirname="%s/private/logs/poms/launches/campaign_%s" % (
+           os.environ['HOME'],campaign_id)
+        lf = open("%s/%s" % (dirname, fname), "r")
+        lines = lf.readlines()
+        lf.close()
+        return lines
+
+
+    def schedule_launch(self, dbhandle, campaign_id ):
+        c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        my_crontab = CronTab(user=True)
+        citer = my_crontab.find_comment("POMS_CAMPAIGN_ID=%s" % campaign_id)
+        # there should be only zero or one...
+        job = None
+        for job in citer:
+            break
+
+        # any launch outputs to look at?
+        #
+        dirname="%s/private/logs/poms/launches/campaign_%s" % (
+           os.environ['HOME'],campaign_id)
+        launch_flist = glob.glob('%s/*' % dirname)
+        launch_flist = map(os.path.basename, launch_flist)
+        return c, job, launch_flist
+
+
+    def update_launch_schedule(self, loghandle, campaign_id, dowlist = None,  domlist = None, monthly = None, month = None, hourlist = None, submit = None , minlist = None, delete = None):
+
+        # deal with single item list silliness
+        if isinstance(minlist, basestring):
+           minlist = minlist.split(",")
+        if isinstance(hourlist, basestring):
+           hourlist = hourlist.split(",")
+        if isinstance(dowlist, basestring):
+           dowlist = dowlist.split(",")
+        if isinstance(domlist, basestring):
+           domlist = domlist.split(",")
+
+        loghandle("hourlist is %s " % hourlist)
+
+        if minlist[0] == "*":
+            minlist = None
+        else:
+            minlist = [int(x) for x in minlist if x != '']
+
+        if hourlist[0] == "*":
+            hourlist = None
+        else:
+            hourlist = [int(x) for x in hourlist if x != '']
+
+        if dowlist[0] == "*":
+            dowlist = None
+        else:
+            # dowlist[0] = [int(x) for x in dowlist if x != '']
+            pass
+
+        if domlist[0] == "*":
+            domlist = None
+        else:
+            domlist = [int(x) for x in domlist if x != '']
+
+        my_crontab = CronTab(user=True)
+        # clean out old
+        my_crontab.remove_all(comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
+
+        if not delete:
+
+            # make job for new -- use current link for product
+            pdir=os.environ.get("POMS_DIR","/etc/poms")
+            pdir=pdir[:pdir.rfind("poms")+4] + "/current"
+            job = my_crontab.new(command="%s/cron/launcher --campaign_id=%s" % (
+                              pdir, campaign_id),
+                              comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
+
+            # set timing...
+            if dowlist:
+                job.dow.on(*dowlist)
+
+            if minlist:
+                job.minute.on(*minlist)
+
+            if hourlist:
+                job.hour.on(*hourlist)
+
+            if domlist:
+                job.day.on(*domlist)
+
+            job.enable()
+
+        my_crontab.write()
+
+
+    def get_recovery_list_for_campaign_def(self, dbhandle, campaign_def):
+        rlist = dbhandle.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == campaign_def.campaign_definition_id).order_by(CampaignRecovery.recovery_order)
+
+        # convert to a real list...
+        l = []
+        for r in rlist:
+            l.append(r)
+        rlist = l
+
+        return rlist

@@ -11,6 +11,7 @@ from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from utc import utc
 import gc
 import json
+#from poms_service import popen_read_with_timeout
 #from LaunchPOMS import launch_recovery_if_needed
 #from poms_service import poms_service
 
@@ -188,3 +189,219 @@ class JobsPOMS():
     def test_job_counts(self, task_id = None, campaign_id = None):
         res = self.poms_service.job_counts(task_id, campaign_id)
         return repr(res) + self.poms_service.format_job_counts(task_id, campaign_id)
+
+
+    def kill_jobs(self, dbhandle, loghandle, campaign_id=None, task_id=None, job_id=None, confirm=None):
+        jjil = []
+        jql = None
+        t = None
+        if campaign_id != None or task_id != None:
+            if campaign_id != None:
+                tl = dbhandle.query(Task).filter(Task.campaign_id == campaign_id, Task.status != 'Completed', Task.status != 'Located').all()
+            else:
+                tl = dbhandle.query(Task).filter(Task.task_id == task_id).all()
+            c = tl[0].campaign_snap_obj
+            for t in tl:
+                tjid = self.poms_service.task_min_job(t.task_id)
+                loghandle("kill_jobs: task_id %s -> tjid %s" % (t.task_id, tjid))
+                # for tasks/campaigns, kill the whole group of jobs
+                # by getting the leader's jobsub_job_id and taking off
+                # the '.0'.
+                if tjid:
+                    jjil.append(tjid.replace('.0',''))
+        else:
+            jql = dbhandle.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Located').all()
+            c = jql[0].task_obj.campaign_snap_obj
+            for j in jql:
+                jjil.append(j.jobsub_job_id)
+
+        if confirm == None:
+            jijatem = 'kill_jobs_confirm.html'
+
+            template = self.jinja_env.get_template('kill_jobs_confirm.html')
+
+            return  jjil, t, campaign_id, task_id, job_id
+        else:
+            group = c.experiment
+            if group == 'samdev': group = 'fermilab'
+
+            f = os.popen("jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
+            output = f.read()
+            f.close()
+
+            template = self.jinja_env.get_template('kill_jobs.html')
+            return output, c, campaign_id, task_id, job_id
+
+    def jobs_eff_histo(self, dbhandle, campaign_id, tmax = None, tmin = None, tdays = 1 ):
+        """  use
+                  select count(job_id), floor(cpu_time * 10 / wall_time) as de
+                     from jobs, tasks
+                     where
+                        jobs.task_id = tasks.task_id and
+                        tasks.campaign_id=17 and
+                        wall_time > 0 and
+                        wall_time > cpu_time and
+                        jobs.updated > '2016-03-10 00:00:00'
+                        group by floor(cpu_time * 10 / wall_time)
+                       order by de;
+             to get height bars for a histogram, clicks through to
+             jobs with a given efficiency...
+             Need to add efficiency  (cpu_time/wall_time) as a param to
+             jobs_table...
+
+         """
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_services.utilsPOMS.handle_dates(tmin, tmax,tdays,'jobs_eff_histo?campaign_id=%s&' % campaign_id)
+
+        q = dbhandle.query(func.count(Job.job_id), func.floor(Job.cpu_time *10/Job.wall_time))
+        q = q.join(Job.task_obj)
+        q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == campaign_id)
+        q = q.filter(Job.cpu_time > 0, Job.wall_time >= Job.cpu_time)
+        q = q.filter(Task.created < tmax, Task.created >= tmin)
+        q = q.group_by(func.floor(Job.cpu_time*10/Job.wall_time))
+        q = q.order_by((func.floor(Job.cpu_time*10/Job.wall_time)))
+
+        qz = dbhandle.query(func.count(Job.job_id))
+        qz = qz.join(Job.task_obj)
+        qz = qz.filter(Job.task_id == Task.task_id, Task.campaign_id == campaign_id)
+        qz = qz.filter(not_(and_(Job.cpu_time > 0, Job.wall_time >= Job.cpu_time)))
+        nodata = qz.first()
+
+        total = 0
+        vals = {-1: nodata[0]}
+        maxv = 0.01
+        if nodata[0] > maxv:
+           maxv = nodata[0]
+        for row in q.all():
+            vals[row[1]] = row[0]
+            if row[0] > maxv:
+               maxv = row[0]
+            total += row[0]
+
+        c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        # return "total %d ; vals %s" % (total, vals)
+        # return "Not yet implemented"
+        return c, maxv, total, vals, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
+
+
+    def get_efficiency(self, dbhandle, loghandle, campaign_list, tmin, tmax): #This method was deleted from the main script
+        id_list = []
+        for c in campaign_list:
+            id_list.append(c.campaign_id)
+
+        rows = (dbhandle.query( func.sum(Job.cpu_time), func.sum(Job.wall_time),Task.campaign_id).
+                filter(Job.task_id == Task.task_id,
+                       Task.campaign_id.in_(id_list),
+                       Job.cpu_time > 0,
+                       Job.wall_time > 0,
+                       Task.created >= tmin, Task.created < tmax ).
+                group_by(Task.campaign_id).all())
+
+        loghandle("got rows:")
+        for r in rows:
+            loghandle("%s" % repr(r))
+
+        mapem={}
+        for totcpu, totwall, campaign_id in rows:
+            if totcpu != None and totwall != None:
+                mapem[campaign_id] = int(totcpu * 100.0 / totwall)
+            else:
+                mapem[campaign_id] = -1
+
+        loghandle("got map: %s" % repr(mapem))
+
+        efflist = []
+        for c in campaign_list:
+            efflist.append(mapem.get(c.campaign_id, -2))
+
+        loghandle("got list: %s" % repr(efflist))
+        return efflist
+
+
+    def launch_jobs(self, dbhandle,loghandle, getconfig, gethead, seshandle, err_res, campaign_id, dataset_override = None, parent_task_id = None):
+
+        loghandle("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
+        if getconfig("poms.launches","allowed") == "hold":
+            return "Job launches currently held."
+
+        c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).options(joinedload(Campaign.launch_template_obj),joinedload(Campaign.campaign_definition_obj)).first()
+        cd = c.campaign_definition_obj
+        lt = c.launch_template_obj
+
+        e = seshandle('experimenter')
+        xff = gethead('X-Forwarded-For', None)
+        ra =  gethead('Remote-Addr', None)
+        if not e.is_authorized(c.experiment) and not ( ra == '127.0.0.1' and xff == None):
+             loghandle("launch_jobs -- experimenter not authorized")
+             err_res="404 Permission Denied."
+             return "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
+        experimenter_login = e.email[:e.email.find('@')]
+        lt.launch_account = lt.launch_account % {
+              "experimenter": experimenter_login,
+        }
+
+        if dataset_override:
+            dataset = dataset_override
+        else:
+            dataset = self.campaignsPOMS.get_dataset_for(dbhandle, err_res, c)
+
+        group = c.experiment
+        if group == 'samdev': group = 'fermilab'
+
+        cmdl =  [
+            "exec 2>&1",
+            "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
+            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
+            "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.poms_service.hostname,
+            "ssh -tx %s@%s <<'EOF'" % (lt.launch_account, lt.launch_host),
+            lt.launch_setup % {
+              "dataset":dataset,
+              "version":c.software_version,
+              "group": group,
+              "experimenter": experimenter_login,
+            },
+            "setup poms_jobsub_wrapper v0_4 -z /grid/fermiapp/products/common/db",
+            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
+            "export POMS_TEST=%s" % ("" if "poms" in self.poms_service.hostname else "1"),
+            "export POMS_CAMPAIGN_ID=%s" % c.campaign_id,
+            "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id,
+            "export JOBSUB_GROUP=%s" % group,
+        ]
+        if cd.definition_parameters:
+           params = OrderedDict(json.loads(cd.definition_parameters))
+        else:
+           params = OrderedDict([])
+
+        if c.param_overrides != None and c.param_overrides != "":
+            params.update(json.loads(c.param_overrides))
+
+        lcmd = cd.launch_script + " " + ' '.join((x[0]+x[1]) for x in params.items())
+        lcmd = lcmd % {
+              "dataset":dataset,
+              "version":c.software_version,
+              "group": group,
+              "experimenter": experimenter_login,
+        }
+        cmdl.append(lcmd)
+        cmdl.append('exit')
+        cmdl.append('EOF')
+        cmd = '\n'.join(cmdl)
+
+        cmd = cmd.replace('\r','')
+
+        # make sure launch doesn't take more that half an hour...
+        output = self.poms_service.popen_read_with_timeout(cmd, 1800) ### Question???
+
+        # always record launch...
+        ds = time.strftime("%Y%m%d_%H%M%S")
+        outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"],campaign_id)
+        outfile = "%s/%s" % (outdir, ds)
+        loghandle("trying to record launch in %s" % outfile)
+        if not os.path.isdir(outdir):
+            os.makedirs(outdir)
+        lf = open(outfile,"w")
+        lf.write(res)
+        lf.close()
+        template = self.jinja_env.get_template('launch_jobs.html')
+        res = lcmd, output, c, campaign_id
+
+        return res
