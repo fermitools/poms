@@ -83,6 +83,11 @@ class TaskPOMS:
         lookup_task_list = []
         lookup_dims_list = []
         lookup_exp_list = []
+        #
+        # move launch stuff etc, to one place, so we can keep the table rows 
+        # so we need a list...
+        #
+        finish_up_tasks = {}
         n_completed = 0
         n_stale = 0
         n_project = 0
@@ -132,8 +137,7 @@ class TaskPOMS:
                     dbhandle.add(task)
 
             if t.status == "Located":
-	        if not self.poms_service.launch_recovery_if_needed(task):
-	            self.poms_services.launch_dependents_if_needed(task)
+                finish_up_tasks[t.task_id] = t
 
         summary_list = samhandle.fetch_info_list(lookup_task_list)
         count_list = samhandle.count_files_list(lookup_exp_list,lookup_dims_list)
@@ -154,8 +158,7 @@ class TaskPOMS:
                 task = lookup_task_list[i]
                 if task.status == "Completed":
                     task.status = "Located"
-	            if not self.poms_service.launch_recovery_if_needed(task):
-	                self.poms_services.launch_dependents_if_needed(task)
+                    finish_up_tasks[task.task_id] = task
                 for j in task.jobs:
                     j.status = "Located"
                     j.output_files_declared = True
@@ -169,11 +172,23 @@ class TaskPOMS:
         res.append("thresholds: %s" % thresholds)
         res.append("lookup_dims_list: %s" % lookup_dims_list)
 
-        #
-        # move launch stuff to one place, so we can 
-        #
 
         dbhandle.commit()
+
+        #
+        # now, after committing to clear locks, we run through the
+        # job logs for the tasks and update process stats, and 
+        # launch any recovery jobs or jobs depending on us.
+        #
+        for task_id, task in finish_up_tasks.each():
+            # get logs for job for final cpu values, etc.
+            condor_log_parser.get_joblogs(dbhandle, 
+                   task_min_job(dbhandle, task_id) 
+                   t.campaign_snap_obj.experiment, 
+                   t.campaign_snap_obj.role)
+
+	    if not self.poms_service.launch_recovery_if_needed(task):
+	       self.poms_services.launch_dependents_if_needed(task)
 
         return "\n".join(res)
 
