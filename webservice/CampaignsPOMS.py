@@ -10,6 +10,8 @@ Date: September 30, 2016.
 from model.poms_model import Experiment, Campaign, LaunchTemplate, CampaignDefinition, CampaignRecovery
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from crontab import CronTab
+from datetime import datetime, tzinfo,timedelta
+import time
 from utc import utc
 import os
 import glob
@@ -343,7 +345,7 @@ class CampaignsPOMS():
         return "Task=%d" % t.task_id
 
 
-    def show_campaigns(self, dbhandle, loghandle, experiment = None, tmin = None, tmax = None, tdays = 1, active = True):
+    def show_campaigns(self, dbhandle, loghandle, samhandle, experiment = None, tmin = None, tmax = None, tdays = 1, active = True):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
@@ -357,7 +359,7 @@ class CampaignsPOMS():
         counts = {}
         counts_keys = {}
 
-        dimlist, pendings = self.poms_service.get_pending_for_campaigns(cl, tmin, tmax)
+        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, loghandle, samhandle, cl, tmin, tmax)
         effs = self.jobsPOMS.get_efficiency(dbhandle, loghandle, cl, tmin, tmax)
 
         i = 0
@@ -370,7 +372,7 @@ class CampaignsPOMS():
         return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string
 
 
-    def campaign_info(self, dbhandle, ,loghandle, err_res, campaign_id, tmin = None, tmax = None, tdays = None):
+    def campaign_info(self, dbhandle, loghandle, samhandle, err_res, campaign_id, tmin = None, tmax = None, tdays = None):
         campaign_id = int(campaign_id)
 
         Campaign_info = dbhandle.query(Campaign, Experimenter).filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id).first()
@@ -394,7 +396,7 @@ class CampaignsPOMS():
         cl = [Campaign_info[0]]
         counts = {}
         counts_keys = {}
-        dimlist, pendings = self.poms_service.get_pending_for_campaigns(dbhandle, loghandle, cl, tmin, tmax)
+        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, loghandle, samhandle, cl, tmin, tmax)
         effs = self.jobsPOMS.get_efficiency(dbhandle, loghandle, cl,tmin, tmax)
         counts[campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
         counts[campaign_id]['efficiency'] = effs[0]
@@ -713,3 +715,25 @@ class CampaignsPOMS():
         rlist = l
 
         return rlist
+
+
+    def make_stale_campaigns_inactive(self, dbhandle, err_res):
+        if not self.poms_service.accessPOMS.can_report_data(cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get)():
+             raise err_res(401, 'You are not authorized to access this resource')
+        lastweek = datetime.now(utc) - timedelta(days=7)
+        cp = dbhandle.query(Task.campaign_id).filter(Task.created > lastweek).group_by(Task.campaign_id).all()
+        sc = []
+        for cid in cp:
+            sc.append(cid)
+
+        stale =  dbhandle.query(Campaign).filter(Campaign.campaign_id.notin_(sc), Campaign.active == True).all()
+        res=[]
+        for c in stale:
+            res.append(c.name)
+            c.active=False
+            dbhandle.add(c)
+
+
+        dbhandle.commit()
+
+        return res

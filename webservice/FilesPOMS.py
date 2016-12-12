@@ -132,7 +132,7 @@ class Files_status():
                             [ psummary.get('tot_skipped',0),  listfiles % base_dim_list[i] + " and consumed_status skipped"],
                             [some_kids_decl_list[i], listfiles % some_kids_needed[i] ],
                             [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                            [len(self.poms_service.get_inflight(task_id=t.task_id)), "./inflight_files?task_id=%d" % t.task_id],
+                            [len(self.poms_service.get_inflight(dbhandle, campaign_id, task_id=t.task_id)), "./inflight_files?task_id=%d" % t.task_id],
                             [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
                             [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                 ])
@@ -213,7 +213,7 @@ class Files_status():
         return outlist
 
 
-    def inflight_files(self, dbhandle, status_response, campaign_id=None, task_id=None):
+    def inflight_files(self, dbhandle, status_response, getconfig, campaign_id=None, task_id=None):
         #status_response = cherrypy.response.status
         if campaign_id:
             c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
@@ -222,10 +222,10 @@ class Files_status():
         else:
             status_response="404 Permission Denied."
             return "Neither Campaign nor Task found"
-        outlist = self.poms_service.filesPOMS.get_inflight( dbhandle, campaign_id=campaign_id, task_id= task_id)
+        outlist = self.poms_service.filesPOMS.get_inflight( dbhandle, campaign_id=campaign_id, task_id = task_id)
         statusmap = {}
         if c:
-            fss_file = "%s/%s_files.db" % (cherrypy.config.get("ftsscandir"), c.experiment)
+            fss_file = "%s/%s_files.db" % (getconfig("ftsscandir"), c.experiment)
             if os.path.exists(fss_file):
                 fss = shelve.open(fss_file, 'r')
                 for f in outlist:
@@ -436,3 +436,63 @@ class Files_status():
             name = ''
 
         return name, columns, outrows, dimlist, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
+
+
+    def get_pending_for_campaigns(self, samhandle, dbhandle, loghandle, campaign_list, tmin, tmax):
+
+        task_list_list = []
+
+        loghandle("in get_pending_for_campaigns, tmin %s tmax %s" % (tmin, tmax))
+
+        for c in campaign_list:
+            tl = (dbhandle.query(Task).
+            options(
+                    joinedload(Task.campaign_snap_obj).
+                    joinedload(Campaign.campaign_definition_obj)).
+                    filter(Task.campaign_id == c.campaign_id,
+                    Task.created >= tmin, Task.created < tmax ).
+                    all())
+            task_list_list.append(tl)
+
+        return self.poms_service.filesPOMS.get_pending_for_task_lists(loghandle, samhandle, task_list_list)
+
+
+    def get_pending_for_task_lists(self, loghandle, samhandle, task_list_list):
+        dimlist=[]
+        explist=[]
+        experiment = None
+        loghandle("get_pending_for_task_lists: task_list_list (%d): %s" % (len(task_list_list),task_list_list))
+        for tl in task_list_list:
+            diml = ["("]
+            for task in tl:
+                #if task.project == None:
+                #    continue
+                diml.append("(snapshot_for_project_name %s" % task.project)
+                diml.append("minus ( snapshot_for_project_name %s and (" % task.project)
+                sep = ""
+                for pat in str(task.campaign_definition_snap_obj.output_file_patterns).split(','):
+                     if (pat == "None"):
+                         pat = "%"
+                     diml.append(sep)
+                     diml.append("isparentof: ( file_name '%s' and version '%s' with availability physical )" % (pat, task.campaign_snap_obj.software_version))
+                     sep = "or"
+                diml.append(")")
+                diml.append(")")
+                diml.append(")")
+                diml.append("union")
+                diml[-1] = ")"
+
+            if len(diml) <= 1:
+               diml[0] = "project_name no_project_info"
+
+               dimlist.append(" ".join(diml))
+
+            if len(tl):
+                explist.append(tl[0].campaign_definition_snap_obj.experiment)
+            else:
+                explist.append("samdev")
+
+        loghandle("get_pending_for_task_lists: dimlist (%d): %s" % (len(dimlist), dimlist))
+        count_list = samhandle.count_files_list(explist,dimlist)
+        loghandle("get_pending_for_task_lists: count_list (%d): %s" % (len(dimlist), count_list))
+        return dimlist, count_list

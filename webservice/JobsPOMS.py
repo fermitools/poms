@@ -342,7 +342,7 @@ class JobsPOMS():
         if dataset_override:
             dataset = dataset_override
         else:
-            dataset = self.campaignsPOMS.get_dataset_for(dbhandle, err_res, c)
+            dataset = self.poms_service.campaignsPOMS.get_dataset_for(dbhandle, err_res, c)
 
         group = c.experiment
         if group == 'samdev': group = 'fermilab'
@@ -396,12 +396,4 @@ class JobsPOMS():
         outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"],campaign_id)
         outfile = "%s/%s" % (outdir, ds)
         loghandle("trying to record launch in %s" % outfile)
-        if not os.path.isdir(outdir):
-            os.makedirs(outdir)
-        lf = open(outfile,"w")
-        lf.write(res)
-        lf.close()
-        template = self.jinja_env.get_template('launch_jobs.html')
-        res = lcmd, output, c, campaign_id
-
-        return res
+        return lcmd, output, c, campaign_id, outdir, outfile
