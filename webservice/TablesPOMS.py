@@ -19,14 +19,14 @@ class TablesPOMS:
         #loghandle = loghandle
 
 
-    def list_generic(self, dbhandle, err_res, classname):
-        if not self.poms_service.accessPOMS.can_db_admin():
+    def list_generic(self, dbhandle, err_res, gethead, seshandle, classname):
+        if not self.poms_service.accessPOMS.can_db_admin(gethead, seshandle):
             raise err_res(401, 'You are not authorized to access this resource')
         l = self.make_list_for(dbhandle, self.poms_service.admin_map[classname],self.poms_service.pk_map[classname])
         return l
 
-    def edit_screen_generic(self, err_res, classname, id = None):
-        if not self.poms_service.accessPOMS.can_db_admin():
+    def edit_screen_generic(self, err_res, gethead, seshandle, classname, id = None):
+        if not self.poms_service.accessPOMS.can_db_admin(gethead, seshandle):
             raise err_res(401, 'You are not authorized to access this resource')
         # XXX -- needs to get select lists for foreign key fields...
         return self.poms_service.edit_screen_for(classname, self.poms_service.admin_map[classname], 'update_generic', self.poms_service.pk_map[classname], id, {})
@@ -88,8 +88,8 @@ class TablesPOMS:
         return "%s=%s" % (classname, getattr(found,primkey))
 
 
-    def edit_screen_for( self, dbhandle, loghandle, classname, eclass, update_call, primkey, primval, valmap):
-        if not self.poms_service.accessPOMS.can_db_admin():
+    def edit_screen_for( self, dbhandle, loghandle, gethead, seshandle, classname, eclass, update_call, primkey, primval, valmap):
+        if not self.poms_service.accessPOMS.can_db_admin(gethead, seshandle):
             raise err_res(401, 'You are not authorized to access this resource')
 
         found = None

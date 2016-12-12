@@ -270,7 +270,7 @@ class poms_service:
 ### DBadminPOMS
     @cherrypy.expose
     def raw_tables(self):
-    	if not self.accessPOMS.can_db_admin():
+    	if not self.accessPOMS.can_db_admin(cherrypy.request.headers.get, cherrypy.session.get):
 	    raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
         return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'),
@@ -295,7 +295,7 @@ class poms_service:
 
     @cherrypy.expose
     def experiment_authorize(self, *args, **kwargs):
-        if not self.accessPOMS.can_db_admin():
+        if not self.accessPOMS.can_db_admin(cherrypy.request.headers.get, cherrypy.session.get):
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         message = self.dbadminPOMS.experiment_authorize(cherrypy.request.db, cherrypy.log, *args, **kwargs)
         return self.experiment_edit(message)
@@ -407,14 +407,14 @@ class poms_service:
 ### Tables
     @cherrypy.expose
     def list_generic(self, classname):
-        l = tablesPOMS.list_generic(cherrypy.request.db, cherrypy.HTTPError, classname)
+        l = tablesPOMS.list_generic(cherrypy.request.db, cherrypy.HTTPError,cherrypy.request.headers.get, cherrypy.session.get, classname)
         template = self.jinja_env.get_template('list_generic.html')
         return template.render( classname = classname, list = l, edit_screen="edit_screen_generic", primary_key='experimenter_id',current_experimenter=cherrypy.session.get('experimenter'),  pomspath=self.path,help_page="ListGenericHelp", version=self.version)
 
 
     @cherrypy.expose
     def edit_screen_generic(self, classname, id = None):
-        return self.tablesPOMS.edit_screen_generic(cherrypy.HTTPError, classname, id)
+        return self.tablesPOMS.edit_screen_generic(cherrypy.HTTPError, cherrypy.request.headers.get, cherrypy.session.get, classname, id)
 
 
     @cherrypy.expose
@@ -423,7 +423,7 @@ class poms_service:
 
 
     def edit_screen_for( self, classname, eclass, update_call, primkey, primval, valmap): ### Why this function is not expose
-        screendata = self.tablesPOMS.edit_screen_for(cherrypy.request.db, cherrypy.log, classname, eclass, update_call, primkey, primval, valmap)
+        screendata = self.tablesPOMS.edit_screen_for(cherrypy.request.db, cherrypy.log, cherrypy.request.headers.get, cherrypy.session.get, classname, eclass, update_call, primkey, primval, valmap)
         template = self.jinja_env.get_template('edit_screen_for.html')
         return template.render( screendata = screendata, action="./"+update_call , classname = classname ,current_experimenter=cherrypy.session.get('experimenter'),  pomspath=self.path,help_page="GenericEditHelp", version=self.version)
 #----------------------------
