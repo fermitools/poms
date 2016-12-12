@@ -354,7 +354,7 @@ class poms_service:
     def campaign_time_bars(self, campaign_id = None, tag = None, tmin = None, tmax = None, tdays = 1):
         job_counts, blob, name, tmin, tmax, nextlink, prevlink, tdays,key, extramap= self.campaignsPOMS.campaign_time_bars(cherrypy.request.db, cherrypy.HTTPError, campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_time_bars.html')
-        return template.render( job_counts = job_counts, blob = blob, name = name, tmin = tmin, tmax, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, extramap = extramap, help_page="CampaignTimeBarsHelp", version=self.version)
+        return template.render( job_counts = job_counts, blob = blob, name = name, tmin = tmin, tmax = tmax, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, key = key, pomspath=self.path, extramap = extramap, help_page="CampaignTimeBarsHelp", version=self.version)
 
 
     @cherrypy.expose
