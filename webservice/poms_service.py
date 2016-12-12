@@ -39,6 +39,7 @@ import TagsPOMS
 import TriagePOMS
 import FilesPOMS
 import AccessPOMS
+import TablesPOMS
 
 
 def error_response():
