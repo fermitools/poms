@@ -142,6 +142,6 @@ class TablesPOMS:
                 columns = found._sa_instance_state.class_.__table__.columns
                 for fieldname in columns.keys():
                     if columns[fieldname].primary_key:
-                         self..poms_service.pk_map[k] = fieldname
-        cherrypy.log(" ---- admin map: %s " % repr(self..poms_service.admin_map))
-        cherrypy.log(" ---- pk_map: %s " % repr(self..poms_service.pk_map))
+                         self.poms_service.pk_map[k] = fieldname
+        loghandle(" ---- admin map: %s " % repr(self.poms_service.admin_map))
+        loghandle(" ---- pk_map: %s " % repr(self.poms_service.pk_map))
