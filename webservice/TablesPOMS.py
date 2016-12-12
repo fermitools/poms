@@ -131,7 +131,7 @@ class TablesPOMS:
             make self.admin_map a map of strings to model class names
             and self.pk_map a map of primary keys for that class
         """
-        cherrypy.log(" ---- make_admin_map: starting...")
+        loghandle(" ---- make_admin_map: starting...")
         import model.poms_model
         self.poms_service.admin_map = {}
         self.poms_service.pk_map = {}
