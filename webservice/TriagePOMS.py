@@ -319,6 +319,7 @@ class TriagePOMS():
 
         jl = q.all()
         if jl:
-            loghandle( "got jobtable %s " % repr( jl[0].__dict__) )
+            #loghandle( "got jobtable %s " % repr( jl[0].__dict__) )
+            loghandle( "got jobtable %s " % repr( jl[0]) )
 
         return jl, possible_columns, columns, tmins, tmaxs, tdays, prevlink, nextlink, time_range_string, tdays
