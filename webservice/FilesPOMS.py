@@ -438,7 +438,7 @@ class Files_status():
         return name, columns, outrows, dimlist, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
 
 
-    def get_pending_for_campaigns(self, samhandle, dbhandle, loghandle, campaign_list, tmin, tmax):
+    def get_pending_for_campaigns(self,  dbhandle, loghandle, samhandle, campaign_list, tmin, tmax):
 
         task_list_list = []
 
