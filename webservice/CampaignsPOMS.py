@@ -21,7 +21,7 @@ import glob
 class CampaignsPOMS():
 
 
-    def __init__(self, ps, loghandle):
+    def __init__(self, ps):
         self.poms_service=ps
 
 

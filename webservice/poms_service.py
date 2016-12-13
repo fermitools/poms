@@ -107,7 +107,7 @@ class poms_service:
         global_version = self.version
         self.calendarPOMS = CalendarPOMS.CalendarPOMS()
         self.dbadminPOMS = DBadminPOMS.DBadminPOMS()
-        self.campaignsPOMS = CampaignsPOMS.CampaignsPOMS()
+        self.campaignsPOMS = CampaignsPOMS.CampaignsPOMS(self)
         self.jobsPOMS = JobsPOMS.JobsPOMS(self)
         self.taskPOMS = TaskPOMS.TaskPOMS(self)
         self.utilsPOMS = UtilsPOMS.UtilsPOMS(self)
