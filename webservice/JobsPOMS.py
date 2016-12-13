@@ -8,6 +8,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile
 from datetime import datetime, timedelta
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
+from sqlalchemy import func
 from utc import utc
 import gc
 import json
