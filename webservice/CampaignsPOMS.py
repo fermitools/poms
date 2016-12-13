@@ -7,7 +7,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
-from model.poms_model import Experiment, Experimenter, Campaign, LaunchTemplate, CampaignDefinition, CampaignRecovery, CampaignsTags, Tag
+from model.poms_model import Experiment, Experimenter, Campaign, LaunchTemplate, CampaignDefinition, CampaignRecovery, CampaignsTags, Tag, CampaignSnapshot
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from crontab import CronTab
 from datetime import datetime, tzinfo,timedelta
