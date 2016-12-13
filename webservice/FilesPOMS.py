@@ -444,7 +444,7 @@ class Files_status():
         loghandle("in get_pending_for_campaigns, tmin %s tmax %s" % (tmin, tmax))
 
         for c in campaign_list:
-            tl = (cherrypy.request.db.query(Task).
+            tl = (dbhandle.query(Task).
             options( joinedload(Task.campaign_snap_obj)).
             options( joinedload(Task.campaign_definition_snap_obj)).
             filter(Task.campaign_id == c.campaign_id,
