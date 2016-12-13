@@ -402,7 +402,7 @@ class CampaignsPOMS():
         counts = {}
         counts_keys = {}
         dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, loghandle, samhandle, cl, tmin, tmax)
-        effs = self.jobsPOMS.get_efficiency(dbhandle, loghandle, cl,tmin, tmax)
+        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, loghandle, cl,tmin, tmax)
         counts[campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
         counts[campaign_id]['efficiency'] = effs[0]
         counts[campaign_id]['pending'] = pendings[0]
