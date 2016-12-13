@@ -444,13 +444,21 @@ class Files_status():
         loghandle("in get_pending_for_campaigns, tmin %s tmax %s" % (tmin, tmax))
 
         for c in campaign_list:
+            tl = (cherrypy.request.db.query(Task).
+            options( joinedload(Task.campaign_snap_obj)).
+            options( joinedload(Task.campaign_definition_snap_obj)).
+            filter(Task.campaign_id == c.campaign_id,
+            Task.created >= tmin, Task.created < tmax ).
+            all())
+            '''
+            To delete: Marc change this query
             tl = (dbhandle.query(Task).
-            options(
-                    joinedload(Task.campaign_snap_obj).
+            options(joinedload(Task.campaign_snap_obj).
                     joinedload(Campaign.campaign_definition_obj)).
                     filter(Task.campaign_id == c.campaign_id,
                     Task.created >= tmin, Task.created < tmax ).
                     all())
+            '''
             task_list_list.append(tl)
 
         return self.poms_service.filesPOMS.get_pending_for_task_lists(loghandle, samhandle, task_list_list)
