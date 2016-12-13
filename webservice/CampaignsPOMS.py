@@ -20,6 +20,11 @@ import glob
 
 class CampaignsPOMS():
 
+
+    def __init__(self, ps, loghandle):
+        self.poms_service=ps
+
+
     def launch_template_edit(self, dbhandle, loghandle, seshandle, *args, **kwargs):
         data = {}
         message = None
