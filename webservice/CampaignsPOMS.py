@@ -365,7 +365,7 @@ class CampaignsPOMS():
         counts_keys = {}
 
         dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, loghandle, samhandle, cl, tmin, tmax)
-        effs = self.jobsPOMS.get_efficiency(dbhandle, loghandle, cl, tmin, tmax)
+        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, loghandle, cl, tmin, tmax)
 
         i = 0
         for c in cl:
