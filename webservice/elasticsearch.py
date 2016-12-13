@@ -1,3 +1,4 @@
+import os
 import requests
 import pprint
 import json
@@ -8,7 +9,7 @@ from utc import utc
 class Elasticsearch:
 
     def __init__(self, debug=0):
-        if debug == 1:
+        if debug == 1 or cherrypy.config.get('elasticsearch_base_url') == None:
             self.base_url="https://fifemon-es.fnal.gov"
             #self.base_url="http://sammongpvm01.fnal.gov:9200"
         else:
@@ -16,8 +17,11 @@ class Elasticsearch:
 
         configfile = "poms.ini"
         cherrypy.config.update(configfile) 
-        self.cert=cherrypy.config.get('elasticsearch_cert').strip('"')
-        self.key=cherrypy.config.get('elasticsearch_key').strip('"')
+        self.cert=cherrypy.config.get('elasticsearch_cert','').strip('"')
+        self.key=cherrypy.config.get('elasticsearch_key','').strip('"')
+        if self.cert == "":
+            self.cert = "/tmp/x509up_u%d" % os.getuid()
+            self.key = self.cert
 
         requests.packages.urllib3.disable_warnings()
 
@@ -157,14 +161,14 @@ if __name__ == '__main__':
     print "*" * 80 
 
     #example of sending a record where datetimes will be serialized
-    payload = {'timestamp': datetime.utcnow(), 'message': 'trying out elasticsearch with poms', 'user': 'mgheith'}
+    payload = {'timestamp': datetime.utcnow(), 'message': 'trying out elasticsearch with poms', 'user': 'mengel'}
     response = es.index(index='poms-2016-09-02', doc_type='my-poms-type', body=payload)
     pprint.pprint(response)
 
     print "*" * 80 
 
     #example of sending a record where datetimes will not be serialized
-    payload = {'timestamp': '2016-09-02T20:00:00', 'message': 'trying out elasticsearch with poms not serialized', 'user': 'mgheith'}
+    payload = {'timestamp': '2016-09-02T20:00:00', 'message': 'trying out elasticsearch with poms not serialized', 'user': 'mengel'}
     response = es.index(index='poms-2016-09-02', doc_type='my-poms-type', body=payload)
     pprint.pprint(response)
 

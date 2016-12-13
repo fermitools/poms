@@ -56,12 +56,16 @@ class JobsPOMS():
 
 
     def update_job(self, dbhandle, loghandle, rpstatus, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
+
+        if task_id == "None":
+            task_id = None
+
         if task_id:
             task_id = int(task_id)
 
         host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
 
-        jl = dbhandle.query(Job).options(subqueryload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
+        jl = dbhandle.query(Job).with_for_update(of=Job).options(joinedload(Job.task_obj)).filter(Job.jobsub_job_id==jobsub_job_id).order_by(Job.job_id).all()
         first = True
         j = None
         for ji in jl:
@@ -174,7 +178,7 @@ class JobsPOMS():
             loghandle("update_job: db add/commit job status %s " %  j.status)
             j.updated =  datetime.now(utc)
             if j.task_obj:
-                newstatus = self.poms_service.compute_status(j.task_obj)
+                newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, j.task_obj)
                 if newstatus != j.task_obj.status:
                     j.task_obj.status = newstatus
                     j.task_obj.updated = datetime.now(utc)

@@ -4,7 +4,7 @@
 ### List of methods:  job_counts, triage_job, job_table, failed_jobs_by_whatever
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
-from model.poms_model import JobHistory,  Job, Task, Campaign, CampaignDefinition, JobFile, Experimenter, Experiment, ExperimentsExperimenters
+from model.poms_model import JobHistory,  Job, Task, Campaign, CampaignDefinition, JobFile, Experimenter, Experiment, ExperimentsExperimenters, ServiceDowntime, Service
 from elasticsearch import Elasticsearch
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager ###Double check you need it
 from sqlalchemy import func, desc
@@ -20,6 +20,7 @@ class TriagePOMS():
 
 
     def job_counts(self, dbhandle, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = None): ### This one method was deleted from the main script
+
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'job_counts')
         q = dbhandle.query(func.count(Job.status),Job.status).group_by(Job.status)
         if tmax != None:
@@ -46,67 +47,69 @@ class TriagePOMS():
         return out
 
 
-        def triage_job(self, dbhandle, job_id, tmin = None, tmax = None, tdays = None, force_reload = False):
-            # we don't really use these for anything but we might want to
-            # pass them into a template to set time ranges...
-            tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
-            job_file_list = self.poms_service.job_file_list(job_id, force_reload)
-            output_file_names_list = []
-            job_info = dbhandle.query(Job, Task, CampaignDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Campaign.campaign_definition_id==CampaignDefinition.campaign_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
-            job_history = dbhandle.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
-            output_file_names_list = [x.file_name for x in job_info[0].job_files if x.file_type == "output"]
+    def triage_job(self, dbhandle, job_id, tmin = None, tmax = None, tdays = None, force_reload = False):
+	# we don't really use these for anything but we might want to
+	# pass them into a template to set time ranges...
+	tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
+	job_file_list = self.poms_service.job_file_list(job_id, force_reload)
+	output_file_names_list = []
+	job_info = dbhandle.query(Job, Task, CampaignDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Campaign.campaign_definition_id==CampaignDefinition.campaign_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
+	job_history = dbhandle.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
+	output_file_names_list = [x.file_name for x in job_info[0].job_files if x.file_type == "output"]
 
-            #begins service downtimes
-            first = job_history[0].created
-            last = job_history[len(job_history)-1].created
+	#begins service downtimes
+	first = job_history[0].created
+	last = job_history[len(job_history)-1].created
 
-            downtimes1 = dbhandle.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id)\
-            .filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(~Service.name.endswith("sam"))\
-            .filter(ServiceDowntime.downtime_started >= first).filter(ServiceDowntime.downtime_started < last)\
-            .filter(ServiceDowntime.downtime_ended >= first).filter(ServiceDowntime.downtime_ended < last).all()
+	downtimes1 = dbhandle.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id)\
+	.filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(~Service.name.endswith("sam"))\
+	.filter(ServiceDowntime.downtime_started >= first).filter(ServiceDowntime.downtime_started < last)\
+	.filter(ServiceDowntime.downtime_ended >= first).filter(ServiceDowntime.downtime_ended < last).all()
 
-            downtimes = downtimes1 + downtimes2
-            #ends service downtimes
-
-
-            #begins condor event logs
-            es = Elasticsearch()
-
-            query = {
-                'sort' : [{ '@timestamp' : {'order' : 'asc'}}],
-                'size' : 100,
-                'query' : {
-                    'term' : { 'jobid' : job_info.Job.jobsub_job_id }
-                }
-            }
-
-            es_response= es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
-            #ends condor event logs
+        # downtimes2 ?!?
+	#downtimes = downtimes1 + downtimes2
+	downtimes = downtimes1 
+	#ends service downtimes
 
 
-            #get cpu efficiency
-            query = {
-                'fields' : ['efficiency'],
-                'query' : {
-                    'term' : { 'jobid' : job_info.Job.jobsub_job_id }
-                }
-            }
+	#begins condor event logs
+	es = Elasticsearch()
 
-            es_efficiency_response = es.search(index='fifebatch-jobs', types=['job'], query=query)
-            try:
-                if es_efficiency_response and "fields" in es_efficiency_response.get("hits").get("hits")[0].keys():
-                    efficiency = int(es_efficiency_response.get('hits').get('hits')[0].get('fields').get('efficiency')[0] * 100)
-                else:
-                    efficiency = None
-            except:
-                efficiency = None
+	query = {
+	    'sort' : [{ '@timestamp' : {'order' : 'asc'}}],
+	    'size' : 100,
+	    'query' : {
+		'term' : { 'jobid' : job_info.Job.jobsub_job_id }
+	    }
+	}
 
-            #ends get cpu efficiency
+	es_response= es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+	#ends condor event logs
 
-            task_jobsub_job_id = self.poms_service.task_min_job(job_info.Job.task_id)
-            return job_file_list, job_info, job_history, downtimes, output_file_names_list, es_response, efficiency, tmin
 
-            #return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, efficiency=efficiency, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id, version=self.version)
+	#get cpu efficiency
+	query = {
+	    'fields' : ['efficiency'],
+	    'query' : {
+		'term' : { 'jobid' : job_info.Job.jobsub_job_id }
+	    }
+	}
+
+	es_efficiency_response = es.search(index='fifebatch-jobs', types=['job'], query=query)
+	try:
+	    if es_efficiency_response and "fields" in es_efficiency_response.get("hits").get("hits")[0].keys():
+		efficiency = int(es_efficiency_response.get('hits').get('hits')[0].get('fields').get('efficiency')[0] * 100)
+	    else:
+		efficiency = None
+	except:
+	    efficiency = None
+
+	#ends get cpu efficiency
+
+	task_jobsub_job_id = self.poms_service.task_min_job(job_info.Job.task_id)
+	return job_file_list, job_info, job_history, downtimes, output_file_names_list, es_response, efficiency, tmin, task_jobsub_job_id
+
+	#return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, efficiency=efficiency, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id, version=self.version)
 
 
     def job_table(self, dbhandle, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, name=None,campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None, eff_d = None):

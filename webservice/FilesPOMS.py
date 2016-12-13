@@ -7,12 +7,13 @@
 
 from model.poms_model import Experimenter, Experiment, ExperimentsExperimenters, Job, Task, Campaign, JobFile
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
+from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, not_,  create_engine, null, desc, text, func, exc, distinct
 from utc import utc
 
 class Files_status():
 
     def __init__(self, ps):
-        poms_service = ps
+        self.poms_service = ps
 
     def list_task_logged_files(self, dbhandle, task_id):
         t =  dbhandle.query(Task).filter(Task.task_id== task_id).first()
@@ -117,7 +118,7 @@ class Files_status():
                         logdelivered = logdelivered + 1
                     if f.file_type == "output":
                         logkids = logkids + 1
-            task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(t.task_id)
+            task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, t.task_id)
             if task_jobsub_job_id == None:
                 task_jobsub_job_id = "t%s" % t.task_id
             datarows.append([
@@ -132,10 +133,10 @@ class Files_status():
                             [ psummary.get('tot_skipped',0),  listfiles % base_dim_list[i] + " and consumed_status skipped"],
                             [some_kids_decl_list[i], listfiles % some_kids_needed[i] ],
                             [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                            [len(self.poms_service.get_inflight(dbhandle, campaign_id, task_id=t.task_id)), "./inflight_files?task_id=%d" % t.task_id],
+                            [len(self.poms_service.filesPOMS.get_inflight(dbhandle, campaign_id, task_id=t.task_id)), "./inflight_files?task_id=%d" % t.task_id],
                             [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
                             [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
-                ])
+                            ])
             return c, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
             ###I didn't include tdays, campaign_id, because it was passed as an argument, should I?????
             #DELETE template = self.jinja_env.get_template('campaign_task_files.html')
@@ -167,9 +168,8 @@ class Files_status():
         #DELETE template = self.jinja_env.get_template('job_file_contents.html')
         #DELETE return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version)
 
-
-    def format_job_counts(self, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = 7, range_string = None): ##This method was deleted from the main script
-        counts = self.poms_service.triagePOMS.job_counts(task_id, campaign_id, tmin, tmax, tdays)
+    def format_job_counts(self, dbhandle, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = 7, range_string = None): ##This method was deleted from the main script
+        counts = self.poms_service.triagePOMS.job_counts( dbhandle, task_id = task_id, campaign_id = campaign_id, tmin = tmin, tmax = tmax, tdays = tdays)
         ck = counts.keys()
         res = [ '<div><b>Job States</b><br>',
                 '<table class="ui celled table unstackable">',
@@ -245,7 +245,7 @@ class Files_status():
             flist = samhandle.list_files(experiment, dims)
         except ValueError:
             flist = []
-        return flits
+        return flist
 
 
     def actual_pending_files(self, dbhandle, loghandle, count_or_list, task_id = None, campaign_id = None, tmin = None, tmax= None, tdays = 1):
@@ -425,7 +425,7 @@ class Files_status():
         # get pending counts for the task list for each day
         # and fill in the 7th column...
         #
-        dimlist, pendings = self.poms_services.get_pending_for_task_lists( daytasks )
+        dimlist, pendings = self.poms_service.get_pending_for_task_lists( daytasks )
         for i in range(len(pendings)):
             outrows[i][7] = pendings[i]
 
@@ -434,7 +434,6 @@ class Files_status():
 
         else:
             name = ''
-
         return name, columns, outrows, dimlist, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
 
 

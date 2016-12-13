@@ -189,7 +189,7 @@ class poms_service:
     @cherrypy.expose
     def add_event(self, title, start, end):
         #title should be something like minos_sam:27 DCache:12 All:11 ...
-	return self.calendarPOMS.add_event.calendar(cherrypy.request.db,title, start, end)
+        return self.calendarPOMS.add_event.calendar(cherrypy.request.db,title, start, end)
 
     @cherrypy.expose
     def edit_event(self, title, start, new_start, end, s_id):  #even though we pass in the s_id we should not rely on it because they can and will change the service name
@@ -205,7 +205,7 @@ class poms_service:
 
     @cherrypy.expose
     def update_service(self, name, parent, status, host_site, total, failed, description):
-       	return self.calendarPOMS.update_service(cherrypy.request.db, cherrypy.log, name, parent, status, host_site, total, failed, description)
+        return self.calendarPOMS.update_service(cherrypy.request.db, cherrypy.log, name, parent, status, host_site, total, failed, description)
 
 
     @cherrypy.expose
@@ -270,28 +270,33 @@ class poms_service:
 ### DBadminPOMS
     @cherrypy.expose
     def raw_tables(self):
-    	if not self.accessPOMS.can_db_admin(cherrypy.request.headers.get, cherrypy.session.get):
-	    raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
+        if not self.accessPOMS.can_db_admin(cherrypy.request.headers.get, cherrypy.session.get):
+            raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
         return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="RawTablesHelp", version=self.version)
+
+
     @cherrypy.expose
     def user_edit(self, *args, **kwargs):
         data = self.dbadminPOMS.user_edit(cherrypy.request.db, *args, **kwargs)
         template = self.jinja_env.get_template('user_edit.html')
         return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'),  pomspath=self.path, help_page="EditUsersHelp", version=self.version)
 
+
     @cherrypy.expose
     def experiment_members(self, *args, **kwargs):
         trows = self.dbadminPOMS.experiment_members(cherrypy.request.db, *args, **kwargs)
         return json.dumps(trows)
 
+
     @cherrypy.expose
     def experiment_edit(self, message=None):
-	experiments=self.dbadminPOMS.experiment_edit(cherrypy.request.db)
+        experiments=self.dbadminPOMS.experiment_edit(cherrypy.request.db)
         template = self.jinja_env.get_template('experiment_edit.html')
         return template.render(message=message, experiments=experiments, current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="ExperimentEditHelp", version=self.version)
+
 
     @cherrypy.expose
     def experiment_authorize(self, *args, **kwargs):
@@ -300,8 +305,6 @@ class poms_service:
         message = self.dbadminPOMS.experiment_authorize(cherrypy.request.db, cherrypy.log, *args, **kwargs)
         return self.experiment_edit(message)
 #-----------------------------------------
-
-
 #################################
 ### CampaignsPOMS
     @cherrypy.expose
@@ -310,6 +313,7 @@ class poms_service:
         template = self.jinja_env.get_template('launch_template_edit.html')
         return template.render(data=data,current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="LaunchTemplateEditHelp", version=self.version)
+
 
     @cherrypy.expose
     def campaign_definition_edit(self, *args, **kwargs):
@@ -401,8 +405,6 @@ class poms_service:
         res = self.campaignsPOMS.make_stale_campaigns_inactive(cherrypy.request.db, cherrypy.HTTPError)
         return "Marked inactive stale: " + ",".join(res)
 #--------------------------------------
-
-
 ###############
 ### Tables
     @cherrypy.expose
@@ -427,7 +429,6 @@ class poms_service:
         template = self.jinja_env.get_template('edit_screen_for.html')
         return template.render( screendata = screendata, action="./"+update_call , classname = classname ,current_experimenter=cherrypy.session.get('experimenter'),  pomspath=self.path,help_page="GenericEditHelp", version=self.version)
 #----------------------------
-
 #######
 ### JobPOMS
     @cherrypy.expose
@@ -463,7 +464,6 @@ class poms_service:
     def test_job_counts(self, task_id = None, campaign_id = None):
         res = self.triagePOMS.job_counts(cherrypy.request.db, task_id, campaign_id)
         return repr(res) + self.filesPOMS.format_job_counts(task_id, campaign_id)
-
 
 
     @cherrypy.expose
@@ -504,8 +504,6 @@ class poms_service:
         lf.close()
         return res
 #----------------------
-
-
 ########################
 ### TaskPOMS
     @cherrypy.expose
@@ -521,8 +519,9 @@ class poms_service:
 
 
     @cherrypy.expose
-    def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ): ## Need to be tested HERE
-        blob, job_counts, task_id, tmin, tmax, extramap, key, task_jobsub_id, campaign_id, cname = self.taskPOMS.show_task_jobs(self, task_id, tmax, tmin, tdays)
+    def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ): ### Need to be tested HERE
+        blob, job_counts, task_id, tmin, tmax, extramap, key, task_jobsub_id, campaign_id, cname = self.taskPOMS.show_task_jobs( cherrypy.request.db, task_id, tmax, tmin, tdays)
+        template = self.jinja_env.get_template('show_task_jobs.html')
         return template.render( blob = blob, job_counts = job_counts,  taskid = task_id, tmin = tmin, tmax = tmax, current_experimenter = cherrypy.session.get('experimenter'),
                                extramap = extramap, do_refresh = 1, key = key, pomspath=self.path, help_page="ShowTaskJobsHelp", task_jobsub_id = task_jobsub_id,
                                campaign_id = campaign_id,cname = cname, version=self.version)
@@ -548,7 +547,7 @@ class poms_service:
 
     @cherrypy.expose
     def campaign_task_files(self, campaign_id, tmin = None, tmax = None, tdays = 1):
-        c, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays = self.campaign_task_files(cherrypy.request.db, cherrypy.log, cherrypy.request.samweb_lite, campaign_id, tmin, tmax, tdays)
+        c, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays = self.filesPOMS.campaign_task_files(cherrypy.request.db, cherrypy.log, cherrypy.request.samweb_lite, campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_task_files.html')
         return template.render(name = c.name if c else "", columns = columns, datarows = datarows, tmin=tmins, tmax=tmaxs,  prev=prevlink, next=nextlink, days=tdays, current_experimenter=cherrypy.session.get('experimenter'),  campaign_id = campaign_id, pomspath=self.path,help_page="CampaignTaskFilesHelp", version=self.version)
 
@@ -591,7 +590,7 @@ class poms_service:
 
     @cherrypy.expose
     def campaign_sheet(self, campaign_id, tmin = None, tmax = None , tdays = 7):
-        name, columns, outrows, dimlist, tmaxs, prevlink, nextlink, tdays, tmin, tmax = campaign_sheet(cherrypy.request.db, cherrypy.log, campaign_id, tmin, tmax, tdays)
+        name, columns, outrows, dimlist, experiment, tmaxs, prevlink, nextlink, tdays, tmin, tmax = self.filesPOMS.campaign_sheet(cherrypy.request.db, cherrypy.log, campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_sheet.html')
         return template.render(name=name,
                                 columns=columns,
@@ -626,8 +625,6 @@ class poms_service:
         #~ return [ {"tot_consumed": 0, "tot_failed": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
 ###Im here
 #----------------------------
-
-
 ##########
 ### TriagePOMS
     @cherrypy.expose

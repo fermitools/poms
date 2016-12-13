@@ -56,10 +56,10 @@ class jobsub_fetcher():
 
         if group == "samdev": group = "fermilab"
         self.fetch(jobsubjobid, group, role, force_reload)
-        f = os.popen( "tar tzf %s/%s.tgz" % (self.workdir, jobsubjobid.rstrip("\n")), "r")
+        f = os.popen( "tar tvzf %s/%s.tgz" % (self.workdir, jobsubjobid.rstrip("\n")), "r")
         res = []
         for line in f:
-             res.append(line.rstrip('\n'))
+             res.append(line.rstrip('\n').split())
         f.close()
         return res
 
@@ -75,9 +75,9 @@ class jobsub_fetcher():
 if __name__ == "__main__":
      
     jf = jobsub_fetcher()
-    jobid="4977156.0@fifebatch2.fnal.gov"
-    flist = jf.index(jobid, "nova", "Analysis") 
+    jobid="15200109.0@fifebatch2.fnal.gov"
+    flist = jf.index(jobid, "samdev", "Analysis") 
     print "------------------"
     print flist
     print "------------------"
-    print jf.contents(flist[2], jobid, "nova", "Analysis")
+    print jf.contents(flist[2][-1], jobid, "samdev", "Analysis")
