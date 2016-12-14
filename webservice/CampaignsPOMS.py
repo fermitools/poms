@@ -373,7 +373,8 @@ class CampaignsPOMS():
         for c in cl:
             counts[c.campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle, tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
             counts[c.campaign_id]['efficiency'] = effs[i]
-            counts[c.campaign_id]['pending'] = pendings[i]
+            if pendings:
+                counts[c.campaign_id]['pending'] = pendings[i]
             counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
             i = i + 1
         return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string
