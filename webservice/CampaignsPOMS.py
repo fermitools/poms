@@ -7,11 +7,12 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
-from model.poms_model import Experiment, Experimenter, Campaign, LaunchTemplate, CampaignDefinition, CampaignRecovery, CampaignsTags, Tag, CampaignSnapshot
+from model.poms_model import Experiment, Experimenter, Campaign, CampaignDependency, LaunchTemplate, CampaignDefinition, CampaignRecovery, CampaignsTags, Tag, CampaignSnapshot, RecoveryType
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from crontab import CronTab
 from datetime import datetime, tzinfo,timedelta
 import time
+import json
 from utc import utc
 import os
 import glob
@@ -292,7 +293,7 @@ class CampaignsPOMS():
             cids = [c.campaign_id for c in data['campaigns'].all()]
             depends = {}
             for cid in cids:
-                sql = (db.query(CampaignDependency.uses_camp_id, Campaign.name, CampaignDependency.file_patterns )
+                sql = (dbhandle.query(CampaignDependency.uses_camp_id, Campaign.name, CampaignDependency.file_patterns )
                         .filter(CampaignDependency.uses_camp_id == cid,
                         Campaign.campaign_id == CampaignDependency.needs_camp_id))
                 deps = {

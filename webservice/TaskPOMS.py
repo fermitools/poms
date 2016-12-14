@@ -139,7 +139,7 @@ class TaskPOMS:
 
             if t.status == "Located":
                 finish_up_tasks[t.task_id] = t
-                    dbhandle.db.add(task)
+                dbhandle.db.add(task)
 
         summary_list = samhandle.fetch_info_list(lookup_task_list)
         count_list = samhandle.count_files_list(lookup_exp_list,lookup_dims_list)
@@ -186,7 +186,7 @@ class TaskPOMS:
         for task_id, task in finish_up_tasks.each():
             # get logs for job for final cpu values, etc.
             condor_log_parser.get_joblogs(dbhandle, 
-                   task_min_job(dbhandle, task_id) 
+                   task_min_job(dbhandle, task_id),
                    t.campaign_snap_obj.experiment, 
                    t.campaign_snap_obj.role)
 
