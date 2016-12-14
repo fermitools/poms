@@ -207,7 +207,7 @@ class JobsPOMS():
                 tl = dbhandle.query(Task).filter(Task.task_id == task_id).all()
             c = tl[0].campaign_snap_obj
             for t in tl:
-                tjid = self.poms_service.task_min_job(t.task_id)
+                tjid = self.poms_service.taskPOMS.task_min_job(dbhandle, t.task_id)
                 loghandle("kill_jobs: task_id %s -> tjid %s" % (t.task_id, tjid))
                 # for tasks/campaigns, kill the whole group of jobs
                 # by getting the leader's jobsub_job_id and taking off

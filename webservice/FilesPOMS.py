@@ -17,7 +17,7 @@ class Files_status():
 
     def list_task_logged_files(self, dbhandle, task_id):
         t =  dbhandle.query(Task).filter(Task.task_id== task_id).first()
-        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(task_id)
+        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, task_id)
         fl = dbhandle.query(JobFile).join(Job).filter(Job.task_id == task_id, JobFile.job_id == Job.job_id).all()
         return fl, t, jobsub_job_id
         #DELETE: template = self.poms_service.jinja_env.get_template('list_task_logged_files.html')
@@ -146,7 +146,7 @@ class Files_status():
     def job_file_list(self, dbhandle, jobhandle, job_id, force_reload = False): ##Should this funcion be here or at the main script ????
         j = dbhandle.query(Job).options(joinedload(Job.task_obj).joinedload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
-        jobsub_job_id = self.poms_service.task_min_job(j.task_id)
+        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, j.task_id)
         role = j.task_obj.campaign_snap_obj.vo_role
         return jobhandle.index(jobsub_job_id,j.task_obj.campaign_snap_obj.experiment,role, force_reload)
 
@@ -160,7 +160,7 @@ class Files_status():
         ### You don't use many of those arguments, is just because you need one of them then you call the whole method ???????
         j = dbhandle.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
-        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(j.task_id)
+        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, j.task_id)
         loghandle("found job: %s " % jobsub_job_id)
         role = j.task_obj.campaign_snap_obj.vo_role
         job_file_contents = jobhandle.contents(file, j.jobsub_job_id,j.task_obj.campaign_snap_obj.experiment,role)

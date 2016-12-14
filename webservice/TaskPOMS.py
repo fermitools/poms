@@ -222,7 +222,7 @@ class TaskPOMS:
             campaign_id = 'unknown'
             cname = 'unknown'
 
-        task_jobsub_id = self.task_min_job(dbhandle, task_id)
+        task_jobsub_id = self.taskPOMS.task_min_job(dbhandle, task_id)
         return_tuple=(blob, job_counts,task_id, str(tmin)[:16], str(tmax)[:16], extramap, key, task_jobsub_id, campaign_id, cname)
         return return_tuple
 
@@ -246,7 +246,7 @@ class TaskPOMS:
         return res
 
 
-    def task_min_job(self, dbhandle, task_id):
+    def task_min_job(self, dbhandle, task_id): #This method deleted from the main script.
         # find the job with the logs -- minimum jobsub_job_id for this task
         # also will be nickname for the task...
         if ( self.poms_service.task_min_job_cache.has_key(task_id) ):

@@ -84,18 +84,3 @@ class UtilsPOMS():
             search_term = search_term.replace("+", " ")
             query = urllib.urlencode({'q' : search_term})
             raise redirect("%s/search_tags?%s" % (self.poms_service.path, query))
-
-
-#########_____________________
-    def task_min_job(self, dbhandle, task_id): #should this function be here? or in TASK module ???
-
-        # find the job with the logs -- minimum jobsub_job_id for this task
-        # also will be nickname for the task...
-        if ( self.poms_service.task_min_job_cache.has_key(task_id) ):
-           return self.poms_service.task_min_job_cache.get(task_id)
-        j = dbhandle.query(Job).filter( Job.task_id == task_id ).order_by(Job.jobsub_job_id).first()
-        if j:
-            self.poms_service.task_min_job_cache[task_id] = j.jobsub_job_id
-            return j.jobsub_job_id
-        else:
-            return None

@@ -456,7 +456,7 @@ class CampaignsPOMS():
         items = []
         extramap = {}
         for th in qr:
-            jjid = self.poms_service.task_min_job(th.task_id)
+            jjid = self.poms_service.taskPOMS.task_min_job(dbhandle, th.task_id)
             if not jjid:
                 jjid= 't' + str(th.task_id)
             else:

@@ -531,10 +531,6 @@ class poms_service:
     def get_task_id_for(self, campaign, user = None, experiment = None, command_executed = "", input_dataset = "", parent_task_id=None):
         task_id = self.taskPOMS.get_task_id_for(cherrypy.request.db, campaign, user, experiment, command_executed, input_dataset, parent_task_id)
         return "Task=%d" % task_id
-
-
-    def task_min_job(self, task_id):
-        return taskPOMS.task_min_job(cherrypy.request.db, task_id)
 #------------------------
 #########################
 ### FilesPOMS
@@ -568,7 +564,7 @@ class poms_service:
     def inflight_files(self, campaign_id=None, task_id=None):
         outlist, statusmap, c = self.filesPOMS.inflight_files( cherrypy.request.db, cherrypy.response.status, cherrypy.config.get, campaign_id, task_id)
         template = self.jinja_env.get_template('inflight_files.html')
-        return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),   statusmap = statusmap, c = c, jjid= self.task_min_job(task_id),campaign_id = campaign_id, task_id = task_id, pomspath=self.path,help_page="PendingFilesJobsHelp", version=self.version)
+        return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),   statusmap = statusmap, c = c, jjid= self.taskPOMS.task_min_job(cherrypy.request.db, task_id),campaign_id = campaign_id, task_id = task_id, pomspath=self.path,help_page="PendingFilesJobsHelp", version=self.version)
 
 
     @cherrypy.expose

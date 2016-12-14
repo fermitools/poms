@@ -68,7 +68,7 @@ class TriagePOMS():
 
         # downtimes2 ?!?
 	#downtimes = downtimes1 + downtimes2
-	downtimes = downtimes1 
+	downtimes = downtimes1
 	#ends service downtimes
 
 
@@ -106,7 +106,7 @@ class TriagePOMS():
 
 	#ends get cpu efficiency
 
-	task_jobsub_job_id = self.poms_service.task_min_job(job_info.Job.task_id)
+	task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, job_info.Job.task_id)
 	return job_file_list, job_info, job_history, downtimes, output_file_names_list, es_response, efficiency, tmin, task_jobsub_job_id
 
 	#return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, efficiency=efficiency, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id, version=self.version)

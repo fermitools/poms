@@ -62,7 +62,7 @@ def popen_read_with_timeout(cmd, totaltime = 30):
 ### TaskPOMS
     def create_task(self, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor):
     def wrapup_tasks(self):
-    def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ): ## Need to be tested HERE
+    def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ): ### Need to be tested HERE
     def get_task_id_for(self, campaign, user = None, experiment = None, command_executed = "", input_dataset = "", parent_task_id=None):
     def task_min_job(self, task_id):
 #------------------------
