@@ -2607,7 +2607,7 @@ class poms_service:
         # to do all the work, because it has the counters, etc.
         # -- actaully look it up with a with_for_update so we lock it
         #    and avoid multiple launches of same recovery
-        if t.recovery_tasks_parent
+        if t.recovery_tasks_parent:
            t = dbhandle.query(Task).with_for_update(on=Task).filter(Task.task_id == t.recovery_tasks_parent).first()
 
         rlist = self.get_recovery_list_for_campaign_def(t.campaign_definition_snap_obj)
