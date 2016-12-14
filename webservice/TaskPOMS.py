@@ -183,7 +183,7 @@ class TaskPOMS:
         # launch any recovery jobs or jobs depending on us.
         # this way we don't keep the rows locked all day
         #
-        for task_id, task in finish_up_tasks.each():
+        for task_id, task in finish_up_tasks.items():
             # get logs for job for final cpu values, etc.
             condor_log_parser.get_joblogs(dbhandle, 
                    task_min_job(dbhandle, task_id),
@@ -193,7 +193,7 @@ class TaskPOMS:
 	    if not self.poms_service.launch_recovery_if_needed(task):
 	       self.poms_services.launch_dependents_if_needed(task)
 
-        return "\n".join(res)
+        return res
 
 
     def show_task_jobs(self, dbhandle, task_id, tmax = None, tmin = None, tdays = 1 ):
