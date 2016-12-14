@@ -381,7 +381,7 @@ class CampaignsPOMS():
         return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string
 
 
-    def campaign_info(self, dbhandle, loghandle, samhandle, err_res, tmin = None, tmax = None, tdays = None):
+    def campaign_info(self, dbhandle, loghandle, samhandle, err_res, campaign_id,  tmin = None, tmax = None, tdays = None):
         campaign_id = int(campaign_id)
 
         Campaign_info = dbhandle.query(Campaign, Experimenter).filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id).first()

@@ -68,7 +68,6 @@ class poms_service:
 
     def __init__(self):
         self.jinja_env = Environment(loader=PackageLoader('webservice','templates'))
-        self.task_min_job_cache = {}
         self.path = cherrypy.config.get("pomspath","/poms")
         cherrypy.config.update({'poms.launches': 'allowed'})
         self.hostname = socket.getfqdn()
@@ -313,7 +312,7 @@ class poms_service:
 
     @cherrypy.expose
     def show_campaigns(self,experiment = None, tmin = None, tmax = None, tdays = 1, active = True):
-        counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string = self.campaignsPOMS.show_campaigns(cherrypy.request.db, cherrypy.log, cherrypy.request.samweb_lite, experiment, tmin, tmax, tdays, active)
+        counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string = self.campaignsPOMS.show_campaigns(cherrypy.request.db, cherrypy.log, cherrypy.request.samweb_lite, experiment = experiment, tmin = tmin, tmax = tmax, tdays = tdays, active = active)
         template = self.jinja_env.get_template('show_campaigns.html')
         return template.render( In= ("" if active == True else "In"), limit_experiment = experiment, services=self.service_status_hier('All'), counts = counts, counts_keys = counts_keys, cl = cl, tmins = tmins, tmaxs = tmaxs, tmin = str(tmin)[:16], tmax = str(tmax)[:16],current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 1, next = nextlink, prev = prevlink, days = tdays, time_range_string = time_range_string, key = '', dimlist = dimlist, pomspath=self.path, help_page="ShowCampaignsHelp", version=self.version)
 

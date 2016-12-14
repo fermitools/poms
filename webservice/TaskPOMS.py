@@ -25,6 +25,7 @@ class TaskPOMS:
 
     def __init__(self, ps):
         self.poms_service=ps
+        self.task_min_job_cache = {}
 
     def create_task(self, dbhandle, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor = None ):
         first,last,email = creator.split(' ')
@@ -240,7 +241,7 @@ class TaskPOMS:
             campaign_id = 'unknown'
             cname = 'unknown'
 
-        task_jobsub_id = self.taskPOMS.task_min_job(dbhandle, task_id)
+        task_jobsub_id = self.task_min_job(dbhandle, task_id)
         return_tuple=(blob, job_counts,task_id, str(tmin)[:16], str(tmax)[:16], extramap, key, task_jobsub_id, campaign_id, cname)
         return return_tuple
 
@@ -263,11 +264,11 @@ class TaskPOMS:
     def task_min_job(self, dbhandle, task_id): #This method deleted from the main script.
         # find the job with the logs -- minimum jobsub_job_id for this task
         # also will be nickname for the task...
-        if ( self.poms_service.task_min_job_cache.has_key(task_id) ):
-           return self.poms_service.task_min_job_cache.get(task_id)
+        if ( self.task_min_job_cache.has_key(task_id) ):
+           return self.task_min_job_cache.get(task_id)
         j = dbhandle.query(Job).filter( Job.task_id == task_id ).order_by(Job.jobsub_job_id).first()
         if j:
-            self.poms_service.task_min_job_cache[task_id] = j.jobsub_job_id
+            self.task_min_job_cache[task_id] = j.jobsub_job_id
             return j.jobsub_job_id
         else:
             return None
@@ -306,7 +307,7 @@ class TaskPOMS:
         if parent_task_id != None and parent_task_id != "None":
             t.recovery_tasks_parent = int(parent_task_id)
 
-        self.poms_service.taskPOMS.snapshot_parts(dbhandle, t, t.campaign_id)
+        self.snapshot_parts(dbhandle, t, t.campaign_id)
 
         dbhandle.add(t)
         dbhandle.commit()
