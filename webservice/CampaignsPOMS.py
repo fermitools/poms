@@ -433,14 +433,13 @@ class CampaignsPOMS():
         sl = []
         # sl.append(self.filesPOMS.format_self.triagePOMS.job_counts(dbhandle,))
 
-        q = dbhandle.query(Campaign)
         if campaign_id != None:
-            q = q.filter(Campaign.campaign_id == campaign_id)
+            icampaign_id = int(campaign_id)
+            q = dbhandle.query(Campaign).filter(Campaign.campaign_id == icampaign_id)
             cpl = q.all()
             name = cpl[0].name
         elif tag != None and tag != "":
-            q = q.join(CampaignsTags,Tag).filter(Campaign.campaign_id == CampaignsTags.campaign_id,
-                        Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
+            q = dbhandle.query(Campaign).join(CampaignsTags,Tag).filter(Campaign.campaign_id == CampaignsTags.campaign_id, Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
             cpl = q.all()
             name = tag
         else:
