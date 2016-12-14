@@ -7,8 +7,9 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
-from model.poms_model import Experiment, Experimenter, Campaign, CampaignDependency, LaunchTemplate, CampaignDefinition, CampaignRecovery, CampaignsTags, Tag, CampaignSnapshot, RecoveryType
+from model.poms_model import Experiment, Experimenter, Campaign, CampaignDependency, LaunchTemplate, CampaignDefinition, CampaignRecovery, CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
+from sqlalchemy import or_, and_ , not_
 from crontab import CronTab
 from datetime import datetime, tzinfo,timedelta
 import time
@@ -352,7 +353,7 @@ class CampaignsPOMS():
         return "Task=%d" % t.task_id
 
 
-    def show_campaigns(self, dbhandle, loghandle, samhandle, experiment = None, tmin = None, tmax = None, tdays = 1, active = True):
+    def show_campaigns(self, dbhandle, loghandle, samhandle, campaign_id = None, experiment = None, tmin = None, tmax = None, tdays = 1, active = True):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
@@ -380,7 +381,7 @@ class CampaignsPOMS():
         return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string
 
 
-    def campaign_info(self, dbhandle, loghandle, samhandle, err_res, campaign_id, tmin = None, tmax = None, tdays = None):
+    def campaign_info(self, dbhandle, loghandle, samhandle, err_res, tmin = None, tmax = None, tdays = None):
         campaign_id = int(campaign_id)
 
         Campaign_info = dbhandle.query(Campaign, Experimenter).filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id).first()
@@ -450,7 +451,7 @@ class CampaignsPOMS():
         cidl = []
         for cp in cpl:
              job_counts_list.append(cp.name)
-             job_counts_list.append( self.poms_service.filesPOMS.format_job_counts(campaign_id = cp.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string))
+             job_counts_list.append( self.poms_service.filesPOMS.format_job_counts(dbhandle, campaign_id = cp.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string))
              cidl.append(cp.campaign_id)
 
         job_counts = "\n".join(job_counts_list)
@@ -465,7 +466,7 @@ class CampaignsPOMS():
             else:
                 jjid = jjid.replace('fifebatch','').replace('.fnal.gov','')
             if th.status != "Completed" and th.status != "Located":
-                extramap[jjid] = '<a href="%s/kill_jobs?task_id=%d"><i class="ui trash icon"></i></a>' % (self.path, th.task_id)
+                extramap[jjid] = '<a href="%s/kill_jobs?task_id=%d"><i class="ui trash icon"></i></a>' % (self.poms_service.path, th.task_id)
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
 
