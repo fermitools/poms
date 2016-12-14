@@ -8,13 +8,50 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile
 from datetime import datetime, timedelta
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
-from sqlalchemy import func
+from sqlalchemy import func, not_, and_
 from utc import utc
 import gc
 import json
 #from poms_service import popen_read_with_timeout
 #from LaunchPOMS import launch_recovery_if_needed
 #from poms_service import poms_service
+from collections import OrderedDict
+import subprocess
+import time
+import select
+import os
+import sys
+
+#
+# utility function for running commands that don't run forever...
+#
+def popen_read_with_timeout(cmd, totaltime = 30):
+
+    origtime = totaltime
+    # start up keeping subprocess handle and pipe
+    pp = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE)
+    f = pp.stdout
+
+    outlist = []
+    block=" "
+
+    # read the file, with select timeout of total time remaining
+    while totaltime > 0 and len(block) > 0:
+        t1 = time.time()
+        r, w, e = select.select( [f],[],[], totaltime)
+        if not f in r:
+           outlist.append("\n[...timed out after %d seconds]\n" % origtime)
+           # timed out!
+           pp.kill()
+           break
+        block = os.read(f.fileno(), 512)
+        t2 = time.time()
+        totaltime = totaltime - (t2 - t1)
+        outlist.append(block)
+
+    pp.wait()
+    output = ''.join(outlist)
+    return output
 
 
 class JobsPOMS():
@@ -255,7 +292,7 @@ class JobsPOMS():
              jobs_table...
 
          """
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_services.utilsPOMS.handle_dates(tmin, tmax,tdays,'jobs_eff_histo?campaign_id=%s&' % campaign_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'jobs_eff_histo?campaign_id=%s&' % campaign_id)
 
         q = dbhandle.query(func.count(Job.job_id), func.floor(Job.cpu_time *10/Job.wall_time))
         q = q.join(Job.task_obj)
@@ -394,7 +431,7 @@ class JobsPOMS():
         cmd = cmd.replace('\r','')
 
         # make sure launch doesn't take more that half an hour...
-        output = self.poms_service.popen_read_with_timeout(cmd, 1800) ### Question???
+        output = popen_read_with_timeout(cmd, 1800) ### Question???
 
         # always record launch...
         ds = time.strftime("%Y%m%d_%H%M%S")

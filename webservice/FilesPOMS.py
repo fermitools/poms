@@ -138,6 +138,7 @@ class Files_status():
                             [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                             ])
             return c, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
+
             ###I didn't include tdays, campaign_id, because it was passed as an argument, should I?????
             #DELETE template = self.jinja_env.get_template('campaign_task_files.html')
             #DELETE return template.render(name = c.name if c else "", columns = columns, datarows = datarows, tmin=tmins, tmax=tmaxs,  prev=prevlink, next=nextlink, days=tdays, current_experimenter=cherrypy.session.get('experimenter'),  campaign_id = campaign_id, pomspath=self.path,help_page="CampaignTaskFilesHelp", version=self.version)
@@ -288,7 +289,7 @@ class Files_status():
             return c.experiment, dims
 
 
-    def campaign_sheet(self, dbhandle, loghandle, campaign_id, tmin = None, tmax = None , tdays = 7): #maybe at the future for a  ReportsPOMS module
+    def campaign_sheet(self, dbhandle, loghandle, samhandle, campaign_id, tmin = None, tmax = None , tdays = 7): #maybe at the future for a  ReportsPOMS module
 
         daynames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"]
 
@@ -329,6 +330,8 @@ class Files_status():
         outfiles = 0
         infiles = 0
         pendfiles = 0
+	tasklist = []
+	totwall = 0.0
         for e in exitcodes:
             exitcounts[e] = 0
 
@@ -425,7 +428,7 @@ class Files_status():
         # get pending counts for the task list for each day
         # and fill in the 7th column...
         #
-        dimlist, pendings = self.poms_service.get_pending_for_task_lists( daytasks )
+        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_task_lists( dbhandle, loghandle, samhandle, daytasks )
         for i in range(len(pendings)):
             outrows[i][7] = pendings[i]
 
@@ -434,7 +437,7 @@ class Files_status():
 
         else:
             name = ''
-        return name, columns, outrows, dimlist, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
+        return name, columns, outrows, dimlist, experiment, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
 
 
     def get_pending_for_campaigns(self,  dbhandle, loghandle, samhandle, campaign_list, tmin, tmax):
@@ -461,10 +464,10 @@ class Files_status():
             '''
             task_list_list.append(tl)
 
-        return self.poms_service.filesPOMS.get_pending_for_task_lists(loghandle, samhandle, task_list_list)
+        return self.poms_service.filesPOMS.get_pending_for_task_lists(dbhandle, loghandle, samhandle, task_list_list)
 
 
-    def get_pending_for_task_lists(self, loghandle, samhandle, task_list_list):
+    def get_pending_for_task_lists(self, dbhandle, loghandle, samhandle, task_list_list):
         dimlist=[]
         explist=[]
         experiment = None

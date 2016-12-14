@@ -285,9 +285,10 @@ if True:
         sslserver.ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key",None)
         sslserver.subscribe()
     
+    cherrypy.config.update({'engine.autoreload.on': False})	# Recommended
     cherrypy.server.unsubscribe()
     cherrypy.engine.start()
-    # cherrypy.engine.block()
+    # cherrypy.engine.block()					# Disable built-in HTTP server
     application = cherrypy.tree
-    application = ErrorMiddleware(application, debug=True)
-    application = ErrorLog(application, channel=None, keep=20, path='/__error_log__', ignored_exceptions=())
+    #application = ErrorMiddleware(application, debug=True)
+    #application = ErrorLog(application, channel=None, keep=20, path='/__error_log__', ignored_exceptions=())

@@ -139,7 +139,7 @@ class TaskPOMS:
 
             if t.status == "Located":
                 finish_up_tasks[t.task_id] = t
-                dbhandle.db.add(task)
+                dbhandle.add(task)
 
         summary_list = samhandle.fetch_info_list(lookup_task_list)
         count_list = samhandle.count_files_list(lookup_exp_list,lookup_dims_list)
@@ -321,18 +321,18 @@ class TaskPOMS:
                 [LaunchTemplate ,LaunchTemplateSnapshot,LaunchTemplate.launch_id,LaunchTemplateSnapshot.launch_id,  c.launch_id, 'launch_template_snap_obj']]:
 
              i = dbhandle.query(func.max(snaptable.updated)).filter(sfield == tid).first()
-             j = dbhandle.db.query(table).filter(field == tid).first()
+             j = dbhandle.query(table).filter(field == tid).first()
              if (i[0] == None or j == None or j.updated == None or  i[0] < j.updated):
                 newsnap = snaptable()
                 columns = j._sa_instance_state.class_.__table__.columns
                 for fieldname in columns.keys():
                      setattr(newsnap, fieldname, getattr(j,fieldname))
-                dbhandle.db.add(newsnap)
+                dbhandle.add(newsnap)
              else:
-                newsnap = dbhandle.db.query(snaptable).filter(snaptable.updated == i[0]).first()
+                newsnap = dbhandle.query(snaptable).filter(snaptable.updated == i[0]).first()
              setattr(t, tfield, newsnap)
-         dbhandle.db.add(t) #Felipe change HERE one tap + space to spaces indentation
-         dbhandle.db.commit()
+         dbhandle.add(t) #Felipe change HERE one tap + space to spaces indentation
+         dbhandle.commit()
 
 
     def launch_dependents_if_needed(self, dbhandle, loghandle, samhandle, getconfig, t):

@@ -12,6 +12,7 @@ from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from crontab import CronTab
 from datetime import datetime, tzinfo,timedelta
 import time
+import time_grid
 import json
 from utc import utc
 import os
@@ -406,7 +407,8 @@ class CampaignsPOMS():
         effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, loghandle, cl,tmin, tmax)
         counts[campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
         counts[campaign_id]['efficiency'] = effs[0]
-        counts[campaign_id]['pending'] = pendings[0]
+        if pendings:
+            counts[campaign_id]['pending'] = pendings[0]
         counts_keys[campaign_id] = counts[campaign_id].keys()
         #
         # any launch outputs to look at?
@@ -419,7 +421,7 @@ class CampaignsPOMS():
 
 
     def campaign_time_bars(self, dbhandle, campaign_id = None, tag = None, tmin = None, tmax = None, tdays = 1):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.utilsPOMS.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
         tg = time_grid.time_grid()
         key = tg.key()
 

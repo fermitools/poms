@@ -58,37 +58,6 @@ def error_response():
     cherrypy.response.body = body
     cherrypy.log(dump)
 
-#
-# utility function for running commands that don't run forever...
-#
-def popen_read_with_timeout(cmd, totaltime = 30):
-
-    origtime = totaltime
-    # start up keeping subprocess handle and pipe
-    pp = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE)
-    f = pp.stdout
-
-    outlist = []
-    block=" "
-
-    # read the file, with select timeout of total time remaining
-    while totaltime > 0 and len(block) > 0:
-        t1 = time.time()
-        r, w, e = select.select( [f],[],[], totaltime)
-        if not f in r:
-           outlist.append("\n[...timed out after %d seconds]\n" % origtime)
-           # timed out!
-           pp.kill()
-           break
-        block = os.read(f.fileno(), 512)
-        t2 = time.time()
-        totaltime = totaltime - (t2 - t1)
-        outlist.append(block)
-
-    pp.wait()
-    output = ''.join(outlist)
-    return output
-
 
 
 class poms_service:
@@ -273,7 +242,7 @@ class poms_service:
         if not self.accessPOMS.can_db_admin(cherrypy.request.headers.get, cherrypy.session.get):
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
-        return template.render(list = self.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'),
+        return template.render(list = self.tablesPOMS.admin_map.keys(),current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,help_page="RawTablesHelp", version=self.version)
 
 
@@ -409,7 +378,7 @@ class poms_service:
 ### Tables
     @cherrypy.expose
     def list_generic(self, classname):
-        l = tablesPOMS.list_generic(cherrypy.request.db, cherrypy.HTTPError,cherrypy.request.headers.get, cherrypy.session.get, classname)
+        l = self.tablesPOMS.list_generic(cherrypy.request.db, cherrypy.HTTPError,cherrypy.request.headers.get, cherrypy.session.get, classname)
         template = self.jinja_env.get_template('list_generic.html')
         return template.render( classname = classname, list = l, edit_screen="edit_screen_generic", primary_key='experimenter_id',current_experimenter=cherrypy.session.get('experimenter'),  pomspath=self.path,help_page="ListGenericHelp", version=self.version)
 
@@ -586,7 +555,7 @@ class poms_service:
 
     @cherrypy.expose
     def campaign_sheet(self, campaign_id, tmin = None, tmax = None , tdays = 7):
-        name, columns, outrows, dimlist, experiment, tmaxs, prevlink, nextlink, tdays, tmin, tmax = self.filesPOMS.campaign_sheet(cherrypy.request.db, cherrypy.log, campaign_id, tmin, tmax, tdays)
+        name, columns, outrows, dimlist, experiment, tmaxs, prevlink, nextlink, tdays, tmin, tmax = self.filesPOMS.campaign_sheet(cherrypy.request.db, cherrypy.log, cherrypy.request.samweb_lite, campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_sheet.html')
         return template.render(name=name,
                                 columns=columns,
