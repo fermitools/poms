@@ -7,12 +7,23 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
-from model.poms_model import Experiment, Campaign, LaunchTemplate, CampaignDefinition, CampaignRecovery
+from model.poms_model import Experiment, Experimenter, Campaign, LaunchTemplate, CampaignDefinition, CampaignRecovery, CampaignsTags, Tag, CampaignSnapshot
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
+from crontab import CronTab
+from datetime import datetime, tzinfo,timedelta
+import time
 from utc import utc
+import os
+import glob
+
 
 
 class CampaignsPOMS():
+
+
+    def __init__(self, ps):
+        self.poms_service=ps
+
 
     def launch_template_edit(self, dbhandle, loghandle, seshandle, *args, **kwargs):
         data = {}
@@ -315,3 +326,419 @@ class CampaignsPOMS():
             definition['definition_parameters'] = cdef.definition_parameters
             data['definition'] = definition
         return json.dumps(data)
+
+
+    def new_task_for_campaign(dbhandle , campaign_name, command_executed, experimenter_name, dataset_name = None):
+        c = dbhandle.query(Campaign).filter(Campaign.name == campaign_name).first()
+        e = dbhandle.query(Experimenter).filter(like_)(Experimenter.email,"%s@%%" % experimenter_name ).first()
+        t = Task()
+        t.campaign_id = c.campaign_id
+        t.campaign_definition_id = c.campaign_definition_id
+        t.task_order = 0
+        t.input_dataset = "-"
+        t.output_dataset = "-"
+        t.status = 'started'
+        t.created = datetime.now(utc)
+        t.updated = datetime.now(utc)
+        t.updater = e.experimenter_id
+        t.creator = e.experimenter_id
+        t.command_executed = command_executed
+        if dataset_name:
+            t.input_dataset = dataset_name
+        dbhandle.add(t)
+        dbhandle.commit()
+        return "Task=%d" % t.task_id
+
+
+    def show_campaigns(self, dbhandle, loghandle, samhandle, experiment = None, tmin = None, tmax = None, tdays = 1, active = True):
+
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
+
+        cq = dbhandle.query(Campaign).filter(Campaign.active == active ).order_by(Campaign.experiment)
+
+        if experiment:
+            cq = cq.filter(Campaign.experiment == experiment)
+
+        cl = cq.all()
+
+        counts = {}
+        counts_keys = {}
+
+        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, loghandle, samhandle, cl, tmin, tmax)
+        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, loghandle, cl, tmin, tmax)
+
+        i = 0
+        for c in cl:
+            counts[c.campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle, tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
+            counts[c.campaign_id]['efficiency'] = effs[i]
+            counts[c.campaign_id]['pending'] = pendings[i]
+            counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
+            i = i + 1
+        return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string
+
+
+    def campaign_info(self, dbhandle, loghandle, samhandle, err_res, campaign_id, tmin = None, tmax = None, tdays = None):
+        campaign_id = int(campaign_id)
+
+        Campaign_info = dbhandle.query(Campaign, Experimenter).filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id).first()
+
+        # default to time window of campaign
+        if tmin == None and tdays == None and tdays == None:
+            tmin = Campaign_info.Campaign.created
+            tmax = datetime.now(utc)
+
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'campaign_info?')
+
+        Campaign_definition_info =  dbhandle.query(CampaignDefinition, Experimenter).filter(CampaignDefinition.campaign_definition_id == Campaign_info.Campaign.campaign_definition_id, CampaignDefinition.creator == Experimenter.experimenter_id ).first()
+        Launch_template_info = dbhandle.query(LaunchTemplate, Experimenter).filter(LaunchTemplate.launch_id == Campaign_info.Campaign.launch_id, LaunchTemplate.creator == Experimenter.experimenter_id).first()
+        tags = dbhandle.query(Tag).filter(CampaignsTags.campaign_id==campaign_id, CampaignsTags.tag_id==Tag.tag_id).all()
+
+        launched_campaigns = dbhandle.query(CampaignSnapshot).filter(CampaignSnapshot.campaign_id == campaign_id).all()
+
+        #
+        # cloned from show_campaigns, but for a one row table..
+        #
+        cl = [Campaign_info[0]]
+        counts = {}
+        counts_keys = {}
+        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, loghandle, samhandle, cl, tmin, tmax)
+        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, loghandle, cl,tmin, tmax)
+        counts[campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
+        counts[campaign_id]['efficiency'] = effs[0]
+        counts[campaign_id]['pending'] = pendings[0]
+        counts_keys[campaign_id] = counts[campaign_id].keys()
+        #
+        # any launch outputs to look at?
+        #
+        dirname="%s/private/logs/poms/launches/campaign_%s" % (
+           os.environ['HOME'],campaign_id)
+        launch_flist = glob.glob('%s/*' % dirname)
+        launch_flist = map(os.path.basename, launch_flist)
+        return Campaign_info, time_range_string, tmins, tmaxs, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist
+
+
+    def campaign_time_bars(self, dbhandle, campaign_id = None, tag = None, tmin = None, tmax = None, tdays = 1):
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.utilsPOMS.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
+        tg = time_grid.time_grid()
+        key = tg.key()
+
+        class fakerow:
+            def __init__(self, **kwargs):
+                self.__dict__.update(kwargs)
+
+        sl = []
+        # sl.append(self.filesPOMS.format_self.triagePOMS.job_counts(dbhandle,))
+
+        q = dbhandle.query(Campaign)
+        if campaign_id != None:
+            q = q.filter(Campaign.campaign_id == campaign_id)
+            cpl = q.all()
+            name = cpl[0].name
+        elif tag != None and tag != "":
+            q = q.join(CampaignsTags,Tag).filter(Campaign.campaign_id == CampaignsTags.campaign_id,
+                        Tag.tag_id == CampaignsTags.tag_id, Tag.tag_name == tag)
+            cpl = q.all()
+            name = tag
+        else:
+            err_res="404 Permission Denied."
+            return "Neither Campaign nor Tag found"
+
+        job_counts_list = []
+        cidl = []
+        for cp in cpl:
+             job_counts_list.append(cp.name)
+             job_counts_list.append( self.poms_service.filesPOMS.format_job_counts(campaign_id = cp.campaign_id, tmin = tmin, tmax = tmax, tdays = tdays, range_string = time_range_string))
+             cidl.append(cp.campaign_id)
+
+        job_counts = "\n".join(job_counts_list)
+
+        qr = dbhandle.query(TaskHistory).join(Task).filter(Task.campaign_id.in_(cidl), TaskHistory.task_id == Task.task_id , or_(and_(Task.created > tmin, Task.created < tmax),and_(Task.updated > tmin, Task.updated < tmax)) ).order_by(TaskHistory.task_id,TaskHistory.created).all()
+        items = []
+        extramap = {}
+        for th in qr:
+            jjid = self.poms_service.taskPOMS.task_min_job(dbhandle, th.task_id)
+            if not jjid:
+                jjid= 't' + str(th.task_id)
+            else:
+                jjid = jjid.replace('fifebatch','').replace('.fnal.gov','')
+            if th.status != "Completed" and th.status != "Located":
+                extramap[jjid] = '<a href="%s/kill_jobs?task_id=%d"><i class="ui trash icon"></i></a>' % (self.path, th.task_id)
+            else:
+                extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
+
+            items.append(fakerow(task_id = th.task_id,
+                                  created = th.created.replace(tzinfo = utc),
+                                  tmin = th.task_obj.created - timedelta(minutes=15),
+                                  tmax = th.task_obj.updated,
+                                  status = th.status,
+                                  jobsub_job_id = jjid))
+
+        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template = self.poms_service.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(tmin)19.19s&tdays=1',extramap = extramap )
+
+        return job_counts, blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays,key, extramap
+
+
+    def register_poms_campaign(self, dbhandle, loghandle, experiment,  campaign_name, version, user = None, campaign_definition = None, dataset = "", role = "Analysis", params = []):
+         if user == None:
+              user = 4
+         else:
+              u = dbhandle.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
+              if u:
+                   user = u.experimenter_id
+
+
+         if campaign_definition != None and campaign_definition != "None":
+              cd = dbhandle.query(CampaignDefinition).filter(Campaign.name == campaign_definition, Campaign.experiment == experiment).first()
+         else:
+              cd = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name.like("%generic%"), Campaign.experiment == experiment).first()
+
+         ld = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.name.like("%generic%"), LaunchTemplate.experiment == experiment).first()
+
+         dbhandle("campaign_definition = %s " % cd)
+
+         c = dbhandle.query(Campaign).filter( Campaign.experiment == experiment, Campaign.name == campaign_name).first()
+         if c:
+             changed = False
+         else:
+             c = Campaign(experiment = experiment, name = campaign_name, creator = user, created = datetime.now(utc), software_version = version, campaign_definition_id=cd.campaign_definition_id, launch_id = ld.launch_id, vo_role = role)
+
+         if version:
+               c.software_verison = version
+               changed = True
+
+         if dataset:
+               c.dataset = dataset
+               changed = True
+
+         if user:
+               c.experimenter = user
+               changed = True
+
+         dbhandle("register_campaign -- campaign is %s" % c.__dict__)
+
+         if changed:
+                c.updated = datetime.now(utc)
+                c.updator = user
+                dbhandle.add(c)
+                dbhandle.commit()
+
+         return c.campaign_id
+
+
+    def get_dataset_for(self, dbhandle, err_res, camp):
+        res = None
+
+        if camp.cs_split_type == None or camp.cs_split_type in [ '', 'draining','None' ]:
+            # no split to do, it is a draining datset, etc.
+            res =  camp.dataset
+
+        elif camp.cs_split_type == 'list':
+            j# we were given a list of datasets..
+            l = camp.dataset.split(',')
+            if camp.cs_last_split == '' or camp.cs_last_split == None:
+                camp.cs_last_split = -1
+            camp.cs_last_split += 1
+
+            if camp.cs_last_split >= len(l):
+                raise err_res(404, 'No more splits in this campaign')
+
+            res = l[camp.cs_last_split]
+
+            dbhandle.add(camp)
+            dbhandle.commit()
+
+        elif camp.cs_split_type.startswith('mod_'):
+            m = int(camp.cs_split_type[4:])
+            if camp.cs_last_split == '' or camp.cs_last_split == None:
+                camp.cs_last_split = -1
+            camp.cs_last_split += 1
+
+            if camp.cs_last_split >= m:
+                raise err_res(404, 'No more splits in this campaign')
+            new = camp.dataset + "_slice%d" % camp.cs_last_split
+            cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new,  "defname: %s with stride %d offset %d" % (camp.dataset, m, camp.cs_last_split))
+
+            res = new
+
+            dbhandle.add(camp)
+            dbhandle.commit()
+
+        elif camp.cs_split_type == 'new':
+            # save time *before* we define things, so we don't miss any
+            # and knock off an estimated FTS delay
+            est_fts_delay = 1800 # half an hour?
+            t = time.time() - 1800
+
+            if camp.cs_last_split == '' or camp.cs_last_split == None:
+                new = camp.dataset
+            else:
+                new = camp.dataset + "_since_%s" % int(camp.cs_last_split)
+                cherrypy.request.samweb_lite.create_definition(
+                  camp.campaign_definition_obj.experiment,
+                  new,
+                  "defname: %s and end_time > '%s' and end_time <= '%s'" % (
+                     camp.dataset,
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(camp.cs_last_split)),
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(t)))
+                )
+
+            # mark end time for start of next run
+            camp.cs_last_split = t
+            res = new
+
+            dbhandle.add(camp)
+            dbhandle.commit()
+
+        elif camp.cs_split_type == 'new_local':
+            # save time *before* we define things, so we don't miss any
+            # and knock off an estimated FTS delay
+            est_fts_delay = 1800 # half an hour?
+            t = time.time() - 1800
+
+            if camp.cs_last_split == '' or camp.cs_last_split == None:
+                new = camp.dataset
+            else:
+                new = camp.dataset + "_since_%s" % int(camp.cs_last_split)
+                cherrypy.request.samweb_lite.create_definition(
+                  camp.campaign_definition_obj.experiment,
+                  new,
+                  "defname: %s and end_time > '%s' and end_time <= '%s'" % (
+                     camp.dataset,
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(camp.cs_last_split)),
+                     time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(t)))
+                )
+
+            # mark end time for start of next run
+            camp.cs_last_split = t
+            res = new
+
+            dbhandle.add(camp)
+            dbhandle.commit()
+        return res
+
+
+    def list_launch_file(self, campaign_id, fname ):
+        dirname="%s/private/logs/poms/launches/campaign_%s" % (
+           os.environ['HOME'],campaign_id)
+        lf = open("%s/%s" % (dirname, fname), "r")
+        lines = lf.readlines()
+        lf.close()
+        return lines
+
+
+    def schedule_launch(self, dbhandle, campaign_id ):
+        c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        my_crontab = CronTab(user=True)
+        citer = my_crontab.find_comment("POMS_CAMPAIGN_ID=%s" % campaign_id)
+        # there should be only zero or one...
+        job = None
+        for job in citer:
+            break
+
+        # any launch outputs to look at?
+        #
+        dirname="%s/private/logs/poms/launches/campaign_%s" % (
+           os.environ['HOME'],campaign_id)
+        launch_flist = glob.glob('%s/*' % dirname)
+        launch_flist = map(os.path.basename, launch_flist)
+        return c, job, launch_flist
+
+
+    def update_launch_schedule(self, loghandle, campaign_id, dowlist = None,  domlist = None, monthly = None, month = None, hourlist = None, submit = None , minlist = None, delete = None):
+
+        # deal with single item list silliness
+        if isinstance(minlist, basestring):
+           minlist = minlist.split(",")
+        if isinstance(hourlist, basestring):
+           hourlist = hourlist.split(",")
+        if isinstance(dowlist, basestring):
+           dowlist = dowlist.split(",")
+        if isinstance(domlist, basestring):
+           domlist = domlist.split(",")
+
+        loghandle("hourlist is %s " % hourlist)
+
+        if minlist[0] == "*":
+            minlist = None
+        else:
+            minlist = [int(x) for x in minlist if x != '']
+
+        if hourlist[0] == "*":
+            hourlist = None
+        else:
+            hourlist = [int(x) for x in hourlist if x != '']
+
+        if dowlist[0] == "*":
+            dowlist = None
+        else:
+            # dowlist[0] = [int(x) for x in dowlist if x != '']
+            pass
+
+        if domlist[0] == "*":
+            domlist = None
+        else:
+            domlist = [int(x) for x in domlist if x != '']
+
+        my_crontab = CronTab(user=True)
+        # clean out old
+        my_crontab.remove_all(comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
+
+        if not delete:
+
+            # make job for new -- use current link for product
+            pdir=os.environ.get("POMS_DIR","/etc/poms")
+            pdir=pdir[:pdir.rfind("poms")+4] + "/current"
+            job = my_crontab.new(command="%s/cron/launcher --campaign_id=%s" % (
+                              pdir, campaign_id),
+                              comment="POMS_CAMPAIGN_ID=%s" % campaign_id)
+
+            # set timing...
+            if dowlist:
+                job.dow.on(*dowlist)
+
+            if minlist:
+                job.minute.on(*minlist)
+
+            if hourlist:
+                job.hour.on(*hourlist)
+
+            if domlist:
+                job.day.on(*domlist)
+
+            job.enable()
+
+        my_crontab.write()
+
+
+    def get_recovery_list_for_campaign_def(self, dbhandle, campaign_def):
+        rlist = dbhandle.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type)).filter(CampaignRecovery.campaign_definition_id == campaign_def.campaign_definition_id).order_by(CampaignRecovery.recovery_order)
+
+        # convert to a real list...
+        l = []
+        for r in rlist:
+            l.append(r)
+        rlist = l
+
+        return rlist
+
+
+    def make_stale_campaigns_inactive(self, dbhandle, err_res):
+        if not self.poms_service.accessPOMS.can_report_data(cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get)():
+             raise err_res(401, 'You are not authorized to access this resource')
+        lastweek = datetime.now(utc) - timedelta(days=7)
+        cp = dbhandle.query(Task.campaign_id).filter(Task.created > lastweek).group_by(Task.campaign_id).all()
+        sc = []
+        for cid in cp:
+            sc.append(cid)
+
+        stale =  dbhandle.query(Campaign).filter(Campaign.campaign_id.notin_(sc), Campaign.active == True).all()
+        res=[]
+        for c in stale:
+            res.append(c.name)
+            c.active=False
+            dbhandle.add(c)
+
+
+        dbhandle.commit()
+
+        return res

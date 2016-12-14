@@ -53,7 +53,7 @@ class TaskPOMS:
         return str(t.task_id)
 
 
-    def wrapup_tasks(self, dbhandle, loghandle, samhandle): # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
+    def wrapup_tasks(self, dbhandle, loghandle, samhandle, getconfig): # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
         now =  datetime.now(utc)
         res = ["wrapping up:"]
 
@@ -106,6 +106,7 @@ class TaskPOMS:
                     j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
+
             elif task.project:
                 # task had a sam project, add to the list to look
                 # up in sam
@@ -130,14 +131,15 @@ class TaskPOMS:
                 if locflag:
                     n_located = n_located + 1
                     task.status = "Located"
-		    for j in task.jobs:
-			j.status = "Located"
-			j.output_files_declared = True
+                    for j in task.jobs:
+                        j.status = "Located"
+                        j.output_files_declared = True
                     task.updated = datetime.now(utc)
                     dbhandle.add(task)
 
             if t.status == "Located":
                 finish_up_tasks[t.task_id] = t
+                    dbhandle.db.add(task)
 
         summary_list = samhandle.fetch_info_list(lookup_task_list)
         count_list = samhandle.count_files_list(lookup_exp_list,lookup_dims_list)
@@ -165,6 +167,7 @@ class TaskPOMS:
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
 
+
         res.append("Counts: completed: %d stale: %d project %d: located %d" %
                     (n_completed, n_stale , n_project, n_located))
 
@@ -172,13 +175,13 @@ class TaskPOMS:
         res.append("thresholds: %s" % thresholds)
         res.append("lookup_dims_list: %s" % lookup_dims_list)
 
-
         dbhandle.commit()
 
         #
         # now, after committing to clear locks, we run through the
         # job logs for the tasks and update process stats, and 
         # launch any recovery jobs or jobs depending on us.
+        # this way we don't keep the rows locked all day
         #
         for task_id, task in finish_up_tasks.each():
             # get logs for job for final cpu values, etc.
@@ -237,7 +240,7 @@ class TaskPOMS:
             campaign_id = 'unknown'
             cname = 'unknown'
 
-        task_jobsub_id = self.task_min_job(dbhandle, task_id)
+        task_jobsub_id = self.taskPOMS.task_min_job(dbhandle, task_id)
         return_tuple=(blob, job_counts,task_id, str(tmin)[:16], str(tmax)[:16], extramap, key, task_jobsub_id, campaign_id, cname)
         return return_tuple
 
@@ -254,14 +257,10 @@ class TaskPOMS:
             res = "Running"
         if (st['Completed'] > 0 and st['Idle'] == 0 and st['Held'] == 0):
             res = "Completed"
-            # no, not here we wait for "Located" status..
-            #if task.status != "Completed":
-            #    if not self.launch_recovery_if_needed(task):
-            #        self.launch_dependents_if_needed(task)
         return res
 
 
-    def task_min_job(self, dbhandle, task_id):
+    def task_min_job(self, dbhandle, task_id): #This method deleted from the main script.
         # find the job with the logs -- minimum jobsub_job_id for this task
         # also will be nickname for the task...
         if ( self.poms_service.task_min_job_cache.has_key(task_id) ):
@@ -272,3 +271,143 @@ class TaskPOMS:
             return j.jobsub_job_id
         else:
             return None
+
+
+    def get_task_id_for(self, dbhandle, campaign, user = None, experiment = None, command_executed = "", input_dataset = "", parent_task_id=None):
+        if user == None:
+             user = 4
+        else:
+             u = dbhandle.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
+             if u:
+                  user = u.experimenter_id
+        q = dbhandle.query(Campaign)
+        if campaign[0] in "0123456789":
+            q = q.filter(Campaign.campaign_id == int(campaign))
+        else:
+            q = q.filter(Campaign.name.like("%%%s%%" % campaign))
+
+        if experiment:
+            q = q.filter(Campaign.experiment == experiment)
+
+        c = q.first()
+        tim = datetime.now(utc)
+        t = Task(campaign_id = c.campaign_id,
+                 task_order = 0,
+                 input_dataset = input_dataset,
+                 output_dataset = "",
+                 status = "New",
+                 task_parameters = "{}",
+                 updater = 4,
+                 creator = 4,
+                 created = tim,
+                 updated = tim,
+                 command_executed = command_executed)
+
+        if parent_task_id != None and parent_task_id != "None":
+            t.recovery_tasks_parent = int(parent_task_id)
+
+        self.poms_service.taskPOMS.snapshot_parts(dbhandle, t, t.campaign_id)
+
+        dbhandle.add(t)
+        dbhandle.commit()
+        return t.task_id
+
+
+    def snapshot_parts(self, dbhandle, t, campaign_id): ###This function was removed from the main script
+         c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+         for table, snaptable, field, sfield, tid , tfield in [
+                [Campaign,CampaignSnapshot,Campaign.campaign_id,CampaignSnapshot.campaign_id,c.campaign_id, 'campaign_snap_obj' ],
+                [CampaignDefinition, CampaignDefinitionSnapshot,CampaignDefinition.campaign_definition_id, CampaignDefinitionSnapshot.campaign_definition_id, c.campaign_definition_id, 'campaign_definition_snap_obj'],
+                [LaunchTemplate ,LaunchTemplateSnapshot,LaunchTemplate.launch_id,LaunchTemplateSnapshot.launch_id,  c.launch_id, 'launch_template_snap_obj']]:
+
+             i = dbhandle.query(func.max(snaptable.updated)).filter(sfield == tid).first()
+             j = dbhandle.db.query(table).filter(field == tid).first()
+             if (i[0] == None or j == None or j.updated == None or  i[0] < j.updated):
+                newsnap = snaptable()
+                columns = j._sa_instance_state.class_.__table__.columns
+                for fieldname in columns.keys():
+                     setattr(newsnap, fieldname, getattr(j,fieldname))
+                dbhandle.db.add(newsnap)
+             else:
+                newsnap = dbhandle.db.query(snaptable).filter(snaptable.updated == i[0]).first()
+             setattr(t, tfield, newsnap)
+         dbhandle.db.add(t) #Felipe change HERE one tap + space to spaces indentation
+         dbhandle.db.commit()
+
+
+    def launch_dependents_if_needed(self, dbhandle, loghandle, samhandle, getconfig, t):
+        loghandle("Entering launch_dependents_if_needed(%s)" % t.task_id)
+        if not cherrypy.config.get("poms.launch_recovery_jobs",False):
+            # XXX should queue for later?!?
+            return 1
+        cdlist = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id == t.campaign_snap_obj.campaign_id).all()
+
+        i = 0
+        for cd in cdlist:
+           if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
+              # self-reference, just do a normal launch
+              self.poms_service.launch_jobs(cd.uses_camp_id)
+           else:
+              i = i + 1
+              dims = "ischildof: (snapshot_for_project %s) and version %s and file_name like '%s' " % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
+              dname = "poms_depends_%d_%d" % (t.task_id,i)
+
+              samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
+              self.poms_service.launch_jobs(cd.uses_camp_id, dataset_override = dname)
+        return 1
+
+
+    def launch_recovery_if_needed(self, dbhandle, loghandle, samhandle, getconfig, t):
+        loghandle("Entering launch_recovery_if_needed(%s)" % t.task_id)
+        if not getconfig("poms.launch_recovery_jobs",False):
+            # XXX should queue for later?!?
+            return 1
+
+        # if this is itself a recovery job, we go back to our parent
+        # to do all the work, because it has the counters, etc.
+        if t.parent_obj:
+           t = t.parent_obj
+
+        rlist = self.campaignsPOMS.get_recovery_list_for_campaign_def(dbhandle,t.campaign_definition_snap_obj)
+
+        if t.recovery_position == None:
+           t.recovery_position = 0
+
+        while t.recovery_position != None and t.recovery_position < len(rlist):
+            rtype = rlist[t.recovery_position].recovery_type
+            t.recovery_position = t.recovery_position + 1
+            if rtype.name == 'consumed_status':
+                 recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
+            elif rtype.name == 'proj_status':
+                 recovery_dims = "snapshot_for_project_name %s and process_status != 'ok'" % t.project
+            elif rtype.name == 'pending_files':
+                 recovery_dims = "snapshot_for_project_name %s " % t.project
+                 if t.campaign_definition_snap_obj.output_file_types:
+                     oftypelist = campaign_definition_snap_obj.output_file_types.split(",")
+                 else:
+                     oftypelist = ["%"]
+
+                 for oft in oftypelist:
+                     recovery_dims = recovery_dims + "minus isparent: ( version %s and file_name like %s) " % (t.campaign_snap_obj.software_version, oft)
+            else:
+                 # default to consumed status(?)
+                 recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
+
+            nfiles = samhandle.count_files(t.campaign_snap_obj.experiment,recovery_dims)
+
+            t.recovery_position = t.recovery_position + 1
+            dbhandle.add(t)
+            dbhandle.commit()
+
+            if nfiles > 0:
+                rname = "poms_recover_%d_%d" % (t.task_id,t.recovery_position)
+
+                loghandle("launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s" % (t.campaign_snap_obj.experiment, rname, recovery_dims))
+
+                samhandle.create_definition(t.campaign_snap_obj.experiment, rname, recovery_dims)
+
+
+                self.poms_service.launch_jobs(t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id)
+                return 1
+
+        return 0

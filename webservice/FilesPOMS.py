@@ -17,7 +17,7 @@ class Files_status():
 
     def list_task_logged_files(self, dbhandle, task_id):
         t =  dbhandle.query(Task).filter(Task.task_id== task_id).first()
-        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(task_id)
+        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, task_id)
         fl = dbhandle.query(JobFile).join(Job).filter(Job.task_id == task_id, JobFile.job_id == Job.job_id).all()
         return fl, t, jobsub_job_id
         #DELETE: template = self.poms_service.jinja_env.get_template('list_task_logged_files.html')
@@ -133,10 +133,10 @@ class Files_status():
                             [ psummary.get('tot_skipped',0),  listfiles % base_dim_list[i] + " and consumed_status skipped"],
                             [some_kids_decl_list[i], listfiles % some_kids_needed[i] ],
                             [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                            [len(self.get_inflight(dbhandle, task_id=t.task_id)), "./inflight_files?task_id=%d" % t.task_id],
+                            [len(self.poms_service.filesPOMS.get_inflight(dbhandle, campaign_id, task_id=t.task_id)), "./inflight_files?task_id=%d" % t.task_id],
                             [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
                             [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
-                ])
+                            ])
             return c, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
             ###I didn't include tdays, campaign_id, because it was passed as an argument, should I?????
             #DELETE template = self.jinja_env.get_template('campaign_task_files.html')
@@ -146,7 +146,7 @@ class Files_status():
     def job_file_list(self, dbhandle, jobhandle, job_id, force_reload = False): ##Should this funcion be here or at the main script ????
         j = dbhandle.query(Job).options(joinedload(Job.task_obj).joinedload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
-        jobsub_job_id = self.poms_service.task_min_job(j.task_id)
+        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, j.task_id)
         role = j.task_obj.campaign_snap_obj.vo_role
         return jobhandle.index(jobsub_job_id,j.task_obj.campaign_snap_obj.experiment,role, force_reload)
 
@@ -160,13 +160,13 @@ class Files_status():
         ### You don't use many of those arguments, is just because you need one of them then you call the whole method ???????
         j = dbhandle.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
-        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(j.task_id)
+        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, j.task_id)
         loghandle("found job: %s " % jobsub_job_id)
         role = j.task_obj.campaign_snap_obj.vo_role
         job_file_contents = jobhandle.contents(file, j.jobsub_job_id,j.task_obj.campaign_snap_obj.experiment,role)
         return job_file_contents, tmin
         #DELETE template = self.jinja_env.get_template('job_file_contents.html')
-        #DELETE return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version) 
+        #DELETE return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version)
 
     def format_job_counts(self, dbhandle, task_id = None, campaign_id = None, tmin = None, tmax = None, tdays = 7, range_string = None): ##This method was deleted from the main script
         counts = self.poms_service.triagePOMS.job_counts( dbhandle, task_id = task_id, campaign_id = campaign_id, tmin = tmin, tmax = tmax, tdays = tdays)
@@ -213,7 +213,7 @@ class Files_status():
         return outlist
 
 
-    def inflight_files(self, dbhandle, status_response, campaign_id=None, task_id=None):
+    def inflight_files(self, dbhandle, status_response, getconfig, campaign_id=None, task_id=None):
         #status_response = cherrypy.response.status
         if campaign_id:
             c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
@@ -222,10 +222,10 @@ class Files_status():
         else:
             status_response="404 Permission Denied."
             return "Neither Campaign nor Task found"
-        outlist = self.get_inflight( dbhandle, campaign_id=campaign_id, task_id= task_id)
+        outlist = self.poms_service.filesPOMS.get_inflight( dbhandle, campaign_id=campaign_id, task_id = task_id)
         statusmap = {}
         if c:
-            fss_file = "%s/%s_files.db" % (cherrypy.config.get("ftsscandir"), c.experiment)
+            fss_file = "%s/%s_files.db" % (getconfig("ftsscandir"), c.experiment)
             if os.path.exists(fss_file):
                 fss = shelve.open(fss_file, 'r')
                 for f in outlist:
@@ -434,5 +434,72 @@ class Files_status():
 
         else:
             name = ''
+        return name, columns, outrows, dimlist, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
 
-        return name, columns, outrows, dimlist, experiment, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
+
+    def get_pending_for_campaigns(self,  dbhandle, loghandle, samhandle, campaign_list, tmin, tmax):
+
+        task_list_list = []
+
+        loghandle("in get_pending_for_campaigns, tmin %s tmax %s" % (tmin, tmax))
+
+        for c in campaign_list:
+            tl = (dbhandle.query(Task).
+            options( joinedload(Task.campaign_snap_obj)).
+            options( joinedload(Task.campaign_definition_snap_obj)).
+            filter(Task.campaign_id == c.campaign_id,
+            Task.created >= tmin, Task.created < tmax ).
+            all())
+            '''
+            To delete: Marc change this query
+            tl = (dbhandle.query(Task).
+            options(joinedload(Task.campaign_snap_obj).
+                    joinedload(Campaign.campaign_definition_obj)).
+                    filter(Task.campaign_id == c.campaign_id,
+                    Task.created >= tmin, Task.created < tmax ).
+                    all())
+            '''
+            task_list_list.append(tl)
+
+        return self.poms_service.filesPOMS.get_pending_for_task_lists(loghandle, samhandle, task_list_list)
+
+
+    def get_pending_for_task_lists(self, loghandle, samhandle, task_list_list):
+        dimlist=[]
+        explist=[]
+        experiment = None
+        loghandle("get_pending_for_task_lists: task_list_list (%d): %s" % (len(task_list_list),task_list_list))
+        for tl in task_list_list:
+            diml = ["("]
+            for task in tl:
+                #if task.project == None:
+                #    continue
+                diml.append("(snapshot_for_project_name %s" % task.project)
+                diml.append("minus ( snapshot_for_project_name %s and (" % task.project)
+                sep = ""
+                for pat in str(task.campaign_definition_snap_obj.output_file_patterns).split(','):
+                     if (pat == "None"):
+                         pat = "%"
+                     diml.append(sep)
+                     diml.append("isparentof: ( file_name '%s' and version '%s' with availability physical )" % (pat, task.campaign_snap_obj.software_version))
+                     sep = "or"
+                diml.append(")")
+                diml.append(")")
+                diml.append(")")
+                diml.append("union")
+                diml[-1] = ")"
+
+            if len(diml) <= 1:
+               diml[0] = "project_name no_project_info"
+
+               dimlist.append(" ".join(diml))
+
+            if len(tl):
+                explist.append(tl[0].campaign_definition_snap_obj.experiment)
+            else:
+                explist.append("samdev")
+
+        loghandle("get_pending_for_task_lists: dimlist (%d): %s" % (len(dimlist), dimlist))
+        count_list = samhandle.count_files_list(explist,dimlist)
+        loghandle("get_pending_for_task_lists: count_list (%d): %s" % (len(dimlist), count_list))
+        return dimlist, count_list

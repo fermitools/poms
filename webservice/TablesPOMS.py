@@ -7,38 +7,38 @@
 
 
 from datetime import datetime, tzinfo,timedelta
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
 
 
 class TablesPOMS:
 
-    def __init__(self, ps):
+    def __init__(self, ps, loghandle):
         self.poms_service=ps
+        self.make_admin_map(loghandle)
+        #dbhandle = dbhandle
+        #gethead = gethead
+        #loghandle = loghandle
 
 
-    def list_generic(self, err_res, classname):
-        if not self.poms_service.can_db_admin():
+    def list_generic(self, dbhandle, err_res, gethead, seshandle, classname):
+        if not self.poms_service.accessPOMS.can_db_admin(gethead, seshandle):
             raise err_res(401, 'You are not authorized to access this resource')
-        l = self.poms_service.make_list_for(self.admin_map[classname],self.pk_map[classname])
+        l = self.make_list_for(dbhandle, self.poms_service.admin_map[classname],self.poms_service.pk_map[classname])
         return l
 
-
-    @cherrypy.expose
-    def edit_screen_generic(self, err_res, classname, id = None):
-        if not self.poms_service.can_db_admin():
+    def edit_screen_generic(self, err_res, gethead, seshandle, classname, id = None):
+        if not self.poms_service.accessPOMS.can_db_admin(gethead, seshandle):
             raise err_res(401, 'You are not authorized to access this resource')
         # XXX -- needs to get select lists for foreign key fields...
         return self.poms_service.edit_screen_for(classname, self.poms_service.admin_map[classname], 'update_generic', self.poms_service.pk_map[classname], id, {})
 
 
-    def update_generic( self, classname, *args, **kwargs):
-        if not self.poms_service.can_report_data():
+    def update_generic( self, dbhandle, gethead, loghandle, seshandle, classname, *args, **kwargs):
+        if not self.poms_service.accessPOMS.can_report_data( gethead, loghandle, seshandle ):
             return "Not allowed"
-        return self.poms_service.update_for(classname, self.poms_service.admin_map[classname], self.poms_service.pk_map[classname], *args, **kwargs)
+        return self.update_for(dbhandle, loghandle, classname, self.poms_service.admin_map[classname], self.poms_service.pk_map[classname], *args, **kwargs)
 
 
-
-    def update_for( self, dbhandle, loghandle, classname, eclass, primkey,  *args , **kwargs):
+    def update_for( self, dbhandle, loghandle, classname, eclass, primkey,  *args , **kwargs): #this method was deleded from the main script
         found = None
         kval = None
         if kwargs.get(primkey,'') != '':
@@ -88,8 +88,8 @@ class TablesPOMS:
         return "%s=%s" % (classname, getattr(found,primkey))
 
 
-    def edit_screen_for( self, dbhandle, loghandle, classname, eclass, update_call, primkey, primval, valmap):
-        if not self.poms_service.can_db_admin():
+    def edit_screen_for( self, dbhandle, loghandle, gethead, seshandle, classname, eclass, update_call, primkey, primval, valmap):
+        if not self.poms_service.accessPOMS.can_db_admin(gethead, seshandle):
             raise err_res(401, 'You are not authorized to access this resource')
 
         found = None
@@ -119,8 +119,29 @@ class TablesPOMS:
         return screendata
 
 
-    def make_list_for(self, dbhandle, eclass,primkey):
+    def make_list_for(self, dbhandle, eclass,primkey): #this function was eliminated from the main class.
         res = []
         for i in dbhandle.query(eclass).order_by(primkey).all():
             res.append( {"key": getattr(i,primkey,''), "value": getattr(i,'name',getattr(i,'email','unknown'))})
         return res
+
+
+    def make_admin_map(self,loghandle): #This method was deleted from the main script.
+        """
+            make self.admin_map a map of strings to model class names
+            and self.pk_map a map of primary keys for that class
+        """
+        loghandle(" ---- make_admin_map: starting...")
+        import model.poms_model
+        self.poms_service.admin_map = {}
+        self.poms_service.pk_map = {}
+        for k in model.poms_model.__dict__.keys():
+            if hasattr(model.poms_model.__dict__[k],'__module__') and model.poms_model.__dict__[k].__module__ == 'model.poms_model':
+                self.poms_service.admin_map[k] = model.poms_model.__dict__[k]
+                found = self.poms_service.admin_map[k]()
+                columns = found._sa_instance_state.class_.__table__.columns
+                for fieldname in columns.keys():
+                    if columns[fieldname].primary_key:
+                         self.poms_service.pk_map[k] = fieldname
+        loghandle(" ---- admin map: %s " % repr(self.poms_service.admin_map))
+        loghandle(" ---- pk_map: %s " % repr(self.poms_service.pk_map))
