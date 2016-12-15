@@ -27,10 +27,10 @@ class TagsPOMS():
                         dbhandle.add(ct)
                         dbhandle.commit()
                         response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": tag.tag_name, "msg": "OK"}
-                        return json.dumps(response)
+                        return response
                     except exc.IntegrityError:
                         response = {"msg": "This tag already exists."}
-                        return json.dumps(response)
+                        return response
                 else:  #we do not have a tag in the db for this experiment so create the tag and then do the linking
                     try:
                         t = Tag()
@@ -45,14 +45,14 @@ class TagsPOMS():
                         dbhandle.add(ct)
                         dbhandle.commit()
                         response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": t.tag_name, "msg": "OK"}
-                        return json.dumps(response)
+                        return response
                     except exc.IntegrityError:
                         response = {"msg": "This tag already exists."}
-                        return json.dumps(response)
+                        return response
 
             else:
                 response = {"msg": "You are not authorized to add tags."}
-                return json.dumps(response)
+                return response
 
 
 
@@ -64,7 +64,7 @@ class TagsPOMS():
                 response = {"msg": "OK"}
             else:
                 response = {"msg": "You are not authorized to delete tags."}
-            return json.dumps(response)
+            return response
 
 
         def search_tags(self, dbhandle, q):

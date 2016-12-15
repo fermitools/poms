@@ -142,9 +142,9 @@ class poms_service:
 ### CALENDAR
 #Using CalendarPOMS.py module
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def calendar_json(self, start, end, timezone, _):
-        cherrypy.response.headers['Content-Type'] = "application/json"
-        return json.dumps(self.calendarPOMS.calendar_json(cherrypy.request.db, start, end, timezone, _))
+        return self.calendarPOMS.calendar_json(cherrypy.request.db, start, end, timezone, _)
 
 
     @cherrypy.expose
@@ -253,9 +253,10 @@ class poms_service:
 
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def experiment_members(self, *args, **kwargs):
         trows = self.dbadminPOMS.experiment_members(cherrypy.request.db, *args, **kwargs)
-        return json.dumps(trows)
+        return trows
 
 
     @cherrypy.expose
@@ -300,9 +301,10 @@ class poms_service:
 
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def campaign_edit_query(self, *args, **kwargs):
         data = self.campaignsPOMS.campaign_edit_query(cherrypy.request.db, *args, **kwargs)
-        return json.dumps(data)
+        return data
 
 
     @cherrypy.expose
@@ -414,7 +416,7 @@ class poms_service:
 
 
     @cherrypy.expose
-    @cherrypy.tools.response_headers(headers=[('Content-Type','application/json')])
+    @cherrypy.tools.json_out()
     def output_pending_jobs(self):
          res = self.jobsPOMS.output_pending_jobs(cherrypy.request.db)
          return res
@@ -575,9 +577,9 @@ class poms_service:
 
 
     @cherrypy.expose
-    @cherrypy.tools.response_headers(headers=[('Content-Type','application/json')])
+    @cherrypy.tools.json_out()
     def json_project_summary_for_task(self, task_id):
-        return json.dumps(self.project_summary_for_task(task_id))
+        return self.project_summary_for_task(task_id)
 
 
     def project_summary_for_task(self, task_id):
@@ -621,14 +623,14 @@ class poms_service:
 ##############
 ### TagsPOMS
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def link_tags(self, campaign_id, tag_name, experiment):
-        cherrypy.response.headers['Content-Type'] = 'application/json'
         return(self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session.get, campaign_id, tag_name, experiment))
 
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def delete_campaigns_tags(self, campaign_id, tag_id, experiment):
-        cherrypy.response.headers['Content-Type'] = 'application/json'
         return(self.tagsPOMS.delete_campaigns_tags( cherrypy.request.db, campaign_id, tag_id, experiment))
 
 
