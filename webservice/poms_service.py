@@ -399,8 +399,8 @@ class poms_service:
 #----------------------------
 #######
 ### JobPOMS
-    @cherrypy.tools.response_headers(headers=[('Content-Type','application/json')])
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def active_jobs(self):
 	 res = self.jobsPOMS.active_jobs(cherrypy.request.db)
          return res

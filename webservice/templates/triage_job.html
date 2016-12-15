@@ -344,7 +344,8 @@
 
                     <tbody>  <!-- root tbody-->
 
-                    {% for record in es_response.get('hits').get('hits') %}
+                    {% if es_response %}
+                    {% for record in es_response['hits']['hits'] %}
                     {% set record_meat = record.get('_source') %}
                         <!--item-->
                         <tr>
@@ -371,6 +372,7 @@
                         </tr>
                         <!--ends item-->
                     {% endfor %}
+                    {% endif %}
 
 
 
@@ -378,7 +380,9 @@
 
                 </table>  <!--ends root table-->
 
+{%if es_response%}
 <small>{{es_response.get('hits',{}).get('total',0)}} records in {{es_response.get('took',0)}} ms</small>
+{% endif %}
 
 
 

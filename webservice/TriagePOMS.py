@@ -83,7 +83,11 @@ class TriagePOMS():
 	    }
 	}
 
-	es_response= es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+        try: 
+	    es_response= es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+        except: 
+            es_response = None
+
 	#ends condor event logs
 
 
@@ -95,7 +99,11 @@ class TriagePOMS():
 	    }
 	}
 
-	es_efficiency_response = es.search(index='fifebatch-jobs', types=['job'], query=query)
+        try:
+	    es_efficiency_response = es.search(index='fifebatch-jobs', types=['job'], query=query)
+        except:
+            es_efficiency_response = None
+
 	try:
 	    if es_efficiency_response and "fields" in es_efficiency_response.get("hits").get("hits")[0].keys():
 		efficiency = int(es_efficiency_response.get('hits').get('hits')[0].get('fields').get('efficiency')[0] * 100)

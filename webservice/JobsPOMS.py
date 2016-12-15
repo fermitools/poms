@@ -66,17 +66,13 @@ class JobsPOMS():
 ###########
 ###JOBS
     def active_jobs(self, dbhandle):
-        res = [ "[" ]
-        sep=""
+        res = []
         for job in dbhandle.query(Job).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").all():
             if job.jobsub_job_id == "unknown":
                 continue
-            res.append( '%s "%s"' % (sep, job.jobsub_job_id))
-            sep = ","
-        res.append( "]" )
-        res = "".join(res)
-        logger.info("active_jobs: returning %s" % res)
-        gc.collect(2)
+            res.append(job.jobsub_job_id)
+        #logger.info("active_jobs: returning %s" % res)
+        #gc.collect(2)
         return res
 
 
