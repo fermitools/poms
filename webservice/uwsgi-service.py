@@ -267,7 +267,7 @@ if True:
     cherrypy.tools.psess = SessionTool()
     app = cherrypy.tree.mount(poms_service.poms_service(), path, configfile)
     app.merge(config)
-    #VP set_rotating_log(app)
+    set_rotating_log(app)
 
     # Start SSL Server if in config file
     ssl_host = cherrypy.config.get("server.socket_host",None)

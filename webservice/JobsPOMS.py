@@ -22,6 +22,10 @@ import select
 import os
 import sys
 
+import logging
+# our own logging handle, goes to cherrypy
+logger = logging.getLogger('cherrypy_error')
+
 #
 # utility function for running commands that don't run forever...
 #
@@ -71,6 +75,7 @@ class JobsPOMS():
             sep = ","
         res.append( "]" )
         res = "".join(res)
+        logger.info("active_jobs: returning %s" % res)
         gc.collect(2)
         return res
 

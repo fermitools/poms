@@ -82,7 +82,7 @@ class CampaignsPOMS():
         if exp: # cuz the default is find
             data['curr_experiment'] = exp
             data['authorized'] = seshandle('experimenter').is_authorized(exp)
-            data['templates'] = dbhandle(LaunchTemplate,Experiment).join(Experiment).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
+            data['templates'] = dbhandle.query(LaunchTemplate,Experiment).join(Experiment).filter(LaunchTemplate.experiment==exp).order_by(LaunchTemplate.name)
         data['message'] = message
         return data
 

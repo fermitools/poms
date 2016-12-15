@@ -17,6 +17,9 @@ from sqlalchemy import func
 from utc import utc
 from datetime import datetime, timedelta
 
+import logging
+# our own logging handle, goes to cherrypy
+logger = logging.getLogger('cherrypy_error')
 
 from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
 
@@ -138,7 +141,7 @@ class TaskPOMS:
                     task.updated = datetime.now(utc)
                     dbhandle.add(task)
 
-            if t.status == "Located":
+            if task.status == "Located":
                 finish_up_tasks[t.task_id] = t
                 dbhandle.add(task)
 

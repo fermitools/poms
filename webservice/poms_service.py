@@ -55,7 +55,7 @@ def error_response():
 
     cherrypy.response.status = 500
     cherrypy.response.headers['content-type'] = 'text/html'
-    cherrypy.response.body = body
+    cherrypy.response.body = body.encode()
     cherrypy.log(dump)
 
 
@@ -399,11 +399,11 @@ class poms_service:
 #----------------------------
 #######
 ### JobPOMS
+    @cherrypy.tools.response_headers(headers=[('Content-Type','application/json')])
     @cherrypy.expose
     def active_jobs(self):
-         cherrypy.response.headers['Content-Type']= 'application/json'
-         #print "Im here"
-	 return self.jobsPOMS.active_jobs(cherrypy.request.db)
+	 res = self.jobsPOMS.active_jobs(cherrypy.request.db)
+         return res
 
 
     @cherrypy.expose
@@ -414,9 +414,10 @@ class poms_service:
 
 
     @cherrypy.expose
+    @cherrypy.tools.response_headers(headers=[('Content-Type','application/json')])
     def output_pending_jobs(self):
-         cherrypy.response.headers['Content-Type']= 'application/json'
-         return self.jobsPOMS.output_pending_jobs(cherrypy.request.db)
+         res = self.jobsPOMS.output_pending_jobs(cherrypy.request.db)
+         return res
 
 
     @cherrypy.expose
@@ -574,8 +575,8 @@ class poms_service:
 
 
     @cherrypy.expose
+    @cherrypy.tools.response_headers(headers=[('Content-Type','application/json')])
     def json_project_summary_for_task(self, task_id):
-        cherrypy.response.headers['Content-Type'] = "application/json"
         return json.dumps(self.project_summary_for_task(task_id))
 
 
