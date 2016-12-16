@@ -89,9 +89,7 @@ class JobsPOMS():
                 prevj = jobsub_job_id
                 res[e][jobsub_job_id] = []
             res[e][jobsub_job_id].append(fname)
-        sres =  json.dumps(res)
-        res = None   #Why do you need this?
-        return sres
+        return res
 
 
     def update_job(self, dbhandle, loghandle, rpstatus, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
