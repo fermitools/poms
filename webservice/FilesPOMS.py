@@ -174,9 +174,11 @@ class Files_status():
         ck = counts.keys()
         res = [ '<div><b>Job States</b><br>',
                 '<table class="ui celled table unstackable">',
-                '<tr><th>Total</th><th colspan=3>Active</th><th colspan=2>In %s</th></tr>' % range_string,
+                '<tr><th>Total</th><th colspan=3>Active</th><th colspan=3>Completed In %s</th></tr>' % range_string,
                 '<tr>' ]
         for k in ck:
+            if k == "Completed Total": k = "Total"
+            if k == "Completed": k = "Not Located"
             res.append( "<th>%s</th>" % k )
         res.append("</tr>")
         res.append("<tr>")
@@ -453,15 +455,6 @@ class Files_status():
             filter(Task.campaign_id == c.campaign_id,
             Task.created >= tmin, Task.created < tmax ).
             all())
-            '''
-            To delete: Marc change this query
-            tl = (dbhandle.query(Task).
-            options(joinedload(Task.campaign_snap_obj).
-                    joinedload(Campaign.campaign_definition_obj)).
-                    filter(Task.campaign_id == c.campaign_id,
-                    Task.created >= tmin, Task.created < tmax ).
-                    all())
-            '''
             task_list_list.append(tl)
 
         return self.poms_service.filesPOMS.get_pending_for_task_lists(dbhandle, loghandle, samhandle, task_list_list)
@@ -490,12 +483,12 @@ class Files_status():
                 diml.append(")")
                 diml.append(")")
                 diml.append("union")
-                diml[-1] = ")"
+            diml[-1] = ")"
 
             if len(diml) <= 1:
                diml[0] = "project_name no_project_info"
 
-               dimlist.append(" ".join(diml))
+            dimlist.append(" ".join(diml))
 
             if len(tl):
                 explist.append(tl[0].campaign_definition_snap_obj.experiment)

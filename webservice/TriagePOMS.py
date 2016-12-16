@@ -32,7 +32,7 @@ class TriagePOMS():
         if campaign_id:
             q = q.join(Task,Job.task_id == Task.task_id).filter( Task.campaign_id == campaign_id)
 
-        out = OrderedDict([("All",0),("Idle",0),( "Running",0),( "Held",0),( "Completed",0), ("Located",0),("Removed",0)])
+        out = OrderedDict([("All",0),("Idle",0),( "Running",0),( "Held",0),( "Total Completed",0), ("Completed",0), ("Located",0),("Removed",0)])
         for row in  q.all():
             # this rather bizzare hoseyness is because we want
             # "Running" to also match "running: copying files in", etc.
@@ -43,6 +43,7 @@ class TriagePOMS():
                 short = row[1]
             out[short] = out.get(short,0) + int(row[0])
             out["All"] =  out.get("All",0) + int(row[0])
+            out["Total Completed"] = out["Completed"] + out["Located"]
 
         return out
 
