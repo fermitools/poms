@@ -100,6 +100,9 @@ class JobsPOMS():
 
     def update_job(self, dbhandle, loghandle, rpstatus, samhandle, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
 
+        # flag to remember to do a SAM update after we commit
+	do_SAM_project = False
+
         if task_id == "None":
             task_id = None
 
@@ -174,7 +177,8 @@ class JobsPOMS():
             for field in ['project','recovery_tasks_parent' ]:
 
                 if field == 'project' and j.project == None:
-                    self.update_SAM_project(samhandle, j, kwargs.get("task_project"))
+                    # make a note to update project description after commit
+                    do_SAM_project = True
 
                 if kwargs.get("task_%s" % field, None) and kwargs.get("task_%s" % field) != "None" and j.task_obj:
                     setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
@@ -238,6 +242,10 @@ class JobsPOMS():
                     j.task_obj.campaign_snap_obj.active = True
             dbhandle.add(j)
             dbhandle.commit()
+
+            # now that we committed, do a SAM project desc. upate if needed
+            if do_SAM_project:
+	        self.update_SAM_project(samhandle, j, kwargs.get("task_project"))
             loghandle("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
 
         return "Ok."
