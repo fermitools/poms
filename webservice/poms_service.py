@@ -428,7 +428,7 @@ class poms_service:
         if not self.accessPOMS.can_report_data( cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get ):
             cherrypy.log("update_job: not allowed")
             return "Not Allowed"
-        return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log, cherrypy.response.status, task_id, jobsub_job_id, **kwargs))
+        return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log, cherrypy.response.status, cherrypy.request.samweb_lite, task_id, jobsub_job_id, **kwargs))
 
 
     @cherrypy.expose

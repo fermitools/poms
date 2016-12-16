@@ -91,8 +91,14 @@ class JobsPOMS():
             res[e][jobsub_job_id].append(fname)
         return res
 
+    def update_SAM_project(self, samhandle, j, projname):
+        tid = j.task_obj.task_id
+        exp = j.task_obj.campaign_snap_obj.experiment
+        cid = j.task_obj.campaign_snap_obj.campaign_id
+        samhandle.update_project_description(exp, projname, "POMS Campaign %s %ask %s" % (cid, tid))
+        pass
 
-    def update_job(self, dbhandle, loghandle, rpstatus, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
+    def update_job(self, dbhandle, loghandle, rpstatus, samhandle, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
 
         if task_id == "None":
             task_id = None
@@ -122,8 +128,7 @@ class JobsPOMS():
                         dbhandle.add(njf)
 
                 dbhandle.delete(ji)
-                dbhandle.flush()      #######################should we change this for dbhandle.commit()
-
+                dbhandle.flush()  
 
         if not j and task_id:
             t = dbhandle.query(Task).filter(Task.task_id==task_id).first()
@@ -147,7 +152,8 @@ class JobsPOMS():
         if j:
             loghandle("update_job: updating job %d" % (j.job_id if j.job_id else -1))
 
-            for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:    ######?????????????? does those fields come in **kwargs or are juste grep from the database direclty
+            # first, Job string fields the db requres be not null:
+            for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:    
                 if field == 'status' and j.status == "Located":
                     # stick at Located, don't roll back to Completed,etc.
                     continue
@@ -158,20 +164,28 @@ class JobsPOMS():
                     if field != 'user_exe_exit_code':
                         setattr(j,field,'unknown')
 
+            # first, next, output_files_declared, which also changes status
             if kwargs.get('output_files_declared', None) == "True":
                 if j.status == "Completed" :
                     j.output_files_declared = True
                     j.status = "Located"
 
+            # next fields we set in our Task
             for field in ['project','recovery_tasks_parent' ]:
+
+                if field == 'project' and j.project == None:
+                    self.update_SAM_project(samhandle, j, kwargs.get("task_project"))
+
                 if kwargs.get("task_%s" % field, None) and kwargs.get("task_%s" % field) != "None" and j.task_obj:
                     setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
                     loghandle("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field, kwargs["task_%s"%field])))
 
+            # floating point fields need conversion
             for field in [ 'cpu_time', 'wall_time']:
                 if kwargs.get(field, None) and kwargs[field] != "None":
                     setattr(j,field,float(kwargs[field].rstrip("\n")))
 
+            # filenames need dumping in JobFiles table and attaching
             if kwargs.get('output_file_names', None):
                 loghandle("saw output_file_names: %s" % kwargs['output_file_names'])
                 if j.job_files:
@@ -210,6 +224,8 @@ class JobsPOMS():
                         dbhandle.add(jf)
 
 
+            # should have been handled with 'unknown' bit above, but we
+            # must have put it here for a reason...
             if j.cpu_type == None:
                 j.cpu_type = ''
             loghandle("update_job: db add/commit job status %s " %  j.status)
@@ -230,7 +246,6 @@ class JobsPOMS():
     def test_job_counts(self, task_id = None, campaign_id = None):
         res = self.poms_service.job_counts(task_id, campaign_id)
         return repr(res) + self.poms_service.format_job_counts(task_id, campaign_id)
-
 
     def kill_jobs(self, dbhandle, loghandle, campaign_id=None, task_id=None, job_id=None, confirm=None):
         jjil = []

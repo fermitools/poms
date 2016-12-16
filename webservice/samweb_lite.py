@@ -89,6 +89,19 @@ class samweb_lite:
         info["tot_jobs"] = tot_jobs
         info["tot_jobfails"] = tot_jobfails
 
+    def update_project_description(self, experiment, projname, desc):
+        base = "http://samweb.fnal.gov:8480"
+        url = "%s/sam/%s/api/projects/%s/%s/description" % (
+                base, experiment, experiment, projname)
+        r1 = None
+        try:
+            res = requests.post(url,params={"description":desc})
+            r1 = res.read()
+            res.close()
+        except:
+            traceback.print_exc()
+        return r1
+ 
     def list_files(self, experiment, dims):
         base = "http://samweb.fnal.gov:8480"
         url="%s/sam/%s/api/files/list" % (base,experiment)
