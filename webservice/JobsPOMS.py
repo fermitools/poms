@@ -384,12 +384,14 @@ class JobsPOMS():
     def launch_jobs(self, dbhandle,loghandle, getconfig, gethead, seshandle, err_res, campaign_id, dataset_override = None, parent_task_id = None):
 
         loghandle("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
-        if getconfig("poms.launches","allowed") == "hold":
-            return "Job launches currently held."
 
         c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).options(joinedload(Campaign.launch_template_obj),joinedload(Campaign.campaign_definition_obj)).first()
         cd = c.campaign_definition_obj
         lt = c.launch_template_obj
+
+        if getconfig("poms.launches","allowed") == "hold":
+            output = "Job launches currently held."
+            return lcmd, output, c, campaign_id, outdir, outfile
 
         e = seshandle('experimenter')
         xff = gethead('X-Forwarded-For', None)
@@ -397,7 +399,8 @@ class JobsPOMS():
         if not e.is_authorized(c.experiment) and not ( ra == '127.0.0.1' and xff == None):
              loghandle("launch_jobs -- experimenter not authorized")
              err_res="404 Permission Denied."
-             return "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
+             output =  "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
+             return lcmd, output, c, campaign_id, outdir, outfile
         experimenter_login = e.email[:e.email.find('@')]
         lt.launch_account = lt.launch_account % {
               "experimenter": experimenter_login,
