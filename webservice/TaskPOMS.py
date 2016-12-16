@@ -189,10 +189,11 @@ class TaskPOMS:
         #
         for task_id, task in finish_up_tasks.items():
             # get logs for job for final cpu values, etc.
+            logger.info("Starting finish_up_tasks items for task %s" % task_id)
             condor_log_parser.get_joblogs(dbhandle, 
                    task_min_job(dbhandle, task_id),
-                   t.campaign_snap_obj.experiment, 
-                   t.campaign_snap_obj.role)
+                   task.campaign_snap_obj.experiment, 
+                   task.campaign_snap_obj.role)
 
 	    if not self.poms_service.launch_recovery_if_needed(task):
 	       self.poms_services.launch_dependents_if_needed(task)
