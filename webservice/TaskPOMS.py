@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 
 import logging
 # our own logging handle, goes to cherrypy
-logger = logging.getLogger('cherrypy_error')
+logger = logging.getLogger('cherrypy.error')
 
 from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
 

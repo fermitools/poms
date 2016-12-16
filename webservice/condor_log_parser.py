@@ -1,20 +1,22 @@
 #!/usr/bin/env python
 
-_debug = 0
+# our own logging handle, goes to cherrypy
+logger = logging.getLogger('cherrypy.error')
+
 import jobsub_fetcher
 from datetime import datetime, timedelta
 from poms_model import Job
 
 def get_joblogs(dbhandle, jobsub_job_id, experiment, role):
     jf = jobsub_fetcher.jobsub_fetcher()
-    if _debug: print "checking index"
+    logger.debug( "checking index" )
     files = jf.index( jobsub_job_id, experiment, role, True)
     for row in files:
         if row[5].endswith(".log") and not row[5].endswith(".dagman.log"):
             # first non dagman.log .log we see is either the xyz.log 
             # that goes with xyz.cmd, or the dag.nodes.log, which has
             # the individual job.logs in it.
-            if _debug: print "checking file", row[5]
+            logger.debug( "checking file %s " %row[5] )
             lines = jf.contents(row[5], jobsub_job_id, experiment, role)
             parse_condor_log(dbhandle, lines, jobsub_job_id[jobsub_job_id.find("@")+1:])
             break
@@ -62,12 +64,12 @@ def parse_condor_log(dbhandle, lines, batchhost):
     stimes = {}
     for line in lines:
         if line[:5] == "001 (":
-            if _debug: print "start record start: " , line
+            logger.debug( "start record start: %s" % line )
             ppos = line.find(")")
             jobsub_job_id = fix_jobid(line[5:ppos], batchhost)
             stimes[jobsub_job_id] = parse_date(line[ppos+2:ppos+16])
         if line[:5] == "005 (":
-            if _debug: print "term record start: " , line
+            logger.debug( "term record start: %s" % line )
             ppos = line.find(")")
             in_termination = 1
             finish_time = parse_date(line[ppos+2:ppos+16])
@@ -77,16 +79,16 @@ def parse_condor_log(dbhandle, lines, batchhost):
             memory_used = None
             continue
         if line[:3] == "..." and in_termination:
-            if _debug: print "term record end " , line
+            logger.debug( "term record end %s" % line )
             job = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == jobsub_job_id).first()
             job.cpu_time = remote_cpu
             job.wall_time = (finish_time - stimes[jobsub_job_id]).total_seconds()
-            if _debug: print "start: ", stimes[jobsub_job_id], " end: ", finish_time, " wall_time ", job.wall_time
+            logger.debug( "start: %s end: %s wall_time %s "%( stimes[jobsub_job_id],  finish_time,  job.wall_time ))
 
             in_termination = 0
             continue
         if in_termination:
-            if _debug: print "saw: ", line
+            logger.debug( "saw: ", line )
             if line.find("(return value") > 0:
                  job_exit = int(line.split()[5].strip(')'))
             if line.find("Total Remote Usage") > 0:
@@ -95,7 +97,7 @@ def parse_condor_log(dbhandle, lines, batchhost):
                  disk_used = line.split()[3]
             if line.find("Memory (KB)") > 0:
                  memory_used = line.split()[3]
-            if _debug: print "remote_cpu ", remote_cpu, " disk_used ", disk_used, " memory_used ", memory_used, " job_exit ", job_exit
+            logger.debug( "remote_cpu %s disk_used %s memory_used %s job_exit %s" % (remote_cpu,  disk_used,  memory_used, job_exit ))
 
     dbhandle.commit()
 

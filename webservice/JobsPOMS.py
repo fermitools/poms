@@ -24,7 +24,7 @@ import sys
 
 import logging
 # our own logging handle, goes to cherrypy
-logger = logging.getLogger('cherrypy_error')
+logger = logging.getLogger('cherrypy.error')
 
 #
 # utility function for running commands that don't run forever...
@@ -71,7 +71,7 @@ class JobsPOMS():
             if job.jobsub_job_id == "unknown":
                 continue
             res.append(job.jobsub_job_id)
-        #logger.info("active_jobs: returning %s" % res)
+        logger.info("active_jobs: returning %s" % res)
         #gc.collect(2)
         return res
 
