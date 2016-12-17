@@ -16,9 +16,10 @@ from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy import func
 from utc import utc
 from datetime import datetime, timedelta
+import condor_log_parser
+# our own logging handle, goes to cherrypy
 
 import logging
-# our own logging handle, goes to cherrypy
 logger = logging.getLogger('cherrypy.error')
 
 from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
@@ -81,9 +82,9 @@ class TaskPOMS:
                 dbhandle.add(task)
                 # and check job logs for final runtime, cpu-time etc.
                 condor_log_parser.get_joblogs(dbhandle, 
-                   task_min_job(dbhandle, task_id),
+                   self.task_min_job(dbhandle, task.task_id),
                    task.campaign_snap_obj.experiment, 
-                   task.campaign_snap_obj.role)
+                   task.campaign_snap_obj.vo_role)
 
         # mark them all completed, so we can look them over..
         dbhandle.commit()
@@ -145,7 +146,7 @@ class TaskPOMS:
                     dbhandle.add(task)
 
             if task.status == "Located":
-                finish_up_tasks[t.task_id] = t
+                finish_up_tasks[task.task_id] = task
                 dbhandle.add(task)
 
         summary_list = samhandle.fetch_info_list(lookup_task_list)
@@ -194,12 +195,12 @@ class TaskPOMS:
             # get logs for job for final cpu values, etc.
             logger.info("Starting finish_up_tasks items for task %s" % task_id)
             condor_log_parser.get_joblogs(dbhandle, 
-                   task_min_job(dbhandle, task_id),
+                   self.task_min_job(dbhandle, task_id),
                    task.campaign_snap_obj.experiment, 
-                   task.campaign_snap_obj.role)
+                   task.campaign_snap_obj.vo_role)
 
-	    if not self.poms_service.launch_recovery_if_needed(task):
-	       self.poms_services.launch_dependents_if_needed(task)
+	    if not self.launch_recovery_if_needed(dbhandle, loghandle, samhandle, getconfig, task):
+	       self.launch_dependents_if_needed(dbhandle, loghandle, samhandle, getconfig, task)
 
         return res
 

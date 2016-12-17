@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # our own logging handle, goes to cherrypy
+import logging
 logger = logging.getLogger('cherrypy.error')
 
 import jobsub_fetcher
@@ -8,6 +9,8 @@ from datetime import datetime, timedelta
 from poms_model import Job
 
 def get_joblogs(dbhandle, jobsub_job_id, experiment, role):
+    if jobsub_job_id == None:
+        return
     jf = jobsub_fetcher.jobsub_fetcher()
     logger.debug( "checking index" )
     files = jf.index( jobsub_job_id, experiment, role, True)
@@ -97,7 +100,7 @@ def parse_condor_log(dbhandle, lines, batchhost):
                  disk_used = line.split()[3]
             if line.find("Memory (KB)") > 0:
                  memory_used = line.split()[3]
-            logger.debug( "remote_cpu %s disk_used %s memory_used %s job_exit %s" % (remote_cpu,  disk_used,  memory_used, job_exit ))
+            logger.info( "condor_log_parser: remote_cpu %s disk_used %s memory_used %s job_exit %s" % (remote_cpu,  disk_used,  memory_used, job_exit ))
 
     dbhandle.commit()
 

@@ -176,7 +176,7 @@ class JobsPOMS():
             # next fields we set in our Task
             for field in ['project','recovery_tasks_parent' ]:
 
-                if field == 'project' and j.project == None:
+                if field == 'project' and j.task_obj.project == None:
                     # make a note to update project description after commit
                     do_SAM_project = True
 
