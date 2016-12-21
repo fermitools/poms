@@ -95,7 +95,7 @@ class JobsPOMS():
         tid = j.task_obj.task_id
         exp = j.task_obj.campaign_snap_obj.experiment
         cid = j.task_obj.campaign_snap_obj.campaign_id
-        samhandle.update_project_description(exp, projname, "POMS Campaign %s %ask %s" % (cid, tid))
+        samhandle.update_project_description(exp, projname, "POMS Campaign %s Task %s" % (cid, tid))
         pass
 
     def update_job(self, dbhandle, loghandle, rpstatus, samhandle, task_id = None, jobsub_job_id = 'unknown',  **kwargs):

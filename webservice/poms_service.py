@@ -341,7 +341,7 @@ class poms_service:
 
     @cherrypy.expose
     def list_launch_file(self, campaign_id, fname ):
-        lines = self.campaignsPOMS(campaign_id,fname)
+        lines = self.campaignsPOMS.list_launch_file(campaign_id,fname)
         return "".join(lines)
 
 

@@ -191,9 +191,12 @@ class TaskPOMS:
         # launch any recovery jobs or jobs depending on us.
         # this way we don't keep the rows locked all day
         #
+	logger.info("Starting finish_up_tasks loop, len %d" % len(finish_up_tasks))
+	print("Starting finish_up_tasks loop, len %d" % len(finish_up_tasks))
         for task_id, task in finish_up_tasks.items():
             # get logs for job for final cpu values, etc.
             logger.info("Starting finish_up_tasks items for task %s" % task_id)
+            print("Starting finish_up_tasks items for task %s" % task_id)
             condor_log_parser.get_joblogs(dbhandle, 
                    self.task_min_job(dbhandle, task_id),
                    task.campaign_snap_obj.experiment, 
@@ -346,8 +349,9 @@ class TaskPOMS:
 
     def launch_dependents_if_needed(self, dbhandle, loghandle, samhandle, getconfig, t):
         loghandle("Entering launch_dependents_if_needed(%s)" % t.task_id)
-        if not cherrypy.config.get("poms.launch_recovery_jobs",False):
+        if not getconfig("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
+            loghandle("recovery launches disabled")
             return 1
         cdlist = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id == t.campaign_snap_obj.campaign_id).all()
 
@@ -358,7 +362,7 @@ class TaskPOMS:
               self.poms_service.launch_jobs(cd.uses_camp_id)
            else:
               i = i + 1
-              dims = "ischildof: (snapshot_for_project %s) and version %s and file_name like '%s' " % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
+              dims = "ischildof: (snapshot_for_project_name %s) and version %s and file_name like '%s' " % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
               dname = "poms_depends_%d_%d" % (t.task_id,i)
 
               samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
@@ -369,6 +373,7 @@ class TaskPOMS:
     def launch_recovery_if_needed(self, dbhandle, loghandle, samhandle, getconfig, t):
         loghandle("Entering launch_recovery_if_needed(%s)" % t.task_id)
         if not getconfig("poms.launch_recovery_jobs",False):
+            loghandle("recovery launches disabled")
             # XXX should queue for later?!?
             return 1
 
@@ -377,8 +382,9 @@ class TaskPOMS:
         if t.parent_obj:
            t = t.parent_obj
 
-        rlist = self.campaignsPOMS.get_recovery_list_for_campaign_def(dbhandle,t.campaign_definition_snap_obj)
+        rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(dbhandle,t.campaign_definition_snap_obj)
 
+        loghandle("recovery list %s" % rlist)
         if t.recovery_position == None:
            t.recovery_position = 0
 
