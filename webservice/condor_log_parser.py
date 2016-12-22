@@ -84,9 +84,13 @@ def parse_condor_log(dbhandle, lines, batchhost):
         if line[:3] == "..." and in_termination:
             logger.debug( "term record end %s" % line )
             job = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == jobsub_job_id).first()
-            job.cpu_time = remote_cpu
-            job.wall_time = (finish_time - stimes[jobsub_job_id]).total_seconds()
-            logger.debug( "start: %s end: %s wall_time %s "%( stimes[jobsub_job_id],  finish_time,  job.wall_time ))
+            if job:
+		job.cpu_time = remote_cpu
+		job.wall_time = (finish_time - stimes[jobsub_job_id]).total_seconds()
+                logger.debug( "start: %s end: %s wall_time %s "%( stimes[jobsub_job_id],  finish_time,  job.wall_time ))
+            else:
+                # XXX we should create the job 'cause jobsub_q agent, etc missed it...
+                pass
 
             in_termination = 0
             continue
