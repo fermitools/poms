@@ -62,9 +62,11 @@ class samweb_lite:
         for r in replies:
             try:
                 info = r.json()
+                r.close()
                 self.do_totals(info)
                 infos.append(info)
             except:
+                r.close()
                 traceback.print_exc()
                 infos.append({})
         return infos
@@ -157,6 +159,7 @@ class samweb_lite:
                    infos.append(int(r.text)) 
                 except:
                    infos.append(-1) 
+            r.close()
         return infos
 
     def create_definition(self, experiment, name, dims):

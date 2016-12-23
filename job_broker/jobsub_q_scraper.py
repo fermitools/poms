@@ -55,10 +55,13 @@ class jobsub_q_scraper:
             jobs = None
 	except KeyboardInterrupt:
 	    raise
-        except:
+        except e:
             print  "Ouch!", sys.exc_info()
 	    traceback.print_exc()
-            if conn: del conn
+            if conn: 
+                conn.close()
+                del conn
+            del e
 
     def call_wrapup_tasks(self):
         conn = None
@@ -72,10 +75,13 @@ class jobsub_q_scraper:
             if self.debug: print "got: ", text
 	except KeyboardInterrupt:
 	    raise
-        except:
+        except e:
             print  "Ouch!", sys.exc_info()
 	    traceback.print_exc()
-            del conn
+            if conn:
+                conn.close()
+                del conn
+            del e
 
     def scan(self):
         # roll our previous/current status

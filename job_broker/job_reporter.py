@@ -75,6 +75,7 @@ class job_reporter:
 	    try:
 		uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
 		res = uh.read()
+                uh.close()
 		sys.stderr.write("response: %s\n" % res)
 
                 del uh
@@ -88,6 +89,10 @@ class job_reporter:
 		sys.stderr.write("\n--------\n")
                 sys.stderr.flush()
 
+                if uh:
+                    uh.close()
+                    del uh
+                    uh = None
 
                 # don't retry on 401's...
                 if e.code in [401,404]:
@@ -99,10 +104,15 @@ class job_reporter:
                 retries = retries - 1
 
 	    except (urllib2.URLError) as e:
+                if uh:
+                    uh.close()
+                    del uh
+                    uh = None
 		errtext = str(e)
 		sys.stderr.write("Exception:" + errtext)
 		sys.stderr.write("\n--------\n")
                 sys.stderr.flush()
+                del e
                 time.sleep(5)
                 retries = retries - 1
                 
