@@ -248,7 +248,7 @@ if __name__ == '__main__':
     try:
         js.poll()
     except KeyboardInterrupt:
-        #n = gc.collect()
+        n = gc.collect()
         #print "gc.collect() returns %d unreachable" % n
         #print "Remaining garbage:"
         #pprint.pprint(gc.garbage)
