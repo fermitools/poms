@@ -90,6 +90,7 @@ class job_reporter:
                 sys.stderr.flush()
 
                 if uh:
+                    uh.read()
                     uh.close()
                     del uh
                     uh = None
@@ -105,6 +106,7 @@ class job_reporter:
 
 	    except (urllib2.URLError) as e:
                 if uh:
+                    uh.read()
                     uh.close()
                     del uh
                     uh = None
