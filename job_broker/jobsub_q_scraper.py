@@ -12,6 +12,8 @@ import gc
 import pprint
 from job_reporter import job_reporter
 
+from pympler import tracker
+
 class jobsub_q_scraper:
     """
        this would actually call jobsub_q, if it were efficient, and you
@@ -35,8 +37,14 @@ class jobsub_q_scraper:
         self.prevjobmap = {}
         self.debug = debug
         self.passcount = 0
+        self.memory_tracker = tracker.SummaryTracker()
+        self.memory_tracker.print_diff()
+        self.memory_tracker.print_diff()
+        self.memory_tracker.print_diff()
 
     def get_open_jobs(self):
+        print "get open 1"
+        self.memory_tracker.print_diff()
         self.prevjobmap = self.jobmap
 	self.jobmap = {}
         conn = None
@@ -62,8 +70,12 @@ class jobsub_q_scraper:
                 conn.close()
                 del conn
             del e
+        print "get open 2"
+        self.memory_tracker.print_diff()
 
     def call_wrapup_tasks(self):
+        print "wrapup 1"
+        self.memory_tracker.print_diff()
         conn = None
         try:
             conn = urllib2.urlopen(self.job_reporter.report_url + '/wrapup_tasks')
@@ -82,6 +94,8 @@ class jobsub_q_scraper:
                 conn.close()
                 del conn
             del e
+        print "wrapup 2"
+        self.memory_tracker.print_diff()
 
     def scan(self):
         # roll our previous/current status
@@ -95,6 +109,8 @@ class jobsub_q_scraper:
         # for now we have a for loop and use condor_q, in future
         # we hope to be able to use jobsub_q with -format...
 
+        print "scan 1"
+        self.memory_tracker.print_diff()
         f = os.popen("for n in 1 2; do m=$((n+2)); condor_q -pool fifebatchhead$m.fnal.gov -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID && break; done", "r")
         for line in f:
 
@@ -184,6 +200,9 @@ class jobsub_q_scraper:
 
         res = f.close()
 
+        print "scan 2"
+        self.memory_tracker.print_diff()
+
         if res == 0 or res == None:
 	    for jobsub_job_id in self.jobmap.keys():
 		if self.jobmap[jobsub_job_id] == 0 and self.prevjobmap.get(jobsub_job_id,0) == 0:
@@ -200,10 +219,12 @@ class jobsub_q_scraper:
         else:
             print "error code: %s from condor_q" % res
 
+        print "scan 3"
+        self.memory_tracker.print_diff()
+
         self.call_wrapup_tasks()
 
     def poll(self):
-        gc.set_debug(gc.DEBUG_LEAK)
         while(1):
             self.passcount = self.passcount + 1
 
