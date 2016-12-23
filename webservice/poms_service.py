@@ -341,7 +341,7 @@ class poms_service:
 
     @cherrypy.expose
     def list_launch_file(self, campaign_id, fname ):
-        lines = self.campaignsPOMS(campaign_id,fname)
+        lines = self.campaignsPOMS.list_launch_file(campaign_id,fname)
         return "".join(lines)
 
 
@@ -465,7 +465,9 @@ class poms_service:
 
     @cherrypy.expose
     def launch_jobs(self, campaign_id, dataset_override = None, parent_task_id = None): ###needs to be analize in detail.
-        lcmd, output, c, campaign_id, outdir, outfile = self.jobsPOMS.launch_jobs(cherrypy.request.db,cherrypy.log, cherrypy.session.get, cherrypy.request.headers.get, cherrypy.session.get, cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
+        vals = self.jobsPOMS.launch_jobs(cherrypy.request.db,cherrypy.log, cherrypy.session.get, cherrypy.request.headers.get, cherrypy.session.get, cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
+        cherrypy.log("Got vals: %s" % repr(vals))
+        lcmd, output, c, campaign_id, outdir, outfile = vals
         template = self.jinja_env.get_template('launch_jobs.html')
         res = template.render(command = lcmd, output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="LaunchedJobsHelp", version=self.version)
         if not os.path.isdir(outdir):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # our own logging handle, goes to cherrypy
+import logging
 logger = logging.getLogger('cherrypy.error')
 
 import jobsub_fetcher
@@ -8,6 +9,8 @@ from datetime import datetime, timedelta
 from poms_model import Job
 
 def get_joblogs(dbhandle, jobsub_job_id, experiment, role):
+    if jobsub_job_id == None:
+        return
     jf = jobsub_fetcher.jobsub_fetcher()
     logger.debug( "checking index" )
     files = jf.index( jobsub_job_id, experiment, role, True)
@@ -81,9 +84,13 @@ def parse_condor_log(dbhandle, lines, batchhost):
         if line[:3] == "..." and in_termination:
             logger.debug( "term record end %s" % line )
             job = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == jobsub_job_id).first()
-            job.cpu_time = remote_cpu
-            job.wall_time = (finish_time - stimes[jobsub_job_id]).total_seconds()
-            logger.debug( "start: %s end: %s wall_time %s "%( stimes[jobsub_job_id],  finish_time,  job.wall_time ))
+            if job:
+		job.cpu_time = remote_cpu
+		job.wall_time = (finish_time - stimes[jobsub_job_id]).total_seconds()
+                logger.debug( "start: %s end: %s wall_time %s "%( stimes[jobsub_job_id],  finish_time,  job.wall_time ))
+            else:
+                # XXX we should create the job 'cause jobsub_q agent, etc missed it...
+                pass
 
             in_termination = 0
             continue
@@ -97,7 +104,7 @@ def parse_condor_log(dbhandle, lines, batchhost):
                  disk_used = line.split()[3]
             if line.find("Memory (KB)") > 0:
                  memory_used = line.split()[3]
-            logger.debug( "remote_cpu %s disk_used %s memory_used %s job_exit %s" % (remote_cpu,  disk_used,  memory_used, job_exit ))
+            logger.info( "condor_log_parser: remote_cpu %s disk_used %s memory_used %s job_exit %s" % (remote_cpu,  disk_used,  memory_used, job_exit ))
 
     dbhandle.commit()
 

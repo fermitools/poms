@@ -89,7 +89,7 @@ class status_scraper:
                 #
                 # First stab at SSO stuff...
                 #
-                if jdata.find("<title>Sign On</title>") > 0:
+                if jdata.find("pingprod.fnal.gov") > 0:
                     self.do_login(jdata)
                     res = self.session.post(self.url+'/api/datasources/proxy/1/render', data = {'target':path, 'from': '-10min', 'until':'-5min', 'format':'json'}, verify=False)
                     jdata = res.text
@@ -229,7 +229,14 @@ class status_scraper:
                 description = s
             report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.source_urls.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.quote_plus(description))
             print "trying: " , report_url
-            c = self.session.get(report_url) 
+            retries = 0
+            while retries < 3:
+                try:
+                    c = self.session.get(report_url) 
+                    break
+                except:
+                    retries = retries + 1
+	            traceback.print_exc()
             print c.text
             c.close()
 
