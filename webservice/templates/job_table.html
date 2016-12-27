@@ -28,14 +28,14 @@
 <h1 class="ui header">
     Jobs{%include 'help_button.html'%}
 </h1>
-<div class="ui subheader">
+<div class="ui subheader" style="display:inline;">
 <!-- Jobs for {{time_range_string}} -->
     <div class="ui basic label">
       <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
     </div>
 </div>
 
-<a href="{{prev}}">&lt;previous {{days}} days</a> | 
+<a href="{{prev}}">&lt;previous {{days}} days</a> |
 <a href="{{next}}">next {{days}} days &gt;</a>
 {%endblock%}
 
@@ -52,8 +52,6 @@
   <i class="filter icon"></i>
   Filter Jobs
 </button>
-<br/>
-<br/>
 
 <script>
 $(function() {
@@ -61,6 +59,13 @@ $(function() {
       $('.ui.basic.modal').modal('show');
     });
 });
+
+    function changeVal(v) {
+        document.getElementById('off').value = v;
+        document.getElementById('frm').submit();
+        //$('#off').val(v);
+        //$('#frm').submit();
+    }
 </script>
 
 
@@ -75,9 +80,9 @@ $(function() {
         <i class="dropdown icon"></i>
         Campaings
     </div>
-    
+
     <div class="content active">
-       
+
         <div class="ui small form">
             <div class="field">
                 <label>Experiment</label>
@@ -105,15 +110,15 @@ $(function() {
             </div>
         </div>
     </div>
-    
-    
-        
-    
+
+
+
+
     <div class="title">
         <i class="dropdown icon"></i>
         Submissions
     </div>
-    
+
     <div class="content">
         <div class="ui small form">
             <div class="field">
@@ -142,16 +147,16 @@ $(function() {
             </div>
         </div>
     </div>
-    
 
-    
-    
+
+
+
     <div class="title">
         <i class="dropdown icon"></i>
         Jobs
     </div>
-    
-    
+
+
     <div class="content">
         <div class="ui small form">
             <div class="field">
@@ -198,7 +203,7 @@ $(function() {
             </div>
         </div>
     </div>
-    
+
  </div>  <!--ends accordian-->
 <br/>
 <br/>
@@ -249,16 +254,31 @@ $( "#search_button" ).click(function() {
 
 
 
-<div class="ui icon input">
+<span class="ui icon input">
   <input type="text" id="filter-search" placeholder="Search...">
   <i class="search icon"></i>
-</div>
+</span>
 <br/>
 <br/>
 
 <div id="record_count">{{joblist|length}} records</div>
 
-<div class="scrollable">
+<form method="POST" id="frm">
+    <input id="off" type="hidden" name="offset" type="text" value='0'>
+    <div class="three ui buttons">
+        <button onclick="changeVal('{{offset - 10 if offset >= 10 else 0}}');" class="ui compact attached labeled icon button">
+            <i class="angle double left icon"></i>Back
+        </button>
+        <button onclick="changeVal('0');" class="ui compact attached button">
+            <b class="__ui __header"><i class="home icon"></i>Reset</b>
+        </button>
+        <button onclick="changeVal('{{offset + 10}}');" class="ui compact attached _right labeled icon button">
+            Forward<i class="angle double right icon"></i>
+        </button>
+    </div>
+</form>
+
+<div id="double-scroll" class="scrollable">
 <table id="jobtable" class="ui celled sortable table compact">
   <thead>
     <tr>
@@ -312,15 +332,17 @@ $( "#search_button" ).click(function() {
     </tr>
   </thead>
   <tbody>
-    {%for job,task,campaign in joblist %}
+      <!-- offset={{offset}} -->
+    {% for job,task,campaign in joblist[offset:offset+10] %}
+        {% set jobloop = loop %}
       <tr>
-         {%for col in jobcolumns%}
+         {% for col in jobcolumns %}
             {% if loop.first %}
               <td>
-                <a href="{{pomspath}}/triage_job?job_id={{job[col]}}&tmin={{tmin}}"><i class="level down icon"></i> </a>
-                {% if job['status'] != "Completed" and job['status'] != "Located" and job['status'] != "Removed" %}
-                <a href="%s/kill_jobs?job_id={{job['jobsub_job_id']}}"><i class="ui trash icon"></i></a>
-                {%endif%}
+                <span>{{jobloop.index+offset}}<a href="{{pomspath}}/triage_job?job_id={{job[col]}}&tmin={{tmin}}"><i class="level down icon"></i></a></span>
+                    {% if job['status'] != "Completed" and job['status'] != "Located" and job['status'] != "Removed" %}
+                    <a href="%s/kill_jobs?job_id={{job['jobsub_job_id']}}"><i class="ui trash icon"></i></a>
+                    {% endif %}
               </td>
             {% else %}
              {% if not col in hidecolumns %}
@@ -417,6 +439,10 @@ $(function() {
   }
 
 }());
+
+    $(document).ready(function(){
+      $('#double-scroll').doubleScroll();
+    });
 </script>
 
 {%endblock%}
