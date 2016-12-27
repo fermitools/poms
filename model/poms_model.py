@@ -46,7 +46,7 @@ class Experimenter(Base):
     last_name = Column(Text)
     email = Column(Text, nullable=False)
 
-            
+
 class ExperimentsExperimenters(Base):
     __tablename__ = 'experiments_experimenters'
 
@@ -63,9 +63,10 @@ class Experiment(Base):
 
     experiment = Column(String(10), primary_key=True)
     name = Column(Text, nullable=False)
-    
+    restricted = Column(Boolean, nullable=False, server_default=text("false"))
 
-class Job(Base): 
+
+class Job(Base):
     __tablename__ = 'jobs'
 
     job_id = Column(BigInteger, primary_key=True, server_default=text("nextval('jobs_job_id_seq'::regclass)"))
@@ -118,7 +119,7 @@ class Service(Base):
 
 class LaunchTemplate(Base):
     __tablename__ = 'launch_templates'
-    
+
     launch_id = Column(Integer, primary_key=True, server_default=text("nextval('launch_templates_launch_id_seq'::regclass)"))
     name = Column(Text, nullable=False, index=True, unique=True)
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
@@ -133,7 +134,7 @@ class LaunchTemplate(Base):
     experiment_obj = relationship(u'Experiment')
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='LaunchTemplate.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='LaunchTemplate.updater == Experimenter.experimenter_id')
-    
+
 
 class CampaignDefinition(Base):
     __tablename__ = 'campaign_definitions'
@@ -196,17 +197,17 @@ class TaskHistory(Base):
     task_id = Column(ForeignKey(u'tasks.task_id'), primary_key=True, nullable=False)
     created = Column(DateTime(True), primary_key=True, nullable=False)
     status = Column(Text, nullable=False)
-    
+
     task_obj = relationship(u'Task',backref='history')
 
 class JobHistory(Base):
     __tablename__ = 'job_histories'
 
-    
+
     job_id = Column(ForeignKey(u'jobs.job_id'), primary_key=True, nullable=False)
     created = Column(DateTime(True), primary_key=True, nullable=False)
     status = Column(Text, nullable=False)
-    
+
     job_obj = relationship(u'Job',backref=backref('history',cascade="all,delete-orphan"))
 
 class Tag(Base):
@@ -215,7 +216,7 @@ class Tag(Base):
     tag_id = Column(Integer, primary_key=True, server_default=text("nextval('tags_tag_id_seq'::regclass)"))
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
     tag_name = Column(Text, nullable=False)
-    
+
 class CampaignsTags(Base):
     __tablename__ = 'campaigns_tags'
 
@@ -233,9 +234,9 @@ class JobFile(Base):
     file_type = Column(Text, nullable=False)
     created = Column(DateTime(True), nullable=False)
     declared = Column(DateTime(True))
-    
+
     job_obj = relationship(Job, backref=backref('job_files', cascade="all,delete-orphan"))
-    
+
 
 class CampaignSnapshot(Base):
     __tablename__ = 'campaign_snapshots'
@@ -322,8 +323,8 @@ class CampaignDependency(Base):
     __tablename__ = 'campaign_dependencies'
 
     campaign_dep_id =       Column(Integer, primary_key=True, server_default=text("nextval('campaign_dependency_id_seq'::regclass)"))
-    needs_camp_id = Column(ForeignKey(u'campaigns.campaign_id'), primary_key=True, nullable=False, index=True)        
-    uses_camp_id   = Column(ForeignKey(u'campaigns.campaign_id'), primary_key=True, nullable=False, index=True)              
+    needs_camp_id = Column(ForeignKey(u'campaigns.campaign_id'), primary_key=True, nullable=False, index=True)
+    uses_camp_id   = Column(ForeignKey(u'campaigns.campaign_id'), primary_key=True, nullable=False, index=True)
     file_patterns  = Column(Text, nullable=False)
 
     needs_camp = relationship(u'Campaign',foreign_keys=needs_camp_id)
