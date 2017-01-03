@@ -111,7 +111,7 @@ class TaskPOMS:
 		if j.status == "Completed":
 		    compcount += 1
 
-	    cfrac = task.campaign_snap_obj.completion_percent
+	    cfrac = task.campaign_snap_obj.completion_pct
 
 	    if (compcount * 100.0) / totcount > cfrac:
 		n_located = n_located + 1
@@ -161,7 +161,7 @@ class TaskPOMS:
                     if j.status == "Located":
                         loccount += 1
 
-                cfrac = task.campaign_snap_obj.completion_percent
+                cfrac = task.campaign_snap_obj.completion_pct
 
                 if loccount / totcount * 100 > cfrac:
                     n_located = n_located + 1
@@ -188,7 +188,7 @@ class TaskPOMS:
             # located if 90% of the files it consumed have suitable kids...
             # cfrac = lookup_task_list[i].campaign_definition_snap_obj.cfrac
 	    task = lookup_task_list[i]
-            cfrac = task.campaign_snap_obj.completion_percent
+            cfrac = task.campaign_snap_obj.completion_pct
 	    threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
 	    thresholds.append(threshold)
             val = float(count_list[i])
