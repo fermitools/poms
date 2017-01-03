@@ -173,8 +173,11 @@ $( document ).ready(function() {
           <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
         </th>
         <th>Pending
-          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job" data-tooltip="Pending">
+             <i style="float: none" class="grey help circle link icon"> </i> 
+          </a>
         </th>
+        
      </tr>
 
      {% for c in cl %}
@@ -219,7 +222,6 @@ $( document ).ready(function() {
 
     </table>
   </div>
-
 
   <div class="ui horizontal segments">
 
@@ -378,12 +380,7 @@ fields:{
 },
 //minCharacters : 3
 });
+
 </script>
-
-
-
-
-
-
 
 {%endblock%}
