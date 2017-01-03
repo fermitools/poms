@@ -102,7 +102,7 @@ class TaskPOMS:
         n_project = 0
         n_located = 0
         # try with joinedload()...
-        for task in dbhandle.query(Task).with_for_update(of=Task).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Running", Task.campaign_snap_obj.completion_type == "completed").all():
+        for task in dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Running", Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id, CampaignSnapshot.completion_type == "completed").all():
               
 	    compcount = 0
 	    totcount = 0
@@ -123,7 +123,7 @@ class TaskPOMS:
 		task.updated = datetime.now(utc)
 		dbhandle.add(task)
 
-        for task in dbhandle.query(Task).with_for_update(of=Task).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Completed", Task.campaign_snap_obj.completion_type == "located").all():
+        for task in dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Completed", Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id, CampaignSnapshot.completion_type == "located").all():
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as
             # located as its going to get...
@@ -193,16 +193,15 @@ class TaskPOMS:
 	    thresholds.append(threshold)
             val = float(count_list[i])
             if float(count_list[i]) >= threshold and threshold > 0:
-                    n_located = n_located + 1
-                    if task.status == "Completed":
-                        task.status = "Located"
-                        finish_up_tasks[task.task_id] = task
-                    for j in task.jobs:
-                        j.status = "Located"
-                        j.output_files_declared = True
-                    task.updated = datetime.now(utc)
+                n_located = n_located + 1
+                if task.status == "Completed":
+                    task.status = "Located"
+                    finish_up_tasks[task.task_id] = task
+                for j in task.jobs:
+                    j.status = "Located"
+                    j.output_files_declared = True
+                task.updated = datetime.now(utc)
                 dbhandle.add(task)
-
 
         res.append("Counts: completed: %d stale: %d project %d: located %d" %
                     (n_completed, n_stale , n_project, n_located))
