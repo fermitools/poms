@@ -381,7 +381,7 @@ class JobsPOMS():
         return efflist
 
 
-    def launch_jobs(self, dbhandle,loghandle, getconfig, gethead, seshandle, err_res, campaign_id, dataset_override = None, parent_task_id = None):
+    def launch_jobs(self, dbhandle,loghandle, getconfig, gethead, seshandle, err_res, campaign_id, dataset_override = None, parent_task_id = None, param_overrides = None):
 
         loghandle("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
 
@@ -440,6 +440,9 @@ class JobsPOMS():
 
         if c.param_overrides != None and c.param_overrides != "":
             params.update(json.loads(c.param_overrides))
+
+        if param_overrides != None and param_overrides != "":
+            params.update(json.loads(param_overrides))
 
         lcmd = cd.launch_script + " " + ' '.join((x[0]+x[1]) for x in params.items())
         lcmd = lcmd % {
