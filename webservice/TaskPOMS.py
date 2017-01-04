@@ -63,9 +63,10 @@ class TaskPOMS:
         res = ["wrapping up:"]
 
         #
-        # make jobs which completed with no output files located.
+        # make jobs which completed with no output files have status "Located".
         subq = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
         dbhandle.query(Job).filter(subq == 0).update({'status':'Located'})
+
         #
         # check active tasks to see if they're completed/located
         for task in dbhandle.query(Task).options(subqueryload(Task.jobs)).filter(Task.status != "Completed", Task.status != "Located").all():
@@ -101,7 +102,28 @@ class TaskPOMS:
         n_project = 0
         n_located = 0
         # try with joinedload()...
-        for task in dbhandle.query(Task).with_for_update(of=Task).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Completed").all():
+        for task in dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Running", Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id, CampaignSnapshot.completion_type == "completed").all():
+              
+	    compcount = 0
+	    totcount = 0
+	    for j in task.jobs:
+		totcount +=1
+		if j.status == "Completed":
+		    compcount += 1
+
+	    cfrac = task.campaign_snap_obj.completion_pct
+
+	    if (compcount * 100.0) / totcount > cfrac:
+		n_located = n_located + 1
+		task.status = "Located"
+		finish_up_tasks[task.task_id] = task
+		for j in task.jobs:
+		    j.status = "Located"
+		    j.output_files_declared = True
+		task.updated = datetime.now(utc)
+		dbhandle.add(task)
+
+        for task in dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Completed", Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id, CampaignSnapshot.completion_type == "located").all():
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as
             # located as its going to get...
@@ -109,6 +131,7 @@ class TaskPOMS:
                 n_located = n_located + 1
                 n_stale = n_stale + 1
                 task.status = "Located"
+		finish_up_tasks[task.task_id] = task
                 for j in task.jobs:
                     j.status = "Located"
                     j.output_files_declared = True
@@ -131,12 +154,16 @@ class TaskPOMS:
                 lookup_dims_list.append(allkiddims)
             else:
                 # we don't have a project, guess off of located jobs
-                locflag = True
+                loccount = 0
+                totcount = 0
                 for j in task.jobs:
-                    if j.status != "Located":
-                        locflag = False
+                    totcount +=1
+                    if j.status == "Located":
+                        loccount += 1
 
-                if locflag:
+                cfrac = task.campaign_snap_obj.completion_pct
+
+                if loccount / totcount * 100 > cfrac:
                     n_located = n_located + 1
                     task.status = "Located"
                     for j in task.jobs:
@@ -160,12 +187,13 @@ class TaskPOMS:
             # a tunable in the campaign_definition.  Basically we consider it
             # located if 90% of the files it consumed have suitable kids...
             # cfrac = lookup_task_list[i].campaign_definition_snap_obj.cfrac
-            cfrac = 0.9
-            threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
-            thresholds.append(threshold)
+	    task = lookup_task_list[i]
+            cfrac = task.campaign_snap_obj.completion_pct
+	    threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
+	    thresholds.append(threshold)
+            val = float(count_list[i])
             if float(count_list[i]) >= threshold and threshold > 0:
                 n_located = n_located + 1
-                task = lookup_task_list[i]
                 if task.status == "Completed":
                     task.status = "Located"
                     finish_up_tasks[task.task_id] = task
@@ -174,7 +202,6 @@ class TaskPOMS:
                     j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
-
 
         res.append("Counts: completed: %d stale: %d project %d: located %d" %
                     (n_completed, n_stale , n_project, n_located))
@@ -390,6 +417,9 @@ class TaskPOMS:
 
         while t.recovery_position != None and t.recovery_position < len(rlist):
             rtype = rlist[t.recovery_position].recovery_type
+            # uncomment when we get db fields:
+            #param_overrides = rlist[t.recovery_position].param_overrides
+            parame_overrides = "{}"
             t.recovery_position = t.recovery_position + 1
             if rtype.name == 'consumed_status':
                  recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
@@ -422,7 +452,7 @@ class TaskPOMS:
                 samhandle.create_definition(t.campaign_snap_obj.experiment, rname, recovery_dims)
 
 
-                self.poms_service.launch_jobs(t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id)
+                self.poms_service.launch_jobs(t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id, param_overrides = param_overrides)
                 return 1
 
         return 0
