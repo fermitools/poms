@@ -76,7 +76,7 @@ class job_reporter:
 		uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
 		res = uh.read()
                 uh.close()
-		sys.stderr.write("response: %s\n" % res)
+		#sys.stderr.write("response: %s\n" % res)
 
                 del uh
                 uh = None

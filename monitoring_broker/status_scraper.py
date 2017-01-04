@@ -19,13 +19,15 @@ class status_scraper():
 
     def __init__(self,configfile, poms_url):
         self.poms_url = poms_url
-        defaults = { "subservices" : "", "scrape_url":"" , "scrape_regex":"", "percent":"100", "scrape_match_1":"", "scrape_bad_match_1":"", "debug":"0"}
+        defaults = { "subservices" : "", "scrape_url":"" , "scrape_regex":"", "percent":"100", "scrape_match_1":"", "scrape_warn_match_1":"", "scrape_bad_match_1":"", "debug":"0", "multiline":None }
         self.cf = SafeConfigParser(defaults)
         self.cf.read(configfile)
         self.flush_cache()
         self.percents = {}
+        self.warnpercents = {}
         self.totals = {}
         self.failed = {}
+        self.warns = {}
         self.parent = {}
         self.url = {}
         self.debug = int(self.cf.get('global','debug'))
@@ -143,6 +145,11 @@ class status_scraper():
                 good2 = self.cf.get(s,'scrape_match_2')
             else:
                 good2 = None
+            warn = self.cf.get(s,'scrape_warn_match_1')
+            if self.cf.has_option(s,'scrape_warn_match_2'):
+                warn2 = self.cf.get(s,'scrape_warn_match_2')
+            else:
+                warn2 = None
             bad = self.cf.get(s,'scrape_bad_match_1')
             if self.cf.has_option(s,'scrape_bad_match_2'):
                 bad2 = self.cf.get(s,'scrape_bad_match_2')
@@ -155,41 +162,60 @@ class status_scraper():
 		warnpercent = 0
             n_good = 0
             n_bad = 0
+            n_warn = 0
             if scrape_url and scrape_regex:
 	        if self.debug: print "scraping %s for matches of ruleset %s" % (scrape_url, s)
                 re_obj = re.compile(scrape_regex)
                 lines = self.fetch_page(scrape_url)
                 if not lines:
                     continue
+
+                # for multiline match, smush them all together and just
+                # check the whole block..
+                if self.cf.get(s,'multiline'):
+                    lines = [ '\n'.join(lines) ]
+
                 for line in lines :
-                    if self.debug: print "got:", line
+                    if self.debug: print "checking for %s : in %s" % (scrape_regex, line[:100])
                     m = re_obj.search(line)
                     if m:
+                        if self.debug: print ("m.group(0) is %s" % m.group(0))
+                        if self.debug: print ("m.group(1) is %s" % m.group(1))
                         if good == "" or m.group(1) == good or (good2 and m.group(1) == good2):
                              if self.debug: print "good"
                              n_good = n_good + 1 
 
+                        if m.group(1) == warn or (warn2 and m.group(1) == warn2):
+                             if self.debug: print "warn"
+                             n_warn = n_warn + 1 
+
                         if m.group(1) == bad or (bad2 and m.group(1) == bad2):
                              if self.debug: print "bad"
                              n_bad = n_bad + 1 
+                    else:
+                        if self.debug: print "no match!"
 
-
-                if n_good + n_bad > 0:
-                    self.percents[s] = (n_good ) * 100.0 / (n_good+n_bad) 
+                if n_good + n_bad + n_warn > 0 :
+                    self.percents[s] = (n_good ) * 100.0 / (n_good+n_bad+n_warn) 
+                    self.warnpercents[s] = (n_warn ) * 100.0 / (n_good+n_bad+n_warn) 
                 else:
                     self.percents[s] = -1
+                    self.warnpercents[s] = -1
 
-                if len(lines) == 0 or (n_good == 0 and n_bad == 0):
+                if len(lines) == 0 or (n_good == 0 and n_bad == 0 and n_warn == 0):
                     self.status[s] = 'unknown'
 	        else:
-                    if n_good == 0 or self.percents[s] < percent:
+                    if n_warn > 0 and n_bad == 0:
+	 	        self.status[s] = 'degraded'
+                    elif n_good == 0 and n_warn == 0 or self.percents[s] < percent:
 	 	        self.status[s] = 'bad'
                     elif  self.percents[s] < warnpercent:
 	 	        self.status[s] = 'degraded'
 	            else:
 		        self.status[s] = 'good'
 
-                self.totals[s] = n_good + n_bad
+                self.totals[s] = n_good + n_bad + n_warn
+                self.warns[s] = n_warn
                 self.failed[s] = n_bad
         #
         # next check the ones that have sub-sections
