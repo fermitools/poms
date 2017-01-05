@@ -17,6 +17,8 @@ do_memdebug = False
 if do_memdebug:
     from pympler import tracker
 
+import prometheus_client as prom
+
 class jobsub_q_scraper:
     """
        this would actually call jobsub_q, if it were efficient, and you
@@ -25,6 +27,7 @@ class jobsub_q_scraper:
     """
     def __init__(self, job_reporter, debug = 0):
         self.job_reporter = job_reporter
+        self.jobCount = prom.Gauge("jobs_in_queue","Jobs in the queue this run")
         self.map = {
            "0": "Unexplained",
            "1": "Idle",
@@ -60,6 +63,7 @@ class jobsub_q_scraper:
 
             #print "got: ", jobs
             print "got %d jobs" % len(jobs)
+            self.jobCount.set(len(jobs))
             for j in jobs:
                 self.jobmap[j] = 0
             del jobs
@@ -257,7 +261,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
 
-    js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms", debug=debug), debug = debug)
+    js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms", debug=debug, namespace = "profiling.apps.poms.probes.jobsub_q_scraper"), debug = debug)
     try:
         js.poll()
     except KeyboardInterrupt:
