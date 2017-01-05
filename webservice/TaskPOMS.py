@@ -466,7 +466,7 @@ class TaskPOMS:
         dbhandle.commit()
 
     def get_job_launches(self, dbhandle):
-        s = dbhandle.query(Service).filter(name="job_launches").first()
+        s = dbhandle.query(Service).filter(Service.name=="job_launches").first()
         return s.status
   
     def launch_queued_job(self, dbhandle, loghandle, getconfig, gethead, seshandle, err_res):
