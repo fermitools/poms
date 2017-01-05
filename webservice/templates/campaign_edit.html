@@ -173,7 +173,7 @@
 	  <label>State</label>
 	  <br/>
 	  <select class="ui dropdown" name="ae_active" id="ae_active">
-	    <option value="True" >Active</option>
+            <option value="True" >Active</option>
 	    <option value="False">Inactive</option>
 	  </select>
 	</div>
@@ -207,7 +207,7 @@
 
 	<div class="field">
           <label>Completion pct</label>
-          <input type="text" id="ae_completion_pct" name="ae_completion_pct">
+          <input type="text" id="ae_completion_pct" name="ae_completion_pct" placeholder="95">
 	</div>
       </div>
 
@@ -376,12 +376,13 @@
 
 <script type="text/javascript">
 
+// form validation fields,they will appear in red if missing.. 
 $('#campaign_add_edit_form')
   .form({
     fields: {
       ae_campaign_name :          'empty',
-      ae_active :                 'empty',
       ae_vo_role :                'empty',
+      ae_active :                 'empty',
       ae_software_version :       'empty',
       ae_dataset :                'empty',
       ae_split_type :             'empty',
@@ -392,6 +393,11 @@ $('#campaign_add_edit_form')
 ;
 //      ae_completion_type :        'empty',
 //      ae_completion_pct  :        'empty',
+//    dropdown: {
+//      ae_active_hello :           'dropdown',
+//    }
+
+
 
 $("#c_experiment").change(function() {
     $("#campaign_form").submit();
