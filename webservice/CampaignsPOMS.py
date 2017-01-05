@@ -190,15 +190,12 @@ class CampaignsPOMS():
 
 
     def campaign_edit(self, dbhandle, loghandle, sesshandle, *args, **kwargs):
-        print ' campaign_edit'       
-        loghandle('campaign_edit')
         data = {}
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
-        for k,v in kwargs.items():
-            print ' k=%s, v=%s ' %(k,v)
+        #for k,v in kwargs.items():
+        #    print ' k=%s, v=%s ' %(k,v)
         action = kwargs.pop('action',None)
-        print ' action = %s' %action
         exp = kwargs.pop('experiment',None)
         if action == 'delete':
             campaign_id = kwargs.pop('campaign_id')
@@ -228,7 +225,6 @@ class CampaignsPOMS():
             experimenter_id = kwargs.pop('experimenter_id')
             completion_type = kwargs.pop('ae_completion_type')
             completion_pct =  kwargs.pop('ae_completion_pct')
-            print ' completion_type = %s, pct=%s' %(completion_type,completion_pct)
             depends = kwargs.pop('ae_depends')
             if depends and depends != "[]":
                 depends = json.loads(depends)
@@ -236,7 +232,6 @@ class CampaignsPOMS():
                 depends = {"campaigns": [], "file_patterns": []}
             try:
                 if action == 'add':
-                    print ' adding campaign %s' %name
                     c = Campaign(name=name, experiment=exp,vo_role=vo_role,
                                 active=active, cs_split_type = split_type,
                                 software_version=software_version, dataset=dataset,
@@ -248,7 +243,6 @@ class CampaignsPOMS():
                     dbhandle.flush() ##### Is this flush() necessary or better a commit ?
                     campaign_id = c.campaign_id
                 else:
-                    print ' defining cols %s' %name
                     columns = {
                                 "name":                  name,
                                 "vo_role":               vo_role,
