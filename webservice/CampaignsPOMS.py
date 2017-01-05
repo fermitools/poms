@@ -537,7 +537,7 @@ class CampaignsPOMS():
             res =  camp.dataset
 
         elif camp.cs_split_type == 'list':
-            j# we were given a list of datasets..
+            # we were given a list of datasets..
             l = camp.dataset.split(',')
             if camp.cs_last_split == '' or camp.cs_last_split == None:
                 camp.cs_last_split = -1
@@ -551,8 +551,8 @@ class CampaignsPOMS():
             dbhandle.add(camp)
             dbhandle.commit()
 
-        elif camp.cs_split_type.startswith('mod_'):
-            m = int(camp.cs_split_type[4:])
+        elif camp.cs_split_type.startswith('mod_') or camp.cs_split_type.startswith('mod('):
+            m = int(camp.cs_split_type[4:].strip(')'))
             if camp.cs_last_split == '' or camp.cs_last_split == None:
                 camp.cs_last_split = -1
             camp.cs_last_split += 1
@@ -567,57 +567,83 @@ class CampaignsPOMS():
             dbhandle.add(camp)
             dbhandle.commit()
 
-        elif camp.cs_split_type == 'new':
-            # save time *before* we define things, so we don't miss any
-            # and knock off an estimated FTS delay
-            est_fts_delay = 1800 # half an hour?
-            t = time.time() - 1800
+        elif camp.cs_split_type.startswith('new(') or 
+             camp.cs_split_type == 'new' or
+             camp.cs_split_type == 'new_local':
+
+            # default parameters
+	    tfts = 1800.0 # half an hour
+            twindow = 604800.0     # one week
+            tround = 86400         # one day
+            tlocaltime = 0         # assume GMT
+
+            if camp.cs_split_type[3:] == '_local':
+                tlocaltime = 1
+
+            # if they specified any, grab them ...
+            if camp.cs_split_type[3] == '(':
+                parms = camp.cs_split_type[4:].split(',')
+                for p in parms:
+                    pmult = 1
+                    if p.endswith(')'): p=p[:-1]
+                    if p.endswith('w'): pmult = 604800; p=p[:-1]
+                    if p.endswith('d'): pmult = 86400; p=p[:-1]
+                    if p.endswith('h'): pmult = 3600; p=p[:-1]
+                    if p.endswith('m'): pmult = 60; p=p[:-1]
+                    if p.endswith('s'): pmult = 1; p=p[:-1]
+                    if p.startswith('window='): twindow = float(p[7:]) * pmult
+                    if p.startswith('round='): tround = float(p[6:]) * pmult
+                    if p.startswith('fts='): tfts = float(p[4:]) * pmult
+                    if p.startswith('localtime='): tlocaltime = float(p[4:]) * pmult
+
+            # make sure time-window is a multiple of rounding factor
+            twindow = int(stime) - (int(twindow) % int(tround))
+
+            # pick a boundary time, which will be our default start time
+            # if we've not been run before, and also as a boundary to 
+            # say we have nothing to do yet if our last run isnt that far 
+            # back... 
+	    #   go back one time window (plus fts delay) and then 
+            # round down to nearest tround to get a start time...
+	    # then later ones should come out even.
+
+            bound_time = time.time() - tfts - twindow
+            bound_time = int(stime) - (int(bound_time) % int(tround))
 
             if camp.cs_last_split == '' or camp.cs_last_split == None:
-                new = camp.dataset
+                stime = bound_time
+                etime = stime + twindow
             else:
-                new = camp.dataset + "_since_%s" % int(camp.cs_last_split)
-                cherrypy.request.samweb_lite.create_definition(
-                  camp.campaign_definition_obj.experiment,
-                  new,
-                  "defname: %s and end_time > '%s' and end_time <= '%s'" % (
-                     camp.dataset,
-                     time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(camp.cs_last_split)),
-                     time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(t)))
+                if camp.cs_last_split >= bound_time:
+                     raise err_res(404, 'Not enough new data yet')
+
+                stime = camp.cs_last_split
+                etime = stime + twindow
+
+            if tlocaltime:
+                sstime = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(stime))
+                setime = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(seime))
+            else:
+                sstime = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(stime))
+                setime = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(seime))
+
+            new = camp.dataset + "_since_%s" % int(stime)
+
+            cherrypy.request.samweb_lite.create_definition(
+                camp.campaign_definition_obj.experiment,
+                new,
+                "defname: %s and end_time > '%s' and end_time <= '%s'" % (
+                      camp.dataset, sstime, setime
                 )
+            )
 
             # mark end time for start of next run
-            camp.cs_last_split = t
+            camp.cs_last_split = etime
             res = new
 
             dbhandle.add(camp)
             dbhandle.commit()
 
-        elif camp.cs_split_type == 'new_local':
-            # save time *before* we define things, so we don't miss any
-            # and knock off an estimated FTS delay
-            est_fts_delay = 1800 # half an hour?
-            t = time.time() - 1800
-
-            if camp.cs_last_split == '' or camp.cs_last_split == None:
-                new = camp.dataset
-            else:
-                new = camp.dataset + "_since_%s" % int(camp.cs_last_split)
-                cherrypy.request.samweb_lite.create_definition(
-                  camp.campaign_definition_obj.experiment,
-                  new,
-                  "defname: %s and end_time > '%s' and end_time <= '%s'" % (
-                     camp.dataset,
-                     time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(camp.cs_last_split)),
-                     time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(t)))
-                )
-
-            # mark end time for start of next run
-            camp.cs_last_split = t
-            res = new
-
-            dbhandle.add(camp)
-            dbhandle.commit()
         return res
 
 
