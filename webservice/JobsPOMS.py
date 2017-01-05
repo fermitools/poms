@@ -26,37 +26,6 @@ import logging
 # our own logging handle, goes to cherrypy
 logger = logging.getLogger('cherrypy.error')
 
-#
-# utility function for running commands that don't run forever...
-#
-def popen_read_with_timeout(cmd, totaltime = 30):
-
-    origtime = totaltime
-    # start up keeping subprocess handle and pipe
-    pp = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE)
-    f = pp.stdout
-
-    outlist = []
-    block=" "
-
-    # read the file, with select timeout of total time remaining
-    while totaltime > 0 and len(block) > 0:
-        t1 = time.time()
-        r, w, e = select.select( [f],[],[], totaltime)
-        if not f in r:
-           outlist.append("\n[...timed out after %d seconds]\n" % origtime)
-           # timed out!
-           pp.kill()
-           break
-        block = os.read(f.fileno(), 512)
-        t2 = time.time()
-        totaltime = totaltime - (t2 - t1)
-        outlist.append(block)
-
-    pp.wait()
-    output = ''.join(outlist)
-    return output
-
 
 class JobsPOMS():
 

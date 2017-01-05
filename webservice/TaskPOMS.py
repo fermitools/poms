@@ -6,10 +6,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
-#from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile
 from datetime import datetime
-#from LaunchPOMS import launch_recovery_if_needed
-#from poms_service import poms_service
 
 import time_grid
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
@@ -17,13 +14,49 @@ from sqlalchemy import func
 from utc import utc
 from datetime import datetime, timedelta
 import condor_log_parser
+import time
+import os
+import json
+from collections import OrderedDict
+
 # our own logging handle, goes to cherrypy
 
 import logging
 logger = logging.getLogger('cherrypy.error')
 
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency, HeldLaunch
 
+
+#
+# utility function for running commands that don't run forever...
+#
+def popen_read_with_timeout(cmd, totaltime = 30):
+
+    origtime = totaltime
+    # start up keeping subprocess handle and pipe
+    pp = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE)
+    f = pp.stdout
+
+    outlist = []
+    block=" "
+
+    # read the file, with select timeout of total time remaining
+    while totaltime > 0 and len(block) > 0:
+        t1 = time.time()
+        r, w, e = select.select( [f],[],[], totaltime)
+        if not f in r:
+           outlist.append("\n[...timed out after %d seconds]\n" % origtime)
+           # timed out!
+           pp.kill()
+           break
+        block = os.read(f.fileno(), 512)
+        t2 = time.time()
+        totaltime = totaltime - (t2 - t1)
+        outlist.append(block)
+
+    pp.wait()
+    output = ''.join(outlist)
+    return output
 
 class TaskPOMS:
 
@@ -486,6 +519,11 @@ class TaskPOMS:
 
         loghandle("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
 
+        ds = time.strftime("%Y%m%d_%H%M%S")
+        outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"],campaign_id)
+        outfile = "%s/%s" % (outdir, ds)
+        loghandle("trying to record launch in %s" % outfile)
+
         c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).options(joinedload(Campaign.launch_template_obj),joinedload(Campaign.campaign_definition_obj)).first()
         cd = c.campaign_definition_obj
         lt = c.launch_template_obj
@@ -500,6 +538,7 @@ class TaskPOMS:
             hl.param_overrides = param_overrides
             dbhandle.add(hl)
             dbhandle.commit()
+            lcmd = ""
             
             return lcmd, output, c, campaign_id, outdir, outfile
 
@@ -572,8 +611,4 @@ class TaskPOMS:
         output = popen_read_with_timeout(cmd, 1800) ### Question???
 
         # always record launch...
-        ds = time.strftime("%Y%m%d_%H%M%S")
-        outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"],campaign_id)
-        outfile = "%s/%s" % (outdir, ds)
-        loghandle("trying to record launch in %s" % outfile)
         return lcmd, output, c, campaign_id, outdir, outfile
