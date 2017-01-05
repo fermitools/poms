@@ -190,6 +190,8 @@ class CampaignsPOMS():
 
 
     def campaign_edit(self, dbhandle, loghandle, sesshandle, *args, **kwargs):
+        print ' campaign_edit'       
+        loghandle('campaign_edit')
         data = {}
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
@@ -219,15 +221,14 @@ class CampaignsPOMS():
             split_type = kwargs.pop('ae_split_type')
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
-            print ' software_version= %s' %software_version
-            dataset = kwargs.pop('ae_dataset')
-            completion_type = 'comp_type' #kwargs.pop('ae_completion_type')
-            completion_pct = 'comp_pct'   #kwargs.pop('ae_completion_pct')
             dataset = kwargs.pop('ae_dataset')
             param_overrides = kwargs.pop('ae_param_overrides')
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
             launch_id = kwargs.pop('ae_launch_id')
             experimenter_id = kwargs.pop('experimenter_id')
+            completion_type = kwargs.pop('ae_completion_type')
+            completion_pct =  kwargs.pop('ae_completion_pct')
+            print ' completion_type = %s, pct=%s' %(completion_type,completion_pct)
             depends = kwargs.pop('ae_depends')
             if depends and depends != "[]":
                 depends = json.loads(depends)
@@ -235,17 +236,19 @@ class CampaignsPOMS():
                 depends = {"campaigns": [], "file_patterns": []}
             try:
                 if action == 'add':
+                    print ' adding campaign %s' %name
                     c = Campaign(name=name, experiment=exp,vo_role=vo_role,
                                 active=active, cs_split_type = split_type,
                                 software_version=software_version, dataset=dataset,
                                 param_overrides=param_overrides, launch_id=launch_id,
                                 campaign_definition_id=campaign_definition_id,
-                                creator=experimenter_id, created=datetime.now(utc),
-                                completion_type=completion_type,completion_pct=completion_pct)
+                                completion_type=completion_type,completion_pct=completion_pct,
+                                creator=experimenter_id, created=datetime.now(utc))
                     dbhandle.add(c)
                     dbhandle.flush() ##### Is this flush() necessary or better a commit ?
                     campaign_id = c.campaign_id
                 else:
+                    print ' defining cols %s' %name
                     columns = {
                                 "name":                  name,
                                 "vo_role":               vo_role,
