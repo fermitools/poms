@@ -335,8 +335,8 @@ class CampaignDependency(Base):
 
 class HeldLaunch(Base):
     __tablename__ = 'held_launches'
-    campaign_id = Column(Integer, nullable=False)
-    created = Column(DateTime(True), nullable=False)
+    campaign_id = Column(Integer, nullable=False, primary_key = True)
+    created = Column(DateTime(True), nullable=False, primary_key = True)
     parent_task_id =  Column(Integer, nullable=False)
     dataset = Column(Text)
     param_overrides = Column(JSON)
