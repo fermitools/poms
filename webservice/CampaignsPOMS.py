@@ -193,6 +193,8 @@ class CampaignsPOMS():
         data = {}
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
+        for k,v in kwargs.items():
+            print ' k=%s, v=%s ' %(k,v)
         action = kwargs.pop('action',None)
         print ' action = %s' %action
         exp = kwargs.pop('experiment',None)
@@ -219,8 +221,8 @@ class CampaignsPOMS():
             software_version = kwargs.pop('ae_software_version')
             print ' software_version= %s' %software_version
             dataset = kwargs.pop('ae_dataset')
-            completion_type = kwargs.pop('ae_completion_type')
-            completion_pct = kwargs.pop('ae_completion_pct')
+            completion_type = 'comp_type' #kwargs.pop('ae_completion_type')
+            completion_pct = 'comp_pct'   #kwargs.pop('ae_completion_pct')
             dataset = kwargs.pop('ae_dataset')
             param_overrides = kwargs.pop('ae_param_overrides')
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')

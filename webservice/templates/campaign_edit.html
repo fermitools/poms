@@ -195,14 +195,12 @@
           <input type="text" id="ae_split_type" name="ae_split_type">
 	</div>
       </div>
-
-<! -- New -->
       <div class="two fields">
 	<div class="field">
 	  <label>Completion Type</label>
 	  <select class="ui dropdown" name="ae_completion_type" id="ae_completion_type">
-	    <option value="True" id="comp">Located</option>
-	    <option value="False" >Not Located</option>
+	    <option value="located">Located</option>
+	    <option value="complete" >Complete</option>
 	  </select>
 	</div>
 
@@ -211,7 +209,6 @@
           <input type="text" id="ae_completion_pct" name="ae_completion_pct">
 	</div>
       </div>
-<! -- Done New -->
 
       <div class="one field">
 	<div class="field">
@@ -385,9 +382,9 @@ $('#campaign_add_edit_form')
       ae_active :                 'empty',
       ae_vo_role :                'empty',
       ae_software_version :       'empty',
-      ae_completion_type :        'empty',
-      ae_completion_pct  :        'empty',
       ae_dataset :                'empty',
+      ae_completion_type :        'empty',
+      ae_completion_pct :         'empty',
       ae_split_type :             'empty',
       ae_launch_id :              'empty',
       ae_campaign_definition_id : 'empty'
