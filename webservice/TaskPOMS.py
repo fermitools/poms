@@ -14,10 +14,13 @@ from sqlalchemy import func
 from utc import utc
 from datetime import datetime, timedelta
 import condor_log_parser
-import time
-import os
 import json
 from collections import OrderedDict
+import subprocess
+import time
+import select
+import os
+import sys
 
 # our own logging handle, goes to cherrypy
 
