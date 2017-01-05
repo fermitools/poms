@@ -461,7 +461,7 @@ class TaskPOMS:
         if not hold in ["hold","allowed"]:
             return
 
-        s = dbhandle.query(Service).with_for_update().filter(name="job_launches").first()
+        s = dbhandle.query(Service).with_for_update().filter(Service.name=="job_launches").first()
         s.status = hold
         dbhandle.commit()
 
