@@ -193,6 +193,8 @@ class CampaignsPOMS():
         data = {}
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
+        #for k,v in kwargs.items():
+        #    print ' k=%s, v=%s ' %(k,v)
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
         if action == 'delete':
@@ -221,6 +223,8 @@ class CampaignsPOMS():
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
             launch_id = kwargs.pop('ae_launch_id')
             experimenter_id = kwargs.pop('experimenter_id')
+            completion_type = kwargs.pop('ae_completion_type')
+            completion_pct =  kwargs.pop('ae_completion_pct')
             depends = kwargs.pop('ae_depends')
             if depends and depends != "[]":
                 depends = json.loads(depends)
@@ -228,11 +232,13 @@ class CampaignsPOMS():
                 depends = {"campaigns": [], "file_patterns": []}
             try:
                 if action == 'add':
+                    if not completion_pct:completion_pct=95
                     c = Campaign(name=name, experiment=exp,vo_role=vo_role,
                                 active=active, cs_split_type = split_type,
                                 software_version=software_version, dataset=dataset,
                                 param_overrides=param_overrides, launch_id=launch_id,
                                 campaign_definition_id=campaign_definition_id,
+                                completion_type=completion_type,completion_pct=completion_pct,
                                 creator=experimenter_id, created=datetime.now(utc))
                     dbhandle.add(c)
                     dbhandle.flush() ##### Is this flush() necessary or better a commit ?
@@ -249,7 +255,9 @@ class CampaignsPOMS():
                                 "campaign_definition_id":campaign_definition_id,
                                 "launch_id":             launch_id,
                                 "updated":               datetime.now(utc),
-                                "updater":               experimenter_id
+                                "updater":               experimenter_id,
+                                "completion_type":       completion_type,
+                                "completion_pct":       completion_pct
                                 }
                     cd = dbhandle.query(Campaign).filter(Campaign.campaign_id==campaign_id).update(columns)
             # now redo dependencies
