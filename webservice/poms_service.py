@@ -69,7 +69,6 @@ class poms_service:
     def __init__(self):
         self.jinja_env = Environment(loader=PackageLoader('webservice','templates'))
         self.path = cherrypy.config.get("pomspath","/poms")
-        cherrypy.config.update({'poms.launches': 'allowed'})
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
         global_version = self.version
@@ -103,7 +102,7 @@ class poms_service:
         template = self.jinja_env.get_template('index.html')
         return template.render(services=self.service_status_hier('All'),current_experimenter=cherrypy.session.get('experimenter'),
 
-        launches = cherrypy.config.get("poms.launches","allowed"),
+        launches = self.taskPOMS.get_job_launches(cherrypy.request.db),
                                do_refresh = 1, pomspath=self.path,help_page="DashboardHelp", version=self.version)
 
 
@@ -458,14 +457,12 @@ class poms_service:
 
     @cherrypy.expose
     def set_job_launches(self, hold):
-        if hold in ["hold","allowed"]:
-            cherrypy.config.update({'poms.launches': hold})
+        self.taskPOMS.set_job_launches(cherrypy.request.db, hold)
         raise cherrypy.HTTPRedirect(self.path + "/")
-
 
     @cherrypy.expose
     def launch_queued_job(self):
-        return self.jobsPOMS.launch_queued_job(cherrypy.request.db,cherrypy.log, cherrypy.session.get, cherrypy.request.headers.get, cherrypy.session.get, cherrypy.response.status)
+        return self.taskPOMS.launch_queued_job(cherrypy.request.db,cherrypy.log, cherrypy.session.get, cherrypy.request.headers.get, cherrypy.session.get, cherrypy.response.status)
 
     @cherrypy.expose
     def launch_jobs(self, campaign_id, dataset_override = None, parent_task_id = None): ###needs to be analize in detail.
