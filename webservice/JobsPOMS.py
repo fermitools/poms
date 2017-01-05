@@ -5,7 +5,7 @@ List of methods: active_jobs, output_pending_jobs, update_jobs
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
-from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile
+from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile, HeldLaunch
 from datetime import datetime, timedelta
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy import func, not_, and_
@@ -380,6 +380,18 @@ class JobsPOMS():
         loghandle("got list: %s" % repr(efflist))
         return efflist
 
+    def launch_queued_job(self, dbhandle, loghandle, getconfig, gethead, seshandle, err_res):
+        if getconfig("poms.launches","allowed") == "hold":
+            return "Held."
+
+        hl = dbhandle.query(HeldLaunch).with_for_update().order_by(HeldLaunch.created).first();
+        if hl:
+            dbhandle.delete(hl)
+            dbhandle.commit()
+            self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, err_res, hl.campaign_id, dataset_override = hl.dataset, parent_task_id = hl.parent_task_id, param_overrides = hl.param_overrides)
+            return "Launched."
+        else:
+            return "None."
 
     def launch_jobs(self, dbhandle,loghandle, getconfig, gethead, seshandle, err_res, campaign_id, dataset_override = None, parent_task_id = None, param_overrides = None):
 
@@ -390,7 +402,16 @@ class JobsPOMS():
         lt = c.launch_template_obj
 
         if getconfig("poms.launches","allowed") == "hold":
-            output = "Job launches currently held."
+            output = "Job launches currently held.... queuing this request"
+            hl = HeldLaunch()
+            hl.campaign_id = campaign_id
+            hl.created = datetime.now(utc)
+            hl.dataset = dataset_override
+            hl.parent_task_id = parent_task_id
+            hl.param_overrides = param_overrides
+            dbhandle.add(hl)
+            dbhandle.commit()
+            
             return lcmd, output, c, campaign_id, outdir, outfile
 
         e = seshandle('experimenter')

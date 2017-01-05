@@ -332,3 +332,11 @@ class CampaignDependency(Base):
 
     needs_camp = relationship(u'Campaign',foreign_keys=needs_camp_id)
     uses_camp = relationship(u'Campaign',foreign_keys=uses_camp_id)
+
+class HeldLaunch(Base):
+    __tablename__ = 'held_launches'
+    campaign_id = Column(Integer, nullable=False)
+    created = Column(DateTime(True), nullable=False)
+    parent_task_id =  Column(Integer, nullable=False)
+    dataset = Column(Text)
+    param_overrides = Column(JSON)

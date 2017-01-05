@@ -22,7 +22,7 @@ class status_scraper:
 
     def __init__(self,configfile, poms_url):
         self.poms_url = poms_url
-        defaults = { "subservices" : "", "path":"", "percent":"100", "upper": 90, "lower":80, "debug":"0", "above":None, "below":None, 'source_url': ''}
+        defaults = { "subservices" : "", "path":"", "percent":"100", "upper": 90, "lower":80, "debug":"0", "above":None, "below":None, "warnabove":None, "warnbelow":None, 'source_url': ''}
         self.cf = SafeConfigParser(defaults)
         self.cf.read(configfile)
         pcfg = self.cf.get('global', 'passwdcfg')
@@ -173,9 +173,17 @@ class status_scraper:
 		self.paths[s] = path
 		low = self.cf.get(s,'above')
 		high = self.cf.get(s,'below')
+		wlow = self.cf.get(s,'warnabove')
+		whigh = self.cf.get(s,'warnbelow')
                 data = self.fetch_item(path)
                 if data: 
 		    self.status[s] = 'good'
+		    if high and data[0]["datapoints"][0][0] > float(warnhigh):
+                        print "degraded because ", data[0]["datapoints"][0][0], "above", warnhigh
+			self.status[s] = 'degraded'
+		    if low and data[0]["datapoints"][0][0] < float(warnlow):
+                        print "degraded because ", data[0]["datapoints"][0][0], "below", warnlow
+			self.status[s] = 'degraded'
 		    if high and data[0]["datapoints"][0][0] > float(high):
                         print "bad because ", data[0]["datapoints"][0][0], "above", high
 			self.status[s] = 'bad'
