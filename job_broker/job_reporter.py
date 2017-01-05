@@ -11,13 +11,17 @@ import Queue
 import thread
 import threading
 import time
+from prometheus_client.bridge.graphite import GraphiteBridge
 
 class job_reporter:
     """
        class to report job status -- now runs several threads to asynchronously report queued items
        given to us, so we don't drop messages from syslog piping to us, etc.
     """
-    def __init__(self, report_url, debug = 0, nthreads = 5):
+    def __init__(self, report_url, debug = 0, nthreads = 5, namespace = ""):
+        self.namespace = namespace
+        self.gb = GraphiteBridge(('fermicloud079.fnal.gov', 2003))
+        self.gb.start(10,prefix=self.namespace)
         self.report_url = report_url
         self.debug = debug
         self.work = Queue.Queue()
