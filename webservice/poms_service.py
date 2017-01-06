@@ -466,7 +466,7 @@ class poms_service:
 
     @cherrypy.expose
     def launch_jobs(self, campaign_id, dataset_override = None, parent_task_id = None): ###needs to be analize in detail.
-        vals = self.jobsPOMS.launch_jobs(cherrypy.request.db,cherrypy.log, cherrypy.session.get, cherrypy.request.headers.get, cherrypy.session.get, cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
+        vals = self.taskPOMS.launch_jobs(cherrypy.request.db,cherrypy.log, cherrypy.session.get, cherrypy.request.headers.get, cherrypy.session.get, cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
         cherrypy.log("Got vals: %s" % repr(vals))
         lcmd, output, c, campaign_id, outdir, outfile = vals
         template = self.jinja_env.get_template('launch_jobs.html')
