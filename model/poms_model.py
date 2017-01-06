@@ -322,6 +322,7 @@ class CampaignRecovery(Base):
 
     campaign_definition = relationship(u'CampaignDefinition')
     recovery_type = relationship(u'RecoveryType')
+    param_overrides = Column(JSON)
 
 class CampaignDependency(Base):
     __tablename__ = 'campaign_dependencies'

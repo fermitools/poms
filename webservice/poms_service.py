@@ -426,7 +426,7 @@ class poms_service:
 
     @cherrypy.expose
     def update_launch_schedule(self, campaign_id, dowlist=None, domlist=None, monthly=None, month=None, hourlist=None, submit=None, minlist=None, delete=None):
-        self.campaignsPOMS.update_launch_schedule(campaign_id, cherrypy.log, dowlist, domlist, monthly, month, hourlist, submit, minlist, delete)
+        self.campaignsPOMS.update_launch_schedule(cherrypy.log, campaign_id, dowlist, domlist, monthly, month, hourlist, submit, minlist, delete)
         raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id)
 
 
