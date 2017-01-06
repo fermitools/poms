@@ -318,6 +318,7 @@ class CampaignRecovery(Base):
     campaign_definition_id = Column(ForeignKey(u'campaign_definitions.campaign_definition_id'), primary_key=True, nullable=False)
     recovery_type_id = Column(ForeignKey(u'recovery_types.recovery_type_id'), primary_key=True, nullable=False, index=True)
     recovery_order = Column(Integer, nullable=False)
+    param_overrides = Column(JSON)
 
     campaign_definition = relationship(u'CampaignDefinition')
     recovery_type = relationship(u'RecoveryType')
