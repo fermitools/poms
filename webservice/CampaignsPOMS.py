@@ -7,7 +7,10 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
-from model.poms_model import Experiment, Experimenter, Campaign, CampaignDependency, LaunchTemplate, CampaignDefinition, CampaignRecovery, CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
+from model.poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
+    LaunchTemplate, CampaignDefinition, CampaignRecovery,
+    CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
+)
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy import or_, and_ , not_
 from crontab import CronTab
@@ -353,14 +356,15 @@ class CampaignsPOMS():
         return "Task=%d" % t.task_id
 
 
-    def show_campaigns(self, dbhandle, loghandle, samhandle, campaign_id = None, experiment = None, tmin = None, tmax = None, tdays = 1, active = True):
+    def show_campaigns(self, dbhandle, loghandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=1, active=True):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
-        cq = dbhandle.query(Campaign).filter(Campaign.active == active ).order_by(Campaign.experiment)
+        #cq = dbhandle.query(Campaign).filter(Campaign.active==active).order_by(Campaign.experiment)
+        cq = dbhandle.query(Campaign).options(joinedload('experiment_obj')).filter(Campaign.active==active).order_by(Campaign.experiment)
 
         if experiment:
-            cq = cq.filter(Campaign.experiment == experiment)
+            cq = cq.filter(Campaign.experiment==experiment)
 
         cl = cq.all()
 
@@ -372,7 +376,7 @@ class CampaignsPOMS():
 
         i = 0
         for c in cl:
-            counts[c.campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle, tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
+            counts[c.campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle, tmax=tmax, tmin=tmin, tdays=tdays, campaign_id=c.campaign_id)
             counts[c.campaign_id]['efficiency'] = effs[i]
             if len(pendings) > i:
                 counts[c.campaign_id]['pending'] = pendings[i]

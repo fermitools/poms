@@ -4,7 +4,12 @@
 ### List of methods:  job_counts, triage_job, job_table, failed_jobs_by_whatever
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
-from model.poms_model import JobHistory,  Job, Task, Campaign, CampaignDefinition, JobFile, Experimenter, Experiment, ExperimentsExperimenters, ServiceDowntime, Service
+import urllib
+
+from model.poms_model import (
+    JobHistory,  Job, Task, Campaign, CampaignDefinition,
+    JobFile, Experimenter, Experiment, ExperimentsExperimenters,
+    ServiceDowntime, Service)
 from elasticsearch import Elasticsearch
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager ###Double check you need it
 from sqlalchemy import func, desc
@@ -83,9 +88,9 @@ class TriagePOMS():
 	    }
 	}
 
-        try: 
+        try:
 	    es_response= es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
-        except: 
+        except:
             es_response = None
 
 	#ends condor event logs
@@ -120,9 +125,9 @@ class TriagePOMS():
 	#return template.render(job_id = job_id, job_file_list = job_file_list, job_info = job_info, job_history = job_history, downtimes=downtimes, output_file_names_list=output_file_names_list, es_response=es_response, efficiency=efficiency, tmin=tmin, current_experimenter=cherrypy.session.get('experimenter'), pomspath=self.path, help_page="TriageJobHelp",task_jobsub_job_id = task_jobsub_job_id, version=self.version)
 
 
-    def job_table(self, dbhandle, tmin = None, tmax = None, tdays = 1, task_id = None, campaign_id = None , experiment = None, sift=False, campaign_name=None, name=None,campaign_def_id=None, vo_role=None, input_dataset=None, output_dataset=None, task_status=None, project=None, jobsub_job_id=None, node_name=None, cpu_type=None, host_site=None, job_status=None, user_exe_exit_code=None, output_files_declared=None, campaign_checkbox=None, task_checkbox=None, job_checkbox=None, ignore_me = None, keyword=None, dataset = None, eff_d = None):
+    def job_table(self, dbhandle, tmin=None, tmax=None, tdays=1, **kwargs):
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'job_table?')
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'job_table?')
         extra = ""
         filtered_fields = {}
 
@@ -130,60 +135,73 @@ class TriagePOMS():
         q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == Campaign.campaign_id)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax)
 
+        keyword = kwargs.get('keyword')
         if keyword:
-            q = q.filter( Task.project.like("%%%s%%" % keyword) )
+            q = q.filter(Task.project.like("%{}%".format(keyword)))
             extra = extra + "with keyword %s" % keyword
             filtered_fields['keyword'] = keyword
 
+        task_id = kwargs.get('task_id')
         if task_id:
             q = q.filter( Task.task_id == int(task_id))
             extra = extra + "in task id %s" % task_id
             filtered_fields['task_id'] = task_id
 
+        campaign_id = kwargs.get('campaign_id')
         if campaign_id:
             q = q.filter( Task.campaign_id == int(campaign_id))
             extra = extra + "in campaign id %s" % campaign_id
             filtered_fields['campaign_id'] = campaign_id
 
+        experiment = kwargs.get('experiment')
         if experiment:
             q = q.filter( Campaign.experiment == experiment)
             extra = extra + "in experiment %s" % experiment
             filtered_fields['experiment'] = experiment
 
+        dataset = kwargs.get('dataset')
         if dataset:
             q = q.filter( Campaign.dataset == dataset)
             extra = extra + "in dataset %s" % dataset
             filtered_fields['dataset'] = dataset
 
+        campaign_name = kwargs.get('campaign_name')
         if campaign_name:
             q = q.filter(Campaign.name == campaign_name)
             filtered_fields['campaign_name'] = campaign_name
 
         # alias for failed_jobs_by_whatever
+        name = kwargs.get('name')
         if name:
             q = q.filter(Campaign.name == name)
             filtered_fields['campaign_name'] = name
 
+        campaign_def_id = kwargs.get('campaign_def_id')
         if campaign_def_id:
             q = q.filter(Campaign.campaign_definition_id == campaign_def_id)
             filtered_fields['campaign_def_id'] = campaign_def_id
 
+        vo_role = kwargs.get('vo_role')
         if vo_role:
             q = q.filter(Campaign.vo_role == vo_role)
             filtered_fields['vo_role'] = vo_role
 
+        input_dataset = kwargs.get('input_dataset')
         if input_dataset:
             q = q.filter(Task.input_dataset == input_dataset)
             filtered_fields['input_dataset'] = input_dataset
 
+        output_dataset = kwargs.get('output_dataset')
         if output_dataset:
             q = q.filter(Task.output_dataset == output_dataset)
             filtered_fields['output_dataset'] = output_dataset
 
+        task_status = kwargs.get('task_status')
         if task_status:
             q = q.filter(Task.status == task_status)
             filtered_fields['task_status'] = task_status
 
+        project = kwargs.get('project')
         if project:
             q = q.filter(Task.project == project)
             filtered_fields['project'] = project
@@ -194,6 +212,7 @@ class TriagePOMS():
         # you ask for eff_d == 8...
         # ... or with eff_d of -1, one where we don't have good cpu/wall time data
         #
+        eff_d = kwargs.get('eff_d')
         if eff_d:
             if eff_d == "-1":
                 q = q.filter(not_(and_(Job.cpu_time > 0.0, Job.wall_time >= Job.cpu_time)))
@@ -201,22 +220,27 @@ class TriagePOMS():
                 q = q.filter(Job.wall_time != 0.0, func.floor(Job.cpu_time *10/Job.wall_time)== eff_d )
             filtered_fields['eff_d'] = eff_d
 
+        jobsub_job_id = kwargs.get('jobsub_job_id')
         if jobsub_job_id:
             q = q.filter(Job.jobsub_job_id == jobsub_job_id)
             filtered_fields['jobsub_job_id'] = jobsub_job_id
 
+        node_name = kwargs.get('node_name')
         if node_name:
             q = q.filter(Job.node_name == node_name)
             filtered_fields['node_name'] = node_name
 
+        cpu_type = kwargs.get('cpu_type')
         if cpu_type:
             q = q.filter(Job.cpu_type == cpu_type)
             filtered_fields['cpu_type'] = cpu_type
 
+        host_site = kwargs.get('host_site')
         if host_site:
             q = q.filter(Job.host_site == host_site)
             filtered_fields['host_site'] = host_site
 
+        job_status = kwargs.get('job_status')
         if job_status:
             # this rather bizzare hoseyness is because we want
             # "Running" to also match "running: copying files in", etc.
@@ -225,11 +249,13 @@ class TriagePOMS():
             q = q.filter(Job.status.like('%' + job_status[1:] + '%'))
             filtered_fields['job_status'] = job_status
 
+        user_exe_exit_code = kwargs.get('user_exe_exit_code')
         if user_exe_exit_code:
             q = q.filter(Job.user_exe_exit_code == int(user_exe_exit_code))
             extra = extra + "with exit code %s" % user_exe_exit_code
             filtered_fields['user_exe_exit_code'] = user_exe_exit_code
 
+        output_files_declared = kwargs.get('output_files_declared')
         if output_files_declared:
             q = q.filter(Job.output_files_declared == output_files_declared)
             filtered_fields['output_files_declared'] = output_files_declared
@@ -247,18 +273,19 @@ class TriagePOMS():
             taskcolumns = []
             campcolumns = []
 
+        sift = kwargs.get('sift')
         if sift:  #it was bool(sift)
             campaign_box = task_box = job_box = ""
 
-            if campaign_checkbox == "on":
+            if kwargs.get('campaign_checkbox') == "on":
                 campaign_box = "checked"
             else:
                 campcolumns = []
-            if task_checkbox == "on":
+            if kwargs.get('task_checkbox') == "on":
                 task_box = "checked"
             else:
                 taskcolumns = []
-            if job_checkbox == "on":
+            if kwargs.get('job_checkbox') == "on":
                 job_box = "checked"
             else:
                 jobcolumns = []
