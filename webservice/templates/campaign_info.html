@@ -173,8 +173,12 @@ $( document ).ready(function() {
           <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
         </th>
         <th>Pending
-          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+          <!-- <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job" data-tooltip="Pending"> -->
+          <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job">
+             <i style="float: none" class="grey help circle link icon"> </i> 
+          </a>
         </th>
+        
      </tr>
 
      {% for c in cl %}
@@ -219,7 +223,6 @@ $( document ).ready(function() {
 
     </table>
   </div>
-
 
   <div class="ui horizontal segments">
 
@@ -275,14 +278,16 @@ $( document ).ready(function() {
     <b>Experiment</b>: {{Campaign_info.Campaign.experiment}}<br>
     <b>Dataset</b>: {{Campaign_info.Campaign.dataset}}<br>
     <b>Software Version</b>: {{Campaign_info.Campaign.software_version}}<br>
-    <b>Created</b>: {{Campaign_info.Campaign.created}}<br>
-    <b>Creator</b>: {{Campaign_info.Experimenter.email}}</br>
     <b>VO Role</b>: {{Campaign_info.Campaign.vo_role}}<br>
     <b>Param Overrides</b>: {{Campaign_info.Campaign.param_overrides}}<br>
     <b>cs_split_type</b>: {{Campaign_info.Campaign.cs_split_type}}<br>
     <b>cs_split_dimensions</b>: {{Campaign_info.Campaign.cs_split_dimensions}}<br>
     <b>cs_last_split</b>: {{Campaign_info.Campaign.cs_last_split}}<br>
-    <b>Active</b>: {{Campaign_info.Campaign.active}} 
+    <b>Active</b>: {{Campaign_info.Campaign.active}} <br>
+    <b>Created</b>: {{Campaign_info.Campaign.created}}<br>
+    <b>Creator</b>: {{Campaign_info.Experimenter.email}}</br>
+    <b>Updated</b>: {{Campaign_info.Campaign.updated}}<br>
+    <b>Updater</b>: {{Campaign_info.Experimenter.email}}</br>
     </div>
 
   </div>
@@ -292,24 +297,29 @@ $( document ).ready(function() {
 
     <b>Name</b>: {{Campaign_definition_info.CampaignDefinition.name}}<br>
     <!--<b>experiment</b>: {{Campaign_definition_info.CampaignDefinition.experiment}}<br>-->
-    <b>Creator</b>: {{Campaign_definition_info.Experimenter.email}}<br>
-    <b>Created</b>: {{Campaign_definition_info.CampaignDefinition.created}}<br>
     <b>Launch Script</b>: {{Campaign_definition_info.CampaignDefinition.launch_script}}<br>
     <b>Definition Parameters</b>: {{Campaign_definition_info.CampaignDefinition.definition_parameters}}<br>
     <b>Input Files Per Job</b>: {{Campaign_definition_info.CampaignDefinition.input_files_per_job}}<br>
     <b>Output Files Per Job</b>: {{Campaign_definition_info.CampaignDefinition.output_files_per_job}}<br>
     <b>Output File Patterns</b>: {{Campaign_definition_info.CampaignDefinition.output_file_patterns}}<br>
+    <b>Creator</b>: {{Campaign_definition_info.Experimenter.email}}<br>
+    <b>Created</b>: {{Campaign_definition_info.CampaignDefinition.created}}<br>
+    <b>Updater</b>: {{Campaign_definition_info.Experimenter.email}}<br>
+    <b>Updated</b>: {{Campaign_definition_info.CampaignDefinition.updated}}<br>
     <b>
     </div>
   </div>
     <div class="ui segment raised">
     <h3>Launch Template</h3>
     <b>Name</b>: {{Launch_template_info.LaunchTemplate.name}}<br>
+    <b>Experiment</b>: {{Campaign_info.Campaign.experiment}}<br>
     <b>Launch Host</b>: {{Launch_template_info.LaunchTemplate.launch_host}}<br>
     <b>Launch Account</b>: {{Launch_template_info.LaunchTemplate.launch_account}}<br>
     <b>Launch Setup</b>: {{Launch_template_info.LaunchTemplate.launch_setup}}<br>
     <b>Creator</b>: {{Launch_template_info.Experimenter.email}}<br>
     <b>Created</b>: {{Launch_template_info.LaunchTemplate.created}}<br>
+    <b>Updater</b>: {{Launch_template_info.Experimenter.email}}<br>
+    <b>Updated</b>: {{Launch_template_info.LaunchTemplate.updated}}<br>
     </div>
 
 
@@ -371,12 +381,7 @@ fields:{
 },
 //minCharacters : 3
 });
+
 </script>
-
-
-
-
-
-
 
 {%endblock%}
