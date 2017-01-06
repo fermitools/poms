@@ -471,11 +471,6 @@ class poms_service:
         lcmd, output, c, campaign_id, outdir, outfile = vals
         template = self.jinja_env.get_template('launch_jobs.html')
         res = template.render(command = lcmd, output = output, current_experimenter=cherrypy.session.get('experimenter'), c = c, campaign_id = campaign_id,  pomspath=self.path,help_page="LaunchedJobsHelp", version=self.version)
-        if not os.path.isdir(outdir):
-            os.makedirs(outdir)
-        lf = open(outfile,"w")
-        lf.write(res)
-        lf.close()
         return res
 #----------------------
 ########################
@@ -489,8 +484,7 @@ class poms_service:
     @cherrypy.expose
     def wrapup_tasks(self):
         cherrypy.response.headers['Content-Type'] = "text/plain"
-        return "\n".join(self.taskPOMS.wrapup_tasks(cherrypy.request.db, cherrypy.log, cherrypy.request.samweb_lite, cherrypy.config.get))
-
+        return "\n".join(self.taskPOMS.wrapup_tasks(cherrypy.request.db, cherrypy.log, cherrypy.request.samweb_lite, cherrypy.config.get, cherrypy.request.headers.get, cherrypy.session.get, cherrypy.response.status))
 
     @cherrypy.expose
     def show_task_jobs(self, task_id, tmax = None, tmin = None, tdays = 1 ): ### Need to be tested HERE

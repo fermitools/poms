@@ -94,7 +94,7 @@ class TaskPOMS:
         return str(t.task_id)
 
 
-    def wrapup_tasks(self, dbhandle, loghandle, samhandle, getconfig): # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
+    def wrapup_tasks(self, dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res): # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
         now =  datetime.now(utc)
         res = ["wrapping up:"]
 
@@ -265,8 +265,8 @@ class TaskPOMS:
                    task.campaign_snap_obj.experiment, 
                    task.campaign_snap_obj.vo_role)
 
-	    if not self.launch_recovery_if_needed(dbhandle, loghandle, samhandle, getconfig, task):
-	       self.launch_dependents_if_needed(dbhandle, loghandle, samhandle, getconfig, task)
+	    if not self.launch_recovery_if_needed(dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  task):
+	       self.launch_dependents_if_needed(dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  task)
 
         return res
 
@@ -410,7 +410,7 @@ class TaskPOMS:
          dbhandle.commit()
 
 
-    def launch_dependents_if_needed(self, dbhandle, loghandle, samhandle, getconfig, t):
+    def launch_dependents_if_needed(self, dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  t):
         loghandle("Entering launch_dependents_if_needed(%s)" % t.task_id)
         if not getconfig("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
@@ -422,18 +422,18 @@ class TaskPOMS:
         for cd in cdlist:
            if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
               # self-reference, just do a normal launch
-              self.poms_service.launch_jobs(cd.uses_camp_id)
+              self.launch_jobs(dbhandle, loghandle,  getconfig, gethead, seshandle, err_res, cd.uses_camp_id)
            else:
               i = i + 1
               dims = "ischildof: (snapshot_for_project_name %s) and version %s and file_name like '%s' " % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
               dname = "poms_depends_%d_%d" % (t.task_id,i)
 
               samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-              self.poms_service.launch_jobs(cd.uses_camp_id, dataset_override = dname)
+              self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, err_res, cd.uses_camp_id, dataset_override = dname)
         return 1
 
 
-    def launch_recovery_if_needed(self, dbhandle, loghandle, samhandle, getconfig, t):
+    def launch_recovery_if_needed(self, dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  t):
         loghandle("Entering launch_recovery_if_needed(%s)" % t.task_id)
         if not getconfig("poms.launch_recovery_jobs",False):
             loghandle("recovery launches disabled")
@@ -488,7 +488,7 @@ class TaskPOMS:
                 samhandle.create_definition(t.campaign_snap_obj.experiment, rname, recovery_dims)
 
 
-                self.poms_service.launch_jobs(t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id, param_overrides = param_overrides)
+                self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, err_res, t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id, param_overrides = param_overrides)
                 return 1
 
         return 0
@@ -612,6 +612,12 @@ class TaskPOMS:
 
         # make sure launch doesn't take more that half an hour...
         output = popen_read_with_timeout(cmd, 1800) ### Question???
+
+        if not os.path.isdir(outdir):
+            os.makedirs(outdir)
+        lf = open(outfile,"w")
+        lf.write(res)
+        lf.close()
 
         # always record launch...
         return lcmd, output, c, campaign_id, outdir, outfile
