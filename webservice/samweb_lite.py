@@ -101,7 +101,8 @@ class samweb_lite:
             r1 = res.read()
             res.close()
         except:
-            traceback.print_exc()
+            pass # for now, this is not turned on in SAM yet, so ignore
+            # traceback.print_exc()
         return r1
  
     def list_files(self, experiment, dims):
