@@ -1,7 +1,7 @@
 
 /*******************************
  *              Global
- *              *******************************/
+ *******************************/
 
 
 /*--------------
@@ -189,7 +189,7 @@ blockquote .author {
     z-index: 1;
     margin: 0em;
     min-height: 160px;
-    padding: 3em 0em;
+    padding: 3em 0em 0em 0em;
     background-color: #FFFFFF;
     border-bottom: 1px solid #DDDDDD;
     box-shadow: none;

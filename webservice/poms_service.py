@@ -1,4 +1,5 @@
 import cherrypy
+from cherrypy.lib import sessions
 import glob
 import os
 import time
@@ -277,8 +278,15 @@ class poms_service:
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def experiment_members(self, *args, **kwargs):
-        trows = self.dbadminPOMS.experiment_members(cherrypy.request.db, *args, **kwargs)
+    def experiment_members(self, experiment, *args, **kwargs):
+        trows = self.dbadminPOMS.experiment_members(cherrypy.request.db, experiment, *args, **kwargs)
+        return trows
+
+
+    @cherrypy.expose
+#    @cherrypy.tools.json_out()
+    def member_experiments(self, email, *args, **kwargs):
+        trows = self.dbadminPOMS.member_experiments(cherrypy.request.db, email, *args, **kwargs)
         return trows
 
 
@@ -336,18 +344,35 @@ class poms_service:
 
 
     @cherrypy.expose
-    def show_campaigns(self,experiment = None, tmin = None, tmax = None, tdays = 1, active = True):
-        (counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs,
-            nextlink, prevlink, time_range_string) = self.campaignsPOMS.show_campaigns(cherrypy.request.db, cherrypy.log,
-                                                                cherrypy.request.samweb_lite, experiment=experiment,
-                                                                tmin=tmin, tmax=tmax, tdays=tdays, active=active)
+    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=1, active=True, **kwargs):
+        (counts, counts_keys, clist, dimlist,
+            tmin, tmax, tmins, tmaxs,
+            nextlink, prevlink, time_range_string
+        ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db, cherrypy.log,
+                                            cherrypy.request.samweb_lite, experiment=experiment,
+                                            tmin=tmin, tmax=tmax, tdays=tdays, active=active)
+
+        current_experimenter = cherrypy.session.get('experimenter')
+        #~ cherrypy.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
+        if 'exp_selected' in kwargs:
+            current_experimenter.extra = {'selected': kwargs['exp_selected']}
+            cherrypy.session['experimenter'] = current_experimenter
+            #~ cherrypy.log("current_experimenter.extra update... ")                               # DEBUG
+        #~ cherrypy.log("current_experimenter.extra after: "+str(current_experimenter.extra))      # DEBUG
+
+        experiments = self.dbadminPOMS.member_experiments(cherrypy.request.db, current_experimenter.email)
+
         template = self.jinja_env.get_template('show_campaigns.html')
+
         return template.render(In=("" if active == True else "In"), limit_experiment=experiment,
                                 services=self.service_status_hier('All'), counts=counts, counts_keys=counts_keys,
-                                cl=cl, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
-                                current_experimenter=cherrypy.session.get('experimenter'), do_refresh=1,
+                                cl=clist, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
+                                current_experimenter=current_experimenter, do_refresh=1,
                                 next=nextlink, prev=prevlink, days=tdays, time_range_string=time_range_string,
-                                key='', dimlist=dimlist, pomspath=self.path, help_page="ShowCampaignsHelp", version=self.version)
+                                key='', dimlist=dimlist, pomspath=self.path, help_page="ShowCampaignsHelp",
+                                experiments=experiments,
+                                dbg=kwargs,
+                                version=self.version)
 
 
     @cherrypy.expose

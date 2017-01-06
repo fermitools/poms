@@ -266,13 +266,13 @@ $( "#search_button" ).click(function() {
 <form method="POST" id="frm">
     <input id="off" type="hidden" name="offset" type="text" value='0'>
     <div class="three ui buttons">
-        <button onclick="changeVal('{{offset - 10 if offset >= 10 else 0}}');" class="ui compact attached labeled icon button">
+        <button onclick="changeVal('{{offset - 100 if offset >= 100 else 0}}');" class="ui compact attached labeled icon button">
             <i class="angle double left icon"></i>Back
         </button>
         <button onclick="changeVal('0');" class="ui compact attached button">
             <b class="__ui __header"><i class="home icon"></i>Reset</b>
         </button>
-        <button onclick="changeVal('{{offset + 10}}');" class="ui compact attached _right labeled icon button">
+        <button onclick="changeVal('{{offset + 100}}');" class="ui compact attached _right labeled icon button">
             Forward<i class="angle double right icon"></i>
         </button>
     </div>
@@ -333,7 +333,7 @@ $( "#search_button" ).click(function() {
   </thead>
   <tbody>
       <!-- offset={{offset}} -->
-    {% for job,task,campaign in joblist[offset:offset+10] %}
+    {% for job,task,campaign in joblist[offset:offset+100] %}
         {% set jobloop = loop %}
       <tr>
          {% for col in jobcolumns %}

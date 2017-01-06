@@ -26,7 +26,7 @@ from logging import handlers, DEBUG
 
 import cherrypy
 from cherrypy.process import wspbus, plugins
- 
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
@@ -34,24 +34,24 @@ import poms_service
 
 import jobsub_fetcher
 import samweb_lite
- 
+
 class SAEnginePlugin(plugins.SimplePlugin):
     def __init__(self, bus):
         """
         The plugin is registered to the CherryPy engine and therefore
         is part of the bus (the engine *is* a bus) registery.
- 
+
         We use this plugin to create the SA engine. At the same time,
         when the plugin starts we create the tables into the database
         using the mapped class of the global metadata.
- 
+
         Finally we create a new 'bind' channel that the SA tool
         will use to map a session to the SA engine at request time.
         """
         plugins.SimplePlugin.__init__(self, bus)
         self.sa_engine = None
         self.bus.subscribe("bind", self.bind)
- 
+
 
     def destroy(self):
         cherrypy.engine.exit()
@@ -73,10 +73,10 @@ class SAEnginePlugin(plugins.SimplePlugin):
         if self.sa_engine:
             self.sa_engine.dispose()
             self.sa_engine = None
- 
+
     def bind(self, session):
         session.configure(bind=self.sa_engine)
- 
+
 class SATool(cherrypy.Tool):
     def __init__(self):
         """
@@ -86,7 +86,7 @@ class SATool(cherrypy.Tool):
         we use the scoped_session that will create a session
         on a per thread basis so that you don't worry about
         concurrency on the session object itself.
- 
+
         This tools binds a session to the engine each time
         a requests starts and commits/rollbacks whenever
         the request terminates.
@@ -98,7 +98,7 @@ class SATool(cherrypy.Tool):
                                                   autocommit=False))
         self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher()
         self.samweb_lite = samweb_lite.samweb_lite()
- 
+
     def _setup(self):
         cherrypy.Tool._setup(self)
         cherrypy.request.hooks.attach('on_end_resource',
@@ -109,7 +109,7 @@ class SATool(cherrypy.Tool):
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
- 
+
     def release_session(self):
         cherrypy.request.db = None
         cherrypy.request.jobsub_fetcher = None
@@ -117,13 +117,32 @@ class SATool(cherrypy.Tool):
         self.session.remove()
 
 
+class SessionExperimenter(object):
+    def __init__(self, experimenter_id=None, first_name=None, last_name=None, email=None, authorized_for=None, **kwargs):
+        self.experimenter_id = experimenter_id
+        self.first_name = first_name
+        self.last_name = last_name
+        self.email = email
+        self.authorized_for = authorized_for
+        self.extra = kwargs
+
+    def is_authorized(self, experiment):
+        # Root is authorized for all experiments
+        if self.is_root():
+            return True
+        return self.authorized_for.get(experiment, False)
+
+    def is_root(self):
+        return self.authorized_for.get('root', False)
+
+
 class SessionTool(cherrypy.Tool):
-        # Something must be set in the sessionotherwise a unique session 
-        # will be created for each request. 
+        # Something must be set in the sessionotherwise a unique session
+        # will be created for each request.
     def __init__(self):
         cherrypy.Tool.__init__(self, 'before_request_body',
                                self.establish_session,
-                               priority=50)
+                               priority=90)
 
     # Here is how to add aditional hooks. Left as example
     #def _setup(self):
@@ -133,49 +152,39 @@ class SessionTool(cherrypy.Tool):
     #                                  priority=90)
 
     def establish_session(self):
-
-        class SessionExperimenter():
-            def __init__(self, experimenter_id=None, first_name=None, last_name=None, email=None, authorized_for=None):
-                self.experimenter_id = experimenter_id
-                self.first_name = first_name
-                self.last_name = last_name
-                self.email = email
-                self.authorized_for = authorized_for
-            def is_authorized(self,experiment):
-                # Root is authorized for all experiments
-                if self.is_root():
-                    return True
-                return self.authorized_for.get(experiment,False)
-            def is_root(self):
-                return self.authorized_for.get('root',False)
-
-        if cherrypy.session.get('id',None):
+        if cherrypy.session.get('id', None):
             return
         cherrypy.session['id'] = cherrypy.session.originalid  #The session ID from the users cookie.
-        
+
         email = None
         if cherrypy.request.headers.get('X-Shib-Email',None):
             email = cherrypy.request.headers['X-Shib-Email']
-            experimenter = cherrypy.request.db.query(Experimenter).filter(ExperimentsExperimenters.active == True).filter(Experimenter.email == email ).first()
+            experimenter = (cherrypy.request.db.query(Experimenter)
+                                .filter(ExperimentsExperimenters.active==True)
+                                .filter(Experimenter.email==email)
+                                .first()
+                            )
         else:
             experimenter = None
 
         if not experimenter and cherrypy.request.headers.get('X-Shib-Email',None):
             email = cherrypy.request.headers['X-Shib-Email']
             experimenter = Experimenter(
-                first_name = cherrypy.request.headers['X-Shib-Name-First'],
-                last_name =  cherrypy.request.headers['X-Shib-Name-Last'],
-                email =  email)
+                                first_name=cherrypy.request.headers['X-Shib-Name-First'],
+                                last_name=cherrypy.request.headers['X-Shib-Name-Last'],
+                                email=email
+                            )
             cherrypy.request.db.add(experimenter)
             cherrypy.request.db.flush()
             e2e = ExperimentsExperimenters(
-                experimenter_id = experimenter.experimenter_id,
-                experiment = 'public',
-                active = True)
+                        experimenter_id=experimenter.experimenter_id,
+                        experiment='public',
+                        active=True
+                    )
             cherrypy.request.db.add(e2e)
             cherrypy.request.db.commit()
 
-        e   = cherrypy.request.db.query(Experimenter).filter(Experimenter.email==email).all()
+        e = cherrypy.request.db.query(Experimenter).filter(Experimenter.email==email).all()
         if len(e):
            e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e[0].experimenter_id)
         else:
@@ -184,18 +193,23 @@ class SessionTool(cherrypy.Tool):
         for row in e2e:
             exps[row.experiment] = row.active
         if len(e):
-            cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id, e[0].first_name, e[0].last_name, e[0].email, exps)
+            extra = {'selected': exps.keys()}
+            cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
+                    e[0].first_name, e[0].last_name, e[0].email, exps, **extra
+                )
         else:
             cherrypy.session['experimenter'] = SessionExperimenter("anonymous", "", "", "", {})
-        cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For','Unknown'), cherrypy.session['id'], 
-                                                      experimenter.email if experimenter else 'none', 
-                                                      experimenter.first_name if experimenter else 'none' , 
-                                                      experimenter.last_name if experimenter else 'none'))
+        cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For','Unknown'),
+                                                        cherrypy.session['id'],
+                                                        experimenter.email if experimenter else 'none',
+                                                        experimenter.first_name if experimenter else 'none' ,
+                                                        experimenter.last_name if experimenter else 'none'))
+
 
 def set_rotating_log(app):
     ''' recipe  for a rotating log file...'''
     # Remove the regular file handlers
-    app.log.error_file = "" 
+    app.log.error_file = ""
     app.log.access_file = ""
 
     maxBytes = cherrypy.config.get("log.rot_maxBytes",10000000)
@@ -230,15 +244,20 @@ def parse_command_line():
 if True:
 
     config = { '/' : {
-                      'tools.db.on': True,
-                      'tools.psess.on': True,
-                      'tools.staticdir.root': os.path.abspath(os.getcwd()),
-		      'tools.sessions.on': True,
-                      'tools.sessions.timeout': 60,
+                        'tools.db.on': True,
+                        'tools.psess.on': True,
+                        'tools.staticdir.root': os.path.abspath(os.getcwd()),
+                        'tools.sessions.on': True,
+                        'tools.sessions.timeout': 60,
+                        #~ 'tools.sessions.storage_class': cherrypy.lib.sessions.FileSession,
+                        'tools.sessions.storage_type': 'file',
+                        'tools.sessions.storage_path': '/tmp/poms',
+                        #~ 'tools.sessions.locking': 'implicit',
+                        'tools.sessions.locking': 'early',          # IMPORTANT!
                      },
                '/static' : {
-                      'tools.staticdir.on': True,
-                      'tools.staticdir.dir': './static'
+                        'tools.staticdir.on': True,
+                        'tools.staticdir.dir': './static'
                       },
                }
 
@@ -284,7 +303,7 @@ if True:
         sslserver.ssl_certificate = cherrypy.config.get("sslserver.ssl_certificate",None)
         sslserver.ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key",None)
         sslserver.subscribe()
-    
+
     cherrypy.config.update({'engine.autoreload.on': False})	# Recommended
     cherrypy.server.unsubscribe()
     cherrypy.engine.start()

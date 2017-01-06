@@ -57,7 +57,7 @@ function user_action(action) {
 
 <form id="user_form" class="ui form" action="user_edit" method="POST">
   <div class="three fields">
-    {% if data.experimenter is defined %} 
+    {% if data.experimenter is defined %}
     <div class="field">
       <label></label>
       <input type="text" id="search_email" name="email" placeholder="Email Address" value="{{data.experimenter.email}}">
@@ -77,11 +77,11 @@ function user_action(action) {
     </div>
     <div class="field">
       <label></label>
-      <input type="text" name="first_name" placeholder="First Name">
+      <input type="text" name="first_name" placeholder="First Name" disabled="disabled">
     </div>
     <div class="field">
       <label></label>
-      <input type="text" name="last_name" placeholder="Last Name">
+      <input type="text" name="last_name" placeholder="Last Name" disabled="disabled">
     </div>
     {% endif %}
   </div>
@@ -91,7 +91,7 @@ function user_action(action) {
     <div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="user_action('edit_user')" >Edit</div>
   </div>
   <input type="hidden" name="action" value="find">
- {% if data.experimenter is defined %} 
+ {% if data.experimenter is defined %}
   <input type="hidden" id="search_experimenter_id" name="experimenter_id" value="{{data.experimenter.experimenter_id}}">
  {% else %}
   <input type="hidden" id="search_experimenter_id" name="experimenter_id">
@@ -185,7 +185,7 @@ $('#user_add_edit_form')
 $(document).ready(function(){
   if ("{{ data.message }}" != "None") {
     $("#poms_message_data").text("{{ data.message }}");
-    $("#display_message_modal").modal('show');  
+    $("#display_message_modal").modal('show');
   }
 });
 
