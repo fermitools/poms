@@ -411,7 +411,13 @@ class poms_service:
     @cherrypy.expose
     def list_launch_file(self, campaign_id, fname):
         lines = self.campaignsPOMS.list_launch_file(campaign_id, fname)
-        return "".join(lines)
+        output = "".join(lines)
+        template = self.jinja_env.get_template('launch_jobs.html')
+        res = template.render(command='', output=output,
+                                current_experimenter=cherrypy.session.get('experimenter'),
+                                c=None, campaign_id=campaign_id, pomspath=self.path,
+                                help_page="LaunchedJobsHelp", version=self.version)
+        return res
 
 
     @cherrypy.expose

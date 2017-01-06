@@ -616,7 +616,7 @@ class TaskPOMS:
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
         lf = open(outfile,"w")
-        lf.write(res)
+        lf.write(output)
         lf.close()
 
         # always record launch...
