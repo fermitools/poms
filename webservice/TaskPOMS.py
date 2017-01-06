@@ -224,11 +224,11 @@ class TaskPOMS:
             # located if 90% of the files it consumed have suitable kids...
             # cfrac = lookup_task_list[i].campaign_definition_snap_obj.cfrac
 	    task = lookup_task_list[i]
-            cfrac = task.campaign_snap_obj.completion_pct
+            cfrac = task.campaign_snap_obj.completion_pct/100.0
 	    threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
 	    thresholds.append(threshold)
             val = float(count_list[i])
-            if float(count_list[i]) >= threshold and threshold > 0:
+            if val >= threshold and threshold > 0:
                 n_located = n_located + 1
                 if task.status == "Completed":
                     task.status = "Located"
