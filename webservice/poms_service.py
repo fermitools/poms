@@ -81,7 +81,6 @@ class poms_service:
     def __init__(self):
         self.jinja_env = Environment(loader=PackageLoader('webservice','templates'))
         self.path = cherrypy.config.get("pomspath","/poms")
-        cherrypy.config.update({'poms.launches': 'allowed'})
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
         global_version = self.version
@@ -115,7 +114,7 @@ class poms_service:
         template = self.jinja_env.get_template('index.html')
         return template.render(services=self.service_status_hier('All'),current_experimenter=cherrypy.session.get('experimenter'),
 
-        launches = cherrypy.config.get("poms.launches","allowed"),
+        launches = self.taskPOMS.get_job_launches(cherrypy.request.db),
                                do_refresh=1, pomspath=self.path, help_page="DashboardHelp", version=self.version)
 
 
@@ -411,7 +410,7 @@ class poms_service:
 
     @cherrypy.expose
     def list_launch_file(self, campaign_id, fname):
-        lines = self.campaignsPOMS(campaign_id, fname)
+        lines = self.campaignsPOMS.list_launch_file(campaign_id, fname)
         return "".join(lines)
 
 
@@ -511,7 +510,7 @@ class poms_service:
         if not self.accessPOMS.can_report_data( cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get ):
             cherrypy.log("update_job: not allowed")
             return "Not Allowed"
-        return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log, cherrypy.response.status, task_id, jobsub_job_id, **kwargs))
+        return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log, cherrypy.response.status, cherrypy.request.samweb_lite, task_id, jobsub_job_id, **kwargs))
 
 
     @cherrypy.expose
@@ -557,17 +556,21 @@ class poms_service:
 
     @cherrypy.expose
     def set_job_launches(self, hold):
-        if hold in ["hold","allowed"]:
-            cherrypy.config.update({'poms.launches': hold})
+        self.taskPOMS.set_job_launches(cherrypy.request.db, hold)
         raise cherrypy.HTTPRedirect(self.path + "/")
 
+    @cherrypy.expose
+    def launch_queued_job(self):
+        return self.taskPOMS.launch_queued_job(cherrypy.request.db,cherrypy.log, cherrypy.session.get, cherrypy.request.headers.get, cherrypy.session.get, cherrypy.response.status)
 
     @cherrypy.expose
     def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None): ###needs to be analize in detail.
-        lcmd, output, c, campaign_id, outdir, outfile = self.jobsPOMS.launch_jobs(cherrypy.request.db,
+        vals = self.taskPOMS.launch_jobs(cherrypy.request.db,
                         cherrypy.log, cherrypy.session.get,
                         cherrypy.request.headers.get, cherrypy.session.get,
                         cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
+        cherrypy.log("Got vals: %s" % repr(vals))
+        lcmd, output, c, campaign_id, outdir, outfile = vals
         template = self.jinja_env.get_template('launch_jobs.html')
         res = template.render(command=lcmd, output=output,
                                 current_experimenter=cherrypy.session.get('experimenter'),

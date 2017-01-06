@@ -55,7 +55,9 @@ class Elasticsearch:
         r = requests.get(url, data=json.dumps(kwargs.get('query')), verify=False)
         #print r.url
         #print r.json
-        return json.loads(r.text)
+        res = json.loads(r.text)
+        r.close()
+        return res
 
     def index(self, index, doc_type, body):
         timestamp = body.get("timestamp")
@@ -68,7 +70,9 @@ class Elasticsearch:
         r = requests.post(url, data=payload, cert=(self.cert, self.key), verify=False)
         #print r.text
         #print r.status_code
-        return r.json()
+        res = r.json()
+        r.close()
+        return res
 
 
 

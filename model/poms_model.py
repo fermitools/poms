@@ -30,6 +30,8 @@ class Campaign(Base):
     active = Column(Boolean, nullable=False, server_default=text("true"))
     launch_id = Column(ForeignKey(u'launch_templates.launch_id'), nullable=False)
     param_overrides = Column(JSON)
+    completion_type = Column(Text,nullable = False, server_default=text("located"))
+    completion_pct = Column(Text,nullable = False, server_default="95")
 
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')
@@ -259,6 +261,8 @@ class CampaignSnapshot(Base):
     cs_last_split = Column(Integer)
     cs_split_type = Column(Text)
     cs_split_dimensions = Column(Text)
+    completion_type = Column(Text,nullable = False, server_default=text("located"))
+    completion_pct = Column(Text,nullable = False, server_default="95")
 
     campaign = relationship(u'Campaign')
 
@@ -329,3 +333,11 @@ class CampaignDependency(Base):
 
     needs_camp = relationship(u'Campaign',foreign_keys=needs_camp_id)
     uses_camp = relationship(u'Campaign',foreign_keys=uses_camp_id)
+
+class HeldLaunch(Base):
+    __tablename__ = 'held_launches'
+    campaign_id = Column(Integer, nullable=False, primary_key = True)
+    created = Column(DateTime(True), nullable=False, primary_key = True)
+    parent_task_id =  Column(Integer, nullable=False)
+    dataset = Column(Text)
+    param_overrides = Column(JSON)

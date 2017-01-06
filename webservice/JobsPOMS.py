@@ -5,7 +5,7 @@ List of methods: active_jobs, output_pending_jobs, update_jobs
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
-from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile
+from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile, HeldLaunch
 from datetime import datetime, timedelta
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy import func, not_, and_
@@ -24,38 +24,7 @@ import sys
 
 import logging
 # our own logging handle, goes to cherrypy
-logger = logging.getLogger('cherrypy_error')
-
-#
-# utility function for running commands that don't run forever...
-#
-def popen_read_with_timeout(cmd, totaltime = 30):
-
-    origtime = totaltime
-    # start up keeping subprocess handle and pipe
-    pp = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE)
-    f = pp.stdout
-
-    outlist = []
-    block=" "
-
-    # read the file, with select timeout of total time remaining
-    while totaltime > 0 and len(block) > 0:
-        t1 = time.time()
-        r, w, e = select.select( [f],[],[], totaltime)
-        if not f in r:
-           outlist.append("\n[...timed out after %d seconds]\n" % origtime)
-           # timed out!
-           pp.kill()
-           break
-        block = os.read(f.fileno(), 512)
-        t2 = time.time()
-        totaltime = totaltime - (t2 - t1)
-        outlist.append(block)
-
-    pp.wait()
-    output = ''.join(outlist)
-    return output
+logger = logging.getLogger('cherrypy.error')
 
 
 class JobsPOMS():
@@ -71,7 +40,7 @@ class JobsPOMS():
             if job.jobsub_job_id == "unknown":
                 continue
             res.append(job.jobsub_job_id)
-        #logger.info("active_jobs: returning %s" % res)
+        logger.info("active_jobs: returning %s" % res)
         #gc.collect(2)
         return res
 
@@ -91,8 +60,17 @@ class JobsPOMS():
             res[e][jobsub_job_id].append(fname)
         return res
 
+    def update_SAM_project(self, samhandle, j, projname):
+        tid = j.task_obj.task_id
+        exp = j.task_obj.campaign_snap_obj.experiment
+        cid = j.task_obj.campaign_snap_obj.campaign_id
+        samhandle.update_project_description(exp, projname, "POMS Campaign %s Task %s" % (cid, tid))
+        pass
 
-    def update_job(self, dbhandle, loghandle, rpstatus, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
+    def update_job(self, dbhandle, loghandle, rpstatus, samhandle, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
+
+        # flag to remember to do a SAM update after we commit
+	do_SAM_project = False
 
         if task_id == "None":
             task_id = None
@@ -122,8 +100,7 @@ class JobsPOMS():
                         dbhandle.add(njf)
 
                 dbhandle.delete(ji)
-                dbhandle.flush()      #######################should we change this for dbhandle.commit()
-
+                dbhandle.flush()  
 
         if not j and task_id:
             t = dbhandle.query(Task).filter(Task.task_id==task_id).first()
@@ -147,7 +124,8 @@ class JobsPOMS():
         if j:
             loghandle("update_job: updating job %d" % (j.job_id if j.job_id else -1))
 
-            for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:    ######?????????????? does those fields come in **kwargs or are juste grep from the database direclty
+            # first, Job string fields the db requres be not null:
+            for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:    
                 if field == 'status' and j.status == "Located":
                     # stick at Located, don't roll back to Completed,etc.
                     continue
@@ -158,20 +136,29 @@ class JobsPOMS():
                     if field != 'user_exe_exit_code':
                         setattr(j,field,'unknown')
 
+            # first, next, output_files_declared, which also changes status
             if kwargs.get('output_files_declared', None) == "True":
                 if j.status == "Completed" :
                     j.output_files_declared = True
                     j.status = "Located"
 
+            # next fields we set in our Task
             for field in ['project','recovery_tasks_parent' ]:
+
+                if field == 'project' and j.task_obj.project == None:
+                    # make a note to update project description after commit
+                    do_SAM_project = True
+
                 if kwargs.get("task_%s" % field, None) and kwargs.get("task_%s" % field) != "None" and j.task_obj:
                     setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
                     loghandle("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field, kwargs["task_%s"%field])))
 
+            # floating point fields need conversion
             for field in [ 'cpu_time', 'wall_time']:
                 if kwargs.get(field, None) and kwargs[field] != "None":
                     setattr(j,field,float(kwargs[field].rstrip("\n")))
 
+            # filenames need dumping in JobFiles table and attaching
             if kwargs.get('output_file_names', None):
                 loghandle("saw output_file_names: %s" % kwargs['output_file_names'])
                 if j.job_files:
@@ -210,6 +197,8 @@ class JobsPOMS():
                         dbhandle.add(jf)
 
 
+            # should have been handled with 'unknown' bit above, but we
+            # must have put it here for a reason...
             if j.cpu_type == None:
                 j.cpu_type = ''
             loghandle("update_job: db add/commit job status %s " %  j.status)
@@ -222,6 +211,10 @@ class JobsPOMS():
                     j.task_obj.campaign_snap_obj.active = True
             dbhandle.add(j)
             dbhandle.commit()
+
+            # now that we committed, do a SAM project desc. upate if needed
+            if do_SAM_project:
+	        self.update_SAM_project(samhandle, j, kwargs.get("task_project"))
             loghandle("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
 
         return "Ok."
@@ -230,7 +223,6 @@ class JobsPOMS():
     def test_job_counts(self, task_id = None, campaign_id = None):
         res = self.poms_service.job_counts(task_id, campaign_id)
         return repr(res) + self.poms_service.format_job_counts(task_id, campaign_id)
-
 
     def kill_jobs(self, dbhandle, loghandle, campaign_id=None, task_id=None, job_id=None, confirm=None):
         jjil = []
@@ -356,85 +348,3 @@ class JobsPOMS():
 
         loghandle("got list: %s" % repr(efflist))
         return efflist
-
-
-    def launch_jobs(self, dbhandle,loghandle, getconfig, gethead, seshandle, err_res, campaign_id, dataset_override = None, parent_task_id = None):
-
-        loghandle("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
-        if getconfig("poms.launches","allowed") == "hold":
-            return "Job launches currently held."
-
-        c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).options(joinedload(Campaign.launch_template_obj),joinedload(Campaign.campaign_definition_obj)).first()
-        cd = c.campaign_definition_obj
-        lt = c.launch_template_obj
-
-        e = seshandle('experimenter')
-        xff = gethead('X-Forwarded-For', None)
-        ra =  gethead('Remote-Addr', None)
-        if not e.is_authorized(c.experiment) and not ( ra == '127.0.0.1' and xff == None):
-             loghandle("launch_jobs -- experimenter not authorized")
-             err_res="404 Permission Denied."
-             return "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
-        experimenter_login = e.email[:e.email.find('@')]
-        lt.launch_account = lt.launch_account % {
-              "experimenter": experimenter_login,
-        }
-
-        if dataset_override:
-            dataset = dataset_override
-        else:
-            dataset = self.poms_service.campaignsPOMS.get_dataset_for(dbhandle, err_res, c)
-
-        group = c.experiment
-        if group == 'samdev': group = 'fermilab'
-
-        cmdl =  [
-            "exec 2>&1",
-            "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
-            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
-            "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.poms_service.hostname,
-            "ssh -tx %s@%s <<'EOF'" % (lt.launch_account, lt.launch_host),
-            lt.launch_setup % {
-              "dataset":dataset,
-              "version":c.software_version,
-              "group": group,
-              "experimenter": experimenter_login,
-            },
-            "setup poms_jobsub_wrapper v0_4 -z /grid/fermiapp/products/common/db",
-            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
-            "export POMS_TEST=%s" % ("" if "poms" in self.poms_service.hostname else "1"),
-            "export POMS_CAMPAIGN_ID=%s" % c.campaign_id,
-            "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id,
-            "export JOBSUB_GROUP=%s" % group,
-        ]
-        if cd.definition_parameters:
-           params = OrderedDict(json.loads(cd.definition_parameters))
-        else:
-           params = OrderedDict([])
-
-        if c.param_overrides != None and c.param_overrides != "":
-            params.update(json.loads(c.param_overrides))
-
-        lcmd = cd.launch_script + " " + ' '.join((x[0]+x[1]) for x in params.items())
-        lcmd = lcmd % {
-              "dataset":dataset,
-              "version":c.software_version,
-              "group": group,
-              "experimenter": experimenter_login,
-        }
-        cmdl.append(lcmd)
-        cmdl.append('exit')
-        cmdl.append('EOF')
-        cmd = '\n'.join(cmdl)
-
-        cmd = cmd.replace('\r','')
-
-        # make sure launch doesn't take more that half an hour...
-        output = popen_read_with_timeout(cmd, 1800) ### Question???
-
-        # always record launch...
-        ds = time.strftime("%Y%m%d_%H%M%S")
-        outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"],campaign_id)
-        outfile = "%s/%s" % (outdir, ds)
-        loghandle("trying to record launch in %s" % outfile)
-        return lcmd, output, c, campaign_id, outdir, outfile

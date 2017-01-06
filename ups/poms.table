@@ -19,6 +19,7 @@ Action=setup
    SetupRequired(-j python_request)
    SetupRequired(-j python_repose)
    SetupRequired(-j python_paste)
+   SetupRequired(-j python_prometheus_client)
    PathPrepend(PYTHONPATH,${UPS_PROD_DIR})
 
 Action=start

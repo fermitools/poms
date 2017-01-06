@@ -12,6 +12,13 @@ import gc
 import pprint
 from job_reporter import job_reporter
 
+do_memdebug = False
+
+if do_memdebug:
+    from pympler import tracker
+
+import prometheus_client as prom
+
 class jobsub_q_scraper:
     """
        this would actually call jobsub_q, if it were efficient, and you
@@ -20,6 +27,7 @@ class jobsub_q_scraper:
     """
     def __init__(self, job_reporter, debug = 0):
         self.job_reporter = job_reporter
+        self.jobCount = prom.Gauge("jobs_in_queue","Jobs in the queue this run")
         self.map = {
            "0": "Unexplained",
            "1": "Idle",
@@ -35,6 +43,12 @@ class jobsub_q_scraper:
         self.prevjobmap = {}
         self.debug = debug
         self.passcount = 0
+        if do_memdebug:
+	    self.memory_tracker = tracker.SummaryTracker()
+	    self.memory_tracker.print_diff()
+	    self.memory_tracker.print_diff()
+	    self.memory_tracker.print_diff()
+        sys.stdout.flush()
 
     def get_open_jobs(self):
         self.prevjobmap = self.jobmap
@@ -49,16 +63,20 @@ class jobsub_q_scraper:
 
             #print "got: ", jobs
             print "got %d jobs" % len(jobs)
+            self.jobCount.set(len(jobs))
             for j in jobs:
                 self.jobmap[j] = 0
             del jobs
             jobs = None
 	except KeyboardInterrupt:
 	    raise
-        except:
+        except e:
             print  "Ouch!", sys.exc_info()
 	    traceback.print_exc()
-            if conn: del conn
+            if conn: 
+                conn.close()
+                del conn
+            del e
 
     def call_wrapup_tasks(self):
         conn = None
@@ -72,10 +90,13 @@ class jobsub_q_scraper:
             if self.debug: print "got: ", text
 	except KeyboardInterrupt:
 	    raise
-        except:
+        except e:
             print  "Ouch!", sys.exc_info()
 	    traceback.print_exc()
-            del conn
+            if conn:
+                conn.close()
+                del conn
+            del e
 
     def scan(self):
         # roll our previous/current status
@@ -197,7 +218,6 @@ class jobsub_q_scraper:
         self.call_wrapup_tasks()
 
     def poll(self):
-        gc.set_debug(gc.DEBUG_LEAK)
         while(1):
             self.passcount = self.passcount + 1
 
@@ -231,14 +251,17 @@ class jobsub_q_scraper:
             sys.stderr.flush()
 
             n = gc.collect()
-            #print "gc.collect() returns %d unreachable" % n
+            print "gc.collect() returns %d unreachable" % n
+            if do_memdebug:
+                self.memory_tracker.print_diff()
+            sys.stdout.flush()
 
 if __name__ == '__main__':
     debug = 0
     if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
 
-    js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms", debug=debug), debug = debug)
+    js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms", debug=debug, namespace = "profiling.apps.poms.probes.jobsub_q_scraper"), debug = debug)
     try:
         js.poll()
     except KeyboardInterrupt:

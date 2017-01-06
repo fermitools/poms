@@ -11,13 +11,17 @@ import Queue
 import thread
 import threading
 import time
+from prometheus_client.bridge.graphite import GraphiteBridge
 
 class job_reporter:
     """
        class to report job status -- now runs several threads to asynchronously report queued items
        given to us, so we don't drop messages from syslog piping to us, etc.
     """
-    def __init__(self, report_url, debug = 0, nthreads = 5):
+    def __init__(self, report_url, debug = 0, nthreads = 5, namespace = ""):
+        self.namespace = namespace
+        self.gb = GraphiteBridge(('fermicloud079.fnal.gov', 2003))
+        self.gb.start(10,prefix=self.namespace)
         self.report_url = report_url
         self.debug = debug
         self.work = Queue.Queue()
@@ -75,7 +79,8 @@ class job_reporter:
 	    try:
 		uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
 		res = uh.read()
-		sys.stderr.write("response: %s\n" % res)
+                uh.close()
+		#sys.stderr.write("response: %s\n" % res)
 
                 del uh
                 uh = None
@@ -88,6 +93,11 @@ class job_reporter:
 		sys.stderr.write("\n--------\n")
                 sys.stderr.flush()
 
+                if uh:
+                    uh.read()
+                    uh.close()
+                    del uh
+                    uh = None
 
                 # don't retry on 401's...
                 if e.code in [401,404]:
@@ -99,10 +109,16 @@ class job_reporter:
                 retries = retries - 1
 
 	    except (urllib2.URLError) as e:
+                if uh:
+                    uh.read()
+                    uh.close()
+                    del uh
+                    uh = None
 		errtext = str(e)
 		sys.stderr.write("Exception:" + errtext)
 		sys.stderr.write("\n--------\n")
                 sys.stderr.flush()
+                del e
                 time.sleep(5)
                 retries = retries - 1
                 

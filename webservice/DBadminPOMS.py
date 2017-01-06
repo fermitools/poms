@@ -39,7 +39,7 @@ class DBadminPOMS:
             dbhandle.commit()
 
         elif action == "add":
-            if dbhandle.query(Experimenter).filter(Experimenter.email==email).one():
+            if dbhandle.query(Experimenter).filter(Experimenter.email==email).first():
                 message = "An experimenter with the email %s already exists" %  email
             else:
                 experimenter = Experimenter()

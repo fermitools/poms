@@ -22,7 +22,7 @@ class status_scraper:
 
     def __init__(self,configfile, poms_url):
         self.poms_url = poms_url
-        defaults = { "subservices" : "", "path":"", "percent":"100", "upper": 90, "lower":80, "debug":"0", "above":None, "below":None, 'source_url': ''}
+        defaults = { "subservices" : "", "path":"", "percent":"100", "upper": 90, "lower":80, "debug":"0", "above":None, "below":None, "warnabove":None, "warnbelow":None, 'source_url': ''}
         self.cf = SafeConfigParser(defaults)
         self.cf.read(configfile)
         pcfg = self.cf.get('global', 'passwdcfg')
@@ -89,7 +89,7 @@ class status_scraper:
                 #
                 # First stab at SSO stuff...
                 #
-                if jdata.find("<title>Sign On</title>") > 0:
+                if jdata.find("pingprod.fnal.gov") > 0:
                     self.do_login(jdata)
                     res = self.session.post(self.url+'/api/datasources/proxy/1/render', data = {'target':path, 'from': '-10min', 'until':'-5min', 'format':'json'}, verify=False)
                     jdata = res.text
@@ -173,9 +173,17 @@ class status_scraper:
 		self.paths[s] = path
 		low = self.cf.get(s,'above')
 		high = self.cf.get(s,'below')
+		wlow = self.cf.get(s,'warnabove')
+		whigh = self.cf.get(s,'warnbelow')
                 data = self.fetch_item(path)
                 if data: 
 		    self.status[s] = 'good'
+		    if high and data[0]["datapoints"][0][0] > float(warnhigh):
+                        print "degraded because ", data[0]["datapoints"][0][0], "above", warnhigh
+			self.status[s] = 'degraded'
+		    if low and data[0]["datapoints"][0][0] < float(warnlow):
+                        print "degraded because ", data[0]["datapoints"][0][0], "below", warnlow
+			self.status[s] = 'degraded'
 		    if high and data[0]["datapoints"][0][0] > float(high):
                         print "bad because ", data[0]["datapoints"][0][0], "above", high
 			self.status[s] = 'bad'
@@ -229,7 +237,14 @@ class status_scraper:
                 description = s
             report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.source_urls.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.quote_plus(description))
             print "trying: " , report_url
-            c = self.session.get(report_url) 
+            retries = 0
+            while retries < 3:
+                try:
+                    c = self.session.get(report_url) 
+                    break
+                except:
+                    retries = retries + 1
+	            traceback.print_exc()
             print c.text
             c.close()
 
