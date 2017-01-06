@@ -251,7 +251,7 @@ if True:
                         'tools.sessions.timeout': 60,
                         #~ 'tools.sessions.storage_class': cherrypy.lib.sessions.FileSession,
                         'tools.sessions.storage_type': 'file',
-                        'tools.sessions.storage_path': '/tmp/poms',
+                        'tools.sessions.storage_path': '/scratch/poms/sessions',
                         #~ 'tools.sessions.locking': 'implicit',
                         'tools.sessions.locking': 'early',          # IMPORTANT!
                      },
