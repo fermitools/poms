@@ -1,3 +1,5 @@
+#!/bin/env python
+
 import os.path, argparse, psycopg2, json
 
 dbg = False
