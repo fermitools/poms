@@ -5,7 +5,7 @@ List of methods: active_jobs, output_pending_jobs, update_jobs
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
-from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile
+from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile, HeldLaunch
 from datetime import datetime, timedelta
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy import func, not_, and_
@@ -25,37 +25,6 @@ import sys
 import logging
 # our own logging handle, goes to cherrypy
 logger = logging.getLogger('cherrypy.error')
-
-#
-# utility function for running commands that don't run forever...
-#
-def popen_read_with_timeout(cmd, totaltime = 30):
-
-    origtime = totaltime
-    # start up keeping subprocess handle and pipe
-    pp = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE)
-    f = pp.stdout
-
-    outlist = []
-    block=" "
-
-    # read the file, with select timeout of total time remaining
-    while totaltime > 0 and len(block) > 0:
-        t1 = time.time()
-        r, w, e = select.select( [f],[],[], totaltime)
-        if not f in r:
-           outlist.append("\n[...timed out after %d seconds]\n" % origtime)
-           # timed out!
-           pp.kill()
-           break
-        block = os.read(f.fileno(), 512)
-        t2 = time.time()
-        totaltime = totaltime - (t2 - t1)
-        outlist.append(block)
-
-    pp.wait()
-    output = ''.join(outlist)
-    return output
 
 
 class JobsPOMS():
@@ -379,88 +348,3 @@ class JobsPOMS():
 
         loghandle("got list: %s" % repr(efflist))
         return efflist
-
-
-    def launch_jobs(self, dbhandle,loghandle, getconfig, gethead, seshandle, err_res, campaign_id, dataset_override = None, parent_task_id = None):
-
-        loghandle("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
-
-        c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).options(joinedload(Campaign.launch_template_obj),joinedload(Campaign.campaign_definition_obj)).first()
-        cd = c.campaign_definition_obj
-        lt = c.launch_template_obj
-
-        if getconfig("poms.launches","allowed") == "hold":
-            output = "Job launches currently held."
-            return lcmd, output, c, campaign_id, outdir, outfile
-
-        e = seshandle('experimenter')
-        xff = gethead('X-Forwarded-For', None)
-        ra =  gethead('Remote-Addr', None)
-        if not e.is_authorized(c.experiment) and not ( ra == '127.0.0.1' and xff == None):
-             loghandle("launch_jobs -- experimenter not authorized")
-             err_res="404 Permission Denied."
-             output =  "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
-             return lcmd, output, c, campaign_id, outdir, outfile
-        experimenter_login = e.email[:e.email.find('@')]
-        lt.launch_account = lt.launch_account % {
-              "experimenter": experimenter_login,
-        }
-
-        if dataset_override:
-            dataset = dataset_override
-        else:
-            dataset = self.poms_service.campaignsPOMS.get_dataset_for(dbhandle, err_res, c)
-
-        group = c.experiment
-        if group == 'samdev': group = 'fermilab'
-
-        cmdl =  [
-            "exec 2>&1",
-            "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
-            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
-            "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.poms_service.hostname,
-            "ssh -tx %s@%s <<'EOF'" % (lt.launch_account, lt.launch_host),
-            lt.launch_setup % {
-              "dataset":dataset,
-              "version":c.software_version,
-              "group": group,
-              "experimenter": experimenter_login,
-            },
-            "setup poms_jobsub_wrapper v0_4 -z /grid/fermiapp/products/common/db",
-            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
-            "export POMS_TEST=%s" % ("" if "poms" in self.poms_service.hostname else "1"),
-            "export POMS_CAMPAIGN_ID=%s" % c.campaign_id,
-            "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id,
-            "export JOBSUB_GROUP=%s" % group,
-        ]
-        if cd.definition_parameters:
-           params = OrderedDict(json.loads(cd.definition_parameters))
-        else:
-           params = OrderedDict([])
-
-        if c.param_overrides != None and c.param_overrides != "":
-            params.update(json.loads(c.param_overrides))
-
-        lcmd = cd.launch_script + " " + ' '.join((x[0]+x[1]) for x in params.items())
-        lcmd = lcmd % {
-              "dataset":dataset,
-              "version":c.software_version,
-              "group": group,
-              "experimenter": experimenter_login,
-        }
-        cmdl.append(lcmd)
-        cmdl.append('exit')
-        cmdl.append('EOF')
-        cmd = '\n'.join(cmdl)
-
-        cmd = cmd.replace('\r','')
-
-        # make sure launch doesn't take more that half an hour...
-        output = popen_read_with_timeout(cmd, 1800) ### Question???
-
-        # always record launch...
-        ds = time.strftime("%Y%m%d_%H%M%S")
-        outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"],campaign_id)
-        outfile = "%s/%s" % (outdir, ds)
-        loghandle("trying to record launch in %s" % outfile)
-        return lcmd, output, c, campaign_id, outdir, outfile

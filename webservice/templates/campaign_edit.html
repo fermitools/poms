@@ -69,9 +69,11 @@
 	<th>Name</th>
         <th>Active</th>
 	<th>VO Role</th>
-	<th>Software Version</th>
+	<th>Software<br>Version</th>
 	<th>Dataset</th>
         <th>Split Type</th>
+        <th>Completion<br>Type</th>
+        <th>Completion<br>Percent</th>
 	<th>Parameter Overrides</th>
 	<th>Depends On</th>
       </tr>
@@ -97,6 +99,8 @@
 	<td id="c_software_version_{{loop.index}}">{{row.software_version}}</td>
 	<td id="c_dataset_{{loop.index}}">{{row.dataset}}</td>
 	<td id="c_split_type_{{loop.index}}">{{row.cs_split_type}}</td>
+	<td id="c_completion_type_{{loop.index}}">{{row.completion_type}}</td>
+	<td id="c_completion_pct_{{loop.index}}">{{row.completion_pct}}</td>
 	<td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|replace("None","")}}</td>
         <td id="c_depends_{{loop.index}}">
 	  {% for key, value in data.depends.iteritems() %}
@@ -169,7 +173,7 @@
 	  <label>State</label>
 	  <br/>
 	  <select class="ui dropdown" name="ae_active" id="ae_active">
-	    <option value="True" >Active</option>
+            <option value="True" >Active</option>
 	    <option value="False">Inactive</option>
 	  </select>
 	</div>
@@ -179,6 +183,7 @@
           <input type="text" id="ae_software_version" name="ae_software_version">
 	</div>
       </div>
+
 
       <div class="two fields">
 	<div class="field">
@@ -190,12 +195,29 @@
           <input type="text" id="ae_split_type" name="ae_split_type">
 	</div>
       </div>
+
+      <div class="two fields">
+	<div class="field">
+	  <label>Completion Type</label>
+	  <select class="ui dropdown" name="ae_completion_type" id="ae_completion_type">
+	    <option value="located" >Located</option>
+	    <option value="complete" >Complete</option>
+	  </select>
+	</div>
+
+	<div class="field">
+          <label>Completion pct</label>
+          <input type="text" id="ae_completion_pct" name="ae_completion_pct" placeholder="95">
+	</div>
+      </div>
+
       <div class="one field">
 	<div class="field">
           <label>Parameter Overrides<i class="large edit link blue icon" id="edit_param_modal_btn"></i></label>
           <textarea rows="2" id="ae_param_overrides_text" disabled>[]</textarea>
 	</div>
       </div>
+
       <div class="one field">
 	<div class="field">
           <label>Depends On<i class="large edit link blue icon" id="edit_depends_modal_btn"></i></label>
@@ -354,12 +376,13 @@
 
 <script type="text/javascript">
 
+// form validation fields,they will appear in red if missing.. 
 $('#campaign_add_edit_form')
   .form({
     fields: {
       ae_campaign_name :          'empty',
-      ae_active :                 'empty',
       ae_vo_role :                'empty',
+      ae_active :                 'empty',
       ae_software_version :       'empty',
       ae_dataset :                'empty',
       ae_split_type :             'empty',
@@ -368,6 +391,13 @@ $('#campaign_add_edit_form')
     }
   })
 ;
+//      ae_completion_type :        'empty',
+//      ae_completion_pct  :        'empty',
+//    dropdown: {
+//      ae_active_hello :           'dropdown',
+//    }
+
+
 
 $("#c_experiment").change(function() {
     $("#campaign_form").submit();
@@ -614,7 +644,7 @@ function edit_campaign(index,clone) {
     $("#ae_depends").val( '{"campaigns": [], "file_patterns": []}' );  
     $("#ae_depends_text").val( '{"campaigns": [], "file_patterns": []}' );  
   }
-  $("#ae_experiment").text("Campaign Layer Editor  ({{ data.curr_experiment if data.curr_experiment is defined}})");
+  $("#ae_experiment").text("Campaign Layer Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
   $("#ae_active").val( $("#c_active_"+index).text() ).trigger('change');
   $("#ae_vo_role").val( $("#c_vo_role_"+index).text() );
   $("#ae_software_version").val( $("#c_software_version_"+index).text() );
@@ -627,6 +657,9 @@ function edit_campaign(index,clone) {
   // Trigger the change function which will load associated fields
   $("#ae_campaign_definition_id").trigger('change');
   $("#ae_launch_id").trigger('change');
+  //
+  $("#ae_completion_type").val($("#c_completion_type_"+index).text() ).trigger('change');
+  $("#ae_completion_pct").val( $("#c_completion_pct_"+index).text() );
 
   $("#campaign_add_edit_modal").modal('show');
 }

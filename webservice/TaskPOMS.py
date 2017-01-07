@@ -6,10 +6,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
-#from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile
 from datetime import datetime
-#from LaunchPOMS import launch_recovery_if_needed
-#from poms_service import poms_service
 
 import time_grid
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
@@ -17,13 +14,52 @@ from sqlalchemy import func
 from utc import utc
 from datetime import datetime, timedelta
 import condor_log_parser
+import json
+from collections import OrderedDict
+import subprocess
+import time
+import select
+import os
+import sys
+
 # our own logging handle, goes to cherrypy
 
 import logging
 logger = logging.getLogger('cherrypy.error')
 
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
+from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency, HeldLaunch
 
+
+#
+# utility function for running commands that don't run forever...
+#
+def popen_read_with_timeout(cmd, totaltime = 30):
+
+    origtime = totaltime
+    # start up keeping subprocess handle and pipe
+    pp = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE)
+    f = pp.stdout
+
+    outlist = []
+    block=" "
+
+    # read the file, with select timeout of total time remaining
+    while totaltime > 0 and len(block) > 0:
+        t1 = time.time()
+        r, w, e = select.select( [f],[],[], totaltime)
+        if not f in r:
+           outlist.append("\n[...timed out after %d seconds]\n" % origtime)
+           # timed out!
+           pp.kill()
+           break
+        block = os.read(f.fileno(), 512)
+        t2 = time.time()
+        totaltime = totaltime - (t2 - t1)
+        outlist.append(block)
+
+    pp.wait()
+    output = ''.join(outlist)
+    return output
 
 class TaskPOMS:
 
@@ -58,14 +94,15 @@ class TaskPOMS:
         return str(t.task_id)
 
 
-    def wrapup_tasks(self, dbhandle, loghandle, samhandle, getconfig): # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
+    def wrapup_tasks(self, dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res): # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
         now =  datetime.now(utc)
         res = ["wrapping up:"]
 
         #
-        # make jobs which completed with no output files located.
+        # make jobs which completed with no output files have status "Located".
         subq = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
         dbhandle.query(Job).filter(subq == 0).update({'status':'Located'})
+
         #
         # check active tasks to see if they're completed/located
         for task in dbhandle.query(Task).options(subqueryload(Task.jobs)).filter(Task.status != "Completed", Task.status != "Located").all():
@@ -101,7 +138,28 @@ class TaskPOMS:
         n_project = 0
         n_located = 0
         # try with joinedload()...
-        for task in dbhandle.query(Task).with_for_update(of=Task).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Completed").all():
+        for task in dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Running", Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id, CampaignSnapshot.completion_type == "completed").all():
+              
+	    compcount = 0
+	    totcount = 0
+	    for j in task.jobs:
+		totcount +=1
+		if j.status == "Completed":
+		    compcount += 1
+
+	    cfrac = task.campaign_snap_obj.completion_pct
+
+	    if (compcount * 100.0) / totcount > cfrac:
+		n_located = n_located + 1
+		task.status = "Located"
+		finish_up_tasks[task.task_id] = task
+		for j in task.jobs:
+		    j.status = "Located"
+		    j.output_files_declared = True
+		task.updated = datetime.now(utc)
+		dbhandle.add(task)
+
+        for task in dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Completed", Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id, CampaignSnapshot.completion_type == "located").all():
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as
             # located as its going to get...
@@ -109,6 +167,7 @@ class TaskPOMS:
                 n_located = n_located + 1
                 n_stale = n_stale + 1
                 task.status = "Located"
+		finish_up_tasks[task.task_id] = task
                 for j in task.jobs:
                     j.status = "Located"
                     j.output_files_declared = True
@@ -131,12 +190,16 @@ class TaskPOMS:
                 lookup_dims_list.append(allkiddims)
             else:
                 # we don't have a project, guess off of located jobs
-                locflag = True
+                loccount = 0
+                totcount = 0
                 for j in task.jobs:
-                    if j.status != "Located":
-                        locflag = False
+                    totcount +=1
+                    if j.status == "Located":
+                        loccount += 1
 
-                if locflag:
+                cfrac = task.campaign_snap_obj.completion_pct
+
+                if loccount / totcount * 100 > cfrac:
                     n_located = n_located + 1
                     task.status = "Located"
                     for j in task.jobs:
@@ -160,12 +223,13 @@ class TaskPOMS:
             # a tunable in the campaign_definition.  Basically we consider it
             # located if 90% of the files it consumed have suitable kids...
             # cfrac = lookup_task_list[i].campaign_definition_snap_obj.cfrac
-            cfrac = 0.9
-            threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
-            thresholds.append(threshold)
-            if float(count_list[i]) >= threshold and threshold > 0:
+	    task = lookup_task_list[i]
+            cfrac = task.campaign_snap_obj.completion_pct/100.0
+	    threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
+	    thresholds.append(threshold)
+            val = float(count_list[i])
+            if val >= threshold and threshold > 0:
                 n_located = n_located + 1
-                task = lookup_task_list[i]
                 if task.status == "Completed":
                     task.status = "Located"
                     finish_up_tasks[task.task_id] = task
@@ -174,7 +238,6 @@ class TaskPOMS:
                     j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
-
 
         res.append("Counts: completed: %d stale: %d project %d: located %d" %
                     (n_completed, n_stale , n_project, n_located))
@@ -202,8 +265,8 @@ class TaskPOMS:
                    task.campaign_snap_obj.experiment, 
                    task.campaign_snap_obj.vo_role)
 
-	    if not self.launch_recovery_if_needed(dbhandle, loghandle, samhandle, getconfig, task):
-	       self.launch_dependents_if_needed(dbhandle, loghandle, samhandle, getconfig, task)
+	    if not self.launch_recovery_if_needed(dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  task):
+	       self.launch_dependents_if_needed(dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  task)
 
         return res
 
@@ -347,7 +410,7 @@ class TaskPOMS:
          dbhandle.commit()
 
 
-    def launch_dependents_if_needed(self, dbhandle, loghandle, samhandle, getconfig, t):
+    def launch_dependents_if_needed(self, dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  t):
         loghandle("Entering launch_dependents_if_needed(%s)" % t.task_id)
         if not getconfig("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
@@ -359,18 +422,18 @@ class TaskPOMS:
         for cd in cdlist:
            if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
               # self-reference, just do a normal launch
-              self.poms_service.launch_jobs(cd.uses_camp_id)
+              self.launch_jobs(dbhandle, loghandle,  getconfig, gethead, seshandle, err_res, cd.uses_camp_id)
            else:
               i = i + 1
               dims = "ischildof: (snapshot_for_project_name %s) and version %s and file_name like '%s' " % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
               dname = "poms_depends_%d_%d" % (t.task_id,i)
 
               samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-              self.poms_service.launch_jobs(cd.uses_camp_id, dataset_override = dname)
+              self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, err_res, cd.uses_camp_id, dataset_override = dname)
         return 1
 
 
-    def launch_recovery_if_needed(self, dbhandle, loghandle, samhandle, getconfig, t):
+    def launch_recovery_if_needed(self, dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  t):
         loghandle("Entering launch_recovery_if_needed(%s)" % t.task_id)
         if not getconfig("poms.launch_recovery_jobs",False):
             loghandle("recovery launches disabled")
@@ -390,11 +453,14 @@ class TaskPOMS:
 
         while t.recovery_position != None and t.recovery_position < len(rlist):
             rtype = rlist[t.recovery_position].recovery_type
+            # uncomment when we get db fields:
+            param_overrides = rlist[t.recovery_position].param_overrides
+            #parame_overrides = "{}"
             t.recovery_position = t.recovery_position + 1
             if rtype.name == 'consumed_status':
-                 recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
+                 recovery_dims = "for_project_name %s and consumed_status != 'consumed'" % t.project
             elif rtype.name == 'proj_status':
-                 recovery_dims = "snapshot_for_project_name %s and process_status != 'ok'" % t.project
+                 recovery_dims = "project_name %s and process_status != 'ok'" % t.project
             elif rtype.name == 'pending_files':
                  recovery_dims = "snapshot_for_project_name %s " % t.project
                  if t.campaign_definition_snap_obj.output_file_types:
@@ -406,7 +472,7 @@ class TaskPOMS:
                      recovery_dims = recovery_dims + "minus isparent: ( version %s and file_name like %s) " % (t.campaign_snap_obj.software_version, oft)
             else:
                  # default to consumed status(?)
-                 recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
+                 recovery_dims = "project_name %s and consumed_status != 'consumed'" % t.project
 
             nfiles = samhandle.count_files(t.campaign_snap_obj.experiment,recovery_dims)
 
@@ -422,7 +488,136 @@ class TaskPOMS:
                 samhandle.create_definition(t.campaign_snap_obj.experiment, rname, recovery_dims)
 
 
-                self.poms_service.launch_jobs(t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id)
+                self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, err_res, t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id, param_overrides = param_overrides)
                 return 1
 
         return 0
+
+    def set_job_launches(self, dbhandle, hold):
+        if not hold in ["hold","allowed"]:
+            return
+
+        s = dbhandle.query(Service).with_for_update().filter(Service.name=="job_launches").first()
+        s.status = hold
+        dbhandle.commit()
+
+    def get_job_launches(self, dbhandle):
+        s = dbhandle.query(Service).filter(Service.name=="job_launches").first()
+        return s.status
+  
+    def launch_queued_job(self, dbhandle, loghandle, getconfig, gethead, seshandle, err_res):
+        if self.get_job_launches(dbhandle) == "hold":
+            return "Held."
+
+        hl = dbhandle.query(HeldLaunch).with_for_update().order_by(HeldLaunch.created).first();
+        if hl:
+            dbhandle.delete(hl)
+            dbhandle.commit()
+            self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, err_res, hl.campaign_id, dataset_override = hl.dataset, parent_task_id = hl.parent_task_id, param_overrides = hl.param_overrides)
+            return "Launched."
+        else:
+            return "None."
+
+    def launch_jobs(self, dbhandle,loghandle, getconfig, gethead, seshandle, err_res, campaign_id, dataset_override = None, parent_task_id = None, param_overrides = None):
+
+        loghandle("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
+
+        ds = time.strftime("%Y%m%d_%H%M%S")
+        outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"],campaign_id)
+        outfile = "%s/%s" % (outdir, ds)
+        loghandle("trying to record launch in %s" % outfile)
+
+        c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).options(joinedload(Campaign.launch_template_obj),joinedload(Campaign.campaign_definition_obj)).first()
+        cd = c.campaign_definition_obj
+        lt = c.launch_template_obj
+
+        if self.get_job_launches(dbhandle) == "hold":
+            output = "Job launches currently held.... queuing this request"
+            hl = HeldLaunch()
+            hl.campaign_id = campaign_id
+            hl.created = datetime.now(utc)
+            hl.dataset = dataset_override
+            hl.parent_task_id = parent_task_id
+            hl.param_overrides = param_overrides
+            dbhandle.add(hl)
+            dbhandle.commit()
+            lcmd = ""
+            
+            return lcmd, output, c, campaign_id, outdir, outfile
+
+        e = seshandle('experimenter')
+        xff = gethead('X-Forwarded-For', None)
+        ra =  gethead('Remote-Addr', None)
+        if not e.is_authorized(c.experiment) and not ( ra == '127.0.0.1' and xff == None):
+             loghandle("launch_jobs -- experimenter not authorized")
+             err_res="404 Permission Denied."
+             output =  "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
+             return lcmd, output, c, campaign_id, outdir, outfile
+        experimenter_login = e.email[:e.email.find('@')]
+        lt.launch_account = lt.launch_account % {
+              "experimenter": experimenter_login,
+        }
+
+        if dataset_override:
+            dataset = dataset_override
+        else:
+            dataset = self.poms_service.campaignsPOMS.get_dataset_for(dbhandle, err_res, c)
+
+        group = c.experiment
+        if group == 'samdev': group = 'fermilab'
+
+        cmdl =  [
+            "exec 2>&1",
+            "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
+            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
+            "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.poms_service.hostname,
+            "ssh -tx %s@%s <<'EOF'" % (lt.launch_account, lt.launch_host),
+            lt.launch_setup % {
+              "dataset":dataset,
+              "version":c.software_version,
+              "group": group,
+              "experimenter": experimenter_login,
+            },
+            "setup poms_jobsub_wrapper v0_4 -z /grid/fermiapp/products/common/db",
+            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
+            "export POMS_TEST=%s" % ("" if "poms" in self.poms_service.hostname else "1"),
+            "export POMS_CAMPAIGN_ID=%s" % c.campaign_id,
+            "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id,
+            "export JOBSUB_GROUP=%s" % group,
+        ]
+        if cd.definition_parameters:
+           params = OrderedDict(json.loads(cd.definition_parameters))
+        else:
+           params = OrderedDict([])
+
+        if c.param_overrides != None and c.param_overrides != "":
+            params.update(json.loads(c.param_overrides))
+
+        if param_overrides != None and param_overrides != "":
+            params.update(json.loads(param_overrides))
+
+        lcmd = cd.launch_script + " " + ' '.join((x[0]+x[1]) for x in params.items())
+        lcmd = lcmd % {
+              "dataset":dataset,
+              "version":c.software_version,
+              "group": group,
+              "experimenter": experimenter_login,
+        }
+        cmdl.append(lcmd)
+        cmdl.append('exit')
+        cmdl.append('EOF')
+        cmd = '\n'.join(cmdl)
+
+        cmd = cmd.replace('\r','')
+
+        # make sure launch doesn't take more that half an hour...
+        output = popen_read_with_timeout(cmd, 1800) ### Question???
+
+        if not os.path.isdir(outdir):
+            os.makedirs(outdir)
+        lf = open(outfile,"w")
+        lf.write(output)
+        lf.close()
+
+        # always record launch...
+        return lcmd, output, c, campaign_id, outdir, outfile

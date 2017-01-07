@@ -119,6 +119,12 @@ class CalendarPOMS:
                 d.downtime_type = 'actual'
                 dbhandle.add(d)
 
+                if s.name == "All":
+                    try:
+                        self.poms_service.set_job_launches("hold")
+                    except:
+                        pass
+
         if s.status != status and status == "good":
             # end downtime, if we're in one
             d = dbhandle.query(ServiceDowntime).filter(ServiceDowntime.service_id == s.service_id ).order_by(desc(ServiceDowntime.downtime_started)).first()
@@ -126,6 +132,13 @@ class CalendarPOMS:
                 if d.downtime_ended == None:
                     d.downtime_ended = datetime.now(utc)
                     dbhandle.add(d)
+
+                    if s.name == "All":
+			try:
+			    self.poms_service.set_job_launches("allowed")
+			except:
+			    pass
+
 
         s.parent_service_obj = p
         s.status = status

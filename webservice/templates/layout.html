@@ -8,23 +8,23 @@
         <meta charset="utf-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
         <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
-            
-            
+
+
             <!-- Site Properities -->
 
            {%block title%} {%endblock%}
-            
-            
-          
-            
+
+
+
+
             <script src="{{pomspath}}/static/js/jquery-2.1.4.min.js"></script>
-            
+
             <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/semantic.css">
-                
+
             <script src="{{pomspath}}/static/js/semantic.js"></script>
-            
+
             <script src="{{pomspath}}/static/js/poms.js"></script>
-            <script src="{{pomspath}}/static/js/tablesort.min.js"></script>            
+            <script src="{{pomspath}}/static/js/tablesort.min.js"></script>
             <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/poms.css">
 
 
@@ -43,18 +43,19 @@
 <script src='{{pomspath}}/static/js/index.js'></script>
 <script src='{{pomspath}}/static/js/search.min.js'></script>
 
+<script src="{{pomspath}}/static/js/jquery.doublescroll.js"></script> <!-- VP -->
 
     </head>
-    
-    
-    
-    
-    
 
-    
-    
+
+
+
+
+
+
+
 <body id="example" class="started" ontouchstart="">
-        
+
   <!--modal for messages-->
   <div class="ui modal" id="display_message_modal">
     <i class="close icon"></i>
@@ -70,13 +71,13 @@
       <div class="ui hidden divider"></div>
     </div>
   </div> <!-- Ends display_message_modal  -->
-        
-        
-        
+
+
+
         <!--mobile menu-->
-        
+
         <div class="ui vertical inverted sidebar menu" id="toc">
-            
+
             <div class="item">
                 <div style="cursor: default;">
                 <i class="rocket icon"></i>
@@ -88,11 +89,11 @@
                 <b>POMS</b>
                 </div>
             </div>
-            
+
             <a class="item" href="{{pomspath}}/">
                 <b>Dashboard</b>
             </a>
-            
+
             <a class="item" href="{{pomspath}}/calendar">
                 <b>Calendar</b>
             </a>
@@ -100,13 +101,13 @@
             <a class="item requests"  href="#">
                 <b>Requests</b>
             </a>
-	    
+
 	    <!--
            <a class="item" href="{{pomspath}}/admin_screen">
         	<b>DB Admin</b>
            </a>
 	   -->
-            
+
             <div class="item">
                 <div class="header">DB Admin</div>
                 <div class="menu">
@@ -155,7 +156,7 @@
             <div class="item">
                 <div class="header">Jobs</div>
                 <div class="menu">
-                    
+
                     <a class="item" href="{{pomspath}}/job_table?tdays=1">
                         All (Last Day)
                     </a>
@@ -186,17 +187,17 @@
              <!--input type="submit" name="."-->
          </form>
   </div>
-</div>    
-            
+</div>
+
         </div>  <!--ends mobile menu-->
-        
-        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
+
         <!--more mobile stuff-->
         <div class="ui fixed inverted main menu">
             <div class="ui container">
@@ -205,17 +206,17 @@
                 </a>
             </div>
         </div>
-        
-        
+
+
         <!--big screen menu-->
-        
+
         <div class="pusher">
             <div class="full height">
                 <div class="toc">
                     <div class="ui vertical inverted sticky menu">
-                        
+
                        <div class="item">
-                       <!--  
+                       <!--
                             <a class="ui logo icon image" href="">
                                 <img src="{{pomspath}}/static/images/logo.png">
                             </a>
@@ -225,7 +226,7 @@
                                 <b>POMS</b>
                               </div>
                         </div>
-                        
+
                         <a class="item" href="{{pomspath}}/">
                             <b>Dashboard</b>
                         </a>
@@ -233,7 +234,7 @@
                         <a class="item" href="{{pomspath}}/calendar">
                             <b>Calendar</b>
                         </a>
-                        
+
                         <a class="item requests" href="#">
                             <b>Requests</b>
                         </a>
@@ -303,7 +304,7 @@
                     </a>
 	      </div>
             </div>
-                        
+
             <!--<a class="item requests"  href="#">
                 <b>Filter</b>
             </a>-->
@@ -332,19 +333,19 @@ function validateQuickSearchForm(formid)
          </form>
   </div>
 </div>
-                        
-                        
+
+
                     </div>   <!--ends ui vertical inverted sticky menu-->
-                    
-                    
+
+
                 </div>  <!--ends toc-->
-                
-                
-                
-                
-                
+
+
+
+
+
                 <div class="article">  <!--header of page-->
-                    
+
                     <div class="ui masthead vertical segment">
 
 
@@ -374,27 +375,25 @@ $( "#sign_out" ).click(function() {
                     {% endif %}
                         <div class="ui container">
                             <div class="introduction">
-                                {%block breadcrumbs%} {%endblock%}                                
+                                {%block breadcrumbs%} {%endblock%}
 
                                 {%block header%} {%endblock%}
 
-
                                 {% include 'datepicker_block.html' %}
-
                             </div>
 
                         </div>
                     </div>
-                    
-                    
-                    
-                    
-                    
-                    
-                    
+
+
+
+
+
+
+
                     <div class="main ui intro container">
-                       
-                        {%block subheader%} {%endblock%} 
+
+                        {%block subheader%} {%endblock%}
 
                         <div class="no example" style="margin: 0px 10px 0px 10px;">
                         {%block content%} {%endblock%}
@@ -411,38 +410,38 @@ $( "#sign_out" ).click(function() {
                         </div>
 
                     </div>  <!--ends main ui intro container-->
-                    
-                    
+
+
                     <div class="ui mini label" style="float:right;">{{version}}</div>
-                    
-                    
+
+
                 </div>  <!--ends article-->
-                
-                
-                
-                
-                
-                
-                
+
+
+
+
+
+
+
             </div>  <!--ends full height-->
-            
-                        
-            
-            
-            
+
+
+
+
+
 
         </div>  <!--ends pusher-->
-                            
-             
-                                
-                                
-                                
-                                
-                                
-                                
-                                
-                                
-                                
+
+
+
+
+
+
+
+
+
+
+
 <!-- enable accordions -->
 <script language='javascript'>
              $(document).ready(function(){
@@ -493,9 +492,9 @@ $( document ).ready(function() { $('#auth_info').dimmer({on: 'hover'}); });
 </script>
 
 
-                                
+
 {%block final%} {%endblock%}
     </body>
-    
+
 </html>
 
