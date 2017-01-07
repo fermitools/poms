@@ -23,3 +23,9 @@ CREATE TABLE held_launches (
 	CONSTRAINT pk_held_launches PRIMARY KEY ( campaign_id, created )
  ) ;
 
+alter table campaign_recoveries add column param_overrides json default to_json('{}'::text);
+alter table held_launches add column param_overrides json default to_json('{}'::text);
+
+alter table experimenters alter column first_name drop not null;
+alter table experimenters alter column last_name set not null;
+
