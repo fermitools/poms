@@ -458,9 +458,9 @@ class TaskPOMS:
             #parame_overrides = "{}"
             t.recovery_position = t.recovery_position + 1
             if rtype.name == 'consumed_status':
-                 recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
+                 recovery_dims = "for_project_name %s and consumed_status != 'consumed'" % t.project
             elif rtype.name == 'proj_status':
-                 recovery_dims = "snapshot_for_project_name %s and process_status != 'ok'" % t.project
+                 recovery_dims = "project_name %s and process_status != 'ok'" % t.project
             elif rtype.name == 'pending_files':
                  recovery_dims = "snapshot_for_project_name %s " % t.project
                  if t.campaign_definition_snap_obj.output_file_types:
@@ -472,7 +472,7 @@ class TaskPOMS:
                      recovery_dims = recovery_dims + "minus isparent: ( version %s and file_name like %s) " % (t.campaign_snap_obj.software_version, oft)
             else:
                  # default to consumed status(?)
-                 recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
+                 recovery_dims = "project_name %s and consumed_status != 'consumed'" % t.project
 
             nfiles = samhandle.count_files(t.campaign_snap_obj.experiment,recovery_dims)
 
