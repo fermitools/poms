@@ -454,7 +454,7 @@ class TaskPOMS:
         while t.recovery_position != None and t.recovery_position < len(rlist):
             rtype = rlist[t.recovery_position].recovery_type
             # uncomment when we get db fields:
-            #param_overrides = rlist[t.recovery_position].param_overrides
+            param_overrides = rlist[t.recovery_position].param_overrides
             parame_overrides = "{}"
             t.recovery_position = t.recovery_position + 1
             if rtype.name == 'consumed_status':
@@ -553,6 +553,7 @@ class TaskPOMS:
              err_res="404 Permission Denied."
              output =  "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
              return lcmd, output, c, campaign_id, outdir, outfile
+
         experimenter_login = e.email[:e.email.find('@')]
         lt.launch_account = lt.launch_account % {
               "experimenter": experimenter_login,
