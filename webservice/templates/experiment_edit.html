@@ -70,7 +70,6 @@ function pop_experiment_users_modal(experiment) {
   <table class="ui sortable celled table">
     <thead>
       <tr>
-	<th>Delete</th>
 	<th>Short Name</th>
 	<th>Full Name</th>
 	<th>Roster</th>
@@ -79,16 +78,6 @@ function pop_experiment_users_modal(experiment) {
     <tbody>
      {% for row in experiments %}
       <tr>
-	<td class="collapsing">
-	  {% if row.experiment != 'root' and row.experiment != 'public' %} 
-	  <div class="ui checkbox">
-	    <input type="checkbox" name="{{row.experiment}}">
-	    <label></label>
-	  </div>
-	  {% else %}
-	    &nbsp
-	  {% endif %}
-	</td>
 	<td>{{row.experiment}}</td>
 	<td>{{row.name}}</td>
 	<td>

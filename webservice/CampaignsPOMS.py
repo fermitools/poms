@@ -7,7 +7,10 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
-from model.poms_model import Experiment, Experimenter, Campaign, CampaignDependency, LaunchTemplate, CampaignDefinition, CampaignRecovery, CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
+from model.poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
+    LaunchTemplate, CampaignDefinition, CampaignRecovery,
+    CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
+)
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy import or_, and_ , not_
 from crontab import CronTab
@@ -193,6 +196,8 @@ class CampaignsPOMS():
         data = {}
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
+        #for k,v in kwargs.items():
+        #    print ' k=%s, v=%s ' %(k,v)
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
         if action == 'delete':
@@ -221,6 +226,8 @@ class CampaignsPOMS():
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
             launch_id = kwargs.pop('ae_launch_id')
             experimenter_id = kwargs.pop('experimenter_id')
+            completion_type = kwargs.pop('ae_completion_type')
+            completion_pct =  kwargs.pop('ae_completion_pct')
             depends = kwargs.pop('ae_depends')
             if depends and depends != "[]":
                 depends = json.loads(depends)
@@ -228,11 +235,13 @@ class CampaignsPOMS():
                 depends = {"campaigns": [], "file_patterns": []}
             try:
                 if action == 'add':
+                    if not completion_pct:completion_pct=95
                     c = Campaign(name=name, experiment=exp,vo_role=vo_role,
                                 active=active, cs_split_type = split_type,
                                 software_version=software_version, dataset=dataset,
                                 param_overrides=param_overrides, launch_id=launch_id,
                                 campaign_definition_id=campaign_definition_id,
+                                completion_type=completion_type,completion_pct=completion_pct,
                                 creator=experimenter_id, created=datetime.now(utc))
                     dbhandle.add(c)
                     dbhandle.flush() ##### Is this flush() necessary or better a commit ?
@@ -249,7 +258,9 @@ class CampaignsPOMS():
                                 "campaign_definition_id":campaign_definition_id,
                                 "launch_id":             launch_id,
                                 "updated":               datetime.now(utc),
-                                "updater":               experimenter_id
+                                "updater":               experimenter_id,
+                                "completion_type":       completion_type,
+                                "completion_pct":       completion_pct
                                 }
                     cd = dbhandle.query(Campaign).filter(Campaign.campaign_id==campaign_id).update(columns)
             # now redo dependencies
@@ -353,14 +364,15 @@ class CampaignsPOMS():
         return "Task=%d" % t.task_id
 
 
-    def show_campaigns(self, dbhandle, loghandle, samhandle, campaign_id = None, experiment = None, tmin = None, tmax = None, tdays = 1, active = True):
+    def show_campaigns(self, dbhandle, loghandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=1, active=True):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
-        cq = dbhandle.query(Campaign).filter(Campaign.active == active ).order_by(Campaign.experiment)
+        #cq = dbhandle.query(Campaign).filter(Campaign.active==active).order_by(Campaign.experiment)
+        cq = dbhandle.query(Campaign).options(joinedload('experiment_obj')).filter(Campaign.active==active).order_by(Campaign.experiment)
 
         if experiment:
-            cq = cq.filter(Campaign.experiment == experiment)
+            cq = cq.filter(Campaign.experiment==experiment)
 
         cl = cq.all()
 
@@ -372,7 +384,7 @@ class CampaignsPOMS():
 
         i = 0
         for c in cl:
-            counts[c.campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle, tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = c.campaign_id)
+            counts[c.campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle, tmax=tmax, tmin=tmin, tdays=tdays, campaign_id=c.campaign_id)
             counts[c.campaign_id]['efficiency'] = effs[i]
             if len(pendings) > i:
                 counts[c.campaign_id]['pending'] = pendings[i]

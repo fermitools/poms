@@ -57,7 +57,8 @@ class DBadminPOMS:
             dbhandle.commit()
 
         if email:
-            experimenter = dbhandle.query(Experimenter).filter(Experimenter.email == email ).first()
+            ###VP experimenter = dbhandle.query(Experimenter).filter(Experimenter.email==email).first()
+            experimenter = dbhandle.query(Experimenter).filter(Experimenter.email.like('%'+email+'%')).first()
             if experimenter == None:
                 message = "There is no experimenter with the email %s" % email
             else:
@@ -73,21 +74,45 @@ class DBadminPOMS:
         return data
 
 
-    def experiment_members(self, dbhandle, *args, **kwargs):
-        exp = kwargs['experiment']
-        query = (dbhandle.query(Experiment,ExperimentsExperimenters,Experimenter)
-                .join(ExperimentsExperimenters).join(Experimenter)
-                .filter(Experiment.name==exp)
-                .order_by(ExperimentsExperimenters.active.desc(),Experimenter.last_name))
-        trows=""
+    def experiment_members(self, dbhandle, experiment, *args, **kwargs):
+        query = list(dbhandle.query(Experiment, ExperimentsExperimenters, Experimenter)
+                    .join(ExperimentsExperimenters).join(Experimenter)
+                    .filter(Experiment.name==experiment)
+                    .order_by(ExperimentsExperimenters.active.desc(), Experimenter.last_name)
+                )
+        ###VP return '{}'.format('\n'.join(map(str, query)))
+
+        trows = ""
         for experiment, e2e, experimenter in query:
             active = "No"
             if e2e.active:
-                active="Yes"
+                active = "Yes"
             trow = """<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>""" % (experimenter.first_name, experimenter.last_name, experimenter.email, active)
-            trows = "%s%s" % (trows,trow)
+            trows = "%s%s" % (trows, trow)
         return (trows)
 
+
+    def member_experiments(self, dbhandle, email, *args, **kwargs):
+
+        subq = (dbhandle.query(ExperimentsExperimenters, Experimenter.email, Experimenter.first_name, Experimenter.last_name)
+                    .join(Experimenter, Experimenter.experimenter_id==ExperimentsExperimenters.experimenter_id)
+                    .filter(Experimenter.email==email)
+                )
+        #~ return '{}'.format('\n'.join(map(str, subq)))   # DEBUG
+
+        subq = subq.subquery()
+        query = (dbhandle.query(Experiment, subq)
+                    .join(subq, subq.c.experiment==Experiment.experiment, isouter=True)
+                    .order_by(Experiment.experiment)
+                )
+
+# (Experiment, experimenter_id, experiment, active, email, first_name, last_name)
+        trows = []
+        for (experiment, experimenter_id, exp, active, email, first_name, last_name) in query:
+            #~ trow = "{}\t{}\t{}\t{}\t{}\n".format(experiment.experiment, first_name, last_name, email, 'Active' if active else 'No')
+            trows.append((experiment.experiment, first_name, last_name, email, active and 'Active'))
+        return trows
+        return '{}'.format('\n'.join(map(str, trows)))  # DEBUG
 
     def experiment_edit(self, dbhandle):
         return(dbhandle.query(Experiment).order_by(Experiment.experiment))

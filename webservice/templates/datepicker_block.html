@@ -1,4 +1,4 @@
-<div id="global_datepicker_container" style="display:none; padding-top:5px;">
+<span id="global_datepicker_container" style="display:none; padding-top:5px;">
 
 
 <div class="ui small basic icon buttons">
@@ -123,7 +123,7 @@ $( "#form_submit_button" ).click(function(event) {
      return;
   }
   $("#from_datepicker_to_send").val(m_from_local_time_utc);
-  
+
   var to_local_time = $('#to_datepicker').val();
   var m_to_local_time_utc = moment(to_local_time).utc().format('YYYY-MM-DD HH:mm:ss');
   //alert(m_to_local_time_utc);
@@ -143,4 +143,4 @@ $( "#form_submit_button" ).click(function(event) {
 
 
 
-</div>
+</span>
