@@ -588,6 +588,7 @@ class CampaignsPOMS():
             twindow = 604800.0     # one week
             tround = 86400         # one day
             tlocaltime = 0         # assume GMT
+            tfirsttime = None          # override start time
 
             if camp.cs_split_type[3:] == '_local':
                 tlocaltime = 1
@@ -607,6 +608,7 @@ class CampaignsPOMS():
                     if p.startswith('round='): tround = float(p[6:]) * pmult
                     if p.startswith('fts='): tfts = float(p[4:]) * pmult
                     if p.startswith('localtime='): tlocaltime = float(p[4:]) * pmult
+                    if p.startswith('firsttime='): tfirsttime = float(p[4:]) * pmult
 
             # make sure time-window is a multiple of rounding factor
             twindow = int(stime) - (int(twindow) % int(tround))
@@ -623,7 +625,10 @@ class CampaignsPOMS():
             bound_time = int(stime) - (int(bound_time) % int(tround))
 
             if camp.cs_last_split == '' or camp.cs_last_split == None:
-                stime = bound_time
+                if tfirsttime:
+                    stime = tfirsttime
+                else:
+                    stime = bound_time
                 etime = stime + twindow
             else:
                 if camp.cs_last_split >= bound_time:
