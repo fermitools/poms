@@ -422,14 +422,14 @@ class TaskPOMS:
         for cd in cdlist:
            if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
               # self-reference, just do a normal launch
-              self.launch_jobs(dbhandle, loghandle,  getconfig, gethead, seshandle, err_res, cd.uses_camp_id)
+              self.launch_jobs(dbhandle, loghandle,  getconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id)
            else:
               i = i + 1
               dims = "ischildof: (snapshot_for_project_name %s) and version %s and file_name like '%s' " % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
               dname = "poms_depends_%d_%d" % (t.task_id,i)
 
               samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-              self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, err_res, cd.uses_camp_id, dataset_override = dname)
+              self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id, dataset_override = dname)
         return 1
 
 
@@ -487,7 +487,7 @@ class TaskPOMS:
                 samhandle.create_definition(t.campaign_snap_obj.experiment, rname, recovery_dims)
 
 
-                self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, err_res, t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id, param_overrides = param_overrides)
+                self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, samhandle, err_res, t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id, param_overrides = param_overrides)
                 return 1
 
         return 0
@@ -512,12 +512,12 @@ class TaskPOMS:
         if hl:
             dbhandle.delete(hl)
             dbhandle.commit()
-            self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, err_res, hl.campaign_id, dataset_override = hl.dataset, parent_task_id = hl.parent_task_id, param_overrides = hl.param_overrides)
+            self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, samhandle, err_res, hl.campaign_id, dataset_override = hl.dataset, parent_task_id = hl.parent_task_id, param_overrides = hl.param_overrides)
             return "Launched."
         else:
             return "None."
 
-    def launch_jobs(self, dbhandle,loghandle, getconfig, gethead, seshandle, err_res, campaign_id, dataset_override = None, parent_task_id = None, param_overrides = None):
+    def launch_jobs(self, dbhandle,loghandle, getconfig, gethead, seshandle, samhandle, err_res, campaign_id, dataset_override = None, parent_task_id = None, param_overrides = None):
 
         loghandle("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
 
@@ -561,7 +561,7 @@ class TaskPOMS:
         if dataset_override:
             dataset = dataset_override
         else:
-            dataset = self.poms_service.campaignsPOMS.get_dataset_for(dbhandle, err_res, c)
+            dataset = self.poms_service.campaignsPOMS.get_dataset_for(dbhandle, samhandle, err_res, c)
 
         group = c.experiment
         if group == 'samdev': group = 'fermilab'

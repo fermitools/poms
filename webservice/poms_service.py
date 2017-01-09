@@ -574,6 +574,7 @@ class poms_service:
         vals = self.taskPOMS.launch_jobs(cherrypy.request.db,
                         cherrypy.log, cherrypy.session.get,
                         cherrypy.request.headers.get, cherrypy.session.get,
+                        cherrypy.request.samweb_lite,
                         cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
         cherrypy.log("Got vals: %s" % repr(vals))
         lcmd, output, c, campaign_id, outdir, outfile = vals

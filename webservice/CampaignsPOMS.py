@@ -541,7 +541,7 @@ class CampaignsPOMS():
          return c.campaign_id
 
 
-    def get_dataset_for(self, dbhandle, err_res, camp):
+    def get_dataset_for(self, dbhandle, samhandle, err_res, camp):
         res = None
 
         if camp.cs_split_type == None or camp.cs_split_type in [ '', 'draining','None' ]:
@@ -572,21 +572,21 @@ class CampaignsPOMS():
             if camp.cs_last_split >= m:
                 raise err_res(404, 'No more splits in this campaign')
             new = camp.dataset + "_slice%d" % camp.cs_last_split
-            cherrypy.request.samweb_lite.create_definition(camp.campaign_definition_obj.experiment, new,  "defname: %s with stride %d offset %d" % (camp.dataset, m, camp.cs_last_split))
+            samhandle.create_definition(camp.campaign_definition_obj.experiment, new,  "defname: %s with stride %d offset %d" % (camp.dataset, m, camp.cs_last_split))
 
             res = new
 
             dbhandle.add(camp)
             dbhandle.commit()
 
-        elif camp.cs_split_type.startswith('new(') or 
+        elif ( camp.cs_split_type.startswith('new(') or 
              camp.cs_split_type == 'new' or
-             camp.cs_split_type == 'new_local':
+             camp.cs_split_type == 'new_local' ):
 
             # default parameters
 	    tfts = 1800.0 # half an hour
             twindow = 604800.0     # one week
-            tround = 86400         # one day
+            tround = 1             # one second
             tlocaltime = 0         # assume GMT
             tfirsttime = None          # override start time
 
@@ -607,11 +607,11 @@ class CampaignsPOMS():
                     if p.startswith('window='): twindow = float(p[7:]) * pmult
                     if p.startswith('round='): tround = float(p[6:]) * pmult
                     if p.startswith('fts='): tfts = float(p[4:]) * pmult
-                    if p.startswith('localtime='): tlocaltime = float(p[4:]) * pmult
-                    if p.startswith('firsttime='): tfirsttime = float(p[4:]) * pmult
+                    if p.startswith('localtime='): tlocaltime = float(p[10:]) * pmult
+                    if p.startswith('firsttime='): tfirsttime = float(p[10:]) * pmult
 
             # make sure time-window is a multiple of rounding factor
-            twindow = int(stime) - (int(twindow) % int(tround))
+            twindow = int(twindow) - (int(twindow) % int(tround))
 
             # pick a boundary time, which will be our default start time
             # if we've not been run before, and also as a boundary to 
@@ -622,7 +622,7 @@ class CampaignsPOMS():
 	    # then later ones should come out even.
 
             bound_time = time.time() - tfts - twindow
-            bound_time = int(stime) - (int(bound_time) % int(tround))
+            bound_time = int(bound_time) - (int(bound_time) % int(tround))
 
             if camp.cs_last_split == '' or camp.cs_last_split == None:
                 if tfirsttime:
@@ -639,14 +639,14 @@ class CampaignsPOMS():
 
             if tlocaltime:
                 sstime = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(stime))
-                setime = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(seime))
+                setime = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(etime))
             else:
                 sstime = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(stime))
-                setime = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(seime))
+                setime = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(etime))
 
             new = camp.dataset + "_since_%s" % int(stime)
 
-            cherrypy.request.samweb_lite.create_definition(
+            samhandle.create_definition(
                 camp.campaign_definition_obj.experiment,
                 new,
                 "defname: %s and end_time > '%s' and end_time <= '%s'" % (
