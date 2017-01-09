@@ -198,15 +198,17 @@ class TaskPOMS:
                         loccount += 1
 
                 cfrac = task.campaign_snap_obj.completion_pct
+                if not cfrac: 
+	 	    cfrac = 95.0
 
-                if loccount / totcount * 100 > cfrac:
-                    n_located = n_located + 1
-                    task.status = "Located"
-                    for j in task.jobs:
-                        j.status = "Located"
-                        j.output_files_declared = True
-                    task.updated = datetime.now(utc)
-                    dbhandle.add(task)
+                if totcount == 0 or loccount / totcount * 100 > cfrac:
+		    n_located = n_located + 1
+		    task.status = "Located"
+		    for j in task.jobs:
+			j.status = "Located"
+			j.output_files_declared = True
+		    task.updated = datetime.now(utc)
+		    dbhandle.add(task)
 
             if task.status == "Located":
                 finish_up_tasks[task.task_id] = task
