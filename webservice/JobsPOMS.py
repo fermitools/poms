@@ -233,7 +233,10 @@ class JobsPOMS():
                 tl = dbhandle.query(Task).filter(Task.campaign_id == campaign_id, Task.status != 'Completed', Task.status != 'Located').all()
             else:
                 tl = dbhandle.query(Task).filter(Task.task_id == task_id).all()
-            c = tl[0].campaign_snap_obj
+            if len(tl):
+                c = tl[0].campaign_snap_obj
+            else:
+                c = None
             for t in tl:
                 tjid = self.poms_service.taskPOMS.task_min_job(dbhandle, t.task_id)
                 loghandle("kill_jobs: task_id %s -> tjid %s" % (t.task_id, tjid))
@@ -251,8 +254,6 @@ class JobsPOMS():
         if confirm == None:
             jijatem = 'kill_jobs_confirm.html'
 
-            template = self.jinja_env.get_template('kill_jobs_confirm.html')
-
             return  jjil, t, campaign_id, task_id, job_id
         else:
             group = c.experiment
@@ -262,7 +263,6 @@ class JobsPOMS():
             output = f.read()
             f.close()
 
-            template = self.jinja_env.get_template('kill_jobs.html')
             return output, c, campaign_id, task_id, job_id
 
     def jobs_eff_histo(self, dbhandle, campaign_id, tmax = None, tmin = None, tdays = 1 ):

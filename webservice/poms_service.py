@@ -528,14 +528,14 @@ class poms_service:
     @cherrypy.expose
     def kill_jobs(self, campaign_id=None, task_id=None, job_id=None, confirm=None):
         if confirm == None:
-            jjil, t, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db.query, cherrypy.log, campaign_id, task_id, job_id, confirm)
+            jjil, t, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, cherrypy.log, campaign_id, task_id, job_id, confirm)
             template = self.jinja_env.get_template('kill_jobs_confirm.html')
             return template.render(current_experimenter=cherrypy.session.get('experimenter'),
                                     jjil=jjil, task=t, campaign_id=campaign_id,
                                     task_id=task_id, job_id=job_id, pomspath=self.path,
                                     help_page="KilledJobsHelp", version=self.version)
         else:
-            output, c, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db.query, cherrypy.log, campaign_id, task_id, job_id, confirm)
+            output, c, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, cherrypy.log, campaign_id, task_id, job_id, confirm)
             template = self.jinja_env.get_template('kill_jobs.html')
             return template.render(output=output, current_experimenter=cherrypy.session.get('experimenter'),
                                     c=c, campaign_id=campaign_id, task_id=task_id,
