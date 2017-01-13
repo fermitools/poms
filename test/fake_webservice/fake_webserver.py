@@ -10,10 +10,16 @@ PORT=8888
 #
 class MyHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
      def send_head(self):
-          resp = "Ok.\n"
+          if self.path in [ 'active_jobs', ]:
+              resp = '[]\n'
+              content_type = 'application/json'
+          else:
+              resp = "Ok.\n"
+              content_type = 'text/plain'
+
           fresp = StringIO.StringIO(resp)
           self.send_response(200)
-          self.send_header("Content-type", "text/plain")
+          self.send_header("Content-type", content_type)
           self.send_header("Content-length", str(len(resp)))
           self.end_headers()
           return fresp
