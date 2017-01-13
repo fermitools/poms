@@ -206,7 +206,11 @@ if __name__ == '__main__':
    if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
 
-   js = joblog_scraper( job_reporter("http://localhost:8080/poms/", debug), debug)
+    server = "http://localhost:8080/poms"
+    if len(sys.argv) > 1 and sys.argv[1] == "-t":
+        server = "http://localhost:8888/poms"
+
+   js = joblog_scraper( job_reporter(server, debug), debug)
    while 1:
       if debug:
            print "Starting..."

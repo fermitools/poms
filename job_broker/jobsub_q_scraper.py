@@ -258,10 +258,15 @@ class jobsub_q_scraper:
 
 if __name__ == '__main__':
     debug = 0
+
     if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
 
-    js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms", debug=debug, namespace = "profiling.apps.poms.probes.jobsub_q_scraper"), debug = debug)
+    server = "http://localhost:8080/poms"
+    if len(sys.argv) > 1 and sys.argv[1] == "-t":
+        server = "http://localhost:8888/poms"
+
+    js = jobsub_q_scraper(job_reporter(server, debug=debug, namespace = "profiling.apps.poms.probes.jobsub_q_scraper"), debug = debug)
     try:
         js.poll()
     except KeyboardInterrupt:
