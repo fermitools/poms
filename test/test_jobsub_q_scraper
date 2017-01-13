@@ -9,6 +9,8 @@ export PATH="$POMS_DIR/test/bin_mock1:$PATH"
 python $POMS_DIR/test/fake_webservice/fake_webserver.py 2> web_out1 &
 wspid=$!
 
+sleep 1
+
 #
 # have jobsub_q scraper run one pass with the faked-out condor_q
 # with each sample output

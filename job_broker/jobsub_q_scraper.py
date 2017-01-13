@@ -262,16 +262,21 @@ if __name__ == '__main__':
 
     if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
+        sys.argv = [sys.argv[0]] + sys.argv[2:]
 
     server = "http://localhost:8080/poms"
     if len(sys.argv) > 1 and sys.argv[1] == "-t":
         testing = 1
         server = "http://localhost:8888/poms"
+        sys.argv = [sys.argv[0]] + sys.argv[2:]
 
-    js = jobsub_q_scraper(job_reporter(server, debug=debug, namespace = "profiling.apps.poms.probes.jobsub_q_scraper"), debug = debug)
+    jr = job_reporter(server, debug=debug, namespace = "profiling.apps.poms.probes.jobsub_q_scraper")
+    js = jobsub_q_scraper(jr, debug = debug)
     try:
         if testing:
+            print "test mode, run one scan"
             js.scan()
+            print "test mode: done"
         else:
             js.poll()
     except KeyboardInterrupt:
@@ -279,4 +284,5 @@ if __name__ == '__main__':
         #print "gc.collect() returns %d unreachable" % n
         #print "Remaining garbage:"
         #pprint.pprint(gc.garbage)
-    
+    jr.cleanup()
+    print "end of __main__"
