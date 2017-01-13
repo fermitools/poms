@@ -10,7 +10,7 @@ PORT=8888
 #
 class MyHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
      def send_head(self):
-          if self.path in [ 'active_jobs', ]:
+          if self.path in [ '/active_jobs', ]:
               resp = '[]\n'
               content_type = 'application/json'
           else:
