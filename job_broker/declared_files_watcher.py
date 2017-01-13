@@ -148,5 +148,10 @@ class declared_files_watcher:
             time.sleep(60)
 
 if __name__ == "__main__":
-     dfw = declared_files_watcher(job_reporter("http://localhost:8080/poms", debug=1))
-     dfw.poll()
+
+    server = "http://localhost:8080/poms"
+    if len(sys.argv) > 1 and sys.argv[1] == "-t":
+        server = "http://localhost:8888/poms"
+
+    dfw = declared_files_watcher(job_reporter(server, debug=1))
+    dfw.poll()
