@@ -10,7 +10,7 @@ Action=setup
    SetupRequired(python v2_7_6)
    SetupRequired(cherrypy)
    SetupRequired(postgres_client v9_3_5_p2_7)
-   SetupRequired(sqlalchemy v1_0_8)
+   SetupRequired(sqlalchemy v1_0_12)
    SetupRequired(jinja v2_7_3)
    SetupRequired(-j sam_web_client v2_0)
    SetupRequired(-j python_crontab)

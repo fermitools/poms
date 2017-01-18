@@ -47,6 +47,7 @@ class Experimenter(Base):
     first_name = Column(Text, nullable=False)
     last_name = Column(Text)
     email = Column(Text, nullable=False)
+    last_login = Column(DateTime(True), nullable=False)
 
 
 class ExperimentsExperimenters(Base):

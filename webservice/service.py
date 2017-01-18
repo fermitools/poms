@@ -2,6 +2,8 @@
 
 import sys
 import os
+from datetime import datetime
+from utc import utc
 
 # make sure poms is setup...
 if os.environ.get("SETUP_POMS","") == "":
@@ -182,6 +184,8 @@ class SessionTool(cherrypy.Tool):
             cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id, e[0].first_name, e[0].last_name, e[0].email, exps)
         else:
             cherrypy.session['experimenter'] = SessionExperimenter("anonymous", "", "", "", {})
+        cherrypy.request.db.query(Experimenter).filter(Experimenter.email==email).update({'last_login': datetime.now(utc)})
+        cherrypy.request.db.commit();
         cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For', 'Unknown'),
                                                         cherrypy.session['id'],
                                                         experimenter.email if experimenter else 'none',
