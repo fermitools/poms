@@ -267,7 +267,7 @@ if __name__ == '__main__':
     server = "http://localhost:8080/poms"
     if len(sys.argv) > 1 and sys.argv[1] == "-t":
         testing = 1
-        server = "http://localhost:8888/poms"
+        server = "http://127.0.0.1:8888/poms"
         sys.argv = [sys.argv[0]] + sys.argv[2:]
 
     jr = job_reporter(server, debug=debug, namespace = "profiling.apps.poms.probes.jobsub_q_scraper")
