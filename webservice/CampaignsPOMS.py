@@ -182,9 +182,9 @@ class CampaignsPOMS():
                     .filter(CampaignRecovery.campaign_definition_id == cid,CampaignDefinition.experiment == exp)
                     .order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
                 rec_list  = []
-            for rec in recs:
-                rec_list.append(rec.recovery_type.name )
-            recs_dict[cid] = json.dumps(rec_list)
+		for rec in recs:
+		    rec_list.append(rec.recovery_type.name )
+		recs_dict[cid] = json.dumps(rec_list)
             data['recoveries'] = recs_dict
             data['rtypes'] = (dbhandle.query(RecoveryType.name,RecoveryType.description).order_by(RecoveryType.name).all())
 
