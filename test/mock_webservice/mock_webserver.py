@@ -29,7 +29,7 @@ class MyHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
      def do_POST(self):
           content_length = int(self.headers['Content-Length'])
           pd = self.rfile.read(content_length)
-          sys.stderr.write("post_data = {'%s'}\n" % pd.replace("=","':'").replace("&","','"))
+          sys.stderr.write('post_data = {"%s"}\n' % pd.replace('=','": "').replace('&','","'))
           sys.stderr.flush()
           return self.do_GET()
          

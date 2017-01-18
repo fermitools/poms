@@ -33,12 +33,13 @@ def testMockWebservice1():
      assert(txt == "Ok.\n")
      l = mw.log.readlines()
      mw.close()
-     assert(l[0] == ('127.0.0.1 - - [%s] "GET /foo/bar HTTP/1.0" 200 -\n' % ts))
+     assert(l[0] == ('127.0.0.1 - - [%s] "GET /foo/bar HTTP/1.1" 200 -\n' % ts))
 
 def testMockWebservice2():
      mw = MockWebservice()
      import urllib
      import urllib2
+     import json
   
      ts = time.strftime("%d/%b/%Y %H:%M:%S")
      data = {'baz':'bleem'}
@@ -48,5 +49,6 @@ def testMockWebservice2():
      assert(txt == "Ok.\n")
      l = mw.log.readlines()
      mw.close()
-     assert(l[0] == ('127.0.0.1 - - [%s] "GET /foo/bar HTTP/1.0" 200 -\n' % ts))
-     assert(l[1] == "post_data = %s" % json.dumps(data))
+     #print l
+     assert(l[0] == "post_data = %s\n" % json.dumps(data))
+     assert(l[1] == ('127.0.0.1 - - [%s] "POST /foo/bar HTTP/1.1" 200 -\n' % ts))
