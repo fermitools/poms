@@ -206,8 +206,8 @@ if __name__ == '__main__':
    if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
 
-    server = "http://localhost:8080/poms"
-    if len(sys.argv) > 1 and sys.argv[1] == "-t":
+   server = "http://localhost:8080/poms"
+   if len(sys.argv) > 1 and sys.argv[1] == "-t":
         server = "http://localhost:8888/poms"
 
    js = joblog_scraper( job_reporter(server, debug), debug)

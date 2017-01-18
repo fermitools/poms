@@ -248,10 +248,11 @@ class status_scraper:
             print c.text
             c.close()
 
-ss = status_scraper("fifemon_reader.cfg", "http://localhost:8080/poms")
-ss.poll()
+if __name__ == '__main__':
+    ss = status_scraper("fifemon_reader.cfg", "http://localhost:8080/poms")
+    ss.poll()
 
-notes = """
+    notes = """
 <bel-kwinith>$ curl --data user=mengel --data password="xxxx" --cookie-jar /tmp/tcookies https://fifemon.fnal.gov/monitor/login
 {"message":"Logged in"}
 <bel-kwinith>$ curl --cookie /tmp/tcookies --data target=urls.samweb-nova.http-code --data from=-10min --data until=-5min --data format=json   https://fifemon.fnal.gov/monitor/api/datasources/proxy/1/render 
