@@ -117,7 +117,7 @@
 <div class="ui modal" id="template_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header" id="template_header">
-    Launch Template Editor (SPUD)
+    Launch Template Editor
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
@@ -194,10 +194,10 @@ $("#experiment").change(function() {
       $("#ae_launch_name").val("CLONE OF: " + name)
     }
     $("#template_header").text("Launch Template Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
-    $("#ae_launch_id").val(launch_id)
-    $("#ae_launch_host").val(launch_host)
-    $("#ae_launch_account").val(launch_account)
-    $("#ae_launch_setup").val(launch_setup)
+    $("#ae_launch_id").val(launch_id);
+    $("#ae_launch_host").val(launch_host);
+    $("#ae_launch_account").val(launch_account);
+    $("#ae_launch_setup").val(launch_setup);
     $("#template_add_edit_modal").modal({
     }).modal('show');
   }
