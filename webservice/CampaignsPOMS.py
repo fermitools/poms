@@ -54,8 +54,6 @@ class CampaignsPOMS():
             ae_launch_host = kwargs.pop('ae_launch_host')
             ae_launch_account = kwargs.pop('ae_launch_account')
             ae_launch_setup = kwargs.pop('ae_launch_setup')
-            ae_launch_setup = ae_launch_setup.replace('\n','\\n')
-            ae_launch_setup = ae_launch_setup.replace('\r','')
             experimenter_id = kwargs.pop('experimenter_id')
             try:
                 if action == 'add':
