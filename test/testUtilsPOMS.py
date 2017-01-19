@@ -2,7 +2,6 @@ import DBHandle
 import datetime
 from webservice.utc import utc
 
-
 #
 # things we need to test quick_search: 
 # * a db handle
