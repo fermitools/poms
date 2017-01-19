@@ -15,7 +15,7 @@ class DBHandle:
 	dbhost = cf.get("global","dbhost").strip('"')
 	dbport = cf.get("global","dbport").strip('"')
 	db_path = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport,db)
-	sa_engine = create_engine(db_path, echo=True)
+	sa_engine = create_engine(db_path, echo=False)
 	Session = sessionmaker(bind=sa_engine)
 	self.dbhandle = Session()
 
