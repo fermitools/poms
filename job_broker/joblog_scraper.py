@@ -227,7 +227,7 @@ if __name__ == '__main__':
 
           js.scan(h)
 
-          if testing
+          if testing:
               break
 
       except KeyboardInterrupt:
