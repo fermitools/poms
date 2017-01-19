@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+
+"""
+First draft of proj.py wrapper
+You should be able to launch jobs with project.py with overrides, as:
+    wrap_proj \
+	-Oinputdef=mydataset \
+	-Osite=site1,site2 \
+	--\
+          project.py \
+		--xml whatever.xml \
+  		--command
+to override the inputdef dataset and site list in the whatever.xml file.
+It does this by generating a new xml file with the overrides applied,
+and running the project.py command.
+"""
+import sys
+import os
+import re
+
+debug = 0
+# filename for new and patched xml file
+newfname = "/tmp/xmlpatch%d" % os.getpid()
+
+# strip off script name
+sys.argv = sys.argv[1:]
+
+# collect our -Oname=value args into a [ [name,value],[name,value]...]
+# worklist
+worklist = []
+while sys.argv[0].startswith('-O'):
+    field,val = sys.argv[0][2:].split('=')
+    worklist.append( [field, val] )
+    sys.argv = sys.argv[1:]
+
+#
+# eat the double dash, so we have command to run in sys.argv
+if sys.argv[0] == '--':
+    sys.argv = sys.argv[1:]
+
+#
+# ..except we need to find the xml file and change it...
+for i in range(len(sys.argv)):
+    if sys.argv[i] == '--xml':
+       fname = sys.argv[i+1]
+       sys.argv[i+1] = newfname
+
+
+#
+# now we read the old xml file and write the new one
+#
+inf = open(fname, "r")
+outf = open(newfname, "w")
+
+#
+# note this blatantly assumes the fields are on one line
+# in the xml file, but I think that's probalby okay
+#
+for line in inf:
+   # apply each rule as a regexp substitution
+   for field, val in worklist:
+       reg = '<%s>.*</%s>' % (field, field)
+       sub = '<%s>%s</%s>' % (field, val, field)
+       if debug: print "trying re.sub('%s', '%s', '%s')" % (reg, sub, line)
+       line = re.sub(reg, sub, line)
+   outf.write(line)
+
+#
+# close out the files
+#
+inf.close()
+outf.close()
+
+# actually run project script; single quote sys.argv, and run it
+# with os.system -- should probably use subprocess.call
+os.system("'%s'" % "' '".join(sys.argv))
+
+#
+# clean up our filename, we should probalby do this in some sort
+# of try block so we do it even if interrupted...
+#
+if debug: os.system("cat %s" % newfname)
+os.unlink(newfname)
+
+
