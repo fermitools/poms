@@ -1,5 +1,6 @@
 import DBHandle
 import datetime
+import time
 import os
 import socket
 from webservice.utc import utc
@@ -58,29 +59,29 @@ def add_mock_job_launcher():
     )
 
 def del_mock_job_launcher():
-    campaign_definition_id = dbh.get().query(CampaignDefinition).filter(CampaignDefinition.name=='test_mock_launch_job').first()
-    launch_id = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local')
+    campaign_definition_id = dbh.get().query(CampaignDefinition).filter(CampaignDefinition.name=='test_launch_mock_job').first().campaign_definition_id
+    launch_id = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local').first().launch_id
     
     mps.campaignsPOMS.launch_template_edit(
         dbh.get(), 
         logger.info, 
         camp_seshandle, 
         action = 'delete',
-        ae_launch_name= 'test_launch_local',
+        name= 'test_launch_local',
         ae_launch_id = launch_id
     )
     mps.campaignsPOMS.campaign_definition_edit(
         dbh.get(), 
         logger.info, 
         camp_seshandle, 
-        action = 'add',
-        ae_definiton_name = 'test_launch_mock_job',
-        ae_campaign_definition_id = campaign_definition_id,
+        action = 'delete',
+        name = 'test_launch_mock_job',
+        campaign_definition_id = campaign_definition_id,
     )
 
 def add_campaign(name, deps):
-    campaign_definition_id = dbh.get().query(CampaignDefinition).filter(CampaignDefinition.name=='test_mock_launch_job').first()
-    launch_id = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local')
+    campaign_definition_id = dbh.get().query(CampaignDefinition).filter(CampaignDefinition.name=='test_launch_mock_job').first().campaign_definition_id
+    launch_id = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local').first().launch_id
     mps.campaignsPOMS.campaign_edit(
         dbh.get(), 
         logger.info, 
@@ -96,7 +97,7 @@ def add_campaign(name, deps):
         ae_param_overrides = '[]',
         ae_campaign_definition_id = campaign_definition_id,
         ae_launch_id = launch_id,
-        ae_completion_type = "Located",
+        ae_completion_type = "located",
         ae_completion_pct = "95",
         ae_depends = deps,
         experiment = 'samdev',
@@ -105,15 +106,15 @@ def add_campaign(name, deps):
     campaign_id = dbh.get().query(Campaign).filter(Campaign.name==name).first().campaign_id
     return campaign_id
 
-def del_campaign_def(name):
-    campaign_id = dbh.get().query(Campaign).filter(Campaign.name==name).first()
-    mps.campaignsPOMS.campaign_definition_edit(
+def del_campaign(name):
+    campaign_id = dbh.get().query(Campaign).filter(Campaign.name==name).first().campaign_id
+    mps.campaignsPOMS.campaign_edit(
         dbh.get(), 
         logger.info, 
         camp_seshandle, 
-        action = 'del',
-        ae_definiton_name = name,
-        ae_campaign_id = campaign_id,
+        action = 'delete',
+        name = name,
+        campaign_id = campaign_id,
     )
 
 
@@ -132,14 +133,14 @@ def test_workflow_1():
 
      mps.taskPOMS.launch_jobs(dbh.get(), logger.info, getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_fred)
 
-     sleep(5)
+     time.sleep(5)
 
      #
      # check here that the jobs actually ran etc.
      # 
 
-     del_campaign_def('_fred')
-     del_campaign_def('_joe')
+     del_campaign('_fred')
+     del_campaign('_joe')
      del_mock_job_launcher()
 
 
