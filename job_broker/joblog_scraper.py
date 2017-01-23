@@ -213,7 +213,7 @@ if __name__ == '__main__':
         server = "http://localhost:8888/poms"
         testing = True
 
-   js = joblog_scraper( job_reporter(server, debug), debug)
+   js = joblog_scraper( job_reporter("http://localhost:8080/poms", debug=debug, namespace = "profiling.apps.poms.probes.joblog_scraper"), debug)
    while 1:
       if debug:
            print "Starting..."

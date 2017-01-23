@@ -108,7 +108,7 @@ class CampaignsPOMS():
                 message = "The campaign definition, %s, has been used and may not be deleted." % name
                 loghandle(message)
                 loghandle(e.message)
-                loghandle.rollback()
+                dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')

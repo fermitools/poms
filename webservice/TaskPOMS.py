@@ -101,7 +101,8 @@ class TaskPOMS:
         #
         # make jobs which completed with no output files have status "Located".
         subq = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
-        dbhandle.query(Job).filter(subq == 0).update({'status':'Located'})
+        dbhandle.query(Job).filter(Job.status == "Completed", subq == 0).update({'status':'Located'}, synchronize_session='fetch')
+        dbhandle.commit()
 
         #
         # check active tasks to see if they're completed/located
@@ -201,6 +202,7 @@ class TaskPOMS:
                 if not cfrac: 
 	 	    cfrac = 95.0
 
+                loghandle("non-project task: %s tot %d loc %d" % (task.task_id, totcount, loccount))
                 if totcount == 0 or loccount / totcount * 100 > cfrac:
 		    n_located = n_located + 1
 		    task.status = "Located"
@@ -570,6 +572,7 @@ class TaskPOMS:
 
         cmdl =  [
             "exec 2>&1",
+            "set -x",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.poms_service.hostname,

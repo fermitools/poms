@@ -7,8 +7,8 @@ from sqlalchemy.orm import sessionmaker
 class DBHandle:
     def __init__(self):
 	cf = ConfigParser.SafeConfigParser()
-	cf.read("../webservice/poms.ini")
-	cf.read("../webservice/passwd.ini")
+	cf.read("%s/webservice/poms.ini" % os.environ['POMS_DIR'])
+	cf.read("%s/webservice/passwd.ini" % os.environ['POMS_DIR'])
 	db =cf.get("global","db").strip('"')
 	dbuser = cf.get("global","dbuser").strip('"')
 	dbpass = cf.get("global","dbpass").strip('"')

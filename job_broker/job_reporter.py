@@ -80,7 +80,7 @@ class job_reporter:
 		uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
 		res = uh.read()
                 uh.close()
-		#sys.stderr.write("response: %s\n" % res)
+		if self.debug: sys.stderr.write("response: %s\n" % res)
 
                 del uh
                 uh = None
@@ -122,6 +122,15 @@ class job_reporter:
                 time.sleep(5)
                 retries = retries - 1
                 
+	    except (Keyboardinterrupt):
+                raise
+
+	    except (Exception) as e:
+		errtext = str(e)
+		sys.stderr.write("Unknown Exception:" + errtext + sys.exc_info())
+		sys.stderr.write("\n--------\n")
+                sys.stderr.flush()
+                raise
 
 if __name__ == '__main__':
     print "self test:"
