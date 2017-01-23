@@ -511,7 +511,7 @@ class CampaignsPOMS():
 
          ld = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.name.like("%generic%"), LaunchTemplate.experiment == experiment).first()
 
-         dbhandle("campaign_definition = %s " % cd)
+         loghandle("campaign_definition = %s " % cd)
 
          c = dbhandle.query(Campaign).filter( Campaign.experiment == experiment, Campaign.name == campaign_name).first()
          if c:
@@ -531,7 +531,7 @@ class CampaignsPOMS():
                c.experimenter = user
                changed = True
 
-         dbhandle("register_campaign -- campaign is %s" % c.__dict__)
+         loghandle("register_campaign -- campaign is %s" % c.__dict__)
 
          if changed:
                 c.updated = datetime.now(utc)
