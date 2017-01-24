@@ -122,7 +122,7 @@ class job_reporter:
                 time.sleep(5)
                 retries = retries - 1
                 
-	    except (Keyboardinterrupt):
+	    except (KeyboardInterrupt):
                 raise
 
 	    except (Exception) as e:
