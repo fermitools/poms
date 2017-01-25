@@ -10,7 +10,7 @@ from datetime import datetime
 
 import time_grid
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
-from sqlalchemy import func
+from sqlalchemy import func, text
 from utc import utc
 from datetime import datetime, timedelta
 import condor_log_parser
@@ -100,8 +100,14 @@ class TaskPOMS:
 
         #
         # make jobs which completed with no output files have status "Located".
-        subq = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
-        dbhandle.query(Job).filter(Job.status == "Completed", subq == 0).update({'status':'Located'}, synchronize_session='fetch')
+        t = text("update jobs set status = 'Located' where status = 'Completed' and (select count(file_name) from job_files where job_files.job_id = jobs.job_id and job_files.file_type = 'output') = 0")
+        dbhandle.execute(t)
+
+        #
+        # tried to do as below, but no such luck
+        # subq = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
+        # dbhandle.query(Job).filter(Job.status == "Completed", subq == 0).update({'status':'Located'}, synchronize_session='fetch')
+        #
         dbhandle.commit()
 
         #

@@ -44,7 +44,7 @@ def add_mock_job_launcher():
 	   ae_launch_id ='',
 	   ae_launch_host = fqdn,
 	   ae_launch_account =  os.environ['USER'],      
-	   ae_launch_setup = "set -x; klist; cd %s; setup -. poms" % os.environ['POMS_DIR'],
+	   ae_launch_setup = "source /grid/fermiapp/products/common/etc/setups; set -x; klist; cd %s;   setup -. poms" % os.environ['POMS_DIR'],
 	   experiment = 'samdev',
 	   experimenter_id = '4'
 	)
@@ -92,7 +92,7 @@ def del_mock_job_launcher():
 	    campaign_definition_id = campaign_definition_id,
 	)
 
-def add_campaign(name, deps):
+def add_campaign(name, deps, dataset = None, split = 'None'):
     campaign = dbh.get().query(Campaign).filter(Campaign.name=='name').first()
     campaign_definition = dbh.get().query(CampaignDefinition).filter(CampaignDefinition.name=='test_launch_mock_job').first()
     launch = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local').first()
@@ -103,6 +103,10 @@ def add_campaign(name, deps):
     if not campaign_definition or not launch:
         print "Ouch! adding campaign definition or launch didn't work"
         return
+
+    if dataset == None:
+        dataset = "None"
+
     mps.campaignsPOMS.campaign_edit(
         dbh.get(), 
         logger.info, 
@@ -112,7 +116,7 @@ def add_campaign(name, deps):
         ae_campaign_name = name,
         ae_active = True,
         ae_split_type = 'None',
-        ae_dataset = 'test_dataset',
+        ae_dataset = dataset,
         ae_vo_role = 'Analysis',
         ae_software_version = 'v1_0',
         ae_param_overrides = '[]',
@@ -143,10 +147,12 @@ def del_campaign(name):
 # Actual tests
 #
 
+def setup():
+     add_mock_job_launcher()
+
 def test_workflow_1():
      # setup workflow bits for _joe depending on _fred,
      # launch it
-     add_mock_job_launcher()
 
      cid_fred = add_campaign('_fred','{"campaigns":[],"file_patterns":[]}')
      cid_joe = add_campaign('_joe','{"campaigns":["_fred"],"file_patterns":["%"]}')
@@ -157,9 +163,9 @@ def test_workflow_1():
      mps.taskPOMS.launch_jobs(dbh.get(), logger.info, getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_fred)
 
 
-     time.sleep(5)
+     time.sleep(10)
      mps.taskPOMS.wrapup_tasks(dbh.get(), logger.info, samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
-     time.sleep(6)
+     time.sleep(10)
 
      after_fred = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_fred , tdays=1)
      after_joe = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_joe , tdays=1)
@@ -168,9 +174,9 @@ def test_workflow_1():
      # check here that the jobs actually ran etc.
      # 
 
-     del_campaign('_fred')
-     del_campaign('_joe')
-     del_mock_job_launcher()
+     #del_campaign('_fred')
+     #del_campaign('_joe')
+     #del_mock_job_launcher()
 
      print "before:", before_fred, before_joe
      print "after:" , after_fred, after_joe
@@ -178,4 +184,4 @@ def test_workflow_1():
      assert(after_fred['All'] > before_fred['All'])
      assert(after_joe['All'] > before_joe['All'])
 
-     assert(False)
+     #assert(False)
