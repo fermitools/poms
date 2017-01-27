@@ -13,12 +13,19 @@ dbh = DBHandle.DBHandle()
 from mock_poms_service import mock_poms_service
 from mock_redirect import mock_redirect_exception
 import logging
+
 logger = logging.getLogger('cherrypy.error')
 # when I get one...
 
 
 mps = mock_poms_service()
 
+def fake_out_kerberos():
+    # put a copy our current credentials where the launch code is
+    # going to try to put creds from the POMS keytab; that way it
+    # works even if that kinit fails..
+    kcache = os.environ['KRB5CCNAME'].replace('FILE:','')
+    os.system("cp %s /tmp/krb5cc_poms_submit_fermilab" % kcache)
 #
 # ---------------------------------------
 # utilities to set up tests
@@ -148,7 +155,8 @@ def del_campaign(name):
 #
 
 def setup():
-     add_mock_job_launcher()
+    fake_out_kerberos()
+    add_mock_job_launcher()
 
 def test_workflow_1():
      # setup workflow bits for _joe depending on _fred,

@@ -1,3 +1,4 @@
+import os
 from mock.mock import MagicMock
 from mock_poms_service import mock_poms_service
 mps = mock_poms_service()
@@ -6,6 +7,7 @@ import logging
 logger = logging.getLogger('cherrypy.error')
 
 gethead = MagicMock()
+
 
 class exp_is_root:
     is_root = MagicMock(return_value = True)
