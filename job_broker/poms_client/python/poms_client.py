@@ -27,7 +27,7 @@ def get_task_id_for(campaign, user = None, command_executed = None, input_datase
                     test = test).replace('Task=',''))
 
 
-def  launch_template_edit(self, action = None, name = None, launch_host = None, user_account = None, lauch_setup = None, experiment = None, pc_email):
+def launch_template_edit(self, action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_email):
 
 
     method = 'launch_template_edit'
@@ -57,7 +57,7 @@ def  launch_template_edit(self, action = None, name = None, launch_host = None, 
         if action == 'add':
             if ae_launch_name == None or ae_launch_host == None or ae_launch_account == None or ae_launch_setup == None:
                 print "Your should provide the launch_name in order to add\
-                        name, launch_host, user_account, lauch_setup. \n\
+                        name, launch_host, user_account, launch_setup. \n\
                         Curently you provide name ="+ae_launch_name", \
                         launch_host="+ae_launch_host+", user_account="+ae_launch_account+", launch_setup="+ae_launch_setup+"."
             else:
@@ -80,7 +80,7 @@ def  launch_template_edit(self, action = None, name = None, launch_host = None, 
         elif action == 'edit':
             if ae_launch_name == None:
                 print "Your should provide the launch_name in order to edit\
-                    name, launch_host, user_account, lauch_setup. \n\
+                    name, launch_host, user_account, launch_setup. \n\
                     Curently you provide name = "+ae_launch_name
             else:
                 data = make_poms_call(
