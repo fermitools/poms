@@ -19,7 +19,6 @@ class jobsub_fetcher():
 
     def __del__(self):
          if self.workdir:
-              import os
               os.system("rm -rf %s" % self.workdir)
 
     def fetch(self, jobsubjobid, group, role, force_reload = False, user = None):

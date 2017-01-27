@@ -35,4 +35,4 @@ def test_1():
 
     tuple = mps.triagePOMS.triage_job(dbhandle, fetcher, dbh.cf, job.job_id)
     print tuple
-    assert(False)
+    #assert(False)

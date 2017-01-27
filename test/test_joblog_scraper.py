@@ -53,6 +53,4 @@ class TestJobsub_q_scraper:
     def test_joblog_1(self):
         self._do_test('joblog_1')
 
-    def test_joblog_2(self):
-        self._do_test('joblog_2')
 
