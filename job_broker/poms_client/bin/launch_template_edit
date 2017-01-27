@@ -1,0 +1,33 @@
+#!/usr/bin/env python
+from test_pipe import launch_template_edit_test
+#from /Users/ahandres/POMS_local/prod_mgmt_db/job_broker/poms_client/python/test_pipe.py import launch_template_edit
+#from poms_client import launch_template_edit
+import argparse
+#action = None, name = None, launch_host = None, user_account = None, lauch_setup = None, experiment = None, pc_email
+parser = argparse.ArgumentParser(description='edit_launch_template.')
+parser.add_argument('--action', metavar='add-edit-delete', type=str, nargs=1, help='you should choose between add, edit or delete', default = None)
+parser.add_argument('--name', metavar='Name of your template', type=str, nargs=1,help='the name of the launch template', default = None)
+parser.add_argument('--host', metavar='your experiment machine', type=str, nargs=1,help='You should provide your interactive machine (e.g. dunegpvm01)', default = None)
+parser.add_argument('--user_account', metavar='username at submission node', type=str, nargs=1,help='Please provide the user account for the submission (e.g. your user, or production user e.g. novapro, minospro, dunepro)', default = None)
+parser.add_argument('--setup', metavar='the setup you do at your interactive node', type=str, nargs=1,help='provide the necessary comands for your submission node e.g. setup_nova', default = None)
+parser.add_argument('--experiment', metavar='Experiment', type=str, nargs=1, help='The experiment this submission belong', default = None)
+parser.add_argument('--email', metavar='your email', type=str, nargs=1, help='Please provide your email adress', default = None)
+
+args = parser.parse_args()
+print args
+print 'The arguments you pass are:'
+print 'action =',args.action
+print 'name =', args.name
+print 'launch_host=',args.host
+print 'user_account=',args.user_account
+print "launch_setup =", args.setup
+print "experiment=", args.experiment
+print "pc_email=", args.email
+
+launch_template_edit_test(action = args.action,
+                    name = args.name,
+                    launch_host = args.host,
+                    user_account = args.user_account,
+                    launch_setup = args.setup,
+                    experiment = args.experiment,
+                    pc_email = args.email)
