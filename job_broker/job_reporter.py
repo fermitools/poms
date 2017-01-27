@@ -5,6 +5,7 @@ import os
 import re
 import urllib2
 import urllib
+import httplib
 import json
 import concurrent.futures
 import Queue
@@ -36,14 +37,16 @@ class job_reporter:
         raise KeyboardInterrupt("just quitting a thread")
 
     def runqueue(self):
-        try:
-            while 1:
+	while 1:
+            try:
                 d = self.work.get(block = True)
                 d['f'](*d['args'], **d['kwargs'])
-        except KeyboardInterrupt:
-            pass
-        except:
-            raise
+            except KeyboardInterrupt:
+                break
+            except:
+                print "Unhandled exception", sys.exc_info()
+                time.sleep(1)
+                pass
   
     def cleanup(self):
         # first tell threads to exit
@@ -109,6 +112,19 @@ class job_reporter:
                 retries = retries - 1
 
 	    except (urllib2.URLError) as e:
+                if uh:
+                    uh.read()
+                    uh.close()
+                    del uh
+                    uh = None
+		errtext = str(e)
+		sys.stderr.write("Exception:" + errtext)
+		sys.stderr.write("\n--------\n")
+                sys.stderr.flush()
+                del e
+                time.sleep(5)
+                retries = retries - 1
+	    except (httplib.BadStatusLine) as e:
                 if uh:
                     uh.read()
                     uh.close()

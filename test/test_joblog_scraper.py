@@ -4,6 +4,7 @@ import MockCondor_q
 import subprocess
 import re
 import os
+import sys
 import time
 import json
 import urllib
@@ -33,16 +34,25 @@ class TestJobsub_q_scraper:
         active_log_line = self.mw.log.next()
 
         for line in df:
-            data_log = self.mw.log.next()
-            post_log = self.mw.log.next()
+            try:
+                post_log = self.mw.log.next()
+                data_log = self.mw.log.next()
+            except StopIteration:
+                break
+
+
+            print "-----\n", line, data_log, post_log
+            sys.stdout.flush()
 
             post_data =  json.loads(data_log[12:-1])
-
             # need checks for log stuff..
+            assert(post_log.find("update_job") > 0)
+            assert(line.find(post_data['jobsub_job_id'].replace('%40','@')) > 0)
  
-            print data_log, post_log, post_data
 
     def test_joblog_1(self):
         self._do_test('joblog_1')
-        assert(False)
+
+    def test_joblog_2(self):
+        self._do_test('joblog_2')
 
