@@ -7,6 +7,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from model.poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
     LaunchTemplate, CampaignDefinition, CampaignRecovery,
     CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
@@ -124,7 +125,7 @@ class CampaignsPOMS():
                 message = "The campaign definition, %s, has been used and may not be deleted." % name
                 loghandle(message)
                 loghandle(e.message)
-                loghandle.rollback()
+                dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
@@ -199,9 +200,9 @@ class CampaignsPOMS():
                     .filter(CampaignRecovery.campaign_definition_id == cid,CampaignDefinition.experiment == exp)
                     .order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
                 rec_list  = []
-            for rec in recs:
-                rec_list.append(rec.recovery_type.name )
-            recs_dict[cid] = json.dumps(rec_list)
+		for rec in recs:
+		    rec_list.append(rec.recovery_type.name )
+		recs_dict[cid] = json.dumps(rec_list)
             data['recoveries'] = recs_dict
             data['rtypes'] = (dbhandle.query(RecoveryType.name,RecoveryType.description).order_by(RecoveryType.name).all())
 
@@ -527,7 +528,7 @@ class CampaignsPOMS():
 
          ld = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.name.like("%generic%"), LaunchTemplate.experiment == experiment).first()
 
-         dbhandle("campaign_definition = %s " % cd)
+         loghandle("campaign_definition = %s " % cd)
 
          c = dbhandle.query(Campaign).filter( Campaign.experiment == experiment, Campaign.name == campaign_name).first()
          if c:
@@ -547,7 +548,7 @@ class CampaignsPOMS():
                c.experimenter = user
                changed = True
 
-         dbhandle("register_campaign -- campaign is %s" % c.__dict__)
+         loghandle("register_campaign -- campaign is %s" % c.__dict__)
 
          if changed:
                 c.updated = datetime.now(utc)

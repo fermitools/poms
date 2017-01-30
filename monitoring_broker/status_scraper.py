@@ -265,6 +265,8 @@ class status_scraper():
             print c.read()
             c.close()
 
-#ss = status_scraper("status_scraper.cfg", "http://fermicloud045.fnal.gov:8080/poms")
-ss = status_scraper("status_scraper.cfg", "http://localhost:8080/poms")
-ss.poll()
+if __name__ == '__main__':
+
+    #ss = status_scraper("status_scraper.cfg", "http://fermicloud045.fnal.gov:8080/poms")
+    ss = status_scraper("status_scraper.cfg", "http://localhost:8080/poms")
+    ss.poll()
