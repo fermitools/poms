@@ -499,3 +499,14 @@ class Files_status():
         count_list = samhandle.count_files_list(explist,dimlist)
         loghandle("get_pending_for_task_lists: count_list (%d): %s" % (len(dimlist), count_list))
         return dimlist, count_list
+
+
+    def report_declared_files(self, flist, dbhandle):
+        now =  datetime.now(utc)
+        # the "extra" first query on Job is to make sure we get a shared lock 
+	# on Job before trying to get an update lock on JobFile, which will
+        # then try to get a lock on Job, but can deadlock with someone 
+        # otherwise doing update_job()..
+        dbhandle.query(Job,JobFile).with_for_update(of=Job,read=True).filter(JobFile.job_id == Job.job_id, JobFile.file_name.in_(flist)).all()
+        dbhandle.query(JobFile).filter(JobFile.file_name.in_(flist)).update({JobFile.declared: now}, synchronize_session=False)
+        dbhandle.commit()
