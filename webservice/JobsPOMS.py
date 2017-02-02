@@ -124,6 +124,13 @@ class JobsPOMS():
         if j:
             loghandle("update_job: updating job %d" % (j.job_id if j.job_id else -1))
 
+            oldstatus = j.status
+            if kwargs.get('status',None) and oldstatus != kwargs.get('status')  and oldstatus == 'Completed' and kwargs.get('status') != 'Located':
+                # we went from Completed back to some Running/Idle state...
+                # so clean out any old (wrong) Completed statuses from 
+                # the JobHistory... (Bug #15322)
+                dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status == 'Completed').delete()
+
             # first, Job string fields the db requres be not null:
             for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:    
                 if field == 'status' and j.status == "Located":
@@ -203,14 +210,18 @@ class JobsPOMS():
                 j.cpu_type = ''
             loghandle("update_job: db add/commit job status %s " %  j.status)
             j.updated =  datetime.now(utc)
-            if j.task_obj:
+            if oldstatus != j.status and j.task_obj:
                 newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, j.task_obj)
                 if newstatus != j.task_obj.status:
                     j.task_obj.status = newstatus
                     j.task_obj.updated = datetime.now(utc)
-                    j.task_obj.campaign_snap_obj.active = True
+                    # jobs make inactive campaigns active again...
+                    if j.task_obj.campaign_obj.active != True:
+                        j.task_obj.campaign_obj.active = True
+
             dbhandle.add(j)
             dbhandle.commit()
+
 
             # now that we committed, do a SAM project desc. upate if needed
             if do_SAM_project:
