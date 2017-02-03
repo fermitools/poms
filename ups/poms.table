@@ -23,5 +23,5 @@ Action=setup
    # jobsub does not actually list all of its dependencies... sigh
    SetupOptional(kx509)
    PathPrepend(PYTHONPATH,${UPS_PROD_DIR})
-   SetupRequired(-j jobsub_client v1_2_3_rc01)
+   SetupRequired(-j jobsub_client)
 
