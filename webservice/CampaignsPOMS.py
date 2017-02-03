@@ -32,14 +32,14 @@ class CampaignsPOMS():
         self.poms_service=ps
 
 
-    def launch_template_edit(self, dbhandle, loghandle, seshandle, pcl_call=0, *args, **kwargs):
+    def launch_template_edit(self, dbhandle, loghandle, seshandle, *args, **kwargs):
         data = {}
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
-        pcl_call = kwarg.pop('pcl_call')
-        pc_email = kwarg.pop('pc_email',None)
+        pcl_call = kwargs.pop('pcl_call', 0)
+        pc_email = kwargs.pop('pc_email',None)
         if action == 'delete':
             name = kwargs.pop('name')
             try:
