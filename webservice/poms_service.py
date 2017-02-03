@@ -498,9 +498,8 @@ class poms_service:
 
     @cherrypy.expose
     def report_declared_files(self, flist):
-        now =  datetime.now(utc)
-        cherrypy.request.db.query(JobFile).filter(JobFile.file_name.in_(flist)).update({JobFile.declared: now}, synchronize_session=False)
-        cherrypy.request.db.commit()
+        self.filesPOMS.report_declared_files(flist, cherrypy.request.db)
+        return "Ok."
 
 
     @cherrypy.expose
