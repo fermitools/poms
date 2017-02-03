@@ -220,33 +220,73 @@
   <div class="ui hidden divider"></div>
 </div> <!-- Ends edit_param_modal  -->
 
-<div class="ui small modal" id="edit_recovery_modal">
+<div class="ui large modal" id="edit_recovery_modal">
   <i class="close icon"></i>
   <div class="header">
     Definition Recovery Editor
   </div>
-  <div class="ui text container">
-    <div class="scrollable">
+<div class="ui text _container">
+    <div class="_scrollable">
+
+      <table class="ui celled table" id="er_table">
+	<thead>
+	  <tr>
+	    <th>Type</th>
+	    <th>Param Overrides</th>
+	    <th></th>
+	  </tr>
+	</thead>
+	<tbody id="er_tbody">
+         {% for i in range(5) %}
+            <tr> 
+                <td> <select id="re_recover_{{i}}">
+                    <option value="">-</option>
+                    {% for rtype in data.rtypes %}
+                        <option value="{{rtype[0]}}">{{rtype[0]}} -: {{rtype[1]}}</option>
+                    {% endfor %}
+                    </select>
+                </td>
+                <td id="re_recover_p_{{i}}"> Params Override {{i}} </td>
+                <td><i class="large edit link blue icon"  onclick="edit_definition({{loop.index}});"></i>
+            </tr>
+         {% endfor %}
+	</tbody>
+	<tfoot>
+	  <tr>
+	    <th colspan="3">
+	      <div class="actions">
+		<button class="ui button deny red">Cancel</button>
+		<button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
+	      </div>
+	    </th>
+	  </tr>
+	</tfoot>
+      </table>
+<!--
        <ol>
          {% for i in range(5) %}
          <li> 
            <select id="re_recover_{{i}}">
              <option value="">-</option>
              {% for rtype in data.rtypes %}
-             <option value="{{rtype[0]}}">{{rtype[0]}} -- {{rtype[1]}}</option>
+             <option value="{{rtype[0]}}">{{rtype[0]}} -: {{rtype[1]}}</option>
              {% endfor %}
            </select>
            {%endfor%}
 	 </li>
        </ol>
+
+
       <div class="actions">
        <button class="ui button deny red">Cancel</button>
        <button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
        </div>
+-->
     </div>
-  </div>
-  <div class="ui hidden divider"></div>
+  </div>  <!-- container -->
+ <div class="ui hidden divider"></div>
 </div> <!-- Ends edit_param_modal  -->
+
 <script type="text/javascript">
 
 $('#definition_add_edit_form')
@@ -276,12 +316,21 @@ var ep_parms = [];
 $("#edit_recovery_modal_btn").click(function() {
   listLen = 5;
   var recoveries = $("#ae_definition_recovery_text").val();
+  console.log ('edit_recovery_modal_btn recoveries= ' + recoveries)
   var rlist = JSON.parse(recoveries);
+  console.log ('edit_recovery_modal_btn rlist= ' + rlist)
   var i = 0;
   for (i = 0 ; i < rlist.length; i++ ) {
-      var sel = "#re_recover_"+i.toString()+" option[value="+rlist[i]+"]";
+      console.log ('edit_recovery_modal_btn rlist[i][0]= ' + rlist[i][0])
+  }
+  for (i = 0 ; i < rlist.length; i++ ) {
+      
+      var sel = "#re_recover_"+i.toString()+" option[value="+rlist[i][0]+"]";
+      console.log ('edit_recovery_modal_btn sel= ' + sel)
+      
       $(sel).prop('selected','selected');
   }
+  
   $("#edit_recovery_modal").modal({
     closable  : false,
     onApprove : function(){
@@ -306,9 +355,11 @@ $("#edit_recovery_modal_btn").click(function() {
 
 $("#edit_param_modal_btn").click(function() {
   var parms_str = $("#ae_definition_parameters").val();
+  console.log(' edit_param_modal_btn, parms_str = ' + parms_str);
   if (parms_str != "") {
     //ep_parms = eval ("(" + parms_str + ")");
     ep_parms = JSON.parse(parms_str);
+    console.log(' edit_param_modal_btn, ep_parms = ' + ep_parms);
   }
   ep_build_table_body();
   $("#edit_param_modal").modal({
