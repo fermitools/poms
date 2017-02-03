@@ -32,7 +32,7 @@ class CampaignsPOMS():
         self.poms_service=ps
 
 
-    def launch_template_edit(self, dbhandle, loghandle, seshandle, *args, **kwargs, pcl_call = 0):
+    def launch_template_edit(self, dbhandle, loghandle, seshandle, pcl_call=0, *args, **kwargs):
         data = {}
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
