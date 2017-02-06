@@ -11,27 +11,26 @@ from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getco
 
 from mock_poms_service import mock_poms_service
 from mock_redirect import mock_redirect_exception
+import Mock_jobsub_rm
 import logging
 logger = logging.getLogger('cherrypy.error')
 # when I get one...
 
 mps = mock_poms_service()
+mock_rm=Mock_jobsub_rm.Mock_jobsub_rm()
+
 rpstatus = "200"
+########
 
 #
 # ---------------------------------------
 # utilities to set up tests
-#
-
-
-#
 # test update_job with some set of fields
 #
 def do_update_job(fielddict):
     dbhandle = DBHandle.DBHandle().get()
     samhandle = samweb_lite()
-    
-    
+    #fielddict['status']
     task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
     jid = "%d@fakebatch1.fnal.gov" % time.time()
 
@@ -42,7 +41,7 @@ def do_update_job(fielddict):
     j = dbhandle.query(Job).filter(Job.jobsub_job_id == jid).first()
 
     assert(j != None)
-    
+
     for f,v in fielddict.items():
         if f.startswith('task_'):
             f = f[5:]
@@ -111,3 +110,59 @@ def test_update_job_2():
         'status' : 'running: on full',
     }
     do_update_job(fielddict)
+
+
+def test_update_job_log_scraper():
+    print "testing all the info that the jobscraper pass the job_log_scraper"
+    fielddict = {
+                'status': 'test_status' ,
+                'slot':'finally_something_in_this_field'
+                'output_file_names':'test_file_test_joblogscraper.txt' ,
+                'node_name': 'fake_node_test_joblogscraper',
+                'user_exe_exit_code':'10',
+                'cpu_type': 'Athalon',
+                }
+    do_update_job(fielddict)
+
+
+def test_update_job_q_scraper():
+
+    print "check this from the jobsub_q scrapper"
+    fielddict = {
+                }
+
+
+def test_kill_jobs():
+    task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a task_id for the fake campaign
+    ##Create two jobs with fakes job_id
+    jid = "%d@fakebatch1.fnal.gov" % time.time()
+    mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running')
+    jid2 = "%d@fakebatch1.fnal.gov" % time.time()
+    mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid2, host_site = "fake_host", status = 'running')
+    #I have two jobs in the db as running with the same task_id.
+    ##From jobPOMS.py ===> f = os.popen("jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
+    #output = f.read()
+    #f.close()
+    #mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', task_id=task_id, jobsub_job_id=jid, confirm = "yes")
+    output, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', task_id=task_id, jobsub_job_id=jid, confirm = "yes")
+    assert(output == -G "group" --role "vo role "--jobid "job_id")
+    mock_rm.close()
+
+
+
+    '''
+    fielddict = {
+                'status': 'pipe_test' ,
+                'output_file_names':'test_file.txt' , ##it is up
+                'jobsub_job_id': 'fake_jobsub_id@fakebatch2' ,
+                'node_name': 'fake_node_pipe' ,         ###it is up
+                'taskid': '1234',
+                'user_exe_exit_code':'10',  #it is up
+                'cpu_type': 'Athalon',      #it is up
+                'slot':'finally_something_in_this_field'
+                }
+    '''
+
+
+
+############Do not pay attention to the info below

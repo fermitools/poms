@@ -100,7 +100,7 @@ class JobsPOMS():
                         dbhandle.add(njf)
 
                 dbhandle.delete(ji)
-                dbhandle.flush()  
+                dbhandle.flush()
 
         if not j and task_id:
             t = dbhandle.query(Task).filter(Task.task_id==task_id).first()
@@ -125,7 +125,7 @@ class JobsPOMS():
             loghandle("update_job: updating job %d" % (j.job_id if j.job_id else -1))
 
             # first, Job string fields the db requres be not null:
-            for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:    
+            for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
                 if field == 'status' and j.status == "Located":
                     # stick at Located, don't roll back to Completed,etc.
                     continue
@@ -258,7 +258,10 @@ class JobsPOMS():
         else:
             group = c.experiment
             if group == 'samdev': group = 'fermilab'
-
+            '''
+            if test == true:
+                os.open("echo jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
+            '''
             f = os.popen("jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
             output = f.read()
             f.close()
