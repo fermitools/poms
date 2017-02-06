@@ -193,3 +193,18 @@ def test_workflow_1():
      assert(after_joe['All'] > before_joe['All'])
 
      #assert(False)
+
+def test_show_campaigns():
+     items = mps.camapaignsPOMS.show_campaigns(dbhandle, loghandle, samhandle, experiment = 'samdev' )
+     print items
+     assert(False)
+
+def test_campaign_info(dbhandle, loghandle, campaign_id, ):
+     items = mps.camapaignsPOMS.campaign_info(dbhandle, loghandle, samhandle, err_res, campaign_id = 14 )
+     print items
+     assert(False)
+
+def test_campaign_time_bars
+     items = mps.camapaignsPOMS.campaign_time_bars(dbhandle, campaign_id = 14 )
+
+
