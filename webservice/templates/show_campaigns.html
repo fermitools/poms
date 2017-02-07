@@ -49,10 +49,11 @@
             <select class="ui inline __search dropdown" multiple="multiple" name="exp_selected">
                 <option value="">Experiments</option>
                 {# for c in cl if not c.experiment_obj.restricted or current_experimenter.is_authorized(c.experiment) #}
-		{% if current_experimenter is defined and current_experimenter.extra is defined %}
                 {% for e in experiments %}
                     <!-- e: "{{e}}" "{{e.4}}" -->
+		    {% if current_experimenter is defined and current_experimenter.extra is defined %}
                     <option value="{{e.0}}" {{'selected' if e.4 or e.0 in current_experimenter.extra.selected }}>{{e.0}}</option>
+                    {% endif %}
                 {% endfor %}
 		{% endif %}
             </select>
@@ -186,7 +187,6 @@
          </tr>
 
      {% endfor %}
-     {% endif %}
 
     </table>
   </div>
