@@ -70,37 +70,21 @@ class JobsPOMS():
 
     def bulk_update_job(self, dbhandle, loghandle, rpstatus, samhandle, json_data = '{}'):
         data = json.loads(json_data)
-
-        foundtasks = {}
-        for jid,d in data.items():
-            foundtasks[d['task_id']] = 1
-
-        jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(data.keys())).all()
+        jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id._in(data.keys())).all()
 
         jlist = []
-        foundjobs = {}
         for j in jobs:
-            foundjobs[j.jobsub_job_id] = j
+            foundset[j.jobset_job_id] = 1
             jlist.append(j)
 
-        if len(foundtasks) > 0:
-            tasks = dbhandle.query(Task).filter(Task.task_id.in_(foundtasks.keys())).all()
-        else:
-            tasks = []
-    
-        for t in tasks:
-            foundtasks[t.task_id] = t
-
         for jid in data.keys():
-            if not foundjobs.get(jid, 0):
-                 j = Job(jobsub_job_id = jid, task_obj = foundtasks[data[jid]['task_id']], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle')
-                 j.created = datetime.now(utc)
-                 j.updated = datetime.now(utc)
+            if not foundset.get(jid, 0):
+                 j =Job(jobsub_job_id = jid, task_id = data[jid].task_id)
                  dbhandle.add(j)
                  jlist.append(j)
   
         for j in jlist:
-             self.update_job_common(dbhandle, loghandle, rpstatus, samhandle,    j, data[j.jobsub_job_id])
+             self.update_job_common(dbhandle, data[j.jobsub_job_id])
 
         dbhandle.commit()
 
@@ -159,7 +143,7 @@ class JobsPOMS():
             j.status = 'Idle'
 
         if j:
-            update_job_common(dbhandle,  loghandle, rpstatus, samhandle,  rpstatus, j, kwargs)
+            update_job_common(dbhandle, j, kwargs)
 
             dbhandle.add(j)
             dbhandle.commit()
@@ -172,7 +156,7 @@ class JobsPOMS():
 
         return "Ok."
 
-    def update_job_common(self, dbhandle, loghandle, rpstatus, samhandle, j, kwargs):
+def update_job_common(self, dbhandle, j, kwargs):
 
             loghandle("update_job: updating job %d" % (j.job_id if j.job_id else -1))
 
