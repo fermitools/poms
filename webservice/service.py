@@ -5,7 +5,6 @@ import os
 from datetime import datetime
 from utc import utc
 
-'''
 # make sure poms is setup...
 if os.environ.get("SETUP_POMS","") == "":
     sys.path.insert(0,os.environ.get('SETUPS_DIR',os.environ.get('HOME')+'/products'))
@@ -15,7 +14,6 @@ if os.environ.get("SETUP_POMS","") == "":
     ups.use_package("poms","","SETUP_POMS")
 else:
     print "already setup"
-'''
 
 
 from model.poms_model import Experimenter, ExperimentsExperimenters
