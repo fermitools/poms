@@ -159,7 +159,7 @@ class JobsPOMS():
             j.status = 'Idle'
 
         if j:
-            update_job_common(dbhandle,  loghandle, rpstatus, samhandle,  rpstatus, j, kwargs)
+            self.update_job_common(dbhandle,  loghandle, rpstatus, samhandle, j, kwargs)
 
             dbhandle.add(j)
             dbhandle.commit()

@@ -124,7 +124,10 @@ def test_bulk_update_job():
     
     mps.jobsPOMS.bulk_update_job(dbhandle, logger.info, rpstatus, samhandle, json.dumps(data) )
     
-    assert(False)
+    for jid in jids:
+        j = dbhandle.query(Job).filter(Job.jobsub_job_id == jid).first()
+        assert(jid != None)
+
 
 def test_update_job_2():
     # try updating lots of parameters

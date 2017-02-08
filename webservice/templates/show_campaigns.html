@@ -51,11 +51,14 @@
                 {# for c in cl if not c.experiment_obj.restricted or current_experimenter.is_authorized(c.experiment) #}
                 {% for e in experiments %}
                     <!-- e: "{{e}}" "{{e.4}}" -->
-		    {% if current_experimenter is defined and current_experimenter.extra is defined %}
-                    <option value="{{e.0}}" {{'selected' if e.4 or e.0 in current_experimenter.extra.selected }}>{{e.0}}</option>
+                    {% if current_experimenter.extra %}
+                      <option value="{{e.0}}" {{'selected' if e.4 or e.0 in current_experimenter.extra.selected }}>{{e.0}}</option>
+                    {% else %}
+                        {% if not e.restricted %}
+                            <option value="{{e.0}}" {{'selected' if False }}>{{e.0}}</option>
+                        {% endif %}
                     {% endif %}
                 {% endfor %}
-		{% endif %}
             </select>
 <!--
             <div class="ui compact inline __primary submit button">Save</div>
@@ -146,8 +149,7 @@
 
      {# for c in cl if not c.experiment_obj.restricted or current_experimenter.is_authorized(c.experiment) #}
      {# for c in cl if not c.experiment_obj.restricted or c.experiment in current_experimenter.extra.selected #}
-    {% if current_experimenter is defined and current_experimenter.extra is defined %}
-     {% for c in cl if c.experiment in current_experimenter.extra.selected %}
+     {% for c in cl if current_experimenter.extra and c.experiment in current_experimenter.extra.selected %}
      {% set outer_loop = loop %}
             <tr>
             <td>{{c.experiment}}</td>
