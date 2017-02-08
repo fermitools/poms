@@ -138,7 +138,7 @@ class Files_status():
                             [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
                             [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                             ])
-            return c, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
+        return c, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
 
             ###I didn't include tdays, campaign_id, because it was passed as an argument, should I?????
             #DELETE template = self.jinja_env.get_template('campaign_task_files.html')

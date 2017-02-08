@@ -18,6 +18,11 @@ class samweb_lite:
         self.proj_cache_time = {}
         self.valid = 60
 
+    def flush(self):
+        self.proj_cache = None
+        self.proj_cache_time = None
+        self.valid = 0
+
     def have_cache(self, experiment, projid):
         t = self.proj_cache_time.get(experiment+projid, 0)
         p = self.proj_cache.get(experiment+projid, None)

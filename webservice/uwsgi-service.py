@@ -100,6 +100,9 @@ class SATool(cherrypy.Tool):
         cherrypy.request.samweb_lite = self.samweb_lite
 
     def release_session(self):
+        cherrypy.request.jobsub_fetcher.flush()
+        cherrypy.request.samweb_lite.flush() 
+        cherrypy.request.db.close()
         cherrypy.request.db = None
         cherrypy.request.jobsub_fetcher = None
         cherrypy.request.samweb_lite = None
