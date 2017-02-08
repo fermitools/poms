@@ -46,10 +46,11 @@ def get_base_url():
 def setUpPoms():
     print "************* SETTING UP POMS *************"
     try:
-        proc = subprocess.Popen("cd ../ && source /fnal/ups/etc/setups.sh && setup -. poms && cd webservice/ && python service.py &", shell=True)
+        # proc = subprocess.Popen("cd ../ && source /fnal/ups/etc/setups.sh && setup -. poms && cd webservice/ && python service.py &", shell=True)
+        proc = subprocess.Popen("(cd /home/podstvkv/Workspace/Poms/; ./run-uwsgi-test.sh) &", shell=True)
     except OSError as e:
         print >>sys.stderr, "Execution failed:", e
-    time.sleep(10)
+    time.sleep(3)
 
 
 def tearDownPoms():
