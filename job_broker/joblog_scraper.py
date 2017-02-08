@@ -205,25 +205,32 @@ if __name__ == '__main__':
    debug = 0
    if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
+        sys.argv = sys.argv[1:]
 
-    server = "http://localhost:8080/poms"
-    if len(sys.argv) > 1 and sys.argv[1] == "-t":
+   server = "http://localhost:8080/poms"
+   testing = False
+   if len(sys.argv) > 1 and sys.argv[1] == "-t":
+        print "doing test flag"
         server = "http://localhost:8888/poms"
+        testing = True
+        sys.argv = sys.argv[1:]
 
-   js = joblog_scraper( job_reporter(server, debug), debug)
+   js = joblog_scraper( job_reporter(server, debug=debug, namespace = "profiling.apps.poms.probes.joblog_scraper"), debug)
    while 1:
       if debug:
            print "Starting..."
       try:
-          h = open("/home/poms/private/rsyslogd/joblog_fifo","r")
-          # for testing
-          #h = open("/tmp/mengel_jobs","r")
+          if testing:
+              h = open(os.environ['TEST_JOBLOG'],"r")
+          else:
+              h = open("/home/poms/private/rsyslogd/joblog_fifo","r")
           if debug:
              print "re-reading...";
 
           js.scan(h)
-          # for testing
-          #break
+
+          if testing:
+              break
 
       except KeyboardInterrupt:
           break
@@ -232,4 +239,4 @@ if __name__ == '__main__':
           print time.asctime(), "Exception!"
           traceback.print_exc()
           pass
-
+   js.job_reporter.cleanup()

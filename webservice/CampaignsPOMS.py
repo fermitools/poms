@@ -7,6 +7,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from model.poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
     LaunchTemplate, CampaignDefinition, CampaignRecovery,
     CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
@@ -37,6 +38,8 @@ class CampaignsPOMS():
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
+        pcl_call = kwargs.pop('pcl_call', 0)
+        pc_email = kwargs.pop('pc_email',None)
         if action == 'delete':
             name = kwargs.pop('name')
             try:
@@ -49,12 +52,27 @@ class CampaignsPOMS():
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
-            ae_launch_id = kwargs.pop('ae_launch_id')
-            ae_launch_name = kwargs.pop('ae_launch_name')
-            ae_launch_host = kwargs.pop('ae_launch_host')
-            ae_launch_account = kwargs.pop('ae_launch_account')
-            ae_launch_setup = kwargs.pop('ae_launch_setup')
-            experimenter_id = kwargs.pop('experimenter_id')
+            if pcl_call == 1:
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
+                ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_id
+                ae_launch_name = kwargs.pop('ae_launch_name')
+                ae_launch_host = kwargs.pop('ae_launch_host')
+                ae_launch_account = kwargs.pop('ae_launch_account')
+                ae_launch_setup = kwargs.pop('ae_launch_setup')
+                if ae_launch_host in [None,""]:
+                    ae_launch_host=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_host
+                if ae_launch_account in [None,""]:
+                    ae_launch_account=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_account
+                if ae_launch_setup in [None,""]:
+                    ae_launch_account=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_setup
+            else:
+                ae_launch_name = kwargs.pop('ae_launch_name')
+                ae_launch_id = kwargs.pop('ae_launch_id')
+                experimenter_id = kwargs.pop('experimenter_id')
+                ae_launch_host = kwargs.pop('ae_launch_host')
+                ae_launch_account = kwargs.pop('ae_launch_account')
+                ae_launch_setup = kwargs.pop('ae_launch_setup')
+
             try:
                 if action == 'add':
                     template = LaunchTemplate(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host, launch_account=ae_launch_account,
@@ -107,7 +125,7 @@ class CampaignsPOMS():
                 message = "The campaign definition, %s, has been used and may not be deleted." % name
                 loghandle(message)
                 loghandle(e.message)
-                loghandle.rollback()
+                dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
@@ -182,9 +200,9 @@ class CampaignsPOMS():
                     .filter(CampaignRecovery.campaign_definition_id == cid,CampaignDefinition.experiment == exp)
                     .order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
                 rec_list  = []
-            for rec in recs:
-                rec_list.append(rec.recovery_type.name )
-            recs_dict[cid] = json.dumps(rec_list)
+		for rec in recs:
+		    rec_list.append(rec.recovery_type.name )
+		recs_dict[cid] = json.dumps(rec_list)
             data['recoveries'] = recs_dict
             data['rtypes'] = (dbhandle.query(RecoveryType.name,RecoveryType.description).order_by(RecoveryType.name).all())
 
@@ -510,7 +528,7 @@ class CampaignsPOMS():
 
          ld = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.name.like("%generic%"), LaunchTemplate.experiment == experiment).first()
 
-         dbhandle("campaign_definition = %s " % cd)
+         loghandle("campaign_definition = %s " % cd)
 
          c = dbhandle.query(Campaign).filter( Campaign.experiment == experiment, Campaign.name == campaign_name).first()
          if c:
@@ -530,7 +548,7 @@ class CampaignsPOMS():
                c.experimenter = user
                changed = True
 
-         dbhandle("register_campaign -- campaign is %s" % c.__dict__)
+         loghandle("register_campaign -- campaign is %s" % c.__dict__)
 
          if changed:
                 c.updated = datetime.now(utc)
@@ -579,7 +597,7 @@ class CampaignsPOMS():
             dbhandle.add(camp)
             dbhandle.commit()
 
-        elif ( camp.cs_split_type.startswith('new(') or 
+        elif ( camp.cs_split_type.startswith('new(') or
              camp.cs_split_type == 'new' or
              camp.cs_split_type == 'new_local' ):
 
@@ -614,10 +632,10 @@ class CampaignsPOMS():
             twindow = int(twindow) - (int(twindow) % int(tround))
 
             # pick a boundary time, which will be our default start time
-            # if we've not been run before, and also as a boundary to 
-            # say we have nothing to do yet if our last run isnt that far 
-            # back... 
-	    #   go back one time window (plus fts delay) and then 
+            # if we've not been run before, and also as a boundary to
+            # say we have nothing to do yet if our last run isnt that far
+            # back...
+	    #   go back one time window (plus fts delay) and then
             # round down to nearest tround to get a start time...
 	    # then later ones should come out even.
 

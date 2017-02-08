@@ -498,9 +498,8 @@ class poms_service:
 
     @cherrypy.expose
     def report_declared_files(self, flist):
-        now =  datetime.now(utc)
-        cherrypy.request.db.query(JobFile).filter(JobFile.file_name.in_(flist)).update({JobFile.declared: now}, synchronize_session=False)
-        cherrypy.request.db.commit()
+        self.filesPOMS.report_declared_files(flist, cherrypy.request.db)
+        return "Ok."
 
 
     @cherrypy.expose
@@ -737,7 +736,7 @@ class poms_service:
         (job_file_list, job_info, job_history,
             downtimes, output_file_names_list,
             es_response, efficiency,
-            tmin, task_jobsub_job_id) = self.triagePOMS.triage_job(cherrypy.request.db, job_id, tmin, tmax, tdays, force_reload)
+            tmin, task_jobsub_job_id) = self.triagePOMS.triage_job(cherrypy.request.db, cherrypy.request.jobsub_fetcher, cherrypy.config, job_id, tmin, tmax, tdays, force_reload)
         template = self.jinja_env.get_template('triage_job.html')
         return template.render(job_id=job_id,
                                 job_file_list=job_file_list,

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+from os import system as os_system
 import thread
 
 class jobsub_fetcher():
@@ -19,7 +20,7 @@ class jobsub_fetcher():
 
     def __del__(self):
          if self.workdir:
-              os.system("rm -rf %s" % self.workdir)
+              os_system("rm -rf %s" % self.workdir)
 
     def fetch(self, jobsubjobid, group, role, force_reload = False, user = None):
          if group == "samdev": group = "fermilab"

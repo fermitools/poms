@@ -1,4 +1,6 @@
+#!/usr/bin/env python
 import StringIO
+import BaseHTTPServer
 import SimpleHTTPServer
 import SocketServer
 import sys
@@ -27,12 +29,22 @@ class MyHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
      def do_POST(self):
           content_length = int(self.headers['Content-Length'])
           pd = self.rfile.read(content_length)
-          sys.stderr.write("\nPOST data: ------\n%s\n------\n" % pd)
+          sys.stderr.write('post_data = {"%s"}\n' % pd.replace('=','": "').replace('&','","'))
           sys.stderr.flush()
           return self.do_GET()
          
-httpd = SocketServer.TCPServer(("127.0.0.1",PORT), MyHandler)
+def run_while_true(server_class = BaseHTTPServer.HTTPServer,
+                    handler_class = MyHandler):
+    keep_running = True
+    server_address = ('127.0.0.1',PORT)
+    httpd = server_class(server_address, handler_class)
+    while keep_running:
+         try:
+            httpd.handle_request()
+         except KeyboardInterrupt:
+            #print "bailing..."
+            keep_running = False
 
 print "serving at port", PORT
-httpd.serve_forever()
 
+run_while_true()

@@ -5,6 +5,7 @@ import os
 import re
 import urllib2
 import urllib
+import httplib
 import json
 import concurrent.futures
 import Queue
@@ -26,24 +27,35 @@ class job_reporter:
         self.debug = debug
         self.work = Queue.Queue()
         self.wthreads = []
+        self.nthreads = nthreads
         for i in range(nthreads):
             self.wthreads.append(threading.Thread(target=self.runqueue))
             #self.wthreads[i].daemon = True
             self.wthreads[i].start()
+
+    def check(self):
+        # make sure we still have nthreads reporting threads
+        for i in range(self.nthreads):
+            if not(self.wthreads[i].isAlive()):
+                self.wthreads[i].join(0.1)
+                self.wthreads[i] = threading.Thread(target=self.runqueue) 
+                self.wthreads[i].start()
 
     def bail(self):
         print "thread: %d -- bailing" % thread.get_ident()
         raise KeyboardInterrupt("just quitting a thread")
 
     def runqueue(self):
-        try:
-            while 1:
+	while 1:
+            try:
                 d = self.work.get(block = True)
                 d['f'](*d['args'], **d['kwargs'])
-        except KeyboardInterrupt:
-            pass
-        except:
-            raise
+            except KeyboardInterrupt:
+                break
+            except:
+                print "Unhandled exception", sys.exc_info()
+                time.sleep(1)
+                pass
   
     def cleanup(self):
         # first tell threads to exit
@@ -55,6 +67,7 @@ class job_reporter:
             wth.join()
 
     def report_status(self,  jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
+        self.check()
         self.work.put({'f':job_reporter.actually_report_status, 'args': [ self, jobsub_job_id, taskid, status, cpu_type, slot], 'kwargs': kwargs})
 
     def actually_report_status(self, jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
@@ -80,7 +93,7 @@ class job_reporter:
 		uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
 		res = uh.read()
                 uh.close()
-		#sys.stderr.write("response: %s\n" % res)
+		if self.debug: sys.stderr.write("response: %s\n" % res)
 
                 del uh
                 uh = None
@@ -121,7 +134,29 @@ class job_reporter:
                 del e
                 time.sleep(5)
                 retries = retries - 1
+	    except (httplib.BadStatusLine) as e:
+                if uh:
+                    uh.read()
+                    uh.close()
+                    del uh
+                    uh = None
+		errtext = str(e)
+		sys.stderr.write("Exception:" + errtext)
+		sys.stderr.write("\n--------\n")
+                sys.stderr.flush()
+                del e
+                time.sleep(5)
+                retries = retries - 1
                 
+	    except (KeyboardInterrupt):
+                raise
+
+	    except (Exception) as e:
+		errtext = str(e)
+		sys.stderr.write("Unknown Exception:" + errtext + sys.exc_info())
+		sys.stderr.write("\n--------\n")
+                sys.stderr.flush()
+                raise
 
 if __name__ == '__main__':
     print "self test:"
