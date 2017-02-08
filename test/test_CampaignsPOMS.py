@@ -5,7 +5,7 @@ import os
 import socket
 from webservice.utc import utc
 from webservice.samweb_lite import samweb_lite
-from model.poms_model import Campaign, CampaignDefinition, LaunchTemplate
+from model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Task
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -196,18 +196,30 @@ def test_workflow_1():
      #assert(False)
 
 def test_show_campaigns():
-     items = mps.campaignsPOMS.show_campaigns(dbhandle, loghandle, samhandle, experiment = 'samdev' )
-     print items
-     assert(False)
+     items = mps.campaignsPOMS.show_campaigns(dbhandle, logger.info, samweb_lite(), experiment = 'samdev' )
+     found = False
+
+     for c in items[2]:
+         if c.name == '_fred':
+             found=True
+     assert(found)
 
 def test_campaign_info():
-     items = mps.campaignsPOMS.campaign_info(dbhandle, loghandle, samhandle, err_res, campaign_id = 14 )
-     print items
-     assert(False)
+     c = dbh.get().query(Campaign).filter(Campaign.name=='_fred').first()
+
+     items = mps.campaignsPOMS.campaign_info(dbhandle, logger.info, samweb_lite(), err_res, campaign_id = c.campaign_id )
+
+     assert(items[0][0].name == '_fred')
 
 def test_campaign_time_bars():
-     items = mps.campaignsPOMS.campaign_time_bars(dbhandle, campaign_id = 14 )
-     print items
-     assert(False)
+     campaign_id = dbh.get().query(Campaign).filter(Campaign.name=='_fred').first().campaign_id
+     items = mps.campaignsPOMS.campaign_time_bars(dbhandle, campaign_id = campaign_id )
 
+     task = dbh.get().query(Task).filter(Task.campaign_id == campaign_id).order_by(Task.created.desc()).first()
+
+     l = []
+     for j in task.jobs:
+         l.append(j.jobsub_job_id)
+     l.sort()
+     assert(str(items).find(l[0].replace('.fnal.gov','')) > 0)
 
