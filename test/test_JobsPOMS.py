@@ -134,18 +134,29 @@ def test_update_job_q_scraper():
 
 def test_kill_jobs():
     task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a task_id for the fake campaign
+    task_id2 = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a task_id for the second task
+
     ##Create two jobs with fakes job_id
-    jid = "%d@fakebatch1.fnal.gov" % time.time()
+    jid = "%d@fakebatch1.fnal.gov" % time.time() #1 Job in the first task_id
     mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running')
-    jid2 = "%d@fakebatch1.fnal.gov" % time.time()
+    jid2 = "%d@fakebatch1.fnal.gov" % time.time()#2Job in the first task_id
     mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid2, host_site = "fake_host", status = 'running')
-    #I have two jobs in the db as running with the same task_id.
-    ##From jobPOMS.py ===> f = os.popen("jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
-    #output = f.read()
-    #f.close()
-    #mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', task_id=task_id, jobsub_job_id=jid, confirm = "yes")
+    jid3 = "%d@fakebatch1.fnal.gov" % time.time() #3Job in a new task_id but same campaign
+    mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id2, jobsub_job_id = jid3, host_site = "fake_host", status = 'running')
     output, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', task_id=task_id, jobsub_job_id=jid, confirm = "yes")
-    assert(output == -G "group" --role "vo role "--jobid "job_id")
+    c_output_killjob = "-G Analysis --role fermilab --jobid "+jid #Control output
+    c_output_killTask = "-G Analysis --role fermilab --jobid "+jid+","+jid2 #Control output
+    c_output_killCampaign ="-G Analysis --role fermilab --jobid "+jid+","+jid2+","+jid3
+    assert(output == c_output)
+    output, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', task_id=task_id, confirm = "yes")
+    assert(output == c_output_killTask)
+    output, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', confirm = "yes")
+    assert(output == c_output_killCampaign)
+    jid4 = "%d@fakebatch1.fnal.gov" % time.time()
+    mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid4, host_site = "fake_host", status = 'Completed')
+    assert(output == c_output_killCampaign)
+
+
     mock_rm.close()
 
 
