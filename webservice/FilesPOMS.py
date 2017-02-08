@@ -24,11 +24,11 @@ class Files_status():
         #DELETE: template = self.poms_service.jinja_env.get_template('list_task_logged_files.html')
         #return template.render(fl = fl, campaign = t.campaign_snap_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
 
-    def campaign_task_files(self, dbhandle, loghandle, samhandle, campaign_id, tmin = None, tmax = None, tdays = 1):
+    def campaign_task_files(self, dbhandle, loghandle, samhandle, campaign_id, tmin=None, tmax=None, tdays=1):
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'campaign_task_files?campaign_id=%s&' % campaign_id)
         # inhale all the campaign related task info for the time window
         # in one fell swoop
-        tl = (    dbhandle.query(Task).
+        tl = (dbhandle.query(Task).
                 options(joinedload(Task.campaign_snap_obj)).
                 options(joinedload(Task.campaign_snap_obj)).
                 options(joinedload(Task.jobs).joinedload(Job.job_files)).

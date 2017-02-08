@@ -41,7 +41,6 @@ class samweb_lite:
         try:
             res = requests.get(url)
             info = res.json()
-            res.close()
             self.do_totals(info)
             self.proj_cache[experiment+projid] = info
             self.proj_cache_time[experiment+projid] = time.time()
@@ -49,6 +48,9 @@ class samweb_lite:
         except:
             traceback.print_exc()
             return {}
+        finally:
+            res.close()
+
 
     def fetch_info_list(self, task_list):
         """
@@ -62,13 +64,13 @@ class samweb_lite:
         for r in replies:
             try:
                 info = r.json()
-                r.close()
                 self.do_totals(info)
                 infos.append(info)
             except:
-                r.close()
                 traceback.print_exc()
                 infos.append({})
+            finally:
+                r.close()
         return infos
 
     def do_totals(self,info):
@@ -97,37 +99,40 @@ class samweb_lite:
                 base, experiment, experiment, projname)
         r1 = None
         try:
-            res = requests.post(url,params={"description":desc})
+            res = requests.post(url, params={"description":desc})
             r1 = res.read()
-            res.close()
         except:
             pass # for now, this is not turned on in SAM yet, so ignore
             # traceback.print_exc()
+        finally:
+            res.close()
         return r1
- 
+
     def list_files(self, experiment, dims):
         base = "http://samweb.fnal.gov:8480"
         url="%s/sam/%s/api/files/list" % (base,experiment)
         try:
-            res = requests.get(url,params={"dims":dims,"format":"json"})
+            res = requests.get(url, params={"dims":dims, "format":"json"})
             fl = res.json()
-            res.close()
         except:
             traceback.print_exc()
             fl = []
+        finally:
+            res.close()
         return fl
 
     def count_files(self,experiment,dims):
         base = "http://samweb.fnal.gov:8480"
         url="%s/sam/%s/api/files/count" % (base,experiment)
         try:
-            res = requests.get(url,params={"dims":dims})
+            res = requests.get(url, params={"dims":dims})
             text = res.content
             count = int(text)
-            res.close()
         except:
             traceback.print_exc()
             count = 0
+        finally:
+            res.close()
         return count
 
     def count_files_list(self, experiment, dims_list ):
@@ -141,7 +146,7 @@ class samweb_lite:
                retries = retries - 1
                r =  requests.get(url,verify=False)
             return r
-               
+
         # if given an individual experiment, make it a list for
         # all the fetches
         if isinstance(experiment,basestring):
@@ -155,33 +160,36 @@ class samweb_lite:
         for r in replies:
             if r.text.find("query limit") > 0:
                 infos.append(-1)
-            else:     
+            else:
                 try:
-                   infos.append(int(r.text)) 
+                   infos.append(int(r.text))
                 except:
-                   infos.append(-1) 
+                   infos.append(-1)
             r.close()
         return infos
 
     def create_definition(self, experiment, name, dims):
-        cherrypy.log("create_definition( %s, %s, %s )" % (experiment,name,dims))
+        cherrypy.log("create_definition( %s, %s, %s )" % (experiment, name, dims))
         base = "https://samweb.fnal.gov:8483"
         path = "/sam/%s/api/definitions/create" %  experiment
-        url = "%s%s" % (base,path)
+        url = "%s%s" % (base, path)
 
-        pdict = None
+        pdict = {"defname": name, "dims": dims, "user": "sam", "group": experiment}
+        cherrypy.log("create_definition: calling: %s with %s " % (url, pdict))
         try:
-  
-            pdict = {"defname": name, "dims":dims,"user":"sam", "group": experiment}
-            cherrypy.log("create_definition: calling: %s with %s " % (url,pdict))
-            res = requests.post(url,data=pdict,verify=False,cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"],os.environ["USER"]),"%s/private/gsi/%skey.pem" % (os.environ["HOME"],os.environ["USER"])))
- 
+            res = requests.post(url,
+                    data=pdict,
+                    verify=False,
+                    cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
+                          "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]))
+                  )
             text = res.content
-            cherrypy.log("definitions/create reuturns: %s" % text)
-            res.close()
+            cherrypy.log("definitions/create returns: %s" % text)
         except Exception as e:
-            cherrypy.log( "Exception creating definition: url %s args %s exception %s" % ( url, pdict, e.args))
+            cherrypy.log("Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
             return "Fail."
+        finally:
+            res.close()
         return text
 
 if __name__ == "__main__":
