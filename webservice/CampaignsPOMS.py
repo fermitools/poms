@@ -362,7 +362,7 @@ class CampaignsPOMS():
 
     def new_task_for_campaign(dbhandle , campaign_name, command_executed, experimenter_name, dataset_name = None):
         c = dbhandle.query(Campaign).filter(Campaign.name == campaign_name).first()
-        e = dbhandle.query(Experimenter).filter(like_)(Experimenter.email,"%s@%%" % experimenter_name ).first()
+        e = dbhandle.query(Experimenter).filter(Experimenter.email.ilike("%s@%%" % experimenter_name)).first()
         t = Task()
         t.campaign_id = c.campaign_id
         t.campaign_definition_id = c.campaign_definition_id
@@ -516,7 +516,7 @@ class CampaignsPOMS():
          if user == None:
               user = 4
          else:
-              u = dbhandle.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
+              u = dbhandle.query(Experimenter).filter(Experimenter.email.ilike("%s@%%" % user)).first()
               if u:
                    user = u.experimenter_id
 
@@ -524,9 +524,9 @@ class CampaignsPOMS():
          if campaign_definition != None and campaign_definition != "None":
               cd = dbhandle.query(CampaignDefinition).filter(Campaign.name == campaign_definition, Campaign.experiment == experiment).first()
          else:
-              cd = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name.like("%generic%"), Campaign.experiment == experiment).first()
+              cd = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name.ilike("%generic%"), Campaign.experiment == experiment).first()
 
-         ld = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.name.like("%generic%"), LaunchTemplate.experiment == experiment).first()
+         ld = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.name.ilike("%generic%"), LaunchTemplate.experiment == experiment).first()
 
          loghandle("campaign_definition = %s " % cd)
 

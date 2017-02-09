@@ -6,17 +6,6 @@ import atexit
 from paste.exceptions.errormiddleware import ErrorMiddleware
 from repoze.errorlog import ErrorLog
 
-'''
-# make sure poms is setup...
-if os.environ.get("SETUP_POMS","") == "":
-    sys.path.insert(0,os.environ.get('SETUPS_DIR',os.environ.get('HOME')+'/products'))
-    import setups
-    print "setting up poms..."
-    ups = setups.setups()
-    ups.use_package("poms","","SETUP_POMS")
-else:
-    print "already setup"
-'''
 
 from model.poms_model import Experimenter, ExperimentsExperimenters
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
@@ -111,6 +100,9 @@ class SATool(cherrypy.Tool):
         cherrypy.request.samweb_lite = self.samweb_lite
 
     def release_session(self):
+        cherrypy.request.jobsub_fetcher.flush()
+        cherrypy.request.samweb_lite.flush() 
+        cherrypy.request.db.close()
         cherrypy.request.db = None
         cherrypy.request.jobsub_fetcher = None
         cherrypy.request.samweb_lite = None
@@ -311,3 +303,4 @@ if True:
     application = cherrypy.tree
     #application = ErrorMiddleware(application, debug=True)
     #application = ErrorLog(application, channel=None, keep=20, path='/__error_log__', ignored_exceptions=())
+# END

@@ -10,6 +10,7 @@ from model.poms_model import Campaign, CampaignDefinition, LaunchTemplate
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
 dbh = DBHandle.DBHandle()
+dbhandle = dbh.get()
 from mock_poms_service import mock_poms_service
 from mock_redirect import mock_redirect_exception
 import logging
@@ -193,3 +194,20 @@ def test_workflow_1():
      assert(after_joe['All'] > before_joe['All'])
 
      #assert(False)
+
+def test_show_campaigns():
+     items = mps.campaignsPOMS.show_campaigns(dbhandle, loghandle, samhandle, experiment = 'samdev' )
+     print items
+     assert(False)
+
+def test_campaign_info():
+     items = mps.campaignsPOMS.campaign_info(dbhandle, loghandle, samhandle, err_res, campaign_id = 14 )
+     print items
+     assert(False)
+
+def test_campaign_time_bars():
+     items = mps.campaignsPOMS.campaign_time_bars(dbhandle, campaign_id = 14 )
+     print items
+     assert(False)
+
+
