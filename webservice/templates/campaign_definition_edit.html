@@ -44,6 +44,8 @@
   </select>
 
   {% if data.curr_experiment is defined %} 
+<div id="double-scroll" class="scrollable">
+
   <table class="ui sortable single line celled table">
     <thead>
       <tr>
@@ -98,6 +100,7 @@
       </tr>
     </tfoot>
   </table>
+</div>
   {% endif %}
   <input type="hidden" id="action" name="action" value="find">
 </form>
@@ -223,7 +226,7 @@
 <div class="ui large modal" id="edit_recovery_modal">
   <i class="close icon"></i>
   <div class="header">
-    Definition Recovery Editor
+    Definition Recovery Editor MVI
   </div>
 <div class="ui text _container">
     <div class="_scrollable">
@@ -246,7 +249,7 @@
                     {% endfor %}
                     </select>
                 </td>
-                <td id="re_recover_p_{{i}}"> Params Override {{i}} </td>
+                <td id="re_recover_p_{{i}}"> PO {{i}} </td>
                 <td><i class="large edit link blue icon"  onclick="edit_definition({{loop.index}});"></i>
             </tr>
          {% endfor %}
@@ -285,7 +288,7 @@
     </div>
   </div>  <!-- container -->
  <div class="ui hidden divider"></div>
-</div> <!-- Ends edit_param_modal  -->
+</div> <!-- Ends edit_recovery_modal  -->
 
 <script type="text/javascript">
 
@@ -326,7 +329,7 @@ $("#edit_recovery_modal_btn").click(function() {
   for (i = 0 ; i < rlist.length; i++ ) {
       
       var sel = "#re_recover_"+i.toString()+" option[value="+rlist[i][0]+"]";
-      console.log ('edit_recovery_modal_btn sel= ' + sel)
+      console.log ('edit_recovery_modal_btn sel= ' + sel + ' oparms = ' +  rlist[i][1])
       
       $(sel).prop('selected','selected');
   }
@@ -533,6 +536,10 @@ $(document).ready(function(){
 $('#cdf_experiment')
   .dropdown()
 ;
+
+$(document).ready(function(){
+  $('#double-scroll').doubleScroll();
+});
 
 </script>
 
