@@ -34,8 +34,8 @@ def fake_out_kerberos():
 
 def add_mock_job_launcher():
 
-    campaign_definition = dbh.get().query(CampaignDefinition).filter(CampaignDefinition.name=='test_launch_mock_job').first()
-    launch = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local').first()
+    campaign_definition = dbh.get().query(CampaignDefinition).filter(CampaignDefinition.name=='test_launch_mock_job_generic').first()
+    launch = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local_generic').first()
 
     if campaign_definition or launch:
         print "Hm.. some already exist?"
@@ -48,7 +48,7 @@ def add_mock_job_launcher():
 	   logger.info, 
 	   camp_seshandle, 
 	   action = 'add',
-	   ae_launch_name= 'test_launch_local',
+	   ae_launch_name= 'test_launch_local_generic',
 	   ae_launch_id ='',
 	   ae_launch_host = fqdn,
 	   ae_launch_account =  os.environ['USER'],      
@@ -64,7 +64,7 @@ def add_mock_job_launcher():
 	   camp_seshandle, 
 	   action = 'add',
 	   ae_campaign_definition_id = '',
-	   ae_definition_name = 'test_launch_mock_job',
+	   ae_definition_name = 'test_launch_mock_job_generic',
 	   ae_input_files_per_job = '0',
 	   ae_output_files_per_job = '0',
 	   ae_output_file_patterns = '%',
@@ -76,8 +76,8 @@ def add_mock_job_launcher():
 	)
 
 def del_mock_job_launcher():
-    campaign_definition = dbh.get().query(CampaignDefinition).filter(CampaignDefinition.name=='test_launch_mock_job').first()
-    launch = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local').first()
+    campaign_definition = dbh.get().query(CampaignDefinition).filter(CampaignDefinition.name=='test_launch_mock_job_generic').first()
+    launch = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local_generic').first()
     
     if launch:
         launch_id = launch.launch_id
@@ -86,7 +86,7 @@ def del_mock_job_launcher():
 	    logger.info, 
 	    camp_seshandle, 
 	    action = 'delete',
-	    name= 'test_launch_local',
+	    name= 'test_launch_local_generic',
 	    ae_launch_id = launch_id
 	)
     if campaign_definition:
@@ -96,14 +96,14 @@ def del_mock_job_launcher():
 	    logger.info, 
 	    camp_seshandle, 
 	    action = 'delete',
-	    name = 'test_launch_mock_job',
+	    name = 'test_launch_mock_job_generic',
 	    campaign_definition_id = campaign_definition_id,
 	)
 
 def add_campaign(name, deps, dataset = None, split = 'None'):
     campaign = dbh.get().query(Campaign).filter(Campaign.name=='name').first()
-    campaign_definition = dbh.get().query(CampaignDefinition).filter(CampaignDefinition.name=='test_launch_mock_job').first()
-    launch = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local').first()
+    campaign_definition = dbh.get().query(CampaignDefinition).filter(CampaignDefinition.name=='test_launch_mock_job_generic').first()
+    launch = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local_generic').first()
 
     if campaign:
         print "campaign %s already exists..." % name
@@ -196,6 +196,8 @@ def test_workflow_1():
      #assert(False)
 
 def test_show_campaigns():
+     # NOTE: this assumes someone has run the test_workflow_1 test sometime
+     #       recently. Otherwise we might not have the _fred campaign
      items = mps.campaignsPOMS.show_campaigns(dbhandle, logger.info, samweb_lite(), experiment = 'samdev' )
      found = False
 
@@ -205,6 +207,8 @@ def test_show_campaigns():
      assert(found)
 
 def test_campaign_info():
+     # NOTE: this assumes someone has run the test_workflow_1 test sometime
+     #       recently. Otherwise we might not have the _fred campaign
      c = dbh.get().query(Campaign).filter(Campaign.name=='_fred').first()
 
      items = mps.campaignsPOMS.campaign_info(dbhandle, logger.info, samweb_lite(), err_res, campaign_id = c.campaign_id )
@@ -212,6 +216,9 @@ def test_campaign_info():
      assert(items[0][0].name == '_fred')
 
 def test_campaign_time_bars():
+     # NOTE: this assumes someone has run the test_workflow_1 test sometime
+     #       recently. Otherwise we might not the most recent task id
+     #       for the _fred campaign in the time bars...
      campaign_id = dbh.get().query(Campaign).filter(Campaign.name=='_fred').first().campaign_id
      items = mps.campaignsPOMS.campaign_time_bars(dbhandle, campaign_id = campaign_id )
 
@@ -223,3 +230,85 @@ def test_campaign_time_bars():
      l.sort()
      assert(str(items).find(l[0].replace('.fnal.gov','')) > 0)
 
+def test_register_existing_campaign():
+     
+    mps.campaignsPOMS.register_poms_campaign(
+        dbh.get(), 
+        logger.info, 
+        'samdev',
+        '_fred',
+        version = 'v1_0',
+        role = 'Analysis'
+     )
+
+def test_register_new_campaign():
+    # Note: this assumes we have a *generic* launch type and campaign def
+    mps.campaignsPOMS.register_poms_campaign(
+        dbh.get(), 
+        logger.info, 
+        'samdev',
+        'test_%d' % time.time() ,
+        version = 'v1_0',
+        role = 'Analysis'
+     )
+
+def test_register_new_campaign_2():
+    # Note: this assumes we have a *generic* launch type and campaign def
+    mps.campaignsPOMS.register_poms_campaign(
+        dbh.get(), 
+        logger.info, 
+        'samdev',
+        'test_%d' % time.time() ,
+        version = 'v1_0',
+        role = 'Analysis',
+        dataset = 'foobie'
+     )
+
+def test_update_launch_schedule():
+    campaign_id = dbh.get().query(Campaign).filter(Campaign.name=='_fred').first().campaign_id
+
+    mps.campaignsPOMS.update_launch_schedule(logger.info, campaign_id, dowlist = '*', domlist = '1', monthly = '' , month = '1', hourlist = '1', submit = 'submit' , minlist = '1', delete = '')
+
+    comment = "POMS_CAMPAIGN_ID=%d" % campaign_id
+
+    #
+    # verify its in crontab
+    #
+    f = os.popen('crontab -l', 'r')
+    found = False
+    for line in f:
+       if line.find(comment) > 0:
+           found = True
+    f.close()
+
+    assert(found)
+
+    #
+    # verify schedule_launch finds it
+    #
+    res = mps.campaignsPOMS.schedule_launch(dbh.get(), campaign_id)
+
+    assert(str(res[1]).find(comment) > 0)
+
+    #
+    # try to delete it
+    #
+    mps.campaignsPOMS.update_launch_schedule(logger.info,  campaign_id,  minlist = '', hourlist = '', delete = 'True')
+
+    #
+    # verify its NOT in crontab
+    #
+    f = os.popen('crontab -l', 'r')
+    found = False
+    for line in f:
+       if line.find(comment) > 0:
+           found = True
+    f.close()
+
+    assert(not found)
+
+# Still needed
+# campaigns that use each split type, run repeatedly
+# campaigns that declare output files
+# get_recovery_list_for_campaign_def
+# make_stale_campaigns_inactive

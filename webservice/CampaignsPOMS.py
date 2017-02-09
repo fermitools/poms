@@ -513,6 +513,8 @@ class CampaignsPOMS():
 
 
     def register_poms_campaign(self, dbhandle, loghandle, experiment,  campaign_name, version, user = None, campaign_definition = None, dataset = "", role = "Analysis", params = []):
+         if dataset == None:
+              dataset = ''
          if user == None:
               user = 4
          else:
@@ -534,7 +536,7 @@ class CampaignsPOMS():
          if c:
              changed = False
          else:
-             c = Campaign(experiment = experiment, name = campaign_name, creator = user, created = datetime.now(utc), software_version = version, campaign_definition_id=cd.campaign_definition_id, launch_id = ld.launch_id, vo_role = role)
+             c = Campaign(experiment = experiment, name = campaign_name, creator = user, created = datetime.now(utc), software_version = version, campaign_definition_id=cd.campaign_definition_id, launch_id = ld.launch_id, vo_role = role, dataset = '')
 
          if version:
                c.software_verison = version
@@ -563,7 +565,7 @@ class CampaignsPOMS():
         res = None
 
         if camp.cs_split_type == None or camp.cs_split_type in [ '', 'draining','None' ]:
-            # no split to do, it is a draining datset, etc.
+            # no split to do, it is a draining dataset, etc.
             res =  camp.dataset
 
         elif camp.cs_split_type == 'list':
@@ -709,7 +711,7 @@ class CampaignsPOMS():
         return c, job, launch_flist
 
 
-    def update_launch_schedule(self, loghandle, campaign_id, dowlist = None,  domlist = None, monthly = None, month = None, hourlist = None, submit = None , minlist = None, delete = None):
+    def update_launch_schedule(self, loghandle, campaign_id, dowlist = '',  domlist = '', monthly = '', month = '', hourlist = '', submit = '' , minlist = '', delete = ''):
 
         # deal with single item list silliness
         if isinstance(minlist, basestring):
