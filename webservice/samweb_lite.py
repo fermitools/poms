@@ -178,6 +178,7 @@ class samweb_lite:
         base = "https://samweb.fnal.gov:8483"
         path = "/sam/%s/api/definitions/create" %  experiment
         url = "%s%s" % (base, path)
+        res = None
 
         pdict = {"defname": name, "dims": dims, "user": "sam", "group": experiment}
         cherrypy.log("create_definition: calling: %s with %s " % (url, pdict))
@@ -194,7 +195,7 @@ class samweb_lite:
             cherrypy.log("Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
             return "Fail."
         finally:
-            res.close()
+            if res: res.close()
         return text
 
 if __name__ == "__main__":
