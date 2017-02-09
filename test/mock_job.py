@@ -148,7 +148,7 @@ class mock_job:
                 if exit_code == 0:
 		    self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code succeeded', user_exe_exit_code = 0)
                 elif exit_code == -1:
-		    self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = i)
+		    self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = str(i))
                 else:
 		    self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = exit_code)
 		self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
