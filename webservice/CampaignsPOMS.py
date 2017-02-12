@@ -113,6 +113,7 @@ class CampaignsPOMS():
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action',None)
+        print ' campaign_definition_edit, action = %s' %action
         exp = kwargs.pop('experiment',None)
         if action == 'delete':
             name = kwargs.pop('name')
@@ -128,6 +129,7 @@ class CampaignsPOMS():
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
+            print ' here is add or edit, %s' %action
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
             name = kwargs.pop('ae_definition_name')
             input_files_per_job = kwargs.pop('ae_input_files_per_job')
@@ -135,7 +137,9 @@ class CampaignsPOMS():
             output_file_patterns = kwargs.pop('ae_output_file_patterns')
             launch_script = kwargs.pop('ae_launch_script')
             definition_parameters = kwargs.pop('ae_definition_parameters')
+            print ' %s, definition_parameters = %s' %(action,str(definition_parameters))
             recoveries = kwargs.pop('ae_definition_recovery')
+            print ' %s, recoveries = %s' %(action,str(recoveries))
             experimenter_id = kwargs.pop('experimenter_id')
             try:
                 if action == 'add':
@@ -166,8 +170,13 @@ class CampaignsPOMS():
                 dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == campaign_definition_id).delete()
                 i = 0
                 for rtn in json.loads(recoveries):
-                    rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rtn).first()
-                    cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt)
+                    rect   = rtn[0]
+                    recpar = rtn[1]
+                    print ' do recoveries, rtn = %s, type = %s, par =%s ' %(str(rtn),rect,recpar)
+                    rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rect).first()
+                    #cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt)
+                    cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt, param_overrides = recpar)
+                    print ' saving rect = %s ' %rect
                     dbhandle.add(cr)
                 dbhandle.commit()
             except IntegrityError, e:
@@ -192,6 +201,12 @@ class CampaignsPOMS():
                                     .filter(CampaignDefinition.experiment==exp)
                                     .order_by(CampaignDefinition.name)
                                     )
+            # test
+            for row in data['definitions'].all():
+                    print ' row def = %s' %row[0].definition_parameters
+                
+            #end test
+
             # Build the recoveries for each campaign.
             cids = [row[0].campaign_definition_id for row in data['definitions'].all()]
             recs_dict = {}
