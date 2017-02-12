@@ -193,7 +193,7 @@
 <div class="ui small modal" id="edit_param_modal">
   <i class="close icon"></i>
   <div class="header">
-    Definition Parameters Editor
+    Definition Parameters Editor (Normal)
   </div>
   <div class="ui text container">
     <div class="scrollable">
@@ -230,7 +230,7 @@
   </div>
   <div class="ui text container">
     <div class="scrollable">
-      <table class="ui celled table" id="ep_table">
+      <table class="ui celled table" id="repo_table">
 	<thead>
 	  <tr>
 	    <th>MVI Key</th>
@@ -378,18 +378,22 @@ $("#edit_recovery_modal_btn").click(function() {
     onApprove : function(){
       console.log ('edit_recovery_modal approve');
       var rlist = [];
-      var rplist = [];  // override params
       var s;
-      var sp;
+      var sp
+      var ssp
       for (i = 0; i < listLen ; i++) {
          s  = $("#re_recover_"+i.toString()+" option:selected").val();
          sp = $("#re_recover_p_"+i.toString()).text();
          console.log(' i= ' + i + ' s = ' + s + ' sp = ' + sp);
          if (s) {
-             rlist.push(s);
+             ssp = [s,sp]
+             rlist.push(ssp);
+             //rlist.push(s);
          }
       }
+      console.log (' edit_recovery_modal approve, rlist = ' + rlist);
       var sval = JSON.stringify(rlist);
+      console.log (' edit_recovery_modal approve, JSON.stringify,sval = ' + sval);
       $("#ae_definition_recovery_text").val(sval);
       $("#ae_definition_recovery").val(sval);
       $("#definition_add_edit_modal").modal('show');
@@ -417,18 +421,18 @@ $("#edit_recovery_modal_btn").click(function() {
    $("#edit_recovery_param_modal").modal({
      closable  : false,
      onApprove : function(){
-      var data = ep_build_parms_string();
+      var data = ep_build_parms_string('repo');
+      console.log (' edit_recovery_param_modal approve var data ' + data);
       if (data[0] == "") {
-        console.log ('edit_recovery_param_modal, saving');
-        //$("#ae_definition_parameters_text").val(data[1]);
-        //$("#ae_definition_parameters").val(data[1]);
-        //$("#definition_add_edit_modal").modal('show');
+        console.log ('edit_recovery_param_modal, saving  data[1] ' + data[1]);
+        $("#re_recover_p_"+ index).text(data[1]);
+        $("#edit_recovery_modal").modal('show');
       } else {
           return false;
       }
     },
     onDeny : function(){
-      $("#definition_add_edit_modal").modal('show');
+      $("#edit_recovery_modal").modal('show');
     },
     }).modal('show');
 
@@ -455,6 +459,7 @@ $("#edit_param_modal_btn").click(function() {
     closable  : false,
     onApprove : function(){
       var data = ep_build_parms_string();
+      console.log (' def par approve var data ' + data);
       if (data[0] == "") {
         $("#ae_definition_parameters_text").val(data[1]);
         $("#ae_definition_parameters").val(data[1]);
@@ -469,13 +474,21 @@ $("#edit_param_modal_btn").click(function() {
     }).modal('show');
 });
 
-function ep_build_parms_string() {
+function ep_build_parms_string(pval) {
+
+  console.log(' ep_build_parms_string , pval = ' + pval);
   var parms = "[";
   var message = "";
-  rebuild_ep_parms();
-  for (index = 0; index < ep_parms.length; index++) {
-    key = ep_parms[index][0];
-    value = ep_parms[index][1];
+  rebuild_ep_parms(pval);
+
+  if (typeof pval !== 'undefined') {
+    var local_ep_parms = repo_parms
+  } else {
+    var local_ep_parms = ep_parms
+  }
+  for (index = 0; index < local_ep_parms.length; index++) {
+    key = local_ep_parms[index][0];
+    value = local_ep_parms[index][1];
     if ((key != "") && (value != "")) {
       if (parms != "[") {
         parms += ",";
@@ -558,15 +571,28 @@ function ep_build_table_body(from_where) {
   }
 }
 
-function rebuild_ep_parms() {
-  ep_parms = []
-  var rowCount = $("#ep_table >tbody >tr").length;
+// -------------- Normal definitions ------------------
+function rebuild_ep_parms(pval) {
+
+  console.log(' rebuild_ep_parms , pval = ' + pval);
+
+  if (typeof pval !== 'undefined') {
+    repo_parms = []
+    var rowCount = $("#repo_table >tbody >tr").length;
+  } else {
+    ep_parms = []
+    var rowCount = $("#ep_table >tbody >tr").length;
+  }
   for (index=0; index< rowCount; index++) {
     var ep_key = "#ep_key_" + index;
     var ep_val = "#ep_val_" + index;
     var key = $(ep_key).val();
     var val = $(ep_val).val();
-    ep_parms.push([key,val]);
+    if (typeof pval !== 'undefined') {
+      repo_parms.push([key,val]);
+    } else {
+      ep_parms.push([key,val]);
+    }
   }
 }
 
