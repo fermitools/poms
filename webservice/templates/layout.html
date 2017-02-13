@@ -12,38 +12,48 @@
 
             <!-- Site Properities -->
 
-           {%block title%} {%endblock%}
+		{%block title%} {%endblock%}
 
 
 
 
-            <script src="{{pomspath}}/static/js/jquery-2.1.4.min.js"></script>
+		<script src="{{pomspath}}/static/js/jquery-2.1.4.min.js"></script>
 
-            <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/semantic.css">
+		<link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/semantic.css">
 
-            <script src="{{pomspath}}/static/js/semantic.js"></script>
+		<script src="{{pomspath}}/static/js/semantic.js"></script>
 
-            <script src="{{pomspath}}/static/js/poms.js"></script>
-            <script src="{{pomspath}}/static/js/tablesort.min.js"></script>
-            <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/poms.css">
-
-
-
-            <link href='{{pomspath}}/static/css/fullcalendar.css' rel='stylesheet' />
-            <link href='{{pomspath}}/static/css/fullcalendar.print.css' rel='stylesheet' media='print' />
-            <script src='{{pomspath}}/static/js/moment.min.js'></script>
-            <script src='{{pomspath}}/static/js/fullcalendar.min.js'></script>
+		<script src="{{pomspath}}/static/js/poms.js"></script>
+		<script src="{{pomspath}}/static/js/tablesort.min.js"></script>
+		<link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/poms.css">
 
 
-            <script src='{{pomspath}}/static/js/jquery-ui.js'></script>
-            <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/datepicker.css">
+
+		<link href='{{pomspath}}/static/css/fullcalendar.css' rel='stylesheet' />
+		<link href='{{pomspath}}/static/css/fullcalendar.print.css' rel='stylesheet' media='print' />
+		<script src='{{pomspath}}/static/js/moment.min.js'></script>
+		<script src='{{pomspath}}/static/js/fullcalendar.min.js'></script>
 
 
-<link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/search.min.css">
-<script src='{{pomspath}}/static/js/index.js'></script>
-<script src='{{pomspath}}/static/js/search.min.js'></script>
+		<script src='{{pomspath}}/static/js/jquery-ui.js'></script>
+		<link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/datepicker.css">
 
-<script src="{{pomspath}}/static/js/jquery.doublescroll.js"></script> <!-- VP -->
+
+		<link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/search.min.css">
+		<script src='{{pomspath}}/static/js/index.js'></script>
+		<script src='{{pomspath}}/static/js/search.min.js'></script>
+
+		<script src="{{pomspath}}/static/js/jquery.doublescroll.js"></script> <!-- VP -->
+
+		<style type="text/css">
+		div.scrollable {
+			width: 100%;
+			overflow-x: scroll;
+		}
+		div.scrollable table {
+			width: 300%;
+		}
+		</style>
 
     </head>
 
@@ -497,4 +507,3 @@ $( document ).ready(function() { $('#auth_info').dimmer({on: 'hover'}); });
     </body>
 
 </html>
-

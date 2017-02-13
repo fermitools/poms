@@ -26,7 +26,7 @@
 {{days}} Days ending  {{tmax}}
 </div>-->
 
-<a href="{{prev}}">&lt;previous {{days}} days</a> | 
+<a href="{{prev}}">&lt;previous {{days}} days</a> |
 <a href="{{next}}">next {{days}} days &gt;</a>
 {%endblock%}
 
@@ -39,48 +39,49 @@
 
 
 {%block content%}
-<table class="ui sortable celled collapsing table">
-  <thead>
-    <tr>
-    {%for col in columns%}
-       <th class="">
-         {% if col[:4] == 'exit' %}
-             {% if col|length > 9  %}
-                {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit_signal"><i class="small icon grey help circle  link"></i>
-             {% else  %}
-                <a href="https://cdcvs.fnal.gov/redmine/projects/offline_production_operations_service/wiki/_{{experiment}}_error_codes_#{{col[5:-1]}}">{{col}}</a><a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit"><i class="small icon grey help circle link"></i>
-             {% endif %}
-         {% else %}
-             {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#{{col|replace(' ','_')}}"><i class="small icon grey help circle link"></i>
-         {% endif %}
-       </th>
-    {%endfor%}
-    </tr>
-  </thead>
-  <tbody>
-    {%for row in datarows %}
-    {% set outer_loop = loop %}
-
+<div id="double-scroll" class="scrollable">
+  <table class="ui sortable celled collapsing table">
+    <thead>
       <tr>
-         {%for col in range(0, columns|count) %}
-            {% if columns[col] == 'efficiency%' %}
-              <td><a href="{{pomspath}}/jobs_eff_histo?campaign_id={{campaign_id}}&tmax={{row[1][:10]}} 23:59:59">{{row[col]}}</a></td>
-            {% elif columns[col] == 'pending' %}
-              <td><a href="{{pomspath}}/show_dimension_files?experiment={{experiment}}&dims={{dimlist[outer_loop.index0]}}">{{row[col]}}</a></td>
-            
-            {% elif columns[col][:4] == 'exit' %}
-              <td><a href="{{pomspath}}/job_table?user_exe_exit_code={{columns[col][5:-1]}}&tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
-            {% elif columns[col][:4] == 'jobs' %}
-              <td><a href="{{pomspath}}/job_table?tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
-            {% else %}
-              <td>{{row[col]}}</td>
-            {% endif %}
-         {%endfor%}
+      {%for col in columns%}
+         <th class="">
+           {% if col[:4] == 'exit' %}
+               {% if col|length > 9  %}
+                  {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit_signal"><i class="small icon grey help circle  link"></i>
+               {% else  %}
+                  <a href="https://cdcvs.fnal.gov/redmine/projects/offline_production_operations_service/wiki/_{{experiment}}_error_codes_#{{col[5:-1]}}">{{col}}</a><a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit"><i class="small icon grey help circle link"></i>
+               {% endif %}
+           {% else %}
+               {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#{{col|replace(' ','_')}}"><i class="small icon grey help circle link"></i>
+           {% endif %}
+         </th>
+      {%endfor%}
       </tr>
-    {%endfor%}
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      {%for row in datarows %}
+      {% set outer_loop = loop %}
 
+        <tr>
+           {%for col in range(0, columns|count) %}
+              {% if columns[col] == 'efficiency%' %}
+                <td><a href="{{pomspath}}/jobs_eff_histo?campaign_id={{campaign_id}}&tmax={{row[1][:10]}} 23:59:59">{{row[col]}}</a></td>
+              {% elif columns[col] == 'pending' %}
+                <td><a href="{{pomspath}}/show_dimension_files?experiment={{experiment}}&dims={{dimlist[outer_loop.index0]}}">{{row[col]}}</a></td>
+
+              {% elif columns[col][:4] == 'exit' %}
+                <td><a href="{{pomspath}}/job_table?user_exe_exit_code={{columns[col][5:-1]}}&tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
+              {% elif columns[col][:4] == 'jobs' %}
+                <td><a href="{{pomspath}}/job_table?tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
+              {% else %}
+                <td>{{row[col]}}</td>
+              {% endif %}
+           {%endfor%}
+        </tr>
+      {%endfor%}
+    </tbody>
+  </table>
+</div>
 
 
 
@@ -101,8 +102,12 @@ $( ".tmax" ).html( tmax_local_time );
 
 
 <script>
-$(function() {
-    $('#global_datepicker_container').show();
-});
+  $(function() {
+      $('#global_datepicker_container').show();
+  });
+
+  $(document).ready(function(){
+    $('#double-scroll').doubleScroll();
+  });
 </script>
 {%endblock%}
