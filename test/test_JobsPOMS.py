@@ -133,30 +133,49 @@ def test_update_job_q_scraper():
 
 
 def test_kill_jobs():
+    #Two task_id for the same campaign
     task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a task_id for the fake campaign
     task_id2 = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a task_id for the second task
-
-    ##Create two jobs with fakes job_id
+    #Create jobs in the same campaign, 2 in one task_id, one in another task_id but same campaign, and on job in the same task_id, campaign but market as completed.
     jid = "%d@fakebatch1.fnal.gov" % time.time() #1 Job in the first task_id
     mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running')
     jid2 = "%d@fakebatch1.fnal.gov" % time.time()#2Job in the first task_id
     mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid2, host_site = "fake_host", status = 'running')
     jid3 = "%d@fakebatch1.fnal.gov" % time.time() #3Job in a new task_id but same campaign
     mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id2, jobsub_job_id = jid3, host_site = "fake_host", status = 'running')
-    output, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', task_id=task_id, jobsub_job_id=jid, confirm = "yes")
-    c_output_killjob = "-G Analysis --role fermilab --jobid "+jid #Control output
-    c_output_killTask = "-G Analysis --role fermilab --jobid "+jid+","+jid2 #Control output
-    c_output_killCampaign ="-G Analysis --role fermilab --jobid "+jid+","+jid2+","+jid3
-    assert(output == c_output)
-    output, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', task_id=task_id, confirm = "yes")
-    assert(output == c_output_killTask)
-    output, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', confirm = "yes")
-    assert(output == c_output_killCampaign)
     jid4 = "%d@fakebatch1.fnal.gov" % time.time()
     mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid4, host_site = "fake_host", status = 'Completed')
-    assert(output == c_output_killCampaign)
+    #Control arguments
+    c_arg="-G Analysis --role fermilab --jobid "
+    c_output_killjob = jid #Control output
+    c_output_killTask = jid+jid2 #Control output
+    c_output_killCampaign =jid+jid2+jid3 #Control output
+    #Calls to the test rutine
+    output_killjob, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', task_id=task_id, jobsub_job_id=jid, confirm = "yes")
+    output_killTask, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', task_id=task_id, confirm = "yes")
+    output_killCampaign, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', confirm = "yes")
+    #Now the check the outputs, they need a bit of pre-processing.
+    #Arguments
+    sep=output.rfind('--jobid ')
+    assert(sep!=-1) #--jobid argument was in called in the command
+    jrm_args=output_killjob[0:sep+8] #the arguments are correct
+    assert(jrm_args==c_arg) #compare the arguments are in place
 
+    #Check single job kill
+    jrm_id=output_killjob.split('--jobid ')[1].split(",")
+    assert(jrm_id==c_output_killjob)
 
+    #Check kill jobs in one task
+    jrm_idtl=output_killTask.split('--jobid ')[1].split(",")
+    jrm_idtl.sort()
+    assert(c_output_killTask==jrm_idl)
+
+    #Check kill all jobs in one Campaign,  that also prof that the job market as completed is not killed.
+    jrm_idcl=output_killCampaign.split('--jobid ')[1].split(",")
+    jrm_idcl.sort()
+    assert(c_output_killCampaign == jrm_idcl)
+
+    #Closing the mock
     mock_rm.close()
 
 
