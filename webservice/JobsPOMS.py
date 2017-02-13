@@ -67,6 +67,43 @@ class JobsPOMS():
         samhandle.update_project_description(exp, projname, "POMS Campaign %s Task %s" % (cid, tid))
         pass
 
+
+    def bulk_update_job(self, dbhandle, loghandle, rpstatus, samhandle, json_data = '{}'):
+        data = json.loads(json_data)
+
+        foundtasks = {}
+        for jid,d in data.items():
+            foundtasks[d['task_id']] = 1
+
+        jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(data.keys())).all()
+
+        jlist = []
+        foundjobs = {}
+        for j in jobs:
+            foundjobs[j.jobsub_job_id] = j
+            jlist.append(j)
+
+        if len(foundtasks) > 0:
+            tasks = dbhandle.query(Task).filter(Task.task_id.in_(foundtasks.keys())).all()
+        else:
+            tasks = []
+    
+        for t in tasks:
+            foundtasks[t.task_id] = t
+
+        for jid in data.keys():
+            if not foundjobs.get(jid, 0):
+                 j = Job(jobsub_job_id = jid, task_obj = foundtasks[data[jid]['task_id']], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle')
+                 j.created = datetime.now(utc)
+                 j.updated = datetime.now(utc)
+                 dbhandle.add(j)
+                 jlist.append(j)
+  
+        for j in jlist:
+             self.update_job_common(dbhandle, loghandle, rpstatus, samhandle,    j, data[j.jobsub_job_id])
+
+        dbhandle.commit()
+
     def update_job(self, dbhandle, loghandle, rpstatus, samhandle, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
 
         # flag to remember to do a SAM update after we commit
@@ -122,6 +159,21 @@ class JobsPOMS():
             j.status = 'Idle'
 
         if j:
+            self.update_job_common(dbhandle,  loghandle, rpstatus, samhandle, j, kwargs)
+
+            dbhandle.add(j)
+            dbhandle.commit()
+
+
+            # now that we committed, do a SAM project desc. upate if needed
+            if do_SAM_project:
+	        self.update_SAM_project(samhandle, j, kwargs.get("task_project"))
+            loghandle("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
+
+        return "Ok."
+
+    def update_job_common(self, dbhandle, loghandle, rpstatus, samhandle, j, kwargs):
+
             loghandle("update_job: updating job %d" % (j.job_id if j.job_id else -1))
 
             oldstatus = j.status
@@ -218,18 +270,6 @@ class JobsPOMS():
                     # jobs make inactive campaigns active again...
                     if j.task_obj.campaign_obj.active != True:
                         j.task_obj.campaign_obj.active = True
-
-            dbhandle.add(j)
-            dbhandle.commit()
-
-
-            # now that we committed, do a SAM project desc. upate if needed
-            if do_SAM_project:
-	        self.update_SAM_project(samhandle, j, kwargs.get("task_project"))
-            loghandle("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
-
-        return "Ok."
-
 
     def test_job_counts(self, task_id = None, campaign_id = None):
         res = self.poms_service.job_counts(task_id, campaign_id)

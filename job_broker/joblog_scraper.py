@@ -7,13 +7,17 @@ import urllib2
 import json
 import traceback
 import time
+import threading
 
 from job_reporter import job_reporter
+
+import prometheus_client as prom
 
 class joblog_scraper:
     def __init__(self,  job_reporter, debug = 0):
         self.job_reporter = job_reporter
         self.debug = debug
+        self.read_lines = 0
 
         # lots of names for parts of regexps to make it readable(?)
         timestamp_pat ="[-0-9T:]*"
@@ -39,6 +43,9 @@ class joblog_scraper:
         self.copyin_re = re.compile(".*ifdh::cp\( (--force=[a-z]* )?(-D )?(/pnfs|/nova|/minerva|/grid|/cvmfs|/mu2e|/uboone|/lbne|/dune|/argoneut|/minos|/gm2|/miniboone|/coupp|/d0|/lariat|/e906|gsiftp:|s3:|http:)")
         self.job_id_map = {}
         self.job_task_map = {}
+        self.threadCount = prom.Gauge("Thread_count","Number of probe threads")
+        self.itemCount = prom.Gauge("Item_count","Number of lines read")
+        
 
     def parse_line(self, line):
 	timestamp = ""
@@ -193,13 +200,22 @@ class joblog_scraper:
 
 
     def scan(self, filehandle):
+        self.read_lines = 0
         self.filehandle = filehandle
+        last_update = time.time()
         for line in self.filehandle:
              #print "got: ", line
+             if (time.time() - last_update) > 60:
+                 last_update = time.time()
+                 self.itemCount.set(self.read_lines)
+                 self.read_lines = 0
+                 self.threadCount.set(threading.active_count())
              d = self.parse_line(line)
+             self.read_lines += 1
              
              if d['task'] != '':
                  self.report_item(d['task'], d['jobsub_job_id'], d['hostname'],  d['message'])
+
 
 if __name__ == '__main__':
    debug = 0
@@ -215,7 +231,8 @@ if __name__ == '__main__':
         testing = True
         sys.argv = sys.argv[1:]
 
-   js = joblog_scraper( job_reporter(server, debug=debug, namespace = "profiling.apps.poms.probes.joblog_scraper"), debug)
+   ns = "profiling.apps.poms.probes.%s.joblog_scraper" % os.uname()[1].split(".")[0]
+   js = joblog_scraper( job_reporter(server, debug=debug, namespace = ns), debug)
    while 1:
       if debug:
            print "Starting..."

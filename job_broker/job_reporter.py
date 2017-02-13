@@ -21,8 +21,9 @@ class job_reporter:
     """
     def __init__(self, report_url, debug = 0, nthreads = 5, namespace = ""):
         self.namespace = namespace
-        self.gb = GraphiteBridge(('fermicloud079.fnal.gov', 2003))
-        self.gb.start(10,prefix=self.namespace)
+        if namespace != "":
+            self.gb = GraphiteBridge(('fermicloud079.fnal.gov', 2003))
+            self.gb.start(10,prefix=self.namespace)
         self.report_url = report_url
         self.debug = debug
         self.work = Queue.Queue()
