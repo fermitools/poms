@@ -129,7 +129,6 @@ class CampaignsPOMS():
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
-            print ' here is add or edit, %s' %action
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
             name = kwargs.pop('ae_definition_name')
             input_files_per_job = kwargs.pop('ae_input_files_per_job')
@@ -137,9 +136,7 @@ class CampaignsPOMS():
             output_file_patterns = kwargs.pop('ae_output_file_patterns')
             launch_script = kwargs.pop('ae_launch_script')
             definition_parameters = kwargs.pop('ae_definition_parameters')
-            print ' %s, definition_parameters = %s' %(action,str(definition_parameters))
             recoveries = kwargs.pop('ae_definition_recovery')
-            print ' %s, recoveries = %s' %(action,str(recoveries))
             experimenter_id = kwargs.pop('experimenter_id')
             try:
                 if action == 'add':
@@ -172,11 +169,8 @@ class CampaignsPOMS():
                 for rtn in json.loads(recoveries):
                     rect   = rtn[0]
                     recpar = rtn[1]
-                    print ' do recoveries, rtn = %s, type = %s, par =%s ' %(str(rtn),rect,recpar)
                     rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rect).first()
-                    #cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt)
                     cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt, param_overrides = recpar)
-                    print ' saving rect = %s ' %rect
                     dbhandle.add(cr)
                 dbhandle.commit()
             except IntegrityError, e:
@@ -201,11 +195,6 @@ class CampaignsPOMS():
                                     .filter(CampaignDefinition.experiment==exp)
                                     .order_by(CampaignDefinition.name)
                                     )
-            # test
-            for row in data['definitions'].all():
-                    print ' row def = %s' %row[0].definition_parameters
-                
-            #end test
 
             # Build the recoveries for each campaign.
             cids = [row[0].campaign_definition_id for row in data['definitions'].all()]
@@ -216,15 +205,11 @@ class CampaignsPOMS():
                     .order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
                 rec_list  = []
                 for rec in recs:
-                    print ' cid= %s rec name= %s rec order =%s rec parms= %s' %(cid,rec.recovery_type.name,rec.recovery_order,rec.param_overrides)
-                    #rec_list.append(rec.recovery_type.name )
-                    #new="""
                     co_vals= '%s' %rec.param_overrides
+                    if co_vals=='' or co_vals=='{}': co_vals="[]"
                     rec_vals=[rec.recovery_type.name,co_vals]
                     rec_list.append(rec_vals)
-                    #"""
                 recs_dict[cid] = json.dumps(rec_list)
-                print ' cid= %s, json dump= %s' %(cid,recs_dict[cid])
             data['recoveries'] = recs_dict
             data['rtypes'] = (dbhandle.query(RecoveryType.name,RecoveryType.description).order_by(RecoveryType.name).all())
 
