@@ -50,11 +50,12 @@ class SAEnginePlugin(plugins.SimplePlugin):
     def start(self):
         db = cherrypy.config.get("db")
         dbuser = cherrypy.config.get("dbuser")
-        dbpass = cherrypy.config.get("dbpass")
+        # dbpass = cherrypy.config.get("dbpass")
         dbhost = cherrypy.config.get("dbhost")
         dbport = cherrypy.config.get("dbport")
-        db_path = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport, db)
-        sa_echo = cherrypy.config.get("sa_echo",True)
+        # db_path = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport, db)
+        db_path = "postgresql://%s:@%s:%s/%s" % (dbuser, dbhost, dbport, db)
+        sa_echo = cherrypy.config.get("sa_echo", True)
         self.sa_engine = create_engine(db_path, echo=sa_echo)
         atexit.register(self.destroy)
 
@@ -243,7 +244,7 @@ if True:
                         'tools.sessions.timeout': 60,
                         #~ 'tools.sessions.storage_class': cherrypy.lib.sessions.FileSession,
                         'tools.sessions.storage_type': 'file',
-                        'tools.sessions.storage_path': '/scratch/poms/sessions',
+                        #~ 'tools.sessions.storage_path': '/scratch/poms/sessions',
                         #~ 'tools.sessions.locking': 'implicit',
                         'tools.sessions.locking': 'early',          # IMPORTANT!
                      },
@@ -254,15 +255,15 @@ if True:
                }
 
     configfile = "poms.ini"
-    dbasefile  = "passwd.ini"
+    # dbasefile  = "passwd.ini"
     parser,args = parse_command_line()
     if args.config:
         configfile = args.config
-    if args.password:
-        dbasefile = args.password
+    # if args.password:
+    #     dbasefile = args.password
     try:
         cherrypy.config.update(configfile)
-        cherrypy.config.update(dbasefile)
+        # cherrypy.config.update(dbasefile)
     except IOError, mess:
         print mess
         parser.print_help()
