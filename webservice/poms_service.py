@@ -56,7 +56,7 @@ def error_response():
         dump = cherrypy._cperror.format_exc()
     message = dump.replace('\n','<br/>')
 
-    jinja_env = Environment(loader=PackageLoader('webservice','templates'))
+    jinja_env = Environment(loader=PackageLoader('poms.webservice','templates'))
     template = jinja_env.get_template('error_response.html')
     path = cherrypy.config.get("pomspath","/poms")
     body = template.render(current_experimenter=cherrypy.session.get('experimenter'),
@@ -79,7 +79,7 @@ class poms_service:
                   }
 
     def __init__(self):
-        self.jinja_env = Environment(loader=PackageLoader('webservice','templates'))
+        self.jinja_env = Environment(loader=PackageLoader('poms.webservice','templates'))
         self.path = cherrypy.config.get("pomspath","/poms")
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
