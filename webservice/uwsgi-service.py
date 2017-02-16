@@ -7,7 +7,7 @@ from paste.exceptions.errormiddleware import ErrorMiddleware
 from repoze.errorlog import ErrorLog
 
 
-from model.poms_model import Experimenter, ExperimentsExperimenters
+from poms.model.poms_model import Experimenter, ExperimentsExperimenters
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 import os.path
 import argparse

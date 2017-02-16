@@ -133,7 +133,7 @@ class TablesPOMS:
             and self.pk_map a map of primary keys for that class
         """
         loghandle(" ---- make_admin_map: starting...")
-        import model.poms_model
+        import poms.model.poms_model
         self.admin_map = {}
         self.pk_map = {}
         for k in model.poms_model.__dict__.keys():

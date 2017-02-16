@@ -8,7 +8,7 @@ Date: September 30, 2016.
 '''
 
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from model.poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
+from poms.model.poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
     LaunchTemplate, CampaignDefinition, CampaignRecovery,
     CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
 )
