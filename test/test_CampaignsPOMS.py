@@ -310,5 +310,5 @@ def test_update_launch_schedule():
 # Still needed
 # campaigns that use each split type, run repeatedly
 # campaigns that declare output files
-# get_recovery_list_for_campaign_def
-# make_stale_campaigns_inactive
+# get_recovery_list_for_campaign_def?
+# make_stale_campaigns_inactive?
