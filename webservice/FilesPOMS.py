@@ -5,7 +5,7 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
 
-from model.poms_model import Experimenter, Experiment, ExperimentsExperimenters, Job, Task, Campaign, JobFile
+from poms.model.poms_model import Experimenter, Experiment, ExperimentsExperimenters, Job, Task, Campaign, JobFile
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, not_,  create_engine, null, desc, text, func, exc, distinct
 from utc import utc

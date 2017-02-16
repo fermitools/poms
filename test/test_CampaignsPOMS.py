@@ -3,9 +3,9 @@ import datetime
 import time
 import os
 import socket
-from webservice.utc import utc
-from webservice.samweb_lite import samweb_lite
-from model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Task
+from poms.webservice.utc import utc
+from poms.webservice.samweb_lite import samweb_lite
+from poms.model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Task
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -310,5 +310,5 @@ def test_update_launch_schedule():
 # Still needed
 # campaigns that use each split type, run repeatedly
 # campaigns that declare output files
-# get_recovery_list_for_campaign_def
-# make_stale_campaigns_inactive
+# get_recovery_list_for_campaign_def?
+# make_stale_campaigns_inactive?
