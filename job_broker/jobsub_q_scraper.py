@@ -183,7 +183,7 @@ class jobsub_q_scraper:
                 #
                 if not prev or prev['status'] != args['status'] or prev['node_name'] != args['node_name'] or prev['cpu_time'] != args['cpu_time'] or prev['wall_time'] != args['wall_time'] or prev['task_project'] != args['task_project']:
                     try: 
-                        self.job_reporter.actually_report_status(**args)
+                        self.job_reporter.report_status(**args)
 	            except KeyboardInterrupt:
 	                raise
                     except:

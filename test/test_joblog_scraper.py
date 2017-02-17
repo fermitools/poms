@@ -31,24 +31,32 @@ class TestJobsub_q_scraper:
         time.sleep(1)
 
         df = open("%s/test/data/%s" % (os.environ['POMS_DIR'],fname), "r")
-        active_log_line = self.mw.log.next()
 
+        bulk_data = []
+        i = 0
+
+        j = 0
         for line in df:
-            try:
-                post_log = self.mw.log.next()
-                data_log = self.mw.log.next()
-            except StopIteration:
-                break
 
+            if i >= len(bulk_data):
+		data_log = self.mw.log.next()
+		post_log = self.mw.log.next()
+		post_data =  json.loads(data_log[12:-1])
+		bulk_data = json.loads(urllib.unquote_plus(post_data['data']))
+                print "got bulk_data:" , bulk_data
+                i = 0
 
-            print "-----\n", line, data_log, post_log
-            sys.stdout.flush()
+            post_data =  bulk_data[i]
 
-            post_data =  json.loads(data_log[12:-1])
+            print "line:", line
+            print "post_data", post_data
+
             # need checks for log stuff..
-            assert(post_log.find("update_job") > 0)
+            assert(post_log.find("bulk_update_job") > 0)
             assert(line.find(post_data['jobsub_job_id'].replace('%40','@')) > 0)
- 
+            i = i + 1
+            j = j + 1
+
 
     def test_joblog_1(self):
         self._do_test('joblog_1')
