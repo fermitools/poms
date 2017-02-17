@@ -450,6 +450,8 @@ class poms_service:
 
     @cherrypy.expose
     def make_stale_campaigns_inactive(self):
+        if not self.poms_service.accessPOMS.can_report_data(cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get)():
+             raise err_res(401, 'You are not authorized to access this resource')
         res = self.campaignsPOMS.make_stale_campaigns_inactive(cherrypy.request.db, cherrypy.HTTPError)
         return "Marked inactive stale: " + ",".join(res)
 #--------------------------------------

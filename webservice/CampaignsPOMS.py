@@ -790,8 +790,6 @@ class CampaignsPOMS():
 
 
     def make_stale_campaigns_inactive(self, dbhandle, err_res):
-        if not self.poms_service.accessPOMS.can_report_data(cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get)():
-             raise err_res(401, 'You are not authorized to access this resource')
         lastweek = datetime.now(utc) - timedelta(days=7)
         cp = dbhandle.query(Task.campaign_id).filter(Task.created > lastweek).group_by(Task.campaign_id).all()
         sc = []
