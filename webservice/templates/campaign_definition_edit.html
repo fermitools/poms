@@ -276,15 +276,15 @@
 	<tbody id="er_tbody">
          {% for i in range(5) %}
             <tr> 
-                <td> <select id="re_recover_{{i}}">
+                <td> <select id="re_recover_{{i}}" onchange="updateRepo({{i}})">
                     <option value="">-</option>
                     {% for rtype in data.rtypes %}
                         <option value="{{rtype[0]}}">{{rtype[0]}} -: {{rtype[1]}}</option>
                     {% endfor %}
                     </select>
                 </td>
-                <td id="re_recover_p_{{i}}">  </td>
-                <td><i class="large edit link blue icon"  onclick="edit_recovery_params_o({{i}});"></i>
+                <td id="re_recover_p_{{i}}"><span> </span> </td>
+                <td><i id="re_recover_p_icon_{{i}}" class="large edit link blue icon"  onclick="edit_recovery_params_o({{i}});"></i>
             </tr>
          {% endfor %}
 	</tbody>
@@ -350,55 +350,105 @@ function create_row(index, key, value) {
 
 var ep_parms = [];
 var repo_parms = [];  //recovery parameters override
-   
+var do_recp = false;   
+
+var ini_empty_index =[];        // used when cancelling 
+
+function updateRepo(ind){
+  
+  rtype_id = "#re_recover_" + ind;
+  repo_id = "#re_recover_p_" +ind;
+  repo_icon_id = "#re_recover_p_icon_" +ind;
+  var rtype_val = $(rtype_id).val();
+
+  if (rtype_val!='') {
+    $(repo_id).children().show();                              // this is when rtypein not empty 
+    $(repo_icon_id).show();
+  }
+  if ( $(repo_id).children("span").is (":hidden") ) {
+    $(repo_id).children().show();                              // this is when rtype was empty 
+    $(repo_icon_id).show();
+  } else {
+    // if we go from existing rtype to empty we need to hide params override
+    if (rtype_val=='') {
+      $(repo_id).children().hide();                            // this is when we change to empty rtype
+      $(repo_icon_id).hide();
+    }   
+  }
+
+}
+
 // ----------------- Section for editing Recovery Launches ------------------------------
 
 $("#edit_recovery_modal_btn").click(function() {
   listLen = 5;
+  do_recp = true;
   var recoveries = $("#ae_definition_recovery_text").val();
-  console.log ('edit_recovery_modal_btn recoveries= ' + recoveries)
   var rlist = JSON.parse(recoveries);
-  console.log ('edit_recovery_modal_btn rlist= ' + rlist)
   var i = 0;
-  for (i = 0 ; i < rlist.length; i++ ) {
-      console.log ('edit_recovery_modal_btn rlist[i][0]= ' + rlist[i][0] + ' parms = ' + rlist[i][1])
+  //for (i = 0 ; i < rlist.length; i++ ) {
+  //    console.log ('edit_recovery_modal_btn rlist['+i+'][0]= ' + rlist[i][0] + ' parms = ' + rlist[i][1])
+  //}
+  // Some initializations, make edit buttons invisible first
+  for (i = 0; i < listLen ; i++) {
+    eleid = "#re_recover_p_icon_" + i;
+    $(eleid).hide();
+    poid = "#re_recover_p_" + i;
+    $("#re_recover_p_"+ i).children("span").text("[]");
+
   }
+  var rlist_ind=[];
   for (i = 0 ; i < rlist.length; i++ ) {
       
       var sel = "#re_recover_"+i.toString()+" option[value="+rlist[i][0]+"]";
-      console.log ('edit_recovery_modal_btn sel= ' + sel + ' oparms = ' +  rlist[i][1])
       $(sel).prop('selected','selected');
       cval = rlist[i][1];
-      $("#re_recover_p_"+ i).text(cval);
-
+      eleid_repo = "#re_recover_p_"+ i;
+      $(eleid_repo).children("span").text(cval);
+      eleid = "#re_recover_p_icon_" + i;
+      $(eleid).show();
+      $(eleid_repo).show();
+      rlist_ind.push(i);
   }
-  
+  for (i = 0; i < listLen ; i++) {
+    poid = "#re_recover_p_" + i;
+    var ret = $.inArray(i, rlist_ind)
+    if (ret == -1) {
+        $(poid).children().hide();
+        ini_empty_index.push(i);
+    } else {
+        $(poid).children().show();
+    }
+  }
+
   $("#edit_recovery_modal").modal({
     closable  : false,
     onApprove : function(){
-      console.log ('edit_recovery_modal approve');
       var rlist = [];
       var s;
       var sp
       var ssp
       for (i = 0; i < listLen ; i++) {
          s  = $("#re_recover_"+i.toString()+" option:selected").val();
-         sp = $("#re_recover_p_"+i.toString()).text();
-         console.log(' i= ' + i + ' s = ' + s + ' sp = ' + sp);
+         sp = $("#re_recover_p_"+i.toString()).children("span").text();
          if (s) {
              ssp = [s,sp]
              rlist.push(ssp);
              //rlist.push(s);
          }
       }
-      console.log (' edit_recovery_modal approve, rlist = ' + rlist);
       var sval = JSON.stringify(rlist);
-      console.log (' edit_recovery_modal approve, JSON.stringify,sval = ' + sval);
       $("#ae_definition_recovery_text").val(sval);
       $("#ae_definition_recovery").val(sval);
       $("#definition_add_edit_modal").modal('show');
     },
     onDeny : function(){
+      do_recp = false;      //reset
+      for (i = 0 ; i < ini_empty_index.length; i++ ) {
+        ival = ini_empty_index[i];
+        var sels = "#re_recover_"+ival+" option[value='']";
+        $(sels).prop('selected','selected');
+      }
       $("#definition_add_edit_modal").modal('show');
     },
 
@@ -409,23 +459,20 @@ $("#edit_recovery_modal_btn").click(function() {
 
 
   function edit_recovery_params_o(index) {
-    console.log(' edit_recovery_params for ' + index);
-    var rec_parms_str = $("#re_recover_p_"+index).text();
-    console.log(' edit_recovery_params_o, rec_parms_str = ' + rec_parms_str);
-    if (rec_parms_str != "") {
+    var rec_parms_str = $("#re_recover_p_"+index).children("span").text();
+    if (rec_parms_str != "{}" || rec_parms_str != " ") {
       repo_parms = JSON.parse(rec_parms_str);
-      console.log(' edit_recovery_params_o, repo_parms = ' + repo_parms);
+    } else { 
+        repo_parms=[];
     }
-    ep_build_table_body('from_rec');
-  
+    ep_build_table_body('repo');
+    
    $("#edit_recovery_param_modal").modal({
      closable  : false,
      onApprove : function(){
       var data = ep_build_parms_string('repo');
-      console.log (' edit_recovery_param_modal approve var data ' + data);
       if (data[0] == "") {
-        console.log ('edit_recovery_param_modal, saving  data[1] ' + data[1]);
-        $("#re_recover_p_"+ index).text(data[1]);
+        $("#re_recover_p_"+ index).children("span").text(data[1]);
         $("#edit_recovery_modal").modal('show');
       } else {
           return false;
@@ -438,28 +485,26 @@ $("#edit_recovery_modal_btn").click(function() {
 
   }
   
-// -----------  Done Editing recovery params override here ...
-
-// -----------------------------------------------------------------------------
-
+// ------------  Done Editing recovery params override here ...
 // ----------------- Done section for editing Recovery Launches ------------------------------
+// -----------------------------------------------------------------------------
 
 // ----------------- Section for editing Definition Paramers ------------------------------
 
 $("#edit_param_modal_btn").click(function() {
+
+  do_recp = false;
+
   var parms_str = $("#ae_definition_parameters").val();
-  console.log(' edit_param_modal_btn, parms_str = ' + parms_str);
   if (parms_str != "") {
     //ep_parms = eval ("(" + parms_str + ")");
     ep_parms = JSON.parse(parms_str);
-    console.log(' edit_param_modal_btn, ep_parms = ' + ep_parms);
   }
   ep_build_table_body();
   $("#edit_param_modal").modal({
     closable  : false,
     onApprove : function(){
       var data = ep_build_parms_string();
-      console.log (' def par approve var data ' + data);
       if (data[0] == "") {
         $("#ae_definition_parameters_text").val(data[1]);
         $("#ae_definition_parameters").val(data[1]);
@@ -476,9 +521,9 @@ $("#edit_param_modal_btn").click(function() {
 
 function ep_build_parms_string(pval) {
 
-  console.log(' ep_build_parms_string , pval = ' + pval);
   var parms = "[";
   var message = "";
+  
   rebuild_ep_parms(pval);
 
   if (typeof pval !== 'undefined') {
@@ -507,35 +552,33 @@ function ep_build_parms_string(pval) {
 
 //function ep_build_table_body() {
 
-function ep_build_table_body(from_where) {
+function ep_build_table_body(tbtype) {
 
-  
-  console.log ('ep_build_table_body ');  
-  if (typeof from_where !== 'undefined') {
-    console.log ('ep_build_table_body ,from_where = ' +  from_where);  
+  if (typeof tbtype !== 'undefined') {
     if (repo_parms.length ==0) {
         repo_parms.push(["",""]);
     }
     var local_ep_parms = repo_parms
     $("#repo_tbody").text("");
+    tbval = 'repo'
 
   } else {
-    console.log ('ep_build_table_body ,normal def');  
     if (ep_parms.length ==0) {
         ep_parms.push(["",""]);
     }
     var local_ep_parms = ep_parms
     $("#ep_tbody").text("");
-
+    tbval=''
   }
-  //$("#ep_tbody").text("");
 
-  console.log (' local_ep_parms ,len = ' + local_ep_parms.length);
+  if (do_recp == true) tbval = 'repo'
+
 //  for (index = 0; index < ep_parms.length; index++) {
   for (index = 0; index < local_ep_parms.length; index++) {
-    var ep_row = "ep_row_" + index;
-    var ep_key = "ep_key_" + index;
-    var ep_val = "ep_val_" + index;		  
+    var tt = "ep_row_" + tbval + index;
+    var ep_row = "ep_row_" + tbval + index;
+    var ep_key = "ep_key_" + tbval + index;
+    var ep_val = "ep_val_" + tbval + index;		  
     var row = '<tr id="' +ep_row+ '">';
     row +=       '<td class="brown">'
     row +=          '<div class="ui fluid input">'
@@ -557,14 +600,13 @@ function ep_build_table_body(from_where) {
     row +=       '</td>';
     row +=     '</tr>'
 
-    if (typeof from_where !== 'undefined') {
+    if (typeof tbtype !== 'undefined') {
       $("#repo_tbody").append(row);
     } else {
       $("#ep_tbody").append(row);
     }
   }		
-  if (typeof from_where !== 'undefined') {
-     console.log ('show rec parms');
+  if (typeof tbtype !== 'undefined') {
      $("#edit_recovery_param_modal").modal('refresh');
   } else {
      $("#edit_param_modal").modal('refresh');
@@ -574,18 +616,20 @@ function ep_build_table_body(from_where) {
 // -------------- Normal definitions ------------------
 function rebuild_ep_parms(pval) {
 
-  console.log(' rebuild_ep_parms , pval = ' + pval);
-
   if (typeof pval !== 'undefined') {
     repo_parms = []
     var rowCount = $("#repo_table >tbody >tr").length;
+    tbval = 'repo'
+
   } else {
     ep_parms = []
     var rowCount = $("#ep_table >tbody >tr").length;
+    tbval = ''
+
   }
   for (index=0; index< rowCount; index++) {
-    var ep_key = "#ep_key_" + index;
-    var ep_val = "#ep_val_" + index;
+    var ep_key = "#ep_key_" + tbval + index;
+    var ep_val = "#ep_val_" + tbval + index;
     var key = $(ep_key).val();
     var val = $(ep_val).val();
     if (typeof pval !== 'undefined') {
@@ -597,34 +641,72 @@ function rebuild_ep_parms(pval) {
 }
 
 function ep_add_button(current_row) {
-  rebuild_ep_parms();
-  ep_parms.splice(current_row+1, 0, ["",""] );
-  ep_build_table_body();
+  if (do_recp == true){
+    pval='repo';
+    rebuild_ep_parms(pval);
+    repo_parms.splice(current_row+1, 0, ["",""] );
+    ep_build_table_body(pval);
+  } else {
+    rebuild_ep_parms();
+    ep_parms.splice(current_row+1, 0, ["",""] );
+    ep_build_table_body();
+  
+  }
 }
 		  
 function ep_delete_button(current_row) {
-  rebuild_ep_parms();
-  ep_parms.splice(current_row, 1 );
-  ep_build_table_body();
+  if (do_recp == true){
+    pval='repo';
+    rebuild_ep_parms(pval);
+    repo_parms.splice(current_row, 1 );
+    ep_build_table_body(pval);
+
+  } else {
+    rebuild_ep_parms();
+    ep_parms.splice(current_row, 1 );
+    ep_build_table_body();
+  }
 }
+
 		  
+
 function ep_up_button(current_row) {
   if (current_row > 0) {
-    rebuild_ep_parms();
-    var hold = ep_parms[current_row-1];
-    ep_parms[current_row-1] = ep_parms[current_row];
-    ep_parms[current_row] = hold;
-    ep_build_table_body();
+    if (do_recp == true){
+      pval='repo';
+      rebuild_ep_parms(pval);
+      var hold = repo_parms[current_row-1];
+      repo_parms[current_row-1] = repo_parms[current_row];
+      repo_parms[current_row] = hold;
+      ep_build_table_body(pval);
+
+    } else {
+      rebuild_ep_parms();
+      var hold = ep_parms[current_row-1];
+      ep_parms[current_row-1] = ep_parms[current_row];
+      ep_parms[current_row] = hold;
+      ep_build_table_body();
+    }
   } 
 }
 		  
 function ep_down_button(current_row) {
   if (current_row < (ep_parms.length-1)) {
-    rebuild_ep_parms();
-    var hold = ep_parms[current_row+1];
-    ep_parms[current_row+1] = ep_parms[current_row];
-    ep_parms[current_row] = hold;
-    ep_build_table_body();
+    if (do_recp == true){
+      pval='repo';
+      rebuild_ep_parms(pval);
+      var hold = repo_parms[current_row+1];
+      repo_parms[current_row+1] = repo_parms[current_row];
+      repo_parms[current_row] = hold;
+      ep_build_table_body(pval);
+
+    } else {
+      rebuild_ep_parms();
+      var hold = ep_parms[current_row+1];
+      ep_parms[current_row+1] = ep_parms[current_row];
+      ep_parms[current_row] = hold;
+      ep_build_table_body();
+    }
   } 
 }
 		  
