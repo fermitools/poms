@@ -114,9 +114,16 @@ class CampaignsPOMS():
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
+        #added for poms_client
+        pcl_call = kwargs.pop('pcl_call', 0) #pcl_call == 1 means the method was access through the poms_client.
+        pc_email = kwargs.pop('pc_email',None) #email is the info we know about the user in POMS DB.
+
         if action == 'delete':
             name = kwargs.pop('name')
-            cid = kwargs.pop('campaign_definition_id')
+            if pcl_call == 1: #Enter here if the access was from the poms_client
+                cid=campaign_definition_id=dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==name).firts().campaign_definition_id
+            else:
+                cid = kwargs.pop('campaign_definition_id')
             try:
                 dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id==cid).delete()
                 dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==cid).delete()
@@ -128,15 +135,42 @@ class CampaignsPOMS():
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
-            campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
-            name = kwargs.pop('ae_definition_name')
-            input_files_per_job = kwargs.pop('ae_input_files_per_job')
-            output_files_per_job = kwargs.pop('ae_output_files_per_job')
-            output_file_patterns = kwargs.pop('ae_output_file_patterns')
-            launch_script = kwargs.pop('ae_launch_script')
-            definition_parameters = kwargs.pop('ae_definition_parameters')
-            recoveries = kwargs.pop('ae_definition_recovery')
-            experimenter_id = kwargs.pop('experimenter_id')
+            if pcl_call == 1: #Enter here if the access was from the poms_client
+                name = kwargs.pop('ae_definition_name')
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
+                campaign_definition_id=dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==name).firts().campaign_definition_id
+                input_files_per_job = kwargs.pop('ae_input_files_per_job')
+                output_files_per_job = kwargs.pop('ae_output_files_per_job')
+                output_file_patterns = kwargs.pop('ae_output_file_patterns')
+                launch_script = kwargs.pop('ae_launch_script')
+                definition_parameters = kwargs.pop('ae_definition_parameters')
+                recoveries = kwargs.pop('ae_definition_recovery')
+                #Guetting the info which was not passed by the poms_client arguments
+                if input_files_per_job in [None,""]:
+                    input_files_per_job = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().input_files_per_job
+                if output_files_per_job in [None,""]:
+                    output_files_per_job= dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().output_files_per_job
+                if output_file_patterns in [None,""]:
+                    output_file_patterns = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().output_file_patterns
+                if launch_script in [None,""]:
+                    launch_script = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().launch_script
+                if definition_parameters in [None,""]:
+                    definition_parameters = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().definition_parameters
+                '''
+                recovery_type need a join and modify the routine below
+                if recoveries in [None,""]:
+                    recoveries = dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == campaign_definition_id).firts().recovery_type
+                '''
+            else:
+                experimenter_id = kwargs.pop('experimenter_id')
+                campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
+                name = kwargs.pop('ae_definition_name')
+                input_files_per_job = kwargs.pop('ae_input_files_per_job')
+                output_files_per_job = kwargs.pop('ae_output_files_per_job')
+                output_file_patterns = kwargs.pop('ae_output_file_patterns')
+                launch_script = kwargs.pop('ae_launch_script')
+                definition_parameters = kwargs.pop('ae_definition_parameters')
+                recoveries = kwargs.pop('ae_definition_recovery')
             try:
                 if action == 'add':
                     cd = CampaignDefinition( name=name, experiment=exp,
@@ -163,6 +197,7 @@ class CampaignsPOMS():
 
             # now fixup recoveries -- clean out existing ones, and
             # add listed ones.
+            if pcl_call == 0:
                 dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == campaign_definition_id).delete()
                 i = 0
                 for rtn in json.loads(recoveries):
@@ -170,6 +205,9 @@ class CampaignsPOMS():
                     cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt)
                     dbhandle.add(cr)
                 dbhandle.commit()
+            else:
+                pass #We need to define later if it is going to be possible to modify the recovery type from the client.
+
             except IntegrityError, e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
                 loghandle(e.message)

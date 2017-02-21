@@ -27,7 +27,7 @@ def get_task_id_for(campaign, user = None, command_executed = None, input_datase
                     test = test).replace('Task=',''))
 
 
-def launch_template_edit(self, action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_email):
+def launch_template_edit(self, action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_email = None):
 
 
     method = 'launch_template_edit'
@@ -37,9 +37,10 @@ def launch_template_edit(self, action = None, name = None, launch_host = None, u
     ae_launch_account = user_account
     ae_launch_setup = launch_setup
     experiment = experiment
+    pc_email = pc_email
 
-    if experiment == None:
-        print " You should provide an experiment name"
+    if experiment == None or pc_email == None:
+        print " You should provide an experiment name and email"
     else:
 
         if action == 'deleted':
@@ -50,7 +51,7 @@ def launch_template_edit(self, action = None, name = None, launch_host = None, u
                     pcl_call=1,
                     method=method,
                     action = action,
-                    ae_launch_name = name,
+                    ae_launch_name = ae_launch_name,
                     experiment = experiment))
                 return data['message']
 
@@ -65,12 +66,12 @@ def launch_template_edit(self, action = None, name = None, launch_host = None, u
                     pcl_call=1,
                     method = method,
                     action = action,
-                    ae_launch_name = name,
+                    ae_launch_name = ae_launch_name,
                     experiment = experiment,
 
-                    ae_launch_host = launch_host,
-                    ae_launch_account = user_account,
-                    ae_launch_setup = launch_setup))
+                    ae_launch_host = ae_launch_host,
+                    ae_launch_account = ae_launch_account,
+                    ae_launch_setup = ae_launch_setup))
                     ###The variables below are query in the CampaignsPOMS module
                     #ae_launch_id = ae_launch_id,
                     #experimenter_id = experimenter_id)
@@ -102,6 +103,34 @@ def launch_template_edit(self, action = None, name = None, launch_host = None, u
             You did not change anything in your template"
 
 
+def campaign_definition_edit(self, pc_email=None, action = None, name = None, experiment = None, input_files_per_job, output_files_per_job, output_file_patterns, launch_script, def_parameter):
+    # You can not modify the recovery_type from the poms_client (future feauture)
+    pc_email = pc_email
+    method = method
+    action = action
+    ae_definition_name = name
+    experiment = experiment
+
+    ae_input_files_per_job = input_files_per_job
+    ae_output_files_per_job = output_files_per_job
+    ae_output_file_patterns = output_file_patterns
+    ae_launch_script = launch_script
+    ae_definition_parameters= def_parameter
+
+    data = make_poms_call(  pcl_call=1,
+                            method = method,
+                            pc_email = pc_email,
+
+                            action = action,
+                            ae_definition_name = ae_definition_name,
+                            experiment = experiment,
+
+                            ae_input_files_per_job = ae_input_files_per_job ,
+                            ae_output_files_per_job = ae_output_files_per_job,
+                            ae_output_file_patterns = ae_output_file_patterns,
+                            ae_launch_script = ae_launch_script,
+                            ae_definition_parameters= ae_def_parameter,
+                            )
 
 def make_poms_call(**kwargs):
 
