@@ -136,3 +136,10 @@ def test_update_job_2():
     }
     do_update_job(fielddict)
 
+
+def test_output_pending():
+    dbhandle = DBHandle.DBHandle().get()
+
+    res = mps.jobsPOMS.output_pending_jobs(dbhandle)
+    assert(res != None)
+    
