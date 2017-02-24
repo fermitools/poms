@@ -1,10 +1,10 @@
 from mock.mock import MagicMock
 from mock_poms_service import mock_poms_service
 from DBHandle import DBHandle
-from webservice.utc import utc
+from poms.webservice.utc import utc
 import time
 from datetime import datetime, timedelta
-from model.poms_model import Campaign
+from poms.model.poms_model import Campaign
 
 mps = mock_poms_service()
 dbhandle = DBHandle().get()

@@ -2,10 +2,11 @@ import DBHandle
 import datetime
 import time
 import os
+import json
 import socket
-from webservice.utc import utc
-from webservice.samweb_lite import samweb_lite
-from model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job
+from poms.webservice.utc import utc
+from poms.webservice.samweb_lite import samweb_lite
+from poms.model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -105,9 +106,40 @@ def test_update_job_1():
     }
     do_update_job(fielddict)
 
+def test_bulk_update_job():
+    dbhandle = DBHandle.DBHandle().get()
+    samhandle = samweb_lite()
+    l1 = mps.jobsPOMS.active_jobs(dbhandle)
+
+    ft = float(int(time.time()))
+    jids = []
+    jids.append("%.1f@fakebatch1.fnal.gov" % ft)
+    jids.append("%.1f@fakebatch1.fnal.gov" % (ft + 0.1))
+    jids.append("%.1f@fakebatch1.fnal.gov" % (ft + 0.2))
+    task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
+
+    data = {}
+    for jid in jids:
+        data[jid] = {'jobsub_job_id': jid, 'task_id': task_id, 'status': 'Idle'}
+    
+    mps.jobsPOMS.bulk_update_job(dbhandle, logger.info, rpstatus, samhandle, json.dumps(data) )
+    
+    for jid in jids:
+        j = dbhandle.query(Job).filter(Job.jobsub_job_id == jid).first()
+        assert(jid != None)
+
+
 def test_update_job_2():
     # try updating lots of parameters
     fielddict = {
         'status' : 'running: on full',
     }
     do_update_job(fielddict)
+
+
+def test_output_pending():
+    dbhandle = DBHandle.DBHandle().get()
+
+    res = mps.jobsPOMS.output_pending_jobs(dbhandle)
+    assert(res != None)
+    

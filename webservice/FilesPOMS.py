@@ -5,10 +5,11 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
 
-from model.poms_model import Experimenter, Experiment, ExperimentsExperimenters, Job, Task, Campaign, JobFile
+from poms.model.poms_model import Experimenter, Experiment, ExperimentsExperimenters, Job, Task, Campaign, JobFile
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, not_,  create_engine, null, desc, text, func, exc, distinct
 from utc import utc
+from datetime import datetime
 
 class Files_status():
 
@@ -23,11 +24,11 @@ class Files_status():
         #DELETE: template = self.poms_service.jinja_env.get_template('list_task_logged_files.html')
         #return template.render(fl = fl, campaign = t.campaign_snap_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
 
-    def campaign_task_files(self, dbhandle, loghandle, samhandle, campaign_id, tmin = None, tmax = None, tdays = 1):
+    def campaign_task_files(self, dbhandle, loghandle, samhandle, campaign_id, tmin=None, tmax=None, tdays=1):
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'campaign_task_files?campaign_id=%s&' % campaign_id)
         # inhale all the campaign related task info for the time window
         # in one fell swoop
-        tl = (    dbhandle.query(Task).
+        tl = (dbhandle.query(Task).
                 options(joinedload(Task.campaign_snap_obj)).
                 options(joinedload(Task.campaign_snap_obj)).
                 options(joinedload(Task.jobs).joinedload(Job.job_files)).
@@ -137,7 +138,7 @@ class Files_status():
                             [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
                             [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                             ])
-            return c, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
+        return c, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
 
             ###I didn't include tdays, campaign_id, because it was passed as an argument, should I?????
             #DELETE template = self.jinja_env.get_template('campaign_task_files.html')

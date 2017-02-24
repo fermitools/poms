@@ -6,19 +6,8 @@ import atexit
 from paste.exceptions.errormiddleware import ErrorMiddleware
 from repoze.errorlog import ErrorLog
 
-'''
-# make sure poms is setup...
-if os.environ.get("SETUP_POMS","") == "":
-    sys.path.insert(0,os.environ.get('SETUPS_DIR',os.environ.get('HOME')+'/products'))
-    import setups
-    print "setting up poms..."
-    ups = setups.setups()
-    ups.use_package("poms","","SETUP_POMS")
-else:
-    print "already setup"
-'''
 
-from model.poms_model import Experimenter, ExperimentsExperimenters
+from poms.model.poms_model import Experimenter, ExperimentsExperimenters
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 import os.path
 import argparse
@@ -61,11 +50,12 @@ class SAEnginePlugin(plugins.SimplePlugin):
     def start(self):
         db = cherrypy.config.get("db")
         dbuser = cherrypy.config.get("dbuser")
-        dbpass = cherrypy.config.get("dbpass")
+        # dbpass = cherrypy.config.get("dbpass")
         dbhost = cherrypy.config.get("dbhost")
         dbport = cherrypy.config.get("dbport")
-        db_path = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport, db)
-        sa_echo = cherrypy.config.get("sa_echo",True)
+        # db_path = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport, db)
+        db_path = "postgresql://%s:@%s:%s/%s" % (dbuser, dbhost, dbport, db)
+        sa_echo = cherrypy.config.get("sa_echo", True)
         self.sa_engine = create_engine(db_path, echo=sa_echo)
         atexit.register(self.destroy)
 
@@ -109,8 +99,14 @@ class SATool(cherrypy.Tool):
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
+        self.session.execute("SET SESSION lock_timeout = '1s';")
+        self.session.execute("SET SESSION statement_timeout = '30s';")
+        self.session.commit()
 
     def release_session(self):
+        cherrypy.request.jobsub_fetcher.flush()
+        cherrypy.request.samweb_lite.flush() 
+        cherrypy.request.db.close()
         cherrypy.request.db = None
         cherrypy.request.jobsub_fetcher = None
         cherrypy.request.samweb_lite = None
@@ -251,7 +247,7 @@ if True:
                         'tools.sessions.timeout': 60,
                         #~ 'tools.sessions.storage_class': cherrypy.lib.sessions.FileSession,
                         'tools.sessions.storage_type': 'file',
-                        'tools.sessions.storage_path': '/scratch/poms/sessions',
+                        #~ 'tools.sessions.storage_path': '/scratch/poms/sessions',
                         #~ 'tools.sessions.locking': 'implicit',
                         'tools.sessions.locking': 'early',          # IMPORTANT!
                      },
@@ -262,15 +258,15 @@ if True:
                }
 
     configfile = "poms.ini"
-    dbasefile  = "passwd.ini"
+    # dbasefile  = "passwd.ini"
     parser,args = parse_command_line()
     if args.config:
         configfile = args.config
-    if args.password:
-        dbasefile = args.password
+    # if args.password:
+    #     dbasefile = args.password
     try:
         cherrypy.config.update(configfile)
-        cherrypy.config.update(dbasefile)
+        # cherrypy.config.update(dbasefile)
     except IOError, mess:
         print mess
         parser.print_help()
@@ -311,3 +307,4 @@ if True:
     application = cherrypy.tree
     #application = ErrorMiddleware(application, debug=True)
     #application = ErrorLog(application, channel=None, keep=20, path='/__error_log__', ignored_exceptions=())
+# END

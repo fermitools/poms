@@ -6,7 +6,7 @@ logger = logging.getLogger('cherrypy.error')
 
 import jobsub_fetcher
 from datetime import datetime, timedelta
-from model.poms_model import Job
+from poms.model.poms_model import Job
 
 def get_joblogs(dbhandle, jobsub_job_id, experiment, role):
     if jobsub_job_id == None:
