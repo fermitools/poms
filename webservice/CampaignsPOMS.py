@@ -113,6 +113,7 @@ class CampaignsPOMS():
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action',None)
+        print ' campaign_definition_edit, action = %s' %action
         exp = kwargs.pop('experiment',None)
         if action == 'delete':
             name = kwargs.pop('name')
@@ -166,8 +167,10 @@ class CampaignsPOMS():
                 dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == campaign_definition_id).delete()
                 i = 0
                 for rtn in json.loads(recoveries):
-                    rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rtn).first()
-                    cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt)
+                    rect   = rtn[0]
+                    recpar = rtn[1]
+                    rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rect).first()
+                    cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt, param_overrides = recpar)
                     dbhandle.add(cr)
                 dbhandle.commit()
             except IntegrityError, e:
@@ -192,6 +195,7 @@ class CampaignsPOMS():
                                     .filter(CampaignDefinition.experiment==exp)
                                     .order_by(CampaignDefinition.name)
                                     )
+
             # Build the recoveries for each campaign.
             cids = [row[0].campaign_definition_id for row in data['definitions'].all()]
             recs_dict = {}
@@ -200,9 +204,12 @@ class CampaignsPOMS():
                     .filter(CampaignRecovery.campaign_definition_id == cid,CampaignDefinition.experiment == exp)
                     .order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
                 rec_list  = []
-		for rec in recs:
-		    rec_list.append(rec.recovery_type.name )
-		recs_dict[cid] = json.dumps(rec_list)
+                for rec in recs:
+                    co_vals= '%s' %rec.param_overrides
+                    if co_vals=='' or co_vals=='{}': co_vals="[]"
+                    rec_vals=[rec.recovery_type.name,co_vals]
+                    rec_list.append(rec_vals)
+                recs_dict[cid] = json.dumps(rec_list)
             data['recoveries'] = recs_dict
             data['rtypes'] = (dbhandle.query(RecoveryType.name,RecoveryType.description).order_by(RecoveryType.name).all())
 
