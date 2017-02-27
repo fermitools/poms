@@ -601,7 +601,10 @@ class TaskPOMS:
             "export JOBSUB_GROUP=%s" % group,
         ]
         if cd.definition_parameters:
-           params = OrderedDict(json.loads(cd.definition_parameters))
+           if isinstance( cd.definition_parameters, basestring):
+               params = OrderedDict(json.loads(cd.definition_parameters))
+           else:
+               params = OrderedDict(cd.definition_parameters)
         else:
            params = OrderedDict([])
 

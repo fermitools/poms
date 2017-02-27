@@ -68,9 +68,12 @@ class samweb_lite:
         infos = []
         for r in replies:
             try:
-                info = r.json()
-                self.do_totals(info)
-                infos.append(info)
+                if r.status_code == 200:
+		    info = r.json()
+                    self.do_totals(info)
+                    infos.append(info)
+                else:
+                    infos.append({})
             except:
                 traceback.print_exc()
                 infos.append({})
