@@ -152,7 +152,7 @@ class TaskPOMS:
 	    totcount = 0
 	    for j in task.jobs:
 		totcount +=1
-		if j.status == "Completed":
+		if j.status == "Completed" or j.status = "Located":
 		    compcount += 1
 
 	    cfrac = task.campaign_snap_obj.completion_pct
