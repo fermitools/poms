@@ -113,7 +113,6 @@ class CampaignsPOMS():
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action',None)
-        print ' campaign_definition_edit, action = %s' %action
         exp = kwargs.pop('experiment',None)
         if action == 'delete':
             name = kwargs.pop('name')
