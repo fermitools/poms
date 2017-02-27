@@ -33,7 +33,6 @@ def test_triage_job():
     mj.close()
     job = dbhandle.query(Job).filter(Job.jobsub_job_id == mj.jids[0]).first()
 
-
     res = mps.triagePOMS.triage_job(dbhandle, fetcher, dbh.cf, job.job_id)
 
     # we should get ( [], (job,task,camp) , [JobHistory,...], ...)
@@ -61,7 +60,6 @@ def test_job_table():
     assert(res[3][0] == 'campaign_id')
 
 def test_failed_jobs():
-
 
     print "jids:", mj.jids
 
