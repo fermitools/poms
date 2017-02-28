@@ -12,6 +12,7 @@ CVS
 *.out
 *.cache
 *orig
+*.py-*
 
 tmp
 .DS_Store
