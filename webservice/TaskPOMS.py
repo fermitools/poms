@@ -473,8 +473,8 @@ class TaskPOMS:
                  recovery_dims = "project_name %s and process_status != 'ok'" % t.project
             elif rtype.name == 'pending_files':
                  recovery_dims = "snapshot_for_project_name %s " % t.project
-                 if t.campaign_definition_snap_obj.output_file_types:
-                     oftypelist = campaign_definition_snap_obj.output_file_types.split(",")
+                 if t.campaign_definition_snap_obj.output_file_patterns:
+                     oftypelist = campaign_definition_snap_obj.output_file_patterns.split(",")
                  else:
                      oftypelist = ["%"]
 
