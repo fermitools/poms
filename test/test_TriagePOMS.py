@@ -3,9 +3,9 @@ import datetime
 import time
 import os
 import socket
-from webservice.utc import utc
-from webservice.samweb_lite import samweb_lite
-from model.poms_model import Campaign, Job
+from poms.webservice.utc import utc
+from poms.webservice.samweb_lite import samweb_lite
+from poms.model.poms_model import Campaign, Job
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -32,7 +32,6 @@ def test_triage_job():
     mj.launch(str(c.campaign_id), n_jobs=3, exit_code = -1)
     mj.close()
     job = dbhandle.query(Job).filter(Job.jobsub_job_id == mj.jids[0]).first()
-
 
     res = mps.triagePOMS.triage_job(dbhandle, fetcher, dbh.cf, job.job_id)
 
@@ -61,7 +60,6 @@ def test_job_table():
     assert(res[3][0] == 'campaign_id')
 
 def test_failed_jobs():
-
 
     print "jids:", mj.jids
 

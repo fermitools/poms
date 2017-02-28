@@ -4,9 +4,9 @@ import time
 import os
 import json
 import socket
-from webservice.utc import utc
-from webservice.samweb_lite import samweb_lite
-from model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job
+from poms.webservice.utc import utc
+from poms.webservice.samweb_lite import samweb_lite
+from poms.model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -136,3 +136,10 @@ def test_update_job_2():
     }
     do_update_job(fielddict)
 
+
+def test_output_pending():
+    dbhandle = DBHandle.DBHandle().get()
+
+    res = mps.jobsPOMS.output_pending_jobs(dbhandle)
+    assert(res != None)
+    

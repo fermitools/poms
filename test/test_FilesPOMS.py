@@ -4,9 +4,9 @@ import time
 import os
 import socket
 from mock.mock import MagicMock
-from webservice.utc import utc
-from webservice.samweb_lite import samweb_lite
-from model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job
+from poms.webservice.utc import utc
+from poms.webservice.samweb_lite import samweb_lite
+from poms.model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 

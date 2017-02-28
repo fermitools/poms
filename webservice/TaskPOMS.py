@@ -21,13 +21,14 @@ import time
 import select
 import os
 import sys
+from exceptions import KeyError
 
 # our own logging handle, goes to cherrypy
 
 import logging
 logger = logging.getLogger('cherrypy.error')
 
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency, HeldLaunch
+from poms.model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency, HeldLaunch
 
 
 #
@@ -145,13 +146,19 @@ class TaskPOMS:
         n_project = 0
         n_located = 0
         # try with joinedload()...
-        for task in dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Running", Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id, CampaignSnapshot.completion_type == "completed").all():
+        for task in (dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot)
+                     .options(joinedload(Task.jobs))
+                     .options(joinedload(Task.campaign_snap_obj))
+                     .options(joinedload(Task.campaign_definition_snap_obj))
+                     .filter(Task.status == "Running",
+                             Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
+                             CampaignSnapshot.completion_type == "completed").all()):
 
             compcount = 0
             totcount = 0
             for j in task.jobs:
-                totcount +=1
-                if j.status == "Completed":
+                totcount += 1
+                if j.status == "Completed" or j.status == "Located":
                     compcount += 1
 
             cfrac = task.campaign_snap_obj.completion_pct
@@ -165,8 +172,13 @@ class TaskPOMS:
                     j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
-
-        for task in dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Completed", Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id, CampaignSnapshot.completion_type == "located").all():
+        for task in (dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot)
+                     .options(joinedload(Task.jobs))
+                     .options(contains_eager(Task.campaign_snap_obj))
+                     .options(joinedload(Task.campaign_definition_snap_obj))
+                     .filter(Task.status == "Completed",
+                             Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
+                             CampaignSnapshot.completion_type == "located").all()):
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as
             # located as its going to get...
@@ -537,6 +549,9 @@ class TaskPOMS:
         loghandle("trying to record launch in %s" % outfile)
 
         c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).options(joinedload(Campaign.launch_template_obj),joinedload(Campaign.campaign_definition_obj)).first()
+        if not c:
+             err_res = 404
+             raise KeyError
         cd = c.campaign_definition_obj
         lt = c.launch_template_obj
 
@@ -597,7 +612,10 @@ class TaskPOMS:
             "export JOBSUB_GROUP=%s" % group,
         ]
         if cd.definition_parameters:
-           params = OrderedDict(json.loads(cd.definition_parameters))
+           if isinstance( cd.definition_parameters, basestring):
+               params = OrderedDict(json.loads(cd.definition_parameters))
+           else:
+               params = OrderedDict(cd.definition_parameters)
         else:
            params = OrderedDict([])
 

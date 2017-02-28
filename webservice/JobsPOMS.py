@@ -5,7 +5,8 @@ List of methods: active_jobs, output_pending_jobs, update_jobs
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
-from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile, HeldLaunch, JobHistory
+import re
+from poms.model.poms_model import Experiment, Job, Task, Campaign, CampaignDefinitionSnapshot, CampaignSnapshot, Tag, JobFile, HeldLaunch, JobHistory
 from datetime import datetime, timedelta
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy import func, not_, and_
@@ -50,7 +51,21 @@ class JobsPOMS():
         sep=""
         preve = None
         prevj = None
-        for e, jobsub_job_id, fname  in dbhandle.query(Campaign.experiment,Job.jobsub_job_id,JobFile.file_name).join(Task).filter(Task.campaign_id == Campaign.campaign_id, Job.jobsub_job_id != "unknown", Job.task_id == Task.task_id, Job.job_id == JobFile.job_id, Job.status == "Completed", JobFile.declared == None, JobFile.file_type == 'output').order_by(Campaign.experiment,Job.jobsub_job_id).all():
+        # it would be really cool if we could push the pattern match all the
+	# way down into the query: 
+        #  JobFile.file_name like CampaignDefinitionSnapshot.output_file_patterns
+        # but with a comma separated list of them, I don't think it works 
+        # directly -- we would have to convert comma to pipe...
+        # for now, I'm just going to make it a regexp and filter them here.
+        for e, jobsub_job_id, fname , fpattern in dbhandle.query(CampaignSnapshot.experiment,Job.jobsub_job_id,JobFile.file_name, CampaignDefinitionSnapshot.output_file_patterns).join(Task).join(CampaignDefinitionSnapshot).filter(Task.campaign_definition_snap_id == CampaignDefinitionSnapshot.campaign_definition_snap_id,Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id, Job.jobsub_job_id != "unknown", Job.task_id == Task.task_id, Job.job_id == JobFile.job_id, Job.status == "Completed", JobFile.declared == None, JobFile.file_type == 'output').order_by(CampaignSnapshot.experiment,Job.jobsub_job_id).all():
+            # convert fpattern "%.root,%.dat" to regexp ".*\.root|.*\.dat"
+            if fpattern == None:
+               fpattern = '%'
+            fpattern = fpattern.replace('.','\\.')
+            fpattern = fpattern.replace('%','.*')
+            fpattern = fpattern.replace(',','|')
+            if not re.match(fpattern, fname):
+                continue
             if preve != e:
                 preve = e
                 res[e] = {}

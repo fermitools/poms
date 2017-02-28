@@ -20,7 +20,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
-from model.poms_model import (Service, ServiceDowntime, Experimenter, Experiment,
+from poms.model.poms_model import (Service, ServiceDowntime, Experimenter, Experiment,
     ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition,
     TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile,
     CampaignSnapshot, CampaignDefinitionSnapshot, LaunchTemplateSnapshot,
@@ -56,7 +56,7 @@ def error_response():
         dump = cherrypy._cperror.format_exc()
     message = dump.replace('\n','<br/>')
 
-    jinja_env = Environment(loader=PackageLoader('webservice','templates'))
+    jinja_env = Environment(loader=PackageLoader('poms.webservice','templates'))
     template = jinja_env.get_template('error_response.html')
     path = cherrypy.config.get("pomspath","/poms")
     body = template.render(current_experimenter=cherrypy.session.get('experimenter'),
@@ -74,12 +74,13 @@ def error_response():
 
 class poms_service:
 
+
     _cp_config = {'request.error_response': error_response,
                   'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()),'/templates/page_not_found.html')
                   }
 
     def __init__(self):
-        self.jinja_env = Environment(loader=PackageLoader('webservice','templates'))
+        self.jinja_env = Environment(loader=PackageLoader('poms.webservice','templates'))
         self.path = cherrypy.config.get("pomspath","/poms")
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
@@ -122,12 +123,12 @@ class poms_service:
     def es(self):
         template = self.jinja_env.get_template('elasticsearch.html')
 
-        es = Elasticsearch()
+        es = Elasticsearch(config=cherrypy.config)
 
         query = {
             'sort' : [{ '@timestamp' : {'order' : 'asc'}}],
             'query' : {
-                'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
+                'term' : { 'jobid' : '17519748.0@fifebatch2.fnal.gov' }
             }
         }
 
@@ -450,6 +451,8 @@ class poms_service:
 
     @cherrypy.expose
     def make_stale_campaigns_inactive(self):
+        if not self.accessPOMS.can_report_data(cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get):
+             raise err_res(401, 'You are not authorized to access this resource')
         res = self.campaignsPOMS.make_stale_campaigns_inactive(cherrypy.request.db, cherrypy.HTTPError)
         return "Marked inactive stale: " + ",".join(res)
 #--------------------------------------

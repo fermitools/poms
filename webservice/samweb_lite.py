@@ -80,7 +80,7 @@ class samweb_lite:
     def fetch_info(self, experiment, projid):
         """
         """
-        if not experiment or not projid:
+        if not experiment or not projid or projid == "None":
             return {}
 
         if self.have_cache(experiment, projid):
@@ -158,8 +158,7 @@ class samweb_lite:
                 # Process error!
                 pass
         except:
-            pass    # for now, this is not turned on in SAM yet, so ignore
-            # traceback.print_exc()
+            traceback.print_exc()
         finally:
             res.close()
         return r1
