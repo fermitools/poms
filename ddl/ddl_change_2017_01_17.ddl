@@ -11,3 +11,13 @@ create index concurrently idx_tasks_by_status on tasks ( status ) ;
 Alter table campaign_recoveries drop constraint pk_campaign_recoveries;
 ALTER TABLE campaign_recoveries ADD CONSTRAINT pk_campaign_recoveries PRIMARY KEY ( campaign_definition_id, recovery_type_id, recovery_order );
 
+
+CREATE TABLE faulty_requests ( 
+	url                  text  NOT NULL,
+	last_seen            timestamptz DEFAULT now() NOT NULL,
+	status               integer  ,
+	message              text  ,
+	ntries               integer  ,
+	CONSTRAINT faulty_requests_pkey PRIMARY KEY ( url, last_seen )
+ );
+
