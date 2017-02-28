@@ -74,6 +74,7 @@ def error_response():
 
 class poms_service:
 
+
     _cp_config = {'request.error_response': error_response,
                   'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()),'/templates/page_not_found.html')
                   }
