@@ -123,12 +123,12 @@ class poms_service:
     def es(self):
         template = self.jinja_env.get_template('elasticsearch.html')
 
-        es = Elasticsearch()
+        es = Elasticsearch(config=cherrypy.config)
 
         query = {
             'sort' : [{ '@timestamp' : {'order' : 'asc'}}],
             'query' : {
-                'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
+                'term' : { 'jobid' : '17519748.0@fifebatch2.fnal.gov' }
             }
         }
 
