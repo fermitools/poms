@@ -95,7 +95,7 @@ class TaskPOMS:
 
 
     def wrapup_tasks(self, dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res): # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
-        now =  datetime.now(utc)
+        now = datetime.now(utc)
         res = ["wrapping up:"]
 
         #
@@ -125,9 +125,9 @@ class TaskPOMS:
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
                 # and check job logs for final runtime, cpu-time etc.
-                condor_log_parser.get_joblogs(dbhandle, 
+                condor_log_parser.get_joblogs(dbhandle,
                    self.task_min_job(dbhandle, task.task_id),
-                   task.campaign_snap_obj.experiment, 
+                   task.campaign_snap_obj.experiment,
                    task.campaign_snap_obj.vo_role)
 
         # mark them all completed, so we can look them over..
@@ -136,7 +136,7 @@ class TaskPOMS:
         lookup_dims_list = []
         lookup_exp_list = []
         #
-        # move launch stuff etc, to one place, so we can keep the table rows 
+        # move launch stuff etc, to one place, so we can keep the table rows
         # so we need a list...
         #
         finish_up_tasks = {}
@@ -146,7 +146,7 @@ class TaskPOMS:
         n_located = 0
         # try with joinedload()...
         for task in dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot).options(joinedload(Task.jobs)).options(joinedload(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Running", Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id, CampaignSnapshot.completion_type == "completed").all():
-              
+
             compcount = 0
             totcount = 0
             for j in task.jobs:
@@ -205,7 +205,7 @@ class TaskPOMS:
                         loccount += 1
 
                 cfrac = task.campaign_snap_obj.completion_pct
-                if not cfrac: 
+                if not cfrac:
                      cfrac = 95.0
 
                 loghandle("non-project task: %s tot %d loc %d" % (task.task_id, totcount, loccount))
@@ -260,7 +260,7 @@ class TaskPOMS:
 
         #
         # now, after committing to clear locks, we run through the
-        # job logs for the tasks and update process stats, and 
+        # job logs for the tasks and update process stats, and
         # launch any recovery jobs or jobs depending on us.
         # this way we don't keep the rows locked all day
         #
@@ -270,9 +270,9 @@ class TaskPOMS:
             # get logs for job for final cpu values, etc.
             logger.info("Starting finish_up_tasks items for task %s" % task_id)
             print("Starting finish_up_tasks items for task %s" % task_id)
-            condor_log_parser.get_joblogs(dbhandle, 
+            condor_log_parser.get_joblogs(dbhandle,
                    self.task_min_job(dbhandle, task_id),
-                   task.campaign_snap_obj.experiment, 
+                   task.campaign_snap_obj.experiment,
                    task.campaign_snap_obj.vo_role)
 
             if not self.launch_recovery_if_needed(dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  task):
@@ -513,7 +513,7 @@ class TaskPOMS:
     def get_job_launches(self, dbhandle):
         s = dbhandle.query(Service).filter(Service.name=="job_launches").first()
         return s.status
-  
+
     def launch_queued_job(self, dbhandle, loghandle, getconfig, gethead, seshandle, err_res):
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
@@ -551,7 +551,7 @@ class TaskPOMS:
             dbhandle.add(hl)
             dbhandle.commit()
             lcmd = ""
-            
+
             return lcmd, output, c, campaign_id, outdir, outfile
 
         e = seshandle('experimenter')

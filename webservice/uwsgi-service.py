@@ -67,6 +67,7 @@ class SAEnginePlugin(plugins.SimplePlugin):
     def bind(self, session):
         session.configure(bind=self.sa_engine)
 
+
 class SATool(cherrypy.Tool):
     def __init__(self):
         """
@@ -94,6 +95,7 @@ class SATool(cherrypy.Tool):
         cherrypy.request.hooks.attach('on_end_resource',
                                       self.release_session,
                                       priority=80)
+
     def bind_session(self):
         cherrypy.engine.publish('bind', self.session)
         cherrypy.request.db = self.session
@@ -102,7 +104,7 @@ class SATool(cherrypy.Tool):
 
     def release_session(self):
         ###Not there yet: cherrypy.request.jobsub_fetcher.flush()
-        ###Not there yet: cherrypy.request.samweb_lite.flush() 
+        ###Not there yet: cherrypy.request.samweb_lite.flush()
         cherrypy.request.db.close()
         cherrypy.request.db = None
         cherrypy.request.jobsub_fetcher = None

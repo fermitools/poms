@@ -333,7 +333,6 @@ class Files_status(object):
     def campaign_sheet(self, dbhandle, loghandle, samhandle, campaign_id, tmin=None, tmax=None, tdays=7):   # maybe at the future for a  ReportsPOMS module
 
         daynames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        print "************** campaign_sheet: 1"    # DEBUG
 
         (tmin, tmax,
          tmins, tmaxs,
@@ -345,7 +344,6 @@ class Files_status(object):
               .order_by(desc(Task.created))
               .options(joinedload(Task.jobs))
               .all())
-        print "************** campaign_sheet: 2"    # DEBUG
 
         psl = self.poms_service.project_summary_for_tasks(tl)        # Get project summary list for a given task list in one query
         # XXX should be based on Task create date, not job updated date..
@@ -354,7 +352,6 @@ class Files_status(object):
         exitcodes = []
         for e in el:
             exitcodes.append(e[0])
-        print "************** campaign_sheet: 3"    # DEBUG
 
         loghandle("got exitcodes: " + repr(exitcodes))
         day = -1
@@ -382,7 +379,6 @@ class Files_status(object):
         for e in exitcodes:
             exitcounts[e] = 0
 
-        print "************** campaign_sheet: 4"    # DEBUG
         daytasks = []
         for tno, task in enumerate(tl):
             if day != task.created.weekday():
@@ -431,7 +427,6 @@ class Files_status(object):
 
             totjobs += len(task.jobs)
 
-            print "************** campaign_sheet: 5"    # DEBUG
             for job in list(task.jobs):
 
                 if job.cpu_time and job.wall_time:
@@ -446,7 +441,6 @@ class Files_status(object):
                 if job.job_files:
                     nin = len([x for x in job.job_files if x.file_type == "input"])
                     infiles += nin
-            print "************** campaign_sheet: 5.1: %s" % len(task.jobs)   # DEBUG
         # end 'for'
         # we *should* add another row here for the last set of totals, but
         # initially we just added a day to the query range, so we compute a row of totals we don't use..
@@ -473,7 +467,6 @@ class Files_status(object):
             outrow.append(exitcounts[e])
         outrows.append(outrow)
 
-        print "************** campaign_sheet: 6"    # DEBUG
         #
         # get pending counts for the task list for each day
         # and fill in the 7th column...
@@ -487,7 +480,6 @@ class Files_status(object):
 
         else:
             name = ''
-        print "************** campaign_sheet: about to return"
         return name, columns, outrows, dimlist, experiment, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
 
 
