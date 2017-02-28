@@ -67,6 +67,7 @@ class SAEnginePlugin(plugins.SimplePlugin):
     def bind(self, session):
         session.configure(bind=self.sa_engine)
 
+
 class SATool(cherrypy.Tool):
     def __init__(self):
         """
@@ -94,6 +95,7 @@ class SATool(cherrypy.Tool):
         cherrypy.request.hooks.attach('on_end_resource',
                                       self.release_session,
                                       priority=80)
+
     def bind_session(self):
         cherrypy.engine.publish('bind', self.session)
         cherrypy.request.db = self.session
