@@ -96,7 +96,7 @@ class TaskPOMS:
 
 
     def wrapup_tasks(self, dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res): # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
-        now =  datetime.now(utc)
+        now = datetime.now(utc)
         res = ["wrapping up:"]
 
         #
@@ -126,9 +126,9 @@ class TaskPOMS:
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
                 # and check job logs for final runtime, cpu-time etc.
-                condor_log_parser.get_joblogs(dbhandle, 
+                condor_log_parser.get_joblogs(dbhandle,
                    self.task_min_job(dbhandle, task.task_id),
-                   task.campaign_snap_obj.experiment, 
+                   task.campaign_snap_obj.experiment,
                    task.campaign_snap_obj.vo_role)
 
         # mark them all completed, so we can look them over..
@@ -137,7 +137,7 @@ class TaskPOMS:
         lookup_dims_list = []
         lookup_exp_list = []
         #
-        # move launch stuff etc, to one place, so we can keep the table rows 
+        # move launch stuff etc, to one place, so we can keep the table rows
         # so we need a list...
         #
         finish_up_tasks = {}
@@ -146,28 +146,39 @@ class TaskPOMS:
         n_project = 0
         n_located = 0
         # try with joinedload()...
-        for task in dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot).options(joinedload(Task.jobs)).options(contains_eager(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Running", Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id, CampaignSnapshot.completion_type == "complete").all():
-              
-	    compcount = 0
-	    totcount = 0
-	    for j in task.jobs:
-		totcount +=1
-		if j.status == "Completed" or j.status == "Located":
-		    compcount += 1
+        for task in (dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot)
+                     .options(joinedload(Task.jobs))
+                     .options(joinedload(Task.campaign_snap_obj))
+                     .options(joinedload(Task.campaign_definition_snap_obj))
+                     .filter(Task.status == "Running",
+                             Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
+                             CampaignSnapshot.completion_type == "completed").all()):
 
-	    cfrac = task.campaign_snap_obj.completion_pct
+            compcount = 0
+            totcount = 0
+            for j in task.jobs:
+                totcount += 1
+                if j.status == "Completed" or j.status == "Located":
+                    compcount += 1
 
-	    if (compcount * 100.0) / totcount > cfrac:
-		n_located = n_located + 1
-		task.status = "Located"
-		finish_up_tasks[task.task_id] = task
-		for j in task.jobs:
-		    j.status = "Located"
-		    j.output_files_declared = True
-		task.updated = datetime.now(utc)
-		dbhandle.add(task)
+            cfrac = task.campaign_snap_obj.completion_pct
 
-        for task in dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot).options(joinedload(Task.jobs)).options(contains_eager(Task.campaign_snap_obj)).options(joinedload(Task.campaign_definition_snap_obj)).filter(Task.status == "Completed", Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id, CampaignSnapshot.completion_type == "located").all():
+            if (compcount * 100.0) / totcount > cfrac:
+                n_located = n_located + 1
+                task.status = "Located"
+                finish_up_tasks[task.task_id] = task
+                for j in task.jobs:
+                    j.status = "Located"
+                    j.output_files_declared = True
+                task.updated = datetime.now(utc)
+                dbhandle.add(task)
+        for task in (dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot)
+                     .options(joinedload(Task.jobs))
+                     .options(contains_eager(Task.campaign_snap_obj))
+                     .options(joinedload(Task.campaign_definition_snap_obj))
+                     .filter(Task.status == "Completed",
+                             Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
+                             CampaignSnapshot.completion_type == "located").all()):
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as
             # located as its going to get...
@@ -175,7 +186,7 @@ class TaskPOMS:
                 n_located = n_located + 1
                 n_stale = n_stale + 1
                 task.status = "Located"
-		finish_up_tasks[task.task_id] = task
+                finish_up_tasks[task.task_id] = task
                 for j in task.jobs:
                     j.status = "Located"
                     j.output_files_declared = True
@@ -206,18 +217,18 @@ class TaskPOMS:
                         loccount += 1
 
                 cfrac = task.campaign_snap_obj.completion_pct
-                if not cfrac: 
-	 	    cfrac = 95.0
+                if not cfrac:
+                     cfrac = 95.0
 
                 loghandle("non-project task: %s tot %d loc %d" % (task.task_id, totcount, loccount))
                 if totcount == 0 or loccount / totcount * 100 > cfrac:
-		    n_located = n_located + 1
-		    task.status = "Located"
-		    for j in task.jobs:
-			j.status = "Located"
-			j.output_files_declared = True
-		    task.updated = datetime.now(utc)
-		    dbhandle.add(task)
+                    n_located = n_located + 1
+                    task.status = "Located"
+                    for j in task.jobs:
+                        j.status = "Located"
+                        j.output_files_declared = True
+                    task.updated = datetime.now(utc)
+                    dbhandle.add(task)
 
             if task.status == "Located":
                 finish_up_tasks[task.task_id] = task
@@ -234,10 +245,10 @@ class TaskPOMS:
             # a tunable in the campaign_definition.  Basically we consider it
             # located if 90% of the files it consumed have suitable kids...
             # cfrac = lookup_task_list[i].campaign_definition_snap_obj.cfrac
-	    task = lookup_task_list[i]
+            task = lookup_task_list[i]
             cfrac = task.campaign_snap_obj.completion_pct/100.0
-	    threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
-	    thresholds.append(threshold)
+            threshold = (summary_list[i].get('tot_consumed',0) * cfrac)
+            thresholds.append(threshold)
             val = float(count_list[i])
             if val >= threshold and threshold > 0:
                 n_located = n_located + 1
@@ -261,23 +272,23 @@ class TaskPOMS:
 
         #
         # now, after committing to clear locks, we run through the
-        # job logs for the tasks and update process stats, and 
+        # job logs for the tasks and update process stats, and
         # launch any recovery jobs or jobs depending on us.
         # this way we don't keep the rows locked all day
         #
-	logger.info("Starting finish_up_tasks loop, len %d" % len(finish_up_tasks))
-	print("Starting finish_up_tasks loop, len %d" % len(finish_up_tasks))
+        logger.info("Starting finish_up_tasks loop, len %d" % len(finish_up_tasks))
+        print("Starting finish_up_tasks loop, len %d" % len(finish_up_tasks))
         for task_id, task in finish_up_tasks.items():
             # get logs for job for final cpu values, etc.
             logger.info("Starting finish_up_tasks items for task %s" % task_id)
             print("Starting finish_up_tasks items for task %s" % task_id)
-            condor_log_parser.get_joblogs(dbhandle, 
+            condor_log_parser.get_joblogs(dbhandle,
                    self.task_min_job(dbhandle, task_id),
-                   task.campaign_snap_obj.experiment, 
+                   task.campaign_snap_obj.experiment,
                    task.campaign_snap_obj.vo_role)
 
-	    if not self.launch_recovery_if_needed(dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  task):
-	       self.launch_dependents_if_needed(dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  task)
+            if not self.launch_recovery_if_needed(dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  task):
+               self.launch_dependents_if_needed(dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  task)
 
         return res
 
@@ -514,7 +525,7 @@ class TaskPOMS:
     def get_job_launches(self, dbhandle):
         s = dbhandle.query(Service).filter(Service.name=="job_launches").first()
         return s.status
-  
+
     def launch_queued_job(self, dbhandle, loghandle, getconfig, gethead, seshandle, err_res):
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
@@ -555,7 +566,7 @@ class TaskPOMS:
             dbhandle.add(hl)
             dbhandle.commit()
             lcmd = ""
-            
+
             return lcmd, output, c, campaign_id, outdir, outfile
 
         e = seshandle('experimenter')
