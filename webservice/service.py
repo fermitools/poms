@@ -215,6 +215,7 @@ def set_rotating_log(app):
         h.setLevel(DEBUG)
         h.setFormatter(cherrypy._cplogging.logfmt)
         getattr(cherrypy.log, '%s_log' % x).addHandler(h)
+        cherrypy.log("Opened Rotating %s log - file: %s maxBytes: %s backup: %s" % (x,fname,maxBytes,backupCount))
 
 def pidfile():
     pidfile = cherrypy.config.get("log.pidfile",None)

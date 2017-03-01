@@ -2,6 +2,8 @@
 
 import sys
 import os
+from datetime import datetime
+from utc import utc
 import atexit
 from paste.exceptions.errormiddleware import ErrorMiddleware
 from repoze.errorlog import ErrorLog
@@ -67,6 +69,7 @@ class SAEnginePlugin(plugins.SimplePlugin):
     def bind(self, session):
         session.configure(bind=self.sa_engine)
 
+
 class SATool(cherrypy.Tool):
     def __init__(self):
         """
@@ -94,6 +97,7 @@ class SATool(cherrypy.Tool):
         cherrypy.request.hooks.attach('on_end_resource',
                                       self.release_session,
                                       priority=80)
+
     def bind_session(self):
         cherrypy.engine.publish('bind', self.session)
         cherrypy.request.db = self.session
@@ -105,7 +109,7 @@ class SATool(cherrypy.Tool):
 
     def release_session(self):
         cherrypy.request.jobsub_fetcher.flush()
-        cherrypy.request.samweb_lite.flush() 
+        cherrypy.request.samweb_lite.flush()
         cherrypy.request.db.close()
         cherrypy.request.db = None
         cherrypy.request.jobsub_fetcher = None
@@ -180,26 +184,27 @@ class SessionTool(cherrypy.Tool):
             cherrypy.request.db.add(e2e)
             cherrypy.request.db.commit()
 
-        e = cherrypy.request.db.query(Experimenter).filter(Experimenter.email==email).all()
+        e = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == email).all()
         if len(e):
-           e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e[0].experimenter_id)
+            e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e[0].experimenter_id)
         else:
-           e2e = []
+            e2e = []
         exps = {}
         for row in e2e:
             exps[row.experiment] = row.active
         if len(e):
             extra = {'selected': exps.keys()}
             cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
-                    e[0].first_name, e[0].last_name, e[0].email, exps, **extra
-                )
+                                                                   e[0].first_name, e[0].last_name, e[0].email, exps, **extra)
         else:
             cherrypy.session['experimenter'] = SessionExperimenter("anonymous", "", "", "", {})
-        cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For','Unknown'),
-                                                        cherrypy.session['id'],
-                                                        experimenter.email if experimenter else 'none',
-                                                        experimenter.first_name if experimenter else 'none' ,
-                                                        experimenter.last_name if experimenter else 'none'))
+        cherrypy.request.db.query(Experimenter).filter(Experimenter.email == email).update({'last_login': datetime.now(utc)})
+        cherrypy.request.db.commit()
+        cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For', 'Unknown'),
+                                                      cherrypy.session['id'],
+                                                      experimenter.email if experimenter else 'none',
+                                                      experimenter.first_name if experimenter else 'none',
+                                                      experimenter.last_name if experimenter else 'none'))
 
 
 def set_rotating_log(app):
@@ -259,7 +264,7 @@ if True:
 
     configfile = "poms.ini"
     # dbasefile  = "passwd.ini"
-    parser,args = parse_command_line()
+    parser, args = parse_command_line()
     if args.config:
         configfile = args.config
     # if args.password:
@@ -272,8 +277,8 @@ if True:
         parser.print_help()
         raise SystemExit
     path = cherrypy.config.get("path")
-    if path == None:
-       path = "/poms"
+    if path is None:
+        path = "/poms"
     cherrypy.log("POMSPATH: %s" % path)
 
     pidfile()
@@ -285,22 +290,22 @@ if True:
     set_rotating_log(app)
 
     # Start SSL Server if in config file
-    ssl_host = cherrypy.config.get("server.socket_host",None)
-    ssl_port = cherrypy.config.get("sslserver.socket_port",None)
-    ssl_certificate = cherrypy.config.get("sslserver.ssl_certificate",None)
-    ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key",None)
+    ssl_host = cherrypy.config.get("server.socket_host", None)
+    ssl_port = cherrypy.config.get("sslserver.socket_port", None)
+    ssl_certificate = cherrypy.config.get("sslserver.ssl_certificate", None)
+    ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key", None)
     if ssl_port is None or ssl_certificate is None or ssl_private_key is None:
-       cherrypy.log("**** SSL Server is not configured for running.")
+        cherrypy.log("**** SSL Server is not configured for running.")
     else:
         sslserver = cherrypy._cpserver.Server()
         sslserver.ssl_module = 'builtin'
-        sslserver._socket_host = cherrypy.config.get("server.socket_host",None)
-        sslserver.socket_port = cherrypy.config.get("sslserver.socket_port",None)
-        sslserver.ssl_certificate = cherrypy.config.get("sslserver.ssl_certificate",None)
-        sslserver.ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key",None)
+        sslserver._socket_host = cherrypy.config.get("server.socket_host", None)
+        sslserver.socket_port = cherrypy.config.get("sslserver.socket_port", None)
+        sslserver.ssl_certificate = cherrypy.config.get("sslserver.ssl_certificate", None)
+        sslserver.ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key", None)
         sslserver.subscribe()
 
-    cherrypy.config.update({'engine.autoreload.on': False})	# Recommended
+    cherrypy.config.update({'engine.autoreload.on': False})	    # Recommended
     cherrypy.server.unsubscribe()
     cherrypy.engine.start()
     # cherrypy.engine.block()					# Disable built-in HTTP server
