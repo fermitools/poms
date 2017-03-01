@@ -118,12 +118,12 @@ class poms_service:
     def es(self):
         template = self.jinja_env.get_template('elasticsearch.html')
 
-        es = Elasticsearch()
+        es = Elasticsearch(config=cherrypy.config)
 
         query = {
             'sort' : [{ '@timestamp' : {'order' : 'asc'}}],
             'query' : {
-                'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
+                'term' : { 'jobid' : '17519748.0@fifebatch2.fnal.gov' }
             }
         }
 
@@ -687,28 +687,31 @@ class poms_service:
 
 
     @cherrypy.expose
-    def campaign_sheet(self, campaign_id, tmin=None, tmax=None , tdays=7):
+    def campaign_sheet(self, campaign_id, tmin=None, tmax=None, tdays=7):
         (name, columns, outrows, dimlist,
             experiment, tmaxs,
             prevlink, nextlink,
-            tdays, tmin, tmax) = self.filesPOMS.campaign_sheet(cherrypy.request.db, cherrypy.log, cherrypy.request.samweb_lite, campaign_id, tmin, tmax, tdays)
+            tdays, tmin, tmax) = self.filesPOMS.campaign_sheet(cherrypy.request.db,
+                                                               cherrypy.log,
+                                                               cherrypy.request.samweb_lite,
+                                                               campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_sheet.html')
         return template.render(name=name,
-                                columns=columns,
-                                datarows=outrows,
-                                dimlist=dimlist,
-                                tmaxs=tmaxs,
-                                prev=prevlink,
-                                next=nextlink,
-                                days=tdays,
-                                tmin=tmin,
-                                tmax=tmax,
-                                current_experimenter=cherrypy.session.get('experimenter'),
-                                campaign_id=campaign_id,
-                                experiment=experiment,
-                                pomspath=self.path,
-                                help_page="CampaignSheetHelp",
-                                version=self.version)
+                               columns=columns,
+                               datarows=outrows,
+                               dimlist=dimlist,
+                               tmaxs=tmaxs,
+                               prev=prevlink,
+                               next=nextlink,
+                               days=tdays,
+                               tmin=tmin,
+                               tmax=tmax,
+                               current_experimenter=cherrypy.session.get('experimenter'),
+                               campaign_id=campaign_id,
+                               experiment=experiment,
+                               pomspath=self.path,
+                               help_page="CampaignSheetHelp",
+                               version=self.version)
 
 
     @cherrypy.expose
