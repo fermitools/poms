@@ -196,6 +196,7 @@ class TaskPOMS:
                 lookup_exp_list.append(task.campaign_snap_obj.experiment)
                 lookup_task_list.append(task)
                 lookup_dims_list.append(allkiddims)
+
             else:
                 # we don't have a project, guess off of located jobs
                 loccount = 0
