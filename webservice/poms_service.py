@@ -660,28 +660,28 @@ class poms_service:
         outlist, statusmap, c = self.filesPOMS.inflight_files(cherrypy.request.db, cherrypy.response.status, cherrypy.config.get, campaign_id, task_id)
         template = self.jinja_env.get_template('inflight_files.html')
         return template.render(flist=outlist,
-                                current_experimenter=cherrypy.session.get('experimenter'),
-                                statusmap=statusmap, c=c,
-                                jjid=self.taskPOMS.task_min_job(cherrypy.request.db, task_id),
-                                campaign_id=campaign_id, task_id=task_id,
-                                pomspath=self.path, help_page="PendingFilesJobsHelp", version=self.version)
+                               current_experimenter=cherrypy.session.get('experimenter'),
+                               statusmap=statusmap, c=c,
+                               jjid=self.taskPOMS.task_min_job(cherrypy.request.db, task_id),
+                               campaign_id=campaign_id, task_id=task_id,
+                               pomspath=self.path, help_page="PendingFilesJobsHelp", version=self.version)
 
 
     @cherrypy.expose
     def show_dimension_files(self, experiment, dims):
-        flist = self.filesPOMS.show_dimension_files(cherrypy.request.samweb_lite, experiment, dims)
+        flist = self.filesPOMS.show_dimension_files(cherrypy.request.samweb_lite, experiment, dims, dbhandle=cherrypy.request.db)
         template = self.jinja_env.get_template('show_dimension_files.html')
         return template.render(flist=flist, dims=dims,
-                                current_experimenter=cherrypy.session.get('experimenter'), statusmap=[],
-                                pomspath=self.path, help_page="ShowDimensionFilesHelp", version=self.version)
+                               current_experimenter=cherrypy.session.get('experimenter'), statusmap=[],
+                               pomspath=self.path, help_page="ShowDimensionFilesHelp", version=self.version)
 
 
     @cherrypy.expose
     def actual_pending_files(self, count_or_list, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1): ###??? Implementation of the exception.
         cherrypy.response.timeout = 600
         try:
-            c.experiment, dims = self.filesPOMS.actual_pending_files(cherrypy.request.db, cherrypy.log, count_or_list, task_id, campaign_id, tmin, tmax, tdays)
-            return self.show_dimension_files(c.experiment, dims)
+            experiment, dims = self.filesPOMS.actual_pending_files(cherrypy.request.db, cherrypy.log, count_or_list, task_id, campaign_id, tmin, tmax, tdays)
+            return self.show_dimension_files(experiment, dims)
         except ValueError:
             return "None == dims in actual_pending_files method"
 
@@ -722,11 +722,11 @@ class poms_service:
 
     def project_summary_for_task(self, task_id):
         t = cherrypy.request.db.query(Task).filter(Task.task_id == task_id).first()
-        return cherrypy.request.samweb_lite.fetch_info(t.campaign_snap_obj.experiment, t.project)
+        return cherrypy.request.samweb_lite.fetch_info(t.campaign_snap_obj.experiment, t.project, dbhandle=cherrypy.request.db)
 
 
     def project_summary_for_tasks(self, task_list):
-        return cherrypy.request.samweb_lite.fetch_info_list(task_list)
+        return cherrypy.request.samweb_lite.fetch_info_list(task_list, dbhandle=cherrypy.request.db)
         #~ return [ {"tot_consumed": 0, "tot_failed": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
 ###Im here
 #----------------------------
