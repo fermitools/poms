@@ -5,7 +5,6 @@ import os
 from datetime import datetime
 from utc import utc
 
-'''
 # make sure poms is setup...
 if os.environ.get("SETUP_POMS","") == "":
     sys.path.insert(0,os.environ.get('SETUPS_DIR',os.environ.get('HOME')+'/products'))
@@ -15,7 +14,7 @@ if os.environ.get("SETUP_POMS","") == "":
     ups.use_package("poms","","SETUP_POMS")
 else:
     print "already setup"
-'''
+
 
 from poms.model.poms_model import Experimenter, ExperimentsExperimenters
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
@@ -243,9 +242,6 @@ if __name__ == '__main__':
                       'tools.staticdir.root': os.path.abspath(os.getcwd()),
 		      'tools.sessions.on': True,
                       'tools.sessions.timeout': 60,
-#                      'tools.sessions.storage_type': 'file',
-#                      'tools.sessions.storage_path': '/scratch/poms/sessions',
-#                      'tools.sessions.locking': 'early',          # IMPORTANT!
                      },
                '/static' : {
                       'tools.staticdir.on': True,
