@@ -59,12 +59,7 @@ def error_response():
     jinja_env = Environment(loader=PackageLoader('poms.webservice','templates'))
     template = jinja_env.get_template('error_response.html')
     path = cherrypy.config.get("pomspath","/poms")
-    body = template.render(current_experimenter=cherrypy.session.get('experimenter'),
-                            message=message,
-                            pomspath=path,
-                            dump=dump,
-                            version=global_version)
-
+    body = template.render(message=message,pomspath=path,dump=dump,version=global_version)
     cherrypy.response.status = 500
     cherrypy.response.headers['content-type'] = 'text/html'
     cherrypy.response.body = body.encode()
