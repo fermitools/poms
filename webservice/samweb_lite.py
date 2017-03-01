@@ -3,7 +3,6 @@
 import urllib
 import time
 import datetime
-import pytz
 import concurrent.futures
 import requests
 from requests.packages.urllib3.util.retry import Retry
@@ -11,6 +10,7 @@ from requests.adapters import HTTPAdapter
 import traceback
 import os
 import cherrypy
+from utc import utc
 from model.poms_model import FaultyRequest
 
 
@@ -41,7 +41,7 @@ def safe_get(sess, url, *args, **kwargs):
     if last_fault is not None:
         # Do some analysis for previous errors
         last_seen = last_fault.last_seen
-        dt = (datetime.datetime.now(pytz.timezone('US/Central')) - last_seen).total_seconds()
+        dt = (datetime.datetime.now(utc) - last_seen).total_seconds()
         if dt < 600.0:
             # Less than 10 minutes ago, let's skip it for now
             return None
