@@ -84,7 +84,7 @@ class samweb_lite:
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/projects/name/%s/summary?format=json" % (base, experiment, projid)
         with requests.Session() as sess:
-            res = safe_get(sess, url)
+            res = safe_get(sess, cherrypy.request.db, url)
         info = {}
         if res:
             info = res.json()
@@ -163,7 +163,7 @@ class samweb_lite:
         url = "%s/sam/%s/api/files/list" % (base, experiment)
         flist = []
         with requests.Session() as sess:
-            res = safe_get(sess, url, params={"dims": dims, "format": "json"})
+            res = safe_get(sess, cherrypy.request.db, url, params={"dims": dims, "format": "json"})
         if res:
             try:
                 flist = res.json()
@@ -176,7 +176,7 @@ class samweb_lite:
         url = "%s/sam/%s/api/files/count" % (base, experiment)
         count = 0
         with requests.Session() as sess:
-            res = safe_get(sess, url, params={"dims": dims})
+            res = safe_get(sess, cherrypy.request.db, url, params={"dims": dims})
         if res:
             text = res.content
             try:
