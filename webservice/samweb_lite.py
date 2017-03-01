@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 
-#import urllib2
-#import httplib
 import urllib
-import json
 import time
 import datetime
 import pytz
@@ -14,7 +11,6 @@ from requests.adapters import HTTPAdapter
 import traceback
 import os
 import cherrypy
-# import ssl
 from model.poms_model import FaultyRequest
 
 
@@ -171,7 +167,7 @@ class samweb_lite:
         if res:
             try:
                 flist = res.json()
-            except simplejson.scanner.JSONDecodeError:
+            except ValueError:
                 pass
         return flist
 
