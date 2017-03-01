@@ -494,7 +494,11 @@ class TaskPOMS:
                  # default to consumed status(?)
                  recovery_dims = "project_name %s and consumed_status != 'consumed'" % t.project
 
-            nfiles = samhandle.count_files(t.campaign_snap_obj.experiment,recovery_dims)
+            try:
+                nfiles = samhandle.count_files(t.campaign_snap_obj.experiment,recovery_dims)
+            except:
+                # if we can't count it, just assume there may be a few for now...
+                nfiles = 1
 
             t.recovery_position = t.recovery_position + 1
             dbhandle.add(t)
