@@ -150,7 +150,7 @@ class TaskPOMS:
                      .options(joinedload(Task.jobs))
                      .options(joinedload(Task.campaign_snap_obj))
                      .options(joinedload(Task.campaign_definition_snap_obj))
-                     .filter(Task.status == "Running",
+                     .filter(Task.status == "Completed",
                              Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
                              CampaignSnapshot.completion_type == "completed").all()):
 
@@ -172,6 +172,7 @@ class TaskPOMS:
                     j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
+
         for task in (dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot)
                      .options(joinedload(Task.jobs))
                      .options(contains_eager(Task.campaign_snap_obj))
