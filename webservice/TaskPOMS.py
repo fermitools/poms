@@ -477,7 +477,6 @@ class TaskPOMS:
             rtype = rlist[t.recovery_position].recovery_type
             # uncomment when we get db fields:
             param_overrides = rlist[t.recovery_position].param_overrides
-            t.recovery_position = t.recovery_position + 1
             if rtype.name == 'consumed_status':
                  recovery_dims = "for_project_name %s and consumed_status != 'consumed'" % t.project
             elif rtype.name == 'proj_status':
