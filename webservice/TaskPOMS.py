@@ -477,15 +477,14 @@ class TaskPOMS:
             rtype = rlist[t.recovery_position].recovery_type
             # uncomment when we get db fields:
             param_overrides = rlist[t.recovery_position].param_overrides
-            t.recovery_position = t.recovery_position + 1
             if rtype.name == 'consumed_status':
                  recovery_dims = "for_project_name %s and consumed_status != 'consumed'" % t.project
             elif rtype.name == 'proj_status':
                  recovery_dims = "project_name %s and process_status != 'ok'" % t.project
             elif rtype.name == 'pending_files':
                  recovery_dims = "snapshot_for_project_name %s " % t.project
-                 if t.campaign_definition_snap_obj.output_file_types:
-                     oftypelist = campaign_definition_snap_obj.output_file_types.split(",")
+                 if t.campaign_definition_snap_obj.output_file_patterns:
+                     oftypelist = t.campaign_definition_snap_obj.output_file_patterns.split(",")
                  else:
                      oftypelist = ["%"]
 
