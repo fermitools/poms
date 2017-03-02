@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cat $POMS_DIR/test/data/$CONDOR_Q_OUTPUT

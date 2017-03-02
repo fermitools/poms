@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+from os import system as os_system
 import thread
 
 class jobsub_fetcher():
@@ -17,9 +18,9 @@ class jobsub_fetcher():
          self.fetchcount = 0
          self.tarfiles = []
 
-    def __del__(self):
+    def flush(self):
          if self.workdir:
-              os.system("rm -rf %s" % self.workdir)
+              os_system("rm -rf %s" % self.workdir)
 
     def fetch(self, jobsubjobid, group, role, force_reload = False, user = None):
          if group == "samdev": group = "fermilab"

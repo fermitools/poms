@@ -44,6 +44,8 @@
   </select>
 
   {% if data.curr_experiment is defined %} 
+<div id="double-scroll" class="scrollable">
+
   <table class="ui sortable single line celled table">
     <thead>
       <tr>
@@ -98,6 +100,7 @@
       </tr>
     </tfoot>
   </table>
+</div>
   {% endif %}
   <input type="hidden" id="action" name="action" value="find">
 </form>
@@ -131,7 +134,7 @@
 <div class="ui modal" id="definition_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header" id="ae_experiment">
-    Job Type Editor SPUD
+    Job Type Editor
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
@@ -169,7 +172,7 @@
       <div class="one field">
 	<div class="field">
            <label>Recovery Launches <i class="large edit link blue icon" id="edit_recovery_modal_btn"></i></label>
-          <textarea id="ae_definition_recovery_text" disabled></textarea>
+          <textarea id="ae_definition_recovery_text" disabled>[]</textarea>
         </div>
       </div>
       <div class="actions">
@@ -190,7 +193,7 @@
 <div class="ui small modal" id="edit_param_modal">
   <i class="close icon"></i>
   <div class="header">
-    Definition Parameters Editor
+    Definition Parameters Editor (Normal)
   </div>
   <div class="ui text container">
     <div class="scrollable">
@@ -220,33 +223,107 @@
   <div class="ui hidden divider"></div>
 </div> <!-- Ends edit_param_modal  -->
 
-<div class="ui small modal" id="edit_recovery_modal">
+<div class="ui small modal" id="edit_recovery_param_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Definition Recovery Parameters Editor
+  </div>
+  <div class="ui text container">
+    <div class="scrollable">
+      <table class="ui celled table" id="repo_table">
+	<thead>
+	  <tr>
+	    <th> Key</th>
+	    <th> Value</th>
+	    <th></th>
+	  </tr>
+	</thead>
+	<tbody id="repo_tbody">
+	</tbody>
+	<tfoot>
+	  <tr>
+	    <th colspan="3">
+	      <div class="actions">
+		<button class="ui button deny red">Cancel</button>
+		<button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
+	      </div>
+	    </th>
+	  </tr>
+	</tfoot>
+      </table>
+    </div>
+  </div>
+  <div class="ui hidden divider"></div>
+
+</div> <!-- Ends edit_recovery_param_modal  -->
+
+<div class="ui large modal" id="edit_recovery_modal">
   <i class="close icon"></i>
   <div class="header">
     Definition Recovery Editor
   </div>
-  <div class="ui text container">
-    <div class="scrollable">
+<div class="ui text _container">
+    <div class="_scrollable">
+
+      <table class="ui celled table" id="er_table">
+	<thead>
+	  <tr>
+	    <th>Type</th>
+	    <th>Param Overrides</th>
+	    <th></th>
+	  </tr>
+	</thead>
+	<tbody id="er_tbody">
+         {% for i in range(5) %}
+            <tr> 
+                <td> <select id="re_recover_{{i}}" onchange="updateRepo({{i}})">
+                    <option value="">-</option>
+                    {% for rtype in data.rtypes %}
+                        <option value="{{rtype[0]}}">{{rtype[0]}} -: {{rtype[1]}}</option>
+                    {% endfor %}
+                    </select>
+                </td>
+                <td id="re_recover_p_{{i}}"><span> </span> </td>
+                <td><i id="re_recover_p_icon_{{i}}" class="large edit link blue icon"  onclick="edit_recovery_params_o({{i}});"></i>
+            </tr>
+         {% endfor %}
+	</tbody>
+	<tfoot>
+	  <tr>
+	    <th colspan="3">
+	      <div class="actions">
+		<button class="ui button deny red">Cancel</button>
+		<button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
+	      </div>
+	    </th>
+	  </tr>
+	</tfoot>
+      </table>
+<!--
        <ol>
          {% for i in range(5) %}
          <li> 
            <select id="re_recover_{{i}}">
              <option value="">-</option>
              {% for rtype in data.rtypes %}
-             <option value="{{rtype[0]}}">{{rtype[0]}} -- {{rtype[1]}}</option>
+             <option value="{{rtype[0]}}">{{rtype[0]}} -: {{rtype[1]}}</option>
              {% endfor %}
            </select>
            {%endfor%}
 	 </li>
        </ol>
+
+
       <div class="actions">
        <button class="ui button deny red">Cancel</button>
        <button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
        </div>
+-->
     </div>
-  </div>
-  <div class="ui hidden divider"></div>
-</div> <!-- Ends edit_param_modal  -->
+  </div>  <!-- container -->
+ <div class="ui hidden divider"></div>
+</div> <!-- Ends edit_recovery_modal  -->
+
 <script type="text/javascript">
 
 $('#definition_add_edit_form')
@@ -272,25 +349,92 @@ function create_row(index, key, value) {
 }
 
 var ep_parms = [];
+var repo_parms = [];  //recovery parameters override
+var do_recp = false;   
+
+var ini_empty_index =[];        // used when cancelling 
+
+function updateRepo(ind){
+  
+  rtype_id = "#re_recover_" + ind;
+  repo_id = "#re_recover_p_" +ind;
+  repo_icon_id = "#re_recover_p_icon_" +ind;
+  var rtype_val = $(rtype_id).val();
+
+  if (rtype_val!='') {
+    $(repo_id).children().show();                              // this is when rtypein not empty 
+    $(repo_icon_id).show();
+  }
+  if ( $(repo_id).children("span").is (":hidden") ) {
+    $(repo_id).children().show();                              // this is when rtype was empty 
+    $(repo_icon_id).show();
+  } else {
+    // if we go from existing rtype to empty we need to hide params override
+    if (rtype_val=='') {
+      $(repo_id).children().hide();                            // this is when we change to empty rtype
+      $(repo_icon_id).hide();
+    }   
+  }
+
+}
+
+// ----------------- Section for editing Recovery Launches ------------------------------
 
 $("#edit_recovery_modal_btn").click(function() {
   listLen = 5;
+  do_recp = true;
   var recoveries = $("#ae_definition_recovery_text").val();
   var rlist = JSON.parse(recoveries);
   var i = 0;
-  for (i = 0 ; i < rlist.length; i++ ) {
-      var sel = "#re_recover_"+i.toString()+" option[value="+rlist[i]+"]";
-      $(sel).prop('selected','selected');
+  //for (i = 0 ; i < rlist.length; i++ ) {
+  //    console.log ('edit_recovery_modal_btn rlist['+i+'][0]= ' + rlist[i][0] + ' parms = ' + rlist[i][1])
+  //}
+  // Some initializations, make edit buttons invisible first
+  for (i = 0; i < listLen ; i++) {
+    eleid = "#re_recover_p_icon_" + i;
+    $(eleid).hide();
+    poid = "#re_recover_p_" + i;
+    $("#re_recover_p_"+ i).children("span").text("[]");
+
   }
+  var rlist_ind=[];
+  for (i = 0 ; i < rlist.length; i++ ) {
+      
+      var sel = "#re_recover_"+i.toString()+" option[value="+rlist[i][0]+"]";
+      $(sel).prop('selected','selected');
+      cval = rlist[i][1];
+      eleid_repo = "#re_recover_p_"+ i;
+      $(eleid_repo).children("span").text(cval);
+      eleid = "#re_recover_p_icon_" + i;
+      $(eleid).show();
+      $(eleid_repo).show();
+      rlist_ind.push(i);
+  }
+  for (i = 0; i < listLen ; i++) {
+    poid = "#re_recover_p_" + i;
+    var ret = $.inArray(i, rlist_ind)
+    if (ret == -1) {
+        $(poid).children().hide();
+        ini_empty_index.push(i);
+    } else {
+        $(poid).children().show();
+    }
+  }
+
   $("#edit_recovery_modal").modal({
     closable  : false,
     onApprove : function(){
       var rlist = [];
       var s;
+      var sp
+      var ssp
       for (i = 0; i < listLen ; i++) {
-         s = $("#re_recover_"+i.toString()+" option:selected").val();
+         s  = $("#re_recover_"+i.toString()+" option:selected").val();
+         sp = $("#re_recover_p_"+i.toString()).children("span").text();
          if (s) {
-             rlist.push(s);
+             ssp = [s,sp]
+             rlist.push(ssp);
+             //rlist.push(s);
          }
       }
       var sval = JSON.stringify(rlist);
@@ -299,12 +443,58 @@ $("#edit_recovery_modal_btn").click(function() {
       $("#definition_add_edit_modal").modal('show');
     },
     onDeny : function(){
+      do_recp = false;      //reset
+      for (i = 0 ; i < ini_empty_index.length; i++ ) {
+        ival = ini_empty_index[i];
+        var sels = "#re_recover_"+ival+" option[value='']";
+        $(sels).prop('selected','selected');
+      }
       $("#definition_add_edit_modal").modal('show');
     },
-    }).modal('show');
+
+   }).modal('show');
 });
 
+// -----------  Editing recovery params override here ...
+
+
+  function edit_recovery_params_o(index) {
+    var rec_parms_str = $("#re_recover_p_"+index).children("span").text();
+    if (rec_parms_str != "{}" || rec_parms_str != " ") {
+      repo_parms = JSON.parse(rec_parms_str);
+    } else { 
+        repo_parms=[];
+    }
+    ep_build_table_body('repo');
+    
+   $("#edit_recovery_param_modal").modal({
+     closable  : false,
+     onApprove : function(){
+      var data = ep_build_parms_string('repo');
+      if (data[0] == "") {
+        $("#re_recover_p_"+ index).children("span").text(data[1]);
+        $("#edit_recovery_modal").modal('show');
+      } else {
+          return false;
+      }
+    },
+    onDeny : function(){
+      $("#edit_recovery_modal").modal('show');
+    },
+    }).modal('show');
+
+  }
+  
+// ------------  Done Editing recovery params override here ...
+// ----------------- Done section for editing Recovery Launches ------------------------------
+// -----------------------------------------------------------------------------
+
+// ----------------- Section for editing Definition Paramers ------------------------------
+
 $("#edit_param_modal_btn").click(function() {
+
+  do_recp = false;
+
   var parms_str = $("#ae_definition_parameters").val();
   if (parms_str != "") {
     //ep_parms = eval ("(" + parms_str + ")");
@@ -329,13 +519,21 @@ $("#edit_param_modal_btn").click(function() {
     }).modal('show');
 });
 
-function ep_build_parms_string() {
+function ep_build_parms_string(pval) {
+
   var parms = "[";
   var message = "";
-  rebuild_ep_parms();
-  for (index = 0; index < ep_parms.length; index++) {
-    key = ep_parms[index][0];
-    value = ep_parms[index][1];
+  
+  rebuild_ep_parms(pval);
+
+  if (typeof pval !== 'undefined') {
+    var local_ep_parms = repo_parms
+  } else {
+    var local_ep_parms = ep_parms
+  }
+  for (index = 0; index < local_ep_parms.length; index++) {
+    key = local_ep_parms[index][0];
+    value = local_ep_parms[index][1];
     if ((key != "") && (value != "")) {
       if (parms != "[") {
         parms += ",";
@@ -352,26 +550,46 @@ function ep_build_parms_string() {
   return [message, parms];
 } 
 
-function ep_build_table_body() {
-  $("#ep_tbody").text("");
-  if (ep_parms.length ==0) {
-    ep_parms.push(["",""]);
+//function ep_build_table_body() {
+
+function ep_build_table_body(tbtype) {
+
+  if (typeof tbtype !== 'undefined') {
+    if (repo_parms.length ==0) {
+        repo_parms.push(["",""]);
+    }
+    var local_ep_parms = repo_parms
+    $("#repo_tbody").text("");
+    tbval = 'repo'
+
+  } else {
+    if (ep_parms.length ==0) {
+        ep_parms.push(["",""]);
+    }
+    var local_ep_parms = ep_parms
+    $("#ep_tbody").text("");
+    tbval=''
   }
-  for (index = 0; index < ep_parms.length; index++) {
-    var ep_row = "ep_row_" + index;
-    var ep_key = "ep_key_" + index;
-    var ep_val = "ep_val_" + index;		  
+
+  if (do_recp == true) tbval = 'repo'
+
+//  for (index = 0; index < ep_parms.length; index++) {
+  for (index = 0; index < local_ep_parms.length; index++) {
+    var tt = "ep_row_" + tbval + index;
+    var ep_row = "ep_row_" + tbval + index;
+    var ep_key = "ep_key_" + tbval + index;
+    var ep_val = "ep_val_" + tbval + index;		  
     var row = '<tr id="' +ep_row+ '">';
     row +=       '<td class="brown">'
     row +=          '<div class="ui fluid input">'
     row +=             '<label></label>'
-    row +=             '<input type="text" id="' +ep_key+  '" value="' +ep_parms[index][0]+ '">'
+    row +=             '<input type="text" id="' +ep_key+  '" value="' + local_ep_parms[index][0]+ '">'
     row +=          '</div>'
     row +=       '</td>';
     row +=       '<td>'
     row +=          '<div class="ui fluid input">'
     row +=             '<label></label>'
-    row +=             '<input type="text" id="' +ep_val+  '" value="' +ep_parms[index][1]+ '">'
+    row +=             '<input type="text" id="' +ep_val+  '" value="' + local_ep_parms[index][1]+ '">'
     row +=          '</div>'
     row +=       '</td>';
     row +=       '<td  class="collapsing">'
@@ -381,52 +599,114 @@ function ep_build_table_body() {
     row +=	   '<i class="blue icon link arrow square down" onclick="ep_down_button('+index+');"></i>'
     row +=       '</td>';
     row +=     '</tr>'
-    $("#ep_tbody").append(row);
+
+    if (typeof tbtype !== 'undefined') {
+      $("#repo_tbody").append(row);
+    } else {
+      $("#ep_tbody").append(row);
+    }
   }		
-  $("#edit_param_modal").modal('refresh');
+  if (typeof tbtype !== 'undefined') {
+     $("#edit_recovery_param_modal").modal('refresh');
+  } else {
+     $("#edit_param_modal").modal('refresh');
+  }
 }
 
-function rebuild_ep_parms() {
-  ep_parms = []
-  var rowCount = $("#ep_table >tbody >tr").length;
+// -------------- Normal definitions ------------------
+function rebuild_ep_parms(pval) {
+
+  if (typeof pval !== 'undefined') {
+    repo_parms = []
+    var rowCount = $("#repo_table >tbody >tr").length;
+    tbval = 'repo'
+
+  } else {
+    ep_parms = []
+    var rowCount = $("#ep_table >tbody >tr").length;
+    tbval = ''
+
+  }
   for (index=0; index< rowCount; index++) {
-    var ep_key = "#ep_key_" + index;
-    var ep_val = "#ep_val_" + index;
+    var ep_key = "#ep_key_" + tbval + index;
+    var ep_val = "#ep_val_" + tbval + index;
     var key = $(ep_key).val();
     var val = $(ep_val).val();
-    ep_parms.push([key,val]);
+    if (typeof pval !== 'undefined') {
+      repo_parms.push([key,val]);
+    } else {
+      ep_parms.push([key,val]);
+    }
   }
 }
 
 function ep_add_button(current_row) {
-  rebuild_ep_parms();
-  ep_parms.splice(current_row+1, 0, ["",""] );
-  ep_build_table_body();
+  if (do_recp == true){
+    pval='repo';
+    rebuild_ep_parms(pval);
+    repo_parms.splice(current_row+1, 0, ["",""] );
+    ep_build_table_body(pval);
+  } else {
+    rebuild_ep_parms();
+    ep_parms.splice(current_row+1, 0, ["",""] );
+    ep_build_table_body();
+  
+  }
 }
 		  
 function ep_delete_button(current_row) {
-  rebuild_ep_parms();
-  ep_parms.splice(current_row, 1 );
-  ep_build_table_body();
+  if (do_recp == true){
+    pval='repo';
+    rebuild_ep_parms(pval);
+    repo_parms.splice(current_row, 1 );
+    ep_build_table_body(pval);
+
+  } else {
+    rebuild_ep_parms();
+    ep_parms.splice(current_row, 1 );
+    ep_build_table_body();
+  }
 }
+
 		  
+
 function ep_up_button(current_row) {
   if (current_row > 0) {
-    rebuild_ep_parms();
-    var hold = ep_parms[current_row-1];
-    ep_parms[current_row-1] = ep_parms[current_row];
-    ep_parms[current_row] = hold;
-    ep_build_table_body();
+    if (do_recp == true){
+      pval='repo';
+      rebuild_ep_parms(pval);
+      var hold = repo_parms[current_row-1];
+      repo_parms[current_row-1] = repo_parms[current_row];
+      repo_parms[current_row] = hold;
+      ep_build_table_body(pval);
+
+    } else {
+      rebuild_ep_parms();
+      var hold = ep_parms[current_row-1];
+      ep_parms[current_row-1] = ep_parms[current_row];
+      ep_parms[current_row] = hold;
+      ep_build_table_body();
+    }
   } 
 }
 		  
 function ep_down_button(current_row) {
   if (current_row < (ep_parms.length-1)) {
-    rebuild_ep_parms();
-    var hold = ep_parms[current_row+1];
-    ep_parms[current_row+1] = ep_parms[current_row];
-    ep_parms[current_row] = hold;
-    ep_build_table_body();
+    if (do_recp == true){
+      pval='repo';
+      rebuild_ep_parms(pval);
+      var hold = repo_parms[current_row+1];
+      repo_parms[current_row+1] = repo_parms[current_row];
+      repo_parms[current_row] = hold;
+      ep_build_table_body(pval);
+
+    } else {
+      rebuild_ep_parms();
+      var hold = ep_parms[current_row+1];
+      ep_parms[current_row+1] = ep_parms[current_row];
+      ep_parms[current_row] = hold;
+      ep_build_table_body();
+    }
   } 
 }
 		  
@@ -482,6 +762,10 @@ $(document).ready(function(){
 $('#cdf_experiment')
   .dropdown()
 ;
+
+$(document).ready(function(){
+  $('#double-scroll').doubleScroll();
+});
 
 </script>
 

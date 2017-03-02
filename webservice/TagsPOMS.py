@@ -6,7 +6,9 @@
 ### November, 2016.
 
 
-from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy import func
+from poms.model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
 
 
 class TagsPOMS():
@@ -28,7 +30,7 @@ class TagsPOMS():
                         dbhandle.commit()
                         response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": tag.tag_name, "msg": "OK"}
                         return response
-                    except exc.IntegrityError:
+                    except IntegrityError:
                         response = {"msg": "This tag already exists."}
                         return response
                 else:  #we do not have a tag in the db for this experiment so create the tag and then do the linking
@@ -37,7 +39,7 @@ class TagsPOMS():
                         t.tag_name = tag_name
                         t.experiment = experiment
                         dbhandle.add(t)
-                        cherrypy.request.db.commit()
+                        dbhandle.commit()
 
                         ct = CampaignsTags()
                         ct.campaign_id = campaign_id
@@ -46,7 +48,7 @@ class TagsPOMS():
                         dbhandle.commit()
                         response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": t.tag_name, "msg": "OK"}
                         return response
-                    except exc.IntegrityError:
+                    except IntegrityError:
                         response = {"msg": "This tag already exists."}
                         return response
 

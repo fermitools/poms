@@ -6,7 +6,7 @@ logger = logging.getLogger('cherrypy.error')
 
 import jobsub_fetcher
 from datetime import datetime, timedelta
-from model.poms_model import Job
+from poms.model.poms_model import Job
 
 def get_joblogs(dbhandle, jobsub_job_id, experiment, role):
     if jobsub_job_id == None:
@@ -107,33 +107,4 @@ def parse_condor_log(dbhandle, lines, batchhost):
             logger.info( "condor_log_parser: remote_cpu %s disk_used %s memory_used %s job_exit %s" % (remote_cpu,  disk_used,  memory_used, job_exit ))
 
     dbhandle.commit()
-
-if __name__ == "__main__":
-    import sys
-    import os
-    import ConfigParser
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-
-    cf = ConfigParser.SafeConfigParser()
-    cf.read("poms.ini")
-    cf.read("passwd.ini")
-    db =cf.get("global","db").strip('"')
-    dbuser = cf.get("global","dbuser").strip('"')
-    dbpass = cf.get("global","dbpass").strip('"')
-    dbhost = cf.get("global","dbhost").strip('"')
-    dbport = cf.get("global","dbport").strip('"')
-    db_path = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport,db)
-    print "trying db: " , db_path
-    sa_engine = create_engine(db_path, echo=True)
-    Session = sessionmaker(bind=sa_engine)
-    dbhandle = Session()
-
-    jobsub_job_id = sys.argv[1]
-    experiment = sys.argv[2]
-    role = sys.argv[3]
-    print " jobsub_job_id: ", jobsub_job_id, " experiment: ", experiment, "role: ", role
-  
-    _debug = 1
-    get_joblogs(dbhandle, jobsub_job_id, experiment, role)
 

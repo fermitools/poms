@@ -6,7 +6,7 @@
 ### October, 2016.
 import urllib
 
-from model.poms_model import (
+from poms.model.poms_model import (
     JobHistory,  Job, Task, Campaign, CampaignDefinition,
     JobFile, Experimenter, Experiment, ExperimentsExperimenters,
     ServiceDowntime, Service)
@@ -53,11 +53,11 @@ class TriagePOMS():
         return out
 
 
-    def triage_job(self, dbhandle, job_id, tmin = None, tmax = None, tdays = None, force_reload = False):
+    def triage_job(self, dbhandle, jobsub_fetcher, config, job_id, tmin = None, tmax = None, tdays = None, force_reload = False):
 	# we don't really use these for anything but we might want to
 	# pass them into a template to set time ranges...
 	tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
-	job_file_list = self.poms_service.job_file_list(job_id, force_reload)
+	job_file_list = self.poms_service.filesPOMS.job_file_list(dbhandle, jobsub_fetcher, job_id, force_reload)
 	output_file_names_list = []
 	job_info = dbhandle.query(Job, Task, CampaignDefinition,  Campaign).filter(Job.job_id==job_id).filter(Job.task_id==Task.task_id).filter(Campaign.campaign_definition_id==CampaignDefinition.campaign_definition_id).filter(Task.campaign_id==Campaign.campaign_id).first()
 	job_history = dbhandle.query(JobHistory).filter(JobHistory.job_id==job_id).order_by(JobHistory.created).all()
@@ -79,7 +79,7 @@ class TriagePOMS():
 
 
 	#begins condor event logs
-	es = Elasticsearch()
+	es = Elasticsearch(config)
 
 	query = {
 	    'sort' : [{ '@timestamp' : {'order' : 'asc'}}],

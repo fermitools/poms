@@ -58,18 +58,19 @@
       <tr>
 	<td class="collapsing">
           {% if data.authorized==True %}
-	  <i class="large edit link blue icon"  onclick="edit_template('{{row.LaunchTemplate.launch_id}}','{{row.LaunchTemplate.name}}','{{row.LaunchTemplate.launch_host}}','{{row.LaunchTemplate.launch_account}}','{{row.LaunchTemplate.launch_setup|e}}');"></i>
-	  <i class="large copy link blue icon"  onclick="edit_template('{{row.LaunchTemplate.launch_id}}','{{row.LaunchTemplate.name}}','{{row.LaunchTemplate.launch_host}}','{{row.LaunchTemplate.launch_account}}','{{row.LaunchTemplate.launch_setup|e}}','CLONE');"></i>
+	  <i class="large edit link blue icon"  onclick="edit_template({{loop.index}});"></i>
+	  <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
 	  <i class="large trash link blue icon" onclick="delete_template('{{row.LaunchTemplate.name}}'); "></i>
 	  {% else %}
 	  <i class="disabled large edit link blue icon">
 	  <i class="disabled large trash link blue icon">
 	  {% endif %}
         </td>
-	<td>{{row.LaunchTemplate.name}}</td>
-	<td>{{row.LaunchTemplate.launch_host}}</td>
-	<td>{{row.LaunchTemplate.launch_account}}</td>
-	<td>{{row.LaunchTemplate.launch_setup|e}}</td>
+	<td id="ldf_launch_id_{{loop.index}}" style="display:none;">{{row.LaunchTemplate.launch_id}}</td>
+	<td id="ldf_name_{{loop.index}}">{{row.LaunchTemplate.name}}</td>
+	<td id="ldf_launch_host_{{loop.index}}">{{row.LaunchTemplate.launch_host}}</td>
+	<td id="ldf_launch_account_{{loop.index}}">{{row.LaunchTemplate.launch_account}}</td>
+	<td id="ldf_launch_setup_{{loop.index}}">{{row.LaunchTemplate.launch_setup|e}}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -117,7 +118,7 @@
 <div class="ui modal" id="template_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header" id="template_header">
-    Launch Template Editor (SPUD)
+    Launch Template Editor
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
@@ -185,7 +186,12 @@ $("#experiment").change(function() {
     }).modal('show');
   }
 
-  function edit_template(launch_id, name, launch_host, launch_account, launch_setup, clone) {
+  function edit_template(index, clone) {
+    launch_id = $("#ldf_launch_id_"+index).text()
+    name = $("#ldf_name_"+index).text()
+    launch_host = $("#ldf_launch_host_"+index).text()
+    launch_account = $("#ldf_launch_account_"+index).text()
+    launch_setup = $("#ldf_launch_setup_"+index).text()
     if (typeof clone === 'undefined') {
       $("#ae_launch_action").val("edit");
       $("#ae_launch_name").val(name)
@@ -194,10 +200,10 @@ $("#experiment").change(function() {
       $("#ae_launch_name").val("CLONE OF: " + name)
     }
     $("#template_header").text("Launch Template Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
-    $("#ae_launch_id").val(launch_id)
-    $("#ae_launch_host").val(launch_host)
-    $("#ae_launch_account").val(launch_account)
-    $("#ae_launch_setup").val(launch_setup)
+    $("#ae_launch_id").val(launch_id);
+    $("#ae_launch_host").val(launch_host);
+    $("#ae_launch_account").val(launch_account);
+    $("#ae_launch_setup").val(launch_setup);
     $("#template_add_edit_modal").modal({
     }).modal('show');
   }

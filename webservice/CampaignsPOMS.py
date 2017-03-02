@@ -7,7 +7,8 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
-from model.poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from poms.model.poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
     LaunchTemplate, CampaignDefinition, CampaignRecovery,
     CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
 )
@@ -37,6 +38,8 @@ class CampaignsPOMS():
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
+        pcl_call = kwargs.pop('pcl_call', 0)
+        pc_email = kwargs.pop('pc_email',None)
         if action == 'delete':
             name = kwargs.pop('name')
             try:
@@ -49,12 +52,27 @@ class CampaignsPOMS():
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
-            ae_launch_id = kwargs.pop('ae_launch_id')
-            ae_launch_name = kwargs.pop('ae_launch_name')
-            ae_launch_host = kwargs.pop('ae_launch_host')
-            ae_launch_account = kwargs.pop('ae_launch_account')
-            ae_launch_setup = kwargs.pop('ae_launch_setup')
-            experimenter_id = kwargs.pop('experimenter_id')
+            if pcl_call == 1:
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
+                ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_id
+                ae_launch_name = kwargs.pop('ae_launch_name')
+                ae_launch_host = kwargs.pop('ae_launch_host')
+                ae_launch_account = kwargs.pop('ae_launch_account')
+                ae_launch_setup = kwargs.pop('ae_launch_setup')
+                if ae_launch_host in [None,""]:
+                    ae_launch_host=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_host
+                if ae_launch_account in [None,""]:
+                    ae_launch_account=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_account
+                if ae_launch_setup in [None,""]:
+                    ae_launch_account=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_setup
+            else:
+                ae_launch_name = kwargs.pop('ae_launch_name')
+                ae_launch_id = kwargs.pop('ae_launch_id')
+                experimenter_id = kwargs.pop('experimenter_id')
+                ae_launch_host = kwargs.pop('ae_launch_host')
+                ae_launch_account = kwargs.pop('ae_launch_account')
+                ae_launch_setup = kwargs.pop('ae_launch_setup')
+
             try:
                 if action == 'add':
                     template = LaunchTemplate(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host, launch_account=ae_launch_account,
@@ -107,7 +125,7 @@ class CampaignsPOMS():
                 message = "The campaign definition, %s, has been used and may not be deleted." % name
                 loghandle(message)
                 loghandle(e.message)
-                loghandle.rollback()
+                dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
@@ -148,8 +166,10 @@ class CampaignsPOMS():
                 dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == campaign_definition_id).delete()
                 i = 0
                 for rtn in json.loads(recoveries):
-                    rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rtn).first()
-                    cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt)
+                    rect   = rtn[0]
+                    recpar = rtn[1]
+                    rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rect).first()
+                    cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt, param_overrides = recpar)
                     dbhandle.add(cr)
                 dbhandle.commit()
             except IntegrityError, e:
@@ -174,6 +194,7 @@ class CampaignsPOMS():
                                     .filter(CampaignDefinition.experiment==exp)
                                     .order_by(CampaignDefinition.name)
                                     )
+
             # Build the recoveries for each campaign.
             cids = [row[0].campaign_definition_id for row in data['definitions'].all()]
             recs_dict = {}
@@ -182,9 +203,12 @@ class CampaignsPOMS():
                     .filter(CampaignRecovery.campaign_definition_id == cid,CampaignDefinition.experiment == exp)
                     .order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
                 rec_list  = []
-            for rec in recs:
-                rec_list.append(rec.recovery_type.name )
-            recs_dict[cid] = json.dumps(rec_list)
+                for rec in recs:
+                    co_vals= '%s' %rec.param_overrides
+                    if co_vals=='' or co_vals=='{}': co_vals="[]"
+                    rec_vals=[rec.recovery_type.name,co_vals]
+                    rec_list.append(rec_vals)
+                recs_dict[cid] = json.dumps(rec_list)
             data['recoveries'] = recs_dict
             data['rtypes'] = (dbhandle.query(RecoveryType.name,RecoveryType.description).order_by(RecoveryType.name).all())
 
@@ -344,7 +368,7 @@ class CampaignsPOMS():
 
     def new_task_for_campaign(dbhandle , campaign_name, command_executed, experimenter_name, dataset_name = None):
         c = dbhandle.query(Campaign).filter(Campaign.name == campaign_name).first()
-        e = dbhandle.query(Experimenter).filter(like_)(Experimenter.email,"%s@%%" % experimenter_name ).first()
+        e = dbhandle.query(Experimenter).filter(Experimenter.email.ilike("%s@%%" % experimenter_name)).first()
         t = Task()
         t.campaign_id = c.campaign_id
         t.campaign_definition_id = c.campaign_definition_id
@@ -495,10 +519,12 @@ class CampaignsPOMS():
 
 
     def register_poms_campaign(self, dbhandle, loghandle, experiment,  campaign_name, version, user = None, campaign_definition = None, dataset = "", role = "Analysis", params = []):
+         if dataset == None:
+              dataset = ''
          if user == None:
               user = 4
          else:
-              u = dbhandle.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
+              u = dbhandle.query(Experimenter).filter(Experimenter.email.ilike("%s@%%" % user)).first()
               if u:
                    user = u.experimenter_id
 
@@ -506,17 +532,17 @@ class CampaignsPOMS():
          if campaign_definition != None and campaign_definition != "None":
               cd = dbhandle.query(CampaignDefinition).filter(Campaign.name == campaign_definition, Campaign.experiment == experiment).first()
          else:
-              cd = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name.like("%generic%"), Campaign.experiment == experiment).first()
+              cd = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name.ilike("%generic%"), Campaign.experiment == experiment).first()
 
-         ld = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.name.like("%generic%"), LaunchTemplate.experiment == experiment).first()
+         ld = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.name.ilike("%generic%"), LaunchTemplate.experiment == experiment).first()
 
-         dbhandle("campaign_definition = %s " % cd)
+         loghandle("campaign_definition = %s " % cd)
 
          c = dbhandle.query(Campaign).filter( Campaign.experiment == experiment, Campaign.name == campaign_name).first()
          if c:
              changed = False
          else:
-             c = Campaign(experiment = experiment, name = campaign_name, creator = user, created = datetime.now(utc), software_version = version, campaign_definition_id=cd.campaign_definition_id, launch_id = ld.launch_id, vo_role = role)
+             c = Campaign(experiment = experiment, name = campaign_name, creator = user, created = datetime.now(utc), software_version = version, campaign_definition_id=cd.campaign_definition_id, launch_id = ld.launch_id, vo_role = role, dataset = '')
 
          if version:
                c.software_verison = version
@@ -530,7 +556,7 @@ class CampaignsPOMS():
                c.experimenter = user
                changed = True
 
-         dbhandle("register_campaign -- campaign is %s" % c.__dict__)
+         loghandle("register_campaign -- campaign is %s" % c.__dict__)
 
          if changed:
                 c.updated = datetime.now(utc)
@@ -545,7 +571,7 @@ class CampaignsPOMS():
         res = None
 
         if camp.cs_split_type == None or camp.cs_split_type in [ '', 'draining','None' ]:
-            # no split to do, it is a draining datset, etc.
+            # no split to do, it is a draining dataset, etc.
             res =  camp.dataset
 
         elif camp.cs_split_type == 'list':
@@ -579,7 +605,7 @@ class CampaignsPOMS():
             dbhandle.add(camp)
             dbhandle.commit()
 
-        elif ( camp.cs_split_type.startswith('new(') or 
+        elif ( camp.cs_split_type.startswith('new(') or
              camp.cs_split_type == 'new' or
              camp.cs_split_type == 'new_local' ):
 
@@ -614,10 +640,10 @@ class CampaignsPOMS():
             twindow = int(twindow) - (int(twindow) % int(tround))
 
             # pick a boundary time, which will be our default start time
-            # if we've not been run before, and also as a boundary to 
-            # say we have nothing to do yet if our last run isnt that far 
-            # back... 
-	    #   go back one time window (plus fts delay) and then 
+            # if we've not been run before, and also as a boundary to
+            # say we have nothing to do yet if our last run isnt that far
+            # back...
+	    #   go back one time window (plus fts delay) and then
             # round down to nearest tround to get a start time...
 	    # then later ones should come out even.
 
@@ -691,7 +717,7 @@ class CampaignsPOMS():
         return c, job, launch_flist
 
 
-    def update_launch_schedule(self, loghandle, campaign_id, dowlist = None,  domlist = None, monthly = None, month = None, hourlist = None, submit = None , minlist = None, delete = None):
+    def update_launch_schedule(self, loghandle, campaign_id, dowlist = '',  domlist = '', monthly = '', month = '', hourlist = '', submit = '' , minlist = '', delete = ''):
 
         # deal with single item list silliness
         if isinstance(minlist, basestring):
@@ -770,8 +796,6 @@ class CampaignsPOMS():
 
 
     def make_stale_campaigns_inactive(self, dbhandle, err_res):
-        if not self.poms_service.accessPOMS.can_report_data(cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get)():
-             raise err_res(401, 'You are not authorized to access this resource')
         lastweek = datetime.now(utc) - timedelta(days=7)
         cp = dbhandle.query(Task.campaign_id).filter(Task.created > lastweek).group_by(Task.campaign_id).all()
         sc = []

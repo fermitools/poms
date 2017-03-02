@@ -9,6 +9,7 @@
 from datetime import datetime, tzinfo,timedelta
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, not_,  create_engine, null, desc, text, func, exc, distinct
 
+from utc import utc
 
 class TablesPOMS:
 
@@ -133,12 +134,12 @@ class TablesPOMS:
             and self.pk_map a map of primary keys for that class
         """
         loghandle(" ---- make_admin_map: starting...")
-        import model.poms_model
+        import poms.model.poms_model
         self.admin_map = {}
         self.pk_map = {}
-        for k in model.poms_model.__dict__.keys():
-            if hasattr(model.poms_model.__dict__[k],'__module__') and model.poms_model.__dict__[k].__module__ == 'model.poms_model':
-                self.admin_map[k] = model.poms_model.__dict__[k]
+        for k in poms.model.poms_model.__dict__.keys():
+            if hasattr(poms.model.poms_model.__dict__[k],'__module__') and poms.model.poms_model.__dict__[k].__module__ == 'poms.model.poms_model':
+                self.admin_map[k] = poms.model.poms_model.__dict__[k]
                 found = self.admin_map[k]()
                 columns = found._sa_instance_state.class_.__table__.columns
                 for fieldname in columns.keys():

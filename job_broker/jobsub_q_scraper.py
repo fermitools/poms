@@ -10,6 +10,7 @@ import traceback
 import resource
 import gc
 import pprint
+import threading
 from job_reporter import job_reporter
 
 do_memdebug = False
@@ -28,6 +29,8 @@ class jobsub_q_scraper:
     def __init__(self, job_reporter, debug = 0):
         self.job_reporter = job_reporter
         self.jobCount = prom.Gauge("jobs_in_queue","Jobs in the queue this run")
+        self.threadCount = prom.Gauge("Thread_count","Number of probe threads")
+
         self.map = {
            "0": "Unexplained",
            "1": "Idle",
@@ -180,7 +183,7 @@ class jobsub_q_scraper:
                 #
                 if not prev or prev['status'] != args['status'] or prev['node_name'] != args['node_name'] or prev['cpu_time'] != args['cpu_time'] or prev['wall_time'] != args['wall_time'] or prev['task_project'] != args['task_project']:
                     try: 
-                        self.job_reporter.actually_report_status(**args)
+                        self.job_reporter.report_status(**args)
 	            except KeyboardInterrupt:
 	                raise
                     except:
@@ -225,6 +228,8 @@ class jobsub_q_scraper:
             if self.passcount > 1000:
                 os.execvp(sys.argv[0], sys.argv)
 
+            self.threadCount.set(threading.active_count())
+
             try:
                 self.scan()
 			 
@@ -258,15 +263,32 @@ class jobsub_q_scraper:
 
 if __name__ == '__main__':
     debug = 0
+    testing = 0
+
     if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
+        sys.argv = [sys.argv[0]] + sys.argv[2:]
 
-    js = jobsub_q_scraper(job_reporter("http://localhost:8080/poms", debug=debug, namespace = "profiling.apps.poms.probes.jobsub_q_scraper"), debug = debug)
+    server = "http://localhost:8080/poms"
+    if len(sys.argv) > 1 and sys.argv[1] == "-t":
+        testing = 1
+        server = "http://127.0.0.1:8888/poms"
+        sys.argv = [sys.argv[0]] + sys.argv[2:]
+
+    ns = "profiling.apps.poms.probes.%s.jobsub_q_scraper" % os.uname()[1].split(".")[0]
+    jr = job_reporter(server, debug=debug, namespace=ns)
+    js = jobsub_q_scraper(jr, debug = debug)
     try:
-        js.poll()
+        if testing:
+            print "test mode, run one scan"
+            js.scan()
+            print "test mode: done"
+        else:
+            js.poll()
     except KeyboardInterrupt:
         n = gc.collect()
         #print "gc.collect() returns %d unreachable" % n
         #print "Remaining garbage:"
         #pprint.pprint(gc.garbage)
-    
+    jr.cleanup()
+    print "end of __main__"

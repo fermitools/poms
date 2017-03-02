@@ -10,7 +10,7 @@ Action=setup
    SetupRequired(python v2_7_6)
    SetupRequired(cherrypy)
    SetupRequired(postgres_client v9_3_5_p2_7)
-   SetupRequired(sqlalchemy v1_0_4)
+   SetupRequired(sqlalchemy v1_0_12)
    SetupRequired(jinja v2_7_3)
    SetupRequired(-j sam_web_client v2_0)
    SetupRequired(-j python_crontab)
@@ -19,8 +19,9 @@ Action=setup
    SetupRequired(-j python_repose)
    SetupRequired(-j python_paste)
    SetupRequired(-j python_prometheus_client)
-   SetupRequired(-j jobsub_client v1_2_3_rc01)
+   SetupRequired(-j pytest)
    # jobsub does not actually list all of its dependencies... sigh
    SetupOptional(kx509)
    PathPrepend(PYTHONPATH,${UPS_PROD_DIR})
+   SetupRequired(-j jobsub_client)
 

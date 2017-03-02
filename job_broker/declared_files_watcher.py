@@ -18,12 +18,17 @@ import time
 import traceback
 from job_reporter import job_reporter
 from samweb_client import *
+import threading
+import prometheus_client as prom
 
 class declared_files_watcher:
     def __init__(self, job_reporter):
         self.job_reporter = job_reporter
         self.old_experiment = None
-
+        self.threadCount = prom.Gauge("Thread_count","Number of probe threads")
+        self.totalTracked = 0
+        self.tracked_files = prom.Gauge("Tracked_files","Number of files being processed")
+        
     def report_declared_files(self,flist):
         print "entering: report_declared_files:", flist
         url = self.job_reporter.report_url + "/report_declared_files"
@@ -112,6 +117,7 @@ class declared_files_watcher:
          print "got total file lists for experiments..."
 
          for experiment in total_flist.keys():
+             self.totalTracked += len(total_flist[experiment])
              present_files[experiment] = self.find_located_files(experiment, total_flist[experiment])
 
              self.report_declared_files(total_flist[experiment])
@@ -134,6 +140,7 @@ class declared_files_watcher:
 
     def poll(self):
         while(1):
+            self.totalTracked = 0
             try:
                 self.one_pass()
 			 
@@ -145,8 +152,16 @@ class declared_files_watcher:
 	        traceback.print_exc()
 	        pass
 
+            self.threadCount.set(threading.active_count())
+            self.tracked_files.set(self.totalTracked)
             time.sleep(60)
 
 if __name__ == "__main__":
-     dfw = declared_files_watcher(job_reporter("http://localhost:8080/poms", debug=1))
-     dfw.poll()
+
+    server = "http://localhost:8080/poms"
+    if len(sys.argv) > 1 and sys.argv[1] == "-t":
+        server = "http://localhost:8888/poms"
+
+    ns = "profiling.apps.poms.probes.%s.declared_files_watcher" % os.uname()[1].split(".")[0]
+    dfw = declared_files_watcher(job_reporter(server, debug=1, namespace = ns))
+    dfw.poll()

@@ -8,17 +8,25 @@ from utc import utc
 
 class Elasticsearch:
 
-    def __init__(self, debug=0):
-        if debug == 1 or cherrypy.config.get('elasticsearch_base_url') == None:
+    def __init__(self,  config = None ,debug=0):
+        if config == None:
+            self.config = {
+                'elasticsearch_base_url':'file:///dev/null',
+                'elasticsearch_cert':'/dev/null',
+                'elasticsearch_key':'/dev/null',
+            }
+        else:
+            self.config = config
+        if debug == 1 or self.config.get('elasticsearch_base_url') == None:
             self.base_url="https://fifemon-es.fnal.gov"
             #self.base_url="http://sammongpvm01.fnal.gov:9200"
         else:
-            self.base_url=cherrypy.config.get('elasticsearch_base_url').strip('"')
+            self.base_url=self.config.get('elasticsearch_base_url').strip('"')
 
-        configfile = "poms.ini"
-        cherrypy.config.update(configfile) 
-        self.cert=cherrypy.config.get('elasticsearch_cert','').strip('"')
-        self.key=cherrypy.config.get('elasticsearch_key','').strip('"')
+        #configfile = "poms.ini"
+        #self.config.update(configfile) 
+        self.cert=self.config.get('elasticsearch_cert','').strip('"')
+        self.key=self.config.get('elasticsearch_key','').strip('"')
         if self.cert == "":
             self.cert = "/tmp/x509up_u%d" % os.getuid()
             self.key = self.cert
