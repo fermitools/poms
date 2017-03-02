@@ -1,12 +1,8 @@
 #!/usr/bin/env python
 
-#import urllib2
-#import httplib
 import urllib
-import json
 import time
 import datetime
-import pytz
 import concurrent.futures
 import requests
 from requests.packages.urllib3.util.retry import Retry
@@ -14,20 +10,38 @@ from requests.adapters import HTTPAdapter
 import traceback
 import os
 import cherrypy
-# import ssl
+from utc import utc
 from model.poms_model import FaultyRequest
 
 
-def safe_get(sess, dbh, url, *args, **kwargs):
+def safe_get(sess, url, *args, **kwargs):
     """
     """
+    #TODO: Need more refactoring to optimize
+    reply = None
+    dbh = kwargs.pop('dbhandle', None)
+
+    if dbh is None:
+        try:
+            sess.mount('http://', HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2)))
+            reply = sess.get(url, timeout=5.0, *args, **kwargs)    # Timeout may need adjustment!
+            if reply.status_code != 200:
+                return None     # No need to return the response
+        except:
+            # Severe errors like network or DNS problems.
+            traceback.print_exc()
+            return None         # No need to return the response
+        finally:
+            reply.close()
+        # Everything went OK
+        return reply
+
     last_fault = dbh.query(FaultyRequest).filter(FaultyRequest.url == url).order_by(FaultyRequest.last_seen.desc()).first()
     # print "******* last_fault: {}".format(last_fault)
-    reply = None
     if last_fault is not None:
         # Do some analysis for previous errors
         last_seen = last_fault.last_seen
-        dt = (datetime.datetime.now(pytz.timezone('US/Central')) - last_seen).total_seconds()
+        dt = (datetime.datetime.now(utc) - last_seen).total_seconds()
         if dt < 600.0:
             # Less than 10 minutes ago, let's skip it for now
             return None
@@ -76,7 +90,7 @@ class samweb_lite:
 
         return 0
 
-    def fetch_info(self, experiment, projid):
+    def fetch_info(self, experiment, projid, dbhandle=None):
         """
         """
         if not experiment or not projid or projid == "None":
@@ -88,7 +102,7 @@ class samweb_lite:
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/projects/name/%s/summary?format=json" % (base, experiment, projid)
         with requests.Session() as sess:
-            res = safe_get(sess, url)
+            res = safe_get(sess, url, dbhandle=dbhandle)
         info = {}
         if res:
             info = res.json()
@@ -98,17 +112,16 @@ class samweb_lite:
         return info
 
 
-    def fetch_info_list(self, task_list):
+    def fetch_info_list(self, task_list, dbhandle=None):
         """
         """
         #~ return [ {"tot_consumed": 0, "tot_unknown": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
         base = "http://samweb.fnal.gov:8480"
         urls = ["%s/sam/%s/api/projects/name/%s/summary?format=json" % (base, t.campaign_snap_obj.experiment, t.project) for t in task_list]
-        dbh = cherrypy.request.db
         with requests.Session() as sess:
             with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                 # replies = executor.map(sess.get, urls)
-                replies = executor.map(lambda url: safe_get(sess, dbh, url), urls)
+                replies = executor.map(lambda url: safe_get(sess, url, dbhandle=dbhandle), urls)
         infos = []
         for r in replies:
             if r:
@@ -162,25 +175,25 @@ class samweb_lite:
             res.close()
         return r1
 
-    def list_files(self, experiment, dims):
+    def list_files(self, experiment, dims, dbhandle=None):
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/files/list" % (base, experiment)
         flist = []
         with requests.Session() as sess:
-            res = safe_get(sess, url, params={"dims": dims, "format": "json"})
+            res = safe_get(sess, url, params={"dims": dims, "format": "json"}, dbhandle=dbhandle)
         if res:
             try:
                 flist = res.json()
-            except simplejson.scanner.JSONDecodeError:
+            except ValueError:
                 pass
         return flist
 
-    def count_files(self, experiment, dims):
+    def count_files(self, experiment, dims, dbhandle=None):
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/files/count" % (base, experiment)
         count = 0
         with requests.Session() as sess:
-            res = safe_get(sess, url, params={"dims": dims})
+            res = safe_get(sess, url, params={"dims": dims}, dbhandle=dbhandle)
         if res:
             text = res.content
             try:
@@ -247,7 +260,8 @@ class samweb_lite:
             cherrypy.log("Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
             return "Fail."
         finally:
-            if res: res.close()
+            if res:
+                res.close()
         return text
 
 if __name__ == "__main__":

@@ -111,7 +111,7 @@ class Files_status(object):
         #
         # -- now call parallel fetches for items
         #samhandle = cherrypy.request.samweb_lite ####IMPORTANT
-        summary_list = samhandle.fetch_info_list(summary_needed)
+        summary_list = samhandle.fetch_info_list(summary_needed, dbhandle=dbhandle)
         some_kids_list = samhandle.count_files_list(c.experiment, some_kids_needed)
         some_kids_decl_list = samhandle.count_files_list(c.experiment, some_kids_decl_needed)
         all_kids_decl_list = samhandle.count_files_list(c.experiment, all_kids_decl_needed)
@@ -277,10 +277,10 @@ class Files_status(object):
         #return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),   statusmap = statusmap, c = c, jjid= self.task_min_job(task_id),campaign_id = campaign_id, task_id = task_id, pomspath=self.path,help_page="PendingFilesJobsHelp", version=self.version)
 
 
-    def show_dimension_files(self, samhandle, experiment, dims):
+    def show_dimension_files(self, samhandle, experiment, dims, dbhandle=None):
 
         try:
-            flist = samhandle.list_files(experiment, dims)
+            flist = samhandle.list_files(experiment, dims, dbhandle=dbhandle)
         except ValueError:
             flist = []
         return flist
