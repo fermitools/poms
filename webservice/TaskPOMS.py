@@ -133,6 +133,7 @@ class TaskPOMS:
         #
         dbhandle.commit()
 
+        need_joblogs = []
         #
         # check active tasks to see if they're completed/located
         for task in dbhandle.query(Task).options(subqueryload(Task.jobs)).filter(Task.status != "Completed", Task.status != "Located").all():
@@ -148,10 +149,7 @@ class TaskPOMS:
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
                 # and check job logs for final runtime, cpu-time etc.
-                condor_log_parser.get_joblogs(dbhandle,
-                                              self.task_min_job(dbhandle, task.task_id),
-                                              task.campaign_snap_obj.experiment,
-                                              task.campaign_snap_obj.vo_role)
+                need_joblogs.append(task)
 
         # mark them all completed, so we can look them over..
         dbhandle.commit()
@@ -264,11 +262,6 @@ class TaskPOMS:
         loghandle("wrapup_tasks: summary_list: %s" % repr(summary_list))    # Check if that is working
 
         for i in range(len(summary_list)):
-            # XXX
-            # this is using a 90% threshold, this ought to be
-            # a tunable in the campaign_definition.  Basically we consider it
-            # located if 90% of the files it consumed have suitable kids...
-            # cfrac = lookup_task_list[i].campaign_definition_snap_obj.cfrac
             task = lookup_task_list[i]
             cfrac = task.campaign_snap_obj.completion_pct / 100.0
             threshold = (summary_list[i].get('tot_consumed', 0) * cfrac)
@@ -300,16 +293,18 @@ class TaskPOMS:
         # launch any recovery jobs or jobs depending on us.
         # this way we don't keep the rows locked all day
         #
-        logger.info("Starting finish_up_tasks loop, len %d" % len(finish_up_tasks))
-        print("Starting finish_up_tasks loop, len %d" % len(finish_up_tasks))
+        logger.info("Starting need_joblogs loops, len %d" % len(finish_up_tasks))
+        for task in need_joblogs:
+                condor_log_parser.get_joblogs(dbhandle,
+                                              self.task_min_job(dbhandle, task.task_id),
+                                              task.campaign_snap_obj.experiment,
+                                              task.campaign_snap_obj.vo_role)
+        logger.info("Starting finish_up_tasks loops, len %d" % len(finish_up_tasks))
+
         for task_id, task in finish_up_tasks.items():
             # get logs for job for final cpu values, etc.
             logger.info("Starting finish_up_tasks items for task %s" % task_id)
             print("Starting finish_up_tasks items for task %s" % task_id)
-            condor_log_parser.get_joblogs(dbhandle,
-                                          self.task_min_job(dbhandle, task_id),
-                                          task.campaign_snap_obj.experiment,
-                                          task.campaign_snap_obj.vo_role)
 
             if not self.launch_recovery_if_needed(dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res, task):
                 self.launch_dependents_if_needed(dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res, task)
