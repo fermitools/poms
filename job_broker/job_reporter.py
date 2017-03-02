@@ -69,7 +69,7 @@ class job_reporter:
                 for i in range(self.batchsize):
                     try:
                         d = self.work.get(block = False)
-                    except Empty:
+                    except Queue.Empty:
                         break
 
                     if d['f'] == job_reporter.bail:
