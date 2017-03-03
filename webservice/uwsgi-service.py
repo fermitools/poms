@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-import sys
 import os
 from datetime import datetime
 from utc import utc
 import atexit
-from paste.exceptions.errormiddleware import ErrorMiddleware
-from repoze.errorlog import ErrorLog
+# from paste.exceptions.errormiddleware import ErrorMiddleware
+# from repoze.errorlog import ErrorLog
 
 
 from poms.model.poms_model import Experimenter, ExperimentsExperimenters
@@ -26,6 +25,7 @@ import poms_service
 import jobsub_fetcher
 import samweb_lite
 
+
 class SAEnginePlugin(plugins.SimplePlugin):
     def __init__(self, bus):
         """
@@ -44,7 +44,8 @@ class SAEnginePlugin(plugins.SimplePlugin):
         self.bus.subscribe("bind", self.bind)
 
 
-    def destroy(self):
+    @staticmethod
+    def destroy():
         cherrypy.engine.exit()
         print("destroy worker")
 
@@ -88,7 +89,7 @@ class SATool(cherrypy.Tool):
                                self.bind_session,
                                priority=20)
         self.session = scoped_session(sessionmaker(autoflush=True,
-                                                  autocommit=False))
+                                                   autocommit=False))
         self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher()
         self.samweb_lite = samweb_lite.samweb_lite()
 
@@ -151,7 +152,8 @@ class SessionTool(cherrypy.Tool):
     #                                  self.your_method,
     #                                  priority=90)
 
-    def establish_session(self):
+    @staticmethod
+    def establish_session():
         if cherrypy.session.get('id', None):
             return
         cherrypy.session['id'] = cherrypy.session.originalid  #The session ID from the users cookie.
@@ -160,9 +162,9 @@ class SessionTool(cherrypy.Tool):
         if cherrypy.request.headers.get('X-Shib-Email',None):
             email = cherrypy.request.headers['X-Shib-Email']
             experimenter = (cherrypy.request.db.query(Experimenter)
-                                .filter(ExperimentsExperimenters.active==True)
-                                .filter(Experimenter.email==email)
-                                .first()
+                            .filter(ExperimentsExperimenters.active == True)
+                            .filter(Experimenter.email == email)
+                            .first()
                             )
         else:
             experimenter = None
@@ -186,7 +188,8 @@ class SessionTool(cherrypy.Tool):
 
         e = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == email).all()
         if len(e):
-            e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e[0].experimenter_id)
+            e2e = (cherrypy.request.db.query(ExperimentsExperimenters)
+                   .filter(ExperimentsExperimenters.experimenter_id == e[0].experimenter_id))
         else:
             e2e = []
         exps = {}
@@ -195,7 +198,8 @@ class SessionTool(cherrypy.Tool):
         if len(e):
             extra = {'selected': exps.keys()}
             cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
-                                                                   e[0].first_name, e[0].last_name, e[0].email, exps, **extra)
+                                                                   e[0].first_name, e[0].last_name,
+                                                                   e[0].email, exps, **extra)
         else:
             cherrypy.session['experimenter'] = SessionExperimenter("anonymous", "", "", "", {})
         cherrypy.request.db.query(Experimenter).filter(Experimenter.email == email).update({'last_login': datetime.now(utc)})
@@ -208,31 +212,33 @@ class SessionTool(cherrypy.Tool):
 
 
 def set_rotating_log(app):
-    ''' recipe  for a rotating log file...'''
+    """ recipe  for a rotating log file..."""
     # Remove the regular file handlers
     app.log.error_file = ""
     app.log.access_file = ""
 
-    maxBytes = cherrypy.config.get("log.rot_maxBytes",10000000)
+    maxBytes = cherrypy.config.get("log.rot_maxBytes", 10000000)
     backupCount = cherrypy.config.get("log.rot_backupCount", 1000)
 
     # Create and add rotating file handlers
     for x in ['error', 'access']:
-        fname = getattr(cherrypy.log,"rot_%s_file" % x, "error.log")
-        h = handlers.RotatingFileHandler(fname, 'a',maxBytes,backupCount)
+        fname = getattr(cherrypy.log, "rot_%s_file" % x, "error.log")
+        h = handlers.RotatingFileHandler(fname, 'a', maxBytes, backupCount)
         h.setLevel(DEBUG)
         h.setFormatter(cherrypy._cplogging.logfmt)
         getattr(cherrypy.log, '%s_log' % x).addHandler(h)
 
+
 def pidfile():
-    pidfile = cherrypy.config.get("log.pidfile",None)
+    pfile = cherrypy.config.get("log.pidfile", None)
     pid = os.getpid()
     cherrypy.log("PID: %s" % pid)
-    if pidfile:
-        fd = open(pidfile,'w')
-        fd.write("%s" % pid )
+    if pfile:
+        fd = open(pfile, 'w')
+        fd.write("%s" % pid)
         fd.close()
-        cherrypy.log("Pid File: %s" % pidfile)
+        cherrypy.log("Pid File: %s" % pfile)
+
 
 def parse_command_line():
     parser = argparse.ArgumentParser()
@@ -244,7 +250,7 @@ def parse_command_line():
 # if __name__ == '__main__':
 if True:
 
-    config = { '/' : {
+    config = {'/': {
                         'tools.db.on': True,
                         'tools.psess.on': True,
                         'tools.staticdir.root': os.path.abspath(os.getcwd()),
@@ -263,15 +269,11 @@ if True:
                }
 
     configfile = "poms.ini"
-    # dbasefile  = "passwd.ini"
     parser, args = parse_command_line()
     if args.config:
         configfile = args.config
-    # if args.password:
-    #     dbasefile = args.password
     try:
         cherrypy.config.update(configfile)
-        # cherrypy.config.update(dbasefile)
     except IOError, mess:
         print mess
         parser.print_help()
@@ -310,6 +312,6 @@ if True:
     cherrypy.engine.start()
     # cherrypy.engine.block()					# Disable built-in HTTP server
     application = cherrypy.tree
-    #application = ErrorMiddleware(application, debug=True)
-    #application = ErrorLog(application, channel=None, keep=20, path='/__error_log__', ignored_exceptions=())
+    # application = ErrorMiddleware(application, debug=True)
+    # application = ErrorLog(application, channel=None, keep=20, path='/__error_log__', ignored_exceptions=())
 # END
