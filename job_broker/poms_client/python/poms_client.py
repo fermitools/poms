@@ -27,7 +27,7 @@ def get_task_id_for(campaign, user = None, command_executed = None, input_datase
                     test = test).replace('Task=',''))
 
 
-def launch_template_edit(self, action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_email = None):
+def launch_template_edit(action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_email = None):
 
 
     method = 'launch_template_edit'
@@ -52,15 +52,14 @@ def launch_template_edit(self, action = None, name = None, launch_host = None, u
                     method=method,
                     action = action,
                     ae_launch_name = ae_launch_name,
-                    experiment = experiment))
+                    experiment = experiment)
                 return data['message']
 
         if action == 'add':
             if ae_launch_name == None or ae_launch_host == None or ae_launch_account == None or ae_launch_setup == None:
                 print "Your should provide the launch_name in order to add\
                         name, launch_host, user_account, launch_setup. \n\
-                        Curently you provide name ="+ae_launch_name", \
-                        launch_host="+ae_launch_host+", user_account="+ae_launch_account+", launch_setup="+ae_launch_setup+"."
+                        Curently you provide name ="+ae_launch_name+",launch_host="+ae_launch_host+", user_account="+ae_launch_account+", launch_setup="+ae_launch_setup+"."
             else:
                 data = make_poms_call(
                     pcl_call=1,
@@ -71,7 +70,7 @@ def launch_template_edit(self, action = None, name = None, launch_host = None, u
 
                     ae_launch_host = ae_launch_host,
                     ae_launch_account = ae_launch_account,
-                    ae_launch_setup = ae_launch_setup))
+                    ae_launch_setup = ae_launch_setup)
                     ###The variables below are query in the CampaignsPOMS module
                     #ae_launch_id = ae_launch_id,
                     #experimenter_id = experimenter_id)
@@ -93,7 +92,7 @@ def launch_template_edit(self, action = None, name = None, launch_host = None, u
 
                     ae_launch_host = launch_host,
                     ae_launch_account = user_account,
-                    ae_launch_setup = launch_setup))
+                    ae_launch_setup = launch_setup)
                     ###The other var are query in the CampaignsPOMS module ae_launch_id, experimenter_id.
                 return data['message']
 
@@ -103,10 +102,10 @@ def launch_template_edit(self, action = None, name = None, launch_host = None, u
             You did not change anything in your template"
 
 
-def campaign_definition_edit(self, pc_email=None, action = None, name = None, experiment = None, input_files_per_job, output_files_per_job, output_file_patterns, launch_script, def_parameter):
+def campaign_definition_edit(input_files_per_job, output_files_per_job, output_file_patterns, launch_script, def_parameter, pc_email=None, action = None, name = None, experiment = None):
     # You can not modify the recovery_type from the poms_client (future feauture)
+    method = "launch_template_edit"
     pc_email = pc_email
-    method = method
     action = action
     ae_definition_name = name
     experiment = experiment
@@ -115,8 +114,7 @@ def campaign_definition_edit(self, pc_email=None, action = None, name = None, ex
     ae_output_files_per_job = output_files_per_job
     ae_output_file_patterns = output_file_patterns
     ae_launch_script = launch_script
-    ae_definition_parameters= def_parameter
-
+    ae_definition_parameters= json.dumps(def_parameter)
     data = make_poms_call(  pcl_call=1,
                             method = method,
                             pc_email = pc_email,
@@ -129,7 +127,7 @@ def campaign_definition_edit(self, pc_email=None, action = None, name = None, ex
                             ae_output_files_per_job = ae_output_files_per_job,
                             ae_output_file_patterns = ae_output_file_patterns,
                             ae_launch_script = ae_launch_script,
-                            ae_definition_parameters= ae_def_parameter,
+                            ae_definition_parameters= ae_def_parameter
                             )
 
 def make_poms_call(**kwargs):

@@ -156,11 +156,6 @@ class CampaignsPOMS():
                     launch_script = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().launch_script
                 if definition_parameters in [None,""]:
                     definition_parameters = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().definition_parameters
-                '''
-                recovery_type need a join and modify the routine below
-                if recoveries in [None,""]:
-                    recoveries = dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == campaign_definition_id).firts().recovery_type
-                '''
             else:
                 experimenter_id = kwargs.pop('experimenter_id')
                 campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
