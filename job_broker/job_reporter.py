@@ -3,8 +3,8 @@
 import sys
 import os
 import re
+import requests
 import urllib2
-import urllib
 import httplib
 import json
 import concurrent.futures
@@ -21,6 +21,7 @@ class job_reporter:
     """
     def __init__(self, report_url, debug = 0, nthreads = 3, namespace = "", bulk= True):
         self.namespace = namespace
+        self.rs = requests.Session()
         if namespace != "":
             self.gb = GraphiteBridge(('fermicloud079.fnal.gov', 2003))
             self.gb.start(10,prefix=self.namespace)
@@ -131,9 +132,10 @@ class job_reporter:
       
         while retries > 0:
      	    try:
-	        uh = urllib2.urlopen(self.report_url + "/bulk_update_job", data = urllib.urlencode(data))
-		res = uh.read()
+	        uh = self.rs.post(self.report_url + "/bulk_update_job", data = data)
+		res = uh.text
                 uh.close()
+
 		if self.debug: sys.stderr.write("response: %s\n" % res)
 
                 del uh
@@ -147,7 +149,6 @@ class job_reporter:
                 sys.stderr.flush()
 
                 if uh:
-                    uh.read()
                     uh.close()
                     del uh
                     uh = None
@@ -163,7 +164,6 @@ class job_reporter:
 
 	    except (urllib2.URLError) as e:
                 if uh:
-                    uh.read()
                     uh.close()
                     del uh
                     uh = None
@@ -176,7 +176,6 @@ class job_reporter:
                 retries = retries - 1
 	    except (httplib.BadStatusLine) as e:
                 if uh:
-                    uh.read()
                     uh.close()
                     del uh
                     uh = None
@@ -218,8 +217,8 @@ class job_reporter:
       
         while retries > 0:
 	    try:
-		uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
-		res = uh.read()
+		uh = self.rs.post(self.report_url + "/update_job", data = data)
+		res = uh.text
                 uh.close()
 		if self.debug: sys.stderr.write("response: %s\n" % res)
 
@@ -235,7 +234,6 @@ class job_reporter:
                 sys.stderr.flush()
 
                 if uh:
-                    uh.read()
                     uh.close()
                     del uh
                     uh = None
@@ -251,7 +249,6 @@ class job_reporter:
 
 	    except (urllib2.URLError) as e:
                 if uh:
-                    uh.read()
                     uh.close()
                     del uh
                     uh = None
@@ -264,7 +261,6 @@ class job_reporter:
                 retries = retries - 1
 	    except (httplib.BadStatusLine) as e:
                 if uh:
-                    uh.read()
                     uh.close()
                     del uh
                     uh = None
