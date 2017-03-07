@@ -118,6 +118,7 @@ class JobsPOMS():
              self.update_job_common(dbhandle, loghandle, rpstatus, samhandle,    j, data[j.jobsub_job_id])
 
         dbhandle.commit()
+        return "Ok."
 
     def update_job(self, dbhandle, loghandle, rpstatus, samhandle, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
 
