@@ -17,7 +17,8 @@ class DBHandle:
 	cf.read("%s/webservice/passwd.ini" % os.environ['POMS_DIR'])
 	db =cf.get("global","db").strip('"')
 	dbuser = cf.get("global","dbuser").strip('"')
-	dbpass = cf.get("global","dbpass").strip('"')
+	#dbpass = cf.get("global","dbpass").strip('"')
+        dbpass=""  # let the .pgpass file provide the password
 	dbhost = cf.get("global","dbhost").strip('"')
 	dbport = cf.get("global","dbport").strip('"')
 	db_path = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport,db)
