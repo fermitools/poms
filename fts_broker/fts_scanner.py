@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-import urllib2
-import urllib
-import httplib
+import requests
 import json
 import shelve
 import os
@@ -12,6 +10,7 @@ gc.enable()
 
 class fts_status_watcher:
     def __init__(self, debug=0):
+        self.rs = requests.Session()
         self.registry_url = 'http://samweb.fnal.gov:8480/sam_web_registry/?format=json'
         self.debug = debug
         self.workdir = "/home/poms/private/var/ftsscanner"
@@ -20,9 +19,8 @@ class fts_status_watcher:
         if self.debug: print "fetching: " , url
         res = None
         try:
-	    res = urllib2.urlopen(url)
-	    text = res.read()
-	    info = json.loads(text)
+	    res = self.rs.get(url)
+	    info = res.json()
 	    res.close()
         except:
             if res: res.close()

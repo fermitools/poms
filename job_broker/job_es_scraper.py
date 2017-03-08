@@ -3,7 +3,7 @@
 import sys
 import os
 import re
-import urllib2
+import requests
 import json
 import time
 import traceback
@@ -20,6 +20,7 @@ class jobsub_es_scraper:
         Pull info from ElasticSearch to update job status in POMS database
     """
     def __init__(self, job_reporter, debug = 0):
+        self.rs = requests.Session()
         self.job_reporter = job_reporter
         self.map = {
            "0": "Unexplained",
@@ -43,8 +44,8 @@ class jobsub_es_scraper:
 
     def getAllPomsActive(self):
         try:
-            conn = urllib2.urlopen(self.job_reporter.report_url + '/active_jobs')
-            self.ActiveJobs = json.loads(conn.read())
+            conn = self.rs.get(self.job_reporter.report_url + '/active_jobs')
+            self.ActiveJobs = conn.json()
             conn.close()
             del conn
             conn = None

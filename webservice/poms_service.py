@@ -506,6 +506,13 @@ class poms_service:
         res = self.jobsPOMS.output_pending_jobs(cherrypy.request.db)
         return res
 
+    @cherrypy.expose
+    def bulk_update_job(self, data = '{}'):
+        if not self.accessPOMS.can_report_data( cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get ):
+            cherrypy.log("update_job: not allowed")
+            return "Not Allowed"
+        return self.jobsPOMS.bulk_update_job( cherrypy.request.db, cherrypy.log, cherrypy.response.status, cherrypy.request.samweb_lite, data)
+
 
     @cherrypy.expose
     def update_job(self, task_id, jobsub_job_id,  **kwargs):
