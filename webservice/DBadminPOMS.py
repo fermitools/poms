@@ -3,14 +3,12 @@
 '''
 This module contain the methods that allow to modify the data.
 List of methods: user_edit, experiment_members, experiment edit, experiment_authorize.
-Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
+Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Stephen White.
 Date: September 30, 2016.
 '''
 
-
 from poms.model.poms_model import Experimenter, Experiment, ExperimentsExperimenters
-from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
-from utc import utc
+from sqlalchemy.orm.exc import NoResultFound
 
 class DBadminPOMS:
     #def user_edit(self, db = cherrypy.request.db,email = None, action = None, *args, **kwargs):
