@@ -548,7 +548,7 @@ class TaskPOMS:
         s = dbhandle.query(Service).filter(Service.name == "job_launches").first()
         return s.status
 
-    def launch_queued_job(self, dbhandle, loghandle, getconfig, gethead, seshandle, err_res):
+    def launch_queued_job(self, dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res):
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
