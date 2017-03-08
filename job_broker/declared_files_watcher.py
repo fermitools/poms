@@ -47,7 +47,7 @@ class declared_files_watcher:
     def call_wrapup_tasks(self):
 	self.jobmap = {}
         try:
-            conn = self.rs..get(self.job_reporter.report_url + '/wrapup_tasks'
+            conn = self.rs.get(self.job_reporter.report_url + '/wrapup_tasks'
 )
             output = conn.text
             conn.close()
