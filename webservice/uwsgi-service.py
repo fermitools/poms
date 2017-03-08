@@ -134,6 +134,9 @@ class SessionExperimenter(object):
 
     def is_root(self):
         return self.authorized_for.get('root', False)
+    
+    def __str__(self):
+        return "%s %s %s" % (self.first_name, self.last_name, self.email)
 
 
 class SessionTool(cherrypy.Tool):
@@ -153,6 +156,7 @@ class SessionTool(cherrypy.Tool):
 
     def establish_session(self):
         if cherrypy.session.get('id', None):
+            #cherrypy.log("EXISTING SESSION: %s" % str(cherrypy.session['experimenter']))
             return
         cherrypy.session['id'] = cherrypy.session.originalid  #The session ID from the users cookie.
 
