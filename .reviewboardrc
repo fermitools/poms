@@ -1,0 +1,5 @@
+REVIEWBOARD_URL = "https://cdcvs.fnal.gov/rb/"
+REPOSITORY = "POMS"
+REPOSITORY_TYPE = "git"
+TRACKING_BRANCH = "origin/develop"
+BRANCH = "develop"

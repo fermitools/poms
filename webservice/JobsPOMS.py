@@ -5,7 +5,8 @@ List of methods: active_jobs, output_pending_jobs, update_jobs
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
-from model.poms_model import Experiment, Job, Task, Campaign, Tag, JobFile, HeldLaunch
+import re
+from poms.model.poms_model import Experiment, Job, Task, Campaign, CampaignDefinitionSnapshot, CampaignSnapshot, Tag, JobFile, HeldLaunch, JobHistory
 from datetime import datetime, timedelta
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 from sqlalchemy import func, not_, and_
@@ -50,7 +51,21 @@ class JobsPOMS():
         sep=""
         preve = None
         prevj = None
-        for e, jobsub_job_id, fname  in dbhandle.query(Campaign.experiment,Job.jobsub_job_id,JobFile.file_name).join(Task).filter(Task.campaign_id == Campaign.campaign_id, Job.jobsub_job_id != "unknown", Job.task_id == Task.task_id, Job.job_id == JobFile.job_id, Job.status == "Completed", JobFile.declared == None, JobFile.file_type == 'output').order_by(Campaign.experiment,Job.jobsub_job_id).all():
+        # it would be really cool if we could push the pattern match all the
+	# way down into the query: 
+        #  JobFile.file_name like CampaignDefinitionSnapshot.output_file_patterns
+        # but with a comma separated list of them, I don't think it works 
+        # directly -- we would have to convert comma to pipe...
+        # for now, I'm just going to make it a regexp and filter them here.
+        for e, jobsub_job_id, fname , fpattern in dbhandle.query(CampaignSnapshot.experiment,Job.jobsub_job_id,JobFile.file_name, CampaignDefinitionSnapshot.output_file_patterns).join(Task).join(CampaignDefinitionSnapshot).filter(Task.campaign_definition_snap_id == CampaignDefinitionSnapshot.campaign_definition_snap_id,Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id, Job.jobsub_job_id != "unknown", Job.task_id == Task.task_id, Job.job_id == JobFile.job_id, Job.status == "Completed", JobFile.declared == None, JobFile.file_type == 'output').order_by(CampaignSnapshot.experiment,Job.jobsub_job_id).all():
+            # convert fpattern "%.root,%.dat" to regexp ".*\.root|.*\.dat"
+            if fpattern == None:
+               fpattern = '%'
+            fpattern = fpattern.replace('.','\\.')
+            fpattern = fpattern.replace('%','.*')
+            fpattern = fpattern.replace(',','|')
+            if not re.match(fpattern, fname):
+                continue
             if preve != e:
                 preve = e
                 res[e] = {}
@@ -66,6 +81,44 @@ class JobsPOMS():
         cid = j.task_obj.campaign_snap_obj.campaign_id
         samhandle.update_project_description(exp, projname, "POMS Campaign %s Task %s" % (cid, tid))
         pass
+
+
+    def bulk_update_job(self, dbhandle, loghandle, rpstatus, samhandle, json_data = '{}'):
+        data = json.loads(json_data)
+
+        foundtasks = {}
+        for jid,d in data.items():
+            foundtasks[d['task_id']] = 1
+
+        jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(data.keys())).all()
+
+        jlist = []
+        foundjobs = {}
+        for j in jobs:
+            foundjobs[j.jobsub_job_id] = j
+            jlist.append(j)
+
+        if len(foundtasks) > 0:
+            tasks = dbhandle.query(Task).filter(Task.task_id.in_(foundtasks.keys())).all()
+        else:
+            tasks = []
+    
+        for t in tasks:
+            foundtasks[t.task_id] = t
+
+        for jid in data.keys():
+            if not foundjobs.get(jid, 0):
+                 j = Job(jobsub_job_id = jid, task_obj = foundtasks[data[jid]['task_id']], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle')
+                 j.created = datetime.now(utc)
+                 j.updated = datetime.now(utc)
+                 dbhandle.add(j)
+                 jlist.append(j)
+  
+        for j in jlist:
+             self.update_job_common(dbhandle, loghandle, rpstatus, samhandle,    j, data[j.jobsub_job_id])
+
+        dbhandle.commit()
+        return "Ok."
 
     def update_job(self, dbhandle, loghandle, rpstatus, samhandle, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
 
@@ -122,7 +175,29 @@ class JobsPOMS():
             j.status = 'Idle'
 
         if j:
+            self.update_job_common(dbhandle,  loghandle, rpstatus, samhandle, j, kwargs)
+
+            dbhandle.add(j)
+            dbhandle.commit()
+
+
+            # now that we committed, do a SAM project desc. upate if needed
+            if do_SAM_project:
+	        self.update_SAM_project(samhandle, j, kwargs.get("task_project"))
+            loghandle("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
+
+        return "Ok."
+
+    def update_job_common(self, dbhandle, loghandle, rpstatus, samhandle, j, kwargs):
+
             loghandle("update_job: updating job %d" % (j.job_id if j.job_id else -1))
+
+            oldstatus = j.status
+            if kwargs.get('status',None) and oldstatus != kwargs.get('status')  and oldstatus == 'Completed' and kwargs.get('status') != 'Located':
+                # we went from Completed back to some Running/Idle state...
+                # so clean out any old (wrong) Completed statuses from 
+                # the JobHistory... (Bug #15322)
+                dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status == 'Completed').delete()
 
             # first, Job string fields the db requres be not null:
             for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
@@ -203,22 +278,14 @@ class JobsPOMS():
                 j.cpu_type = ''
             loghandle("update_job: db add/commit job status %s " %  j.status)
             j.updated =  datetime.now(utc)
-            if j.task_obj:
+            if oldstatus != j.status and j.task_obj:
                 newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, j.task_obj)
                 if newstatus != j.task_obj.status:
                     j.task_obj.status = newstatus
                     j.task_obj.updated = datetime.now(utc)
-                    j.task_obj.campaign_snap_obj.active = True
-            dbhandle.add(j)
-            dbhandle.commit()
-
-            # now that we committed, do a SAM project desc. upate if needed
-            if do_SAM_project:
-	        self.update_SAM_project(samhandle, j, kwargs.get("task_project"))
-            loghandle("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
-
-        return "Ok."
-
+                    # jobs make inactive campaigns active again...
+                    if j.task_obj.campaign_obj.active != True:
+                        j.task_obj.campaign_obj.active = True
 
     def test_job_counts(self, task_id = None, campaign_id = None):
         res = self.poms_service.job_counts(task_id, campaign_id)

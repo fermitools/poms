@@ -6,7 +6,7 @@
 ### October, 2016.
 import urllib
 
-from model.poms_model import (
+from poms.model.poms_model import (
     JobHistory,  Job, Task, Campaign, CampaignDefinition,
     JobFile, Experimenter, Experiment, ExperimentsExperimenters,
     ServiceDowntime, Service)

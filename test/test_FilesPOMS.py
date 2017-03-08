@@ -4,9 +4,9 @@ import time
 import os
 import socket
 from mock.mock import MagicMock
-from webservice.utc import utc
-from webservice.samweb_lite import samweb_lite
-from model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job
+from poms.webservice.utc import utc
+from poms.webservice.samweb_lite import samweb_lite
+from poms.model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -45,7 +45,7 @@ def test_show_dimension_files():
     dims = 'fake dimension string'
     res = mps.filesPOMS.show_dimension_files(samhandle, experiment,dims)
     assert(res == 'fake_list_files')
-    samhandle.list_files.assert_called_with(experiment,dims)
+    samhandle.list_files.assert_called_with(experiment,dims, dbhandle = None)
 
 def test_list_task_logged_files():
     samhandle = fake_samweb_lite()    

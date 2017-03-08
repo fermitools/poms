@@ -1,6 +1,6 @@
 #!/bin/env python
 
-import os.path, argparse, psycopg2, json
+import os, argparse, psycopg2, json
 
 dbg = False
 
@@ -12,10 +12,11 @@ def debug(message):
 def parse_command_line():
     parser = argparse.ArgumentParser(description='Loads a VOMS generated JSON file of experimenters into POMS.')
     parser.add_argument('host', help="Host database is on.")
-    parser.add_argument('dbname', help="Database to connect to.")
     parser.add_argument('port', type=int, help="Database Port number.")
+    parser.add_argument('dbname', help="Database to connect to.")
+    parser.add_argument('user', help="User to connect as")
     parser.add_argument('file', help="File of users to read in.")
-    #parser.add_argument('-p', '--password', help="Password for the database user account.")
+    parser.add_argument('-p', '--password', help="Password for the database user account. For testing only, for production use .pgpass .")
     parser.add_argument('-d', '--debug', action="store_true", help="Debug")
     args = parser.parse_args()
     # Get password if not suppled
@@ -40,7 +41,13 @@ def add_user(cursor,username,commonname):
     cursor.execute(sql)
     (experimenterid,) = cursor.fetchone() or (None,)
     if experimenterid is None:
-        sql = "insert into experimenters (last_name,email) values ('%s','%s') returning experimenter_id" % (commonname,username)
+        # If the experimenter has only two names, then split into first/last.
+        last_name = commonname
+        first_name = ""
+        names = commonname.split(" ")
+        if len(names) == 2:
+            (first_name, last_name) = commonname.split(" ")
+        sql = "insert into experimenters (last_name,first_name,email) values ('%s','%s','%s') returning experimenter_id" % (last_name,first_name,username)
         cursor.execute(sql)
         experimenterid = cursor.fetchone()[0]
         debug("add_user: inserted new experimenter id=%s" % experimenterid)
@@ -60,14 +67,17 @@ def main():
     if args.debug:
         dbg = True
     if os.path.isfile(args.file) == False:
-        print "missing file: %s" % args.file
+        print "main: missing file: %s" % args.file
         raise SystemExit 
     else:
         json_data = open(args.file)
         adict = json.load(json_data)
         debug("main:json parsed file %s"% args.file)
         expdict = adict['prousers']
-        conn = psycopg2.connect("dbname=%s host=%s port=%s" % (args.dbname, args.host, args.port))
+        password=""
+        if args.password:
+            password="password=%s" % args.password
+        conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s %s" % (args.dbname, args.host, args.port, args.user, password))
         cursor = conn.cursor()
         for exp in expdict.keys():
             if verify_exp(cursor,exp) == False:
@@ -79,6 +89,8 @@ def main():
                     add_relationship(cursor, experimenterid, exp)
         conn.commit()
         conn.close()
+        json_data.close()
+        os.rename(args.file,args.file+".loaded")
 
 
 if __name__ == "__main__":
