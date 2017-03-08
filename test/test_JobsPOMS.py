@@ -117,9 +117,9 @@ def test_bulk_update_job():
     jids.append("%.1f@fakebatch1.fnal.gov" % (ft + 0.2))
     task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
 
-    data = {}
+    data = []
     for jid in jids:
-        data[jid] = {'jobsub_job_id': jid, 'task_id': task_id, 'status': 'Idle'}
+        data.append({'jobsub_job_id': jid, 'task_id': task_id, 'status': 'Idle'})
     
     mps.jobsPOMS.bulk_update_job(dbhandle, logger.info, rpstatus, samhandle, json.dumps(data) )
     

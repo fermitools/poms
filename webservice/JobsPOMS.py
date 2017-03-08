@@ -84,7 +84,10 @@ class JobsPOMS():
 
 
     def bulk_update_job(self, dbhandle, loghandle, rpstatus, samhandle, json_data = '{}'):
-        data = json.loads(json_data)
+        ldata = json.loads(json_data)
+        data = {}
+        for d in ldata:
+            data[d['jobsub_job_id']] = d
 
         foundtasks = {}
         for jid,d in data.items():
