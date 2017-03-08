@@ -110,11 +110,12 @@ class JobsPOMS():
             foundtasks[t.task_id] = t
 
         for jid in data.keys():
-            if not foundjobs.get(jid, 0):
-                 j = Job(jobsub_job_id = jid, task_id = foundtasks[data[jid]['task_id']], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle')
+            if not foundjobs.get(jid, 0) and foundtasks.get(data[jid]['task_id'], None):
+                 j = Job(jobsub_job_id = jid, task_id = data[jid]['task_id'], task_obj = foundtasks[data[jid]['task_id']], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle')
+	         dbhandle.add(j)
+
                  j.created = datetime.now(utc)
                  j.updated = datetime.now(utc)
-                 dbhandle.add(j)
                  jlist.append(j)
   
         for j in jlist:
