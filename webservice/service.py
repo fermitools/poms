@@ -139,6 +139,7 @@ class SessionTool(cherrypy.Tool):
                 # Root is authorized for all experiments
                 if self.is_root():
                     return True
+		#return True
                 return self.authorized_for.get(experiment,False)
             def is_root(self):
                 return self.authorized_for.get('root',False)
