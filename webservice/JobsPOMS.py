@@ -117,7 +117,7 @@ class JobsPOMS():
         loghandle("found full tasks for %s" % ",".join(map(str, fulltasks.keys())))
 
         for jid in data.keys():
-            if not foundjobs.get(jid, None) and fulltasks.get(int(data[jid]['task_id']), None):
+            if not foundjobs.get(jid, None) and data[jid].has_key('task_id') and fulltasks.get(int(data[jid]['task_id']), None):
                  loghandle("need new Job for %s" % jid)
                  j = Job(jobsub_job_id = jid, task_obj = fulltasks[data[jid]['task_id']], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle',created = datetime.now(utc),updated = datetime.now(utc))
                  jlist.append(j)
