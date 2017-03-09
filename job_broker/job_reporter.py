@@ -49,7 +49,7 @@ class job_reporter:
         if self.bulk:
 	    if not(self.wthreads[0].isAlive()):
 		self.wthreads[0].join(0.1)
-		self.wthreads[0] = threading.Thread(target=self.runqueue)
+		self.wthreads[0] = threading.Thread(target=self.runqueue_bulk)
 		self.wthreads[0].start()
         else:
 	    for i in range(self.nthreads):
