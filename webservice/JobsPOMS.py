@@ -119,7 +119,9 @@ class JobsPOMS():
         for jid in data.keys():
             if not foundjobs.get(jid, None) and data[jid].has_key('task_id') and fulltasks.get(int(data[jid]['task_id']), None):
                  loghandle("need new Job for %s" % jid)
-                 j = Job(jobsub_job_id = jid, task_obj = fulltasks[int(data[jid]['task_id'])], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle',created = datetime.now(utc),updated = datetime.now(utc))
+                 j = Job(jobsub_job_id = jid, task_obj = fulltasks[int(data[jid]['task_id'])], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle')
+                 j.created = datetime.now(utc)
+                 j.updated = datetime.now(utc)
                  jlist.append(j)
 	         dbhandle.add(j)
             elif not foundjobs.get(jid,0):
@@ -246,7 +248,10 @@ class JobsPOMS():
             # floating point fields need conversion
             for field in [ 'cpu_time', 'wall_time']:
                 if kwargs.get(field, None) and kwargs[field] != "None":
-                    setattr(j,field,float(kwargs[field].rstrip("\n")))
+                    if (isinstance(kwargs[field], basestring)):
+                        setattr(j,field,float(kwargs[field].rstrip("\n")))
+                    if (isinstance(kwargs[field], float)):
+                        setattr(j,field,kwargs[field])
 
             # filenames need dumping in JobFiles table and attaching
             if kwargs.get('output_file_names', None):
