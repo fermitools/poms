@@ -508,7 +508,7 @@ class poms_service:
 
     @cherrypy.expose
     def bulk_update_job(self, data = '{}'):
-        if not cherrypy.session.get('experimenter').is_authorized(c.experiment):
+        if not cherrypy.session.get('experimenter').is_root():
             cherrypy.log("update_job: not allowed")
             return "Not Allowed"
         return self.jobsPOMS.bulk_update_job( cherrypy.request.db, cherrypy.log, cherrypy.response.status, cherrypy.request.samweb_lite, data)
@@ -517,8 +517,7 @@ class poms_service:
     @cherrypy.expose
     def update_job(self, task_id, jobsub_job_id,  **kwargs):
         cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
-        c = cherrypy.request.db.query(Campaign).join(Task).filter(Task.task_id == task_id, Task.campaign_id == Campaign.campaign_id).first()
-        if not cherrypy.session.get('experimenter').is_authorized(c.experiment):
+        if not cherrypy.session.get('experimenter').is_root():
             cherrypy.log("update_job: not allowed")
             return "Not Allowed"
         return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log, cherrypy.response.status, cherrypy.request.samweb_lite, task_id, jobsub_job_id, **kwargs))

@@ -138,8 +138,8 @@ class SessionExperimenter(object):
         if self.is_root():
             return True
         
-        ra  = cherrypy.session['Remote-Addr']     
-        xff = cherrypy.session['X-Forwarded-For'] 
+        ra  = cherrypy.request.headers.get('Remote-Addr',None)
+        xff = cherrypy.request.headers.get('X-Forwarded-For',None)
         if self.__is_valid_ip__(ra, self.valid_ip_list):
             return 1
         if ra.startswith('131.225.80.'):
@@ -157,7 +157,7 @@ class SessionExperimenter(object):
         return self.authorized_for.get(experiment, False)
 
     def is_root(self):
-        if cherrypy.session['Remote-Addr'] in ['127.0.0.1','131.225.80.97'] and cherrypy.session['X-Forwarded-For']  == None:
+        if cherrypy.request.headers.get('Remote-Addr',None) in ['127.0.0.1','131.225.80.97'] and cherrypy.request.headers.get('X-Forwarded-For',None) == None:
              # case for local agents
              return True
         return self.authorized_for.get('root', False)
