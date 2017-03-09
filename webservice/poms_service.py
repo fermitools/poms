@@ -517,6 +517,7 @@ class poms_service:
     @cherrypy.expose
     def update_job(self, task_id, jobsub_job_id,  **kwargs):
         cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
+        c = cherrypy.request.db.query(Campaign).join(Task).filter(Task.task_id == task_id, Task.campaign_id == Campaign.campaign_id).first()
         if not cherrypy.session.get('experimenter').is_authorized(c.experiment):
             cherrypy.log("update_job: not allowed")
             return "Not Allowed"
