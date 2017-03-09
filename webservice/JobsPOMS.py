@@ -84,6 +84,7 @@ class JobsPOMS():
 
 
     def bulk_update_job(self, dbhandle, loghandle, rpstatus, samhandle, json_data = '{}'):
+        loghandle("Entering bulk_update_job(%s)" % json_data)
         ldata = json.loads(json_data)
         data = {}
         for d in ldata:
@@ -91,7 +92,10 @@ class JobsPOMS():
 
         foundtasks = {}
         for jid,d in data.items():
-            foundtasks[d['task_id']] = 1
+            if d['task_id']:
+                foundtasks[int(d['task_id'])] = 1
+
+        loghandle("found task ids for %s" % ",".join(map(str, foundtasks.keys())))
 
         jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(data.keys())).all()
 
@@ -106,19 +110,29 @@ class JobsPOMS():
         else:
             tasks = []
     
+        fulltasks = {}
         for t in tasks:
             fulltasks[t.task_id] = t
 
+        loghandle("found full tasks for %s" % ",".join(map(str, fulltasks.keys())))
+
         for jid in data.keys():
-            if not foundjobs.get(jid, 0) and fulltasks.get(data[jid]['task_id'], None):
+            if not foundjobs.get(jid, None) and fulltasks.get(int(data[jid]['task_id']), None):
+                 loghandle("need new Job for %s" % jid)
                  j = Job(jobsub_job_id = jid, task_obj = fulltasks[data[jid]['task_id']], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle',created = datetime.now(utc),updated = datetime.now(utc))
                  jlist.append(j)
 	         dbhandle.add(j)
+            elif not foundjobs.get(jid,0):
+                 loghandle("need new Job for %s, but no task %s" % (jid,data[jid]['task_id']))
+            else:
+                 pass
+           
   
         for j in jlist:
              self.update_job_common(dbhandle, loghandle, rpstatus, samhandle,    j, data[j.jobsub_job_id])
 
         dbhandle.commit()
+        loghandle("Exiting bulk_update_job()")
         return "Ok."
 
     def update_job(self, dbhandle, loghandle, rpstatus, samhandle, task_id = None, jobsub_job_id = 'unknown',  **kwargs):

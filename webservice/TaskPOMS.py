@@ -579,9 +579,11 @@ class TaskPOMS:
 
         c = (dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id)
              .options(joinedload(Campaign.launch_template_obj), joinedload(Campaign.campaign_definition_obj)).first())
+
         if not c:
             err_res = 404
             raise KeyError
+
         cd = c.campaign_definition_obj
         lt = c.launch_template_obj
 
