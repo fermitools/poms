@@ -12,6 +12,7 @@ import Queue
 import thread
 import threading
 import time
+import traceback
 from prometheus_client.bridge.graphite import GraphiteBridge
 
 class job_reporter:
@@ -193,6 +194,7 @@ class job_reporter:
 	    except (Exception) as e:
 		errtext = str(e)
 		sys.stderr.write("Unknown Exception:" + errtext + repr(sys.exc_info()))
+                sys.stderr.write(traceback.format_exc())
 		sys.stderr.write("\n--------\n")
                 sys.stderr.flush()
                 raise

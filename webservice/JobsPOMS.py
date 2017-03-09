@@ -107,16 +107,13 @@ class JobsPOMS():
             tasks = []
     
         for t in tasks:
-            foundtasks[t.task_id] = t
+            fulltasks[t.task_id] = t
 
         for jid in data.keys():
-            if not foundjobs.get(jid, 0) and foundtasks.get(data[jid]['task_id'], None):
-                 j = Job(jobsub_job_id = jid, task_id = data[jid]['task_id'], task_obj = foundtasks[data[jid]['task_id']], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle')
-	         dbhandle.add(j)
-
-                 j.created = datetime.now(utc)
-                 j.updated = datetime.now(utc)
+            if not foundjobs.get(jid, 0) and fulltasks.get(data[jid]['task_id'], None):
+                 j = Job(jobsub_job_id = jid, task_obj = fulltasks[data[jid]['task_id']], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle',created = datetime.now(utc),updated = datetime.now(utc))
                  jlist.append(j)
+	         dbhandle.add(j)
   
         for j in jlist:
              self.update_job_common(dbhandle, loghandle, rpstatus, samhandle,    j, data[j.jobsub_job_id])
