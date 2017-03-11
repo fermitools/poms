@@ -364,15 +364,22 @@ class TaskPOMS:
 #No expose methods.
     def compute_status(self, dbhandle, task):
         st = self.poms_service.triagePOMS.job_counts(dbhandle, task_id = task.task_id)
+
+        logger.info("in compute_status, counts are %s" % repr(st))
+
         if task.status == "Located":
             return task.status
-        res = "Idle"
+        res = "New"
+        if (st['Idle'] > 0):
+            res = "Idle"
         if (st['Held'] > 0):
             res = "Held"
         if (st['Running'] > 0):
             res = "Running"
-        if (st['Completed'] > 0 and st['Idle'] == 0 and st['Held'] == 0):
+        if (st['Completed'] > 0 and  res == "New"):
             res = "Completed"
+        if (st['Located'] > 0 and  res == "New"):
+            res = "Located"
         return res
 
 

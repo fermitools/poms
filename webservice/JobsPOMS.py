@@ -86,10 +86,16 @@ class JobsPOMS():
     def bulk_update_job(self, dbhandle, loghandle, rpstatus, samhandle, json_data = '{}'):
         loghandle("Entering bulk_update_job(%s)" % json_data)
         ldata = json.loads(json_data)
+
+        # make one merged entry per job_id
         data = {}
         for d in ldata:
-            data[d['jobsub_job_id']] = d
+            data[d['jobsub_job_id']] = {}
 
+        for d in ldata:
+            data[d['jobsub_job_id']].update(d)
+
+        # figure out what tasks are involved
         foundtasks = {}
         for jid,d in data.items():
             if d['task_id']:
@@ -97,14 +103,17 @@ class JobsPOMS():
 
         loghandle("found task ids for %s" % ",".join(map(str, foundtasks.keys())))
 
+        # lookup what job-id's we already have database entries for
         jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(data.keys())).all()
 
+        # make a list of jobs we can update
         jlist = []
         foundjobs = {}
         for j in jobs:
             foundjobs[j.jobsub_job_id] = j
             jlist.append(j)
 
+        # get the tasks we have that are mentioned
         if len(foundtasks) > 0:
             tasks = dbhandle.query(Task).filter(Task.task_id.in_(foundtasks.keys())).all()
         else:
@@ -116,6 +125,9 @@ class JobsPOMS():
 
         loghandle("found full tasks for %s" % ",".join(map(str, fulltasks.keys())))
 
+        # now look for jobs for which  we don't have Job ORM entries, but
+	# whose Tasks we do have entries for, and make new Job entries for
+        # them.
         for jid in data.keys():
             if not foundjobs.get(jid, None) and data[jid].has_key('task_id') and fulltasks.get(int(data[jid]['task_id']), None):
                  loghandle("need new Job for %s" % jid)
@@ -130,6 +142,8 @@ class JobsPOMS():
                  pass
            
   
+        # now actually update each such job, 'cause we should now have a
+        # ORM mapped Job object for each one.
         for j in jlist:
              self.update_job_common(dbhandle, loghandle, rpstatus, samhandle,    j, data[j.jobsub_job_id])
 
@@ -301,6 +315,7 @@ class JobsPOMS():
             if oldstatus != j.status and j.task_obj:
                 newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, j.task_obj)
                 if newstatus != j.task_obj.status:
+                    loghandle("update_job: task %d status now %s" %(j.task_obj.task_id, newstatus))
                     j.task_obj.status = newstatus
                     j.task_obj.updated = datetime.now(utc)
                     # jobs make inactive campaigns active again...
