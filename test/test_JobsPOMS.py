@@ -6,7 +6,7 @@ import json
 import socket
 from poms.webservice.utc import utc
 from poms.webservice.samweb_lite import samweb_lite
-from poms.model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job
+from poms.model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job, Task
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -120,9 +120,9 @@ def test_bulk_update_job():
     data = []
     for jid in jids:
         data.append({'jobsub_job_id': jid, 'task_id': task_id, 'status': 'Idle'})
-    
+
     mps.jobsPOMS.bulk_update_job(dbhandle, logger.info, rpstatus, samhandle, json.dumps(data) )
-    
+
     for jid in jids:
         j = dbhandle.query(Job).filter(Job.jobsub_job_id == jid).first()
         assert(jid != None)
@@ -138,7 +138,7 @@ def test_update_job_2():
     print "testing all the info that the jobscraper pass the job_log_scraper"
     fielddict = {
                 'status': 'test_status' ,
-                'slot':'finally_something_in_this_field'
+                'slot':'finally_something_in_this_field',
                 'output_file_names':'test_file_test_joblogscraper.txt' ,
                 'node_name': 'fake_node_test_joblogscraper',
                 'user_exe_exit_code':'10',
@@ -155,66 +155,118 @@ def test_update_job_q_scraper():
 
 
 def test_kill_jobs():
+    ##Calling the DB and SAM handles methods.
+    dbhandle = DBHandle.DBHandle().get()
+    samhandle = samweb_lite()
+    #mock_rm=Mock_jobsub_rm.Mock_jobsub_rm()
     #Two task_id for the same campaign
     task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a task_id for the fake campaign
     task_id2 = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a task_id for the second task
+
     #Create jobs in the same campaign, 2 in one task_id, one in another task_id but same campaign, and on job in the same task_id, campaign but market as completed.
-    jid = "%d@fakebatch1.fnal.gov" % time.time() #1 Job in the first task_id
-    mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running')
+    jid1 = "%d@fakebatch1.fnal.gov" % time.time() #1 Job in the first task_id
+    mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid1, host_site = "fake_host", status = 'running')
+    time.sleep(2)
     jid2 = "%d@fakebatch1.fnal.gov" % time.time()#2Job in the first task_id
     mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid2, host_site = "fake_host", status = 'running')
+    time.sleep(2)
     jid3 = "%d@fakebatch1.fnal.gov" % time.time() #3Job in a new task_id but same campaign
     mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id2, jobsub_job_id = jid3, host_site = "fake_host", status = 'running')
+    time.sleep(2)
     jid4 = "%d@fakebatch1.fnal.gov" % time.time()
     mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid4, host_site = "fake_host", status = 'Completed')
+
     #Control arguments
-    c_arg="-G Analysis --role fermilab --jobid "
-    c_output_killjob = jid #Control output
-    c_output_killTask = jid+jid2 #Control output
-    c_output_killCampaign =jid+jid2+jid3 #Control output
-    #Calls to the test rutine
-    output_killjob, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', task_id=task_id, jobsub_job_id=jid, confirm = "yes")
-    output_killTask, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', task_id=task_id, confirm = "yes")
-    output_killCampaign, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', confirm = "yes")
+    c_arg="-G fermilab --role Analysis --jobid "
+    c_output_killjob = jid1 #Control output
+    c_output_killTask = [jid1] #Control output #it is going to kill the task just killing the first job without .0, cluster.
+    c_output_killCampaign =[jid1,jid3] #Control output it is going to kill the Campaign just killing the first job without of each task_id
+
+    #Guetting the jid (key in database) that belong to the jobid in jobsub. They are different. The key db is used in the next code block
+    job_obj1 = dbhandle.query(Job).filter(Job.jobsub_job_id == jid1).first()
+    job_obj2 = dbhandle.query(Job).filter(Job.jobsub_job_id == jid2).first()
+    #job_obj3 = dbhandle.query(Job).filter(Job.jobsub_job_id == jid3).first()
+    #job_obj4 = dbhandle.query(Job).filter(Job.jobsub_job_id == jid4).first()
+
+    #Calls to the rutine under test.
+    output_killjob, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, job_id=job_obj1.job_id, confirm = "yes") #single job
+    output_killTask, c_obje_T, c_idr_T, task_idr_T, job_idr_T = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, task_id=task_id, confirm = "yes") #all task
+    output_killCampaign, c_obje_C, c_idr_C, task_idr_C, job_idr_C = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, campaign_id='14', confirm = "yes") #all campaign
+    #output_killjob2, c_obje2, c_idr2, task_idr2, job_idr2 = mps.jobsPOMS.kill_jobs(dbhandle, logger.info, job_id=job_obj2.job_id, confirm = "yes")
+
     #Now the check the outputs, they need a bit of pre-processing.
     #Arguments
-    sep=output.rfind('--jobid ')
-    assert(sep!=-1) #--jobid argument was in called in the command
+    sep=output_killjob.rfind('--jobid ')
+    assert(sep!=-1) #--jobid option was in called in the command
+
     jrm_args=output_killjob[0:sep+8] #the arguments are correct
     assert(jrm_args==c_arg) #compare the arguments are in place
 
     #Check single job kill
-    jrm_id=output_killjob.split('--jobid ')[1].split(",")
+    jrm_id = output_killjob.split('--jobid ')[1].rstrip('\n')
     assert(jrm_id==c_output_killjob)
 
     #Check kill jobs in one task
+    sep=output_killTask.rfind('--jobid ')
+    assert(sep!=-1) #--jobid option was in called in the command
     jrm_idtl=output_killTask.split('--jobid ')[1].split(",")
     jrm_idtl.sort()
-    assert(c_output_killTask==jrm_idl)
+    jrm_idtl[-1]=jrm_idtl[-1].rstrip('\n')
+    assert(jrm_idtl==c_output_killTask)
 
     #Check kill all jobs in one Campaign,  that also prof that the job market as completed is not killed.
+    sep=output_killCampaign.rfind('--jobid ')
+    assert(sep!=-1) #--jobid option was in called in the command
     jrm_idcl=output_killCampaign.split('--jobid ')[1].split(",")
     jrm_idcl.sort()
-    assert(c_output_killCampaign == jrm_idcl)
+    jrm_idcl[-1]=jrm_idcl[-1].rstrip('\n')
+    assert(jrm_idcl==c_output_killCampaign)
 
     #Closing the mock
     mock_rm.close()
 
-
-
     '''
-    fielddict = {
-                'status': 'pipe_test' ,
-                'output_file_names':'test_file.txt' , ##it is up
-                'jobsub_job_id': 'fake_jobsub_id@fakebatch2' ,
-                'node_name': 'fake_node_pipe' ,         ###it is up
-                'taskid': '1234',
-                'user_exe_exit_code':'10',  #it is up
-                'cpu_type': 'Athalon',      #it is up
-                'slot':'finally_something_in_this_field'
-                }
-    '''
+    Verbosity not necessary
+    Checking variables, no necessary for the test.
+    print "$$"*20
+    print "The output_killjob is: ", output_killjob
+    print "c_obje", c_obje
+    print "c_idr", task_idr
+    print "job_idr", job_idr
+    print "The output_killjob2 is: ", output_killjob2
+    print "c_obje2", c_obje2
+    print "c_idr2", task_idr2
+    print "job_idr2", job_idr2
+    print "The output_killTask is: ", output_killTask
+    print "c_obje", c_obje_T
+    print "c_idr", task_idr_T
+    print "job_idr", job_idr_T
+    print "The output_killCampaign is: ", output_killCampaign
+    print "c_obje", c_obje_C
+    print "c_idr", task_idr_C
+    print "job_idr", job_idr_C
+    print "$$"*20
 
+    t_obj1=dbhandle.query(Task).filter(Task.task_id == task_id).first()
+    t_obj2=dbhandle.query(Task).filter(Task.task_id == task_id2).first()
+    job_obj_db = dbhandle.query(Job).filter(Job.task_id== task_id).all()  ####this is thing
+    print "*"*10
+    print "task_id1", task_id
+    print "task_id2", task_id2
+    print "Id of this test"
+    print "job_id1 = ", job_obj1.job_id
+    print jid1
+    print "job_id2 = ", job_obj2.job_id
+    print jid2
+    print "job_id3 = ", job_obj3.job_id
+    print jid3
+    print "job_id4 = ", job_obj4.job_id
+    print jid4
+    print "jobs with task id", task_id
+    for x in job_obj_db:
+        print x.jobsub_job_id
+    print "#"*10
+    '''
 
 
 ############Do not pay attention to the info below
@@ -223,4 +275,3 @@ def test_output_pending():
 
     res = mps.jobsPOMS.output_pending_jobs(dbhandle)
     assert(res != None)
-    
