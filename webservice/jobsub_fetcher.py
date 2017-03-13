@@ -18,7 +18,7 @@ class jobsub_fetcher():
          self.fetchcount = 0
          self.tarfiles = []
 
-    def __del__(self):
+    def flush(self):
          if self.workdir:
               os_system("rm -rf %s" % self.workdir)
 

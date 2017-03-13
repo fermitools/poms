@@ -49,20 +49,39 @@ class TestJobsub_q_scraper:
 
         df = open("%s/test/data/%s" % (os.environ['POMS_DIR'],fname), "r")
         active_log_line = self.mw.log.next()
+        active_log_line = self.mw.log.next()
+        bulk_data = []
 
+        print "got bulk_data:" , bulk_data
+
+        i = 0
         for line in df:
-            data_log = self.mw.log.next()
-            post_log = self.mw.log.next()
 
-            line_data = self._parse_line(line)
-            post_data =  json.loads(data_log[12:-1])
+            if i >= len(bulk_data):
+		data_log = self.mw.log.next()
+		post_log = self.mw.log.next()
+		post_data =  json.loads(data_log[12:-1])
+		bulk_data = json.loads(urllib.unquote_plus(post_data['data']))
+                i = 0
+
+            if i >= len(bulk_data):
+                print "Failed to get data from:"
+                print "data_log:", data_log
+                print "post_log:", post_log
+                assert(False)
+                break
 
             # did we post what it said?
+            line_data = self._parse_line(line)
 
-            assert(post_data['jobsub_job_id'].replace('%40','@') == line_data['JOBSUBJOBID'])
-            assert(post_data['task_id'] == line_data['POMS_TASK_ID'])
-            assert(post_data['status'] == self.map[line_data['JOBSTATUS']])
-            assert(post_data['cpu_time'] == line_data['RemoteUserCpu'])
+            print "checking line_data: ", line_data
+
+            assert(bulk_data[i]['jobsub_job_id'].replace('%40','@') == line_data['JOBSUBJOBID'])
+            assert(bulk_data[i]['task_id'] == line_data['POMS_TASK_ID'])
+            assert(bulk_data[i]['status'] == self.map[line_data['JOBSTATUS']])
+            assert(bulk_data[i]['cpu_time'] == line_data['RemoteUserCpu'])
+
+            i = i + 1
 
     def test_condor_q_out_1(self):
         self._do_test('condor_q_out1')

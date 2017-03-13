@@ -16,7 +16,7 @@ else:
     print "already setup"
 
 
-from model.poms_model import Experimenter, ExperimentsExperimenters
+from poms.model.poms_model import Experimenter, ExperimentsExperimenters
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 import os.path
 import argparse
@@ -53,11 +53,12 @@ class SAEnginePlugin(plugins.SimplePlugin):
     def start(self):
         db = cherrypy.config.get("db")
         dbuser = cherrypy.config.get("dbuser")
-        dbpass = cherrypy.config.get("dbpass")
+        # dbpass = cherrypy.config.get("dbpass")
         dbhost = cherrypy.config.get("dbhost")
         dbport = cherrypy.config.get("dbport")
-        db_path = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport, db)
-        sa_echo = cherrypy.config.get("sa_echo",True)
+        # db_path = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport, db)
+        db_path = "postgresql://%s:@%s:%s/%s" % (dbuser, dbhost, dbport, db)
+        sa_echo = cherrypy.config.get("sa_echo", True)
         self.sa_engine = create_engine(db_path, echo=sa_echo)
 
     def stop(self):
@@ -100,8 +101,13 @@ class SATool(cherrypy.Tool):
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
+        self.session.execute("SET SESSION lock_timeout = '1s';")
+        self.session.execute("SET SESSION statement_timeout = '30s';")
+        self.session.commit()
 
     def release_session(self):
+        cherrypy.request.jobsub_fetcher.flush()
+        cherrypy.request.samweb_lite.flush() 
         cherrypy.request.db = None
         cherrypy.request.jobsub_fetcher = None
         cherrypy.request.samweb_lite = None
@@ -209,6 +215,7 @@ def set_rotating_log(app):
         h.setLevel(DEBUG)
         h.setFormatter(cherrypy._cplogging.logfmt)
         getattr(cherrypy.log, '%s_log' % x).addHandler(h)
+        cherrypy.log("Opened Rotating %s log - file: %s maxBytes: %s backup: %s" % (x,fname,maxBytes,backupCount))
 
 def pidfile():
     pidfile = cherrypy.config.get("log.pidfile",None)
@@ -243,15 +250,15 @@ if __name__ == '__main__':
                }
 
     configfile = "poms.ini"
-    dbasefile  = "passwd.ini"
+    # dbasefile  = "passwd.ini"
     parser,args = parse_command_line()
     if args.config:
         configfile = args.config
-    if args.password:
-        dbasefile = args.password
+    # if args.password:
+    #     dbasefile = args.password
     try:
         cherrypy.config.update(configfile)
-        cherrypy.config.update(dbasefile)
+        # cherrypy.config.update(dbasefile)
     except IOError, mess:
         print mess
         parser.print_help()

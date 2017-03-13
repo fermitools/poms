@@ -2,23 +2,14 @@
 
 import sys
 import os
+from datetime import datetime
+from utc import utc
 import atexit
 from paste.exceptions.errormiddleware import ErrorMiddleware
 from repoze.errorlog import ErrorLog
 
-'''
-# make sure poms is setup...
-if os.environ.get("SETUP_POMS","") == "":
-    sys.path.insert(0,os.environ.get('SETUPS_DIR',os.environ.get('HOME')+'/products'))
-    import setups
-    print "setting up poms..."
-    ups = setups.setups()
-    ups.use_package("poms","","SETUP_POMS")
-else:
-    print "already setup"
-'''
 
-from model.poms_model import Experimenter, ExperimentsExperimenters
+from poms.model.poms_model import Experimenter, ExperimentsExperimenters
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 import os.path
 import argparse
@@ -61,11 +52,12 @@ class SAEnginePlugin(plugins.SimplePlugin):
     def start(self):
         db = cherrypy.config.get("db")
         dbuser = cherrypy.config.get("dbuser")
-        dbpass = cherrypy.config.get("dbpass")
+        # dbpass = cherrypy.config.get("dbpass")
         dbhost = cherrypy.config.get("dbhost")
         dbport = cherrypy.config.get("dbport")
-        db_path = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport, db)
-        sa_echo = cherrypy.config.get("sa_echo",True)
+        # db_path = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport, db)
+        db_path = "postgresql://%s:@%s:%s/%s" % (dbuser, dbhost, dbport, db)
+        sa_echo = cherrypy.config.get("sa_echo", True)
         self.sa_engine = create_engine(db_path, echo=sa_echo)
         atexit.register(self.destroy)
 
@@ -76,6 +68,7 @@ class SAEnginePlugin(plugins.SimplePlugin):
 
     def bind(self, session):
         session.configure(bind=self.sa_engine)
+
 
 class SATool(cherrypy.Tool):
     def __init__(self):
@@ -104,13 +97,20 @@ class SATool(cherrypy.Tool):
         cherrypy.request.hooks.attach('on_end_resource',
                                       self.release_session,
                                       priority=80)
+
     def bind_session(self):
         cherrypy.engine.publish('bind', self.session)
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
+        self.session.execute("SET SESSION lock_timeout = '1s';")
+        self.session.execute("SET SESSION statement_timeout = '45s';")
+        self.session.commit()
 
     def release_session(self):
+        cherrypy.request.jobsub_fetcher.flush()
+        cherrypy.request.samweb_lite.flush()
+        cherrypy.request.db.close()
         cherrypy.request.db = None
         cherrypy.request.jobsub_fetcher = None
         cherrypy.request.samweb_lite = None
@@ -118,6 +118,7 @@ class SATool(cherrypy.Tool):
 
 
 class SessionExperimenter(object):
+
     def __init__(self, experimenter_id=None, first_name=None, last_name=None, email=None, authorized_for=None, **kwargs):
         self.experimenter_id = experimenter_id
         self.first_name = first_name
@@ -126,14 +127,43 @@ class SessionExperimenter(object):
         self.authorized_for = authorized_for
         self.extra = kwargs
 
+    def __is_valid_ip__(self, ip, iplist):
+        for x in iplist:
+            if ip.startswith(x):
+                return True
+        return False
+
     def is_authorized(self, experiment):
         # Root is authorized for all experiments
         if self.is_root():
             return True
+        
+        ra  = cherrypy.request.headers.get('Remote-Addr',None)
+        xff = cherrypy.request.headers.get('X-Forwarded-For',None)
+        if self.__is_valid_ip__(ra, self.valid_ip_list):
+            return 1
+        if ra.startswith('131.225.80.'):
+            return 1
+        if ra == '127.0.0.1' and xff and xff.startswith('131.225.67'):
+             # case for fifelog agent..
+             return 1
+        if ra != '127.0.0.1' and xff and xff.startswith('131.225.80'):
+             # case for jobsub_q agent (currently on bel-kwinith...)
+             return 1
+        if ra == '127.0.0.1' and xff == None:
+             # case for local agents
+             return 1
+
         return self.authorized_for.get(experiment, False)
 
     def is_root(self):
+        if cherrypy.request.headers.get('Remote-Addr',None) in ['127.0.0.1','131.225.80.97'] and cherrypy.request.headers.get('X-Forwarded-For',None) == None:
+             # case for local agents
+             return True
         return self.authorized_for.get('root', False)
+    
+    def __str__(self):
+        return "%s %s %s" % (self.first_name, self.last_name, self.email)
 
 
 class SessionTool(cherrypy.Tool):
@@ -152,9 +182,15 @@ class SessionTool(cherrypy.Tool):
     #                                  priority=90)
 
     def establish_session(self):
+                
         if cherrypy.session.get('id', None):
+            #cherrypy.log("EXISTING SESSION: %s" % str(cherrypy.session['experimenter']))
             return
-        cherrypy.session['id'] = cherrypy.session.originalid  #The session ID from the users cookie.
+
+        cherrypy.session['id']              = cherrypy.session.originalid  #The session ID from the users cookie.
+        cherrypy.session['X-Forwarded-For'] = cherrypy.request.headers.get('X-Forwarded-For', None)
+        cherrypy.session['Remote-Addr']     = cherrypy.request.headers.get('Remote-Addr', None)
+        cherrypy.session['X-Shib-Userid']   = cherrypy.request.headers.get('X-Shib-Userid', None)
 
         email = None
         if cherrypy.request.headers.get('X-Shib-Email',None):
@@ -184,26 +220,27 @@ class SessionTool(cherrypy.Tool):
             cherrypy.request.db.add(e2e)
             cherrypy.request.db.commit()
 
-        e = cherrypy.request.db.query(Experimenter).filter(Experimenter.email==email).all()
+        e = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == email).all()
         if len(e):
-           e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e[0].experimenter_id)
+            e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e[0].experimenter_id)
         else:
-           e2e = []
+            e2e = []
         exps = {}
         for row in e2e:
             exps[row.experiment] = row.active
         if len(e):
             extra = {'selected': exps.keys()}
             cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
-                    e[0].first_name, e[0].last_name, e[0].email, exps, **extra
-                )
+                                                                   e[0].first_name, e[0].last_name, e[0].email, exps, **extra)
         else:
             cherrypy.session['experimenter'] = SessionExperimenter("anonymous", "", "", "", {})
-        cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For','Unknown'),
-                                                        cherrypy.session['id'],
-                                                        experimenter.email if experimenter else 'none',
-                                                        experimenter.first_name if experimenter else 'none' ,
-                                                        experimenter.last_name if experimenter else 'none'))
+        cherrypy.request.db.query(Experimenter).filter(Experimenter.email == email).update({'last_login': datetime.now(utc)})
+        cherrypy.request.db.commit()
+        cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For', 'Unknown'),
+                                                      cherrypy.session['id'],
+                                                      experimenter.email if experimenter else 'none',
+                                                      experimenter.first_name if experimenter else 'none',
+                                                      experimenter.last_name if experimenter else 'none'))
 
 
 def set_rotating_log(app):
@@ -251,7 +288,7 @@ if True:
                         'tools.sessions.timeout': 60,
                         #~ 'tools.sessions.storage_class': cherrypy.lib.sessions.FileSession,
                         'tools.sessions.storage_type': 'file',
-                        'tools.sessions.storage_path': '/scratch/poms/sessions',
+                        #~ 'tools.sessions.storage_path': '/scratch/poms/sessions',
                         #~ 'tools.sessions.locking': 'implicit',
                         'tools.sessions.locking': 'early',          # IMPORTANT!
                      },
@@ -262,22 +299,22 @@ if True:
                }
 
     configfile = "poms.ini"
-    dbasefile  = "passwd.ini"
-    parser,args = parse_command_line()
+    # dbasefile  = "passwd.ini"
+    parser, args = parse_command_line()
     if args.config:
         configfile = args.config
-    if args.password:
-        dbasefile = args.password
+    # if args.password:
+    #     dbasefile = args.password
     try:
         cherrypy.config.update(configfile)
-        cherrypy.config.update(dbasefile)
+        # cherrypy.config.update(dbasefile)
     except IOError, mess:
         print mess
         parser.print_help()
         raise SystemExit
     path = cherrypy.config.get("path")
-    if path == None:
-       path = "/poms"
+    if path is None:
+        path = "/poms"
     cherrypy.log("POMSPATH: %s" % path)
 
     pidfile()
@@ -289,25 +326,26 @@ if True:
     set_rotating_log(app)
 
     # Start SSL Server if in config file
-    ssl_host = cherrypy.config.get("server.socket_host",None)
-    ssl_port = cherrypy.config.get("sslserver.socket_port",None)
-    ssl_certificate = cherrypy.config.get("sslserver.ssl_certificate",None)
-    ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key",None)
+    ssl_host = cherrypy.config.get("server.socket_host", None)
+    ssl_port = cherrypy.config.get("sslserver.socket_port", None)
+    ssl_certificate = cherrypy.config.get("sslserver.ssl_certificate", None)
+    ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key", None)
     if ssl_port is None or ssl_certificate is None or ssl_private_key is None:
-       cherrypy.log("**** SSL Server is not configured for running.")
+        cherrypy.log("**** SSL Server is not configured for running.")
     else:
         sslserver = cherrypy._cpserver.Server()
         sslserver.ssl_module = 'builtin'
-        sslserver._socket_host = cherrypy.config.get("server.socket_host",None)
-        sslserver.socket_port = cherrypy.config.get("sslserver.socket_port",None)
-        sslserver.ssl_certificate = cherrypy.config.get("sslserver.ssl_certificate",None)
-        sslserver.ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key",None)
+        sslserver._socket_host = cherrypy.config.get("server.socket_host", None)
+        sslserver.socket_port = cherrypy.config.get("sslserver.socket_port", None)
+        sslserver.ssl_certificate = cherrypy.config.get("sslserver.ssl_certificate", None)
+        sslserver.ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key", None)
         sslserver.subscribe()
 
-    cherrypy.config.update({'engine.autoreload.on': False})	# Recommended
+    cherrypy.config.update({'engine.autoreload.on': False})	    # Recommended
     cherrypy.server.unsubscribe()
     cherrypy.engine.start()
     # cherrypy.engine.block()					# Disable built-in HTTP server
     application = cherrypy.tree
     #application = ErrorMiddleware(application, debug=True)
     #application = ErrorLog(application, channel=None, keep=20, path='/__error_log__', ignored_exceptions=())
+# END
