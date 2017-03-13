@@ -55,6 +55,7 @@ class TagsPOMS():
             else:
                 response = {"msg": "You are not authorized to add tags."}
                 return response
+                print "just a test"
 
 
 
