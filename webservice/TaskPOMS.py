@@ -172,7 +172,7 @@ class TaskPOMS:
                      .options(joinedload(Task.campaign_definition_snap_obj))
                      .filter(Task.status == "Completed",
                              Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
-                             CampaignSnapshot.completion_type == "completed").all()):
+                             CampaignSnapshot.completion_type == "complete").all()):
 
             compcount = 0
             totcount = 0
