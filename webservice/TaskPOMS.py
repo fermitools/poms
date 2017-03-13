@@ -170,18 +170,20 @@ class TaskPOMS:
                      .options(joinedload(Task.jobs))
                      .options(joinedload(Task.campaign_snap_obj))
                      .options(joinedload(Task.campaign_definition_snap_obj))
-                     .filter(Task.status == "Completed",
+                     .filter(Task.status.in_(["Completed","Running"]),
                              Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
                              CampaignSnapshot.completion_type == "complete").all()):
 
             compcount = 0
-            totcount = 0
+            totcount = 0.1  # avoid divsion by zeo sidewas
             for j in task.jobs:
                 totcount += 1
                 if j.status == "Completed" or j.status == "Located":
                     compcount += 1
 
             cfrac = task.campaign_snap_obj.completion_pct
+
+            res.append("completion_type: complete Task %d cfrac %d pct %f " % (task.task_id, cfrac,(compcount * 100)/totcount))
 
             if (compcount * 100.0) / totcount > cfrac:
                 n_located = n_located + 1
