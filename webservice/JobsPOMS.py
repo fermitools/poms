@@ -147,6 +147,17 @@ class JobsPOMS():
         for j in jlist:
              self.update_job_common(dbhandle, loghandle, rpstatus, samhandle,    j, data[j.jobsub_job_id])
 
+        # update any related tasks status if changed
+        for t in fulltasks.values():
+	    newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, t)
+	    if newstatus != t.status:
+		loghandle("update_job: task %d status now %s" %(t.task_id, newstatus))
+		t.status = newstatus
+		t.updated = datetime.now(utc)
+		# jobs make inactive campaigns active again...
+		if t.campaign_obj.active != True:
+		    t.campaign_obj.active = True
+
         dbhandle.commit()
         loghandle("Exiting bulk_update_job()")
         return "Ok."
@@ -206,7 +217,18 @@ class JobsPOMS():
             j.status = 'Idle'
 
         if j:
+            oldstatus = j.status
+
             self.update_job_common(dbhandle,  loghandle, rpstatus, samhandle, j, kwargs)
+            if oldstatus != j.status and j.task_obj:
+                newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, j.task_obj)
+                if newstatus != j.task_obj.status:
+                    loghandle("update_job: task %d status now %s" %(j.task_obj.task_id, newstatus))
+                    j.task_obj.status = newstatus
+                    j.task_obj.updated = datetime.now(utc)
+                    # jobs make inactive campaigns active again...
+                    if j.task_obj.campaign_obj.active != True:
+                        j.task_obj.campaign_obj.active = True
 
             dbhandle.add(j)
             dbhandle.commit()
@@ -221,9 +243,9 @@ class JobsPOMS():
 
     def update_job_common(self, dbhandle, loghandle, rpstatus, samhandle, j, kwargs):
 
+            oldstatus = j.status
             loghandle("update_job: updating job %d" % (j.job_id if j.job_id else -1))
 
-            oldstatus = j.status
             if kwargs.get('status',None) and oldstatus != kwargs.get('status')  and oldstatus == 'Completed' and kwargs.get('status') != 'Located':
                 # we went from Completed back to some Running/Idle state...
                 # so clean out any old (wrong) Completed statuses from 
@@ -312,15 +334,6 @@ class JobsPOMS():
                 j.cpu_type = ''
             loghandle("update_job: db add/commit job status %s " %  j.status)
             j.updated =  datetime.now(utc)
-            if oldstatus != j.status and j.task_obj:
-                newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, j.task_obj)
-                if newstatus != j.task_obj.status:
-                    loghandle("update_job: task %d status now %s" %(j.task_obj.task_id, newstatus))
-                    j.task_obj.status = newstatus
-                    j.task_obj.updated = datetime.now(utc)
-                    # jobs make inactive campaigns active again...
-                    if j.task_obj.campaign_obj.active != True:
-                        j.task_obj.campaign_obj.active = True
 
     def test_job_counts(self, task_id = None, campaign_id = None):
         res = self.poms_service.job_counts(task_id, campaign_id)
