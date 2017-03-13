@@ -833,7 +833,7 @@ class poms_service:
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def delete_campaigns_tags(self, campaign_id, tag_id, experiment):
-        return(self.tagsPOMS.delete_campaigns_tags( cherrypy.request.db, campaign_id, tag_id, experiment))
+        return(self.tagsPOMS.delete_campaigns_tags( cherrypy.request.db, cherrypy.session.get, campaign_id, tag_id, experiment))
 
 
     @cherrypy.expose
