@@ -9,7 +9,6 @@
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, desc
 from model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
-
 import json
 
 class TagsPOMS():
@@ -56,7 +55,6 @@ class TagsPOMS():
             else:
                 response = {"msg": "You are not authorized to add tags."}
                 return response
-                print "just a test"
 
 
 
