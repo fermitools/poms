@@ -1,15 +1,15 @@
 #!/usr/bin/env python
-from test_pipe import campaign_definition_edit_test
-#from poms_client import campaign_definition_edit
+#from test_pipe import campaign_definition_edit_test
+from poms_client import campaign_definition_edit
 import argparse
 #Creating the arguments
 parser = argparse.ArgumentParser(description='Optional Arguments edit campaign definition')
 groupArg = parser.add_argument_group('Require Arguments')
 #parser.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', default = None)
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
-groupArg.add_argument('--name', metavar='Name of your template', type=str, help='the name of the campaign definition', default = None)
-groupArg.add_argument('--email', metavar='your email', type=str, help='Please provide your email adress, the one you use when you get register at POMS', default = None)
-groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', default = None)
+groupArg.add_argument('--name', metavar='Name of your template', type=str, help='the name of the campaign definition', required = True, default = None)
+groupArg.add_argument('--email', metavar='your email', type=str, help='Please provide your email adress, the one you use when you get register at POMS', required = True, default = None)
+groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True, default = None)
 parser.add_argument('--input_files_per_job', metavar='number of input files per job', type=int, help='set the number of input files you would like to process per job', default = 0)
 parser.add_argument('--output_files_per_job', metavar='number of output files per job', type=int, help='set the number of output files you expected from each input file ', default = 0)
 parser.add_argument('--output_file_patterns', metavar='string with output file pattern', type=str, help='The output pattern you are interested in your campaign (eg. \%\.root)', default = None)
@@ -29,7 +29,8 @@ print 'output_file_patterns=', args.output_file_patterns
 print 'launch_script=', args.launch_script
 print 'def_parameter=', args.def_parameter
 
-#Calling the poms_client.campaign_definition_edit
+#Calling the poms_client.campaign_definition_edit'
+
 campaign_definition_edit(pc_email=args.email,
                     action = args.action,
                     name=args.name,
@@ -51,4 +52,4 @@ campaign_definition_edit_test(pc_email=args.email,
                     output_file_patterns=args.output_file_patterns,
                     launch_script=args.launch_script,
                     def_parameter=args.def_parameter)
-                    '''
+'''
