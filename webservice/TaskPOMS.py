@@ -170,18 +170,20 @@ class TaskPOMS:
                      .options(joinedload(Task.jobs))
                      .options(joinedload(Task.campaign_snap_obj))
                      .options(joinedload(Task.campaign_definition_snap_obj))
-                     .filter(Task.status == "Completed",
+                     .filter(Task.status.in_(["Completed","Running"]),
                              Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
-                             CampaignSnapshot.completion_type == "completed").all()):
+                             CampaignSnapshot.completion_type == "complete").all()):
 
             compcount = 0
-            totcount = 0
+            totcount = 0.1  # avoid divsion by zeo sidewas
             for j in task.jobs:
                 totcount += 1
                 if j.status == "Completed" or j.status == "Located":
                     compcount += 1
 
             cfrac = task.campaign_snap_obj.completion_pct
+
+            res.append("completion_type: complete Task %d cfrac %d pct %f " % (task.task_id, cfrac,(compcount * 100)/totcount))
 
             if (compcount * 100.0) / totcount > cfrac:
                 n_located = n_located + 1
@@ -203,6 +205,8 @@ class TaskPOMS:
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as
             # located as its going to get...
+
+
             if (now - task.updated > timedelta(days=2)):
                 n_located = n_located + 1
                 n_stale = n_stale + 1
@@ -500,6 +504,8 @@ class TaskPOMS:
             t.recovery_position = 0
 
         while t.recovery_position is not None and t.recovery_position < len(rlist):
+            loghandle("recovery position %d" % t.recovery_position)
+
             rtype = rlist[t.recovery_position].recovery_type
             # uncomment when we get db fields:
             param_overrides = rlist[t.recovery_position].param_overrides
@@ -521,6 +527,7 @@ class TaskPOMS:
                 recovery_dims = "project_name %s and consumed_status != 'consumed'" % t.project
 
             try:
+                loghandle("counting files dims %s" % recovery_dims)
                 nfiles = samhandle.count_files(t.campaign_snap_obj.experiment, recovery_dims, dbhandle=dbhandle)
             except:
                 # if we can't count it, just assume there may be a few for now...
@@ -530,6 +537,7 @@ class TaskPOMS:
             dbhandle.add(t)
             dbhandle.commit()
 
+            loghandle("recovery files count %d" % nfiles)
             if nfiles > 0:
                 rname = "poms_recover_%d_%d" % (t.task_id, t. recovery_position)
 
