@@ -105,31 +105,34 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
 
 def campaign_definition_edit(input_files_per_job, output_files_per_job, output_file_patterns, launch_script, def_parameter, pc_email=None, action = None, name = None, experiment = None):
     # You can not modify the recovery_type from the poms_client (future feauture)
-    method = "launch_template_edit"
+    method = "campaign_definition_edit"
     pc_email = pc_email
     action = action
-    ae_definition_name = name
-    experiment = experiment
+    if action in ['add','delete','edit']:
+        ae_definition_name = name
+        experiment = experiment
 
-    ae_input_files_per_job = input_files_per_job
-    ae_output_files_per_job = output_files_per_job
-    ae_output_file_patterns = output_file_patterns
-    ae_launch_script = launch_script
-    ae_definition_parameters= json.dumps(def_parameter)
-    data = make_poms_call(  pcl_call=1,
-                            method = method,
-                            pc_email = pc_email,
+        ae_input_files_per_job = input_files_per_job
+        ae_output_files_per_job = output_files_per_job
+        ae_output_file_patterns = output_file_patterns
+        ae_launch_script = launch_script
+        ae_definition_parameters= json.dumps(def_parameter)
+        data = make_poms_call(  pcl_call=1,
+                                method = method,
+                                pc_email = pc_email,
 
-                            action = action,
-                            ae_definition_name = ae_definition_name,
-                            experiment = experiment,
+                                action = action,
+                                ae_definition_name = ae_definition_name,
+                                experiment = experiment,
 
-                            ae_input_files_per_job = ae_input_files_per_job ,
-                            ae_output_files_per_job = ae_output_files_per_job,
-                            ae_output_file_patterns = ae_output_file_patterns,
-                            ae_launch_script = ae_launch_script,
-                            ae_definition_parameters= ae_def_parameter
-                            )
+                                ae_input_files_per_job = ae_input_files_per_job ,
+                                ae_output_files_per_job = ae_output_files_per_job,
+                                ae_output_file_patterns = ae_output_file_patterns,
+                                ae_launch_script = ae_launch_script,
+                                ae_definition_parameters= ae_def_parameter
+                                )
+    else:
+        print "Error: the action you choose was [action="+action+"] you must use add-edit-delete as option"
 
 def make_poms_call(**kwargs):
 
