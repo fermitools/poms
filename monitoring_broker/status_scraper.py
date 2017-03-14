@@ -2,9 +2,8 @@
 
 from ConfigParser import SafeConfigParser
 import re
-import urllib2
+import requests
 import urllib
-import httplib
 import traceback
 import os
 import sys
@@ -19,6 +18,7 @@ class status_scraper():
 
     def __init__(self,configfile, poms_url):
         self.poms_url = poms_url
+        self.rs = requests.Session()
         defaults = { "subservices" : "", "scrape_url":"" , "scrape_regex":"", "percent":"100", "scrape_match_1":"", "scrape_warn_match_1":"", "scrape_bad_match_1":"", "debug":"0", "multiline":None }
         self.cf = SafeConfigParser(defaults)
         self.cf.read(configfile)
@@ -261,9 +261,9 @@ class status_scraper():
                 description = s
             report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.url.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.quote_plus(description))
             print "trying: " , report_url
-            c = urllib2.urlopen(report_url)
-            print c.read()
-            c.close()
+            r = self.rs.get(report_url)
+            print r.text
+            r.close()
 
 if __name__ == '__main__':
 

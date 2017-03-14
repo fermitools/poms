@@ -62,11 +62,12 @@ class mock_job:
             samhandle = samweb_lite()
 
             if dataset and i == 0:
-                projname = "%s%d" % (dataset,time.time())
                 # pretend to be a dagman... wake up right away, wait for everyone else then exit.  We just sleep to wait for them.
                 self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
                 time.sleep(0.5)
                 self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
+                self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, task_project = projname)
+
                 time.sleep(10)
                 self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
                 os._exit(0)
@@ -85,6 +86,7 @@ class mock_job:
 
                 time.sleep(0.5)
                 self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
+                self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, task_project = projname)
 
                 os.environ['EXPERIMENT'] = 'samdev'
 
@@ -116,9 +118,12 @@ class mock_job:
 		self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
 		time.sleep(0.5)
 		self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
+
 		self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code', user_script = '/fake/job/script', node_name='fakenode', vendor_id = 'FakeCPU')
                  
                 if dataset:
+                    self.jp.update_job(dbh.get(), logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, task_project = projname)
+
                     import ifdh
                     ih = ifdh.ifdh()
 		    u = ih.findProject(projname, 'samdev')

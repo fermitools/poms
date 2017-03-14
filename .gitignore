@@ -1,8 +1,20 @@
 .*
-*~
 !.gitignore
+!.reviewboardrc
+CVS
+*~
+.#*
 /build/*
-*log
-*pyc
+*.log
+*.pyc
+*.bck
+*.bak
+*.old
+*.out
+*.cache
+*orig
+*.py-*
 
 tmp
+.DS_Store
+__pycache__

@@ -9,35 +9,30 @@
 from datetime import datetime, tzinfo,timedelta
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, not_,  create_engine, null, desc, text, func, exc, distinct
 
+from utc import utc
 
 class TablesPOMS:
 
     def __init__(self, ps, loghandle):
         self.poms_service=ps
         self.make_admin_map(loghandle)
-        #dbhandle = dbhandle
-        #gethead = gethead
-        #loghandle = loghandle
-
 
     def list_generic(self, dbhandle, err_res, gethead, seshandle, classname):
-        if not self.poms_service.accessPOMS.can_db_admin(gethead, seshandle):
+        if not seshandle.get('experimenter').is_root():
             raise err_res(401, 'You are not authorized to access this resource')
         l = self.make_list_for(dbhandle, self.admin_map[classname],self.pk_map[classname])
         return l
 
     def edit_screen_generic(self, err_res, gethead, seshandle, classname, id = None):
-        if not self.poms_service.accessPOMS.can_db_admin(gethead, seshandle):
+        if not seshandle.get('experimenter').is_root():
             raise err_res(401, 'You are not authorized to access this resource')
-        # XXX -- needs to get select lists for foreign key fields...
         return self.poms_service.edit_screen_for(classname, self.admin_map[classname], 'update_generic', self.pk_map[classname], id, {})
 
 
     def update_generic( self, dbhandle, gethead, loghandle, seshandle, classname, *args, **kwargs):
-        if not self.poms_service.accessPOMS.can_report_data( gethead, loghandle, seshandle ):
+        if not seshandle.get('experimenter').is_root(): 
             return "Not allowed"
         return self.update_for(dbhandle, loghandle, classname, self.admin_map[classname], self.pk_map[classname], *args, **kwargs)
-
 
     def update_for( self, dbhandle, loghandle, classname, eclass, primkey,  *args , **kwargs): #this method was deleded from the main script
         found = None
@@ -90,7 +85,7 @@ class TablesPOMS:
 
 
     def edit_screen_for( self, dbhandle, loghandle, gethead, seshandle, classname, eclass, update_call, primkey, primval, valmap):
-        if not self.poms_service.accessPOMS.can_db_admin(gethead, seshandle):
+        if not seshandle.get('experimenter').is_root():
             raise err_res(401, 'You are not authorized to access this resource')
 
         found = None
@@ -133,12 +128,12 @@ class TablesPOMS:
             and self.pk_map a map of primary keys for that class
         """
         loghandle(" ---- make_admin_map: starting...")
-        import model.poms_model
+        import poms.model.poms_model
         self.admin_map = {}
         self.pk_map = {}
-        for k in model.poms_model.__dict__.keys():
-            if hasattr(model.poms_model.__dict__[k],'__module__') and model.poms_model.__dict__[k].__module__ == 'model.poms_model':
-                self.admin_map[k] = model.poms_model.__dict__[k]
+        for k in poms.model.poms_model.__dict__.keys():
+            if hasattr(poms.model.poms_model.__dict__[k],'__module__') and poms.model.poms_model.__dict__[k].__module__ == 'poms.model.poms_model':
+                self.admin_map[k] = poms.model.poms_model.__dict__[k]
                 found = self.admin_map[k]()
                 columns = found._sa_instance_state.class_.__table__.columns
                 for fieldname in columns.keys():

@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import urllib
-import urllib2
+import requests
 import os
+
+rs = requests.Session()
 
 def register_poms_campaign(campaign_name, user = None, experiment = None, version = None, dataset = None, campaign_definition = None, test = None):
     return int(make_poms_call(
@@ -150,8 +151,9 @@ def make_poms_call(**kwargs):
     if os.environ.get("POMS_CLIENT_DEBUG", None):
         print "poms_client: making call %s( %s ) at %s" % (method, kwargs, base)
 
-    c = urllib2.urlopen("%s/%s" % (base,method), urllib.urlencode(kwargs));
-    res = c.read()
+    c = self.rs.post("%s/%s" % (base,method), data=kwargs);
+    res = c.text
+    c.close()
     print res
     return res
 

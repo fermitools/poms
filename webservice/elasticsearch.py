@@ -10,7 +10,7 @@ class Elasticsearch:
 
     def __init__(self,  config = None ,debug=0):
         if config == None:
-            config = {
+            self.config = {
                 'elasticsearch_base_url':'file:///dev/null',
                 'elasticsearch_cert':'/dev/null',
                 'elasticsearch_key':'/dev/null',

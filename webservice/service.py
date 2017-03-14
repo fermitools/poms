@@ -16,7 +16,7 @@ else:
     print "already setup"
 
 
-from model.poms_model import Experimenter, ExperimentsExperimenters
+from poms.model.poms_model import Experimenter, ExperimentsExperimenters
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 import os.path
 import argparse
@@ -101,6 +101,9 @@ class SATool(cherrypy.Tool):
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
+        self.session.execute("SET SESSION lock_timeout = '1s';")
+        self.session.execute("SET SESSION statement_timeout = '30s';")
+        self.session.commit()
 
     def release_session(self):
         cherrypy.request.jobsub_fetcher.flush()
@@ -139,6 +142,7 @@ class SessionTool(cherrypy.Tool):
                 # Root is authorized for all experiments
                 if self.is_root():
                     return True
+		#return True
                 return self.authorized_for.get(experiment,False)
             def is_root(self):
                 return self.authorized_for.get('root',False)
@@ -212,6 +216,7 @@ def set_rotating_log(app):
         h.setLevel(DEBUG)
         h.setFormatter(cherrypy._cplogging.logfmt)
         getattr(cherrypy.log, '%s_log' % x).addHandler(h)
+        cherrypy.log("Opened Rotating %s log - file: %s maxBytes: %s backup: %s" % (x,fname,maxBytes,backupCount))
 
 def pidfile():
     pidfile = cherrypy.config.get("log.pidfile",None)

@@ -3,9 +3,9 @@ import datetime
 import time
 import os
 import socket
-from webservice.utc import utc
-from webservice.samweb_lite import samweb_lite
-from model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Task
+from poms.webservice.utc import utc
+from poms.webservice.samweb_lite import samweb_lite
+from poms.model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Task
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -38,12 +38,12 @@ def add_mock_job_launcher():
     launch = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local_generic').first()
 
     if campaign_definition or launch:
-        print "Hm.. some already exist?"
+        print "Hm.. some already exist?", campaign_definition, launch
 
     fqdn = socket.gethostname()
     # add launch template
     if launch == None:
-	mps.campaignsPOMS.launch_template_edit(
+	res = mps.campaignsPOMS.launch_template_edit(
 	   dbh.get(), 
 	   logger.info, 
 	   camp_seshandle, 
@@ -56,9 +56,10 @@ def add_mock_job_launcher():
 	   experiment = 'samdev',
 	   experimenter_id = '4'
 	)
+        print "lte returns: ", res
     # add job type
     if campaign_definition == None:
-	mps.campaignsPOMS.campaign_definition_edit(
+	res = mps.campaignsPOMS.campaign_definition_edit(
 	   dbh.get(), 
 	   logger.info, 
 	   camp_seshandle, 
@@ -74,6 +75,7 @@ def add_mock_job_launcher():
 	   experiment = 'samdev',
 	   experimenter_id = '4'
 	)
+        print "cde returns: ", res
 
 def del_mock_job_launcher():
     campaign_definition = dbh.get().query(CampaignDefinition).filter(CampaignDefinition.name=='test_launch_mock_job_generic').first()
@@ -310,5 +312,5 @@ def test_update_launch_schedule():
 # Still needed
 # campaigns that use each split type, run repeatedly
 # campaigns that declare output files
-# get_recovery_list_for_campaign_def
-# make_stale_campaigns_inactive
+# get_recovery_list_for_campaign_def?
+# make_stale_campaigns_inactive?

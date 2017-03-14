@@ -1,5 +1,6 @@
 # coding: utf-8
-from sqlalchemy import Table, BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text, Float
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text, Float
+# from sqlalchemy import Table
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql.json import JSON
 from sqlalchemy.ext.declarative import declarative_base
@@ -21,17 +22,17 @@ class Campaign(Base):
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey(u'experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
-    vo_role = Column(Text, nullable = False)
+    vo_role = Column(Text, nullable=False)
     cs_last_split = Column(Integer, nullable=True)
-    cs_split_type = Column(Text, nullable = True)
-    cs_split_dimensions = Column(Text, nullable = True)
-    dataset = Column(Text, nullable = False)
-    software_version = Column(Text, nullable = False)
+    cs_split_type = Column(Text, nullable=True)
+    cs_split_dimensions = Column(Text, nullable=True)
+    dataset = Column(Text, nullable=False)
+    software_version = Column(Text, nullable=False)
     active = Column(Boolean, nullable=False, server_default=text("true"))
     launch_id = Column(ForeignKey(u'launch_templates.launch_id'), nullable=False)
     param_overrides = Column(JSON)
-    completion_type = Column(Text,nullable = False, server_default=text("located"))
-    completion_pct = Column(Text,nullable = False, server_default="95")
+    completion_type = Column(Text, nullable=False, server_default=text("located"))
+    completion_pct = Column(Text, nullable=False, server_default="95")
 
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')
@@ -58,7 +59,7 @@ class ExperimentsExperimenters(Base):
     active = Column(Boolean, nullable=False, server_default=text("true"))
 
     experimenter_obj = relationship(Experimenter, backref="exp_expers")
-    experiment_obj   = relationship("Experiment", backref="exp_expers")
+    experiment_obj = relationship("Experiment", backref="exp_expers")
 
 
 class Experiment(Base):
@@ -183,16 +184,17 @@ class Task(Base):
     campaign_snapshot_id = Column(ForeignKey(u'campaign_snapshots.campaign_snapshot_id'), nullable=True, index=True)
     campaign_definition_snap_id = Column(ForeignKey(u'campaign_definition_snapshots.campaign_definition_snap_id'), nullable=True, index=True)
     recovery_position = Column(Integer)
-    recovery_tasks_parent = Column(ForeignKey(u'tasks.task_id'),index=True)
+    recovery_tasks_parent = Column(ForeignKey(u'tasks.task_id'), index=True)
 
     campaign_obj = relationship(u'Campaign')
     experimenter_creator_obj = relationship(u'Experimenter', primaryjoin='Task.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship(u'Experimenter', primaryjoin='Task.updater == Experimenter.experimenter_id')
-    parent_obj = relationship(u'Task', remote_side=[task_id],foreign_keys=recovery_tasks_parent)
+    parent_obj = relationship(u'Task', remote_side=[task_id], foreign_keys=recovery_tasks_parent)
     launch_template_snap_obj = relationship(u'LaunchTemplateSnapshot', foreign_keys=launch_snapshot_id)
     campaign_snap_obj = relationship(u'CampaignSnapshot', foreign_keys=campaign_snapshot_id)
     campaign_definition_snap_obj = relationship(u'CampaignDefinitionSnapshot', foreign_keys=campaign_definition_snap_id)
-    jobs = relationship(u'Job', order_by = "Job.job_id")
+    jobs = relationship(u'Job', order_by="Job.job_id")
+
 
 class TaskHistory(Base):
     __tablename__ = 'task_histories'
@@ -201,7 +203,8 @@ class TaskHistory(Base):
     created = Column(DateTime(True), primary_key=True, nullable=False)
     status = Column(Text, nullable=False)
 
-    task_obj = relationship(u'Task',backref='history')
+    task_obj = relationship(u'Task', backref='history')
+
 
 class JobHistory(Base):
     __tablename__ = 'job_histories'
@@ -211,7 +214,8 @@ class JobHistory(Base):
     created = Column(DateTime(True), primary_key=True, nullable=False)
     status = Column(Text, nullable=False)
 
-    job_obj = relationship(u'Job',backref=backref('history',cascade="all,delete-orphan"))
+    job_obj = relationship(u'Job', backref=backref('history', cascade="all,delete-orphan"))
+
 
 class Tag(Base):
     __tablename__ = 'tags'
@@ -219,6 +223,7 @@ class Tag(Base):
     tag_id = Column(Integer, primary_key=True, server_default=text("nextval('tags_tag_id_seq'::regclass)"))
     experiment = Column(ForeignKey(u'experiments.experiment'), nullable=False, index=True)
     tag_name = Column(Text, nullable=False)
+
 
 class CampaignsTags(Base):
     __tablename__ = 'campaigns_tags'
@@ -228,6 +233,7 @@ class CampaignsTags(Base):
 
     campaign_obj = relationship(Campaign, backref="campaigns_tags")
     tag_obj = relationship(Tag, backref="campaigns_tags")
+
 
 class JobFile(Base):
     __tablename__ = 'job_files'
@@ -262,8 +268,8 @@ class CampaignSnapshot(Base):
     cs_last_split = Column(Integer)
     cs_split_type = Column(Text)
     cs_split_dimensions = Column(Text)
-    completion_type = Column(Text,nullable = False, server_default=text("located"))
-    completion_pct = Column(Text,nullable = False, server_default="95")
+    completion_type = Column(Text, nullable=False, server_default=text("located"))
+    completion_pct = Column(Text, nullable=False, server_default="95")
 
     campaign = relationship(u'Campaign')
 
@@ -271,7 +277,8 @@ class CampaignSnapshot(Base):
 class CampaignDefinitionSnapshot(Base):
     __tablename__ = 'campaign_definition_snapshots'
 
-    campaign_definition_snap_id = Column(Integer, primary_key=True, server_default=text("nextval('campaign_definition_snapshots_campaign_definition_snap_id_seq'::regclass)"))
+    campaign_definition_snap_id = Column(Integer, primary_key=True,
+                                         server_default=text("nextval('campaign_definition_snapshots_campaign_definition_snap_id_seq'::regclass)"))
     campaign_definition_id = Column(ForeignKey(u'campaign_definitions.campaign_definition_id'), nullable=False, index=True)
     name = Column(Text, nullable=False)
     experiment = Column(Text, nullable=False)
@@ -326,21 +333,32 @@ class CampaignRecovery(Base):
     recovery_type = relationship(u'RecoveryType')
     param_overrides = Column(JSON)
 
+
 class CampaignDependency(Base):
     __tablename__ = 'campaign_dependencies'
 
-    campaign_dep_id =       Column(Integer, primary_key=True, server_default=text("nextval('campaign_dependency_id_seq'::regclass)"))
+    campaign_dep_id = Column(Integer, primary_key=True, server_default=text("nextval('campaign_dependency_id_seq'::regclass)"))
     needs_camp_id = Column(ForeignKey(u'campaigns.campaign_id'), primary_key=True, nullable=False, index=True)
-    uses_camp_id   = Column(ForeignKey(u'campaigns.campaign_id'), primary_key=True, nullable=False, index=True)
-    file_patterns  = Column(Text, nullable=False)
+    uses_camp_id = Column(ForeignKey(u'campaigns.campaign_id'), primary_key=True, nullable=False, index=True)
+    file_patterns = Column(Text, nullable=False)
 
-    needs_camp = relationship(u'Campaign',foreign_keys=needs_camp_id)
-    uses_camp = relationship(u'Campaign',foreign_keys=uses_camp_id)
+    needs_camp = relationship(u'Campaign', foreign_keys=needs_camp_id)
+    uses_camp = relationship(u'Campaign', foreign_keys=uses_camp_id)
+
 
 class HeldLaunch(Base):
     __tablename__ = 'held_launches'
-    campaign_id = Column(Integer, nullable=False, primary_key = True)
-    created = Column(DateTime(True), nullable=False, primary_key = True)
-    parent_task_id =  Column(Integer, nullable=False)
+    campaign_id = Column(Integer, nullable=False, primary_key=True)
+    created = Column(DateTime(True), nullable=False, primary_key=True)
+    parent_task_id = Column(Integer, nullable=False)
     dataset = Column(Text)
     param_overrides = Column(JSON)
+
+
+class FaultyRequest(Base):
+        __tablename__ = 'faulty_requests'
+        url = Column(Text, nullable=False, primary_key=True)
+        status = Column(Integer)
+        message = Column(Text)
+        ntries = Column(Integer)
+        last_seen = Column(DateTime(timezone=True), nullable=False, primary_key=True, server_default=text("now()"))

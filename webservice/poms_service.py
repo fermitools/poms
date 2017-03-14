@@ -20,7 +20,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime, tzinfo,timedelta
 from jinja2 import Environment, PackageLoader
 import shelve
-from model.poms_model import (Service, ServiceDowntime, Experimenter, Experiment,
+from poms.model.poms_model import (Service, ServiceDowntime, Experimenter, Experiment,
     ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition,
     TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile,
     CampaignSnapshot, CampaignDefinitionSnapshot, LaunchTemplateSnapshot,
@@ -56,15 +56,10 @@ def error_response():
         dump = cherrypy._cperror.format_exc()
     message = dump.replace('\n','<br/>')
 
-    jinja_env = Environment(loader=PackageLoader('webservice','templates'))
+    jinja_env = Environment(loader=PackageLoader('poms.webservice','templates'))
     template = jinja_env.get_template('error_response.html')
     path = cherrypy.config.get("pomspath","/poms")
-    body = template.render(current_experimenter=cherrypy.session.get('experimenter'),
-                            message=message,
-                            pomspath=path,
-                            dump=dump,
-                            version=global_version)
-
+    body = template.render(message=message,pomspath=path,dump=dump,version=global_version)
     cherrypy.response.status = 500
     cherrypy.response.headers['content-type'] = 'text/html'
     cherrypy.response.body = body.encode()
@@ -74,12 +69,13 @@ def error_response():
 
 class poms_service:
 
+
     _cp_config = {'request.error_response': error_response,
                   'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()),'/templates/page_not_found.html')
                   }
 
     def __init__(self):
-        self.jinja_env = Environment(loader=PackageLoader('webservice','templates'))
+        self.jinja_env = Environment(loader=PackageLoader('poms.webservice','templates'))
         self.path = cherrypy.config.get("pomspath","/poms")
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
@@ -122,12 +118,12 @@ class poms_service:
     def es(self):
         template = self.jinja_env.get_template('elasticsearch.html')
 
-        es = Elasticsearch()
+        es = Elasticsearch(config=cherrypy.config)
 
         query = {
             'sort' : [{ '@timestamp' : {'order' : 'asc'}}],
             'query' : {
-                'term' : { 'jobid' : '9034906.0@fifebatch1.fnal.gov' }
+                'term' : { 'jobid' : '17519748.0@fifebatch2.fnal.gov' }
             }
         }
 
@@ -260,7 +256,7 @@ class poms_service:
 ### DBadminPOMS
     @cherrypy.expose
     def raw_tables(self):
-        if not self.accessPOMS.can_db_admin(cherrypy.request.headers.get, cherrypy.session.get):
+        if not cherrypy.session.get('experimenter').is_root():
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
         return template.render(list=self.tablesPOMS.admin_map.keys(), current_experimenter=cherrypy.session.get('experimenter'),
@@ -299,7 +295,7 @@ class poms_service:
 
     @cherrypy.expose
     def experiment_authorize(self, *args, **kwargs):
-        if not self.accessPOMS.can_db_admin(cherrypy.request.headers.get, cherrypy.session.get):
+        if not cherrypy.session.get('experimenter').is_root():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         message = self.dbadminPOMS.experiment_authorize(cherrypy.request.db, cherrypy.log, *args, **kwargs)
         return self.experiment_edit(message)
@@ -439,7 +435,7 @@ class poms_service:
     @cherrypy.expose
     def mark_campaign_active(self, campaign_id, is_active):
         c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-        if c and (cherrypy.session.get('experimenter').is_authorized(c.experiment) or self.accessPOMS.can_report_data( cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get )()):
+        if c and cherrypy.session.get('experimenter').is_authorized(c.experiment):
             c.active=(is_active == 'True')
             cherrypy.request.db.add(c)
             cherrypy.request.db.commit()
@@ -450,6 +446,8 @@ class poms_service:
 
     @cherrypy.expose
     def make_stale_campaigns_inactive(self):
+        if not cherrypy.session.get('experimenter').is_authorized(c.experiment):
+             raise err_res(401, 'You are not authorized to access this resource')
         res = self.campaignsPOMS.make_stale_campaigns_inactive(cherrypy.request.db, cherrypy.HTTPError)
         return "Marked inactive stale: " + ",".join(res)
 #--------------------------------------
@@ -508,11 +506,18 @@ class poms_service:
         res = self.jobsPOMS.output_pending_jobs(cherrypy.request.db)
         return res
 
+    @cherrypy.expose
+    def bulk_update_job(self, data = '{}'):
+        if not cherrypy.session.get('experimenter').is_root():
+            cherrypy.log("update_job: not allowed")
+            return "Not Allowed"
+        return self.jobsPOMS.bulk_update_job( cherrypy.request.db, cherrypy.log, cherrypy.response.status, cherrypy.request.samweb_lite, data)
+
 
     @cherrypy.expose
     def update_job(self, task_id, jobsub_job_id,  **kwargs):
         cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
-        if not self.accessPOMS.can_report_data( cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get ):
+        if not cherrypy.session.get('experimenter').is_root():
             cherrypy.log("update_job: not allowed")
             return "Not Allowed"
         return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log, cherrypy.response.status, cherrypy.request.samweb_lite, task_id, jobsub_job_id, **kwargs))
@@ -566,7 +571,7 @@ class poms_service:
 
     @cherrypy.expose
     def launch_queued_job(self):
-        return self.taskPOMS.launch_queued_job(cherrypy.request.db,cherrypy.log, cherrypy.session.get, cherrypy.request.headers.get, cherrypy.session.get, cherrypy.response.status)
+        return self.taskPOMS.launch_queued_job(cherrypy.request.db,cherrypy.log, cherrypy.request.samweb_lite,  cherrypy.session.get, cherrypy.request.headers.get, cherrypy.session.get, cherrypy.response.status)
 
     @cherrypy.expose
     def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None): ###needs to be analize in detail.
@@ -662,55 +667,58 @@ class poms_service:
         outlist, statusmap, c = self.filesPOMS.inflight_files(cherrypy.request.db, cherrypy.response.status, cherrypy.config.get, campaign_id, task_id)
         template = self.jinja_env.get_template('inflight_files.html')
         return template.render(flist=outlist,
-                                current_experimenter=cherrypy.session.get('experimenter'),
-                                statusmap=statusmap, c=c,
-                                jjid=self.taskPOMS.task_min_job(cherrypy.request.db, task_id),
-                                campaign_id=campaign_id, task_id=task_id,
-                                pomspath=self.path, help_page="PendingFilesJobsHelp", version=self.version)
+                               current_experimenter=cherrypy.session.get('experimenter'),
+                               statusmap=statusmap, c=c,
+                               jjid=self.taskPOMS.task_min_job(cherrypy.request.db, task_id),
+                               campaign_id=campaign_id, task_id=task_id,
+                               pomspath=self.path, help_page="PendingFilesJobsHelp", version=self.version)
 
 
     @cherrypy.expose
     def show_dimension_files(self, experiment, dims):
-        flist = self.filesPOMS.show_dimension_files(cherrypy.request.samweb_lite, experiment, dims)
+        flist = self.filesPOMS.show_dimension_files(cherrypy.request.samweb_lite, experiment, dims, dbhandle=cherrypy.request.db)
         template = self.jinja_env.get_template('show_dimension_files.html')
         return template.render(flist=flist, dims=dims,
-                                current_experimenter=cherrypy.session.get('experimenter'), statusmap=[],
-                                pomspath=self.path, help_page="ShowDimensionFilesHelp", version=self.version)
+                               current_experimenter=cherrypy.session.get('experimenter'), statusmap=[],
+                               pomspath=self.path, help_page="ShowDimensionFilesHelp", version=self.version)
 
 
     @cherrypy.expose
     def actual_pending_files(self, count_or_list, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1): ###??? Implementation of the exception.
         cherrypy.response.timeout = 600
         try:
-            c.experiment, dims = self.filesPOMS.actual_pending_files(cherrypy.request.db, cherrypy.log, count_or_list, task_id, campaign_id, tmin, tmax, tdays)
-            return self.show_dimension_files(c.experiment, dims)
+            experiment, dims = self.filesPOMS.actual_pending_files(cherrypy.request.db, cherrypy.log, count_or_list, task_id, campaign_id, tmin, tmax, tdays)
+            return self.show_dimension_files(experiment, dims)
         except ValueError:
             return "None == dims in actual_pending_files method"
 
 
     @cherrypy.expose
-    def campaign_sheet(self, campaign_id, tmin=None, tmax=None , tdays=7):
+    def campaign_sheet(self, campaign_id, tmin=None, tmax=None, tdays=7):
         (name, columns, outrows, dimlist,
             experiment, tmaxs,
             prevlink, nextlink,
-            tdays, tmin, tmax) = self.filesPOMS.campaign_sheet(cherrypy.request.db, cherrypy.log, cherrypy.request.samweb_lite, campaign_id, tmin, tmax, tdays)
+            tdays, tmin, tmax) = self.filesPOMS.campaign_sheet(cherrypy.request.db,
+                                                               cherrypy.log,
+                                                               cherrypy.request.samweb_lite,
+                                                               campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_sheet.html')
         return template.render(name=name,
-                                columns=columns,
-                                datarows=outrows,
-                                dimlist=dimlist,
-                                tmaxs=tmaxs,
-                                prev=prevlink,
-                                next=nextlink,
-                                days=tdays,
-                                tmin=tmin,
-                                tmax=tmax,
-                                current_experimenter=cherrypy.session.get('experimenter'),
-                                campaign_id=campaign_id,
-                                experiment=experiment,
-                                pomspath=self.path,
-                                help_page="CampaignSheetHelp",
-                                version=self.version)
+                               columns=columns,
+                               datarows=outrows,
+                               dimlist=dimlist,
+                               tmaxs=tmaxs,
+                               prev=prevlink,
+                               next=nextlink,
+                               days=tdays,
+                               tmin=tmin,
+                               tmax=tmax,
+                               current_experimenter=cherrypy.session.get('experimenter'),
+                               campaign_id=campaign_id,
+                               experiment=experiment,
+                               pomspath=self.path,
+                               help_page="CampaignSheetHelp",
+                               version=self.version)
 
 
     @cherrypy.expose
@@ -721,11 +729,11 @@ class poms_service:
 
     def project_summary_for_task(self, task_id):
         t = cherrypy.request.db.query(Task).filter(Task.task_id == task_id).first()
-        return cherrypy.request.samweb_lite.fetch_info(t.campaign_snap_obj.experiment, t.project)
+        return cherrypy.request.samweb_lite.fetch_info(t.campaign_snap_obj.experiment, t.project, dbhandle=cherrypy.request.db)
 
 
     def project_summary_for_tasks(self, task_list):
-        return cherrypy.request.samweb_lite.fetch_info_list(task_list)
+        return cherrypy.request.samweb_lite.fetch_info_list(task_list, dbhandle=cherrypy.request.db)
         #~ return [ {"tot_consumed": 0, "tot_failed": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
 ###Im here
 #----------------------------
@@ -825,7 +833,7 @@ class poms_service:
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def delete_campaigns_tags(self, campaign_id, tag_id, experiment):
-        return(self.tagsPOMS.delete_campaigns_tags( cherrypy.request.db, campaign_id, tag_id, experiment))
+        return(self.tagsPOMS.delete_campaigns_tags( cherrypy.request.db, cherrypy.session.get, campaign_id, tag_id, experiment))
 
 
     @cherrypy.expose
