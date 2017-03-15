@@ -3,8 +3,8 @@
 import sys
 import os
 import re
+import requests
 import urllib2
-import urllib
 import httplib
 import json
 import concurrent.futures
@@ -12,6 +12,7 @@ import Queue
 import thread
 import threading
 import time
+import traceback
 from prometheus_client.bridge.graphite import GraphiteBridge
 
 class job_reporter:
@@ -21,6 +22,7 @@ class job_reporter:
     """
     def __init__(self, report_url, debug = 0, nthreads = 3, namespace = "", bulk= True):
         self.namespace = namespace
+        self.rs = requests.Session()
         if namespace != "":
             self.gb = GraphiteBridge(('fermicloud079.fnal.gov', 2003))
             self.gb.start(10,prefix=self.namespace)
@@ -47,7 +49,7 @@ class job_reporter:
         if self.bulk:
 	    if not(self.wthreads[0].isAlive()):
 		self.wthreads[0].join(0.1)
-		self.wthreads[0] = threading.Thread(target=self.runqueue)
+		self.wthreads[0] = threading.Thread(target=self.runqueue_bulk)
 		self.wthreads[0].start()
         else:
 	    for i in range(self.nthreads):
@@ -131,9 +133,10 @@ class job_reporter:
       
         while retries > 0:
      	    try:
-	        uh = urllib2.urlopen(self.report_url + "/bulk_update_job", data = urllib.urlencode(data))
-		res = uh.read()
+	        uh = self.rs.post(self.report_url + "/bulk_update_job", data = data)
+		res = uh.text
                 uh.close()
+
 		if self.debug: sys.stderr.write("response: %s\n" % res)
 
                 del uh
@@ -147,7 +150,6 @@ class job_reporter:
                 sys.stderr.flush()
 
                 if uh:
-                    uh.read()
                     uh.close()
                     del uh
                     uh = None
@@ -163,7 +165,6 @@ class job_reporter:
 
 	    except (urllib2.URLError) as e:
                 if uh:
-                    uh.read()
                     uh.close()
                     del uh
                     uh = None
@@ -176,7 +177,6 @@ class job_reporter:
                 retries = retries - 1
 	    except (httplib.BadStatusLine) as e:
                 if uh:
-                    uh.read()
                     uh.close()
                     del uh
                     uh = None
@@ -194,6 +194,7 @@ class job_reporter:
 	    except (Exception) as e:
 		errtext = str(e)
 		sys.stderr.write("Unknown Exception:" + errtext + repr(sys.exc_info()))
+                sys.stderr.write(traceback.format_exc())
 		sys.stderr.write("\n--------\n")
                 sys.stderr.flush()
                 raise
@@ -218,8 +219,8 @@ class job_reporter:
       
         while retries > 0:
 	    try:
-		uh = urllib2.urlopen(self.report_url + "/update_job", data = urllib.urlencode(data))
-		res = uh.read()
+		uh = self.rs.post(self.report_url + "/update_job", data = data)
+		res = uh.text
                 uh.close()
 		if self.debug: sys.stderr.write("response: %s\n" % res)
 
@@ -235,7 +236,6 @@ class job_reporter:
                 sys.stderr.flush()
 
                 if uh:
-                    uh.read()
                     uh.close()
                     del uh
                     uh = None
@@ -251,7 +251,6 @@ class job_reporter:
 
 	    except (urllib2.URLError) as e:
                 if uh:
-                    uh.read()
                     uh.close()
                     del uh
                     uh = None
@@ -264,7 +263,6 @@ class job_reporter:
                 retries = retries - 1
 	    except (httplib.BadStatusLine) as e:
                 if uh:
-                    uh.read()
                     uh.close()
                     del uh
                     uh = None

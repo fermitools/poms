@@ -760,7 +760,7 @@ class CampaignsPOMS():
 
             # make job for new -- use current link for product
             pdir=os.environ.get("POMS_DIR","/etc/poms")
-            pdir=pdir[:pdir.rfind("poms")+4] + "/current"
+            pdir=pdir[:pdir.rfind("poms",0,len(pdir)-1)+4] + "/current"
             job = my_crontab.new(command="%s/cron/launcher --campaign_id=%s" % (
                               pdir, campaign_id),
                               comment="POMS_CAMPAIGN_ID=%s" % campaign_id)

@@ -256,7 +256,7 @@ class poms_service:
 ### DBadminPOMS
     @cherrypy.expose
     def raw_tables(self):
-        if not self.accessPOMS.can_db_admin(cherrypy.request.headers.get, cherrypy.session.get):
+        if not cherrypy.session.get('experimenter').is_root():
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
         return template.render(list=self.tablesPOMS.admin_map.keys(), current_experimenter=cherrypy.session.get('experimenter'),
@@ -295,7 +295,7 @@ class poms_service:
 
     @cherrypy.expose
     def experiment_authorize(self, *args, **kwargs):
-        if not self.accessPOMS.can_db_admin(cherrypy.request.headers.get, cherrypy.session.get):
+        if not cherrypy.session.get('experimenter').is_root():
              raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         message = self.dbadminPOMS.experiment_authorize(cherrypy.request.db, cherrypy.log, *args, **kwargs)
         return self.experiment_edit(message)
@@ -435,7 +435,7 @@ class poms_service:
     @cherrypy.expose
     def mark_campaign_active(self, campaign_id, is_active):
         c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-        if c and (cherrypy.session.get('experimenter').is_authorized(c.experiment) or self.accessPOMS.can_report_data( cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get )()):
+        if c and cherrypy.session.get('experimenter').is_authorized(c.experiment):
             c.active=(is_active == 'True')
             cherrypy.request.db.add(c)
             cherrypy.request.db.commit()
@@ -446,7 +446,7 @@ class poms_service:
 
     @cherrypy.expose
     def make_stale_campaigns_inactive(self):
-        if not self.accessPOMS.can_report_data(cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get):
+        if not cherrypy.session.get('experimenter').is_authorized(c.experiment):
              raise err_res(401, 'You are not authorized to access this resource')
         res = self.campaignsPOMS.make_stale_campaigns_inactive(cherrypy.request.db, cherrypy.HTTPError)
         return "Marked inactive stale: " + ",".join(res)
@@ -506,11 +506,18 @@ class poms_service:
         res = self.jobsPOMS.output_pending_jobs(cherrypy.request.db)
         return res
 
+    @cherrypy.expose
+    def bulk_update_job(self, data = '{}'):
+        if not cherrypy.session.get('experimenter').is_root():
+            cherrypy.log("update_job: not allowed")
+            return "Not Allowed"
+        return self.jobsPOMS.bulk_update_job( cherrypy.request.db, cherrypy.log, cherrypy.response.status, cherrypy.request.samweb_lite, data)
+
 
     @cherrypy.expose
     def update_job(self, task_id, jobsub_job_id,  **kwargs):
         cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
-        if not self.accessPOMS.can_report_data( cherrypy.request.headers.get, cherrypy.log, cherrypy.session.get ):
+        if not cherrypy.session.get('experimenter').is_root():
             cherrypy.log("update_job: not allowed")
             return "Not Allowed"
         return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log, cherrypy.response.status, cherrypy.request.samweb_lite, task_id, jobsub_job_id, **kwargs))
@@ -564,7 +571,7 @@ class poms_service:
 
     @cherrypy.expose
     def launch_queued_job(self):
-        return self.taskPOMS.launch_queued_job(cherrypy.request.db,cherrypy.log, cherrypy.session.get, cherrypy.request.headers.get, cherrypy.session.get, cherrypy.response.status)
+        return self.taskPOMS.launch_queued_job(cherrypy.request.db,cherrypy.log, cherrypy.request.samweb_lite,  cherrypy.session.get, cherrypy.request.headers.get, cherrypy.session.get, cherrypy.response.status)
 
     @cherrypy.expose
     def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None): ###needs to be analize in detail.
@@ -826,7 +833,7 @@ class poms_service:
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def delete_campaigns_tags(self, campaign_id, tag_id, experiment):
-        return(self.tagsPOMS.delete_campaigns_tags( cherrypy.request.db, campaign_id, tag_id, experiment))
+        return(self.tagsPOMS.delete_campaigns_tags( cherrypy.request.db, cherrypy.session.get, campaign_id, tag_id, experiment))
 
 
     @cherrypy.expose

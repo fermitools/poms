@@ -105,7 +105,7 @@ class SATool(cherrypy.Tool):
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
         self.session.execute("SET SESSION lock_timeout = '1s';")
-        self.session.execute("SET SESSION statement_timeout = '30s';")
+        self.session.execute("SET SESSION statement_timeout = '45s';")
         self.session.commit()
 
     def release_session(self):
@@ -119,6 +119,7 @@ class SATool(cherrypy.Tool):
 
 
 class SessionExperimenter(object):
+
     def __init__(self, experimenter_id=None, first_name=None, last_name=None, email=None, authorized_for=None, **kwargs):
         self.experimenter_id = experimenter_id
         self.first_name = first_name
@@ -127,14 +128,43 @@ class SessionExperimenter(object):
         self.authorized_for = authorized_for
         self.extra = kwargs
 
+    def __is_valid_ip__(self, ip, iplist):
+        for x in iplist:
+            if ip.startswith(x):
+                return True
+        return False
+
     def is_authorized(self, experiment):
         # Root is authorized for all experiments
         if self.is_root():
             return True
+        
+        ra  = cherrypy.request.headers.get('Remote-Addr',None)
+        xff = cherrypy.request.headers.get('X-Forwarded-For',None)
+        if self.__is_valid_ip__(ra, self.valid_ip_list):
+            return 1
+        if ra.startswith('131.225.80.'):
+            return 1
+        if ra == '127.0.0.1' and xff and xff.startswith('131.225.67'):
+             # case for fifelog agent..
+             return 1
+        if ra != '127.0.0.1' and xff and xff.startswith('131.225.80'):
+             # case for jobsub_q agent (currently on bel-kwinith...)
+             return 1
+        if ra == '127.0.0.1' and xff == None:
+             # case for local agents
+             return 1
+
         return self.authorized_for.get(experiment, False)
 
     def is_root(self):
+        if cherrypy.request.headers.get('Remote-Addr',None) in ['127.0.0.1','131.225.80.97'] and cherrypy.request.headers.get('X-Forwarded-For',None) == None:
+             # case for local agents
+             return True
         return self.authorized_for.get('root', False)
+    
+    def __str__(self):
+        return "%s %s %s" % (self.first_name, self.last_name, self.email)
 
 
 class SessionTool(cherrypy.Tool):
@@ -152,11 +182,15 @@ class SessionTool(cherrypy.Tool):
     #                                  self.your_method,
     #                                  priority=90)
 
-    @staticmethod
-    def establish_session():
+    def establish_session(self):
         if cherrypy.session.get('id', None):
+            #cherrypy.log("EXISTING SESSION: %s" % str(cherrypy.session['experimenter']))
             return
-        cherrypy.session['id'] = cherrypy.session.originalid  #The session ID from the users cookie.
+
+        cherrypy.session['id']              = cherrypy.session.originalid  #The session ID from the users cookie.
+        cherrypy.session['X-Forwarded-For'] = cherrypy.request.headers.get('X-Forwarded-For', None)
+        cherrypy.session['Remote-Addr']     = cherrypy.request.headers.get('Remote-Addr', None)
+        cherrypy.session['X-Shib-Userid']   = cherrypy.request.headers.get('X-Shib-Userid', None)
 
         email = None
         if cherrypy.request.headers.get('X-Shib-Email',None):
