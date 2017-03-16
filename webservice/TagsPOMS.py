@@ -7,17 +7,17 @@
 
 
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from sqlalchemy import func
+from sqlalchemy import func, desc
 from poms.model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
-
+import json
 
 class TagsPOMS():
-    
+
         def __init__(self, ps):
             self.poms_service = ps
 
 
-        def link_tags(self, ses_get, dbhandle, campaign_id, tag_name, experiment):
+        def link_tags(self, dbhandle, ses_get, campaign_id, tag_name, experiment):
             if ses_get('experimenter').is_authorized(experiment):
                 response = {}
                 tag = dbhandle.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()

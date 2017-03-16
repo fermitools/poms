@@ -9,6 +9,9 @@ if os.environ.get("SETUP_POMS","") == "":
     ups = setups.setups()
     ups.use_package("poms","","SETUP_POMS")
 
+# don't barf if we need to log utf8...
+import codecs
+sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 import re
 import requests
@@ -63,7 +66,7 @@ class declared_files_watcher:
     def get_pending_jobs(self):
 	self.jobmap = {}
         try:
-            conn = request.get(self.job_reporter.report_url + '/output_pending_jobs'
+            conn = self.rs.get(self.job_reporter.report_url + '/output_pending_jobs'
 )
             jobs = conn.json()
             conn.close()

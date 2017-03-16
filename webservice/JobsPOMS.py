@@ -84,44 +84,82 @@ class JobsPOMS():
 
 
     def bulk_update_job(self, dbhandle, loghandle, rpstatus, samhandle, json_data = '{}'):
+        loghandle("Entering bulk_update_job(%s)" % json_data)
         ldata = json.loads(json_data)
+
+        # make one merged entry per job_id
         data = {}
         for d in ldata:
-            data[d['jobsub_job_id']] = d
+            data[d['jobsub_job_id']] = {}
 
+        for d in ldata:
+            data[d['jobsub_job_id']].update(d)
+
+        # figure out what tasks are involved
         foundtasks = {}
         for jid,d in data.items():
-            foundtasks[d['task_id']] = 1
+            if d['task_id']:
+                foundtasks[int(d['task_id'])] = 1
 
+        loghandle("found task ids for %s" % ",".join(map(str, foundtasks.keys())))
+
+        # lookup what job-id's we already have database entries for
         jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(data.keys())).all()
 
+        # make a list of jobs we can update
         jlist = []
         foundjobs = {}
         for j in jobs:
             foundjobs[j.jobsub_job_id] = j
             jlist.append(j)
 
+        # get the tasks we have that are mentioned
         if len(foundtasks) > 0:
             tasks = dbhandle.query(Task).filter(Task.task_id.in_(foundtasks.keys())).all()
         else:
             tasks = []
     
+        fulltasks = {}
         for t in tasks:
-            foundtasks[t.task_id] = t
+            fulltasks[t.task_id] = t
 
+        loghandle("found full tasks for %s" % ",".join(map(str, fulltasks.keys())))
+
+        # now look for jobs for which  we don't have Job ORM entries, but
+	# whose Tasks we do have entries for, and make new Job entries for
+        # them.
         for jid in data.keys():
-            if not foundjobs.get(jid, 0) and foundtasks.get(data[jid]['task_id'], None):
-                 j = Job(jobsub_job_id = jid, task_id = data[jid]['task_id'], task_obj = foundtasks[data[jid]['task_id']], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle')
-	         dbhandle.add(j)
-
+            if not foundjobs.get(jid, None) and data[jid].has_key('task_id') and fulltasks.get(int(data[jid]['task_id']), None):
+                 loghandle("need new Job for %s" % jid)
+                 j = Job(jobsub_job_id = jid, task_obj = fulltasks[int(data[jid]['task_id'])], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle')
                  j.created = datetime.now(utc)
                  j.updated = datetime.now(utc)
                  jlist.append(j)
+	         dbhandle.add(j)
+            elif not foundjobs.get(jid,0):
+                 loghandle("need new Job for %s, but no task %s" % (jid,data[jid]['task_id']))
+            else:
+                 pass
+           
   
+        # now actually update each such job, 'cause we should now have a
+        # ORM mapped Job object for each one.
         for j in jlist:
              self.update_job_common(dbhandle, loghandle, rpstatus, samhandle,    j, data[j.jobsub_job_id])
 
+        # update any related tasks status if changed
+        for t in fulltasks.values():
+	    newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, t)
+	    if newstatus != t.status:
+		loghandle("update_job: task %d status now %s" %(t.task_id, newstatus))
+		t.status = newstatus
+		t.updated = datetime.now(utc)
+		# jobs make inactive campaigns active again...
+		if t.campaign_obj.active != True:
+		    t.campaign_obj.active = True
+
         dbhandle.commit()
+        loghandle("Exiting bulk_update_job()")
         return "Ok."
 
     def update_job(self, dbhandle, loghandle, rpstatus, samhandle, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
@@ -157,7 +195,7 @@ class JobsPOMS():
                         dbhandle.add(njf)
 
                 dbhandle.delete(ji)
-                dbhandle.flush()  
+                dbhandle.flush()
 
         if not j and task_id:
             t = dbhandle.query(Task).filter(Task.task_id==task_id).first()
@@ -179,7 +217,18 @@ class JobsPOMS():
             j.status = 'Idle'
 
         if j:
+            oldstatus = j.status
+
             self.update_job_common(dbhandle,  loghandle, rpstatus, samhandle, j, kwargs)
+            if oldstatus != j.status and j.task_obj:
+                newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, j.task_obj)
+                if newstatus != j.task_obj.status:
+                    loghandle("update_job: task %d status now %s" %(j.task_obj.task_id, newstatus))
+                    j.task_obj.status = newstatus
+                    j.task_obj.updated = datetime.now(utc)
+                    # jobs make inactive campaigns active again...
+                    if j.task_obj.campaign_obj.active != True:
+                        j.task_obj.campaign_obj.active = True
 
             dbhandle.add(j)
             dbhandle.commit()
@@ -194,9 +243,9 @@ class JobsPOMS():
 
     def update_job_common(self, dbhandle, loghandle, rpstatus, samhandle, j, kwargs):
 
+            oldstatus = j.status
             loghandle("update_job: updating job %d" % (j.job_id if j.job_id else -1))
 
-            oldstatus = j.status
             if kwargs.get('status',None) and oldstatus != kwargs.get('status')  and oldstatus == 'Completed' and kwargs.get('status') != 'Located':
                 # we went from Completed back to some Running/Idle state...
                 # so clean out any old (wrong) Completed statuses from 
@@ -204,7 +253,7 @@ class JobsPOMS():
                 dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status == 'Completed').delete()
 
             # first, Job string fields the db requres be not null:
-            for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:    
+            for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
                 if field == 'status' and j.status == "Located":
                     # stick at Located, don't roll back to Completed,etc.
                     continue
@@ -235,7 +284,10 @@ class JobsPOMS():
             # floating point fields need conversion
             for field in [ 'cpu_time', 'wall_time']:
                 if kwargs.get(field, None) and kwargs[field] != "None":
-                    setattr(j,field,float(kwargs[field].rstrip("\n")))
+                    if (isinstance(kwargs[field], basestring)):
+                        setattr(j,field,float(kwargs[field].rstrip("\n")))
+                    if (isinstance(kwargs[field], float)):
+                        setattr(j,field,kwargs[field])
 
             # filenames need dumping in JobFiles table and attaching
             if kwargs.get('output_file_names', None):
@@ -282,14 +334,6 @@ class JobsPOMS():
                 j.cpu_type = ''
             loghandle("update_job: db add/commit job status %s " %  j.status)
             j.updated =  datetime.now(utc)
-            if oldstatus != j.status and j.task_obj:
-                newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, j.task_obj)
-                if newstatus != j.task_obj.status:
-                    j.task_obj.status = newstatus
-                    j.task_obj.updated = datetime.now(utc)
-                    # jobs make inactive campaigns active again...
-                    if j.task_obj.campaign_obj.active != True:
-                        j.task_obj.campaign_obj.active = True
 
     def test_job_counts(self, task_id = None, campaign_id = None):
         res = self.poms_service.job_counts(task_id, campaign_id)
@@ -329,7 +373,10 @@ class JobsPOMS():
         else:
             group = c.experiment
             if group == 'samdev': group = 'fermilab'
-
+            '''
+            if test == true:
+                os.open("echo jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
+            '''
             f = os.popen("jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
             output = f.read()
             f.close()

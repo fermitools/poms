@@ -263,6 +263,10 @@ class jobsub_q_scraper:
                 self.memory_tracker.print_diff()
             sys.stdout.flush()
 
+# don't barf if we need to log utf8...
+import codecs
+sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+
 if __name__ == '__main__':
     debug = 0
     testing = 0

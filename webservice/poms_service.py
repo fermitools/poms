@@ -11,8 +11,6 @@ import subprocess
 import select
 from collections import OrderedDict
 
-import logit
-
 from sqlalchemy import (Column, Integer, Sequence, String, DateTime, ForeignKey,
     and_, or_, not_,  create_engine, null, desc, text, func, exc, distinct
 )
@@ -557,8 +555,8 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def bulk_update_job(self, data = '{}'):
-        if not cherrypy.session.get('experimenter').is_authorized(c.experiment):
-            cherrypy.log.error("update_job: not allowed")
+        if not cherrypy.session.get('experimenter').is_root():
+            cherrypy.log("update_job: not allowed")
             return "Not Allowed"
         return self.jobsPOMS.bulk_update_job( cherrypy.request.db, cherrypy.log.error, cherrypy.response.status, cherrypy.request.samweb_lite, data)
 
@@ -566,9 +564,9 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def update_job(self, task_id, jobsub_job_id,  **kwargs):
-        cherrypy.log.error("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
-        if not cherrypy.session.get('experimenter').is_authorized(c.experiment):
-            cherrypy.log.error("update_job: not allowed")
+        cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
+        if not cherrypy.session.get('experimenter').is_root():
+            cherrypy.log("update_job: not allowed")
             return "Not Allowed"
         return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log.error, cherrypy.response.status, cherrypy.request.samweb_lite, task_id, jobsub_job_id, **kwargs))
 
@@ -908,7 +906,7 @@ class poms_service:
     @logit.logstartstop
     @cherrypy.tools.json_out()
     def delete_campaigns_tags(self, campaign_id, tag_id, experiment):
-        return(self.tagsPOMS.delete_campaigns_tags( cherrypy.request.db, campaign_id, tag_id, experiment))
+        return(self.tagsPOMS.delete_campaigns_tags( cherrypy.request.db, cherrypy.session.get, campaign_id, tag_id, experiment))
 
 
     @cherrypy.expose

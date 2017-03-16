@@ -15,6 +15,10 @@ from job_reporter import job_reporter
 sys.path.append("../webservice")
 from elasticsearch import Elasticsearch
 
+# don't barf if we need to log utf8...
+import codecs
+sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+
 class jobsub_es_scraper:
     """
         Pull info from ElasticSearch to update job status in POMS database
