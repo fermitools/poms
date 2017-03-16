@@ -9,6 +9,7 @@ import pytest
 
 client = WebClient(base_url='')
 
+
 @pytest.fixture(scope="session", autouse=True)
 #@pytest.fixture(scope="module")
 def execute_before_any_test():
