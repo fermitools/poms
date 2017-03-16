@@ -4,24 +4,23 @@ import sys
 import os
 from datetime import datetime
 from utc import utc
+import atexit
+from paste.exceptions.errormiddleware import ErrorMiddleware
+from repoze.errorlog import ErrorLog
 
 # make sure poms is setup...
 if os.environ.get("SETUP_POMS","") == "":
     sys.path.insert(0,os.environ.get('SETUPS_DIR',os.environ.get('HOME')+'/products'))
     import setups
-    print "setting up poms..."
     ups = setups.setups()
     ups.use_package("poms","","SETUP_POMS")
-else:
-    print "already setup"
-
 
 from poms.model.poms_model import Experimenter, ExperimentsExperimenters
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
 import os.path
 import argparse
-from logging import handlers, DEBUG
-
+import logging
+import logging.config
 import cherrypy
 from cherrypy.process import wspbus, plugins
 
@@ -50,16 +49,20 @@ class SAEnginePlugin(plugins.SimplePlugin):
         self.sa_engine = None
         self.bus.subscribe("bind", self.bind)
 
+
+    def destroy(self):
+        cherrypy.engine.exit()
+        print("destroy worker")
+
+
     def start(self):
         db = cherrypy.config.get("db")
         dbuser = cherrypy.config.get("dbuser")
-        # dbpass = cherrypy.config.get("dbpass")
         dbhost = cherrypy.config.get("dbhost")
         dbport = cherrypy.config.get("dbport")
-        # db_path = "postgresql://%s:%s@%s:%s/%s" % (dbuser, dbpass, dbhost, dbport, db)
         db_path = "postgresql://%s:@%s:%s/%s" % (dbuser, dbhost, dbport, db)
-        sa_echo = cherrypy.config.get("sa_echo", True)
-        self.sa_engine = create_engine(db_path, echo=sa_echo)
+        self.sa_engine = create_engine(db_path, echo=False,echo_pool=False)
+        atexit.register(self.destroy)
 
     def stop(self):
         if self.sa_engine:
@@ -96,6 +99,7 @@ class SATool(cherrypy.Tool):
         cherrypy.request.hooks.attach('on_end_resource',
                                       self.release_session,
                                       priority=80)
+
     def bind_session(self):
         cherrypy.engine.publish('bind', self.session)
         cherrypy.request.db = self.session
@@ -107,11 +111,61 @@ class SATool(cherrypy.Tool):
 
     def release_session(self):
         cherrypy.request.jobsub_fetcher.flush()
-        cherrypy.request.samweb_lite.flush() 
+        cherrypy.request.samweb_lite.flush()
+        cherrypy.request.db.close()
         cherrypy.request.db = None
         cherrypy.request.jobsub_fetcher = None
         cherrypy.request.samweb_lite = None
         self.session.remove()
+
+
+class SessionExperimenter(object):
+
+    def __init__(self, experimenter_id=None, first_name=None, last_name=None, email=None, authorized_for=None, **kwargs):
+        self.experimenter_id = experimenter_id
+        self.first_name = first_name
+        self.last_name = last_name
+        self.email = email
+        self.authorized_for = authorized_for
+        self.extra = kwargs
+
+    def __is_valid_ip__(self, ip, iplist):
+        for x in iplist:
+            if ip.startswith(x):
+                return True
+        return False
+
+    def is_authorized(self, experiment):
+        # Root is authorized for all experiments
+        if self.is_root():
+            return True
+        
+        ra  = cherrypy.session['Remote-Addr']     
+        xff = cherrypy.session['X-Forwarded-For'] 
+        if self.__is_valid_ip__(ra, self.valid_ip_list):
+            return 1
+        if ra.startswith('131.225.80.'):
+            return 1
+        if ra == '127.0.0.1' and xff and xff.startswith('131.225.67'):
+             # case for fifelog agent..
+             return 1
+        if ra != '127.0.0.1' and xff and xff.startswith('131.225.80'):
+             # case for jobsub_q agent (currently on bel-kwinith...)
+             return 1
+        if ra == '127.0.0.1' and xff == None:
+             # case for local agents
+             return 1
+
+        return self.authorized_for.get(experiment, False)
+
+    def is_root(self):
+        if cherrypy.session['Remote-Addr'] in ['127.0.0.1','131.225.80.97'] and cherrypy.session['X-Forwarded-For']  == None:
+             # case for local agents
+             return True
+        return self.authorized_for.get('root', False)
+    
+    def __str__(self):
+        return "%s %s %s" % (self.first_name, self.last_name, self.email)
 
 
 class SessionTool(cherrypy.Tool):
@@ -120,7 +174,7 @@ class SessionTool(cherrypy.Tool):
     def __init__(self):
         cherrypy.Tool.__init__(self, 'before_request_body',
                                self.establish_session,
-                               priority=50)
+                               priority=90)
 
     # Here is how to add aditional hooks. Left as example
     #def _setup(self):
@@ -148,8 +202,13 @@ class SessionTool(cherrypy.Tool):
                 return self.authorized_for.get('root',False)
 
         if cherrypy.session.get('id', None):
+            #cherrypy.log.error("EXISTING SESSION: %s" % str(cherrypy.session['experimenter']))
             return
-        cherrypy.session['id'] = cherrypy.session.originalid  #The session ID from the users cookie.
+
+        cherrypy.session['id']              = cherrypy.session.originalid  #The session ID from the users cookie.
+        cherrypy.session['X-Forwarded-For'] = cherrypy.request.headers.get('X-Forwarded-For', None)
+        cherrypy.session['Remote-Addr']     = cherrypy.request.headers.get('Remote-Addr', None)
+        cherrypy.session['X-Shib-Userid']   = cherrypy.request.headers.get('X-Shib-Userid', None)
 
         email = None
         if cherrypy.request.headers.get('X-Shib-Email',None):
@@ -179,7 +238,7 @@ class SessionTool(cherrypy.Tool):
             cherrypy.request.db.add(e2e)
             cherrypy.request.db.commit()
 
-        e = cherrypy.request.db.query(Experimenter).filter(Experimenter.email==email).all()
+        e = cherrypy.request.db.query(Experimenter).filter(Experimenter.email == email).all()
         if len(e):
            e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e[0].experimenter_id)
         else:
@@ -188,110 +247,154 @@ class SessionTool(cherrypy.Tool):
         for row in e2e:
             exps[row.experiment] = row.active
         if len(e):
-            cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id, e[0].first_name, e[0].last_name, e[0].email, exps)
+            extra = {'selected': exps.keys()}
+            cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
+                                                                   e[0].first_name, e[0].last_name, e[0].email, exps, **extra)
         else:
             cherrypy.session['experimenter'] = SessionExperimenter("anonymous", "", "", "", {})
-        cherrypy.request.db.query(Experimenter).filter(Experimenter.email==email).update({'last_login': datetime.now(utc)})
-        cherrypy.request.db.commit();
-        cherrypy.log("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For', 'Unknown'),
-                                                        cherrypy.session['id'],
-                                                        experimenter.email if experimenter else 'none',
-                                                        experimenter.first_name if experimenter else 'none' ,
-                                                        experimenter.last_name if experimenter else 'none'))
-
-
-def set_rotating_log(app):
-    ''' recipe  for a rotating log file...'''
-    # Remove the regular file handlers
-    app.log.error_file = ""
-    app.log.access_file = ""
-
-    maxBytes = cherrypy.config.get("log.rot_maxBytes",10000000)
-    backupCount = cherrypy.config.get("log.rot_backupCount", 1000)
-
-    # Create and add rotating file handlers
-    for x in ['error', 'access']:
-        fname = getattr(cherrypy.log,"rot_%s_file" % x, "error.log")
-        h = handlers.RotatingFileHandler(fname, 'a',maxBytes,backupCount)
-        h.setLevel(DEBUG)
-        h.setFormatter(cherrypy._cplogging.logfmt)
-        getattr(cherrypy.log, '%s_log' % x).addHandler(h)
-        cherrypy.log("Opened Rotating %s log - file: %s maxBytes: %s backup: %s" % (x,fname,maxBytes,backupCount))
-
+        cherrypy.request.db.query(Experimenter).filter(Experimenter.email == email).update({'last_login': datetime.now(utc)})
+        cherrypy.request.db.commit()
+        cherrypy.log.error("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For', 'Unknown'),
+                                                            cherrypy.session['id'],
+                                                            experimenter.email if experimenter else 'none',
+                                                            experimenter.first_name if experimenter else 'none' ,
+                                                            experimenter.last_name if experimenter else 'none'))
+        
 def pidfile():
     pidfile = cherrypy.config.get("log.pidfile",None)
     pid = os.getpid()
-    cherrypy.log("PID: %s" % pid)
+    cherrypy.log.error("PID: %s" % pid)
     if pidfile:
         fd = open(pidfile,'w')
         fd.write("%s" % pid )
         fd.close()
-        cherrypy.log("Pid File: %s" % pidfile)
+        cherrypy.log.error("Pid File: %s" % pidfile)
 
 def parse_command_line():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', help="Filespec for POMS config file.")
-    parser.add_argument('-p', '--password', help="Filespec for POMS password file.")
+    parser.add_argument('-c', '--config', help="Filepath for POMS config file.")
+    parser.add_argument('--use-wsgi',dest='use_wsgi', action='store_true', help="Run behind WSGI. (Default)")
+    parser.add_argument('--no-wsgi', dest='use_wsgi', action='store_false',  help="Run without WSGI.")
+    parser.set_defaults(use_wsgi=True)
     args = parser.parse_args()
     return parser,args
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
+if True:
 
+    log_conf = {
+        'version': 1,
+
+        'formatters': {
+            'void': {
+                'format': ''
+                },
+            'standard': {
+                'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+                },
+            'error': {
+                'format': '%(asctime)s <%(process)d.%(thread)d> %(message)s'
+                },
+            'access': {
+                'format': '<%(process)d> %(message)s'
+                },
+            },
+        'handlers': {
+            'default': {
+                'level':'INFO',
+                'class':'logging.StreamHandler',
+                'formatter': 'error',
+                'stream': 'ext://sys.stdout'
+                },
+            'cherrypy_console': {
+                'level':'INFO',
+                'class':'logging.StreamHandler',
+                'formatter': 'error',
+                'stream': 'ext://sys.stdout'
+                },
+            'cherrypy_access': {
+                'level':'INFO',
+                'class':'logging.StreamHandler',
+                'formatter': 'access',
+                'stream': 'ext://sys.stdout'
+                },
+            'cherrypy_error': {
+                'level':'INFO',
+                'class':'logging.StreamHandler',
+                'formatter': 'error',
+                'stream': 'ext://sys.stderr'
+                },
+            },
+        'loggers': {
+            '': {
+                'handlers': ['default'],
+                'level': 'INFO'
+                },
+            'cherrypy.access': {
+                'handlers': ['cherrypy_access'],
+                'level': 'INFO',
+                'propagate': False
+                },
+            'cherrypy.error': {
+                'handlers': ['cherrypy_error'],
+                'level': 'INFO',
+                'propagate': False
+                },
+            'sqlalchemy.engine': {
+                'handlers': ['cherrypy_error'],
+                'level': 'INFO',
+                'propagate': False
+                },
+            }
+        }
+    
     config = { '/' : {
-                      'tools.db.on': True,
-                      'tools.psess.on': True,
-                      'tools.staticdir.root': os.path.abspath(os.getcwd()),
-		      'tools.sessions.on': True,
-                      'tools.sessions.timeout': 60,
+                        'tools.db.on': True,
+                        'tools.psess.on': True,
+                        'tools.sessions.on': True,
+                        'tools.sessions.timeout': 60,
+                        'tools.sessions.storage_type': 'file',
+                        'tools.sessions.locking': 'early',          # IMPORTANT!
                      },
-               '/static' : {
-                      'tools.staticdir.on': True,
-                      'tools.staticdir.dir': './static'
-                      },
                }
 
     configfile = "poms.ini"
-    # dbasefile  = "passwd.ini"
-    parser,args = parse_command_line()
+    parser, args = parse_command_line()
     if args.config:
         configfile = args.config
-    # if args.password:
-    #     dbasefile = args.password
     try:
         cherrypy.config.update(configfile)
-        # cherrypy.config.update(dbasefile)
     except IOError, mess:
-        print mess
+        print >> sys.stderr, mess
         parser.print_help()
         raise SystemExit
     path = cherrypy.config.get("path")
-    if path == None:
-       path = "/poms"
-    cherrypy.log("POMSPATH: %s" % path)
+    if path is None:
+        path = "/poms"
 
-    pidfile()
     SAEnginePlugin(cherrypy.engine).subscribe()
     cherrypy.tools.db = SATool()
     cherrypy.tools.psess = SessionTool()
-    app = cherrypy.tree.mount(poms_service.poms_service(), path, configfile)
+    pomsInstance = poms_service.poms_service()
+    app = cherrypy.tree.mount(pomsInstance, path, configfile)
     app.merge(config)
-    set_rotating_log(app)
+    
+    cherrypy.config.update({'engine.autoreload.on': False})	    # Recommended
+    cherrypy.config.update({'log.screen': False,
+                            'log.access_file': '',
+                            'log.error_file': ''})
+    cherrypy.engine.unsubscribe('graceful', cherrypy.log.reopen_files)
+    logging.config.dictConfig(log_conf) 
 
-    # Start SSL Server if in config file
-    ssl_host = cherrypy.config.get("server.socket_host",None)
-    ssl_port = cherrypy.config.get("sslserver.socket_port",None)
-    ssl_certificate = cherrypy.config.get("sslserver.ssl_certificate",None)
-    ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key",None)
-    if ssl_port is None or ssl_certificate is None or ssl_private_key is None:
-       cherrypy.log("**** SSL Server is not configured for running.")
-    else:
-        sslserver = cherrypy._cpserver.Server()
-        sslserver.ssl_module = 'builtin'
-        sslserver._socket_host = cherrypy.config.get("server.socket_host",None)
-        sslserver.socket_port = cherrypy.config.get("sslserver.socket_port",None)
-        sslserver.ssl_certificate = cherrypy.config.get("sslserver.ssl_certificate",None)
-        sslserver.ssl_private_key = cherrypy.config.get("sslserver.ssl_private_key",None)
-        sslserver.subscribe()
-
+    cherrypy.log.error("POMSPATH: %s" % path)
+    pidfile()
+    pomsInstance.post_initalize()
+ 
     cherrypy.engine.start()
-    cherrypy.engine.block()
+    if args.use_wsgi == False:
+        cherrypy.engine.block()		# Disable built-in HTTP server when behind wsgi
+    application = cherrypy.tree
+    #application = ErrorMiddleware(application, debug=True)
+    #application = ErrorLog(application, channel=None, keep=20, path='/__error_log__', ignored_exceptions=())
+
+    # END
