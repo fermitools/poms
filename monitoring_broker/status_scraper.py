@@ -185,11 +185,11 @@ class status_scraper():
                              if self.debug: print "good"
                              n_good = n_good + 1 
 
-                        if m.group(1) == warn or (warn2 and m.group(1) == warn2):
+                        if (warn and m.group(1)) == warn or (warn2 and m.group(1) == warn2):
                              if self.debug: print "warn"
                              n_warn = n_warn + 1 
 
-                        if m.group(1) == bad or (bad2 and m.group(1) == bad2):
+                        if (bad and m.group(1) == bad) or (bad2 and m.group(1) == bad2):
                              if self.debug: print "bad"
                              n_bad = n_bad + 1 
                     else:
