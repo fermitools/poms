@@ -15,6 +15,7 @@ parser.add_argument('--output_files_per_job', metavar='number of output files pe
 parser.add_argument('--output_file_patterns', metavar='string with output file pattern', type=str, help='The output pattern you are interested in your campaign (eg. \%\.root)', default = None)
 parser.add_argument('--launch_script', metavar='the setup you do at your interactive node', type=str, help='the script that you run to submit jobs in your machine', default = None)
 parser.add_argument('--def_parameter', metavar='parameters pass to the launch_script', type=str, nargs='*', help='The arguments your script (included in Launch script) use for the submission', default = "")
+parser.add_argument('--test_client', metavar='want to test the client URL query', type=str, nargs=str, help='use to test the client URL query', default = False)
 args = parser.parse_args()
 #parser.print_help()
 print args
@@ -28,18 +29,26 @@ print 'output_files_per_job=', args.output_files_per_job
 print 'output_file_patterns=', args.output_file_patterns
 print 'launch_script=', args.launch_script
 print 'def_parameter=', args.def_parameter
+print 'test_client=', args.test_client
+
 
 #Calling the poms_client.campaign_definition_edit'
+if action in ['add','delete','edit']:
+    campaign_definition_edit(pc_email=args.email,
+                        action = args.action,
+                        name=args.name,
+                        experiment=args.experiment,
+                        input_files_per_job=args.input_files_per_job,
+                        output_files_per_job=args.output_files_per_job,
+                        output_file_patterns=args.output_file_patterns,
+                        launch_script=args.launch_script,
+                        def_parameter=args.def_parameter,
+                        test_client=args.test_client)
+else:
+    msg = "Error: the action you choose was [action="+action+"] you must use add-edit-delete as option"
+    raise ArgumentParser.error(msg)
 
-campaign_definition_edit(pc_email=args.email,
-                    action = args.action,
-                    name=args.name,
-                    experiment=args.experiment,
-                    input_files_per_job=args.input_files_per_job,
-                    output_files_per_job=args.output_files_per_job,
-                    output_file_patterns=args.output_file_patterns,
-                    launch_script=args.launch_script,
-                    def_parameter=args.def_parameter)
+
 
 
 '''
