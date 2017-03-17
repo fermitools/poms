@@ -8,12 +8,6 @@ import atexit
 from paste.exceptions.errormiddleware import ErrorMiddleware
 from repoze.errorlog import ErrorLog
 
-# make sure poms is setup...
-if os.environ.get("SETUP_POMS","") == "":
-    sys.path.insert(0,os.environ.get('SETUPS_DIR',os.environ.get('HOME')+'/products'))
-    import setups
-    ups = setups.setups()
-    ups.use_package("poms","","SETUP_POMS")
 
 from poms.model.poms_model import Experimenter, ExperimentsExperimenters
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
@@ -184,23 +178,7 @@ class SessionTool(cherrypy.Tool):
     #                                  priority=90)
 
     def establish_session(self):
-
-        class SessionExperimenter():
-            def __init__(self, experimenter_id=None, first_name=None, last_name=None, email=None, authorized_for=None):
-                self.experimenter_id = experimenter_id
-                self.first_name = first_name
-                self.last_name = last_name
-                self.email = email
-                self.authorized_for = authorized_for
-            def is_authorized(self,experiment):
-                # Root is authorized for all experiments
-                if self.is_root():
-                    return True
-		#return True
-                return self.authorized_for.get(experiment,False)
-            def is_root(self):
-                return self.authorized_for.get('root',False)
-
+                
         if cherrypy.session.get('id', None):
             #cherrypy.log.error("EXISTING SESSION: %s" % str(cherrypy.session['experimenter']))
             return
