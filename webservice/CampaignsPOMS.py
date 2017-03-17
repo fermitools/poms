@@ -190,20 +190,20 @@ class CampaignsPOMS():
                                 }
                     cd = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).update(columns)
 
-            # now fixup recoveries -- clean out existing ones, and
-            # add listed ones.
-            if pcl_call == 0:
-                dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == campaign_definition_id).delete()
-                i = 0
-                for rtn in json.loads(recoveries):
-                    rect   = rtn[0]
-                    recpar = rtn[1]
-                    rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rect).first()
-                    cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt, param_overrides = recpar)
-                    dbhandle.add(cr)
-                dbhandle.commit()
-            else:
-                pass #We need to define later if it is going to be possible to modify the recovery type from the client.
+                # now fixup recoveries -- clean out existing ones, and
+                # add listed ones.
+                if pcl_call == 0:
+                    dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == campaign_definition_id).delete()
+                    i = 0
+                    for rtn in json.loads(recoveries):
+                        rect   = rtn[0]
+                        recpar = rtn[1]
+                        rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rect).first()
+                        cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt, param_overrides = recpar)
+                        dbhandle.add(cr)
+                    dbhandle.commit()
+                else:
+                    pass #We need to define later if it is going to be possible to modify the recovery type from the client.
 
             except IntegrityError, e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
