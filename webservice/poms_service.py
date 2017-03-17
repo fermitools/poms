@@ -514,7 +514,7 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def edit_screengeneric(self, classname, id=None):
+    def edit_screen_generic(self, classname, id=None):
         return self.tablesPOMS.edit_screen_generic(cherrypy.HTTPError, cherrypy.request.headers.get, cherrypy.session, classname, id)
 
 
