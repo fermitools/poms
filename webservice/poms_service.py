@@ -33,7 +33,7 @@ import gc
 from elasticsearch import Elasticsearch
 import pprint
 import version
-
+import logit
 
 global_version="unknown"
 
@@ -46,7 +46,6 @@ import UtilsPOMS
 import TagsPOMS
 import TriagePOMS
 import FilesPOMS
-import AccessPOMS
 import TablesPOMS
 import logit
 
@@ -93,7 +92,6 @@ class poms_service:
         self.tagsPOMS = TagsPOMS.TagsPOMS(self)
         self.filesPOMS = FilesPOMS.Files_status(self)
         self.triagePOMS=TriagePOMS.TriagePOMS(self)
-        self.accessPOMS=AccessPOMS.AccessPOMS()
         self.tablesPOMS = None
         
     def post_initalize(self):
