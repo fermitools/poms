@@ -23,9 +23,7 @@ import select
 import os
 import sys
 
-import logging
-# our own logging handle, goes to cherrypy
-logger = logging.getLogger('cherrypy.error')
+import logit
 
 
 class JobsPOMS():
@@ -41,7 +39,7 @@ class JobsPOMS():
             if job.jobsub_job_id == "unknown":
                 continue
             res.append(job.jobsub_job_id)
-        logger.info("active_jobs: returning %s" % res)
+        logit.log("active_jobs: returning %s" % res)
         #gc.collect(2)
         return res
 
@@ -83,8 +81,8 @@ class JobsPOMS():
         pass
 
 
-    def bulk_update_job(self, dbhandle, loghandle, rpstatus, samhandle, json_data = '{}'):
-        loghandle("Entering bulk_update_job(%s)" % json_data)
+    def bulk_update_job(self, dbhandle, rpstatus, samhandle, json_data = '{}'):
+        logit.log("Entering bulk_update_job(%s)" % json_data)
         ldata = json.loads(json_data)
 
         # make one merged entry per job_id
@@ -101,7 +99,7 @@ class JobsPOMS():
             if d['task_id']:
                 foundtasks[int(d['task_id'])] = 1
 
-        loghandle("found task ids for %s" % ",".join(map(str, foundtasks.keys())))
+        logit.log("found task ids for %s" % ",".join(map(str, foundtasks.keys())))
 
         # lookup what job-id's we already have database entries for
         jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(data.keys())).all()
@@ -123,21 +121,21 @@ class JobsPOMS():
         for t in tasks:
             fulltasks[t.task_id] = t
 
-        loghandle("found full tasks for %s" % ",".join(map(str, fulltasks.keys())))
+        logit.log("found full tasks for %s" % ",".join(map(str, fulltasks.keys())))
 
         # now look for jobs for which  we don't have Job ORM entries, but
 	# whose Tasks we do have entries for, and make new Job entries for
         # them.
         for jid in data.keys():
             if not foundjobs.get(jid, None) and data[jid].has_key('task_id') and fulltasks.get(int(data[jid]['task_id']), None):
-                 loghandle("need new Job for %s" % jid)
+                 logit.log("need new Job for %s" % jid)
                  j = Job(jobsub_job_id = jid, task_obj = fulltasks[int(data[jid]['task_id'])], output_files_declared = False, node_name = 'unknown', cpu_type = 'unknown', host_site = 'unknown', status='Idle')
                  j.created = datetime.now(utc)
                  j.updated = datetime.now(utc)
                  jlist.append(j)
 	         dbhandle.add(j)
             elif not foundjobs.get(jid,0):
-                 loghandle("need new Job for %s, but no task %s" % (jid,data[jid]['task_id']))
+                 logit.log("need new Job for %s, but no task %s" % (jid,data[jid]['task_id']))
             else:
                  pass
            
@@ -145,13 +143,13 @@ class JobsPOMS():
         # now actually update each such job, 'cause we should now have a
         # ORM mapped Job object for each one.
         for j in jlist:
-             self.update_job_common(dbhandle, loghandle, rpstatus, samhandle,    j, data[j.jobsub_job_id])
+             self.update_job_common(dbhandle, rpstatus, samhandle,    j, data[j.jobsub_job_id])
 
         # update any related tasks status if changed
         for t in fulltasks.values():
 	    newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, t)
 	    if newstatus != t.status:
-		loghandle("update_job: task %d status now %s" %(t.task_id, newstatus))
+		logit.log("update_job: task %d status now %s" %(t.task_id, newstatus))
 		t.status = newstatus
 		t.updated = datetime.now(utc)
 		# jobs make inactive campaigns active again...
@@ -159,10 +157,10 @@ class JobsPOMS():
 		    t.campaign_obj.active = True
 
         dbhandle.commit()
-        loghandle("Exiting bulk_update_job()")
+        logit.log("Exiting bulk_update_job()")
         return "Ok."
 
-    def update_job(self, dbhandle, loghandle, rpstatus, samhandle, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
+    def update_job(self, dbhandle, rpstatus, samhandle, task_id = None, jobsub_job_id = 'unknown',  **kwargs):
 
         # flag to remember to do a SAM update after we commit
 	do_SAM_project = False
@@ -200,10 +198,10 @@ class JobsPOMS():
         if not j and task_id:
             t = dbhandle.query(Task).filter(Task.task_id==task_id).first()
             if t == None:
-                loghandle("update_job -- no such task yet")
+                logit.log("update_job -- no such task yet")
                 rpstatus="404 Task Not Found"
                 return "No such task"
-            loghandle("update_job: creating new job")
+            logit.log("update_job: creating new job")
             j = Job()
             j.jobsub_job_id = jobsub_job_id.rstrip("\n")
             j.created = datetime.now(utc)
@@ -219,11 +217,11 @@ class JobsPOMS():
         if j:
             oldstatus = j.status
 
-            self.update_job_common(dbhandle,  loghandle, rpstatus, samhandle, j, kwargs)
+            self.update_job_common(dbhandle,  rpstatus, samhandle, j, kwargs)
             if oldstatus != j.status and j.task_obj:
                 newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, j.task_obj)
                 if newstatus != j.task_obj.status:
-                    loghandle("update_job: task %d status now %s" %(j.task_obj.task_id, newstatus))
+                    logit.log("update_job: task %d status now %s" %(j.task_obj.task_id, newstatus))
                     j.task_obj.status = newstatus
                     j.task_obj.updated = datetime.now(utc)
                     # jobs make inactive campaigns active again...
@@ -237,14 +235,14 @@ class JobsPOMS():
             # now that we committed, do a SAM project desc. upate if needed
             if do_SAM_project:
 	        self.update_SAM_project(samhandle, j, kwargs.get("task_project"))
-            loghandle("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
+            logit.log("update_job: done job_id %d" %  (j.job_id if j.job_id else -1))
 
         return "Ok."
 
-    def update_job_common(self, dbhandle, loghandle, rpstatus, samhandle, j, kwargs):
+    def update_job_common(self, dbhandle, rpstatus, samhandle, j, kwargs):
 
             oldstatus = j.status
-            loghandle("update_job: updating job %d" % (j.job_id if j.job_id else -1))
+            logit.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
 
             if kwargs.get('status',None) and oldstatus != kwargs.get('status')  and oldstatus == 'Completed' and kwargs.get('status') != 'Located':
                 # we went from Completed back to some Running/Idle state...
@@ -279,7 +277,7 @@ class JobsPOMS():
 
                 if kwargs.get("task_%s" % field, None) and kwargs.get("task_%s" % field) != "None" and j.task_obj:
                     setattr(j.task_obj,field,kwargs["task_%s"%field].rstrip("\n"))
-                    loghandle("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field, kwargs["task_%s"%field])))
+                    logit.log("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field, kwargs["task_%s"%field])))
 
             # floating point fields need conversion
             for field in [ 'cpu_time', 'wall_time']:
@@ -291,7 +289,7 @@ class JobsPOMS():
 
             # filenames need dumping in JobFiles table and attaching
             if kwargs.get('output_file_names', None):
-                loghandle("saw output_file_names: %s" % kwargs['output_file_names'])
+                logit.log("saw output_file_names: %s" % kwargs['output_file_names'])
                 if j.job_files:
                     files =  [x.file_name for x in j.job_files ]
                 else:
@@ -314,7 +312,7 @@ class JobsPOMS():
                         dbhandle.add(jf)
 
             if kwargs.get('input_file_names', None):
-                loghandle("saw input_file_names: %s" % kwargs['input_file_names'])
+                logit.log("saw input_file_names: %s" % kwargs['input_file_names'])
                 if j.job_files:
                     files =  [x.file_name for x in j.job_files if x.file_type == 'input']
                 else:
@@ -332,14 +330,14 @@ class JobsPOMS():
             # must have put it here for a reason...
             if j.cpu_type == None:
                 j.cpu_type = ''
-            loghandle("update_job: db add/commit job status %s " %  j.status)
+            logit.log("update_job: db add/commit job status %s " %  j.status)
             j.updated =  datetime.now(utc)
 
     def test_job_counts(self, task_id = None, campaign_id = None):
         res = self.poms_service.job_counts(task_id, campaign_id)
         return repr(res) + self.poms_service.format_job_counts(task_id, campaign_id)
 
-    def kill_jobs(self, dbhandle, loghandle, campaign_id=None, task_id=None, job_id=None, confirm=None):
+    def kill_jobs(self, dbhandle, campaign_id=None, task_id=None, job_id=None, confirm=None):
         jjil = []
         jql = None
         t = None
@@ -354,7 +352,7 @@ class JobsPOMS():
                 c = None
             for t in tl:
                 tjid = self.poms_service.taskPOMS.task_min_job(dbhandle, t.task_id)
-                loghandle("kill_jobs: task_id %s -> tjid %s" % (t.task_id, tjid))
+                logit.log("kill_jobs: task_id %s -> tjid %s" % (t.task_id, tjid))
                 # for tasks/campaigns, kill the whole group of jobs
                 # by getting the leader's jobsub_job_id and taking off
                 # the '.0'.
@@ -434,7 +432,7 @@ class JobsPOMS():
         return c, maxv, total, vals, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
 
 
-    def get_efficiency(self, dbhandle, loghandle, campaign_list, tmin, tmax): #This method was deleted from the main script
+    def get_efficiency(self, dbhandle, campaign_list, tmin, tmax): #This method was deleted from the main script
         id_list = []
         for c in campaign_list:
             id_list.append(c.campaign_id)
@@ -447,9 +445,9 @@ class JobsPOMS():
                        Task.created >= tmin, Task.created < tmax ).
                 group_by(Task.campaign_id).all())
 
-        loghandle("got rows:")
+        logit.log("got rows:")
         for r in rows:
-            loghandle("%s" % repr(r))
+            logit.log("%s" % repr(r))
 
         mapem={}
         for totcpu, totwall, campaign_id in rows:
@@ -458,11 +456,11 @@ class JobsPOMS():
             else:
                 mapem[campaign_id] = -1
 
-        loghandle("got map: %s" % repr(mapem))
+        logit.log("got map: %s" % repr(mapem))
 
         efflist = []
         for c in campaign_list:
             efflist.append(mapem.get(c.campaign_id, -2))
 
-        loghandle("got list: %s" % repr(efflist))
+        logit.log("got list: %s" % repr(efflist))
         return efflist

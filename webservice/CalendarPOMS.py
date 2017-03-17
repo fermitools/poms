@@ -5,6 +5,7 @@
 ### List of methods: calendar_json, calendar, add_event, service_downtimes, update_service, service_status
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel. September, 2016.
 
+import logit
 
 # CalendarPOMS.calendar_json(cherrypy.request.db,start, end, timezone)
 from poms.model.poms_model import Service, ServiceDowntime, Experimenter
@@ -82,12 +83,12 @@ class CalendarPOMS:
         return rows
 
 
-    #CalendarPOMS.update_service(cherrypy.request.db, dbhandle, log_handle, name, parent, status, host_site, total, failed, description)
-    def update_service(self, dbhandle, log_handle, name, parent, status, host_site, total, failed, description):
+    #CalendarPOMS.update_service(cherrypy.request.db, dbhandle, name, parent, status, host_site, total, failed, description)
+    def update_service(self, dbhandle, name, parent, status, host_site, total, failed, description):
         s = dbhandle.query(Service).filter(Service.name == name).first()
         if parent:
             p = dbhandle.query(Service).filter(Service.name == parent).first()
-            log_handle("got parent %s -> %s" % (parent, p))
+            logit.log("got parent %s -> %s" % (parent, p))
             if not p:
                 p = Service()
                 p.name = parent
