@@ -8,11 +8,12 @@
 import os
 import logit
 
-from model.poms_model import Job, Task, Campaign, JobFile
+from poms.model.poms_model import Job, Task, Campaign, JobFile
 from sqlalchemy.orm import subqueryload, joinedload
-from sqlalchemy import (desc,distinct)
+from sqlalchemy import (desc, distinct)
 from utc import utc
 from datetime import datetime
+
 
 class Files_status(object):
 
