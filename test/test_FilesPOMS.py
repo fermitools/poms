@@ -39,7 +39,7 @@ class fake_samweb_lite:
 
 
 def test_show_dimension_files():
-    samhandle = fake_samweb_lite()    
+    samhandle = fake_samweb_lite()
 
     experiment = 'samdev'
     dims = 'fake dimension string'
@@ -48,7 +48,7 @@ def test_show_dimension_files():
     samhandle.list_files.assert_called_with(experiment,dims, dbhandle = None)
 
 def test_list_task_logged_files():
-    samhandle = fake_samweb_lite()    
+    samhandle = fake_samweb_lite()
     flist = ['file1.root', 'file2.root', 'file3.root']
 
     # setup a task, log some files...
@@ -66,3 +66,25 @@ def test_list_task_logged_files():
        assert(f.file_name in flist)
 
 
+def test_get_inflight():
+    dbhandle = DBHandle.DBHandle().get()
+    samhandle = samweb_lite()
+    t = time.time()
+    jid = "%d@fakebatch_test.fnal.gov" % t
+    print "jid", jid
+    task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
+    print "task_id", task_id
+    mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
+    jobj = dbhandle.query(Job).filter(Job.jobsub_job_id==jid).first()
+    print "job object id", jobj.job_id
+    print "the jobsub_job_id", jobj.jobsub_job_id
+    fname="testFile_Felipe.root"
+    jf=JobFile(file_name = fname, file_type = "test_file", created = t , job_obj = jobj)
+    j.job_files.append(jf)
+    dbhandle.add(jf)
+    outlist = mps.FilesPOMS.get_inflight(task_id=task_id)
+    print "the outlist is", outlist
+    assert(outlist == fname)
+    #update_job_common
+    #commit
+    #job_object=dbhandle.query(Job, JobFile).with_for_update(of=Job).filter(JobFile.job_id == jobj.job_id).first()
