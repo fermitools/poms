@@ -11,10 +11,10 @@ import socket
 # import select
 # from collections import OrderedDict
 
-from sqlalchemy import (Column, Integer, Sequence, String, DateTime, ForeignKey,
-    and_, or_, not_, create_engine, null, desc, text, func, exc, distinct
-)
-from sqlalchemy.orm import subqueryload, joinedload, contains_eager
+# from sqlalchemy import (Column, Integer, Sequence, String, DateTime, ForeignKey,
+#     and_, or_, not_, create_engine, null, desc, text, func, exc, distinct
+# )
+# from sqlalchemy.orm import subqueryload, joinedload, contains_eager
 # from sqlalchemy.orm.exc import NoResultFound
 # from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 # from datetime import datetime, tzinfo, timedelta
@@ -62,7 +62,7 @@ def error_response():
     cherrypy.response.status = 500
     cherrypy.response.headers['content-type'] = 'text/html'
     cherrypy.response.body = body.encode()
-    cherrypy.log.error(dump)
+    logit.log(dump)
 
 
 
@@ -81,7 +81,7 @@ class poms_service:
         self.jinja_env = Environment(loader=PackageLoader('poms.webservice', 'templates'))
         self.path = cherrypy.config.get("pomspath", "/poms")
         self.hostname = socket.getfqdn()
-        self.version = version.get_version(cherrypy.log.error)
+        self.version = version.get_version()
         global_version = self.version
         self.calendarPOMS = CalendarPOMS.CalendarPOMS()
         self.dbadminPOMS = DBadminPOMS.DBadminPOMS()
@@ -96,7 +96,7 @@ class poms_service:
 
     def post_initalize(self):
         # Anything that needs to log data must be called here -- after loggers are configured.
-        self.tablesPOMS = TablesPOMS.TablesPOMS(self, cherrypy.log.error)
+        self.tablesPOMS = TablesPOMS.TablesPOMS(self)
 
 
     @cherrypy.expose
@@ -203,7 +203,7 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def update_service(self, name, parent, status, host_site, total, failed, description):
-        return self.calendarPOMS.update_service(cherrypy.request.db, cherrypy.log.error, name, parent, status, host_site, total, failed, description)
+        return self.calendarPOMS.update_service(cherrypy.request.db, name, parent, status, host_site, total, failed, description)
 
 
     @cherrypy.expose
@@ -323,7 +323,7 @@ class poms_service:
     def experiment_authorize(self, *args, **kwargs):
         if not cherrypy.session.get('experimenter').is_root():
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-        message = self.dbadminPOMS.experiment_authorize(cherrypy.request.db, cherrypy.log.error, *args, **kwargs)
+        message = self.dbadminPOMS.experiment_authorize(cherrypy.request.db, *args, **kwargs)
         return self.experiment_edit(message)
 #-----------------------------------------
 #################################
@@ -332,7 +332,7 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def launch_template_edit(self, *args, **kwargs):
-        data = self.campaignsPOMS.launch_template_edit(cherrypy.request.db, cherrypy.log.error, cherrypy.session, *args, **kwargs)
+        data = self.campaignsPOMS.launch_template_edit(cherrypy.request.db, cherrypy.session, *args, **kwargs)
         template = self.jinja_env.get_template('launch_template_edit.html')
         return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path, help_page="LaunchTemplateEditHelp", version=self.version)
@@ -341,7 +341,7 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def campaign_definition_edit(self, *args, **kwargs):
-        data = self.campaignsPOMS.campaign_definition_edit(cherrypy.request.db, cherrypy.log.error, cherrypy.session, *args, **kwargs)
+        data = self.campaignsPOMS.campaign_definition_edit(cherrypy.request.db, cherrypy.session, *args, **kwargs)
         template = self.jinja_env.get_template('campaign_definition_edit.html')
         return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path, help_page="CampaignDefinitionEditHelp", version=self.version)
@@ -350,7 +350,7 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def campaign_edit(self, *args, **kwargs):
-        data = self.campaignsPOMS.campaign_edit(cherrypy.request.db, cherrypy.log.error, cherrypy.session, *args, **kwargs)
+        data = self.campaignsPOMS.campaign_edit(cherrypy.request.db, cherrypy.session, *args, **kwargs)
         template = self.jinja_env.get_template('campaign_edit.html')
         return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path, help_page="CampaignEditHelp", version=self.version)
@@ -376,17 +376,17 @@ class poms_service:
         (counts, counts_keys, clist, dimlist,
             tmin, tmax, tmins, tmaxs,
             nextlink, prevlink, time_range_string
-        ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db, cherrypy.log.error,
+        ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db,
                                             cherrypy.request.samweb_lite, experiment=experiment,
                                             tmin=tmin, tmax=tmax, tdays=tdays, active=active)
 
         current_experimenter = cherrypy.session.get('experimenter')
-        #~ cherrypy.log.error("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
+        #~ logit.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
         if 'exp_selected' in kwargs:
             current_experimenter.extra = {'selected': kwargs['exp_selected']}
             cherrypy.session['experimenter'] = current_experimenter
-            #~ cherrypy.log.error("current_experimenter.extra update... ")                               # DEBUG
-        #~ cherrypy.log.error("current_experimenter.extra after: "+str(current_experimenter.extra))      # DEBUG
+            #~ logit.log("current_experimenter.extra update... ")                               # DEBUG
+        #~ logit.log("current_experimenter.extra after: "+str(current_experimenter.extra))      # DEBUG
 
         experiments = self.dbadminPOMS.member_experiments(cherrypy.request.db, current_experimenter.email)
 
@@ -412,7 +412,7 @@ class poms_service:
          Launch_template_info, tags,
          launched_campaigns, dimlist, cl,
          counts_keys, counts,
-         launch_flist) = self.campaignsPOMS.campaign_info(cherrypy.request.db, cherrypy.log.error,
+         launch_flist) = self.campaignsPOMS.campaign_info(cherrypy.request.db,
                                                           cherrypy.request.samweb_lite,
                                                           cherrypy.HTTPError, campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_info.html')
@@ -440,7 +440,7 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def register_poms_campaign(self, experiment, campaign_name, version, user=None, campaign_definition=None, dataset="", role="Analysis", params=[]):
-        campaign_id = self.campaignsPOMS.register_poms_campaign(cherrypy.request.db, cherrypy.log.error,
+        campaign_id = self.campaignsPOMS.register_poms_campaign(cherrypy.request.db,
                             experiment, campaign_name, version, user, campaign_definition, dataset, role, params)
         return "Campaign=%d" % campaign_id
 
@@ -472,7 +472,7 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def update_launch_schedule(self, campaign_id, dowlist=None, domlist=None, monthly=None, month=None, hourlist=None, submit=None, minlist=None, delete=None):
-        self.campaignsPOMS.update_launch_schedule(cherrypy.log.error, campaign_id, dowlist, domlist, monthly, month, hourlist, submit, minlist, delete)
+        self.campaignsPOMS.update_launch_schedule(campaign_id, dowlist, domlist, monthly, month, hourlist, submit, minlist, delete)
         raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id)
 
 
@@ -514,19 +514,19 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def edit_screengeneric(self, classname, id=None):
+    def edit_screen_generic(self, classname, id=None):
         return self.tablesPOMS.edit_screen_generic(cherrypy.HTTPError, cherrypy.request.headers.get, cherrypy.session, classname, id)
 
 
     @cherrypy.expose
     @logit.logstartstop
     def update_generic(self, classname, *args, **kwargs):
-        return self.tablesPOMS.update_generic(cherrypy.request.db, cherrypy.request.headers.get, cherrypy.log.error, cherrypy.session, classname, *args, **kwargs)
+        return self.tablesPOMS.update_generic(cherrypy.request.db, cherrypy.request.headers.get, cherrypy.session, classname, *args, **kwargs)
 
 
     def edit_screen_for(self, classname, eclass, update_call, primkey, primval, valmap): ### Why this function is not expose
         screendata = self.tablesPOMS.edit_screen_for(cherrypy.request.db,
-                            cherrypy.log.error, cherrypy.request.headers.get,
+                            cherrypy.request.headers.get,
                             cherrypy.session, classname, eclass,
                             update_call, primkey, primval, valmap)
         template = self.jinja_env.get_template('edit_screen_for.html')
@@ -566,7 +566,7 @@ class poms_service:
         if not cherrypy.session.get('experimenter').is_root():
             cherrypy.log("update_job: not allowed")
             return "Not Allowed"
-        return self.jobsPOMS.bulk_update_job(cherrypy.request.db, cherrypy.log.error,
+        return self.jobsPOMS.bulk_update_job(cherrypy.request.db,
                                              cherrypy.response.status, cherrypy.request.samweb_lite, data)
 
 
@@ -577,7 +577,7 @@ class poms_service:
         if not cherrypy.session.get('experimenter').is_root():
             cherrypy.log("update_job: not allowed")
             return "Not Allowed"
-        return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.log.error, cherrypy.response.status, cherrypy.request.samweb_lite, task_id, jobsub_job_id, **kwargs))
+        return (self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.response.status, cherrypy.request.samweb_lite, task_id, jobsub_job_id, **kwargs))
 
 
     @cherrypy.expose
@@ -591,14 +591,14 @@ class poms_service:
     @logit.logstartstop
     def kill_jobs(self, campaign_id=None, task_id=None, job_id=None, confirm=None):
         if confirm is None:
-            jjil, t, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, cherrypy.log.error, campaign_id, task_id, job_id, confirm)
+            jjil, t, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, campaign_id, task_id, job_id, confirm)
             template = self.jinja_env.get_template('kill_jobs_confirm.html')
             return template.render(current_experimenter=cherrypy.session.get('experimenter'),
                                     jjil=jjil, task=t, campaign_id=campaign_id,
                                     task_id=task_id, job_id=job_id, pomspath=self.path,
                                     help_page="KilledJobsHelp", version=self.version)
         else:
-            output, c, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, cherrypy.log.error, campaign_id, task_id, job_id, confirm)
+            output, c, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, campaign_id, task_id, job_id, confirm)
             template = self.jinja_env.get_template('kill_jobs.html')
             return template.render(output=output, current_experimenter=cherrypy.session.get('experimenter'),
                                     c=c, campaign_id=campaign_id, task_id=task_id,
@@ -626,14 +626,14 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def set_job_lauches(self, hold):
+    def set_job_launches(self, hold):
         self.taskPOMS.set_job_launches(cherrypy.request.db, hold)
         raise cherrypy.HTTPRedirect(self.path + "/")
 
     @cherrypy.expose
     @logit.logstartstop
     def launch_queued_job(self):
-        return self.taskPOMS.launch_queued_job(cherrypy.request.db, cherrypy.log.error,
+        return self.taskPOMS.launch_queued_job(cherrypy.request.db,
                                                cherrypy.request.samweb_lite,
                                                cherrypy.session, cherrypy.request.headers.get,
                                                cherrypy.session, cherrypy.response.status)
@@ -642,11 +642,11 @@ class poms_service:
     @logit.logstartstop
     def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None): ###needs to be analize in detail.
         vals = self.taskPOMS.launch_jobs(cherrypy.request.db,
-                        cherrypy.log.error, cherrypy.session,
+                        cherrypy.session,
                         cherrypy.request.headers.get, cherrypy.session,
                         cherrypy.request.samweb_lite,
                         cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
-        cherrypy.log.error("Got vals: %s" % repr(vals))
+        logit.log("Got vals: %s" % repr(vals))
         lcmd, output, c, campaign_id, outdir, outfile = vals
         template = self.jinja_env.get_template('launch_jobs.html')
         res = template.render(command=lcmd, output=output,
@@ -671,7 +671,7 @@ class poms_service:
     @logit.logstartstop
     def wrapup_tasks(self):
         cherrypy.response.headers['Content-Type'] = "text/plain"
-        return "\n".join(self.taskPOMS.wrapup_tasks(cherrypy.request.db, cherrypy.log.error, cherrypy.request.samweb_lite, cherrypy.config.get, cherrypy.request.headers.get, cherrypy.session, cherrypy.response.status))
+        return "\n".join(self.taskPOMS.wrapup_tasks(cherrypy.request.db, cherrypy.request.samweb_lite, cherrypy.config.get, cherrypy.request.headers.get, cherrypy.session, cherrypy.response.status))
 
     @cherrypy.expose
     @logit.logstartstop
@@ -714,7 +714,7 @@ class poms_service:
     def campaign_task_files(self, campaign_id, tmin=None, tmax=None, tdays=1):
         (c, columns, datarows,
             tmins, tmaxs,
-            prevlink, nextlink, tdays) = self.filesPOMS.campaign_task_files(cherrypy.request.db, cherrypy.log.error, cherrypy.request.samweb_lite, campaign_id, tmin, tmax, tdays)
+            prevlink, nextlink, tdays) = self.filesPOMS.campaign_task_files(cherrypy.request.db, cherrypy.request.samweb_lite, campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_task_files.html')
         return template.render(name=c.name if c else "",
                                 columns=columns, datarows=datarows,
@@ -733,7 +733,7 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def job_file_contents(self, job_id, task_id, file, tmin=None, tmax=None, tdays=None):
-        job_file_contents, tmin = self.filesPOMS.job_file_contents(cherrypy.request.db, cherrypy.log.error,
+        job_file_contents, tmin = self.filesPOMS.job_file_contents(cherrypy.request.db,
                                             cherrypy.request.jobsub_fetcher, job_id, task_id, file, tmin, tmax, tdays)
         template = self.jinja_env.get_template('job_file_contents.html')
         return template.render(file=file, job_file_contents=job_file_contents,
@@ -769,7 +769,7 @@ class poms_service:
     def actual_pendng_files(self, count_or_list, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1): ###??? Implementation of the exception.
         cherrypy.response.timeout = 600
         try:
-            experiment, dims = self.filesPOMS.actual_pending_files(cherrypy.request.db, cherrypy.log.error, count_or_list, task_id, campaign_id, tmin, tmax, tdays)
+            experiment, dims = self.filesPOMS.actual_pending_files(cherrypy.request.db, count_or_list, task_id, campaign_id, tmin, tmax, tdays)
             return self.show_dimension_files(experiment, dims)
         except ValueError:
             return "None == dims in actual_pending_files method"
@@ -782,7 +782,6 @@ class poms_service:
             experiment, tmaxs,
             prevlink, nextlink,
             tdays, tmin, tmax) = self.filesPOMS.campaign_sheet(cherrypy.request.db,
-                                                               cherrypy.log.error,
                                                                cherrypy.request.samweb_lite,
                                                                campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_sheet.html')
@@ -893,7 +892,7 @@ class poms_service:
         (jl, possible_columns, columns,
             tmins, tmaxs, tdays,
             prevlink, nextlink,
-            time_range_string, tdays) = self.triagePOMS.failed_jobs_by_whatever(cherrypy.request.db, cherrypy.log.error, tmin, tmax, tdays, f, go)
+            time_range_string, tdays) = self.triagePOMS.failed_jobs_by_whatever(cherrypy.request.db, tmin, tmax, tdays, f, go)
         template = self.jinja_env.get_template('failed_jobs_by_whatever.html')
         return template.render(joblist=jl,
                                 possible_columns=possible_columns,

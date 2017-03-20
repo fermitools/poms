@@ -5,7 +5,7 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### November, 2016.
 
-
+import logit
 from datetime import datetime, tzinfo,timedelta
 from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, not_,  create_engine, null, desc, text, func, exc, distinct
 
@@ -13,9 +13,9 @@ from utc import utc
 
 class TablesPOMS:
 
-    def __init__(self, ps, loghandle):
+    def __init__(self, ps):
         self.poms_service=ps
-        self.make_admin_map(loghandle)
+        self.make_admin_map()
 
     def list_generic(self, dbhandle, err_res, gethead, seshandle, classname):
         if not seshandle.get('experimenter').is_root():
@@ -29,12 +29,12 @@ class TablesPOMS:
         return self.poms_service.edit_screen_for(classname, self.admin_map[classname], 'update_generic', self.pk_map[classname], id, {})
 
 
-    def update_generic( self, dbhandle, gethead, loghandle, seshandle, classname, *args, **kwargs):
+    def update_generic( self, dbhandle, gethead, seshandle, classname, *args, **kwargs):
         if not seshandle.get('experimenter').is_root(): 
             return "Not allowed"
-        return self.update_for(dbhandle, loghandle, classname, self.admin_map[classname], self.pk_map[classname], *args, **kwargs)
+        return self.update_for(dbhandle, classname, self.admin_map[classname], self.pk_map[classname], *args, **kwargs)
 
-    def update_for( self, dbhandle, loghandle, classname, eclass, primkey,  *args , **kwargs): #this method was deleded from the main script
+    def update_for( self, dbhandle, classname, eclass, primkey,  *args , **kwargs): #this method was deleded from the main script
         found = None
         kval = None
         if kwargs.get(primkey,'') != '':
@@ -45,9 +45,9 @@ class TablesPOMS:
             except:
                 pred = "%s = '%s'" % (primkey, kval)
             found = dbhandle.query(eclass).filter(text(pred)).first()
-            loghandle("update_for: found existing %s" % found )
+            logit.log("update_for: found existing %s" % found )
         if found == None:
-            loghandle("update_for: making new %s" % eclass)
+            logit.log("update_for: making new %s" % eclass)
             found = eclass()  ####??? Where is this come from?
             if hasattr(found,'created'):
                 setattr(found, 'created', datetime.now(utc))
@@ -76,7 +76,7 @@ class TablesPOMS:
                 setattr(found, fieldname, kval)
             else:
                 setattr(found, fieldname, kwargs.get(fieldname,None))
-        loghandle("update_for: found is now %s" % found )
+        logit.log("update_for: found is now %s" % found )
         dbhandle.add(found)
         dbhandle.commit()
         if classname == "Task":
@@ -84,14 +84,14 @@ class TablesPOMS:
         return "%s=%s" % (classname, getattr(found,primkey))
 
 
-    def edit_screen_for( self, dbhandle, loghandle, gethead, seshandle, classname, eclass, update_call, primkey, primval, valmap):
+    def edit_screen_for( self, dbhandle, gethead, seshandle, classname, eclass, update_call, primkey, primval, valmap):
         if not seshandle.get('experimenter').is_root():
             raise err_res(401, 'You are not authorized to access this resource')
 
         found = None
         sample = eclass()
         if primval != '':
-            loghandle("looking for %s in %s" % (primval, eclass))
+            logit.log("looking for %s in %s" % (primval, eclass))
             try:
                 primval = int(primval)
                 pred = "%s = %d" % (primkey,primval)
@@ -99,7 +99,7 @@ class TablesPOMS:
                 pred = "%s = '%s'" % (primkey,primval)
                 pass
             found = dbhandle.query(eclass).filter(text(pred)).first()
-            loghandle("found %s" % found)
+            logit.log("found %s" % found)
         if not found:
             found = sample
         columns =  sample._sa_instance_state.class_.__table__.columns
@@ -122,12 +122,12 @@ class TablesPOMS:
         return res
 
 
-    def make_admin_map(self,loghandle): #This method was deleted from the main script.
+    def make_admin_map(self): #This method was deleted from the main script.
         """
             make self.admin_map a map of strings to model class names
             and self.pk_map a map of primary keys for that class
         """
-        loghandle(" ---- make_admin_map: starting...")
+        logit.log(" ---- make_admin_map: starting...")
         import poms.model.poms_model
         self.admin_map = {}
         self.pk_map = {}
@@ -139,5 +139,5 @@ class TablesPOMS:
                 for fieldname in columns.keys():
                     if columns[fieldname].primary_key:
                          self.pk_map[k] = fieldname
-        loghandle(" ---- admin map: %s " % repr(self.admin_map))
-        loghandle(" ---- pk_map: %s " % repr(self.pk_map))
+        logit.log(" ---- admin map: %s " % repr(self.admin_map))
+        logit.log(" ---- pk_map: %s " % repr(self.pk_map))

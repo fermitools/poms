@@ -11,7 +11,7 @@ import traceback
 import os
 import cherrypy
 from utc import utc
-from model.poms_model import FaultyRequest
+from poms.model.poms_model import FaultyRequest
 
 
 def safe_get(sess, url, *args, **kwargs):

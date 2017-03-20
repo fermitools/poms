@@ -7,6 +7,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
+import logit
 from poms.model.poms_model import Experimenter, Experiment, ExperimentsExperimenters
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -116,7 +117,7 @@ class DBadminPOMS:
         return(dbhandle.query(Experiment).order_by(Experiment.experiment))
 
 
-    def experiment_authorize(self, dbhandle, loghandle, *args, **kwargs):
+    def experiment_authorize(self, dbhandle, *args, **kwargs):
         message = None
         # Add new experiment, if any
         try:
@@ -139,10 +140,10 @@ class DBadminPOMS:
             dbhandle.commit()
         except IntegrityError, e:
             message = "The experiment, %s, is used and may not be deleted." % experiment
-            loghandle(e.message)
+            logit.log(e.message)
             dbhandle.rollback()
         except SQLAlchemyError, e:
             dbhandle.rollback()
             message = "SqlAlchemy error - %s" % e.message
-            loghandle(e.message)
+            logit.log(e.message)
         return(message)
