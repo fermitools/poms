@@ -74,7 +74,7 @@ def test_get_inflight():
     print "jid", jid
     task_id_test = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
     print "task_id", task_id_test
-    mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id_test, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id_test, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
     jobj = dbhandle.query(Job).filter(Job.jobsub_job_id==jid).first()
     print "job object id", jobj.job_id
     print "the jobsub_job_id", jobj.jobsub_job_id
