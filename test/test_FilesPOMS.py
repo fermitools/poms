@@ -80,7 +80,7 @@ def test_get_inflight():
     print "the jobsub_job_id", jobj.jobsub_job_id
     fname="testFile_Felipe.root"
     jf=JobFile(file_name = fname, file_type = "test_file", created = t , job_obj = jobj)
-    j.job_files.append(jf)
+    #jf.job_files.append(jf) extracted from poms files ....
     dbhandle.add(jf)
     outlist = mps.FilesPOMS.get_inflight(task_id=task_id)
     print "the outlist is", outlist
