@@ -19,7 +19,7 @@ class CalendarPOMS:
 
     def calendar_json(self, dbhandle,start, end, timezone, _):
         rows = dbhandle.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).filter(ServiceDowntime.downtime_started.between(start, end)).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(~Service.name.endswith("sam")).all()
-        list=[]
+        alist=[]
         for row in rows:
             if row.ServiceDowntime.downtime_type == 'scheduled':
                     editable = 'true'
@@ -38,9 +38,9 @@ class CalendarPOMS:
                 color = "#21A8BD"
             else:
                 color = "red"
-            list.append({'start_key': str(row.ServiceDowntime.downtime_started), 'title': row.Service.name, 's_id': row.ServiceDowntime.service_id, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended), 'editable': editable, 'color': color})
+            alist.append({'start_key': str(row.ServiceDowntime.downtime_started), 'title': row.Service.name, 's_id': row.ServiceDowntime.service_id, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended), 'editable': editable, 'color': color})
 
-        return list
+        return alist
 
 
     #CalendarPOMS.calendar(cherrypy.request.db)
