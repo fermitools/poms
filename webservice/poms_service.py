@@ -642,7 +642,9 @@ class poms_service:
     @logit.logstartstop
     def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None): ###needs to be analize in detail.
         vals = self.taskPOMS.launch_jobs(cherrypy.request.db,
-                        cherrypy.request.headers.get, cherrypy.session,
+                        cherrypy.config.get,
+                        cherrypy.request.headers.get, 
+                        cherrypy.session.get,
                         cherrypy.request.samweb_lite,
                         cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
         logit.log("Got vals: %s" % repr(vals))
