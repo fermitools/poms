@@ -181,8 +181,8 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
 
-    #js = jobsub_es_scraper(job_reporter("http://localhost:8080/poms", debug=debug), debug = debug)
-    js = jobsub_es_scraper(job_reporter("http://pomsgpvm01.fnal.gov:8080/poms", debug=debug), debug = debug)
+    js = jobsub_es_scraper(job_reporter("http://localhost:8080/poms", debug=debug), debug = debug)
+    #js = jobsub_es_scraper(job_reporter("http://pomsgpvm01.fnal.gov:8080/poms", debug=debug), debug = debug)
 
     try:
         js.poll()
