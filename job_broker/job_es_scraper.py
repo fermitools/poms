@@ -85,14 +85,15 @@ class jobsub_es_scraper:
         # check all active jobs in ES and update ones that have ended
         # if TerminatedEvent exists add to self.FinishedJobs
         print ("CATCHUP FUNCTION NOT IMPLEMENTED YET")
-        print self.ActiveJobs
+        #print self.ActiveJobs
 
     def UpdateJobs(self):
 
         for jid in self.FinishedJobs:
             args = self.FinishedJobs[jid]
             try:
-                print self.FinishedJobs[jid]
+                if (self.debug == 1):
+                    print self.FinishedJobs[jid]
                 self.job_reporter.report_status(**args)
             except KeyboardInterrupt:
                 raise
@@ -173,7 +174,7 @@ class jobsub_es_scraper:
 	        traceback.print_exc()
 	        pass
 
-            time.sleep(30)
+            time.sleep(120)
 
 if __name__ == '__main__':
     debug = 0
@@ -182,6 +183,7 @@ if __name__ == '__main__':
 
     js = jobsub_es_scraper(job_reporter("http://localhost:8080/poms", debug=debug), debug = debug)
     #js = jobsub_es_scraper(job_reporter("http://pomsgpvm01.fnal.gov:8080/poms", debug=debug), debug = debug)
+
     try:
         js.poll()
     except KeyboardInterrupt:
