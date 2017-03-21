@@ -82,7 +82,7 @@ def test_get_inflight():
     jf=JobFile(file_name = fname, file_type = "test_file", created = t , job_obj = jobj)
     #jf.job_files.append(jf) extracted from poms files ....
     dbhandle.add(jf)
-    outlist = mps.filesPOMS.get_inflight(task_id=task_id_test)
+    outlist = mps.filesPOMS.get_inflight(dbhandle, task_id=task_id_test)
     print "the outlist is", outlist
     assert(outlist == fname)
     #update_job_common
