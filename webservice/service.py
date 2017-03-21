@@ -377,7 +377,7 @@ if True:
     if args.use_wsgi:
         cherrypy.server.unsubscribe()
     cherrypy.engine.start()
-    if args.use_wsgi is False:
+    if not args.use_wsgi:
         cherrypy.engine.block()		# Disable built-in HTTP server when behind wsgi
         print >> sys.stderr, "Starting Cherrypy HTTP"
     application = cherrypy.tree
