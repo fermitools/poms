@@ -48,11 +48,7 @@ def setUpPoms():
     print "************* SETTING UP POMS *************"
     try:
         # proc = subprocess.Popen("cd ../ && source /fnal/ups/etc/setups.sh && setup -. poms && cd webservice/ && python service.py --no-wsgi",
-        # proc = subprocess.Popen("cd ../webservice/ && python service.py --no-wsgi -c ../../poms.ini",
         #                         shell=True)
-        # proc = subprocess.Popen("/home/podstvkv/Workspace/Poms/run-uwsgi-test.sh",
-        #                         cwd='/home/podstvkv/Workspace/Poms',
-        #                         shell=False)
         proc = subprocess.Popen("python ../webservice/service.py --no-wsgi -c ../../poms.ini", shell=True)
         print "PID =", proc.pid
     except OSError as e:
