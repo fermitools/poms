@@ -73,7 +73,7 @@ def test_get_inflight():
     jid = "%d@fakebatch_test.fnal.gov" % t
     print "jid", jid
     task_id_test = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
-    print "task_id", task_id
+    print "task_id", task_id_test
     mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id_test, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
     jobj = dbhandle.query(Job).filter(Job.jobsub_job_id==jid).first()
     print "job object id", jobj.job_id
