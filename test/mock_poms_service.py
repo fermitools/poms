@@ -1,17 +1,17 @@
 import socket
-import webservice.AccessPOMS  
-import webservice.CalendarPOMS 
+import webservice.AccessPOMS
+import webservice.CalendarPOMS
 import webservice.CampaignsPOMS
 import webservice.DBadminPOMS
-import webservice.FilesPOMS 
-import webservice.JobsPOMS 
+import webservice.FilesPOMS
+import webservice.JobsPOMS
 import webservice.TablesPOMS
-import webservice.TagsPOMS 
+import webservice.TagsPOMS
 import webservice.TagsPOMS
 import webservice.TaskPOMS
-import webservice.TriagePOMS 
-import webservice.UtilsPOMS 
-import logging 
+import webservice.TriagePOMS
+import webservice.UtilsPOMS
+import logging
 
 logger = logging.getLogger('cherrypy.error')
 
@@ -28,7 +28,7 @@ class mock_poms_service:
         self.dbadminPOMS = webservice.DBadminPOMS.DBadminPOMS()
         self.filesPOMS = webservice.FilesPOMS.Files_status(self)
         self.jobsPOMS = webservice.JobsPOMS.JobsPOMS(self)
-        self.tablesPOMS = webservice.TablesPOMS.TablesPOMS(self, logger.info)
+        self.tablesPOMS = webservice.TablesPOMS.TablesPOMS(self)
         self.tagsPOMS = webservice.TagsPOMS.TagsPOMS(self)
         self.taskPOMS = webservice.TaskPOMS.TaskPOMS(self)
         self.triagePOMS= webservice.TriagePOMS.TriagePOMS(self)
