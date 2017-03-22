@@ -72,7 +72,7 @@ def test_get_inflight():
     samhandle = samweb_lite()
     t = time.time()
     tUTC=time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(t))
-    print "t", t 
+    print "t", t
     print "UTC", tUTC
     jid = "%d@fakebatch_test.fnal.gov" % time.time()
     print "jid", jid
@@ -83,7 +83,7 @@ def test_get_inflight():
     print "job object id", jobj.job_id
     print "the jobsub_job_id", jobj.jobsub_job_id
     fname="testFile_Felipe.root"
-    jf=JobFile(file_name = fname, file_type = "test_file", created = tUTC , job_obj = jobj)
+    jf=JobFile(file_name = fname, file_type = "input", created = tUTC , job_obj = jobj)
     print jf
     #jf.job_files.append(jf) extracted from poms files ....
     dbhandle.add(jf)
