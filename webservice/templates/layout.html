@@ -136,8 +136,8 @@
             <div class="item">
               <div class="header">Campaign Layers</div>
               <div class="menu">
-		{% if current_experimenter is defined %}
-                {%for e in current_experimenter.authorized_for.keys()%}
+		{% if current_experimenter is defined and current_experimenter.authorized_for %}
+                {% for e in current_experimenter.authorized_for.keys() %}
                 {%if e != 'root' and current_experimenter.authorized_for[e] %}
                 <a class="item" href="{{pomspath}}/show_campaigns?experiment={{e}}">
                   Active for {{e}}
@@ -267,7 +267,7 @@
             <div class="item">
               <div class="header">Campaign Layers</div>
               <div class="menu">
-		{% if current_experimenter is defined %}
+		{% if current_experimenter is defined and current_experimenter.authorized_for %}
                 {%for e in current_experimenter.authorized_for.keys()%}
                 {%if e != 'root' and current_experimenter.authorized_for[e] %}
                 <a class="item" href="{{pomspath}}/show_campaigns?experiment={{e}}">
@@ -500,7 +500,6 @@ $('.tbox_delayed')
 <script>
 $( document ).ready(function() { $('#auth_info').dimmer({on: 'hover'}); });
 </script>
-
 
 
 {%block final%} {%endblock%}
