@@ -7,7 +7,7 @@ import socket
 from mock.mock import MagicMock
 from poms.webservice.utc import utc
 from poms.webservice.samweb_lite import samweb_lite
-from poms.model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job, JobFile
+from poms.model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job, JobFile, Task
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
