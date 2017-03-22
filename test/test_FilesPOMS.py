@@ -1,7 +1,7 @@
 import DBHandle
 import datetime
 import time
-from utc import utc
+#from utc import utc
 import os
 import socket
 from mock.mock import MagicMock
@@ -70,7 +70,10 @@ def test_list_task_logged_files():
 def test_get_inflight():
     dbhandle = DBHandle.DBHandle().get()
     samhandle = samweb_lite()
-    t = datetime.now(utc)
+    t = time.time()
+    tUTC=time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(t))
+    print "t", t 
+    print "UTC", tUTC
     jid = "%d@fakebatch_test.fnal.gov" % time.time()
     print "jid", jid
     task_id_test = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
@@ -80,7 +83,7 @@ def test_get_inflight():
     print "job object id", jobj.job_id
     print "the jobsub_job_id", jobj.jobsub_job_id
     fname="testFile_Felipe.root"
-    jf=JobFile(file_name = fname, file_type = "test_file", created = t , job_obj = jobj)
+    jf=JobFile(file_name = fname, file_type = "test_file", created = tUTC , job_obj = jobj)
     print jf
     #jf.job_files.append(jf) extracted from poms files ....
     dbhandle.add(jf)
