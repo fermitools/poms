@@ -134,7 +134,7 @@
             </div>
 
             <div class="item">
-              <div class="header">Campaign Layers</div>
+              <div class="header">Campaign Layer Info</div>
               <div class="menu">
 		{% if current_experimenter is defined and current_experimenter.authorized_for %}
                 {% for e in current_experimenter.authorized_for.keys() %}
@@ -151,6 +151,11 @@
                 <a class="item" href="{{pomspath}}/show_campaigns?active=False">
                   InActive
                 </a>
+              </div>
+            </div>
+            <div class="item">
+              <div class="header">Configure Work</div>
+              <div class="menu">
                 <a class="item" href="{{pomspath}}/campaign_edit">
                   Compose Campaign Layers
                 </a>
@@ -265,7 +270,7 @@
             </div>
 
             <div class="item">
-              <div class="header">Campaign Layers</div>
+              <div class="header">Campaign Layer Info</div>
               <div class="menu">
 		{% if current_experimenter is defined and current_experimenter.authorized_for %}
                 {%for e in current_experimenter.authorized_for.keys()%}
@@ -282,6 +287,11 @@
                 <a class="item" href="{{pomspath}}/show_campaigns?active=False">
                   InActive
                 </a>
+              </div>
+            </div>
+            <div class="item">
+              <div class="header">Configure Work</div>
+              <div class="menu">
                 <a class="item" href="{{pomspath}}/campaign_edit">
                   Compose Campaign Layers
                 </a>
