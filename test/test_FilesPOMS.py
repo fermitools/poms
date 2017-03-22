@@ -69,8 +69,8 @@ def test_list_task_logged_files():
 def test_get_inflight():
     dbhandle = DBHandle.DBHandle().get()
     samhandle = samweb_lite()
-    t = time.time()
-    jid = "%d@fakebatch_test.fnal.gov" % t
+    t = datetime.now(utc)
+    jid = "%d@fakebatch_test.fnal.gov" % time.time() 
     print "jid", jid
     task_id_test = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
     print "task_id", task_id_test
