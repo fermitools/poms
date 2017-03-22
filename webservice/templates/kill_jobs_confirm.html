@@ -33,7 +33,7 @@
 
    Are you sure you want to kill the jobs for 
      {% if campaign_id is not none %}
-        Campaign Layer {{c.name if c}}, Submission(s) {{jjil|join(', ')}}
+        Campaign Stage {{c.name if c}}, Submission(s) {{jjil|join(', ')}}
      {% elif task_id is not none %}
        Submissions(s) {{jjil|join(', ')}}
      {% elif job_id is not none %}

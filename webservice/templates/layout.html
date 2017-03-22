@@ -134,7 +134,7 @@
             </div>
 
             <div class="item">
-              <div class="header">Campaign Layer Info</div>
+              <div class="header">Campaign Stage Info</div>
               <div class="menu">
 		{% if current_experimenter is defined and current_experimenter.authorized_for %}
                 {% for e in current_experimenter.authorized_for.keys() %}
@@ -163,7 +163,7 @@
                   Compose Job Type
                 </a>
                 <a class="item" href="{{pomspath}}/campaign_edit">
-                  Compose Campaign Layers
+                  Compose Campaign Stage
                 </a>
               </div>
             </div>
@@ -176,10 +176,10 @@
                         All (Last Day)
                     </a>
                     <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=name">
-                        Failed_By Exit Code and Campaign Layer Name (Last Day)
+                        Failed_By Exit Code and Campaign Stage Name (Last Day)
                     </a>
                     <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=7&f=user_exe_exit_code&f=name">
-                        Failed_By Exit Code and Campaign Layer Name (Last Week)
+                        Failed_By Exit Code and Campaign Stage Name (Last Week)
                     </a>
                     <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=node_name">
                         Failed_By Exit Code and Node Name (Last Day)
@@ -270,7 +270,7 @@
             </div>
 
             <div class="item">
-              <div class="header">Campaign Layer Info</div>
+              <div class="header">Campaign Stage Info</div>
               <div class="menu">
 		{% if current_experimenter is defined and current_experimenter.authorized_for %}
                 {%for e in current_experimenter.authorized_for.keys()%}
@@ -299,7 +299,7 @@
                   Compose Job Type
                 </a>
                 <a class="item" href="{{pomspath}}/campaign_edit">
-                  Compose Campaign Layers
+                  Compose Campaign Stages
                 </a>
 	      </div>
             </div>
@@ -311,10 +311,10 @@
 		  All (Last Day)
 		</a>
                     <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=name">
-                        Failed_By Exit Code and Campaign Layer Name (Last Day)
+                        Failed_By Exit Code and Campaign Stage Name (Last Day)
                     </a>
                     <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=7&f=user_exe_exit_code&f=name">
-                        Failed_By Exit Code and Campaign Layer Name (Last Week)
+                        Failed_By Exit Code and Campaign Stage Name (Last Week)
                     </a>
                     <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=node_name">
                         Failed_By Exit Code and Node Name (Last Day)
