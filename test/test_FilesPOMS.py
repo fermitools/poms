@@ -82,6 +82,14 @@ def test_get_inflight():
     jf=JobFile(file_name = fname, file_type = "test_file", created = t , job_obj = jobj)
     #jf.job_files.append(jf) extracted from poms files ....
     dbhandle.add(jf)
+    dbhandle.commit()
+    print "I want to see my file"
+    fobj=dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
+    q = dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
+    q = q.filter(Task.campaign_id == Campaign.campaign_id)
+    q = q.filter(Task.task_id == Job.task_id)
+    q = q.filter(Job.job_id == JobFile.job_id)
+    print q
     outlist = mps.filesPOMS.get_inflight(dbhandle, task_id=task_id_test)
     print "the outlist is", outlist
     assert(outlist == fname)
