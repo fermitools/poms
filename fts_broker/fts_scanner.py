@@ -72,8 +72,8 @@ class fts_status_watcher:
             if exp == "unknown":
                 continue
             try:
-                os.rename("%s/%s_files.db.new" % (self.workdir, item["experiment"]),
-                         "%s/%s_files.db" % (self.workdir, item["experiment"]))
+                os.rename("%s/%s_files.db.new" % (self.workdir, exp ),
+                         "%s/%s_files.db" % (self.workdir, exp))
             except:
                 print "Error renaming %s/%s_files.db.new" % (self.workdir, item["experiment"])
  
