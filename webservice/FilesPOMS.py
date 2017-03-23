@@ -6,6 +6,7 @@
 ### October, 2016.
 
 import os
+import shelve
 import logit
 
 from poms.model.poms_model import Job, Task, Campaign, JobFile

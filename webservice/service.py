@@ -28,6 +28,7 @@ import poms_service
 
 import jobsub_fetcher
 import samweb_lite
+import logging_conf
 
 
 class SAEnginePlugin(plugins.SimplePlugin):
@@ -54,10 +55,15 @@ class SAEnginePlugin(plugins.SimplePlugin):
 
 
     def start(self):
-        db = cherrypy.config.get("db")
-        dbuser = cherrypy.config.get("dbuser")
-        dbhost = cherrypy.config.get("dbhost")
-        dbport = cherrypy.config.get("dbport")
+        # db = cherrypy.config.get("db")
+        # dbuser = cherrypy.config.get("dbuser")
+        # dbhost = cherrypy.config.get("dbhost")
+        # dbport = cherrypy.config.get("dbport")
+        section = cherrypy.request.app.config['Databases']
+        db = section["db"]
+        dbuser = section["dbuser"]
+        dbhost = section["dbhost"]
+        dbport = section["dbport"]
         db_path = "postgresql://%s:@%s:%s/%s" % (dbuser, dbhost, dbport, db)
         self.sa_engine = create_engine(db_path, echo=False, echo_pool=False)
         atexit.register(self.destroy)
@@ -267,82 +273,6 @@ def parse_command_line():
 # if __name__ == '__main__':
 if True:
 
-    log_conf = {
-        'version': 1,
-
-        'formatters': {
-            'void': {
-                'format': ''
-                },
-            'standard': {
-                'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
-                },
-            'error': {
-                'format': '%(asctime)s <%(process)d.%(thread)d> %(message)s'
-                },
-            'access': {
-                'format': '<%(process)d> %(message)s'
-                },
-            },
-        'handlers': {
-            'default': {
-                'level': 'INFO',
-                'class': 'logging.StreamHandler',
-                'formatter': 'error',
-                'stream': 'ext://sys.stdout'
-                },
-            'cherrypy_console': {
-                'level': 'INFO',
-                'class': 'logging.StreamHandler',
-                'formatter': 'error',
-                'stream': 'ext://sys.stdout'
-                },
-            'cherrypy_access': {
-                'level': 'INFO',
-                'class': 'logging.StreamHandler',
-                'formatter': 'access',
-                'stream': 'ext://sys.stdout'
-                },
-            'cherrypy_error': {
-                'level': 'INFO',
-                'class': 'logging.StreamHandler',
-                'formatter': 'error',
-                'stream': 'ext://sys.stderr'
-                },
-            },
-        'loggers': {
-            '': {
-                'handlers': ['default'],
-                'level': 'INFO'
-                },
-            'cherrypy.access': {
-                'handlers': ['cherrypy_access'],
-                'level': 'INFO',
-                'propagate': False
-                },
-            'cherrypy.error': {
-                'handlers': ['cherrypy_error'],
-                'level': 'INFO',
-                'propagate': False
-                },
-            'sqlalchemy.engine': {
-                'handlers': ['cherrypy_error'],
-                'level': 'INFO',
-                'propagate': False
-                },
-            }
-        }
-
-    config = {'/': {
-                        'tools.db.on': True,
-                        'tools.psess.on': True,
-                        'tools.sessions.on': True,
-                        'tools.sessions.timeout': 60,
-                        'tools.sessions.storage_type': 'file',
-                        'tools.sessions.locking': 'early',          # IMPORTANT!
-                    },
-               }
-
     configfile = "poms.ini"
     parser, args = parse_command_line()
     if args.config:
@@ -353,38 +283,37 @@ if True:
         print >> sys.stderr, mess
         parser.print_help()
         raise SystemExit
-    path = cherrypy.config.get("path")
-    if path is None:
-        path = "/poms"
 
     SAEnginePlugin(cherrypy.engine).subscribe()
     cherrypy.tools.db = SATool()
     cherrypy.tools.psess = SessionTool()
     pomsInstance = poms_service.poms_service()
-    app = cherrypy.tree.mount(pomsInstance, path, configfile)
-    app.merge(config)
+    app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, configfile)
 
-    cherrypy.config.update({'engine.autoreload.on': False})	    # Recommended
-    cherrypy.config.update({'log.screen': False,
-                            'log.access_file': '',
-                            'log.error_file': ''})
     cherrypy.engine.unsubscribe('graceful', cherrypy.log.reopen_files)
-    logging.config.dictConfig(log_conf)
 
-    cherrypy.log.error("POMSPATH: %s" % path)
+    logging.config.dictConfig(logging_conf.LOG_CONF)
+    cherrypy.log.error("POMSPATH: %s" % pomsInstance.path)
     pidfile()
+
     pomsInstance.post_initalize()
+
     if args.use_wsgi:
         cherrypy.server.unsubscribe()
+
     cherrypy.engine.start()
+
     if not args.use_wsgi:
         cherrypy.engine.block()		# Disable built-in HTTP server when behind wsgi
         print >> sys.stderr, "Starting Cherrypy HTTP"
+
     application = cherrypy.tree
     if 0:
-        from paste.exceptions.errormiddleware import ErrorMiddleware
-        from repoze.errorlog import ErrorLog
-        #application = ErrorMiddleware(application, debug=True)
-        #application = ErrorLog(application, channel=None, keep=20, path='/__error_log__', ignored_exceptions=())
-
+        # from paste.exceptions.errormiddleware import ErrorMiddleware
+        # application = ErrorMiddleware(application, debug=True)
+        pass
+    if 0:
+        # from repoze.errorlog import ErrorLog
+        # application = ErrorLog(application, channel=None, keep=20, path='/__error_log__', ignored_exceptions=())
+        pass
     # END
