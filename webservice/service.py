@@ -104,7 +104,7 @@ class SATool(cherrypy.Tool):
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
         self.session.execute("SET SESSION lock_timeout = '1s';")
-        self.session.execute("SET SESSION statement_timeout = '30s';")
+        self.session.execute("SET SESSION statement_timeout = '45s';")
         self.session.commit()
 
     def release_session(self):
@@ -377,7 +377,7 @@ if True:
     if args.use_wsgi:
         cherrypy.server.unsubscribe()
     cherrypy.engine.start()
-    if args.use_wsgi is False:
+    if not args.use_wsgi:
         cherrypy.engine.block()		# Disable built-in HTTP server when behind wsgi
         print >> sys.stderr, "Starting Cherrypy HTTP"
     application = cherrypy.tree

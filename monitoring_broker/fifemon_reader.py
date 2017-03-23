@@ -15,7 +15,14 @@ import json
 import pycurl
 from StringIO import StringIO
 
+# don't whine about certificates
 requests.packages.urllib3.disable_warnings()
+
+# don't barf if we need to log utf8...
+import codecs
+sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+
+
 
 
 class status_scraper:
