@@ -100,9 +100,10 @@ def test_get_inflight():
     q = q.filter(Task.campaign_id == Campaign.campaign_id)
     q = q.filter(Task.task_id == Job.task_id)
     q = q.filter(Job.job_id == JobFile.job_id)
+    q = q.filter(JobFile.file_type == 'output')
     q = q.filter(Task.campaign_id == campaign_id_test)
     q = q.filter(Job.task_id == task_id_test)
-    q = q.filter(Job.job_id == jobj.job_id)
+    #q = q.filter(Job.job_id == jobj.job_id)
     print "q", q.all()
     print "q.Job.output_files_declared", q.Job.output_files_declared
 
