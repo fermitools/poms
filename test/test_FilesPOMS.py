@@ -71,26 +71,37 @@ def test_get_inflight():
     dbhandle = DBHandle.DBHandle().get()
     samhandle = samweb_lite()
     t = time.time()
-    tUTC=time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(t))
+    tUTC=time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(t)) #time stamp for file creation
+    campaign_id_test = '14' #test campaign
+    jid = "%d@fakebatch_test.fnal.gov" % time.time() #fake jobsub_job_id
+    task_id_test = mps.taskPOMS.get_task_id_for(dbhandle,campaign=campaign_id_test)
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id_test, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
+    jobj = dbhandle.query(Job).filter(Job.jobsub_job_id==jid).first() #taking a job object from the job just included in the previous stage
+    fname="testFile_Felipe_%s_%s.root" % (tUTC,task_id_test)
+    jf=JobFile(file_name = fname, file_type = "output", created = tUTC , job_obj = jobj) #including the file into the JobFile Table.
+
+
+    #Verbosity
     print "t", t
     print "UTC", tUTC
-    jid = "%d@fakebatch_test.fnal.gov" % time.time()
     print "jid", jid
-    task_id_test = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
     print "task_id", task_id_test
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id_test, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
-    jobj = dbhandle.query(Job).filter(Job.jobsub_job_id==jid).first()
     print "job object id", jobj.job_id
     print "the jobsub_job_id", jobj.jobsub_job_id
-    fname="testFile_Felipe_%s_%s.root" % (tUTC,task_id_test)
-    jf=JobFile(file_name = fname, file_type = "input", created = tUTC , job_obj = jobj)
     print jf
     #jf.job_files.append(jf) extracted from poms files ....
     dbhandle.add(jf)
     dbhandle.commit()
     print "I want to see my file"
-    campaign_id = '14'
     job_id=jobj.job_id
+
+    print "just a little test"
+    print "****"*4
+    outlist = mps.filesPOMS.get_inflight(dbhandle, task_id=task_id_test)
+    print "the outlist is", outlist
+    assert(outlist == fname)
+
+
     '''
     fobj=dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
     q = dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
@@ -99,11 +110,6 @@ def test_get_inflight():
     q = q.filter(Job.job_id == JobFile.job_id)
     #print "q", q.all()
     '''
-    print "just a little test"
-    print "****"*4
-    outlist = mps.filesPOMS.get_inflight(dbhandle, task_id=task_id_test)
-    print "the outlist is", outlist
-    assert(outlist == fname)
     #update_job_common
     #commit
     #job_object=dbhandle.query(Job, JobFile).with_for_update(of=Job).filter(JobFile.job_id == jobj.job_id).first()
