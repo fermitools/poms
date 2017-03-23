@@ -55,10 +55,6 @@ class SAEnginePlugin(plugins.SimplePlugin):
 
 
     def start(self):
-        # db = cherrypy.config.get("db")
-        # dbuser = cherrypy.config.get("dbuser")
-        # dbhost = cherrypy.config.get("dbhost")
-        # dbport = cherrypy.config.get("dbport")
         section = cherrypy.request.app.config['Databases']
         db = section["db"]
         dbuser = section["dbuser"]
