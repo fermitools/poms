@@ -82,16 +82,16 @@ def test_get_inflight():
     jobj = dbhandle.query(Job).filter(Job.jobsub_job_id==jid).first()
     print "job object id", jobj.job_id
     print "the jobsub_job_id", jobj.jobsub_job_id
-    fname="testFile_Felipe.root"
+    fname="testFile_Felipe_%s_%s.root" % tUTC %task_id_test
     jf=JobFile(file_name = fname, file_type = "input", created = tUTC , job_obj = jobj)
     print jf
     #jf.job_files.append(jf) extracted from poms files ....
     dbhandle.add(jf)
     dbhandle.commit()
     print "I want to see my file"
-    '''
     campaign_id = '14'
     job_id=jobj.job_id
+    '''
     fobj=dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
     q = dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
     q = q.filter(Task.campaign_id == Campaign.campaign_id)
