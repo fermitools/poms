@@ -102,6 +102,7 @@ def test_get_inflight():
     q = q.filter(Job.job_id == JobFile.job_id)
     q = q.filter(Job.jobid == job_obj.job_id)
     print "q", q.all()
+    print "q.output_files_declared", q.output_files_declared()
 
     outlist = mps.filesPOMS.get_inflight(dbhandle, task_id=task_id_test)
     print "the outlist is", outlist
