@@ -731,7 +731,10 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def inflight_files(self, campaign_id=None, task_id=None):
-        outlist, statusmap, c = self.filesPOMS.inflight_files(cherrypy.request.db, cherrypy.response.status, cherrypy.config.get, campaign_id, task_id)
+        outlist, statusmap, c = self.filesPOMS.inflight_files(cherrypy.request.db,
+                                                              cherrypy.response.status,
+                                                              cherrypy.request.app.config['POMS'].get,
+                                                              campaign_id, task_id)
         template = self.jinja_env.get_template('inflight_files.html')
         return template.render(flist=outlist,
                                current_experimenter=cherrypy.session.get('experimenter'),
