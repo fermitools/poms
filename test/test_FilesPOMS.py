@@ -77,39 +77,35 @@ def test_get_inflight():
     task_id_test = mps.taskPOMS.get_task_id_for(dbhandle,campaign=campaign_id_test)
     mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id_test, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
     jobj = dbhandle.query(Job).filter(Job.jobsub_job_id==jid).first() #taking a job object from the job just included in the previous stage
+    #db_job_id=jobj.job_id #this is the job id in the database different from the jobsub_job_id
     fname="testFile_Felipe_%s_%s.root" % (tUTC,task_id_test)
     jf=JobFile(file_name = fname, file_type = "output", created = tUTC , job_obj = jobj) #including the file into the JobFile Table.
-
+    dbhandle.add(jf)
+    dbhandle.commit()
 
     #Verbosity
     print "t", t
     print "UTC", tUTC
     print "jid", jid
     print "task_id", task_id_test
-    print "job object id", jobj.job_id
+    print "job object id in the db", jobj.job_id
     print "the jobsub_job_id", jobj.jobsub_job_id
     print jf
     #jf.job_files.append(jf) extracted from poms files ....
-    dbhandle.add(jf)
-    dbhandle.commit()
-    print "I want to see my file"
-    job_id=jobj.job_id
-
-    print "just a little test"
-    print "****"*4
-    outlist = mps.filesPOMS.get_inflight(dbhandle, task_id=task_id_test)
-    print "the outlist is", outlist
-    assert(outlist == fname)
 
 
-    '''
+    print "I want to emulate the same query done inside the method because is not working"
     fobj=dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
     q = dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
     q = q.filter(Task.campaign_id == Campaign.campaign_id)
     q = q.filter(Task.task_id == Job.task_id)
     q = q.filter(Job.job_id == JobFile.job_id)
-    #print "q", q.all()
-    '''
+    q = q.filter(Job.jobid == job_obj.job_id)
+    print "q", q.all()
+
+    outlist = mps.filesPOMS.get_inflight(dbhandle, task_id=task_id_test)
+    print "the outlist is", outlist
+    assert(outlist == fname)
     #update_job_common
     #commit
     #job_object=dbhandle.query(Job, JobFile).with_for_update(of=Job).filter(JobFile.job_id == jobj.job_id).first()
