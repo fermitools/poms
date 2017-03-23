@@ -86,8 +86,8 @@ class TaskPOMS:
         self.task_min_job_cache = {}
 
     def create_task(self, dbhandle, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor=None):
-        first, last, email = creator.split(' ')
-        creator = self.poms_service.get_or_add_experimenter(first, last, email)
+        first, last, username = creator.split(' ')
+        creator = self.poms_service.get_or_add_experimenter(first, last, username)
         exp = self.poms_service.get_or_add_experiment(experiment)
         td = self.poms_service.get_or_add_taskdef(taskdef, creator, exp)
         camp = self.poms_service.get_or_add_campaign(exp, td, creator)
@@ -399,7 +399,7 @@ class TaskPOMS:
         if user == None:
              user = 4
         else:
-             u = dbhandle.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
+             u = dbhandle.query(Experimenter).filter(Experimenter.username==user).first()
              if u:
                   user = u.experimenter_id
         q = dbhandle.query(Campaign)
@@ -620,10 +620,7 @@ class TaskPOMS:
             output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
             return lcmd, output, c, campaign_id, outdir, outfile
 
-        experimenter_login = e.email[:e.email.find('@')]
-        lt.launch_account = lt.launch_account % {
-            "experimenter": experimenter_login,
-        }
+        lt.launch_account = lt.launch_account % {"experimenter": e.username,}
 
         if dataset_override:
             dataset = dataset_override

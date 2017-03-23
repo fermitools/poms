@@ -40,7 +40,7 @@ class CampaignsPOMS():
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
         pcl_call = kwargs.pop('pcl_call', 0)
-        pc_email = kwargs.pop('pc_email',None)
+        pc_username = kwargs.pop('pc_username',None)
         if action == 'delete':
             name = kwargs.pop('name')
             try:
@@ -54,7 +54,7 @@ class CampaignsPOMS():
 
         if action == 'add' or action == 'edit':
             if pcl_call == 1:
-                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
                 ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_id
                 ae_launch_name = kwargs.pop('ae_launch_name')
                 ae_launch_host = kwargs.pop('ae_launch_host')
@@ -369,7 +369,7 @@ class CampaignsPOMS():
 
     def new_task_for_campaign(dbhandle , campaign_name, command_executed, experimenter_name, dataset_name = None):
         c = dbhandle.query(Campaign).filter(Campaign.name == campaign_name).first()
-        e = dbhandle.query(Experimenter).filter(Experimenter.email.ilike("%s@%%" % experimenter_name)).first()
+        e = dbhandle.query(Experimenter).filter(Experimenter.username==experimenter_name).first()
         t = Task()
         t.campaign_id = c.campaign_id
         t.campaign_definition_id = c.campaign_definition_id
@@ -525,7 +525,7 @@ class CampaignsPOMS():
          if user == None:
               user = 4
          else:
-              u = dbhandle.query(Experimenter).filter(Experimenter.email.ilike("%s@%%" % user)).first()
+              u = dbhandle.query(Experimenter).filter(Experimenter.username==user).first()
               if u:
                    user = u.experimenter_id
 

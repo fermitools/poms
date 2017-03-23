@@ -120,7 +120,7 @@ class TablesPOMS(object):
     def make_list_for(self, dbhandle, eclass, primkey):     # this function was eliminated from the main class.
         res = []
         for i in dbhandle.query(eclass).order_by(primkey).all():
-            res.append({"key": getattr(i, primkey, ''), "value": getattr(i, 'name', getattr(i, 'email', 'unknown'))})
+            res.append( {"key": getattr(i,primkey,''), "value": getattr(i,'name',getattr(i,'username','unknown'))})
         return res
 
 

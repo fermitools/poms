@@ -4,9 +4,6 @@ import socket
 from jinja2 import Environment, PackageLoader
 from poms.model.poms_model import Service, Task, Campaign
 
-# from utc import utc
-# from crontab import CronTab
-# import gc
 from elasticsearch import Elasticsearch
 import pprint
 import version
@@ -282,8 +279,8 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def member_experiments(self, email, *args, **kwargs):
-        trows = self.dbadminPOMS.member_experiments(cherrypy.request.db, email, *args, **kwargs)
+    def member_experiments(self, username, *args, **kwargs):
+        trows = self.dbadminPOMS.member_experiments(cherrypy.request.db, username, *args, **kwargs)
         return trows
 
 
@@ -366,7 +363,7 @@ class poms_service:
             #~ logit.log("current_experimenter.extra update... ")                               # DEBUG
         #~ logit.log("current_experimenter.extra after: "+str(current_experimenter.extra))      # DEBUG
 
-        experiments = self.dbadminPOMS.member_experiments(cherrypy.request.db, current_experimenter.email)
+        experiments = self.dbadminPOMS.member_experiments(cherrypy.request.db, current_experimenter.username)
 
         template = self.jinja_env.get_template('show_campaigns.html')
 
