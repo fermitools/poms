@@ -273,16 +273,6 @@ def parse_command_line():
 # if __name__ == '__main__':
 if True:
 
-    # config = {'/': {
-    #                     'tools.db.on': True,
-    #                     'tools.psess.on': True,
-    #                     'tools.sessions.on': True,
-    #                     'tools.sessions.timeout': 60,
-    #                     'tools.sessions.storage_type': 'file',
-    #                     'tools.sessions.locking': 'early',          # IMPORTANT!
-    #                 },
-    #            }
-
     configfile = "poms.ini"
     parser, args = parse_command_line()
     if args.config:
@@ -294,38 +284,36 @@ if True:
         parser.print_help()
         raise SystemExit
 
-    # path = cherrypy.config.get("path")
-    # if path is None:
-    #     path = "/poms"
-
     SAEnginePlugin(cherrypy.engine).subscribe()
     cherrypy.tools.db = SATool()
     cherrypy.tools.psess = SessionTool()
     pomsInstance = poms_service.poms_service()
     app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, configfile)
-    # app.merge(config)
 
-    # cherrypy.config.update({'engine.autoreload.on': False})	    # Recommended
-    # cherrypy.config.update({'log.screen': False,
-    #                         'log.access_file': '',
-    #                         'log.error_file': ''})
     cherrypy.engine.unsubscribe('graceful', cherrypy.log.reopen_files)
-    logging.config.dictConfig(logging_conf.LOG_CONF)
 
+    logging.config.dictConfig(logging_conf.LOG_CONF)
     cherrypy.log.error("POMSPATH: %s" % pomsInstance.path)
     pidfile()
+
     pomsInstance.post_initalize()
+
     if args.use_wsgi:
         cherrypy.server.unsubscribe()
+
     cherrypy.engine.start()
+
     if not args.use_wsgi:
         cherrypy.engine.block()		# Disable built-in HTTP server when behind wsgi
         print >> sys.stderr, "Starting Cherrypy HTTP"
+
     application = cherrypy.tree
     if 0:
-        from paste.exceptions.errormiddleware import ErrorMiddleware
-        from repoze.errorlog import ErrorLog
-        #application = ErrorMiddleware(application, debug=True)
-        #application = ErrorLog(application, channel=None, keep=20, path='/__error_log__', ignored_exceptions=())
-
+        # from paste.exceptions.errormiddleware import ErrorMiddleware
+        # application = ErrorMiddleware(application, debug=True)
+        pass
+    if 0:
+        # from repoze.errorlog import ErrorLog
+        # application = ErrorLog(application, channel=None, keep=20, path='/__error_log__', ignored_exceptions=())
+        pass
     # END
