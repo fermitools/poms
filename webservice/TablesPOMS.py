@@ -30,7 +30,7 @@ class TablesPOMS:
 
 
     def update_generic( self, dbhandle, gethead, seshandle, classname, *args, **kwargs):
-        if not seshandle.get('experimenter').is_root(): 
+        if not seshandle.get('experimenter').is_root():
             return "Not allowed"
         return self.update_for(dbhandle, classname, self.admin_map[classname], self.pk_map[classname], *args, **kwargs)
 
@@ -118,7 +118,7 @@ class TablesPOMS:
     def make_list_for(self, dbhandle, eclass,primkey): #this function was eliminated from the main class.
         res = []
         for i in dbhandle.query(eclass).order_by(primkey).all():
-            res.append( {"key": getattr(i,primkey,''), "value": getattr(i,'name',getattr(i,'email','unknown'))})
+            res.append( {"key": getattr(i,primkey,''), "value": getattr(i,'name',getattr(i,'username','unknown'))})
         return res
 
 

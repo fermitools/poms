@@ -1,25 +1,7 @@
 import cherrypy
-# from cherrypy.lib import sessions
-# import glob
 import os
-# import time
-# import time_grid
-# import json
-# import urllib
 import socket
-# import subprocess
-# import select
-# from collections import OrderedDict
-
-# from sqlalchemy import (Column, Integer, Sequence, String, DateTime, ForeignKey,
-#     and_, or_, not_, create_engine, null, desc, text, func, exc, distinct
-# )
-# from sqlalchemy.orm import subqueryload, joinedload, contains_eager
-# from sqlalchemy.orm.exc import NoResultFound
-# from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-# from datetime import datetime, tzinfo, timedelta
 from jinja2 import Environment, PackageLoader
-# import shelve
 from poms.model.poms_model import (Service, ServiceDowntime, Experimenter, Experiment,
     ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition,
     TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile,
@@ -27,9 +9,6 @@ from poms.model.poms_model import (Service, ServiceDowntime, Experimenter, Exper
     CampaignRecovery, RecoveryType, CampaignDependency
 )
 
-# from utc import utc
-# from crontab import CronTab
-# import gc
 from elasticsearch import Elasticsearch
 import pprint
 import version
@@ -304,8 +283,8 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def member_experiments(self, email, *args, **kwargs):
-        trows = self.dbadminPOMS.member_experiments(cherrypy.request.db, email, *args, **kwargs)
+    def member_experiments(self, username, *args, **kwargs):
+        trows = self.dbadminPOMS.member_experiments(cherrypy.request.db, username, *args, **kwargs)
         return trows
 
 
@@ -388,7 +367,7 @@ class poms_service:
             #~ logit.log("current_experimenter.extra update... ")                               # DEBUG
         #~ logit.log("current_experimenter.extra after: "+str(current_experimenter.extra))      # DEBUG
 
-        experiments = self.dbadminPOMS.member_experiments(cherrypy.request.db, current_experimenter.email)
+        experiments = self.dbadminPOMS.member_experiments(cherrypy.request.db, current_experimenter.username)
 
         template = self.jinja_env.get_template('show_campaigns.html')
 
