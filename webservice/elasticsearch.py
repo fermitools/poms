@@ -121,9 +121,9 @@ if __name__ == '__main__':
 
     #emample of searching by field
     query = {
-        "fields" : ["jobid", "Owner"],
-        "query" : {
-            "term" : { "jobid" : "9034906.0@fifebatch1.fnal.gov" }
+        "fields": ["jobid", "Owner"],
+        "query": {
+            "term": {"jobid": "9034906.0@fifebatch1.fnal.gov"}
         }
     }
     response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
@@ -197,7 +197,7 @@ if __name__ == '__main__':
                         }
                     }
                 },
-                "must": {
+                "must": {       # FIXME: This redefines the element set above
                     "exists": {"field": "env.POMS_TASK_ID"}
                 }
             }
