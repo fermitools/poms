@@ -104,12 +104,12 @@ def test_get_inflight():
     q = q.filter(Task.campaign_id == campaign_id_test)
     q = q.filter(Job.task_id == task_id_test)
     #q = q.filter(Job.job_id == jobj.job_id)
-    print "q", q.all()
+    print "q object", q.all()
     for qf in q.all():
-       print qf
+       print "firt loop:", qf
     q = q.filter(Job.output_files_declared)
     for qf in q.all():
-       print qf
+       print "second loop:", qf
     #q = q.filter(Job.output_files_declared is False)
     #print "q.file_name=", q.file_name
 
