@@ -222,12 +222,12 @@ class Files_status(object):
         q = q.filter(Task.task_id == Job.task_id)
         q = q.filter(Job.job_id == JobFile.job_id)
         q = q.filter(JobFile.file_type == 'output')
-        q = q.filter(JobFile.declared is None)
+        q = q.filter(JobFile.declared == None)
         if campaign_id is not None:
             q = q.filter(Task.campaign_id == campaign_id)
         if task_id is not None:
             q = q.filter(Job.task_id == task_id)
-        q = q.filter(Job.output_files_declared is False)
+        q = q.filter(Job.output_files_declared == False)
         outlist = []
         # jjid = "xxxxx"
         for jf in q.all():
