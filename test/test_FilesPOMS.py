@@ -107,13 +107,10 @@ def test_get_inflight():
     print "q object", q.all()
     for qf in q.all():
        print "firt loop:", qf
-    q = q.filter(Job.output_files_declared)
+    q = q.filter(Job.output_files_declared is False)
     #q = q.filter(Job.job_id==db_job_id)
-    print "q.filter(Job.output_files_declared)", q.all()
-    for qf in q.all():
-       print "second loop:", qf
-    #q = q.filter(Job.output_files_declared is False)
-    #print "q.file_name=", q.file_name
+    print "q.filter(Job.output_files_declared is False)", q.all()
+    print "q.file_name=", q.file_name
 
     outlist = mps.filesPOMS.get_inflight(dbhandle, task_id=task_id_test)
     print "the outlist is", outlist
