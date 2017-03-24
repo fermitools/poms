@@ -107,8 +107,8 @@ def test_get_inflight():
     print "q object", q.all()
     for qf in q.all():
        print "firt loop:", qf
-    #q = q.filter(Job.output_files_declared)
-    q = q.filter(Job.job_id==db_job_id)
+    q = q.filter(Job.output_files_declared is False)
+    #q = q.filter(Job.job_id==db_job_id)
     print "q object filter (Job.job_id==db_job_id)", q
     for qf in q.all():
        print "second loop:", qf
