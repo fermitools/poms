@@ -106,7 +106,7 @@ def test_get_inflight():
     #q = q.filter(Job.job_id == jobj.job_id)
     print "q object", q.all()
     for qf in q.all():
-       print "firt loop:", qf.all()
+       print "firt loop:", qf
     q = q.filter(Job.output_files_declared is False)
     #q = q.filter(Job.job_id==db_job_id)
     print "q.filter(Job.output_files_declared is False", q.all()
