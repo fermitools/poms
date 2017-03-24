@@ -73,14 +73,19 @@ def test_get_inflight():
     t = time.time()
     tUTC=time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(t)) #time stamp for file creation
     campaign_id_test = '14' #test campaign
-    jid = "%d@fakebatch_test.fnal.gov" % time.time() #fake jobsub_job_id
+    jid = "%d@fakebatch_test.fnal.gov" % t #fake jobsub_job_id
     task_id_test = mps.taskPOMS.get_task_id_for(dbhandle,campaign=campaign_id_test)
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id_test, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id_test, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
     jobj = dbhandle.query(Job).filter(Job.jobsub_job_id==jid).first() #taking a job object from the job just included in the previous stage
     db_job_id=jobj.job_id #this is the job id in the database different from the jobsub_job_id
     fname="testFile_Felipe_%s_%s.root" % (tUTC,task_id_test)
     jf=JobFile(file_name = fname, file_type = "output", created = tUTC , job_obj = jobj) #including the file into the JobFile Table.
     dbhandle.add(jf)
+    t2= time.time()
+    tUTC2=time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(t2)) #time stamp for file creation
+    fname2="testFile2_Felipe_%s_%s.root" % (tUTC2,task_id_test)
+    jf2=JobFile(file_name = fname2, file_type = "output", created = tUTC2, job_obj = jobj)
+    dbhandle.add(jf2)
     dbhandle.commit()
 
     #Verbosity
@@ -97,22 +102,33 @@ def test_get_inflight():
     print "I want to emulate the same query done inside the method because is not working"
     fobj=dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
     q = dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
+    print "@"*10
     q = q.filter(Task.campaign_id == Campaign.campaign_id)
     q = q.filter(Task.task_id == Job.task_id)
     q = q.filter(Job.job_id == JobFile.job_id)
     q = q.filter(JobFile.file_type == 'output')
+    q = q.filter(Job.job_id ==db_job_id)
     q = q.filter(Task.campaign_id == campaign_id_test)
     q = q.filter(Job.task_id == task_id_test)
-    #q = q.filter(Job.job_id == jobj.job_id)
+    print "@"*10
+    q = q.filter(Job.output_files_declared == False)
+    print "#"*20
     print "q object", q.all()
-    for qf in q.all():
-       print "firt loop:", qf
-    q = q.filter(Job.output_files_declared is False)
+    #q = q.filter(Job.output_files_declared is True)
     #q = q.filter(Job.job_id==db_job_id)
-    print "q.filter(Job.output_files_declared is False)", q.all()
-    print "q.file_name=", q.file_name
+    print "*"*10
+    #print q.values()
+    for x in q.all():
+	print "element_jobid", x.job_id
+	#print "element_taskid", x.task_id
+	print "element_file", x.file_type
+	print "element_filename", x.file_name 
+    	print "declare", x.declared
+    
+    #print "q.filter(Job.output_files_declared is False)", q.all()
+    #print "q.file_name=", q.file_name
 
-    outlist = mps.filesPOMS.get_inflight(dbhandle, task_id=task_id_test)
+    outlist = mps.filesPOMS.get_inflight(dbhandle, task_id=24931)
     print "the outlist is", outlist
     assert(outlist == fname)
     #update_job_common
