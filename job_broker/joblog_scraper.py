@@ -11,6 +11,10 @@ import threading
 
 from job_reporter import job_reporter
 
+# don't barf if we need to log utf8...
+import codecs
+sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+
 import prometheus_client as prom
 
 class joblog_scraper:

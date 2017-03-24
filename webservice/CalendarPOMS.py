@@ -5,6 +5,7 @@
 ### List of methods: calendar_json, calendar, add_event, service_downtimes, update_service, service_status
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel. September, 2016.
 
+import logit
 
 # CalendarPOMS.calendar_json(cherrypy.request.db,start, end, timezone)
 from poms.model.poms_model import Service, ServiceDowntime, Experimenter
@@ -18,7 +19,7 @@ class CalendarPOMS:
 
     def calendar_json(self, dbhandle,start, end, timezone, _):
         rows = dbhandle.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).filter(ServiceDowntime.downtime_started.between(start, end)).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(~Service.name.endswith("sam")).all()
-        list=[]
+        alist=[]
         for row in rows:
             if row.ServiceDowntime.downtime_type == 'scheduled':
                     editable = 'true'
@@ -37,9 +38,9 @@ class CalendarPOMS:
                 color = "#21A8BD"
             else:
                 color = "red"
-            list.append({'start_key': str(row.ServiceDowntime.downtime_started), 'title': row.Service.name, 's_id': row.ServiceDowntime.service_id, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended), 'editable': editable, 'color': color})
+            alist.append({'start_key': str(row.ServiceDowntime.downtime_started), 'title': row.Service.name, 's_id': row.ServiceDowntime.service_id, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended), 'editable': editable, 'color': color})
 
-        return list
+        return alist
 
 
     #CalendarPOMS.calendar(cherrypy.request.db)
@@ -82,12 +83,12 @@ class CalendarPOMS:
         return rows
 
 
-    #CalendarPOMS.update_service(cherrypy.request.db, dbhandle, log_handle, name, parent, status, host_site, total, failed, description)
-    def update_service(self, dbhandle, log_handle, name, parent, status, host_site, total, failed, description):
+    #CalendarPOMS.update_service(cherrypy.request.db, dbhandle, name, parent, status, host_site, total, failed, description)
+    def update_service(self, dbhandle, name, parent, status, host_site, total, failed, description):
         s = dbhandle.query(Service).filter(Service.name == name).first()
         if parent:
             p = dbhandle.query(Service).filter(Service.name == parent).first()
-            log_handle("got parent %s -> %s" % (parent, p))
+            logit.log("got parent %s -> %s" % (parent, p))
             if not p:
                 p = Service()
                 p.name = parent

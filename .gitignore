@@ -1,6 +1,7 @@
-!.gitignore
-CVS
 .*
+!.gitignore
+!.reviewboardrc
+CVS
 *~
 .#*
 /build/*

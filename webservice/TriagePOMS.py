@@ -5,6 +5,7 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
 import urllib
+import logit
 
 from poms.model.poms_model import (
     JobHistory,  Job, Task, Campaign, CampaignDefinition,
@@ -306,7 +307,7 @@ class TriagePOMS():
         return jl, jobcolumns, taskcolumns, campcolumns, tmins, tmaxs, prevlink, nextlink, tdays, extra, hidecolumns, filtered_fields, time_range_string
 
 
-    def failed_jobs_by_whatever(self, dbhandle, loghandle, tmin = None, tmax =  None, tdays = 1 , f = [], go = None):
+    def failed_jobs_by_whatever(self, dbhandle, tmin = None, tmax =  None, tdays = 1 , f = [], go = None):
         # deal with single/multiple argument silliness
         if isinstance(f, basestring):
             f = [f]
@@ -358,7 +359,7 @@ class TriagePOMS():
 
         jl = q.all()
         if jl:
-            #loghandle( "got jobtable %s " % repr( jl[0].__dict__) )
-            loghandle( "got jobtable %s " % repr( jl[0]) )
+            #logit.log( "got jobtable %s " % repr( jl[0].__dict__) )
+            logit.log( "got jobtable %s " % repr( jl[0]) )
 
         return jl, possible_columns, columns, tmins, tmaxs, tdays, prevlink, nextlink, time_range_string, tdays

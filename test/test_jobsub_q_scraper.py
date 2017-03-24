@@ -64,6 +64,13 @@ class TestJobsub_q_scraper:
 		bulk_data = json.loads(urllib.unquote_plus(post_data['data']))
                 i = 0
 
+            if i >= len(bulk_data):
+                print "Failed to get data from:"
+                print "data_log:", data_log
+                print "post_log:", post_log
+                assert(False)
+                break
+
             # did we post what it said?
             line_data = self._parse_line(line)
 

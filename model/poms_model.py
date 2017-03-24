@@ -47,6 +47,7 @@ class Experimenter(Base):
     experimenter_id = Column(Integer, primary_key=True, server_default=text("nextval('experimenters_experimenter_id_seq'::regclass)"))
     first_name = Column(Text, nullable=False)
     last_name = Column(Text)
+    #username = Column(Text, nullable=False)
     email = Column(Text, nullable=False)
     last_login = Column(DateTime(True), nullable=False)
 

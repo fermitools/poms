@@ -9,10 +9,12 @@ if os.environ.get("SETUP_POMS","") == "":
     ups = setups.setups()
     ups.use_package("poms","","SETUP_POMS")
 
+# don't barf if we need to log utf8...
+import codecs
+sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 import re
-import urllib2
-import urllib
+import requests
 import json
 import time
 import traceback
@@ -23,6 +25,7 @@ import prometheus_client as prom
 
 class declared_files_watcher:
     def __init__(self, job_reporter):
+        self.rs = requests.Session()
         self.job_reporter = job_reporter
         self.old_experiment = None
         self.threadCount = prom.Gauge("Thread_count","Number of probe threads")
@@ -33,8 +36,8 @@ class declared_files_watcher:
         print "entering: report_declared_files:", flist
         url = self.job_reporter.report_url + "/report_declared_files"
         try:
-            conn = urllib2.urlopen(url,urllib.urlencode([ ("flist",x) for x in flist]))
-            res = conn.read()
+            conn = self.rs.post(url,data = [ ("flist",x) for x in flist])
+            res = conn.text
             conn.close()
         except KeyboardInterrupt:
             raise
@@ -47,9 +50,9 @@ class declared_files_watcher:
     def call_wrapup_tasks(self):
 	self.jobmap = {}
         try:
-            conn = urllib2.urlopen(self.job_reporter.report_url + '/wrapup_tasks'
+            conn = self.rs.get(self.job_reporter.report_url + '/wrapup_tasks'
 )
-            output = conn.read()
+            output = conn.text
             conn.close()
 
             print "got: ", output
@@ -63,9 +66,9 @@ class declared_files_watcher:
     def get_pending_jobs(self):
 	self.jobmap = {}
         try:
-            conn = urllib2.urlopen(self.job_reporter.report_url + '/output_pending_jobs'
+            conn = self.rs.get(self.job_reporter.report_url + '/output_pending_jobs'
 )
-            jobs = json.load(conn)
+            jobs = conn.json()
             conn.close()
 
             #print "got: ", jobs

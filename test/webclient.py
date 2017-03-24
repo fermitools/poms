@@ -1,6 +1,6 @@
 import time
+import requests
 import urllib2
-import urllib
 import logging
 import utils
 
@@ -9,6 +9,7 @@ logging.basicConfig(filename='test_requests.log',level=logging.DEBUG, filemode='
 
 class WebClient(object):
     def __init__(self, base_url=None):
+        self.rs = requests.Session()
         if base_url:
             self.base_url = base_url
         else:
@@ -24,20 +25,20 @@ class WebClient(object):
         try:
             if method == 'POST':
                 t0 = time.time()
-                data = urllib.urlencode(data)
-                request = urllib2.Request(self.url, data)
-                response = urllib2.urlopen(request)
-                self.code = response.getcode()
-                self.text = response.read()
-                self.response_headers = dict(response.info())
+                response = self.rs.post(self.url, data = data)
+                self.text = response.text
+                self.code = response.status_code
+                self.response_headers = response.headers()
+                response.close()
                 duration = time.time() - t0
             else:
                 t0 = time.time()
-                request = urllib2.Request(self.url)
-                response = urllib2.urlopen(request)
-                self.code = response.getcode()
-                self.text = response.read()
-                self.response_headers = dict(response.info())
+                
+                response = self.rs.get(self.url)
+                self.code = response.status_code
+                self.text = response.text
+                self.response_headers = response.headers
+                response.close()
                 duration = time.time() - t0
             
             logging.info("url: " + self.url + "  data: " + str(data) + "  method: " + method + "  status: " +str(self.code) + "  response_time: " + str(duration) )
@@ -45,5 +46,6 @@ class WebClient(object):
         except urllib2.HTTPError, error:
             duration = time.time() - t0
             response = error
-            self.code = response.getcode()
+            self.code = response.status_code
             logging.info("url: " + self.url + "  data: " + str(data) + "  method: " + method + "  status: " +str(self.code) + "  response_time: " + str(duration) )
+	    response.close()

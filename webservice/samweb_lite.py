@@ -11,7 +11,7 @@ import traceback
 import os
 import cherrypy
 from utc import utc
-from model.poms_model import FaultyRequest
+from poms.model.poms_model import FaultyRequest
 
 
 def safe_get(sess, url, *args, **kwargs):
@@ -32,7 +32,8 @@ def safe_get(sess, url, *args, **kwargs):
             traceback.print_exc()
             return None         # No need to return the response
         finally:
-            reply.close()
+            if reply:
+                reply.close()
         # Everything went OK
         return reply
 
@@ -65,7 +66,8 @@ def safe_get(sess, url, *args, **kwargs):
         dbh.commit()
         return None         # No need to return the response
     finally:
-        reply.close()
+        if reply:
+            reply.close()
     # Everything went OK
     return reply
 
@@ -172,7 +174,8 @@ class samweb_lite:
         except:
             traceback.print_exc()
         finally:
-            res.close()
+            if reply:
+                res.close()
         return r1
 
     def list_files(self, experiment, dims, dbhandle=None):
@@ -208,11 +211,12 @@ class samweb_lite:
         def getit(req, url):
             retries = 5
             r = req.get(url)
-            while r.status_code >= 500 and retries > 0:
+            while r and r.status_code >= 500 and retries > 0:
                 time.sleep(5)
                 retries = retries - 1
                 r = req.get(url)
-            r.close()
+            if r:
+                r.close()
             return r
 
         # if given an individual experiment, make it a list for
@@ -239,14 +243,14 @@ class samweb_lite:
         return infos
 
     def create_definition(self, experiment, name, dims):
-        cherrypy.log("create_definition( %s, %s, %s )" % (experiment, name, dims))
+        cherrypy.log.error("create_definition( %s, %s, %s )" % (experiment, name, dims))
         base = "https://samweb.fnal.gov:8483"
         path = "/sam/%s/api/definitions/create" % experiment
         url = "%s%s" % (base, path)
         res = None
 
         pdict = {"defname": name, "dims": dims, "user": "sam", "group": experiment}
-        cherrypy.log("create_definition: calling: %s with %s " % (url, pdict))
+        cherrypy.log.error("create_definition: calling: %s with %s " % (url, pdict))
         try:
             res = requests.post(url,
                                 data=pdict,
@@ -255,9 +259,9 @@ class samweb_lite:
                                       "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]))
                   )
             text = res.content
-            cherrypy.log("definitions/create returns: %s" % text)
+            cherrypy.log.error("definitions/create returns: %s" % text)
         except Exception as e:
-            cherrypy.log("Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
+            cherrypy.log.error("Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
             return "Fail."
         finally:
             if res:

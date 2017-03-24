@@ -20,6 +20,7 @@ import subprocess
 import time
 import select
 import os
+import logit
 from exceptions import KeyError
 
 from poms.model.poms_model import (Service,
@@ -44,11 +45,6 @@ from poms.model.poms_model import (Service,
                                    # RecoveryType,
                                    CampaignDependency,
                                    HeldLaunch)
-
-# our own logging handle, goes to cherrypy
-
-import logging
-logger = logging.getLogger('cherrypy.error')
 
 
 #
@@ -116,7 +112,7 @@ class TaskPOMS:
         return str(t.task_id)
 
 
-    def wrapup_tasks(self, dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res):
+    def wrapup_tasks(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res):
         # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
         now = datetime.now(utc)
         res = ["wrapping up:"]
@@ -170,18 +166,20 @@ class TaskPOMS:
                      .options(joinedload(Task.jobs))
                      .options(joinedload(Task.campaign_snap_obj))
                      .options(joinedload(Task.campaign_definition_snap_obj))
-                     .filter(Task.status == "Completed",
+                     .filter(Task.status.in_(["Completed","Running"]),
                              Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
-                             CampaignSnapshot.completion_type == "completed").all()):
+                             CampaignSnapshot.completion_type == "complete").all()):
 
             compcount = 0
-            totcount = 0
+            totcount = 0.1  # avoid divsion by zeo sidewas
             for j in task.jobs:
                 totcount += 1
                 if j.status == "Completed" or j.status == "Located":
                     compcount += 1
 
             cfrac = task.campaign_snap_obj.completion_pct
+
+            res.append("completion_type: complete Task %d cfrac %d pct %f " % (task.task_id, cfrac,(compcount * 100)/totcount))
 
             if (compcount * 100.0) / totcount > cfrac:
                 n_located = n_located + 1
@@ -203,6 +201,8 @@ class TaskPOMS:
             n_completed = n_completed + 1
             # if it's been 2 days, just declare it located; its as
             # located as its going to get...
+
+
             if (now - task.updated > timedelta(days=2)):
                 n_located = n_located + 1
                 n_stale = n_stale + 1
@@ -242,7 +242,7 @@ class TaskPOMS:
                 if not cfrac:
                     cfrac = 95.0
 
-                loghandle("non-project task: %s tot %d loc %d" % (task.task_id, totcount, loccount))
+                logit.log("non-project task: %s tot %d loc %d" % (task.task_id, totcount, loccount))
                 if totcount == 0 or loccount / totcount * 100 > cfrac:
                     n_located = n_located + 1
                     task.status = "Located"
@@ -259,7 +259,7 @@ class TaskPOMS:
         summary_list = samhandle.fetch_info_list(lookup_task_list, dbhandle=dbhandle)
         count_list = samhandle.count_files_list(lookup_exp_list, lookup_dims_list)
         thresholds = []
-        loghandle("wrapup_tasks: summary_list: %s" % repr(summary_list))    # Check if that is working
+        logit.log("wrapup_tasks: summary_list: %s" % repr(summary_list))    # Check if that is working
 
         for i in range(len(summary_list)):
             task = lookup_task_list[i]
@@ -293,21 +293,20 @@ class TaskPOMS:
         # launch any recovery jobs or jobs depending on us.
         # this way we don't keep the rows locked all day
         #
-        logger.info("Starting need_joblogs loops, len %d" % len(finish_up_tasks))
+        logit.log("Starting need_joblogs loops, len %d" % len(finish_up_tasks))
         for task in need_joblogs:
                 condor_log_parser.get_joblogs(dbhandle,
                                               self.task_min_job(dbhandle, task.task_id),
                                               task.campaign_snap_obj.experiment,
                                               task.campaign_snap_obj.vo_role)
-        logger.info("Starting finish_up_tasks loops, len %d" % len(finish_up_tasks))
+        logit.log("Starting finish_up_tasks loops, len %d" % len(finish_up_tasks))
 
         for task_id, task in finish_up_tasks.items():
             # get logs for job for final cpu values, etc.
-            logger.info("Starting finish_up_tasks items for task %s" % task_id)
-            print("Starting finish_up_tasks items for task %s" % task_id)
+            logit.log("Starting finish_up_tasks items for task %s" % task_id)
 
-            if not self.launch_recovery_if_needed(dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res, task):
-                self.launch_dependents_if_needed(dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res, task)
+            if not self.launch_recovery_if_needed(dbhandle, samhandle, getconfig, gethead, seshandle, err_res, task):
+                self.launch_dependents_if_needed(dbhandle, samhandle, getconfig, gethead, seshandle, err_res, task)
 
         return res
 
@@ -364,15 +363,22 @@ class TaskPOMS:
 #No expose methods.
     def compute_status(self, dbhandle, task):
         st = self.poms_service.triagePOMS.job_counts(dbhandle, task_id = task.task_id)
+
+        logit.log("in compute_status, counts are %s" % repr(st))
+
         if task.status == "Located":
             return task.status
-        res = "Idle"
+        res = "New"
+        if (st['Idle'] > 0):
+            res = "Idle"
         if (st['Held'] > 0):
             res = "Held"
         if (st['Running'] > 0):
             res = "Running"
-        if (st['Completed'] > 0 and st['Idle'] == 0 and st['Held'] == 0):
+        if (st['Completed'] > 0 and  res == "New"):
             res = "Completed"
+        if (st['Located'] > 0 and  res == "New"):
+            res = "Located"
         return res
 
 
@@ -451,11 +457,11 @@ class TaskPOMS:
          dbhandle.commit()
 
 
-    def launch_dependents_if_needed(self, dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  t):
-        loghandle("Entering launch_dependents_if_needed(%s)" % t.task_id)
+    def launch_dependents_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  t):
+        logit.log("Entering launch_dependents_if_needed(%s)" % t.task_id)
         if not getconfig("poms.launch_recovery_jobs",False):
             # XXX should queue for later?!?
-            loghandle("recovery launches disabled")
+            logit.log("recovery launches disabled")
             return 1
         cdlist = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id == t.campaign_snap_obj.campaign_id).all()
 
@@ -463,21 +469,21 @@ class TaskPOMS:
         for cd in cdlist:
            if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
               # self-reference, just do a normal launch
-              self.launch_jobs(dbhandle, loghandle,  getconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id)
+              self.launch_jobs(dbhandle, getconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id)
            else:
               i = i + 1
               dims = "ischildof: (snapshot_for_project_name %s) and version %s and file_name like '%s' " % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
               dname = "poms_depends_%d_%d" % (t.task_id,i)
 
               samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-              self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id, dataset_override = dname)
+              self.launch_jobs(dbhandle, loggetconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id, dataset_override = dname)
         return 1
 
 
-    def launch_recovery_if_needed(self, dbhandle, loghandle, samhandle, getconfig, gethead, seshandle, err_res,  t):
-        loghandle("Entering launch_recovery_if_needed(%s)" % t.task_id)
+    def launch_recovery_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  t):
+        logit.log("Entering launch_recovery_if_needed(%s)" % t.task_id)
         if not getconfig("poms.launch_recovery_jobs", False):
-            loghandle("recovery launches disabled")
+            logit.log("recovery launches disabled")
             # XXX should queue for later?!?
             return 1
 
@@ -488,11 +494,13 @@ class TaskPOMS:
 
         rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(dbhandle, t.campaign_definition_snap_obj)
 
-        loghandle("recovery list %s" % rlist)
+        logit.log("recovery list %s" % rlist)
         if t.recovery_position is None:
             t.recovery_position = 0
 
         while t.recovery_position is not None and t.recovery_position < len(rlist):
+            logit.log("recovery position %d" % t.recovery_position)
+
             rtype = rlist[t.recovery_position].recovery_type
             # uncomment when we get db fields:
             param_overrides = rlist[t.recovery_position].param_overrides
@@ -514,6 +522,7 @@ class TaskPOMS:
                 recovery_dims = "project_name %s and consumed_status != 'consumed'" % t.project
 
             try:
+                logit.log("counting files dims %s" % recovery_dims)
                 nfiles = samhandle.count_files(t.campaign_snap_obj.experiment, recovery_dims, dbhandle=dbhandle)
             except:
                 # if we can't count it, just assume there may be a few for now...
@@ -523,15 +532,16 @@ class TaskPOMS:
             dbhandle.add(t)
             dbhandle.commit()
 
+            logit.log("recovery files count %d" % nfiles)
             if nfiles > 0:
                 rname = "poms_recover_%d_%d" % (t.task_id, t. recovery_position)
 
-                loghandle("launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s" % (t.campaign_snap_obj.experiment, rname, recovery_dims))
+                logit.log("launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s" % (t.campaign_snap_obj.experiment, rname, recovery_dims))
 
                 samhandle.create_definition(t.campaign_snap_obj.experiment, rname, recovery_dims)
 
 
-                self.launch_jobs(dbhandle, loghandle, getconfig, gethead, seshandle, samhandle, err_res, t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id, param_overrides = param_overrides)
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle, samhandle, err_res, t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id, param_overrides = param_overrides)
                 return 1
 
         return 0
@@ -548,7 +558,7 @@ class TaskPOMS:
         s = dbhandle.query(Service).filter(Service.name == "job_launches").first()
         return s.status
 
-    def launch_queued_job(self, dbhandle, loghandle, getconfig, gethead, seshandle, err_res):
+    def launch_queued_job(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res):
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
@@ -556,7 +566,7 @@ class TaskPOMS:
         if hl:
             dbhandle.delete(hl)
             dbhandle.commit()
-            self.launch_jobs(dbhandle, loghandle,
+            self.launch_jobs(dbhandle,
                              getconfig, gethead,
                              seshandle, samhandle,
                              err_res, hl.campaign_id,
@@ -567,21 +577,23 @@ class TaskPOMS:
         else:
             return "None."
 
-    def launch_jobs(self, dbhandle, loghandle, getconfig, gethead, seshandle, samhandle,
+    def launch_jobs(self, dbhandle, getconfig, gethead, seshandle, samhandle,
                     err_res, campaign_id, dataset_override=None, parent_task_id=None, param_overrides=None):
 
-        loghandle("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
+        logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
 
         ds = time.strftime("%Y%m%d_%H%M%S")
         outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_id)
         outfile = "%s/%s" % (outdir, ds)
-        loghandle("trying to record launch in %s" % outfile)
+        logit.log("trying to record launch in %s" % outfile)
 
         c = (dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id)
              .options(joinedload(Campaign.launch_template_obj), joinedload(Campaign.campaign_definition_obj)).first())
+
         if not c:
             err_res = 404
             raise KeyError
+
         cd = c.campaign_definition_obj
         lt = c.launch_template_obj
 
@@ -603,7 +615,7 @@ class TaskPOMS:
         xff = gethead('X-Forwarded-For', None)
         ra = gethead('Remote-Addr', None)
         if not e.is_authorized(c.experiment) and not (ra == '127.0.0.1' and xff == None):
-            loghandle("launch_jobs -- experimenter not authorized")
+            logit.log("launch_jobs -- experimenter not authorized")
             err_res = "404 Permission Denied."
             output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
             return lcmd, output, c, campaign_id, outdir, outfile

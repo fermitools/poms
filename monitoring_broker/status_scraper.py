@@ -2,9 +2,8 @@
 
 from ConfigParser import SafeConfigParser
 import re
-import urllib2
+import requests
 import urllib
-import httplib
 import traceback
 import os
 import sys
@@ -14,11 +13,15 @@ import time
 import pycurl
 from StringIO import StringIO
 
+# don't barf if we need to log utf8...
+import codecs
+sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 class status_scraper():
 
     def __init__(self,configfile, poms_url):
         self.poms_url = poms_url
+        self.rs = requests.Session()
         defaults = { "subservices" : "", "scrape_url":"" , "scrape_regex":"", "percent":"100", "scrape_match_1":"", "scrape_warn_match_1":"", "scrape_bad_match_1":"", "debug":"0", "multiline":None }
         self.cf = SafeConfigParser(defaults)
         self.cf.read(configfile)
@@ -185,11 +188,11 @@ class status_scraper():
                              if self.debug: print "good"
                              n_good = n_good + 1 
 
-                        if m.group(1) == warn or (warn2 and m.group(1) == warn2):
+                        if (warn and m.group(1)) == warn or (warn2 and m.group(1) == warn2):
                              if self.debug: print "warn"
                              n_warn = n_warn + 1 
 
-                        if m.group(1) == bad or (bad2 and m.group(1) == bad2):
+                        if (bad and m.group(1) == bad) or (bad2 and m.group(1) == bad2):
                              if self.debug: print "bad"
                              n_bad = n_bad + 1 
                     else:
@@ -261,9 +264,9 @@ class status_scraper():
                 description = s
             report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.url.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.quote_plus(description))
             print "trying: " , report_url
-            c = urllib2.urlopen(report_url)
-            print c.read()
-            c.close()
+            r = self.rs.get(report_url)
+            print r.text
+            r.close()
 
 if __name__ == '__main__':
 
