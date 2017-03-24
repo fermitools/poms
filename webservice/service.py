@@ -103,12 +103,13 @@ class SATool(cherrypy.Tool):
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
-        self.session.execute("SET SESSION lock_timeout = '1s';")
-        self.session.execute("SET SESSION statement_timeout = '45s';")
+        self.session.execute("SET SESSION lock_timeout = '60s';")
+        self.session.execute("SET SESSION statement_timeout = '120s';")
         self.session.commit()
 
     def release_session(self):
-        cherrypy.request.jobsub_fetcher.flush()
+        # flushing here deletes it too soon...
+        #cherrypy.request.jobsub_fetcher.flush()  
         cherrypy.request.samweb_lite.flush()
         cherrypy.request.db.close()
         cherrypy.request.db = None
