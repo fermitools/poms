@@ -160,8 +160,8 @@ class poms_service:
 ### CALENDAR
 #Using CalendarPOMS.py module
     @cherrypy.expose
-    @logit.logstartstop
     @cherrypy.tools.json_out()
+    @logit.logstartstop
     def calendar_json(self, start, end, timezone, _):
         return self.calendarPOMS.calendar_json(cherrypy.request.db, start, end, timezone, _)
 
@@ -295,8 +295,8 @@ class poms_service:
 
 
     @cherrypy.expose
-    @logit.logstartstop
     @cherrypy.tools.json_out()
+    @logit.logstartstop
     def experiment_members(self, experiment, *args, **kwargs):
         trows = self.dbadminPOMS.experiment_members(cherrypy.request.db, experiment, *args, **kwargs)
         return trows
@@ -357,8 +357,8 @@ class poms_service:
 
 
     @cherrypy.expose
-    @logit.logstartstop
     @cherrypy.tools.json_out()
+    @logit.logstartstop
     def campaign_edit_query(self, *args, **kwargs):
         data = self.campaignsPOMS.campaign_edit_query(cherrypy.request.db, *args, **kwargs)
         return data
@@ -539,8 +539,8 @@ class poms_service:
 ### JobPOMS
 
     @cherrypy.expose
-    @logit.logstartstop
     @cherrypy.tools.json_out()
+    @logit.logstartstop
     def active_jobs(self):
         res = self.jobsPOMS.active_jobs(cherrypy.request.db)
         return res
@@ -554,8 +554,8 @@ class poms_service:
 
 
     @cherrypy.expose
-    @logit.logstartstop
     @cherrypy.tools.json_out()
+    @logit.logstartstop
     def output_pending_jobs(self):
         res = self.jobsPOMS.output_pending_jobs(cherrypy.request.db)
         return res
@@ -642,7 +642,6 @@ class poms_service:
     @logit.logstartstop
     def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None): ###needs to be analize in detail.
         vals = self.taskPOMS.launch_jobs(cherrypy.request.db,
-                        cherrypy.session,
                         cherrypy.request.headers.get, cherrypy.session,
                         cherrypy.request.samweb_lite,
                         cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
@@ -804,8 +803,8 @@ class poms_service:
 
 
     @cherrypy.expose
-    @logit.logstartstop
     @cherrypy.tools.json_out()
+    @logit.logstartstop
     def json_project_summary_for_task(self, task_id):
         return self.project_summary_for_task(task_id)
 
@@ -914,15 +913,15 @@ class poms_service:
 ### TagsPOMS
 
     @cherrypy.expose
-    @logit.logstartstop
     @cherrypy.tools.json_out()
+    @logit.logstartstop
     def link_tags(self, campaign_id, tag_name, experiment):
         return(self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session, campaign_id, tag_name, experiment))
 
 
     @cherrypy.expose
-    @logit.logstartstop
     @cherrypy.tools.json_out()
+    @logit.logstartstop
     def delete_campaigns_tags(self, campaign_id, tag_id, experiment):
         return(self.tagsPOMS.delete_campaigns_tags(cherrypy.request.db, cherrypy.session.get, campaign_id, tag_id, experiment))
 
