@@ -77,7 +77,7 @@ def test_get_inflight():
     task_id_test = mps.taskPOMS.get_task_id_for(dbhandle,campaign=campaign_id_test)
     mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id_test, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
     jobj = dbhandle.query(Job).filter(Job.jobsub_job_id==jid).first() #taking a job object from the job just included in the previous stage
-    #db_job_id=jobj.job_id #this is the job id in the database different from the jobsub_job_id
+    db_job_id=jobj.job_id #this is the job id in the database different from the jobsub_job_id
     fname="testFile_Felipe_%s_%s.root" % (tUTC,task_id_test)
     jf=JobFile(file_name = fname, file_type = "output", created = tUTC , job_obj = jobj) #including the file into the JobFile Table.
     dbhandle.add(jf)
@@ -107,7 +107,9 @@ def test_get_inflight():
     print "q object", q.all()
     for qf in q.all():
        print "firt loop:", qf
-    q = q.filter(Job.output_files_declared)
+    #q = q.filter(Job.output_files_declared)
+    q = q.filter(Job.job_id==db_job_id)
+    print "q object filter (Job.job_id==db_job_id)", q
     for qf in q.all():
        print "second loop:", qf
     #q = q.filter(Job.output_files_declared is False)
