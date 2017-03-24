@@ -32,7 +32,8 @@ def safe_get(sess, url, *args, **kwargs):
             traceback.print_exc()
             return None         # No need to return the response
         finally:
-            reply.close()
+            if reply:
+                reply.close()
         # Everything went OK
         return reply
 
@@ -65,7 +66,8 @@ def safe_get(sess, url, *args, **kwargs):
         dbh.commit()
         return None         # No need to return the response
     finally:
-        reply.close()
+        if reply:
+            reply.close()
     # Everything went OK
     return reply
 
@@ -172,7 +174,8 @@ class samweb_lite:
         except:
             traceback.print_exc()
         finally:
-            res.close()
+            if reply:
+                res.close()
         return r1
 
     def list_files(self, experiment, dims, dbhandle=None):
@@ -208,11 +211,12 @@ class samweb_lite:
         def getit(req, url):
             retries = 5
             r = req.get(url)
-            while r.status_code >= 500 and retries > 0:
+            while r and r.status_code >= 500 and retries > 0:
                 time.sleep(5)
                 retries = retries - 1
                 r = req.get(url)
-            r.close()
+            if r:
+                r.close()
             return r
 
         # if given an individual experiment, make it a list for
