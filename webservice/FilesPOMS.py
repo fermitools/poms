@@ -229,10 +229,9 @@ class Files_status(object):
             q = q.filter(Job.task_id == task_id)
         q = q.filter(Job.output_files_declared == False)
         outlist = []
-        # jjid = "xxxxx"
         for jf in q.all():
             outlist.append(jf.file_name)
-
+        # jjid = "xxxxx"
         return outlist
 
 
