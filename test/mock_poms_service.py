@@ -1,6 +1,6 @@
 import socket
 
-from poms.webservice import (AccessPOMS,
+from poms.webservice import (
                              CalendarPOMS,
                              CampaignsPOMS,
                              DBadminPOMS,
@@ -20,7 +20,6 @@ class mock_poms_service(object):
         self.hostname = socket.getfqdn()
         self.version = "mock_test"
         # global_version = self.version
-        self.accessPOMS = AccessPOMS.AccessPOMS()
         self.calendarPOMS = CalendarPOMS.CalendarPOMS()
         self.campaignsPOMS = CampaignsPOMS.CampaignsPOMS(self)
         self.dbadminPOMS = DBadminPOMS.DBadminPOMS()
