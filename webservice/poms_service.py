@@ -207,6 +207,7 @@ class poms_service:
         else:
             res = ''
         active = ""
+
         for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(Service.name).all():
             posneg = {"good": "positive", "degraded": "orange", "bad": "negative"}.get(s.status, "")
             icon = {"good": "checkmark", "bad": "remove", "degraded": "warning sign"}.get(s.status, "help circle")
@@ -347,7 +348,7 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=1, active=True, tag = None **kwargs):
+    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=1, active=True, tag = None, **kwargs):
         (counts, counts_keys, clist, dimlist,
             tmin, tmax, tmins, tmaxs,
             nextlink, prevlink, time_range_string
