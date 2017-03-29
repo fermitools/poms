@@ -347,7 +347,7 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=1, active=True, tag = None **kwargs):
+    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=1, active=True, tag=None, **kwargs):
         (counts, counts_keys, clist, dimlist,
             tmin, tmax, tmins, tmaxs,
             nextlink, prevlink, time_range_string
