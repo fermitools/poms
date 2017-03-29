@@ -139,7 +139,6 @@ class job_reporter:
 
 		if self.debug: sys.stderr.write("response: %s\n" % res)
 
-                del uh
                 uh = None
 
 		return res
@@ -151,7 +150,6 @@ class job_reporter:
 
                 if uh:
                     uh.close()
-                    del uh
                     uh = None
 
                 # don't retry on 401's...
@@ -166,7 +164,6 @@ class job_reporter:
 	    except (urllib2.URLError) as e:
                 if uh:
                     uh.close()
-                    del uh
                     uh = None
 		errtext = str(e)
 		sys.stderr.write("Exception:" + errtext)
@@ -178,7 +175,6 @@ class job_reporter:
 	    except (httplib.BadStatusLine) as e:
                 if uh:
                     uh.close()
-                    del uh
                     uh = None
 		errtext = str(e)
 		sys.stderr.write("Exception:" + errtext)
@@ -224,7 +220,6 @@ class job_reporter:
                 uh.close()
 		if self.debug: sys.stderr.write("response: %s\n" % res)
 
-                del uh
                 uh = None
 
 		return res
@@ -237,7 +232,6 @@ class job_reporter:
 
                 if uh:
                     uh.close()
-                    del uh
                     uh = None
 
                 # don't retry on 401's...
@@ -252,7 +246,6 @@ class job_reporter:
 	    except (urllib2.URLError) as e:
                 if uh:
                     uh.close()
-                    del uh
                     uh = None
 		errtext = str(e)
 		sys.stderr.write("Exception:" + errtext)
@@ -264,7 +257,6 @@ class job_reporter:
 	    except (httplib.BadStatusLine) as e:
                 if uh:
                     uh.close()
-                    del uh
                     uh = None
 		errtext = str(e)
 		sys.stderr.write("Exception:" + errtext)

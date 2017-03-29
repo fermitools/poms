@@ -23,8 +23,6 @@ import codecs
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 
-
-
 class status_scraper:
 
     def __init__(self,configfile, poms_url):

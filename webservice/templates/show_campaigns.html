@@ -1,7 +1,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS:{{In}}Active Campaign Layers
+    <title>POMS:{{In}}Active Campaign Stages
        {%if limit_experiment %}
            for {{limit_experiment}}
        {%endif%}
@@ -13,14 +13,14 @@
 <div class="ui breadcrumb" style="margin-top: -45px;">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
-  <div class="section">Campaign Layers</div>
+  <div class="section">Campaign Stages</div>
 </div>
 {%endblock%}
 
 
 {%block header%}
 <h1 class="ui header">
-     Campaign Layers{%include 'help_button.html'%}
+     Campaign Stages{%include 'help_button.html'%}
        {%if limit_experiment %}
            for {{limit_experiment}}
        {%endif%}
@@ -32,7 +32,7 @@
 
 {%block subheader%}
 <!--
-    <h2 class="ui dividing header">{{In}}Active Campaign Layers <!--for {{time_range_string}} - ->
+    <h2 class="ui dividing header">{{In}}Active Campaign Stages <!--for {{time_range_string}} - ->
            {%if limit_experiment %}
                for {{limit_experiment}}
            {%endif%}
@@ -40,7 +40,7 @@
     -->
     <!-- <div class="ui two column doubling stackable grid container"> -->
     <div class="ui grid container">
-        <h2 class="ui __dividing header">{{In}}Active Campaign Layers<!--for {{time_range_string}} -->
+        <h2 class="ui __dividing header">{{In}}Active Campaign Stages<!--for {{time_range_string}} -->
                {%if limit_experiment %}
                    for {{limit_experiment}}
                {%endif%}
@@ -105,7 +105,7 @@
        <th colspan = 4>Jobs in  {{time_range_string}}</th>
      </tr>
      <tr>
-       <th colspan=2 align="center"> Campaign Layer
+       <th colspan=2 align="center"> Campaign Stage
         <a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Campaign"><i style="float: none" class="grey help circle link icon"></i></a>
       </th>
       <th>Total</th>

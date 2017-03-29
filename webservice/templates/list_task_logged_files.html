@@ -9,9 +9,9 @@
 <div class="ui breadcrumb" style="margin-top: -45px;">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
-  <div class="section"> <a href="{{pomspath}}/show_campaigns">Campaign Layers</a></div>
+  <div class="section"> <a href="{{pomspath}}/show_campaigns">Campaign Stage</a></div>
   <div class="divider"> / </div>
-  <div class="section"> <a href="{{pomspath}}/campaign_task_files?campaign_id={{campaign.campaign_id}}">Campaign Layer {{campaign.name}} File Info by Submission</a></div>
+  <div class="section"> <a href="{{pomspath}}/campaign_task_files?campaign_id={{campaign.campaign_id}}">Campaign Stage {{campaign.name}} File Info by Submission</a></div>
   <div class="divider"> / </div>
   <div class="section"> <a href="{{pomspath}}/show_campaigns">Submission {{jobsub_job_id}} Logged files</a></div>
 </div>	
@@ -20,7 +20,7 @@
 
 {%block header%}
 <h1 class="ui header">
-     Campaign Layers{%include 'help_button.html'%}
+     Campaign Stages{%include 'help_button.html'%}
 </h1>
 {%endblock%}
 

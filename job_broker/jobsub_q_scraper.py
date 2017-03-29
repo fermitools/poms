@@ -63,7 +63,6 @@ class jobsub_q_scraper:
             conn = self.rs.get(self.job_reporter.report_url + '/active_jobs')
             jobs = conn.json()
             conn.close()
-            del conn
             conn = None
 
             #print "got: ", jobs
@@ -89,7 +88,6 @@ class jobsub_q_scraper:
             conn = self.rs.get(self.job_reporter.report_url + '/wrapup_tasks')
             text = conn.text
             conn.close()
-            del conn
             conn = None
 
             if self.debug: print "got: ", text

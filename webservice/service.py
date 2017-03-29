@@ -5,6 +5,8 @@ import os
 from datetime import datetime
 from utc import utc
 import atexit
+from textwrap import dedent
+from StringIO import StringIO
 
 if os.environ.get("SETUP_POMS", "") == "":
     sys.path.insert(0, os.environ.get('SETUPS_DIR', os.environ.get('HOME') + '/products'))
@@ -106,12 +108,13 @@ class SATool(cherrypy.Tool):
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
-        self.session.execute("SET SESSION lock_timeout = '1s';")
-        self.session.execute("SET SESSION statement_timeout = '45s';")
+        self.session.execute("SET SESSION lock_timeout = '60s';")
+        self.session.execute("SET SESSION statement_timeout = '120s';")
         self.session.commit()
 
     def release_session(self):
-        cherrypy.request.jobsub_fetcher.flush()
+        # flushing here deletes it too soon...
+        #cherrypy.request.jobsub_fetcher.flush()  
         cherrypy.request.samweb_lite.flush()
         cherrypy.request.db.close()
         cherrypy.request.db = None
@@ -274,15 +277,35 @@ if True:
     parser, args = parse_command_line()
     if args.config:
         configfile = args.config
+
+    #
+    # make %(HOME) and %(POMS_DIR) work in various sections
+    #
+    confs = dedent("""
+       [/static]
+       HOME="%(HOME)s"
+       POMS_DIR="%(POMS_DIR)s"
+       [global]
+       HOME="%(HOME)s"
+       POMS_DIR="%(POMS_DIR)s"
+       [POMS]
+       HOME="%(HOME)s"
+       POMS_DIR="%(POMS_DIR)s"
+    """ % os.environ)
+
+    cf = open(configfile,"r")
+    confs = confs + cf.read()
+    cf.close
+
     try:
-        cherrypy.config.update(configfile)
+        cherrypy.config.update(StringIO(confs))
     except IOError, mess:
         print >> sys.stderr, mess
         parser.print_help()
         raise SystemExit
 
     pomsInstance = poms_service.poms_service()
-    app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, configfile)
+    app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, StringIO(confs))
 
     SAEnginePlugin(cherrypy.engine, app).subscribe()
     cherrypy.tools.db = SATool()

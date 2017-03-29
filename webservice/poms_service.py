@@ -307,7 +307,7 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def launch_template_edit(self, *args, **kwargs):
-        data = self.campaignsPOMS.launch_template_edit(cherrypy.request.db, cherrypy.session, *args, **kwargs)
+        data = self.campaignsPOMS.launch_template_edit(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
         template = self.jinja_env.get_template('launch_template_edit.html')
         return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path, help_page="LaunchTemplateEditHelp", version=self.version)
@@ -316,7 +316,7 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def campaign_definition_edit(self, *args, **kwargs):
-        data = self.campaignsPOMS.campaign_definition_edit(cherrypy.request.db, cherrypy.session, *args, **kwargs)
+        data = self.campaignsPOMS.campaign_definition_edit(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
         template = self.jinja_env.get_template('campaign_definition_edit.html')
         return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path, help_page="CampaignDefinitionEditHelp", version=self.version)
@@ -347,13 +347,13 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=1, active=True, **kwargs):
+    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=1, active=True, tag = None **kwargs):
         (counts, counts_keys, clist, dimlist,
             tmin, tmax, tmins, tmaxs,
             nextlink, prevlink, time_range_string
         ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db,
                                             cherrypy.request.samweb_lite, experiment=experiment,
-                                            tmin=tmin, tmax=tmax, tdays=tdays, active=active)
+                                            tmin=tmin, tmax=tmax, tdays=tdays, active=active, tag = tag)
 
         current_experimenter = cherrypy.session.get('experimenter')
         #~ logit.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
