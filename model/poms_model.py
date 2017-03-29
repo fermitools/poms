@@ -44,11 +44,11 @@ class Campaign(Base):
 class Experimenter(Base):
     __tablename__ = 'experimenters'
 
-    experimenter_id = Column(Integer, primary_key=True, server_default=text("nextval('experimenters_experimenter_id_seq'::regclass)"))
+    experimenter_id = Column(Integer, primary_key=True, server_default="")
     first_name = Column(Text, nullable=False)
     last_name = Column(Text)
-    email = Column(Text, nullable=False)
-    last_login = Column(DateTime(True), nullable=False)
+    username = Column(Text, nullable=False)
+    last_login = Column(DateTime(True), nullable=False, default="now()")
 
 
 class ExperimentsExperimenters(Base):

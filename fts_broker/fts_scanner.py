@@ -55,7 +55,7 @@ class fts_status_watcher:
                        fs.close()
 	               gc.collect(2)
 
-                   fs = shelve.open("%s/%s_files.db.new" % (self.workdir, item["experiment"]),flag="n",writeback=True)
+                   fs = shelve.open("%s/%s_files.new.db" % (self.workdir, item["experiment"]),flag="n",writeback=True)
                status = self.fetch_json(item["uris"]["service"] + "/status?format=json")
                for t in status.get("errorstates",[]) + status.get("pendingstates",[]) + status.get("newstates",[]):
                    count = count + 1
@@ -72,10 +72,10 @@ class fts_status_watcher:
             if exp == "unknown":
                 continue
             try:
-                os.rename("%s/%s_files.db.new" % (self.workdir, item["experiment"]),
-                         "%s/%s_files.db" % (self.workdir, item["experiment"]))
+                os.rename("%s/%s_files.new.db" % (self.workdir, exp ),
+                         "%s/%s_files.db" % (self.workdir, exp))
             except:
-                print "Error renaming %s/%s_files.db.new" % (self.workdir, item["experiment"])
+                print "Error renaming %s/%s_files.new.db" % (self.workdir, item["experiment"])
  
     def poll(self):
         while 1:
