@@ -1,35 +1,9 @@
 import cherrypy
-# from cherrypy.lib import sessions
-# import glob
 import os
-# import time
-# import time_grid
-# import json
-# import urllib
 import socket
-# import subprocess
-# import select
-# from collections import OrderedDict
-
-# from sqlalchemy import (Column, Integer, Sequence, String, DateTime, ForeignKey,
-#     and_, or_, not_, create_engine, null, desc, text, func, exc, distinct
-# )
-# from sqlalchemy.orm import subqueryload, joinedload, contains_eager
-# from sqlalchemy.orm.exc import NoResultFound
-# from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-# from datetime import datetime, tzinfo, timedelta
 from jinja2 import Environment, PackageLoader
-# import shelve
-from poms.model.poms_model import (Service, ServiceDowntime, Experimenter, Experiment,
-    ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition,
-    TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile,
-    CampaignSnapshot, CampaignDefinitionSnapshot, LaunchTemplateSnapshot,
-    CampaignRecovery, RecoveryType, CampaignDependency
-)
+from poms.model.poms_model import Service, Task, Campaign
 
-# from utc import utc
-# from crontab import CronTab
-# import gc
 from elasticsearch import Elasticsearch
 import pprint
 import version
@@ -185,7 +159,8 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def edit_event(self, title, start, new_start, end, s_id):  # even though we pass in the s_id we should not rely on it because they can and will change the service name
+    def edit_event(self, title, start, new_start, end, s_id):
+        # even though we pass in the s_id we should not rely on it because they can and will change the service name
         return self.calendarPOMS.edit_event(cherrypy.request.db, title, start, new_start, end, s_id)
 
 
@@ -234,7 +209,7 @@ class poms_service:
         active = ""
         for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(Service.name).all():
             posneg = {"good": "positive", "degraded": "orange", "bad": "negative"}.get(s.status, "")
-            icon = {"good": "checkmark", "bad": "remove", "degraded": "warning sign"}.get(s.status,"help circle")
+            icon = {"good": "checkmark", "bad": "remove", "degraded": "warning sign"}.get(s.status, "help circle")
             if s.host_site:
                 res = res + """
                      <div class="title %s">
@@ -304,8 +279,8 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def member_experiments(self, email, *args, **kwargs):
-        trows = self.dbadminPOMS.member_experiments(cherrypy.request.db, email, *args, **kwargs)
+    def member_experiments(self, username, *args, **kwargs):
+        trows = self.dbadminPOMS.member_experiments(cherrypy.request.db, username, *args, **kwargs)
         return trows
 
 
@@ -388,11 +363,11 @@ class poms_service:
             #~ logit.log("current_experimenter.extra update... ")                               # DEBUG
         #~ logit.log("current_experimenter.extra after: "+str(current_experimenter.extra))      # DEBUG
 
-        experiments = self.dbadminPOMS.member_experiments(cherrypy.request.db, current_experimenter.email)
+        experiments = self.dbadminPOMS.member_experiments(cherrypy.request.db, current_experimenter.username)
 
         template = self.jinja_env.get_template('show_campaigns.html')
 
-        return template.render(In=("" if active == True else "In"), limit_experiment=experiment,
+        return template.render(In=("" if active else "In"), limit_experiment=experiment,
                                 services=self.service_status_hier('All'), counts=counts, counts_keys=counts_keys,
                                 cl=clist, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
                                 current_experimenter=current_experimenter, do_refresh=1,
@@ -492,8 +467,10 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def make_stale_campaigns_inactive(self):
+        # TODO: not finished yet!
+        # XXXX 'c' below does not exist!
         if not cherrypy.session.get('experimenter').is_authorized(c.experiment):
-            raise err_res(401, 'You are not authorized to access this resource')
+            raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         res = self.campaignsPOMS.make_stale_campaigns_inactive(cherrypy.request.db, cherrypy.HTTPError)
         return "Marked inactive stale: " + ",".join(res)
 #--------------------------------------
@@ -524,7 +501,7 @@ class poms_service:
         return self.tablesPOMS.update_generic(cherrypy.request.db, cherrypy.request.headers.get, cherrypy.session, classname, *args, **kwargs)
 
 
-    def edit_screen_for(self, classname, eclass, update_call, primkey, primval, valmap): ### Why this function is not expose
+    def edit_screen_for(self, classname, eclass, update_call, primkey, primval, valmap):    # XXXX Why this function is not expose
         screendata = self.tablesPOMS.edit_screen_for(cherrypy.request.db,
                             cherrypy.request.headers.get,
                             cherrypy.session, classname, eclass,
@@ -640,10 +617,10 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None): ###needs to be analize in detail.
+    def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None):     # XXXX needs to be analize in detail.
         vals = self.taskPOMS.launch_jobs(cherrypy.request.db,
                         cherrypy.config.get,
-                        cherrypy.request.headers.get, 
+                        cherrypy.request.headers.get,
                         cherrypy.session.get,
                         cherrypy.request.samweb_lite,
                         cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
@@ -662,6 +639,7 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def create_task(self, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor):
+        # XXXX can_create_task() does not exist!
         if not can_create_task():
             return "Not Allowed"
         return (self.taskPOMS.create_task(cherrypy.request.db,
@@ -672,11 +650,16 @@ class poms_service:
     @logit.logstartstop
     def wrapup_tasks(self):
         cherrypy.response.headers['Content-Type'] = "text/plain"
-        return "\n".join(self.taskPOMS.wrapup_tasks(cherrypy.request.db, cherrypy.request.samweb_lite, cherrypy.config.get, cherrypy.request.headers.get, cherrypy.session, cherrypy.response.status))
+        return "\n".join(self.taskPOMS.wrapup_tasks(cherrypy.request.db,
+                                                    cherrypy.request.samweb_lite,
+                                                    cherrypy.config.get,
+                                                    cherrypy.request.headers.get,
+                                                    cherrypy.session,
+                                                    cherrypy.response.status))
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_task_jobs(self, task_id, tmax=None, tmin=None, tdays=1): ### Need to be tested HERE
+    def show_task_jobs(self, task_id, tmax=None, tmin=None, tdays=1):   # XXXX Need to be tested HERE
         (blob, job_counts,
             task_id, tmin, tmax,
             extramap, key, task_jobsub_id,
@@ -727,7 +710,7 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def job_file_list(self, job_id, force_reload=False): ##Ask Marc to check this in the module
+    def job_file_list(self, job_id, force_reload=False):    # XXXX Ask Marc to check this in the module
         return self.filesPOMS.job_file_list(cherrypy.request.db, cherrypy.request.jobsub_fetcher, job_id, force_reload)
 
 
@@ -745,7 +728,10 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def inflight_files(self, campaign_id=None, task_id=None):
-        outlist, statusmap, c = self.filesPOMS.inflight_files(cherrypy.request.db, cherrypy.response.status, cherrypy.config.get, campaign_id, task_id)
+        outlist, statusmap, c = self.filesPOMS.inflight_files(cherrypy.request.db,
+                                                              cherrypy.response.status,
+                                                              cherrypy.request.app.config['POMS'].get,
+                                                              campaign_id, task_id)
         template = self.jinja_env.get_template('inflight_files.html')
         return template.render(flist=outlist,
                                current_experimenter=cherrypy.session.get('experimenter'),
@@ -767,7 +753,8 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def actual_pendng_files(self, count_or_list, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1): ###??? Implementation of the exception.
+    def actual_pendng_files(self, count_or_list, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
+        # XXXX ??? Implementation of the exception.
         cherrypy.response.timeout = 600
         try:
             experiment, dims = self.filesPOMS.actual_pending_files(cherrypy.request.db, count_or_list, task_id, campaign_id, tmin, tmax, tdays)
@@ -830,7 +817,10 @@ class poms_service:
         (job_file_list, job_info, job_history,
             downtimes, output_file_names_list,
             es_response, efficiency,
-            tmin, task_jobsub_job_id) = self.triagePOMS.triage_job(cherrypy.request.db, cherrypy.request.jobsub_fetcher, cherrypy.config, job_id, tmin, tmax, tdays, force_reload)
+            tmin, task_jobsub_job_id) = self.triagePOMS.triage_job(cherrypy.request.db,
+                                                                   cherrypy.request.jobsub_fetcher,
+                                                                   cherrypy.config,
+                                                                   job_id, tmin, tmax, tdays, force_reload)
         template = self.jinja_env.get_template('triage_job.html')
         return template.render(job_id=job_id,
                                 job_file_list=job_file_list,

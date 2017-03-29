@@ -12,7 +12,7 @@
   <div class="section"> <a href="{{pomspath}}/show_campaigns">Campaigns</a></div>
   <div class="divider"> / </div>
   <div class="section">{{Campaign_info.Campaign.name}}</div>
-</div>	
+</div>
 {%endblock%}
 
 
@@ -148,7 +148,7 @@ $( document ).ready(function() {
         <th>All
           <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Total_All"><i style="float: none" class="grey help circle link icon"></i></a>
         </th>
-        <th>Idle 
+        <th>Idle
           <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
         </th>
         <th>Running
@@ -169,16 +169,16 @@ $( document ).ready(function() {
         <th>Removed
           <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
         </th>
-        <th>%Efficiency 
+        <th>%Efficiency
           <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
         </th>
         <th>Pending
           <!-- <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job" data-tooltip="Pending"> -->
           <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job">
-             <i style="float: none" class="grey help circle link icon"> </i> 
+             <i style="float: none" class="grey help circle link icon"> </i>
           </a>
         </th>
-        
+
      </tr>
 
      {% for c in cl %}
@@ -285,9 +285,9 @@ $( document ).ready(function() {
     <b>cs_last_split</b>: {{Campaign_info.Campaign.cs_last_split}}<br>
     <b>Active</b>: {{Campaign_info.Campaign.active}} <br>
     <b>Created</b>: {{Campaign_info.Campaign.created}}<br>
-    <b>Creator</b>: {{Campaign_info.Experimenter.email}}</br>
+    <b>Creator</b>: {{Campaign_info.Experimenter.username}}</br>
     <b>Updated</b>: {{Campaign_info.Campaign.updated}}<br>
-    <b>Updater</b>: {{Campaign_info.Experimenter.email}}</br>
+    <b>Updater</b>: {{Campaign_info.Experimenter.username}}</br>
     </div>
 
   </div>
@@ -302,9 +302,9 @@ $( document ).ready(function() {
     <b>Input Files Per Job</b>: {{Campaign_definition_info.CampaignDefinition.input_files_per_job}}<br>
     <b>Output Files Per Job</b>: {{Campaign_definition_info.CampaignDefinition.output_files_per_job}}<br>
     <b>Output File Patterns</b>: {{Campaign_definition_info.CampaignDefinition.output_file_patterns}}<br>
-    <b>Creator</b>: {{Campaign_definition_info.Experimenter.email}}<br>
+    <b>Creator</b>: {{Campaign_definition_info.Experimenter.username}}<br>
     <b>Created</b>: {{Campaign_definition_info.CampaignDefinition.created}}<br>
-    <b>Updater</b>: {{Campaign_definition_info.Experimenter.email}}<br>
+    <b>Updater</b>: {{Campaign_definition_info.Experimenter.username}}<br>
     <b>Updated</b>: {{Campaign_definition_info.CampaignDefinition.updated}}<br>
     <b>
     </div>
@@ -316,9 +316,9 @@ $( document ).ready(function() {
     <b>Launch Host</b>: {{Launch_template_info.LaunchTemplate.launch_host}}<br>
     <b>Launch Account</b>: {{Launch_template_info.LaunchTemplate.launch_account}}<br>
     <b>Launch Setup</b>: {{Launch_template_info.LaunchTemplate.launch_setup}}<br>
-    <b>Creator</b>: {{Launch_template_info.Experimenter.email}}<br>
+    <b>Creator</b>: {{Launch_template_info.Experimenter.username}}<br>
     <b>Created</b>: {{Launch_template_info.LaunchTemplate.created}}<br>
-    <b>Updater</b>: {{Launch_template_info.Experimenter.email}}<br>
+    <b>Updater</b>: {{Launch_template_info.Experimenter.username}}<br>
     <b>Updated</b>: {{Launch_template_info.LaunchTemplate.updated}}<br>
     </div>
 

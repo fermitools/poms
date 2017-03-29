@@ -36,8 +36,7 @@ def verify_exp(cursor,exp):
     return retval
 
 def add_user(cursor,username,commonname):
-    username = username + "@fnal.gov" 
-    sql = "select experimenter_id from experimenters where email='%s'" % username
+    sql = "select experimenter_id from experimenters where username='%s'" % username
     cursor.execute(sql)
     (experimenterid,) = cursor.fetchone() or (None,)
     if experimenterid is None:
@@ -47,7 +46,7 @@ def add_user(cursor,username,commonname):
         names = commonname.split(" ")
         if len(names) == 2:
             (first_name, last_name) = commonname.split(" ")
-        sql = "insert into experimenters (last_name,first_name,email) values ('%s','%s','%s') returning experimenter_id" % (last_name,first_name,username)
+        sql = "insert into experimenters (last_name,first_name,username) values ('%s','%s','%s') returning experimenter_id" % (last_name,first_name,username)
         cursor.execute(sql)
         experimenterid = cursor.fetchone()[0]
         debug("add_user: inserted new experimenter id=%s" % experimenterid)
@@ -68,7 +67,7 @@ def main():
         dbg = True
     if os.path.isfile(args.file) == False:
         print "main: missing file: %s" % args.file
-        raise SystemExit 
+        raise SystemExit
     else:
         json_data = open(args.file)
         adict = json.load(json_data)
@@ -84,7 +83,7 @@ def main():
                 print 'experiment: %s does not exist in poms' % exp
             else:
                 for user in expdict[exp]:
-                    debug("main: processing <%s> <%s> <%s>" % (exp, user['username'], user['commonname'])) 
+                    debug("main: processing <%s> <%s> <%s>" % (exp, user['username'], user['commonname']))
                     experimenterid = add_user(cursor, user['username'], user['commonname'])
                     add_relationship(cursor, experimenterid, exp)
         conn.commit()

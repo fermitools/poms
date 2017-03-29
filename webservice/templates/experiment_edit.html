@@ -35,7 +35,7 @@
 
 <script type="text/javascript">
 function pop_confirm_modal() {
-    mod_form = $("#confirm_modal").modal('show');  
+    mod_form = $("#confirm_modal").modal('show');
 }
 
 function submit_exp_form() {
@@ -43,20 +43,20 @@ function submit_exp_form() {
 }
 
 function pop_add_experiment_modal() {
-    mod_form = $("#add_experiment_modal").modal('show');  
+    mod_form = $("#add_experiment_modal").modal('show');
 }
 
 function pop_experiment_users_modal(experiment) {
 
     var formdata = {'experiment': experiment};
     $.ajax({
-            url: "{{pomspath}}/experiment_members", 
+            url: "{{pomspath}}/experiment_members",
             type: 'GET',
             data: formdata,
             success: function(trows){
               $("#table_row_experiment_users_modal").html(trows);
               $("#header_experiment_users_modal").text("Experimenters List: " + experiment);
-              mod_form = $("#experiment_users_modal").modal('show');  
+              mod_form = $("#experiment_users_modal").modal('show');
             }
     });
 
@@ -94,7 +94,7 @@ function pop_experiment_users_modal(experiment) {
     <tfoot>
       <tr>
 	<th colspan="4">
-	  <input id="exp_btn_submit" type="button" class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" value="Submit" 
+	  <input id="exp_btn_submit" type="button" class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" value="Submit"
                  onclick="pop_confirm_modal()">
 	</th>
       </tr>
@@ -159,7 +159,7 @@ function pop_experiment_users_modal(experiment) {
       <tr>
 	<th>First Name</th>
 	<th>Last Name</th>
-	<th>Email</th>
+	<th>Username</th>
 	<th>Active</th>
       </tr>
     </thead>
@@ -188,7 +188,7 @@ $('.ui.form')
 $(document).ready(function(){
   if ("{{ message }}" != "None") {
     $("#poms_message_data").text("{{ message }}");
-    $("#display_message_modal").modal('show');  
+    $("#display_message_modal").modal('show');
   }
 });
 
