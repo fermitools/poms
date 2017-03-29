@@ -356,9 +356,9 @@ class HeldLaunch(Base):
 
 
 class FaultyRequest(Base):
-        __tablename__ = 'faulty_requests'
-        url = Column(Text, nullable=False, primary_key=True)
-        status = Column(Integer)
-        message = Column(Text)
-        ntries = Column(Integer)
-        last_seen = Column(DateTime(timezone=True), nullable=False, primary_key=True, server_default=text("now()"))
+    __tablename__ = 'faulty_requests'
+    url = Column(Text, nullable=False, primary_key=True)
+    status = Column(Integer)
+    message = Column(Text)
+    ntries = Column(Integer)
+    last_seen = Column(DateTime(timezone=True), nullable=False, primary_key=True, server_default=text("now()"))
