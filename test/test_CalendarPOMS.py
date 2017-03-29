@@ -12,7 +12,7 @@ mps = mock_poms_service()
 dbhandle = DBHandle().get()
 
 import logging
-logger = logging.getLogger('cherrypy.error')
+#logger = logging.getLogger('cherrypy.error')       #not used anymore
 
 # ---------------------------------------------------------------------------------
 # Simply schedule an event 
@@ -94,7 +94,7 @@ def test_update_service_bad():
      p = dbhandle.query(Service).filter(Service.service_id == s.parent_service_id).first()
      #print ' parent name = %s ' %p.name
 
-     ret = mps.calendarPOMS.update_service(dbhandle,logger.info,service,p.name,status,s.host_site,s.items,s.failed_items,s.description)
+     ret = mps.calendarPOMS.update_service(dbhandle,service,p.name,status,s.host_site,s.items,s.failed_items,s.description)
      # Check now it is in downtime
 
      stime = time.time() - 120     #utc   (local+5)
@@ -131,7 +131,7 @@ def test_update_service_good():
      p = dbhandle.query(Service).filter(Service.service_id == s.parent_service_id).first()
      #print ' parent name = %s ' %p.name
 
-     ret = mps.calendarPOMS.update_service(dbhandle,logger.info,service,p.name,status,s.host_site,s.items,s.failed_items,s.description)
+     ret = mps.calendarPOMS.update_service(dbhandle,service,p.name,status,s.host_site,s.items,s.failed_items,s.description)
      print 'ret = %s' %ret
      assert ('ok' in ret.lower())
      #assert (1==2)   # Just to force printing on screen..
