@@ -32,7 +32,7 @@ import logging_conf
 
 
 class SAEnginePlugin(plugins.SimplePlugin):
-    def __init__(self, bus):
+    def __init__(self, bus, app):
         """
         The plugin is registered to the CherryPy engine and therefore
         is part of the bus (the engine *is* a bus) registery.
@@ -45,6 +45,7 @@ class SAEnginePlugin(plugins.SimplePlugin):
         will use to map a session to the SA engine at request time.
         """
         plugins.SimplePlugin.__init__(self, bus)
+        self.app = app
         self.sa_engine = None
         self.bus.subscribe("bind", self.bind)
 
@@ -55,7 +56,7 @@ class SAEnginePlugin(plugins.SimplePlugin):
 
 
     def start(self):
-        section = cherrypy.request.app.config['Databases']
+        section = self.app.config['Databases']
         db = section["db"]
         dbuser = section["dbuser"]
         dbhost = section["dbhost"]
@@ -280,11 +281,12 @@ if True:
         parser.print_help()
         raise SystemExit
 
-    SAEnginePlugin(cherrypy.engine).subscribe()
-    cherrypy.tools.db = SATool()
-    cherrypy.tools.psess = SessionTool()
     pomsInstance = poms_service.poms_service()
     app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, configfile)
+
+    SAEnginePlugin(cherrypy.engine, app).subscribe()
+    cherrypy.tools.db = SATool()
+    cherrypy.tools.psess = SessionTool()
 
     cherrypy.engine.unsubscribe('graceful', cherrypy.log.reopen_files)
 
