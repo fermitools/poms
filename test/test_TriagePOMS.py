@@ -63,7 +63,7 @@ def test_failed_jobs():
 
     print "jids:", mj.jids
 
-    res = mps.triagePOMS.failed_jobs_by_whatever(dbhandle, logger.info,  f = ['jobsub_job_id'])
+    res = mps.triagePOMS.failed_jobs_by_whatever(dbhandle,  f = ['jobsub_job_id'])
 
     # our jobs from test_triage_job should have jobs .0, .1, and .2 exit
     # code 0, 1, and 2 respectively, so .1 and .2 should be found

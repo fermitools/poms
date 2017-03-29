@@ -56,9 +56,9 @@ def test_list_task_logged_files():
     task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
     jid = "%d@fakebatch1.fnal.gov" % time.time()
 
-    mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
-    mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running', output_file_names = ' '.join(flist))
-    mps.jobsPOMS.update_job(dbhandle, logger.info, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running', output_file_names = ' '.join(flist))
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
     # ... now verify we got those files
 
     fl, t, jobsub_job_id = mps.filesPOMS.list_task_logged_files(dbhandle,task_id)
