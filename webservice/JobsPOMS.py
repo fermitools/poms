@@ -304,16 +304,20 @@ class JobsPOMS(object):
 
                 newfiles = kwargs['output_file_names'].split(' ')
                 # don't include metadata files
+
+                output_match_re = j.task_obj.campaign_definition_snap_obj.output_file_patterns.replace(',','|').replace('.','\\.').replace('%','.*')
+
                 newfiles = [f for f in newfiles if f.find('.json') == -1 and f.find('.metadata') == -1]
-                ###Included in the merge
+                 
                 for f in newfiles:
                     if f not in files:
-                        if len(f) < 2 or f[0] == '-':  # ignore '0', '-D', etc...
+                        if len(f) < 2 or f[0] == '-':  # ignore '0','-D' etc...
                             continue
-                        if f.find("log") >= 0:
+                        if f.find("log") >= 0 or not re.match(output_match_re, f): 
                             ftype = "log"
                         else:
                             ftype = "output"
+
                         jf = JobFile(file_name=f, file_type=ftype, created=datetime.now(utc), job_obj=j)
                         j.job_files.append(jf)
                         dbhandle.add(jf)
