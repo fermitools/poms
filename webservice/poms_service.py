@@ -422,7 +422,7 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def list_launchfile(self, campaign_id, fname):
+    def list_launch_file(self, campaign_id, fname):
         lines = self.campaignsPOMS.list_launch_file(campaign_id, fname)
         output = "".join(lines)
         template = self.jinja_env.get_template('launch_jobs.html')
