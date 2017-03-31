@@ -6,10 +6,9 @@ import argparse
 parser = argparse.ArgumentParser(description='Optional Arguments edit campaign definition')
 groupArg = parser.add_argument_group('Require Arguments')
 
-
-active = kwargs.pop('ae_active') ##??Should I passed always as active, or as all. Active or Inactive
+##??Should I passed always as active, or as all. Active or Inactive
+active = kwargs.pop('ae_active')
 state = kwargs.pop('state',None)
-
 
 #parser.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', default = None)
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
@@ -20,8 +19,8 @@ groupArg.add_argument('--vo_role', metavar='Analysis-Production', type=str, help
 groupArg.add_argument('--dataset', metavar='campaign dataset', type=str, help='provide the dataset that will be use in the campaign', required=True)
 
 
-parser.add_argument('--active', metavar='Active-Inactive', type=str, help='Do you want to make the campaing [Active] or [Inactive]', default = Active)
-parser.add_argument('--split_type', metavar='??????', type=str, help='None ', default = None)
+parser.add_argument('--state', metavar='Active-Inactive', type=str, help='Do you want to make the campaing [Active] or [Inactive]', default = Active)
+parser.add_argument('--split_type', metavar='I am still not sure which are the available split types', type=str, help='split type', default = None)
 parser.add_argument('--software_version', metavar='exp_software_version', type=str, help='Provide the the experiment software_version', default = "Non provide")
 parser.add_argument('--completion_type', metavar='located or completed', type=str, help='Please provide the kind of completion type [located] or [Complete], by default it will be located', default = "Located")
 parser.add_argument('--completion', metavar='0\%/-100%', type=int, help='provide the percentage of completion, Integer from 0-100', default = 100)
@@ -29,15 +28,13 @@ parser.add_argument('--param_overrides', metavar='parameters of the script', typ
 parser.add_argument('--depends_on', metavar='dependencies of the campaigns', type=str, help='you can setup the campaign dependencies e.g. {"campaigns":["mwm_test_1","mwm_test_2"],"file_patterns":["/%/.raw","/%/.root"]}')
 parser.add_argument('--launch_name', metavar='launch_template_name', type=str, help='you must provide the launch template name related with this campaign')
 parser.add_argument('--job_type', metavar='campaign_definition_name', type=str, help='you must provide teh job_type name')
-
-
 parser.add_argument('--test_client', metavar='want to test the client URL query', type=str, nargs=str, help='use to test the client URL query', default = False)
 args = parser.parse_args()
 #parser.print_help()
 print args
 print 'The arguments you pass are:'
-print 'action =',args.action
-print 'name =', args.name
+print 'action =',args.action ###
+print 'campaign_name =', args.name
 print 'email=',args.email
 print 'experiment=',args.experiment
 print 'input_files_per_job=', args.input_files_per_job
