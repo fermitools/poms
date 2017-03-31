@@ -29,6 +29,7 @@ import poms_service
 import jobsub_fetcher
 import samweb_lite
 import logging_conf
+import logit
 
 
 class SAEnginePlugin(plugins.SimplePlugin):
@@ -112,7 +113,7 @@ class SATool(cherrypy.Tool):
 
     def release_session(self):
         # flushing here deletes it too soon...
-        #cherrypy.request.jobsub_fetcher.flush()  
+        #cherrypy.request.jobsub_fetcher.flush()
         cherrypy.request.samweb_lite.flush()
         cherrypy.request.db.close()
         cherrypy.request.db = None
@@ -292,7 +293,10 @@ if True:
     cherrypy.engine.unsubscribe('graceful', cherrypy.log.reopen_files)
 
     logging.config.dictConfig(logging_conf.LOG_CONF)
-    cherrypy.log.error("POMSPATH: %s" % pomsInstance.path)
+    section = app.config['POMS']
+    log_level = section["log_level"]
+    logit.setlevel(log_level)
+    logit.log("POMSPATH: %s" % pomsInstance.path)
     pidfile()
 
     pomsInstance.post_initalize()
@@ -304,7 +308,7 @@ if True:
 
     if not args.use_wsgi:
         cherrypy.engine.block()		# Disable built-in HTTP server when behind wsgi
-        print >> sys.stderr, "Starting Cherrypy HTTP"
+        logit.log("Starting Cherrypy HTTP")
 
     application = cherrypy.tree
     if 0:
