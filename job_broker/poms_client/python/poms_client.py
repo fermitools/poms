@@ -103,7 +103,16 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
             You did not change anything in your template"
 
 
-def campaign_definition_edit(input_files_per_job, output_files_per_job, output_file_patterns, launch_script, def_parameter, pc_email=None, action = None, name = None, experiment = None, test_client=False):
+def campaign_definition_edit(input_files_per_job,
+                            output_files_per_job,
+                            output_file_patterns,
+                            launch_script,
+                            def_parameter,
+                            pc_email=None,
+                            action = None,
+                            name = None,
+                            experiment = None,
+                            test_client=False):
     # You can not modify the recovery_type from the poms_client (future feauture)
     test_client = test_client
     method = "campaign_definition_edit"
@@ -132,6 +141,27 @@ def campaign_definition_edit(input_files_per_job, output_files_per_job, output_f
                             ae_definition_parameters= ae_def_parameter
                             test_client=test_client
                             )
+
+
+def campaign_edit (action,
+                    experiment,
+                    campaign_name,
+                    campaign_id,
+                    active,
+                    split_type,
+                    vo_role,
+                    software_version,
+                    dataset,
+                    param_overrides,
+                    campaign_definition_id,
+                    launch_id,
+                    experimenter_id,
+                    completion_type,
+                    completion_pct,
+                    depends,
+                    state,
+                    
+                    )
 
 
 def make_poms_call(**kwargs):

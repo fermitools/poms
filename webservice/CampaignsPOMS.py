@@ -257,8 +257,14 @@ class CampaignsPOMS():
         #    print ' k=%s, v=%s ' %(k,v)
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
+        pcl_call = kwargs.pop('pcl_call', 0) #pcl_call == 1 means the method was access through the poms_client.
+        pc_email = kwargs.pop('pc_email',None) #email is the info we know about the user in POMS DB.
         if action == 'delete':
-            campaign_id = kwargs.pop('campaign_id')
+            if pcl_call==1:
+                campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
+            else:
+                campaign_id = kwargs.pop('campaign_id')
+
             name = kwargs.pop('name')
             try:
                 dbhandle.query(CampaignDependency).filter(or_(CampaignDependency.needs_camp_id==campaign_id,
@@ -272,20 +278,34 @@ class CampaignsPOMS():
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
-            campaign_id = kwargs.pop('ae_campaign_id')
             name = kwargs.pop('ae_campaign_name')
             active = kwargs.pop('ae_active')
             split_type = kwargs.pop('ae_split_type')
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
             dataset = kwargs.pop('ae_dataset')
-            param_overrides = kwargs.pop('ae_param_overrides')
-            campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
-            launch_id = kwargs.pop('ae_launch_id')
-            experimenter_id = kwargs.pop('experimenter_id')
             completion_type = kwargs.pop('ae_completion_type')
             completion_pct =  kwargs.pop('ae_completion_pct')
             depends = kwargs.pop('ae_depends')
+            launch_name=kwargs.pop('ae_launch_name')
+            campaign_definition_name=kwargs.pop('ae_campaign_definition')
+            param_overrides=kwargs.pop('ae_param_overrides','[]')
+
+
+            if pcl_call == 1:
+                #all this variables depend on the arguments passed.
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
+                campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
+                launch_id=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==launch_name).fist().launch_id
+                campaign_definition_id =dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==campaign_definition_name).firts().campaign_definition_id
+
+
+            else:
+                campaign_id = kwargs.pop('ae_campaign_id')
+                campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
+                launch_id = kwargs.pop('ae_launch_id')
+                experimenter_id = kwargs.pop('experimenter_id')
+
             if depends and depends != "[]":
                 depends = json.loads(depends)
             else:
