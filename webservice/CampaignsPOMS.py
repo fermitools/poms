@@ -389,7 +389,7 @@ class CampaignsPOMS():
         return "Task=%d" % t.task_id
 
 
-    def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=1, active=True):
+    def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=1, active=True, tag = None):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
@@ -398,6 +398,9 @@ class CampaignsPOMS():
 
         if experiment:
             cq = cq.filter(Campaign.experiment==experiment)
+
+        if tag:
+            cq = cq.join(CampaignsTags).join(Tag).filter(Tag.tag_name == tag)
 
         cl = cq.all()
 

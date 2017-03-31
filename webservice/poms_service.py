@@ -207,6 +207,7 @@ class poms_service:
         else:
             res = ''
         active = ""
+
         for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(Service.name).all():
             posneg = {"good": "positive", "degraded": "orange", "bad": "negative"}.get(s.status, "")
             icon = {"good": "checkmark", "bad": "remove", "degraded": "warning sign"}.get(s.status, "help circle")
@@ -347,13 +348,13 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=1, active=True, **kwargs):
+    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=1, active=True, tag = None, **kwargs):
         (counts, counts_keys, clist, dimlist,
             tmin, tmax, tmins, tmaxs,
             nextlink, prevlink, time_range_string
         ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db,
                                             cherrypy.request.samweb_lite, experiment=experiment,
-                                            tmin=tmin, tmax=tmax, tdays=tdays, active=active)
+                                            tmin=tmin, tmax=tmax, tdays=tdays, active=active, tag = tag)
 
         current_experimenter = cherrypy.session.get('experimenter')
         #~ logit.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
@@ -422,7 +423,7 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def list_launchfile(self, campaign_id, fname):
+    def list_launch_file(self, campaign_id, fname):
         lines = self.campaignsPOMS.list_launch_file(campaign_id, fname)
         output = "".join(lines)
         template = self.jinja_env.get_template('launch_jobs.html')
