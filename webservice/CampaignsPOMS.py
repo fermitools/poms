@@ -130,13 +130,16 @@ class CampaignsPOMS():
 
         if action == 'add' or action == 'edit':
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
+            print '*'*100
+            print ' \n\n ****** campaign_definition_edit: action = %s for cid=%s' %(action,campaign_definition_id)
             name = kwargs.pop('ae_definition_name')
             input_files_per_job = kwargs.pop('ae_input_files_per_job')
             output_files_per_job = kwargs.pop('ae_output_files_per_job')
             output_file_patterns = kwargs.pop('ae_output_file_patterns')
             launch_script = kwargs.pop('ae_launch_script')
-            definition_parameters = kwargs.pop('ae_definition_parameters')
+            definition_parameters = json.loads(kwargs.pop('ae_definition_parameters'))
             recoveries = kwargs.pop('ae_definition_recovery')
+            print ' ****** from form, type(recoveries) = %s recoveries = %s' %(type(recoveries),recoveries)
             experimenter_id = kwargs.pop('experimenter_id')
             try:
                 if action == 'add':
@@ -169,6 +172,10 @@ class CampaignsPOMS():
                 for rtn in json.loads(recoveries):
                     rect   = rtn[0]
                     recpar = rtn[1]
+                    print '*'*100
+                    print ' ****** type(rect)= %s   %s ' %(type(rect),rect)
+                    print ' ****** type(recpar)= %s %s ' %(type(recpar),recpar)
+
                     rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rect).first()
                     cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt, param_overrides = recpar)
                     dbhandle.add(cr)
@@ -196,6 +203,9 @@ class CampaignsPOMS():
                                     .order_by(CampaignDefinition.name)
                                     )
 
+            print 'D'*100
+            print ' type datadef = %s, %s' %(type(data['definitions']),data['definitions'])
+
             # Build the recoveries for each campaign.
             cids = [row[0].campaign_definition_id for row in data['definitions'].all()]
             recs_dict = {}
@@ -205,11 +215,23 @@ class CampaignsPOMS():
                     .order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
                 rec_list  = []
                 for rec in recs:
-                    co_vals= '%s' %rec.param_overrides
-                    if co_vals=='' or co_vals=='{}': co_vals="[]"
-                    rec_vals=[rec.recovery_type.name,co_vals]
+                    print '*'*100
+                    print  ' ******  cid= %s , type(rec.param_overrides) = %s %s' %(cid,type(rec.param_overrides),rec.param_overrides)
+
+                    if rec.param_overrides:
+                        print ' got param_overrides - %s' %rec.param_overrides
+                    else:
+                        print ' no param_overrides - %s' %rec.param_overrides
+                    if  type(rec.param_overrides) == type(u""):
+                        if rec.param_overrides in (u'',u'{}',u'[]'): rec.param_overrides="[]"
+                        rec_vals=[rec.recovery_type.name,json.loads(rec.param_overrides)]
+                    else:
+                        rec_vals=[rec.recovery_type.name,rec.param_overrides]
+
+                    #rec_vals=[rec.recovery_type.name,rec.param_overrides]
                     rec_list.append(rec_vals)
                 recs_dict[cid] = json.dumps(rec_list)
+             
             data['recoveries'] = recs_dict
             data['rtypes'] = (dbhandle.query(RecoveryType.name,RecoveryType.description).order_by(RecoveryType.name).all())
 
