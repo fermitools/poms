@@ -135,7 +135,7 @@ class CampaignsPOMS():
             output_files_per_job = kwargs.pop('ae_output_files_per_job')
             output_file_patterns = kwargs.pop('ae_output_file_patterns')
             launch_script = kwargs.pop('ae_launch_script')
-            definition_parameters = kwargs.pop('ae_definition_parameters')
+            definition_parameters = json.loads(kwargs.pop('ae_definition_parameters'))
             recoveries = kwargs.pop('ae_definition_recovery')
             experimenter_id = kwargs.pop('experimenter_id')
             try:
@@ -205,11 +205,16 @@ class CampaignsPOMS():
                     .order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
                 rec_list  = []
                 for rec in recs:
-                    co_vals= '%s' %rec.param_overrides
-                    if co_vals=='' or co_vals=='{}': co_vals="[]"
-                    rec_vals=[rec.recovery_type.name,co_vals]
+                    if  type(rec.param_overrides) == type(u""):
+                        if rec.param_overrides in (u'',u'{}',u'[]'): rec.param_overrides="[]"
+                        rec_vals=[rec.recovery_type.name,json.loads(rec.param_overrides)]
+                    else:
+                        rec_vals=[rec.recovery_type.name,rec.param_overrides]
+
+                    #rec_vals=[rec.recovery_type.name,rec.param_overrides]
                     rec_list.append(rec_vals)
                 recs_dict[cid] = json.dumps(rec_list)
+             
             data['recoveries'] = recs_dict
             data['rtypes'] = (dbhandle.query(RecoveryType.name,RecoveryType.description).order_by(RecoveryType.name).all())
 
@@ -248,6 +253,7 @@ class CampaignsPOMS():
             software_version = kwargs.pop('ae_software_version')
             dataset = kwargs.pop('ae_dataset')
             param_overrides = kwargs.pop('ae_param_overrides')
+            if param_overrides:param_overrides = json.loads(param_overrides)
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
             launch_id = kwargs.pop('ae_launch_id')
             experimenter_id = kwargs.pop('experimenter_id')
