@@ -148,6 +148,7 @@ class TriagePOMS(object):
         filtered_fields = {}
 
         q = dbhandle.query(Job, Task, Campaign)
+        q = q.execution_options(stream_results=True)
         q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == Campaign.campaign_id)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax)
 

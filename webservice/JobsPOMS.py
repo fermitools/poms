@@ -27,7 +27,7 @@ class JobsPOMS(object):
 ###JOBS
     def active_jobs(self, dbhandle):
         res = []
-        for job in dbhandle.query(Job).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").all():
+        for job in dbhandle.query(Job).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").execution_options(stream_results=True).all():
             if job.jobsub_job_id == "unknown":
                 continue
             res.append(job.jobsub_job_id)
@@ -105,7 +105,7 @@ class JobsPOMS(object):
         logit.log("found task ids for %s" % ",".join(map(str, foundtasks.keys())))
 
         # lookup what job-id's we already have database entries for
-        jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(data.keys())).all()
+        jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(data.keys())).execution_options(stream_results=True).all()
 
         # make a list of jobs we can update
         jlist = []
@@ -180,7 +180,7 @@ class JobsPOMS(object):
         # host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
 
         jl = (dbhandle.query(Job).with_for_update(of=Job)
-              .options(joinedload(Job.task_obj)).filter(Job.jobsub_job_id == jobsub_job_id).order_by(Job.job_id).all())
+              .options(joinedload(Job.task_obj)).filter(Job.jobsub_job_id == jobsub_job_id).order_by(Job.job_id).execution_options(stream_results=True).all())
         first = True
         j = None
         for ji in jl:
@@ -370,7 +370,7 @@ class JobsPOMS(object):
                 if tjid:
                     jjil.append(tjid.replace('.0', ''))
         else:
-            jql = dbhandle.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Located').all()
+            jql = dbhandle.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Located').execution_options(stream_results=True).all()
             c = jql[0].task_obj.campaign_snap_obj
             for j in jql:
                 jjil.append(j.jobsub_job_id)

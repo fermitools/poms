@@ -130,6 +130,8 @@ class mock_job:
                     #hostname = socket.gethostname()
                     hostname = 'fnpc3000.fnal.gov'
 
+     	            # ifdh establishProcess  projecturi  appname  appversion  location  user  appfamily   description   filelimit   schemas  
+
 		    cid = ih.establishProcess( u, 'demo', version, hostname, os.environ['USER'], 'demo', jid, 1)
 		    f = ih.getNextFile(u, cid)
                     inpf = os.path.basename(f)
@@ -229,6 +231,8 @@ if __name__ == '__main__':
            waitflag = True
            sys.argv = sys.argv[1:]
            continue
+        print "unknown argument:" , sys.argv[1]
+        break
 
     print "n_jobs:", n_jobs, "campaign_id", campaign_id
 
