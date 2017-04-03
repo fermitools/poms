@@ -30,6 +30,7 @@
 {%endblock%}
 
 {%block content%}
+<!-- authorized: {{data.authorized}} -->
 <form id="campaign_form" class="ui form" action="campaign_edit" method="POST">
 
   <div class="inline fields">
@@ -101,7 +102,11 @@
 	<td id="c_split_type_{{loop.index}}">{{row.cs_split_type}}</td>
 	<td id="c_completion_type_{{loop.index}}">{{row.completion_type}}</td>
 	<td id="c_completion_pct_{{loop.index}}">{{row.completion_pct}}</td>
+       {% if row.param_overrides is string %}
 	<td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|replace("None","")}}</td>
+       {% else %}
+        <td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|tojson|replace("null","")}}</td>
+       {% endif %}
         <td id="c_depends_{{loop.index}}">
 	  {% for key, value in data.depends.iteritems() %}
 	    {% if key == row.campaign_id %}
@@ -425,13 +430,21 @@ $("#ae_campaign_definition_id").change(function() {
       type: 'GET',
       data: formdata,
       success: function(dat){
-        data = JSON.parse(dat);
-        $("#ae_input_files_per_job").val(data.definition.input_files_per_job);
-        $("#ae_output_files_per_job").val(data.definition.output_files_per_job);
-        $("#ae_launch_script").val(data.definition.launch_script);
-        $("#ae_launch_definition_parameters").val(data.definition.definition_parameters);
+        if (dat !="{}") {
+         data = JSON.parse(dat);
+         $("#ae_input_files_per_job").val(data.definition.input_files_per_job);
+         $("#ae_output_files_per_job").val(data.definition.output_files_per_job);
+         $("#ae_launch_script").val(data.definition.launch_script);
+         $("#ae_launch_definition_parameters").val(data.definition.definition_parameters);
+        } else {
+         $("#ae_input_files_per_job").val("");
+         $("#ae_output_files_per_job").val("");
+         $("#ae_launch_script").val("");
+         $("#ae_launch_definition_parameters").val("[]");
+        
+        }
       }
-    });
+   });
 });
 
 function create_row(index, key, value) {
@@ -539,7 +552,8 @@ function ep_build_parms_string() {
 
 function ep_build_table_body() {
   $("#ep_tbody").text("");
-  if (ep_parms.length ==0) {
+  
+  if (ep_parms===null || ep_parms.length ==0) {
     ep_parms.push(["",""]);
   }
   for (index = 0; index < ep_parms.length; index++) {
