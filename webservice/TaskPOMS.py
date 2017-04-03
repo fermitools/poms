@@ -70,7 +70,6 @@ def popen_read_with_timeout(cmd, totaltime=30):
             pp.kill()
             break
         block = os.read(f.fileno(), 512)
-        print "\nXXX: read_with_timeout: got:\n", block , "\n----\n"
         t2 = time.time()
         totaltime = totaltime - (t2 - t1)
         outlist.append(block)
