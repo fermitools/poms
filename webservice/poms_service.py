@@ -207,6 +207,7 @@ class poms_service:
         else:
             res = ''
         active = ""
+
         for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(Service.name).all():
             posneg = {"good": "positive", "degraded": "orange", "bad": "negative"}.get(s.status, "")
             icon = {"good": "checkmark", "bad": "remove", "degraded": "warning sign"}.get(s.status, "help circle")
@@ -347,7 +348,7 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=1, active=True, tag=None, **kwargs):
+    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=1, active=True, tag = None, **kwargs):
         (counts, counts_keys, clist, dimlist,
             tmin, tmax, tmins, tmaxs,
             nextlink, prevlink, time_range_string
@@ -422,7 +423,7 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def list_launchfile(self, campaign_id, fname):
+    def list_launch_file(self, campaign_id, fname):
         lines = self.campaignsPOMS.list_launch_file(campaign_id, fname)
         output = "".join(lines)
         template = self.jinja_env.get_template('launch_jobs.html')
@@ -684,7 +685,7 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def list_task_lgged_files(self, task_id):
+    def list_task_logged_files(self, task_id):
         fl, t, jobsub_job_id = self.filesPOMS.list_task_logged_files(cherrypy.request.db, task_id)
         template = self.jinja_env.get_template('list_task_logged_files.html')
         return template.render(fl=fl, campaign=t.campaign_snap_obj, jobsub_job_id=jobsub_job_id,

@@ -26,7 +26,7 @@ def test_mock_job_1():
     assert(len(m.jids) == njobs)
     m.close()
 
-def hide_test_mock_job_2():
+def test_mock_job_2():
     m = mock_job()
     njobs = 3
     m.launch("14", njobs, fileflag=1, dataset="gen_cfg")
@@ -39,6 +39,8 @@ def hide_test_mock_job_2():
     for j in m.jids:
         dj = dbh.get().query(Job).filter(Job.jobsub_job_id == j ).first()
         assert(dj != None)
+
+    m.close()
 
     # should have 3 extra job ids, leader and 2 trailers...
     assert(len(m.jids) == njobs + 3)

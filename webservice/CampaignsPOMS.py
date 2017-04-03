@@ -406,7 +406,7 @@ class CampaignsPOMS():
             cq = cq.filter(Campaign.experiment==experiment)
 
         if tag:
-            cq = cq.join(Tags,CampaignsTags).filter(Tag.tag_name == tag)
+            cq = cq.join(CampaignsTags).join(Tag).filter(Tag.tag_name == tag)
 
         cl = cq.all()
 

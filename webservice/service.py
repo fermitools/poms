@@ -31,6 +31,7 @@ import poms_service
 import jobsub_fetcher
 import samweb_lite
 import logging_conf
+import time
 
 
 class SAEnginePlugin(plugins.SimplePlugin):
@@ -196,12 +197,15 @@ class SessionTool(cherrypy.Tool):
 
         cherrypy.session['id']              = cherrypy.session.originalid  #The session ID from the users cookie.
         cherrypy.session['X-Forwarded-For'] = cherrypy.request.headers.get('X-Forwarded-For', None)
+        # someone had all these SHIB- headers mixed case, which is not 
+        # how they are on fermicloud045 or on pomsgpvm01...
         cherrypy.session['Remote-Addr']     = cherrypy.request.headers.get('Remote-Addr', None)
         cherrypy.session['X-Shib-Userid']   = cherrypy.request.headers.get('X-Shib-Userid', None)
 
         username = None
         if cherrypy.request.headers.get('X-Shib-Userid', None):
             username = cherrypy.request.headers['X-Shib-Userid']
+            experimenter = None
             experimenter = (cherrypy.request.db.query(Experimenter)
                             .filter(ExperimentsExperimenters.active == True)
                             .filter(Experimenter.username == username)
@@ -292,13 +296,14 @@ if True:
        HOME="%(HOME)s"
        POMS_DIR="%(POMS_DIR)s"
     """ % os.environ)
-
+    
     cf = open(configfile,"r")
     confs = confs + cf.read()
     cf.close
 
     try:
         cherrypy.config.update(StringIO(confs))
+        #cherrypy.config.update(configfile)
     except IOError, mess:
         print >> sys.stderr, mess
         parser.print_help()
@@ -306,8 +311,10 @@ if True:
 
     pomsInstance = poms_service.poms_service()
     app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, StringIO(confs))
+    #app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, configfile)
 
     SAEnginePlugin(cherrypy.engine, app).subscribe()
+    #time.sleep(5)
     cherrypy.tools.db = SATool()
     cherrypy.tools.psess = SessionTool()
 

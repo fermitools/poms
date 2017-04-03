@@ -620,7 +620,8 @@ class TaskPOMS:
             output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
             return lcmd, output, c, campaign_id, outdir, outfile
 
-        lt.launch_account = lt.launch_account % {"experimenter": e.username,}
+        experimenter_login = e.username
+        lt.launch_account = lt.launch_account % {"experimenter": experimenter_login}
 
         if dataset_override:
             dataset = dataset_override
@@ -660,10 +661,16 @@ class TaskPOMS:
             params = OrderedDict([])
 
         if c.param_overrides is not None and c.param_overrides != "":
-            params.update(json.loads(c.param_overrides))
+            if isinstance(c.param_overrides, basestring):
+                params.update(json.loads(c.param_overrides))
+            else:
+                params.update(c.param_overrides)
 
         if param_overrides is not None and param_overrides != "":
-            params.update(json.loads(param_overrides))
+            if isinstance(param_overrides, basestring):
+                params.update(json.loads(param_overrides))
+            else:
+                params.update(param_overrides)
 
         lcmd = cd.launch_script + " " + ' '.join((x[0] + x[1]) for x in params.items())
         lcmd = lcmd % {
