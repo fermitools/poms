@@ -441,7 +441,7 @@ $("#edit_recovery_modal_btn").click(function() {
       for (i = 0; i < listLen ; i++) {
          s  = $("#re_recover_"+i.toString()+" option:selected").val();
          sp = $("#re_recover_p_"+i.toString()).children("span").text();
-         console.log(' sp= ' + sp);
+         //console.log(' sp= ' + sp);
          if (s) {
              spo = JSON.parse(sp)
              ssp = [s,spo]
@@ -485,7 +485,7 @@ $("#edit_recovery_modal_btn").click(function() {
      onApprove : function(){
       var data = ep_build_parms_string('repo');
       if (data[0] == "") {
-        console.log(' edit_recovery_params_o, data1 = ' + data[1] );
+        //console.log(' edit_recovery_params_o, data1 = ' + data[1] );
         $("#re_recover_p_"+ index).children("span").text(data[1]);
         $("#edit_recovery_modal").modal('show');
       } else {
@@ -553,11 +553,9 @@ function ep_build_parms_string(pval) {
   } else {
     var local_ep_parms = ep_parms
   }
-  /*
   for (index = 0; index < local_ep_parms.length; index++) {
     key = local_ep_parms[index][0];
     value = local_ep_parms[index][1];
-    console.log(' ep_build_parms_string, key = ' + key + ' value = ' + value);
     if ((key != "") && (value != "")) {
       if (parms != "[") {
         parms += ",";
@@ -572,9 +570,7 @@ function ep_build_parms_string(pval) {
   }
   
   parms += "]"
-  */
-  var ret_parms=JSON.stringify(local_ep_parms);
-  console.log(' ep_build_parms_string, ret_parms = ' + ret_parms );
+  var ret_parms= parms;   //JSON.stringify(local_ep_parms);
   //return [message, parms];
   return [message, ret_parms];
 } 
@@ -640,6 +636,7 @@ function ep_build_table_body(tbtype) {
   } else {
      $("#edit_param_modal").modal('refresh');
   }
+  
 }
 
 // -------------- Normal definitions ------------------
