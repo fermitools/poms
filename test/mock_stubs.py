@@ -7,6 +7,7 @@ def gethead(h,d):
 class fake_e:
     def __init__(self):
         self.email = 'mengel@fnal.gov'
+        self.username = 'mengel'
 
     def is_authorized_for(self,exp):
         return True

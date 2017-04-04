@@ -685,7 +685,7 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def list_task_lgged_files(self, task_id):
+    def list_task_logged_files(self, task_id):
         fl, t, jobsub_job_id = self.filesPOMS.list_task_logged_files(cherrypy.request.db, task_id)
         template = self.jinja_env.get_template('list_task_logged_files.html')
         return template.render(fl=fl, campaign=t.campaign_snap_obj, jobsub_job_id=jobsub_job_id,
