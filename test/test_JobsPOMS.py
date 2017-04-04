@@ -138,7 +138,7 @@ def test_update_job_2():
     print "testing all the info that the jobscraper pass the job_log_scraper"
     fielddict = {
                 'status': 'test_status' ,
-                'slot':'finally_something_in_this_field',
+                 # 'slot':'finally_something_in_this_field', # -- ??? mengel
                 'output_file_names':'test_file_test_joblogscraper.txt' ,
                 'node_name': 'fake_node_test_joblogscraper',
                 'user_exe_exit_code':'10',
