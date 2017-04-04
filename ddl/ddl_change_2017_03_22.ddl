@@ -9,4 +9,5 @@ delete from experiments_experimenters where experimenter_id in(select experiment
 delete from experimenters where email not like '%@fnal.gov';
 update experimenters set username=split_part(email,'@',1);
 
-
+-- Drop the email column from experimenters AFTER making sure everything is working
+-- alter table experimenters drop email;
