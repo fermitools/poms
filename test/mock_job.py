@@ -224,6 +224,9 @@ if __name__ == '__main__':
            continue
         if sys.argv[1] == "-D":
            dataset = sys.argv[2]
+           if dataset == "None":
+               # if they gave us "None", ignore it...
+               dataset = None
            sys.argv = sys.argv[2:]
            continue
         if sys.argv[1] == "--campaign_id":
