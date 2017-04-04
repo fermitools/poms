@@ -476,7 +476,7 @@ class TaskPOMS:
               dname = "poms_depends_%d_%d" % (t.task_id,i)
 
               samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-              self.launch_jobs(dbhandle, loggetconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id, dataset_override = dname)
+              self.launch_jobs(dbhandle, getconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id, dataset_override = dname)
         return 1
 
 

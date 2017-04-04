@@ -17,6 +17,9 @@ os.environ['EXPERIMENT'] = 'samdev'
 version = "v1_0"
 
 class mock_job:
+    ''' simulate jobs running *and* agents reporting on them
+        to allow testing of reporting pages and of workflow code '''
+
     def __init__(self):
         self.pids = []
         self.jids = []
