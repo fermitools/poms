@@ -36,6 +36,9 @@ class mock_job:
 	mps = mock_poms_service.mock_poms_service()
 	dbh = DBHandle.DBHandle()
         task_id = mps.taskPOMS.get_task_id_for(dbh.get(), campaign_id, experiment = "samdev", command_executed = 'fake_task')
+
+        print "got POMS_TASK_ID=%s" % task_id
+
         for i in range(n_jobs):
            self.run(task_id, i, n_jobs, fileflag, dataset, projname, exit_code)
 
@@ -71,7 +74,7 @@ class mock_job:
                 self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
                 self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, task_project = projname)
 
-                time.sleep(10)
+                time.sleep(20)
                 self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
                 os._exit(0)
 
@@ -83,8 +86,14 @@ class mock_job:
                 if i == 1:
                     time.sleep(1)
                 else:
-                    time.sleep(9)
+                    for k in range(2,n_jobs - 1):
+                         while 1:
+                             try:
+                                 os.kill(self.pids[k],0)
+                             except:
+                                 break
                 # pretend to be a startproject/endproject job
+                print "start/end job: %d" % i
                 self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
 
                 time.sleep(0.5)
@@ -97,9 +106,11 @@ class mock_job:
                 ih = ifdh.ifdh()
                 try:
                    if i == 1:
+                      print "Trying to start project..." , time.asctime()
                       u = ih.startProject(projname, 'samdev', dataset, os.environ['USER'],'samdev')
+                      time.sleep(7)  # wait for project to actually start
 	   
-                      print "started project", u
+                      print "started project", u, time.asctime()
                    else:
                       u = ih.findProject(projname, 'samdev')
                       ih.endProject(u)
@@ -114,9 +125,15 @@ class mock_job:
                 # normal boring job...
                 if dataset:
                     # wait for startproject...
-                    while os.kill(self.pids[1],0):
-                        sleep(1)
-		time.sleep(2)
+                    while 1:
+                        try:
+                            time.sleep(1)
+                            os.kill(self.pids[1],0)
+                        except:
+                             break
+                    print "finished waiting for startproject ", time.asctime()
+                else:
+		    time.sleep(2)
 
 		self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
 		time.sleep(0.5)
@@ -129,11 +146,14 @@ class mock_job:
 
                     import ifdh
                     ih = ifdh.ifdh()
+		    print "Trying to find project..." , time.asctime()
 		    u = ih.findProject(projname, 'samdev')
                     #hostname = socket.gethostname()
                     hostname = 'fnpc3000.fnal.gov'
 
      	            # ifdh establishProcess  projecturi  appname  appversion  location  user  appfamily   description   filelimit   schemas  
+
+                    print "trying to establishProcess(%s, 'demo', %s, %s, %s, %s, %s %s) %s \n" % (u, version, hostname, os.environ['USER'], 'demo', jid, 1, time.asctime())
 
 		    cid = ih.establishProcess( u, 'demo', version, hostname, os.environ['USER'], 'demo', jid, 1)
 		    f = ih.getNextFile(u, cid)

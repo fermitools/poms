@@ -50,7 +50,7 @@ def safe_get(sess, url, *args, **kwargs):
     try:
         sess.mount('http://', HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2)))
         reply = sess.get(url, timeout=5.0, *args, **kwargs)    # Timeout may need adjustment!
-        if reply.status_code != 200:
+        if reply.status_code != 200 and reply.status_code != 404:
             # Process error, store faulty query in DB
             fault = FaultyRequest(url=url, status=reply.status_code, message=reply.reason)
             dbh.add(fault)
