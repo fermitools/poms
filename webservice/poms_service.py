@@ -939,3 +939,11 @@ class poms_service:
         cherrypy.response.headers['Content-Type'] = 'application/json'
         return(self.tagsPOMS.auto_complete_tags_search(cherrypy.request.db, experiment, q))
 #-----------------------
+# debugging
+
+    @cherrypy.expose
+    def memory_summary(self):
+        from pympler import summary, muppy
+	mem_summary = summary.summarize(muppy.get_objects())
+	rows = summary.format_(mem_summary)
+	return '<pre>\n%s\n</pre>' % ('\n'.join(rows))

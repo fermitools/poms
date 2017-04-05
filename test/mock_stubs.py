@@ -31,7 +31,9 @@ class mock_seshandle:
 def getconfig(x, y=None):
     if x == 'poms.launch_recovery_jobs':
         return True
-    return None
+    import utils
+    config = utils.getconfig()
+    return config.get('[globals]',x)
 
 camp_seshandle = mock_seshandle()
 launch_seshandle = mock_seshandle()

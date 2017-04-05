@@ -1,3 +1,4 @@
+import re
 import DBHandle
 import datetime
 import time
@@ -67,7 +68,7 @@ def add_mock_job_launcher():
 	   ae_input_files_per_job = '0',
 	   ae_output_files_per_job = '0',
 	   ae_output_file_patterns = '%',
-	   ae_launch_script = 'python $POMS_DIR/test/mock_job.py --campaign_id $POMS_CAMPAIGN_ID -N 3',
+	   ae_launch_script = 'python $POMS_DIR/test/mock_job.py --campaign_id $POMS_CAMPAIGN_ID -N 3 -D %(dataset)s',
 	   ae_definition_parameters = '[]',
 	   ae_definition_recovery = '[]',
 	   experiment = 'samdev',
@@ -196,6 +197,55 @@ def test_workflow_1():
 
      assert(after_fred['All'] > before_fred['All'])
      assert(after_joe['All'] > before_joe['All'])
+
+     #assert(False)
+
+def test_workflow_2():
+     # setup workflow bits for _joe depending on _fred,
+     # launch it
+
+     print "test_workflow_1: starting"
+
+     cid_jane = add_campaign('_jane','{"campaigns":[],"file_patterns":[]}', dataset='gen_cfg')
+     cid_janet = add_campaign('_janet','{"campaigns":["_jane"],"file_patterns":["%"]}')
+
+     before_jane = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_jane , tdays=1)
+     before_janet = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_janet , tdays=1)
+
+     print "test_workflow_1: before: ", before_jane, before_janet
+
+     res = mps.taskPOMS.launch_jobs(dbh.get(), getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_jane)
+     output = res[1]
+     m = re.search('POMS_TASK_ID=([0-9]*)', output)
+     tid = m.group(1)
+
+     print "test_workflow_1: launched"
+
+     time.sleep(15)
+     print "test_workflow_1: first wrapup..."
+     res = mps.taskPOMS.wrapup_tasks(dbh.get(), samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
+     print "\n".join(res)
+     print "test_workflow_1: first wrapup:complete"
+     time.sleep(15)
+     print "test_workflow_1: second wrapup..."
+     res = mps.taskPOMS.wrapup_tasks(dbh.get(), samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
+     print "\n".join(res)
+     print "test_workflow_1: second wrapup:complete"
+
+     after_jane = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_jane , tdays=1)
+     after_janet = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_janet , tdays=1)
+     
+     print "test_workflow_1: after:" , after_jane, after_janet
+     #
+     # check here that the jobs actually ran etc.
+     # 
+
+     #del_campaign('_jane')
+     #del_campaign('_janet')
+     #del_mock_job_launcher()
+
+     assert(after_jane['All'] > before_jane['All'])
+     assert(after_janet['All'] > before_janet['All'])
 
      #assert(False)
 
