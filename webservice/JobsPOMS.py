@@ -412,7 +412,7 @@ class JobsPOMS(object):
 
          """
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink,
-         time_range_string) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'jobs_eff_histo?campaign_id=%s&' % campaign_id)
+         time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'jobs_eff_histo?campaign_id=%s&' % campaign_id)
 
         q = dbhandle.query(func.count(Job.job_id), func.floor(Job.cpu_time * 10 / Job.wall_time))
         q = q.join(Job.task_obj)

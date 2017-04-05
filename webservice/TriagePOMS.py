@@ -25,7 +25,7 @@ class TriagePOMS(object):
         ### This one method was deleted from the main script
 
         (tmin, tmax, tmins, tmaxs,
-         nextlink, prevlink, time_range_string) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'job_counts')
+         nextlink, prevlink, time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'job_counts')
         q = dbhandle.query(func.count(Job.status), Job.status).group_by(Job.status)
         if tmax is not None:
             q = q.filter(Job.updated <= tmax, Job.updated >= tmin)
@@ -57,7 +57,7 @@ class TriagePOMS(object):
         # we don't really use these for anything but we might want to
         # pass them into a template to set time ranges...
         (tmin, tmax, tmins, tmaxs,
-         nextlink, prevlink, time_range_string) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
+         nextlink, prevlink, time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
         job_file_list = self.poms_service.filesPOMS.job_file_list(dbhandle, jobsub_fetcher, job_id, force_reload)
         output_file_names_list = []
         job_info = (dbhandle.query(Job, Task, CampaignDefinition, Campaign)
@@ -143,7 +143,7 @@ class TriagePOMS(object):
     def job_table(self, dbhandle, tmin=None, tmax=None, tdays=1, **kwargs):
 
         (tmin, tmax, tmins, tmaxs,
-         nextlink, prevlink, time_range_string) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'job_table?')
+         nextlink, prevlink, time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'job_table?')
         extra = ""
         filtered_fields = {}
 
@@ -334,7 +334,7 @@ class TriagePOMS(object):
             f.append('experiment')
 
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink,
-         time_range_string) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
+         time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
                                                                        'failed_jobs_by_whatever?%s&' % ('&'.join(['f=%s' % x for x in f])))
 
         #

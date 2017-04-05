@@ -72,7 +72,7 @@ class UtilsPOMS():
         tmin = tmin.replace(tzinfo=utc)
         tmax = tmax.replace(tzinfo=utc)
 
-        return (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange)
+        return (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays)
 
 
     def quick_search(self, dbhandle, redirect, search_term):
