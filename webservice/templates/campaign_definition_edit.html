@@ -78,7 +78,13 @@
 	<td id="cdf_output_{{loop.index}}">{{row.CampaignDefinition.output_files_per_job}}</td>
 	<td id="cdf_outputpat_{{loop.index}}">{{row.CampaignDefinition.output_file_patterns|replace("None","%")}}</td>
 	<td id="cdf_script_{{loop.index}}">{{row.CampaignDefinition.launch_script|replace("None","")}}</td>
+
+       {% if row.CampaignDefinition.definition_parameters is string %}
 	<td id="cdf_definition_{{loop.index}}">{{row.CampaignDefinition.definition_parameters|replace("None","")}}</td>
+       {% else %}
+	<td id="cdf_definition_{{loop.index}}">{{row.CampaignDefinition.definition_parameters|tojson}}</td>
+       {% endif %}
+
 	<td id="cdf_recovery_{{loop.index}}">
 	  {% if data.recoveries[row.CampaignDefinition.campaign_definition_id] is defined %}
 	    {{data.recoveries[row.CampaignDefinition.campaign_definition_id]}}
@@ -406,7 +412,7 @@ $("#edit_recovery_modal_btn").click(function() {
       
       var sel = "#re_recover_"+i.toString()+" option[value="+rlist[i][0]+"]";
       $(sel).prop('selected','selected');
-      cval = rlist[i][1];
+      cval = JSON.stringify(rlist[i][1]);
       eleid_repo = "#re_recover_p_"+ i;
       $(eleid_repo).children("span").text(cval);
       eleid = "#re_recover_p_icon_" + i;
@@ -435,8 +441,11 @@ $("#edit_recovery_modal_btn").click(function() {
       for (i = 0; i < listLen ; i++) {
          s  = $("#re_recover_"+i.toString()+" option:selected").val();
          sp = $("#re_recover_p_"+i.toString()).children("span").text();
+         //console.log(' sp= ' + sp);
          if (s) {
-             ssp = [s,sp]
+             spo = JSON.parse(sp)
+             ssp = [s,spo]
+             //ssp = [s,sp];
              rlist.push(ssp);
              //rlist.push(s);
          }
@@ -476,6 +485,7 @@ $("#edit_recovery_modal_btn").click(function() {
      onApprove : function(){
       var data = ep_build_parms_string('repo');
       if (data[0] == "") {
+        //console.log(' edit_recovery_params_o, data1 = ' + data[1] );
         $("#re_recover_p_"+ index).children("span").text(data[1]);
         $("#edit_recovery_modal").modal('show');
       } else {
@@ -495,6 +505,12 @@ $("#edit_recovery_modal_btn").click(function() {
 
 // ----------------- Section for editing Definition Paramers ------------------------------
 
+function toList(dict) {
+    return Object.keys(dict).map(function (key) {
+        return [key, dict[key]];
+    });
+}
+
 $("#edit_param_modal_btn").click(function() {
 
   do_recp = false;
@@ -502,7 +518,9 @@ $("#edit_param_modal_btn").click(function() {
   var parms_str = $("#ae_definition_parameters").val();
   if (parms_str != "") {
     //ep_parms = eval ("(" + parms_str + ")");
+    
     ep_parms = JSON.parse(parms_str);
+    if (Array.isArray(ep_parms)==false) { ep_parms = toList(ep_parms)}
   }
   ep_build_table_body();
   $("#edit_param_modal").modal({
@@ -550,8 +568,11 @@ function ep_build_parms_string(pval) {
       break;
     }
   }
+  
   parms += "]"
-  return [message, parms];
+  var ret_parms= parms;   //JSON.stringify(local_ep_parms);
+  //return [message, parms];
+  return [message, ret_parms];
 } 
 
 //function ep_build_table_body() {
@@ -615,6 +636,7 @@ function ep_build_table_body(tbtype) {
   } else {
      $("#edit_param_modal").modal('refresh');
   }
+  
 }
 
 // -------------- Normal definitions ------------------

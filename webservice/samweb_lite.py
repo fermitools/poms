@@ -50,7 +50,7 @@ def safe_get(sess, url, *args, **kwargs):
     try:
         sess.mount('http://', HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2)))
         reply = sess.get(url, timeout=5.0, *args, **kwargs)    # Timeout may need adjustment!
-        if reply.status_code != 200:
+        if reply.status_code != 200 and reply.status_code != 404:
             # Process error, store faulty query in DB
             fault = FaultyRequest(url=url, status=reply.status_code, message=reply.reason)
             dbh.add(fault)
@@ -140,6 +140,8 @@ class samweb_lite:
         return infos
 
     def do_totals(self, info):
+        if not info.get("processes",None):
+             return
         tot_consumed = 0
         tot_skipped = 0
         tot_failed = 0
@@ -158,6 +160,8 @@ class samweb_lite:
         info["tot_skipped"] = tot_skipped
         info["tot_jobs"] = tot_jobs
         info["tot_jobfails"] = tot_jobfails
+        # we don't need the individual process info, just the totals..
+        del info["processes"]
 
     def update_project_description(self, experiment, projname, desc):
         base = "http://samweb.fnal.gov:8480"

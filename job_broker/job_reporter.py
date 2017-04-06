@@ -32,8 +32,8 @@ class job_reporter:
         self.work = Queue.Queue()
         self.wthreads = []
         self.nthreads = nthreads
-        # for bulk updates, do batches of 50 or every 10 seconds
-        self.batchsize = 50
+        # for bulk updates, do batches of 25 or every 10 seconds
+        self.batchsize = 25
         self.timemax = 10
         if self.bulk:
             self.wthreads.append(threading.Thread(target=self.runqueue_bulk))

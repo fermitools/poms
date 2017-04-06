@@ -18,7 +18,7 @@ class TagsPOMS():
 
 
         def link_tags(self, dbhandle, ses_get, campaign_id, tag_name, experiment):
-            if ses_get('experimenter').is_authorized(experiment):
+            if ses_get.get('experimenter').is_authorized(experiment):
                 response = {}
                 tag = dbhandle.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()
                 if tag:  #we have a tag in the db for this experiment so go ahead and do the linking

@@ -40,7 +40,7 @@ class CampaignsPOMS():
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
         pcl_call = kwargs.pop('pcl_call', 0)
-        pc_email = kwargs.pop('pc_email',None)
+        pc_username = kwargs.pop('pc_username',None)
         if action == 'delete':
             name = kwargs.pop('name')
             try:
@@ -54,7 +54,7 @@ class CampaignsPOMS():
 
         if action == 'add' or action == 'edit':
             if pcl_call == 1:
-                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
                 ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_id
                 ae_launch_name = kwargs.pop('ae_launch_name')
                 ae_launch_host = kwargs.pop('ae_launch_host')
@@ -135,7 +135,7 @@ class CampaignsPOMS():
             output_files_per_job = kwargs.pop('ae_output_files_per_job')
             output_file_patterns = kwargs.pop('ae_output_file_patterns')
             launch_script = kwargs.pop('ae_launch_script')
-            definition_parameters = kwargs.pop('ae_definition_parameters')
+            definition_parameters = json.loads(kwargs.pop('ae_definition_parameters'))
             recoveries = kwargs.pop('ae_definition_recovery')
             experimenter_id = kwargs.pop('experimenter_id')
             try:
@@ -205,11 +205,16 @@ class CampaignsPOMS():
                     .order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
                 rec_list  = []
                 for rec in recs:
-                    co_vals= '%s' %rec.param_overrides
-                    if co_vals=='' or co_vals=='{}': co_vals="[]"
-                    rec_vals=[rec.recovery_type.name,co_vals]
+                    if  type(rec.param_overrides) == type(u""):
+                        if rec.param_overrides in (u'',u'{}',u'[]'): rec.param_overrides="[]"
+                        rec_vals=[rec.recovery_type.name,json.loads(rec.param_overrides)]
+                    else:
+                        rec_vals=[rec.recovery_type.name,rec.param_overrides]
+
+                    #rec_vals=[rec.recovery_type.name,rec.param_overrides]
                     rec_list.append(rec_vals)
                 recs_dict[cid] = json.dumps(rec_list)
+             
             data['recoveries'] = recs_dict
             data['rtypes'] = (dbhandle.query(RecoveryType.name,RecoveryType.description).order_by(RecoveryType.name).all())
 
@@ -248,6 +253,7 @@ class CampaignsPOMS():
             software_version = kwargs.pop('ae_software_version')
             dataset = kwargs.pop('ae_dataset')
             param_overrides = kwargs.pop('ae_param_overrides')
+            if param_overrides:param_overrides = json.loads(param_overrides)
             campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
             launch_id = kwargs.pop('ae_launch_id')
             experimenter_id = kwargs.pop('experimenter_id')
@@ -369,7 +375,7 @@ class CampaignsPOMS():
 
     def new_task_for_campaign(dbhandle , campaign_name, command_executed, experimenter_name, dataset_name = None):
         c = dbhandle.query(Campaign).filter(Campaign.name == campaign_name).first()
-        e = dbhandle.query(Experimenter).filter(Experimenter.email.ilike("%s@%%" % experimenter_name)).first()
+        e = dbhandle.query(Experimenter).filter(Experimenter.username==experimenter_name).first()
         t = Task()
         t.campaign_id = c.campaign_id
         t.campaign_definition_id = c.campaign_definition_id
@@ -389,32 +395,43 @@ class CampaignsPOMS():
         return "Task=%d" % t.task_id
 
 
-    def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=1, active=True):
+    def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=1, active=True, tag = None):
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
         #cq = dbhandle.query(Campaign).filter(Campaign.active==active).order_by(Campaign.experiment)
+        
+        logit.log(logit.DEBUG, "show_campaigns: querying active")
         cq = dbhandle.query(Campaign).options(joinedload('experiment_obj')).filter(Campaign.active==active).order_by(Campaign.experiment)
 
         if experiment:
             cq = cq.filter(Campaign.experiment==experiment)
 
+        if tag:
+            cq = cq.join(CampaignsTags).join(Tag).filter(Tag.tag_name == tag)
+
         cl = cq.all()
+        logit.log(logit.DEBUG,"show_campaigns: back from query")
 
         counts = {}
         counts_keys = {}
 
+        logit.log(logit.DEBUG, "show_campaigns: getting pending")
         dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cl, tmin, tmax)
+        logit.log(logit.DEBUG, "show_campaigns: getting efficiency")
         effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cl, tmin, tmax)
 
         i = 0
         for c in cl:
+            logit.log(logit.DEBUG, "show_campaigns: getting counts for campaign %s" % c.name)
             counts[c.campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle, tmax=tmax, tmin=tmin, tdays=tdays, campaign_id=c.campaign_id)
             counts[c.campaign_id]['efficiency'] = effs[i]
             if len(pendings) > i:
                 counts[c.campaign_id]['pending'] = pendings[i]
             counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
             i = i + 1
+
+	logit.log(logit.DEBUG, "show_campaigns: wrapping up..")
         return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string
 
 
@@ -428,7 +445,7 @@ class CampaignsPOMS():
             tmin = Campaign_info.Campaign.created
             tmax = datetime.now(utc)
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'campaign_info?')
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'campaign_info?')
 
         Campaign_definition_info =  dbhandle.query(CampaignDefinition, Experimenter).filter(CampaignDefinition.campaign_definition_id == Campaign_info.Campaign.campaign_definition_id, CampaignDefinition.creator == Experimenter.experimenter_id ).first()
         Launch_template_info = dbhandle.query(LaunchTemplate, Experimenter).filter(LaunchTemplate.launch_id == Campaign_info.Campaign.launch_id, LaunchTemplate.creator == Experimenter.experimenter_id).first()
@@ -460,7 +477,7 @@ class CampaignsPOMS():
 
 
     def campaign_time_bars(self, dbhandle, campaign_id = None, tag = None, tmin = None, tmax = None, tdays = 1):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string,tdays = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
         tg = time_grid.time_grid()
         key = tg.key()
 
@@ -525,7 +542,7 @@ class CampaignsPOMS():
          if user == None:
               user = 4
          else:
-              u = dbhandle.query(Experimenter).filter(Experimenter.email.ilike("%s@%%" % user)).first()
+              u = dbhandle.query(Experimenter).filter(Experimenter.username==user).first()
               if u:
                    user = u.experimenter_id
 

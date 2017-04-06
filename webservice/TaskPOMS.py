@@ -86,8 +86,8 @@ class TaskPOMS:
         self.task_min_job_cache = {}
 
     def create_task(self, dbhandle, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor=None):
-        first, last, email = creator.split(' ')
-        creator = self.poms_service.get_or_add_experimenter(first, last, email)
+        first, last, username = creator.split(' ')
+        creator = self.poms_service.get_or_add_experimenter(first, last, username)
         exp = self.poms_service.get_or_add_experiment(experiment)
         td = self.poms_service.get_or_add_taskdef(taskdef, creator, exp)
         camp = self.poms_service.get_or_add_campaign(exp, td, creator)
@@ -313,7 +313,7 @@ class TaskPOMS:
 
     def show_task_jobs(self, dbhandle, task_id, tmax=None, tmin=None, tdays=1):
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=%s' % task_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string,tdays = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=%s' % task_id)
 
         jl = dbhandle.query(JobHistory,Job).filter(Job.job_id == JobHistory.job_id, Job.task_id==task_id ).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = time_grid.time_grid()
@@ -399,7 +399,7 @@ class TaskPOMS:
         if user == None:
              user = 4
         else:
-             u = dbhandle.query(Experimenter).filter(Experimenter.email.like("%s@%%" % user)).first()
+             u = dbhandle.query(Experimenter).filter(Experimenter.username==user).first()
              if u:
                   user = u.experimenter_id
         q = dbhandle.query(Campaign)
@@ -476,7 +476,7 @@ class TaskPOMS:
               dname = "poms_depends_%d_%d" % (t.task_id,i)
 
               samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-              self.launch_jobs(dbhandle, loggetconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id, dataset_override = dname)
+              self.launch_jobs(dbhandle, getconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id, dataset_override = dname)
         return 1
 
 
@@ -620,10 +620,8 @@ class TaskPOMS:
             output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
             return lcmd, output, c, campaign_id, outdir, outfile
 
-        experimenter_login = e.email[:e.email.find('@')]
-        lt.launch_account = lt.launch_account % {
-            "experimenter": experimenter_login,
-        }
+        experimenter_login = e.username
+        lt.launch_account = lt.launch_account % {"experimenter": experimenter_login}
 
         if dataset_override:
             dataset = dataset_override
@@ -663,10 +661,16 @@ class TaskPOMS:
             params = OrderedDict([])
 
         if c.param_overrides is not None and c.param_overrides != "":
-            params.update(json.loads(c.param_overrides))
+            if isinstance(c.param_overrides, basestring):
+                params.update(json.loads(c.param_overrides))
+            else:
+                params.update(c.param_overrides)
 
         if param_overrides is not None and param_overrides != "":
-            params.update(json.loads(param_overrides))
+            if isinstance(param_overrides, basestring):
+                params.update(json.loads(param_overrides))
+            else:
+                params.update(param_overrides)
 
         lcmd = cd.launch_script + " " + ' '.join((x[0] + x[1]) for x in params.items())
         lcmd = lcmd % {

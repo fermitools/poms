@@ -4,11 +4,51 @@ import getpass
 import time
 import subprocess
 import sys
+import os
+
+# put envioronment vars into some config sections...
+
+def get_config_py():
+
+    class fakeconfig(ConfigParser.SafeConfigParser):
+        def newget(self, var, default = None):
+            return self.oldget('global',var, default)
+
+    fakeconfig.oldget = fakeconfig.get
+    fakeconfig.get = fakeconfig.newget
+    config = fakeconfig()
+    config = get_config(config)
+    return config
+    
+def get_config(config = None):
+    from textwrap import dedent
+    from StringIO import StringIO
+
+    if config == None:
+        config = ConfigParser.RawConfigParser()
+    configfile = '../webservice/poms.ini'
+    confs = dedent("""
+       [/static]
+       HOME="%(HOME)s"
+       POMS_DIR="%(POMS_DIR)s"
+       [global]
+       HOME="%(HOME)s"
+       POMS_DIR="%(POMS_DIR)s"
+       [POMS]
+       HOME="%(HOME)s"
+       POMS_DIR="%(POMS_DIR)s"
+    """ % os.environ)
+    
+    cf = open(configfile,"r")
+    confs = confs + cf.read()
+    cf.close()
+
+    config.readfp(StringIO(confs))
+    return config
 
 
 def get_pid():
-    config = ConfigParser.RawConfigParser()
-    config.read('../webservice/poms.ini')
+    config = get_config()
 
     pid_path = config.get('global', 'log.pidfile')[1:-1]
     with open(pid_path, 'r') as f:
@@ -18,8 +58,7 @@ def get_pid():
 
 
 def get_db_info():
-    config = ConfigParser.ConfigParser()
-    config.read('../webservice/poms.ini')
+    config = get_config()
 
     dbname = config.get('global', 'db').replace("\"", "'")
     dbuser = config.get('global', 'dbuser').replace("\"", "'")
@@ -32,9 +71,12 @@ def get_db_info():
     return dbhost, dbname, dbuser, dbpass, dbport
 
 
+
+ 
+
+
 def get_base_url():
-    config = ConfigParser.RawConfigParser()
-    config.read('../webservice/poms.ini')
+    config = get_config()
 
     port = config.get('global', 'server.socket_port')
     pomspath = config.get('global', 'pomspath')

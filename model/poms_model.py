@@ -44,12 +44,11 @@ class Campaign(Base):
 class Experimenter(Base):
     __tablename__ = 'experimenters'
 
-    experimenter_id = Column(Integer, primary_key=True, server_default=text("nextval('experimenters_experimenter_id_seq'::regclass)"))
+    experimenter_id = Column(Integer, primary_key=True, server_default="")
     first_name = Column(Text, nullable=False)
     last_name = Column(Text)
-    #username = Column(Text, nullable=False)
-    email = Column(Text, nullable=False)
-    last_login = Column(DateTime(True), nullable=False)
+    username = Column(Text, nullable=False)
+    last_login = Column(DateTime(True), nullable=False, default="now()")
 
 
 class ExperimentsExperimenters(Base):
@@ -332,7 +331,6 @@ class CampaignRecovery(Base):
 
     campaign_definition = relationship(u'CampaignDefinition')
     recovery_type = relationship(u'RecoveryType')
-    param_overrides = Column(JSON)
 
 
 class CampaignDependency(Base):
@@ -357,9 +355,9 @@ class HeldLaunch(Base):
 
 
 class FaultyRequest(Base):
-        __tablename__ = 'faulty_requests'
-        url = Column(Text, nullable=False, primary_key=True)
-        status = Column(Integer)
-        message = Column(Text)
-        ntries = Column(Integer)
-        last_seen = Column(DateTime(timezone=True), nullable=False, primary_key=True, server_default=text("now()"))
+    __tablename__ = 'faulty_requests'
+    url = Column(Text, nullable=False, primary_key=True)
+    status = Column(Integer)
+    message = Column(Text)
+    ntries = Column(Integer)
+    last_seen = Column(DateTime(timezone=True), nullable=False, primary_key=True, server_default=text("now()"))
