@@ -487,6 +487,8 @@ class Files_status(object):
 
 
     def get_pending_for_task_lists(self, dbhandle, samhandle, task_list_list):
+        now = datetime.now(utc)
+        twodays = timedelta(days=2)
         dimlist = []
         explist = []
         # experiment = None
@@ -494,8 +496,10 @@ class Files_status(object):
         for tl in task_list_list:
             diml = ["("]
             for task in tl:
-                #if task.project == None:
-                #    continue
+                if task.project == None or (now - task.created) > twodays:
+                     # no project/ old projects have no counts, so short-circuit
+                     diml.append( "(file_name _)")
+                     continue
                 diml.append("(snapshot_for_project_name %s" % task.project)
                 diml.append("minus ( snapshot_for_project_name %s and (" % task.project)
                 sep = ""

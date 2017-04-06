@@ -209,17 +209,19 @@ def test_kill_jobs():
     #Check kill jobs in one task
     sep=output_killTask.rfind('--jobid ')
     assert(sep!=-1) #--jobid option was in called in the command
+    print "got output:", output_killTask
     jrm_idtl=output_killTask.split('--jobid ')[1].split(",")
-    jrm_idtl.sort()
     jrm_idtl[-1]=jrm_idtl[-1].rstrip('\n')
+    jrm_idtl.sort()
     assert(jrm_idtl==c_output_killTask)
 
     #Check kill all jobs in one Campaign,  that also prof that the job market as completed is not killed.
     sep=output_killCampaign.rfind('--jobid ')
     assert(sep!=-1) #--jobid option was in called in the command
+    print "got output:", output_killCampaign
     jrm_idcl=output_killCampaign.split('--jobid ')[1].split(",")
-    jrm_idcl.sort()
     jrm_idcl[-1]=jrm_idcl[-1].rstrip('\n')
+    jrm_idcl.sort()
     assert(jrm_idcl==c_output_killCampaign)
 
     #Closing the mock

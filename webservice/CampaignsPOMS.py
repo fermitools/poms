@@ -400,6 +400,8 @@ class CampaignsPOMS():
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
         #cq = dbhandle.query(Campaign).filter(Campaign.active==active).order_by(Campaign.experiment)
+        
+        logit.log(logit.DEBUG, "show_campaigns: querying active")
         cq = dbhandle.query(Campaign).options(joinedload('experiment_obj')).filter(Campaign.active==active).order_by(Campaign.experiment)
 
         if experiment:
@@ -409,21 +411,27 @@ class CampaignsPOMS():
             cq = cq.join(CampaignsTags).join(Tag).filter(Tag.tag_name == tag)
 
         cl = cq.all()
+        logit.log(logit.DEBUG,"show_campaigns: back from query")
 
         counts = {}
         counts_keys = {}
 
+        logit.log(logit.DEBUG, "show_campaigns: getting pending")
         dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cl, tmin, tmax)
+        logit.log(logit.DEBUG, "show_campaigns: getting efficiency")
         effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cl, tmin, tmax)
 
         i = 0
         for c in cl:
+            logit.log(logit.DEBUG, "show_campaigns: getting counts for campaign %s" % c.name)
             counts[c.campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle, tmax=tmax, tmin=tmin, tdays=tdays, campaign_id=c.campaign_id)
             counts[c.campaign_id]['efficiency'] = effs[i]
             if len(pendings) > i:
                 counts[c.campaign_id]['pending'] = pendings[i]
             counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
             i = i + 1
+
+	logit.log(logit.DEBUG, "show_campaigns: wrapping up..")
         return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string
 
 
