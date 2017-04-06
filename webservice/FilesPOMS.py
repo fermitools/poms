@@ -13,7 +13,7 @@ from poms.model.poms_model import Job, Task, Campaign, JobFile
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy import (desc, distinct)
 from utc import utc
-from datetime import datetime
+from datetime import datetime,timedelta
 
 
 class Files_status(object):
