@@ -140,6 +140,8 @@ class samweb_lite:
         return infos
 
     def do_totals(self, info):
+        if not info.get("processes",None):
+             return
         tot_consumed = 0
         tot_skipped = 0
         tot_failed = 0
@@ -158,6 +160,8 @@ class samweb_lite:
         info["tot_skipped"] = tot_skipped
         info["tot_jobs"] = tot_jobs
         info["tot_jobfails"] = tot_jobfails
+        # we don't need the individual process info, just the totals..
+        del info["processes"]
 
     def update_project_description(self, experiment, projname, desc):
         base = "http://samweb.fnal.gov:8480"
