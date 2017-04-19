@@ -19,9 +19,7 @@ import TagsPOMS
 import TriagePOMS
 import FilesPOMS
 import TablesPOMS
-
-global_version = "unknown"
-
+#import gcwrap
 
 def error_response():
     dump = ""
@@ -346,6 +344,7 @@ class poms_service:
         return self.campaignsPOMS.new_task_for_campaign(cherrypy.request.db, campaign_name, command_executed, experimenter_name, dataset_name)
 
 
+    #@gcwrap.mem_diff
     @cherrypy.expose
     @logit.logstartstop
     def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=1, active=True, tag = None, **kwargs):
@@ -354,7 +353,7 @@ class poms_service:
             nextlink, prevlink, time_range_string
         ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db,
                                             cherrypy.request.samweb_lite, experiment=experiment,
-                                            tmin=tmin, tmax=tmax, tdays=tdays, active=active, tag = tag)
+                                            tmin=tmin, tmax=tmax, tdays=tdays, active=active,  tag = tag)
 
         current_experimenter = cherrypy.session.get('experimenter')
         #~ logit.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
@@ -368,7 +367,7 @@ class poms_service:
 
         template = self.jinja_env.get_template('show_campaigns.html')
 
-        return template.render(In=("" if active else "In"), limit_experiment=experiment,
+        return template.render(In=("In" if active=="False" or not active else ""), limit_experiment=experiment,
                                 services=self.service_status_hier('All'), counts=counts, counts_keys=counts_keys,
                                 cl=clist, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
                                 current_experimenter=current_experimenter, do_refresh=1,
@@ -946,4 +945,4 @@ class poms_service:
         from pympler import summary, muppy
 	mem_summary = summary.summarize(muppy.get_objects())
 	rows = summary.format_(mem_summary)
-	return '<pre>\n%s\n</pre>' % ('\n'.join(rows))
+	return 'pid: %d<br><pre>\n%s\n</pre>' % (os.getpid(),'\n'.join(rows))

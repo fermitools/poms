@@ -91,7 +91,7 @@ def setUpPoms():
     try:
         # proc = subprocess.Popen("cd ../ && source /fnal/ups/etc/setups.sh && setup -. poms && cd webservice/ && python service.py --no-wsgi",
         #                         shell=True)
-        proc = subprocess.Popen("python ../webservice/service.py --no-wsgi -c ../../poms.ini", shell=True)
+        proc = subprocess.Popen("python ../webservice/service.py --no-wsgi -c ../webservice/poms.ini > webservice.out 2>&1", shell=True)
         print "PID =", proc.pid
     except OSError as e:
         print "Execution failed:", e

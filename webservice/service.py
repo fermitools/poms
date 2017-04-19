@@ -8,11 +8,12 @@ import atexit
 from textwrap import dedent
 from StringIO import StringIO
 
-if os.environ.get("SETUP_POMS", "") == "":
-    sys.path.insert(0, os.environ.get('SETUPS_DIR', os.environ.get('HOME') + '/products'))
-    import setups
-    ups = setups.setups()
-    ups.use_package("poms", "", "SETUP_POMS")
+#
+#if os.environ.get("SETUP_POMS", "") == "":
+#    sys.path.insert(0, os.environ.get('SETUPS_DIR', os.environ.get('HOME') + '/products'))
+#    import setups
+#    ups = setups.setups()
+#    ups.use_package("poms", "", "SETUP_POMS")
 
 from poms.model.poms_model import Experimenter, ExperimentsExperimenters
 # from sqlalchemy.orm import subqueryload, joinedload, contains_eager

@@ -72,11 +72,15 @@ def safe_get(sess, url, *args, **kwargs):
     return reply
 
 
+class proj_class_dict(dict):
+     # keep a separate type for project dicts for bookkeeping
+     pass
+
 class samweb_lite:
     def __init__(self):
         self.proj_cache = {}
         self.proj_cache_time = {}
-        self.valid = 60
+        self.valid = 300
 
     def flush(self):
         self.proj_cache = None
@@ -107,7 +111,7 @@ class samweb_lite:
             res = safe_get(sess, url, dbhandle=dbhandle)
         info = {}
         if res:
-            info = res.json()
+            info = proj_class_dict(res.json())
             self.do_totals(info)
             self.proj_cache[experiment + projid] = info
             self.proj_cache_time[experiment + projid] = time.time()
@@ -128,7 +132,7 @@ class samweb_lite:
         for r in replies:
             if r:
                 try:
-                    info = r.json()
+                    info = proj_class_dict(r.json())
                     self.do_totals(info)
                     infos.append(info)
                 except:

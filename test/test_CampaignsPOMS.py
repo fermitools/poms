@@ -52,7 +52,7 @@ def add_mock_job_launcher():
 	   ae_launch_id ='',
 	   ae_launch_host = fqdn,
 	   ae_launch_account =  os.environ['USER'],      
-	   ae_launch_setup = "source /grid/fermiapp/products/common/etc/setups; set -x; klist; cd %s;   setup -. poms" % os.environ['POMS_DIR'],
+	   ae_launch_setup = "source /grid/fermiapp/products/common/etc/setups; set -x; klist; cd %s;   setup -. poms; setup ifdhc" % os.environ['POMS_DIR'],
 	   experiment = 'samdev',
 	   experimenter_id = '4'
 	)
@@ -68,7 +68,7 @@ def add_mock_job_launcher():
 	   ae_input_files_per_job = '0',
 	   ae_output_files_per_job = '0',
 	   ae_output_file_patterns = '%',
-	   ae_launch_script = 'python $POMS_DIR/test/mock_job.py --campaign_id $POMS_CAMPAIGN_ID -N 3 -D %(dataset)s',
+	   ae_launch_script = 'nohup python $POMS_DIR/test/mock_job.py --campaign_id $POMS_CAMPAIGN_ID -N 3 -D %(dataset)s > /tmp/launch$$ 2>&1 ; sleep 5; cat /tmp/launch$$',
 	   ae_definition_parameters = '[]',
 	   ae_definition_recovery = '[]',
 	   experiment = 'samdev',
@@ -212,30 +212,32 @@ def test_workflow_2():
      before_jane = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_jane , tdays=1)
      before_janet = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_janet , tdays=1)
 
-     print "test_workflow_1: before: ", before_jane, before_janet
+     print "test_workflow_2: before: ", before_jane, before_janet
 
      res = mps.taskPOMS.launch_jobs(dbh.get(), getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_jane)
      output = res[1]
      m = re.search('POMS_TASK_ID=([0-9]*)', output)
      tid = m.group(1)
 
-     print "test_workflow_1: launched"
+     print "test_workflow_2: launched"
+     print "output:" , output
 
      time.sleep(15)
-     print "test_workflow_1: first wrapup..."
+     print "test_workflow_2: first wrapup..."
+ 
      res = mps.taskPOMS.wrapup_tasks(dbh.get(), samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
      print "\n".join(res)
-     print "test_workflow_1: first wrapup:complete"
+     print "test_workflow_2: first wrapup:complete"
      time.sleep(15)
-     print "test_workflow_1: second wrapup..."
+     print "test_workflow_2: second wrapup..."
      res = mps.taskPOMS.wrapup_tasks(dbh.get(), samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
      print "\n".join(res)
-     print "test_workflow_1: second wrapup:complete"
+     print "test_workflow_2: second wrapup:complete"
 
      after_jane = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_jane , tdays=1)
      after_janet = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_janet , tdays=1)
      
-     print "test_workflow_1: after:" , after_jane, after_janet
+     print "test_workflow_2: after:" , after_jane, after_janet
      #
      # check here that the jobs actually ran etc.
      # 

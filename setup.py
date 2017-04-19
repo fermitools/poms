@@ -3,7 +3,7 @@ from setuptools.config import read_configuration
 
 # workaround read_configuration/setup bug
 def fixdict(d):
-    d[''] = d[u'']
+    d[''] = d.get(u'',None)
     del d[u'']
 
 cfdict = read_configuration('setup.cfg')
