@@ -712,9 +712,15 @@ class CampaignsPOMS():
         dirname="%s/private/logs/poms/launches/campaign_%s" % (
            os.environ['HOME'],campaign_id)
         lf = open("%s/%s" % (dirname, fname), "r")
+        sb = os.fstat(lf.fileno())
         lines = lf.readlines()
         lf.close()
-        return lines
+        # if file is recent set refresh to watch it
+        if (time.time() - sb[8]) < 30 :
+            refresh = 10
+        else:
+            refresh = 0
+        return lines, refresh
 
 
     def schedule_launch(self, dbhandle, campaign_id ):
