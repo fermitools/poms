@@ -598,6 +598,7 @@ class TaskPOMS:
         lt = c.launch_template_obj
 
         if self.get_job_launches(dbhandle) == "hold":
+            # fix me!!
             output = "Job launches currently held.... queuing this request"
             hl = HeldLaunch()
             hl.campaign_id = campaign_id
@@ -609,7 +610,7 @@ class TaskPOMS:
             dbhandle.commit()
             lcmd = ""
 
-            return lcmd, output, c, campaign_id, outdir, outfile
+            return lcmd, c, campaign_id, outdir, outfile
 
         e = seshandle('experimenter')
         xff = gethead('X-Forwarded-For', None)
@@ -638,7 +639,7 @@ class TaskPOMS:
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.poms_service.hostname,
-            "ssh -tx %s@%s <<'EOF'" % (lt.launch_account, lt.launch_host),
+            "ssh -tx %s@%s <<'EOF' &" % (lt.launch_account, lt.launch_host),
             lt.launch_setup % {
                 "dataset": dataset,
                 "version": c.software_version,
@@ -686,14 +687,13 @@ class TaskPOMS:
 
         cmd = cmd.replace('\r', '')
 
-        # make sure launch doesn't take more that half an hour...
-        output = popen_read_with_timeout(cmd, 1800)     ### Question???
-
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
+        dn = open("/dev/null","r")
         lf = open(outfile, "w")
-        lf.write(output)
+        pp = subprocess.Popen(cmd, shell=True, stdin=dn,stdout=lf, stderr=lf, close_fds=True)
         lf.close()
+        dn.close()
+        pp.wait()
 
-        # always record launch...
-        return lcmd, output, c, campaign_id, outdir, outfile
+        return lcmd, c, campaign_id, outdir, outfile

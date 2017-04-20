@@ -91,7 +91,7 @@ class poms_service:
         template = self.jinja_env.get_template('index.html')
         return template.render(services=self.service_status_hier('All'), current_experimenter=cherrypy.session.get('experimenter'),
                                launches=self.taskPOMS.get_job_launches(cherrypy.request.db),
-                               do_refresh=1, pomspath=self.path, help_page="DashboardHelp", version=self.version)
+                               do_refresh=300, pomspath=self.path, help_page="DashboardHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -370,7 +370,7 @@ class poms_service:
         return template.render(In=("In" if active=="False" or not active else ""), limit_experiment=experiment,
                                 services=self.service_status_hier('All'), counts=counts, counts_keys=counts_keys,
                                 cl=clist, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
-                                current_experimenter=current_experimenter, do_refresh=1,
+                                current_experimenter=current_experimenter, do_refresh=300,
                                 next=nextlink, prev=prevlink, days=tdays, time_range_string=time_range_string,
                                 key='', dimlist=dimlist, pomspath=self.path, help_page="ShowCampaignsHelp",
                                 experiments=experiments,
@@ -408,7 +408,7 @@ class poms_service:
         template = self.jinja_env.get_template('campaign_time_bars.html')
         return template.render(job_counts=job_counts, blob=blob, name=name, tmin=tmin, tmax=tmax,
                     current_experimenter=cherrypy.session.get('experimenter'),
-                    do_refresh=1, next=nextlink, prev=prevlink, days=tdays, key=key,
+                    do_refresh=300, next=nextlink, prev=prevlink, days=tdays, key=key,
                     pomspath=self.path, extramap=extramap, help_page="CampaignTimeBarsHelp", version=self.version)
 
 
@@ -423,10 +423,10 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def list_launch_file(self, campaign_id, fname):
-        lines = self.campaignsPOMS.list_launch_file(campaign_id, fname)
+        lines,refresh = self.campaignsPOMS.list_launch_file(campaign_id, fname)
         output = "".join(lines)
         template = self.jinja_env.get_template('launch_jobs.html')
-        res = template.render(command='', output=output,
+        res = template.render(command='', output=output, do_refresh = refresh,
                                 current_experimenter=cherrypy.session.get('experimenter'),
                                 c=None, campaign_id=campaign_id, pomspath=self.path,
                                 help_page="LaunchedJobsHelp", version=self.version)
@@ -596,7 +596,7 @@ class poms_service:
                                 campaign_id=campaign_id,
                                 tdays=tdays, tmin=tmin, tmax=tmax,
                                 current_experimenter=cherrypy.session.get('experimenter'),
-                                do_refresh=1, next=nextlink, prev=prevlink,
+                                do_refresh=300, next=nextlink, prev=prevlink,
                                 days=tdays, pomspath=self.path,
                                 help_page="JobEfficiencyHistoHelp", version=self.version)
 
@@ -625,13 +625,10 @@ class poms_service:
                         cherrypy.request.samweb_lite,
                         cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
         logit.log("Got vals: %s" % repr(vals))
-        lcmd, output, c, campaign_id, outdir, outfile = vals
-        template = self.jinja_env.get_template('launch_jobs.html')
-        res = template.render(command=lcmd, output=output,
-                                current_experimenter=cherrypy.session.get('experimenter'),
-                                c=c, campaign_id=campaign_id, pomspath=self.path,
-                                help_page="LaunchedJobsHelp", version=self.version)
-        return res
+        lcmd, c, campaign_id, outdir, outfile = vals
+        
+        raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_id=%s&fname=%s" % (self.path, campaign_id, os.path.basename(outfile)))
+
 #----------------------
 ########################
 ### TaskPOMS
@@ -667,7 +664,7 @@ class poms_service:
         template = self.jinja_env.get_template('show_task_jobs.html')
         return template.render(blob=blob, job_counts=job_counts, taskid=task_id, tmin=tmin, tmax=tmax,
                                 current_experimenter=cherrypy.session.get('experimenter'),
-                                extramap=extramap, do_refresh=1, key=key, pomspath=self.path, help_page="ShowTaskJobsHelp",
+                                extramap=extramap, do_refresh=300, key=key, pomspath=self.path, help_page="ShowTaskJobsHelp",
                                 task_jobsub_id=task_jobsub_id,
                                 campaign_id=campaign_id, cname=cname, version=self.version)
 
