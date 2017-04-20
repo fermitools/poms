@@ -715,9 +715,9 @@ class CampaignsPOMS():
         sb = os.fstat(lf.fileno())
         lines = lf.readlines()
         lf.close()
-        # if file is recent set refresh...
-        if (time.time() - sb[8]) < 60 :
-            refresh = 30
+        # if file is recent set refresh to watch it
+        if (time.time() - sb[8]) < 30 :
+            refresh = 10
         else:
             refresh = 0
         return lines, refresh
