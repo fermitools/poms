@@ -143,25 +143,29 @@ def campaign_definition_edit(input_files_per_job,
                             )
 
 
-def campaign_edit (action,
-                    experiment,
-                    campaign_name,
-                    campaign_id,
-                    active,
-                    split_type,
-                    vo_role,
-                    software_version,
-                    dataset,
-                    param_overrides,
-                    campaign_definition_id,
-                    launch_id,
-                    experimenter_id,
-                    completion_type,
-                    completion_pct,
-                    depends,
-                    state,
-                    
-                    )
+def campaign_edit (action, ae_campaign_name, pc_email, experiment, vo_role,
+                    dataset, ae_active, ae_split_type, ae_software_version,
+                    ae_completion_type, ae_completion_pct, ae_param_overrides,
+                    ae_depends, ae_launch_name, ae_campaign_definition, test_client):
+    method="campaign_edit"
+    data = make_poms_call(method=method,
+                            action=action,
+                            ae_campaign_name=ae_campaign_name,
+                            pc_email=pc_email,
+                            experiment=experiment,
+                            vo_role=vo_role,
+                            dataset=dataset,
+                            ae_active=state,
+                            ae_split_type=split_type,
+                            ae_software_version=software_version,
+                            ae_completion_type=completion_type,
+                            ae_completion_pct=completion,
+                            ae_param_overrides=param_overrides,
+                            ae_depends=depends,
+                            ae_launch_name=launch_name,
+                            ae_campaign_definition=job_type,
+                            test_client=test_client)
+    return data['message']
 
 
 def make_poms_call(**kwargs):
