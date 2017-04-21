@@ -3,12 +3,12 @@
 from poms_client import campaign_edit
 import argparse
 #Creating the arguments
-parser = argparse.ArgumentParser(description='Optional Arguments edit campaign definition')
+parser = argparse.ArgumentParser(description='Optional Arguments edit campaign')
 groupArg = parser.add_argument_group('Require Arguments')
 
 ##??Should I passed always as active, or as all. Active or Inactive
-active = kwargs.pop('ae_active')
-state = kwargs.pop('state',None)
+#active = kwargs.pop('ae_active') delete
+#state = kwargs.pop('state',None) delete
 
 #parser.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', default = None)
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
@@ -33,36 +33,47 @@ args = parser.parse_args()
 #parser.print_help()
 print args
 print 'The arguments you pass are:'
-print 'action =',args.action ###
-print 'campaign_name =', args.name
-print 'email=',args.email
-print 'experiment=',args.experiment
-print 'input_files_per_job=', args.input_files_per_job
-print 'output_files_per_job=', args.output_files_per_job
-print 'output_file_patterns=', args.output_file_patterns
-print 'launch_script=', args.launch_script
-print 'def_parameter=', args.def_parameter
-print 'test_client=', args.test_client
+print 'action =',args.action#
+print 'campaign_name =', args.campaign_name#
+print 'email=',args.email#
+print 'experiment=',args.experiment#
+print 'vo_role=', args.vo_role
+print 'dataset=', args.dataset
+print 'state', arg.state
+print 'split_type=', args.split_type
+print 'software_version=', args.software_version
+print 'completion_type=', args.completion_type
+print 'completion=', args.completion
+print 'param_overrides=', args.param_overrides
+print 'depends_on=', arg.depends_on
+print 'launch_name', arg.launch_name
+print 'job_type', arg.job_type
+print 'test_client', arg.test_client
+
 
 
 #Calling the poms_client.campaign_definition_edit'
 if action in ['add','delete','edit']:
-    campaign_definition_edit(pc_email=args.email,
-                        action = args.action,
-                        name=args.name,
-                        experiment=args.experiment,
-                        input_files_per_job=args.input_files_per_job,
-                        output_files_per_job=args.output_files_per_job,
-                        output_file_patterns=args.output_file_patterns,
-                        launch_script=args.launch_script,
-                        def_parameter=args.def_parameter,
-                        test_client=args.test_client)
+    campaign_definition_edit(action=args.action,
+                            ae_campaign_name=args.campaign_name,
+                            pc_email=args.email,
+                            experiment=args.experiment,
+                            vo_role=args.vo_role,
+                            dataset=args.dataset,
+                            ae_active=args.state,
+                            ae_split_type=args.split_type,
+                            ae_software_version=args.software_version,
+                            ae_completion_type=args.completion_type,
+                            ae_completion_pct=args.completion,
+                            ae_param_overrides=args.param_overrides,
+                            ae_depends=args.depends,
+                            ae_launch_name=args.launch_name,
+                            ae_campaign_definition=args.job_type,
+                            test_client=arg.test_client)
+
 else:
     msg = "Error: the action you choose was [action="+action+"] you must use add-edit-delete as option"
     raise ArgumentParser.error(msg)
-
-
-
 
 '''
 campaign_definition_edit_test(pc_email=args.email,
