@@ -6,7 +6,7 @@ import os
 rs = requests.Session()
 
 def register_poms_campaign(campaign_name, user = None, experiment = None, version = None, dataset = None, campaign_definition = None, test = None):
-    return int(make_poms_call(
+    data, status = make_poms_call(
                     method = 'register_poms_campaign',
                     campaign_name = campaign_name,
                     user = user,
@@ -15,17 +15,19 @@ def register_poms_campaign(campaign_name, user = None, experiment = None, versio
                     dataset = dataset,
                     campaign_definition = campaign_definition,
                     test = test).replace('Campaign=',''))
+    return int(data)
 
 def get_task_id_for(campaign, user = None, command_executed = None, input_dataset = None, parent_task_id = None, test = None, experiment = None):
 
-    return int(make_poms_call(
+    data, status = make_poms_call(
                     method = 'get_task_id_for',
                     campaign = campaign,
                     user = user,
                     command_executed = command_executed,
                     input_dataset = input_dataset,
                     parent_task_id = parent_task_id,
-                    test = test).replace('Task=',''))
+                    test = test).replace('Task=','')
+    return int(data)
 
 
 def launch_template_edit(action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_email = None):
@@ -48,13 +50,13 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
             if ae_launch_name == None:
                 print "For deleting you need to provide the name of the launch teamplate as name = name_of_your_launch_template"
             else:
-                data = make_poms_call(
+                data, status_code = make_poms_call(
                     pcl_call=1,
                     method=method,
                     action = action,
                     ae_launch_name = ae_launch_name,
                     experiment = experiment)
-                return data['message']
+                return status_code
 
         if action == 'add':
             if ae_launch_name == None or ae_launch_host == None or ae_launch_account == None or ae_launch_setup == None:
@@ -62,7 +64,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
                         name, launch_host, user_account, launch_setup. \n\
                         Curently you provide name ="+ae_launch_name+",launch_host="+ae_launch_host+", user_account="+ae_launch_account+", launch_setup="+ae_launch_setup+"."
             else:
-                data = make_poms_call(
+                data, status_code  = make_poms_call(
                     pcl_call=1,
                     method = method,
                     action = action,
@@ -75,8 +77,8 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
                     ###The variables below are query in the CampaignsPOMS module
                     #ae_launch_id = ae_launch_id,
                     #experimenter_id = experimenter_id)
+                return status_code
 
-                return data['message']
 
         elif action == 'edit':
             if ae_launch_name == None:
@@ -84,7 +86,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
                     name, launch_host, user_account, launch_setup. \n\
                     Curently you provide name = "+ae_launch_name
             else:
-                data = make_poms_call(
+                data, status_code = make_poms_call(
                     pcl_call=1,
                     method = method,
                     action = action,
@@ -94,8 +96,9 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
                     ae_launch_host = launch_host,
                     ae_launch_account = user_account,
                     ae_launch_setup = launch_setup)
+                return status_code
                     ###The other var are query in the CampaignsPOMS module ae_launch_id, experimenter_id.
-                return data['message']
+                #return data['message']
 
         else:
             print "You should define an action on your launch_template, there are just \
@@ -118,7 +121,7 @@ def campaign_definition_edit(input_files_per_job, output_files_per_job, output_f
     ae_output_file_patterns = output_file_patterns
     ae_launch_script = launch_script
     ae_definition_parameters= json.dumps(def_parameter)
-    data = make_poms_call(  pcl_call=1,
+    data, status_code = make_poms_call(  pcl_call=1,
                             method = method,
                             pc_email = pc_email,
 
@@ -134,13 +137,15 @@ def campaign_definition_edit(input_files_per_job, output_files_per_job, output_f
                             test_client=test_client
                             )
 
+    #return data['message']
+
 
 def campaign_edit (action, ae_campaign_name, pc_email, experiment, vo_role,
                     dataset, ae_active, ae_split_type, ae_software_version,
                     ae_completion_type, ae_completion_pct, ae_param_overrides,
                     ae_depends, ae_launch_name, ae_campaign_definition, test_client):
     method="campaign_edit"
-    data = make_poms_call( pcl_call=1,
+    data, status_code = make_poms_call( pcl_call=1,
                             method=method,
                             action=action,
                             ae_campaign_name=ae_campaign_name,
@@ -158,7 +163,8 @@ def campaign_edit (action, ae_campaign_name, pc_email, experiment, vo_role,
                             ae_launch_name=launch_name,
                             ae_campaign_definition=job_type,
                             test_client=test_client)
-    return data['message']
+    return status_code
+    #return data['message']
 
 
 def make_poms_call(**kwargs):
@@ -186,9 +192,11 @@ def make_poms_call(**kwargs):
 
     c = self.rs.post("%s/%s" % (base,method), data=kwargs);
     res = c.text
+    status_code = c.status_code
     c.close()
-    print res
-    return res
+    print "res =", res
+    print "status_code"
+    return res, status_code
 
 
 
