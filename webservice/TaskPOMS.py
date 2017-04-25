@@ -8,20 +8,20 @@ written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 
 from datetime import datetime
 
-import time_grid
+from . import time_grid
 from sqlalchemy.orm import subqueryload, joinedload, contains_eager
 from sqlalchemy import func, text
-from utc import utc
+from .utc import utc
 from datetime import timedelta
-import condor_log_parser
+from . import condor_log_parser
 import json
 from collections import OrderedDict
 import subprocess
 import time
 import select
 import os
-import logit
-from exceptions import KeyError
+from . import logit
+#from exceptions import KeyError
 
 from poms.model.poms_model import (Service,
                                    # ServiceDowntime,
@@ -301,7 +301,7 @@ class TaskPOMS:
                                               task.campaign_snap_obj.vo_role)
         logit.log("Starting finish_up_tasks loops, len %d" % len(finish_up_tasks))
 
-        for task_id, task in finish_up_tasks.items():
+        for task_id, task in list(finish_up_tasks.items()):
             # get logs for job for final cpu values, etc.
             logit.log("Starting finish_up_tasks items for task %s" % task_id)
 
@@ -385,7 +385,7 @@ class TaskPOMS:
     def task_min_job(self, dbhandle, task_id):  # This method deleted from the main script.
         # find the job with the logs -- minimum jobsub_job_id for this task
         # also will be nickname for the task...
-        if ( self.task_min_job_cache.has_key(task_id) ):
+        if ( task_id in self.task_min_job_cache ):
            return self.task_min_job_cache.get(task_id)
         j = dbhandle.query(Job).filter( Job.task_id == task_id ).order_by(Job.jobsub_job_id).first()
         if j:
@@ -447,7 +447,7 @@ class TaskPOMS:
              if (i[0] == None or j == None or j.updated == None or  i[0] < j.updated):
                 newsnap = snaptable()
                 columns = j._sa_instance_state.class_.__table__.columns
-                for fieldname in columns.keys():
+                for fieldname in list(columns.keys()):
                      setattr(newsnap, fieldname, getattr(j,fieldname))
                 dbhandle.add(newsnap)
              else:
@@ -654,7 +654,7 @@ class TaskPOMS:
             "export JOBSUB_GROUP=%s" % group,
         ]
         if cd.definition_parameters:
-            if isinstance(cd.definition_parameters, basestring):
+            if isinstance(cd.definition_parameters, str):
                 params = OrderedDict(json.loads(cd.definition_parameters))
             else:
                 params = OrderedDict(cd.definition_parameters)
@@ -662,18 +662,18 @@ class TaskPOMS:
             params = OrderedDict([])
 
         if c.param_overrides is not None and c.param_overrides != "":
-            if isinstance(c.param_overrides, basestring):
+            if isinstance(c.param_overrides, str):
                 params.update(json.loads(c.param_overrides))
             else:
                 params.update(c.param_overrides)
 
         if param_overrides is not None and param_overrides != "":
-            if isinstance(param_overrides, basestring):
+            if isinstance(param_overrides, str):
                 params.update(json.loads(param_overrides))
             else:
                 params.update(param_overrides)
 
-        lcmd = cd.launch_script + " " + ' '.join((x[0] + x[1]) for x in params.items())
+        lcmd = cd.launch_script + " " + ' '.join((x[0] + x[1]) for x in list(params.items()))
         lcmd = lcmd % {
             "dataset": dataset,
             "version": c.software_version,

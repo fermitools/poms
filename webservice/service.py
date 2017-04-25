@@ -6,7 +6,7 @@ from datetime import datetime
 from utc import utc
 import atexit
 from textwrap import dedent
-from StringIO import StringIO
+from io import StringIO
 
 #
 #if os.environ.get("SETUP_POMS", "") == "":
@@ -27,12 +27,12 @@ from cherrypy.process import wspbus, plugins
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
-import poms_service
+from poms.webservice import poms_service
 
-import jobsub_fetcher
-import samweb_lite
-import logging_conf
-import logit
+from poms.webservice import jobsub_fetcher
+from poms.webservice import samweb_lite
+from poms.webservice import logging_conf
+from poms.webservice import logit
 
 
 class SAEnginePlugin(plugins.SimplePlugin):
@@ -241,7 +241,7 @@ class SessionTool(cherrypy.Tool):
         for row in e2e:
             exps[row.experiment] = row.active
         if len(e):
-            extra = {'selected': exps.keys()}
+            extra = {'selected': list(exps.keys())}
             cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
                                                                    e[0].first_name, e[0].last_name, e[0].username, exps, **extra)
         else:
@@ -305,8 +305,8 @@ if True:
     try:
         cherrypy.config.update(StringIO(confs))
         #cherrypy.config.update(configfile)
-    except IOError, mess:
-        print >> sys.stderr, mess
+    except IOError as mess:
+        print(mess, file=sys.stderr)
         parser.print_help()
         raise SystemExit
 

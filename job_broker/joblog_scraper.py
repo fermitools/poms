@@ -3,13 +3,13 @@
 import sys
 import os
 import re
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import json
 import traceback
 import time
 import threading
 
-from job_reporter import job_reporter
+from .job_reporter import job_reporter
 
 # don't barf if we need to log utf8...
 import codecs
@@ -88,16 +88,16 @@ class joblog_scraper:
 
         # clean up mapping at COMPLETED with...
         if key and message.find("COMPLETED with") > 0:
-            if self.job_id_map.has_key(key):
-                if self.job_task_map.has_key(self.job_id_map[key]):
+            if key in self.job_id_map:
+                if self.job_id_map[key] in self.job_task_map:
                     del self.job_task_map[self.job_id_map[key]]
                 del self.job_id_map[key]
   
         # use mapping to fill in missing bits
-        if key and not jobsub_job_id and self.job_id_map.has_key(key):
+        if key and not jobsub_job_id and key in self.job_id_map:
             jobsub_job_id = self.job_id_map[key]
 
-        if key and not task and jobsub_job_id and self.job_task_map.has_key(jobsub_job_id):
+        if key and not task and jobsub_job_id and jobsub_job_id in self.job_task_map:
             task = self.job_task_map[jobsub_job_id]
             
         return { 
@@ -114,7 +114,7 @@ class joblog_scraper:
 
     def find_files(self, message):
         if self.debug:
-            print "looking for input/output files in: " , message
+            print("looking for input/output files in: " , message)
         file_map = {}
         message = message[message.find("ifdh::cp(")+9:]
         message = message[:message.find(")")]
@@ -126,9 +126,9 @@ class joblog_scraper:
                 file_map[item] = 1
 
         if self.debug:
-            print "found files: " , file_map
+            print("found files: " , file_map)
 
-        return ' '.join(file_map.keys())
+        return ' '.join(list(file_map.keys()))
 
     def report_item(self, taskid, jobsub_job_id, hostname, message, experiment = "none"):
         data = { 
@@ -138,11 +138,11 @@ class joblog_scraper:
         }
 
         if self.debug:
-           print "report_item: message:" , message
+           print("report_item: message:" , message)
 
         if message.find("starting ifdh::cp") >= 0:
             if self.debug:
-                print "saw copy"
+                print("saw copy")
 	    if self.copyin_re.match(message):
                 dir = "in"
                 data['input_file_names'] = self.find_files(message)
@@ -172,24 +172,24 @@ class joblog_scraper:
         pos = message.find('poms_data={')
         if pos >= 0:
            s = message[message.find('{'):]
-           if self.debug: print "unpacking: " , s
+           if self.debug: print("unpacking: " , s)
            try:
               newdata = json.loads(s)
            except:
               s = s[0:s.find(', "bogo')] + " }"
-              print "failed, unpacking: " , s
+              print("failed, unpacking: " , s)
               try:
                   newdata = json.loads(s)
               except:
                   newdata = {}
-                  print "still failed, continuing.."
+                  print("still failed, continuing..")
                   pass
 
-	   for k in newdata.keys():
+	   for k in list(newdata.keys()):
 	       if newdata[k] == '':
 		   del newdata[k]
 
-	   if newdata.has_key('vendor_id'):
+	   if 'vendor_id' in newdata:
                # round off bogomips so rounding errors do not give us
                # fake distinctions in bogomips
 	       newdata['cpu_type'] = "%s@%s" % (
@@ -198,7 +198,7 @@ class joblog_scraper:
 	   data.update(newdata)
 
         if self.debug:
-            print "reporting: " , data
+            print("reporting: " , data)
 
         self.job_reporter.report_status(**data)
 
@@ -230,7 +230,7 @@ if __name__ == '__main__':
    server = "http://localhost:8080/poms"
    testing = False
    if len(sys.argv) > 1 and sys.argv[1] == "-t":
-        print "doing test flag"
+        print("doing test flag")
         server = "http://localhost:8888/poms"
         testing = True
         sys.argv = sys.argv[1:]
@@ -239,14 +239,14 @@ if __name__ == '__main__':
    js = joblog_scraper( job_reporter(server, debug=debug, namespace = ns), debug)
    while 1:
       if debug:
-           print "Starting..."
+           print("Starting...")
       try:
           if testing:
               h = open(os.environ['TEST_JOBLOG'],"r")
           else:
               h = open("/home/poms/private/rsyslogd/joblog_fifo","r")
           if debug:
-             print "re-reading...";
+             print("re-reading...");
 
           js.scan(h)
 
@@ -257,7 +257,7 @@ if __name__ == '__main__':
           break
 
       except:
-          print time.asctime(), "Exception!"
+          print(time.asctime(), "Exception!")
           traceback.print_exc()
           pass
    js.job_reporter.cleanup()

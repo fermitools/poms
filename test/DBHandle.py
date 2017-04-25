@@ -1,6 +1,6 @@
 import sys
 import os
-import ConfigParser
+import configparser
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -12,7 +12,7 @@ class fake_cherrypy_config:
 
 class DBHandle:
     def __init__(self):
-	cf = ConfigParser.SafeConfigParser()
+	cf = configparser.SafeConfigParser()
 	cf.read("%s/webservice/poms.ini" % os.environ['POMS_DIR'])
 	db =cf.get("Databases","db").strip('"')
 	dbuser = cf.get("Databases","dbuser").strip('"')

@@ -37,7 +37,7 @@ class mock_job:
 	dbh = DBHandle.DBHandle()
         task_id = mps.taskPOMS.get_task_id_for(dbh.get(), campaign_id, experiment = "samdev", command_executed = 'fake_task')
 
-        print "got POMS_TASK_ID=%s" % task_id
+        print("got POMS_TASK_ID=%s" % task_id)
 
         for i in range(n_jobs):
            self.run(task_id, i, n_jobs, fileflag, dataset, projname, exit_code)
@@ -58,7 +58,7 @@ class mock_job:
         n = os.fork()
 
         if n < 0:
-            print "Ouch!"
+            print("Ouch!")
         elif n > 0:
             self.pids.append(n)
         else:
@@ -93,7 +93,7 @@ class mock_job:
                              except:
                                  break
                 # pretend to be a startproject/endproject job
-                print "start/end job: %d" % i
+                print("start/end job: %d" % i)
                 self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
 
                 time.sleep(0.5)
@@ -106,17 +106,17 @@ class mock_job:
                 ih = ifdh.ifdh()
                 try:
                    if i == 1:
-                      print "Trying to start project..." , time.asctime()
+                      print("Trying to start project..." , time.asctime())
                       u = ih.startProject(projname, 'samdev', dataset, os.environ['USER'],'samdev')
                       time.sleep(7)  # wait for project to actually start
 	   
-                      print "started project", u, time.asctime()
+                      print("started project", u, time.asctime())
                    else:
                       u = ih.findProject(projname, 'samdev')
                       ih.endProject(u)
                 except:
-                    print "exception in start/end project"
-                    print sys.exc_info()
+                    print("exception in start/end project")
+                    print(sys.exc_info())
                    
                 self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
                 os._exit(0)
@@ -131,7 +131,7 @@ class mock_job:
                             os.kill(self.pids[1],0)
                         except:
                              break
-                    print "finished waiting for startproject ", time.asctime()
+                    print("finished waiting for startproject ", time.asctime())
                 else:
 		    time.sleep(2)
 
@@ -146,14 +146,14 @@ class mock_job:
 
                     import ifdh
                     ih = ifdh.ifdh()
-		    print "Trying to find project..." , time.asctime()
+		    print("Trying to find project..." , time.asctime())
 		    u = ih.findProject(projname, 'samdev')
                     #hostname = socket.gethostname()
                     hostname = 'fnpc3000.fnal.gov'
 
      	            # ifdh establishProcess  projecturi  appname  appversion  location  user  appfamily   description   filelimit   schemas  
 
-                    print "trying to establishProcess(%s, 'demo', %s, %s, %s, %s, %s %s) %s \n" % (u, version, hostname, os.environ['USER'], 'demo', jid, 1, time.asctime())
+                    print("trying to establishProcess(%s, 'demo', %s, %s, %s, %s, %s %s) %s \n" % (u, version, hostname, os.environ['USER'], 'demo', jid, 1, time.asctime()))
 
 		    cid = ih.establishProcess( u, 'demo', version, hostname, os.environ['USER'], 'demo', jid, 1)
 		    f = ih.getNextFile(u, cid)
@@ -229,7 +229,7 @@ if __name__ == '__main__':
     fileflag = False
     waitflag = False
     while len(sys.argv) > 1:
-        print "d:" , len(sys.argv), sys.argv
+        print("d:" , len(sys.argv), sys.argv)
         if sys.argv[1] == "-v":
            logger.setLevel(10)
            sys.argv = sys.argv[1:]
@@ -257,15 +257,15 @@ if __name__ == '__main__':
            waitflag = True
            sys.argv = sys.argv[1:]
            continue
-        print "unknown argument:" , sys.argv[1]
+        print("unknown argument:" , sys.argv[1])
         break
 
-    print "n_jobs:", n_jobs, "campaign_id", campaign_id
+    print("n_jobs:", n_jobs, "campaign_id", campaign_id)
 
     m = mock_job()
     m.launch(campaign_id, n_jobs, fileflag, dataset)
 
-    print "Fake jobids:", m.jids
+    print("Fake jobids:", m.jids)
 
     if waitflag:
        m.close()

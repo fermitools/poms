@@ -62,7 +62,7 @@ def test_job_table():
 
 def test_failed_jobs():
 
-    print "jids:", mj.jids
+    print("jids:", mj.jids)
 
     res = mps.triagePOMS.failed_jobs_by_whatever(dbhandle,  f = ['jobsub_job_id'])
 

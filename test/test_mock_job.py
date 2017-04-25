@@ -13,7 +13,7 @@ def test_mock_job_1():
     m = mock_job()
     njobs = 3
     m.launch("14", njobs)
-    print "mock_job_ids == ", m.jids
+    print("mock_job_ids == ", m.jids)
     
     time.sleep(3)
 
@@ -30,7 +30,7 @@ def test_mock_job_2():
     m = mock_job()
     njobs = 3
     m.launch("14", njobs, fileflag=1, dataset="gen_cfg")
-    print "mock_job_ids == ", m.jids
+    print("mock_job_ids == ", m.jids)
     
     time.sleep(10)
 

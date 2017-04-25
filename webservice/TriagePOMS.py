@@ -5,11 +5,11 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of
 ### functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
-import urllib
-import logit
+import urllib.request, urllib.parse, urllib.error
+from . import logit
 
 from poms.model.poms_model import JobHistory, Job, Task, Campaign, CampaignDefinition, ServiceDowntime, Service
-from elasticsearch import Elasticsearch
+from .elasticsearch import Elasticsearch
 from sqlalchemy import func, desc, not_, and_
 from collections import OrderedDict
 
@@ -122,7 +122,7 @@ class TriagePOMS(object):
             es_efficiency_response = None
 
         try:
-            if es_efficiency_response and "fields" in es_efficiency_response.get("hits").get("hits")[0].keys():
+            if es_efficiency_response and "fields" in list(es_efficiency_response.get("hits").get("hits")[0].keys()):
                 efficiency = int(es_efficiency_response.get('hits').get('hits')[0].get('fields').get('efficiency')[0] * 100)
             else:
                 efficiency = None
@@ -282,9 +282,9 @@ class TriagePOMS(object):
 
 
         if jl:
-            jobcolumns = jl[0][0]._sa_instance_state.class_.__table__.columns.keys()
-            taskcolumns = jl[0][1]._sa_instance_state.class_.__table__.columns.keys()
-            campcolumns = jl[0][2]._sa_instance_state.class_.__table__.columns.keys()
+            jobcolumns = list(jl[0][0]._sa_instance_state.class_.__table__.columns.keys())
+            taskcolumns = list(jl[0][1]._sa_instance_state.class_.__table__.columns.keys())
+            campcolumns = list(jl[0][2]._sa_instance_state.class_.__table__.columns.keys())
         else:
             jobcolumns = []
             taskcolumns = []
@@ -310,8 +310,8 @@ class TriagePOMS(object):
             filtered_fields_checkboxes = {"campaign_checkbox": campaign_box, "task_checkbox": task_box, "job_checkbox": job_box}
             filtered_fields.update(filtered_fields_checkboxes)
 
-            prevlink = prevlink + "&" + urllib.urlencode(filtered_fields).replace("checked", "on") + "&sift=" + str(sift)
-            nextlink = nextlink + "&" + urllib.urlencode(filtered_fields).replace("checked", "on") + "&sift=" + str(sift)
+            prevlink = prevlink + "&" + urllib.parse.urlencode(filtered_fields).replace("checked", "on") + "&sift=" + str(sift)
+            nextlink = nextlink + "&" + urllib.parse.urlencode(filtered_fields).replace("checked", "on") + "&sift=" + str(sift)
         else:
             filtered_fields_checkboxes = {"campaign_checkbox": "checked",
                                           "task_checkbox": "checked",
@@ -327,7 +327,7 @@ class TriagePOMS(object):
 
     def failed_jobs_by_whatever(self, dbhandle, tmin=None, tmax=None, tdays=1, f=[], go=None):
         # deal with single/multiple argument silliness
-        if isinstance(f, basestring):
+        if isinstance(f, str):
             f = [f]
 
         if 'experiment' not in f:
