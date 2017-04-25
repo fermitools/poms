@@ -3,12 +3,8 @@
 from poms_client import campaign_edit
 import argparse
 #Creating the arguments
-parser = argparse.ArgumentParser(description='Optional Arguments edit campaign')
+parser = argparse.ArgumentParser(description='Optional arguments edit campaign')
 groupArg = parser.add_argument_group('Require Arguments')
-
-##??Should I passed always as active, or as all. Active or Inactive
-#active = kwargs.pop('ae_active') delete
-#state = kwargs.pop('state',None) delete
 
 #parser.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', default = None)
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
