@@ -45,7 +45,7 @@ if action in ['add','delete','edit']:
                         def_parameter=args.def_parameter,
                         test_client=args.test_client)
 else:
-    msg = "Error: the action you choose was [action="+action+"] you must use add-edit-delete as option"
+    msg = "ERROR: the action you choose was [action="+action+"] you must use add-edit-delete as option"
     raise ArgumentParser.error(msg)
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-#from test_pipe import campaign_definition_edit_test
-from poms_client import campaign_edit
+from test_pipe import campaign_edit_test
+#from poms_client import campaign_edit
 import argparse
 #Creating the arguments
 parser = argparse.ArgumentParser(description='Optional arguments edit campaign')
@@ -8,78 +8,70 @@ groupArg = parser.add_argument_group('Require Arguments')
 
 #parser.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', default = None)
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
-groupArg.add_argument('--campaign_name', metavar='Name of your campaign', type=str, help='campaign_name', required = True, default = None)
-groupArg.add_argument('--email', metavar='your email', type=str, help='Please provide your email adress, the one you use when you get register at POMS', required = True, default = None)
-groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True, default = None)
-groupArg.add_argument('--vo_role', metavar='Analysis-Production', type=str, help='Define your role Analysis or Production', required = True, default = None)
+groupArg.add_argument('--campaign_name', metavar='Name of your campaign', type=str, help='campaign_name', required = True)
+groupArg.add_argument('--email', metavar='your email', type=str, help='Please provide your email adress, the one you use when you get register at POMS', required = True)
+groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True)
+groupArg.add_argument('--vo_role', metavar='Analysis-Production', type=str, help='Define your role Analysis or Production', required = True)
 groupArg.add_argument('--dataset', metavar='campaign dataset', type=str, help='provide the dataset that will be use in the campaign', required=True)
-groupArg.add_argument('--launch_name', metavar='launch_template_name', type=str, help='you must provide the launch template name related with this campaign', require=True)
+groupArg.add_argument('--launch_name', metavar='launch_template_name', type=str, help='you must provide the launch template name related with this campaign', required=True)
 groupArg.add_argument('--job_type', metavar='campaign_definition_name', type=str, help='you must provide teh job_type name')
 
 
 
-parser.add_argument('--state', metavar='Active-Inactive', type=str, help='Do you want to make the campaing [Active] or [Inactive]', default = Active)
+parser.add_argument('--state', metavar='Active-Inactive', type=str, help='Do you want to make the campaing [Active] or [Inactive]', default = "Active")
 parser.add_argument('--split_type', metavar='I am still not sure which are the available split types', type=str, help='split type', default = None)
 parser.add_argument('--software_version', metavar='exp_software_version', type=str, help='Provide the the experiment software_version', default = "Non provide")
 parser.add_argument('--completion_type', metavar='located or completed', type=str, help='Please provide the kind of completion type [located] or [Complete], by default it will be located', default = "Located")
 parser.add_argument('--completion', metavar='0\%/-100%', type=int, help='provide the percentage of completion, Integer from 0-100', default = 100)
 parser.add_argument('--param_overrides', metavar='parameters of the script', type=str, help='parameters of collaboration script')
 parser.add_argument('--depends_on', metavar='dependencies of the campaigns', type=str, help='you can setup the campaign dependencies e.g. {"campaigns":["mwm_test_1","mwm_test_2"],"file_patterns":["/%/.raw","/%/.root"]}')
-parser.add_argument('--test_client', metavar='want to test the client URL query', type=str, nargs=str, help='use to test the client URL query', default = False)
+parser.add_argument('--test_client', metavar='want to test the client URL query', type=str, help='use to test the client URL query', default = False)
 args = parser.parse_args()
 #parser.print_help()
 print args
 print 'The arguments you pass are:'
-print 'action =',args.action#
-print 'campaign_name =', args.campaign_name#
-print 'email=',args.email#
-print 'experiment=',args.experiment#
+print 'action =',args.action
+print 'campaign_name =', args.campaign_name
+print 'email=',args.email
+print 'experiment=',args.experiment
 print 'vo_role=', args.vo_role
 print 'dataset=', args.dataset
-print 'state', arg.state
+print 'state', args.state
 print 'split_type=', args.split_type
 print 'software_version=', args.software_version
 print 'completion_type=', args.completion_type
 print 'completion=', args.completion
 print 'param_overrides=', args.param_overrides
-print 'depends_on=', arg.depends_on
-print 'launch_name', arg.launch_name
-print 'job_type', arg.job_type
-print 'test_client', arg.test_client
+print 'depends_on=', args.depends_on
+print 'launch_name', args.launch_name
+print 'job_type', args.job_type
+print 'test_client', args.test_client
 
 
 
 #Calling the poms_client.campaign_definition_edit'
-if action in ['add','delete','edit']:
-    campaign_definition_edit(action=args.action,
-                            ae_campaign_name=args.campaign_name,
-                            pc_email=args.email,
-                            experiment=args.experiment,
-                            vo_role=args.vo_role,
-                            dataset=args.dataset,
-                            ae_active=args.state,
-                            ae_split_type=args.split_type,
-                            ae_software_version=args.software_version,
-                            ae_completion_type=args.completion_type,
-                            ae_completion_pct=args.completion,
-                            ae_param_overrides=args.param_overrides,
-                            ae_depends=args.depends,
-                            ae_launch_name=args.launch_name,
-                            ae_campaign_definition=args.job_type,
-                            test_client=arg.test_client)
+if args.action in ['add','delete','edit']:
+    if args.completion > 0 and args.completion <= 100:
+        campaign_edit_test(action=args.action,
+                                ae_campaign_name=args.campaign_name,
+                                pc_email=args.email,
+                                experiment=args.experiment,
+                                vo_role=args.vo_role,
+                                dataset=args.dataset,
+                                ae_active=args.state,
+                                ae_split_type=args.split_type,
+                                ae_software_version=args.software_version,
+                                ae_completion_type=args.completion_type,
+                                ae_completion_pct=args.completion,
+                                ae_param_overrides=args.param_overrides,
+                                ae_depends=args.depends_on,
+                                ae_launch_name=args.launch_name,
+                                ae_campaign_definition=args.job_type,
+                                test_client=args.test_client)
+    else:
+        msg = "\n ERROR: provide the percentage of completion as a value Integer between (0-100], the percentage you set was =", args.completion
+        print msg
 
 else:
-    msg = "Error: the action you choose was [action="+action+"] you must use add-edit-delete as option"
-    raise ArgumentParser.error(msg)
-
-'''
-campaign_definition_edit_test(pc_email=args.email,
-                    action = args.action,
-                    name=args.name,
-                    experiment=args.experiment,
-                    input_files_per_job=args.input_files_per_job,
-                    output_files_per_job=args.output_files_per_job,
-                    output_file_patterns=args.output_file_patterns,
-                    launch_script=args.launch_script,
-                    def_parameter=args.def_parameter)
-'''
+    msg = "\n ERROR: the action you choose was [action="+args.action+"] you must use add-edit-delete as option"
+    print msg
