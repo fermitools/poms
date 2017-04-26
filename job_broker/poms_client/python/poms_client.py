@@ -14,7 +14,7 @@ def register_poms_campaign(campaign_name, user = None, experiment = None, versio
                     version = version,
                     dataset = dataset,
                     campaign_definition = campaign_definition,
-                    test = test).replace('Campaign=',''))
+                    test = test).replace('Campaign=','')
     return int(data)
 
 def get_task_id_for(campaign, user = None, command_executed = None, input_dataset = None, parent_task_id = None, test = None, experiment = None):
@@ -133,7 +133,7 @@ def campaign_definition_edit(input_files_per_job, output_files_per_job, output_f
                             ae_output_files_per_job = ae_output_files_per_job,
                             ae_output_file_patterns = ae_output_file_patterns,
                             ae_launch_script = ae_launch_script,
-                            ae_definition_parameters= ae_def_parameter
+                            ae_definition_parameters= ae_def_parameter,
                             test_client=test_client
                             )
 
@@ -178,7 +178,7 @@ def make_poms_call(**kwargs):
         base='http://fermicloud045.fnal.gov:8080/poms/'
         del kwargs["test"]
     elif test_client:
-        base='http://localhost/:8080/poms/'
+        base='http://localhost/:8888/poms/'
     else:
         base='http://pomsgpvm01.fnal.gov:8080/poms/'
 
