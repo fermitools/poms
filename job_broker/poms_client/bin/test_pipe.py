@@ -64,19 +64,19 @@ def campaign_edit_test(**kwargs):
     print "\n---*4"
     action=kwargs.pop('action')
     ae_campaign_name=kwargs.pop('ae_campaign_name')
-    pc_email=kwargs.pop('pc_email'),
-    experiment=kwargs.pop('experiment'),
-    vo_role=kwargs.pop('vo_role'),
-    dataset=kwargs.pop('dataset'),
-    ae_active=kwargs.pop('ae_active'),
-    ae_split_type=kwargs.pop('ae_split_type'),
-    ae_software_version=kwargs.pop('ae_software_version'),
-    ae_completion_type=kwargs.pop('ae_completion_type'),
-    ae_completion_pct=kwargs.pop('ae_completion_pct'),
+    pc_email=kwargs.pop('pc_email')
+    experiment=kwargs.pop('experiment')
+    vo_role=kwargs.pop('vo_role')
+    dataset=kwargs.pop('dataset')
+    ae_active=kwargs.pop('ae_active')
+    ae_split_type=kwargs.pop('ae_split_type')
+    ae_software_version=kwargs.pop('ae_software_version')
+    ae_completion_type=kwargs.pop('ae_completion_type')
+    ae_completion_pct=kwargs.pop('ae_completion_pct')
     ae_param_overrides=kwargs.pop('ae_param_overrides')
-    ae_depends=kwargs.pop('ae_depends'),
-    ae_launch_name=kwargs.pop('ae_launch_name'),
-    ae_campaign_definition=kwargs.pop('ae_campaign_definition'),
+    ae_depends=kwargs.pop('ae_depends')
+    ae_launch_name=kwargs.pop('ae_launch_name')
+    ae_campaign_definition=kwargs.pop('ae_campaign_definition')
     test_client=kwargs.pop('test_client')
     print "printing Arguments \n"
     print 'action=', action

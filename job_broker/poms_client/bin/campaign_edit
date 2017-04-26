@@ -52,7 +52,7 @@ print 'test_client', args.test_client
 #Calling the poms_client.campaign_definition_edit'
 if args.action in ['add','delete','edit']:
     if args.completion > 0 and args.completion <= 100:
-        campaign_edit_test(action=args.action,
+        campaign_edit(action=args.action,
                                 ae_campaign_name=args.campaign_name,
                                 pc_email=args.email,
                                 experiment=args.experiment,
