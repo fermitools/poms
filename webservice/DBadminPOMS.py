@@ -7,6 +7,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import logit
 from poms.model.poms_model import Experimenter, Experiment, ExperimentsExperimenters
 from sqlalchemy.orm.exc import NoResultFound

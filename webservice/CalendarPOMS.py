@@ -8,6 +8,7 @@
 import logit
 
 # CalendarPOMS.calendar_json(cherrypy.request.db,start, end, timezone)
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from poms.model.poms_model import Service, ServiceDowntime
 from sqlalchemy import desc, exc
 from utc import utc
