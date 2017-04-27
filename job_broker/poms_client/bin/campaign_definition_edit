@@ -33,7 +33,7 @@ print 'test_client=', args.test_client
 
 
 #Calling the poms_client.campaign_definition_edit'
-if action in ['add','delete','edit']:
+if args.action in ['add','delete','edit']:
     campaign_definition_edit(pc_email=args.email,
                         action = args.action,
                         name=args.name,
@@ -45,20 +45,5 @@ if action in ['add','delete','edit']:
                         def_parameter=args.def_parameter,
                         test_client=args.test_client)
 else:
-    msg = "ERROR: the action you choose was [action="+action+"] you must use add-edit-delete as option"
-    raise ArgumentParser.error(msg)
-
-
-
-
-'''
-campaign_definition_edit_test(pc_email=args.email,
-                    action = args.action,
-                    name=args.name,
-                    experiment=args.experiment,
-                    input_files_per_job=args.input_files_per_job,
-                    output_files_per_job=args.output_files_per_job,
-                    output_file_patterns=args.output_file_patterns,
-                    launch_script=args.launch_script,
-                    def_parameter=args.def_parameter)
-'''
+    msg = "\n ERROR: the action you choose was [action="+args.action+"] you must use add-edit-delete as option"
+    print msg
