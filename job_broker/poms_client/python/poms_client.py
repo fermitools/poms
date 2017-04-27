@@ -190,7 +190,7 @@ def make_poms_call(**kwargs):
     if os.environ.get("POMS_CLIENT_DEBUG", None):
         print "poms_client: making call %s( %s ) at %s" % (method, kwargs, base)
 
-    c = self.rs.post("%s/%s" % (base,method), data=kwargs);
+    c = rs.post("%s/%s" % (base,method), data=kwargs);
     res = c.text
     status_code = c.status_code
     c.close()
