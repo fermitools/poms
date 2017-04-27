@@ -87,11 +87,12 @@ class JobsPOMS(object):
     def bulk_update_job(self, dbhandle, rpstatus, samhandle, json_data='{}'):
         logit.log("Entering bulk_update_job(%s)" % json_data)
         ldata = json.loads(json_data)
+        del json_data
 
         # make one merged entry per job_id
         data = {}
         for d in ldata:
-            data[d['jobsub_job_id']] = {}
+            data["%s" % d['jobsub_job_id']] = {}
 
         for d in ldata:
             data[d['jobsub_job_id']].update(d)
@@ -111,7 +112,7 @@ class JobsPOMS(object):
         jlist = []
         foundjobs = {}
         for j in jobs:
-            foundjobs[j.jobsub_job_id] = j
+            foundjobs["%s"%j.jobsub_job_id] = j
             jlist.append(j)
 
         # get the tasks we have that are mentioned
@@ -122,7 +123,7 @@ class JobsPOMS(object):
 
         fulltasks = {}
         for t in tasks:
-            fulltasks[t.task_id] = t
+            fulltasks[int(t.task_id)] = t
 
         logit.log("found full tasks for %s" % ",".join(map(str, fulltasks.keys())))
 
