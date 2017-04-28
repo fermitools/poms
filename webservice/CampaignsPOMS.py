@@ -4,7 +4,7 @@
 This module contain the methods that allow to create campaigns, definitions and templates.
 List of methods:  launch_template_edit, campaign_definition_edit, campaign_edit, campaign_edit_query.
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
-Date: September 30, 2016.
+Date: April 28th, 2017. (changes for the POMS_client)
 '''
 
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
