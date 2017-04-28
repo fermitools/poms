@@ -134,7 +134,7 @@ def campaign_definition_edit(input_files_per_job, output_files_per_job, output_f
                             ae_output_files_per_job = ae_output_files_per_job,
                             ae_output_file_patterns = ae_output_file_patterns,
                             ae_launch_script = ae_launch_script,
-                            ae_definition_parameters= ae_def_parameter,
+                            ae_definition_parameters= ae_definition_parameters,
                             test_client=test_client
                             )
 
