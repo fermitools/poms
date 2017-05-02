@@ -31,7 +31,7 @@ def get_task_id_for(campaign, user = None, command_executed = None, input_datase
     return int(data)
 
 
-def launch_template_edit(action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_email = None):
+def launch_template_edit(action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_email = None, test_client=False):
 
 
     method = 'launch_template_edit'
@@ -56,8 +56,9 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
                     method=method,
                     action = action,
                     ae_launch_name = ae_launch_name,
-                    experiment = experiment)
-                return status_code
+                    experiment = experiment,
+                    test_client=test_client)
+                return "status_code", status_code
 
         if action == 'add':
             if ae_launch_name == None or ae_launch_host == None or ae_launch_account == None or ae_launch_setup == None:
@@ -74,29 +75,30 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
 
                     ae_launch_host = ae_launch_host,
                     ae_launch_account = ae_launch_account,
-                    ae_launch_setup = ae_launch_setup)
+                    ae_launch_setup = ae_launch_setup,
+                    test_client=test_client)
                     ###The variables below are query in the CampaignsPOMS module
                     #ae_launch_id = ae_launch_id,
                     #experimenter_id = experimenter_id)
-                return status_code
+                return 'status_code', status_code
 
 
         elif action == 'edit':
             if ae_launch_name == None:
-                print "Your should provide the launch_name in order to edit\
-                    name, launch_host, user_account, launch_setup. \n\
+                print "Your should provide the launch_name in order to edit\n\
                     Curently you provide name = "+ae_launch_name
             else:
                 data, status_code = make_poms_call(
                     pcl_call=1,
                     method = method,
                     action = action,
-                    ae_launch_name = name,
+                    ae_launch_name = ae_launch_name,
                     experiment = experiment,
 
                     ae_launch_host = launch_host,
                     ae_launch_account = user_account,
-                    ae_launch_setup = launch_setup)
+                    ae_launch_setup = launch_setup,
+                    test_client=test_client)
                 return "status_code=", status_code
                     ###The other var are query in the CampaignsPOMS module ae_launch_id, experimenter_id.
                 #return data['message']
