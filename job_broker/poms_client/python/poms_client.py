@@ -97,7 +97,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
                     ae_launch_host = launch_host,
                     ae_launch_account = user_account,
                     ae_launch_setup = launch_setup)
-                return status_code
+                return "status_code=", status_code
                     ###The other var are query in the CampaignsPOMS module ae_launch_id, experimenter_id.
                 #return data['message']
 
@@ -137,6 +137,7 @@ def campaign_definition_edit(input_files_per_job, output_files_per_job, output_f
                             ae_definition_parameters= ae_definition_parameters,
                             test_client=test_client
                             )
+    return "status_code =", status_code
 
     #return data['message']
 
