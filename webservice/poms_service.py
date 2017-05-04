@@ -4,21 +4,21 @@ import socket
 from jinja2 import Environment, PackageLoader
 from poms.model.poms_model import Service, Task, Campaign
 
-from elasticsearch import Elasticsearch
+from .elasticsearch import Elasticsearch
 import pprint
-import version
-import logit
+from . import version
+from . import logit
 
-import CalendarPOMS
-import DBadminPOMS
-import CampaignsPOMS
-import JobsPOMS
-import TaskPOMS
-import UtilsPOMS
-import TagsPOMS
-import TriagePOMS
-import FilesPOMS
-import TablesPOMS
+from . import CalendarPOMS
+from . import DBadminPOMS
+from . import CampaignsPOMS
+from . import JobsPOMS
+from . import TaskPOMS
+from . import UtilsPOMS
+from . import TagsPOMS
+from . import TriagePOMS
+from . import FilesPOMS
+from . import TablesPOMS
 #import gcwrap
 
 def error_response():
@@ -255,7 +255,7 @@ class poms_service:
         if not cherrypy.session.get('experimenter').is_root():
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
-        return template.render(list=self.tablesPOMS.admin_map.keys(), current_experimenter=cherrypy.session.get('experimenter'),
+        return template.render(list=list(self.tablesPOMS.admin_map.keys()), current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path, help_page="RawTablesHelp", version=self.version)
 
 
@@ -937,9 +937,3 @@ class poms_service:
 #-----------------------
 # debugging
 
-    @cherrypy.expose
-    def memory_summary(self):
-        from pympler import summary, muppy
-	mem_summary = summary.summarize(muppy.get_objects())
-	rows = summary.format_(mem_summary)
-	return 'pid: %d<br><pre>\n%s\n</pre>' % (os.getpid(),'\n'.join(rows))

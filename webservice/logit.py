@@ -49,7 +49,7 @@ def __logmess(level=INFO, message="message not supplied to logit.__logmess",da_f
 
 def __getlevel(level):
     # support use of logging values passed in
-    if isinstance( level, ( int, long ) ):
+    if isinstance( level, int ):
         return level
     if level == "NOTSET":
         return logging.NOTSET

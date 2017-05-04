@@ -7,12 +7,12 @@
 
 import os
 import shelve
-import logit
+from . import logit
 
 from poms.model.poms_model import Job, Task, Campaign, JobFile
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy import (desc, distinct)
-from utc import utc
+from .utc import utc
 from datetime import datetime,timedelta
 
 
@@ -189,7 +189,7 @@ class Files_status(object):
 
     def format_job_counts(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=7, range_string=None): ##This method was deleted from the main script
         counts = self.poms_service.triagePOMS.job_counts(dbhandle, task_id=task_id, campaign_id=campaign_id, tmin=tmin, tmax=tmax, tdays=tdays)
-        ck = counts.keys()
+        ck = list(counts.keys())
         res = ['<div><b>Job States</b><br>',
                '<table class="ui celled table unstackable">',
                '<tr><th>Total</th><th colspan=3>Active</th><th colspan=3>Completed In %s</th></tr>' % range_string,

@@ -5,13 +5,13 @@
 ### List of methods: calendar_json, calendar, add_event, service_downtimes, update_service, service_status
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel. September, 2016.
 
-import logit
+from . import logit
 
 # CalendarPOMS.calendar_json(cherrypy.request.db,start, end, timezone)
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from poms.model.poms_model import Service, ServiceDowntime
 from sqlalchemy import desc, exc
-from utc import utc
+from .utc import utc
 from datetime import datetime
 
 

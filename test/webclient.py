@@ -1,6 +1,6 @@
 import time
 import requests
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import logging
 import utils
 
@@ -43,7 +43,7 @@ class WebClient(object):
             
             logging.info("url: " + self.url + "  data: " + str(data) + "  method: " + method + "  status: " +str(self.code) + "  response_time: " + str(duration) )
                 
-        except urllib2.HTTPError, error:
+        except urllib.error.HTTPError as error:
             duration = time.time() - t0
             response = error
             self.code = response.status_code

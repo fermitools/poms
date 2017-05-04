@@ -7,7 +7,7 @@ dbg = False
 def debug(message):
     global dbg
     if dbg:
-        print message
+        print(message)
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description='Loads a VOMS generated JSON file of experimenters into POMS.')
@@ -66,7 +66,7 @@ def main():
     if args.debug:
         dbg = True
     if os.path.isfile(args.file) == False:
-        print "main: missing file: %s" % args.file
+        print("main: missing file: %s" % args.file)
         raise SystemExit
     else:
         json_data = open(args.file)
@@ -78,9 +78,9 @@ def main():
             password="password=%s" % args.password
         conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s %s" % (args.dbname, args.host, args.port, args.user, password))
         cursor = conn.cursor()
-        for exp in expdict.keys():
+        for exp in list(expdict.keys()):
             if verify_exp(cursor,exp) == False:
-                print 'experiment: %s does not exist in poms' % exp
+                print('experiment: %s does not exist in poms' % exp)
             else:
                 for user in expdict[exp]:
                     debug("main: processing <%s> <%s> <%s>" % (exp, user['username'], user['commonname']))

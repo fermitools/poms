@@ -11,7 +11,7 @@ import resource
 import cherrypy
 import gc
 import pprint
-from job_reporter import job_reporter
+from .job_reporter import job_reporter
 sys.path.append("../webservice")
 from elasticsearch import Elasticsearch
 
@@ -54,12 +54,12 @@ class jobsub_es_scraper:
             del conn
             conn = None
 
-            print "got %d active POMS jobs" % len(self.ActiveJobs)
+            print("got %d active POMS jobs" % len(self.ActiveJobs))
 
 	except KeyboardInterrupt:
 	    raise
         except:
-            print  "Ouch!", sys.exc_info()
+            print("Ouch!", sys.exc_info())
             traceback.print_exc()
             if conn: del conn
 
@@ -93,12 +93,12 @@ class jobsub_es_scraper:
             args = self.FinishedJobs[jid]
             try:
                 if (self.debug == 1):
-                    print self.FinishedJobs[jid]
+                    print(self.FinishedJobs[jid])
                 self.job_reporter.report_status(**args)
             except KeyboardInterrupt:
                 raise
             except:
-                print "Reporting Exception!"
+                print("Reporting Exception!")
                 traceback.print_exc()
                 pass
 
@@ -126,7 +126,7 @@ class jobsub_es_scraper:
 
         response = self.es.search(index='fifebatch-logs-*', query=query)
 
-        print("%s POMS jobs ended this run: %d" % (time.asctime(),response['hits']['total']))
+        print(("%s POMS jobs ended this run: %d" % (time.asctime(),response['hits']['total'])))
 
         for record in response['hits']['hits']:
             jid = record.get('_source').get('jobid')
@@ -162,7 +162,7 @@ class jobsub_es_scraper:
 	        raise
  
             except OSError as e:
-	        print "Exception!"
+	        print("Exception!")
 	        traceback.print_exc()
                 # if we're out of memory, dump core...
                 if e.errno == 12:
@@ -170,7 +170,7 @@ class jobsub_es_scraper:
                     os.abort()
 
 	    except:
-	        print "Exception!"
+	        print("Exception!")
 	        traceback.print_exc()
 	        pass
 
@@ -187,6 +187,6 @@ if __name__ == '__main__':
     try:
         js.poll()
     except KeyboardInterrupt:
-        print "Exiting from keyboard interrupt"
+        print("Exiting from keyboard interrupt")
         js.job_reporter.cleanup()
     

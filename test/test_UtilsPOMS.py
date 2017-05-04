@@ -51,7 +51,7 @@ def test_handle_dates_1(utils_poms):
 
     assert (tmax - tmin == datetime.timedelta(days=1))
     assert (tmax - now < datetime.timedelta(seconds=1))
-    print "nextlink={} prevlink={}".format(nextlink, prevlink)
+    print("nextlink={} prevlink={}".format(nextlink, prevlink))
     assert '/foo/' in nextlink
     assert '/foo/' in prevlink
 
@@ -111,7 +111,7 @@ def test_handle_dates_5(utils_poms):
      trange, tdays) = utils_poms.handle_dates(tmin=str(now - datetime.timedelta(days=10)),
                                        tmax=str(now - datetime.timedelta(days=6)),
                                        tdays="", baseurl="foo/")
-    print trange
+    print(trange)
     assert(trange.find("4.0 days") >= 0)
     assert (tmax - tmin == datetime.timedelta(days=4))
     assert str(now - tmax).startswith('6 days')
@@ -131,9 +131,9 @@ def test_handle_dates_picker(utils_poms):
      trange, tdays) = utils_poms.handle_dates(tmax=str(now),
                                        tmin=str(now - datetime.timedelta(days=2)),
                                        tdays="4", baseurl="foo/")
-    print trange
-    print nextlink
-    print prevlink
+    print(trange)
+    print(nextlink)
+    print(prevlink)
     assert(trange.find("2.0 days") >= 0)
     assert (tmax - tmin == datetime.timedelta(days=2))
     # print "tmin='{}', tmax='{}', tmin_s='{}', tmax_s='{}', trange='{}'".format(tmin, tmax, tmin_s, tmax_s, trange)

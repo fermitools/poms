@@ -5,7 +5,7 @@ import os
 if os.environ.get("SETUP_POMS","") == "":
     sys.path.insert(0,os.environ.get('SETUPS_DIR', os.environ.get('HOME')+'/products'))
     import setups
-    print "setting up poms..."
+    print("setting up poms...")
     ups = setups.setups()
     ups.use_package("poms","","SETUP_POMS")
 
@@ -18,7 +18,7 @@ import requests
 import json
 import time
 import traceback
-from job_reporter import job_reporter
+from .job_reporter import job_reporter
 from samweb_client import *
 import threading
 import prometheus_client as prom
@@ -33,7 +33,7 @@ class declared_files_watcher:
         self.tracked_files = prom.Gauge("Tracked_files","Number of files being processed")
         
     def report_declared_files(self,flist):
-        print "entering: report_declared_files:", flist
+        print("entering: report_declared_files:", flist)
         url = self.job_reporter.report_url + "/report_declared_files"
         try:
             conn = self.rs.post(url,data = [ ("flist",x) for x in flist])
@@ -42,7 +42,7 @@ class declared_files_watcher:
         except KeyboardInterrupt:
             raise
         except:
-            print  time.asctime(), "Ouch!", sys.exc_info()
+            print(time.asctime(), "Ouch!", sys.exc_info())
             sys.stdout.flush()
 	    traceback.print_exc()
             pass
@@ -55,11 +55,11 @@ class declared_files_watcher:
             output = conn.text
             conn.close()
 
-            print "got: ", output
+            print("got: ", output)
         except KeyboardInterrupt:
             raise
         except:
-            print time.asctime(), "Ouch!", sys.exc_info()
+            print(time.asctime(), "Ouch!", sys.exc_info())
 	    traceback.print_exc()
             pass
 
@@ -77,7 +77,7 @@ class declared_files_watcher:
         except KeyboardInterrupt:
             raise
         except:
-            print  time.asctime(), "Ouch!", sys.exc_info()
+            print(time.asctime(), "Ouch!", sys.exc_info())
             sys.stdout.flush()
 	    traceback.print_exc()
             pass
@@ -85,7 +85,7 @@ class declared_files_watcher:
     def find_located_files(self, experiment, flist):
 	if self.old_experiment != experiment:
 	    self.samweb = SAMWebClient(experiment = experiment)
-            print "got samweb handle for ", experiment
+            print("got samweb handle for ", experiment)
 	    self.old_experiment = experiment
 
         res = []
@@ -99,7 +99,7 @@ class declared_files_watcher:
             #print "got: ", found
             sys.stdout.flush()
             res = res + found
-        print "found %d located files for %s" % (len(res), experiment)
+        print("found %d located files for %s" % (len(res), experiment))
         return res
 
 
@@ -110,23 +110,23 @@ class declared_files_watcher:
          samweb = None
          total_flist = {}
          present_files = {}
-         for experiment in jobmap.keys():
-             for jobsub_job_id in jobmap[experiment].keys():
+         for experiment in list(jobmap.keys()):
+             for jobsub_job_id in list(jobmap[experiment].keys()):
                  job_flist = jobmap[experiment][jobsub_job_id]
-                 if not total_flist.has_key(experiment):
+                 if experiment not in total_flist:
                      total_flist[experiment] = []
 	         total_flist[experiment] = total_flist[experiment] + job_flist
 
-         print "got total file lists for experiments..."
+         print("got total file lists for experiments...")
 
-         for experiment in total_flist.keys():
+         for experiment in list(total_flist.keys()):
              self.totalTracked += len(total_flist[experiment])
              present_files[experiment] = self.find_located_files(experiment, total_flist[experiment])
 
              self.report_declared_files(total_flist[experiment])
           
-         for experiment in jobmap.keys():
-             for jobsub_job_id in  jobmap[experiment].keys():
+         for experiment in list(jobmap.keys()):
+             for jobsub_job_id in  list(jobmap[experiment].keys()):
                  flist = jobmap[experiment][jobsub_job_id]
 
 		 all_located = 1
@@ -137,7 +137,7 @@ class declared_files_watcher:
 		 if all_located:
 		     self.job_reporter.report_status(jobsub_job_id,output_files_declared = "True",status="Located")
 
-         print "Looked through files.."
+         print("Looked through files..")
 
          self.call_wrapup_tasks()
 
@@ -151,7 +151,7 @@ class declared_files_watcher:
 	        break
 
 	    except:
-	        print time.asctime(), "Exception!"
+	        print(time.asctime(), "Exception!")
 	        traceback.print_exc()
 	        pass
 

@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 import re
 import requests
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import traceback
 import os
 import sys
@@ -11,7 +11,7 @@ import ssl,socket
 import time
 
 import pycurl
-from StringIO import StringIO
+from io import StringIO
 
 # don't barf if we need to log utf8...
 import codecs
@@ -43,8 +43,8 @@ class status_scraper():
         self.status = {}
 
     def fetch_page(self, url):
-        if not self.page_cache.has_key(url):
-            if self.debug: print "fetching page: ", url
+        if url not in self.page_cache:
+            if self.debug: print("fetching page: ", url)
             try:
                 lines = []
                 c = pycurl.Curl()
@@ -52,12 +52,12 @@ class status_scraper():
                 c.setopt(c.URL, url)
                 c.setopt(c.WRITEFUNCTION, buffer.write)
 
-                if os.environ.has_key('X509_USER_CERT'):
+                if 'X509_USER_CERT' in os.environ:
                     c.setopt(c.SSLCERT, os.environ['X509_USER_CERT'])
                 else:
                     c.setopt(c.SSLCERT,"/tmp/x509up_u%d" % os.getuid())
 
-                if os.environ.has_key('X509_USER_KEY'):
+                if 'X509_USER_KEY' in os.environ:
                     c.setopt(c.SSLKEY, os.environ['X509_USER_KEY'])
                 else:
                     c.setopt(c.SSLKEY,"/tmp/x509up_u%d" % os.getuid())
@@ -70,12 +70,12 @@ class status_scraper():
                 c.close()
                 self.page_cache[url] = buffer.getvalue().split("\n")
                 buffer.close()
-                if self.debug: print "Fetched."
-                if self.debug: print self.page_cache[url]
+                if self.debug: print("Fetched.")
+                if self.debug: print(self.page_cache[url])
             except Exception as e:
-                print "Ouch! "
-                print traceback.format_exc()
-                if self.page_cache.has_key(url):
+                print("Ouch! ")
+                print(traceback.format_exc())
+                if url in self.page_cache:
                     del self.page_cache[url]
                 return None
         return self.page_cache[url]
@@ -83,7 +83,7 @@ class status_scraper():
     def recurse(self, section ):
         n_good = 0
         n_bad = 0
-        if self.status.has_key(section):
+        if section in self.status:
             return self.status[section]
         subservices = self.cf.get(section,'subservices').split(' ')
         res = 'good'
@@ -116,7 +116,7 @@ class status_scraper():
             self.percents[section] = -1
 
         if self.debug:
-           print "recurse: ", s , self.percents.get(s,0), "%"
+           print("recurse: ", s , self.percents.get(s,0), "%")
 
 	if n_good == 0 and n_bad == 0:
             self.status[section] = 'unknown'
@@ -167,7 +167,7 @@ class status_scraper():
             n_bad = 0
             n_warn = 0
             if scrape_url and scrape_regex:
-	        if self.debug: print "scraping %s for matches of ruleset %s" % (scrape_url, s)
+	        if self.debug: print("scraping %s for matches of ruleset %s" % (scrape_url, s))
                 re_obj = re.compile(scrape_regex)
                 lines = self.fetch_page(scrape_url)
                 if not lines:
@@ -179,24 +179,24 @@ class status_scraper():
                     lines = [ '\n'.join(lines) ]
 
                 for line in lines :
-                    if self.debug: print "checking for %s : in %s" % (scrape_regex, line[:30])
+                    if self.debug: print("checking for %s : in %s" % (scrape_regex, line[:30]))
                     m = re_obj.search(line)
                     if m:
-                        if self.debug: print ("m.group(0) is |%s|" % m.group(0))
-                        if self.debug: print ("m.group(1) is |%s|" % m.group(1))
+                        if self.debug: print(("m.group(0) is |%s|" % m.group(0)))
+                        if self.debug: print(("m.group(1) is |%s|" % m.group(1)))
                         if good == "" or m.group(1) == good or (good2 and m.group(1) == good2):
-                             if self.debug: print "good"
+                             if self.debug: print("good")
                              n_good = n_good + 1 
 
                         if (warn and m.group(1)) == warn or (warn2 and m.group(1) == warn2):
-                             if self.debug: print "warn"
+                             if self.debug: print("warn")
                              n_warn = n_warn + 1 
 
                         if (bad and m.group(1) == bad) or (bad2 and m.group(1) == bad2):
-                             if self.debug: print "bad"
+                             if self.debug: print("bad")
                              n_bad = n_bad + 1 
                     else:
-                        if self.debug: print "no match!"
+                        if self.debug: print("no match!")
 
                 if n_good + n_bad + n_warn > 0 :
                     self.percents[s] = (n_good ) * 100.0 / (n_good+n_bad+n_warn) 
@@ -240,10 +240,10 @@ class status_scraper():
                 self.one_pass()
 
 	    except KeyboardInterrupt:
-		print "Interupted. Quitting"
+		print("Interupted. Quitting")
 
 	    except:
-	        print "Exception!"
+	        print("Exception!")
 	        traceback.print_exc()
 	        pass
 	    time.sleep(300)
@@ -254,7 +254,7 @@ class status_scraper():
         for s in self.cf.sections():
             if s == 'global':
                  continue
-            print "service %s has status %s percent %d kids %s\n" % ( s, self.status[s], self.percents[s], self.cf.get(s, "subservices"))
+            print("service %s has status %s percent %d kids %s\n" % ( s, self.status[s], self.percents[s], self.cf.get(s, "subservices")))
             # this should POST, but for now this is easier to debug
             name = s.replace("service ","")
             parent = self.parent.get(s,'').replace("service ","")
@@ -262,10 +262,10 @@ class status_scraper():
                 description = self.cf.get(s,'description')
             else:
                 description = s
-            report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.url.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.quote_plus(description))
-            print "trying: " , report_url
+            report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.url.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.parse.quote_plus(description))
+            print("trying: " , report_url)
             r = self.rs.get(report_url)
-            print r.text
+            print(r.text)
             r.close()
 
 if __name__ == '__main__':

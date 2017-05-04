@@ -4,12 +4,12 @@ import sys
 import os
 import re
 import requests
-import urllib2
-import httplib
+import urllib.request, urllib.error, urllib.parse
+import http.client
 import json
 import concurrent.futures
-import Queue
-import thread
+import queue
+import _thread
 import threading
 import time
 import traceback
@@ -29,7 +29,7 @@ class job_reporter:
         self.bulk = bulk
         self.report_url = report_url
         self.debug = debug
-        self.work = Queue.Queue()
+        self.work = queue.Queue()
         self.wthreads = []
         self.nthreads = nthreads
         # for bulk updates, do batches of 25 or every 10 seconds
@@ -59,7 +59,7 @@ class job_reporter:
 		    self.wthreads[i].start()
 
     def bail(self):
-        print "thread: %d -- bailing" % thread.get_ident()
+        print("thread: %d -- bailing" % _thread.get_ident())
         raise KeyboardInterrupt("just quitting a thread")
 
     def runqueue_bulk(self):
@@ -71,7 +71,7 @@ class job_reporter:
                 for i in range(self.batchsize):
                     try:
                         d = self.work.get(block = False)
-                    except Queue.Empty:
+                    except queue.Empty:
                         break
 
                     if d['f'] == job_reporter.bail:
@@ -103,7 +103,7 @@ class job_reporter:
             except KeyboardInterrupt:
                 break
             except:
-                print "Unhandled exception", sys.exc_info()
+                print("Unhandled exception", sys.exc_info())
                 time.sleep(1)
                 pass
   
@@ -143,7 +143,7 @@ class job_reporter:
 
 		return res
 
-	    except (urllib2.HTTPError) as e:
+	    except (urllib.error.HTTPError) as e:
 		sys.stderr.write("Exception: HTTP error %d" % e.code)
 		sys.stderr.write("\n--------\n")
                 sys.stderr.flush()
@@ -161,7 +161,7 @@ class job_reporter:
                 time.sleep(5)
                 retries = retries - 1
 
-	    except (urllib2.URLError) as e:
+	    except (urllib.error.URLError) as e:
                 if uh:
                     uh.close()
                     uh = None
@@ -172,7 +172,7 @@ class job_reporter:
                 del e
                 time.sleep(5)
                 retries = retries - 1
-	    except (httplib.BadStatusLine) as e:
+	    except (http.client.BadStatusLine) as e:
                 if uh:
                     uh.close()
                     uh = None
@@ -225,7 +225,7 @@ class job_reporter:
 		return res
 
 
-	    except (urllib2.HTTPError) as e:
+	    except (urllib.error.HTTPError) as e:
 		sys.stderr.write("Exception: HTTP error %d" % e.code)
 		sys.stderr.write("\n--------\n")
                 sys.stderr.flush()
@@ -243,7 +243,7 @@ class job_reporter:
                 time.sleep(5)
                 retries = retries - 1
 
-	    except (urllib2.URLError) as e:
+	    except (urllib.error.URLError) as e:
                 if uh:
                     uh.close()
                     uh = None
@@ -254,7 +254,7 @@ class job_reporter:
                 del e
                 time.sleep(5)
                 retries = retries - 1
-	    except (httplib.BadStatusLine) as e:
+	    except (http.client.BadStatusLine) as e:
                 if uh:
                     uh.close()
                     uh = None
@@ -277,13 +277,13 @@ class job_reporter:
                 raise
 
 if __name__ == '__main__':
-    print "self test:"
+    print("self test:")
     r = job_reporter("http://127.0.0.1:8080/poms", debug=1)
     r.report_status(jobsub_job_id="12345.0@fifebatch3.fnal.gov",output_files_declared = "True",status="Located")
     r.report_status(jobsub_job_id="12346.0@fifebatch3.fnal.gov",output_files_declared = "True",status="Located")
     r.report_status(jobsub_job_id="12347.0@fifebatch3.fnal.gov",output_files_declared = "True",status="Located")
     r.report_status(jobsub_job_id="12348.0@fifebatch3.fnal.gov",output_files_declared = "True",status="Located")
-    print "started reports:"
+    print("started reports:")
     sys.stdout.flush()
     r.cleanup()
     r = job_reporter("http://127.0.0.1:8080/nosuch", debug=1)

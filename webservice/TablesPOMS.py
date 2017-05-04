@@ -6,11 +6,11 @@
 ### written by Marc Mengel, Stephen White and Michael Gueith.
 ### November, 2016.
 
-import logit
+from . import logit
 from datetime import datetime
 from sqlalchemy import Integer, DateTime, ForeignKey, text
 
-from utc import utc
+from .utc import utc
 
 
 class TablesPOMS(object):
@@ -54,7 +54,7 @@ class TablesPOMS(object):
             if hasattr(found, 'created'):
                 setattr(found, 'created', datetime.now(utc))
         columns = found._sa_instance_state.class_.__table__.columns
-        for fieldname in columns.keys():
+        for fieldname in list(columns.keys()):
             if not kwargs.get(fieldname, None):
                 continue
             if columns[fieldname].type == Integer:
@@ -105,7 +105,7 @@ class TablesPOMS(object):
         if not found:
             found = sample
         columns = sample._sa_instance_state.class_.__table__.columns
-        fieldnames = columns.keys()
+        fieldnames = list(columns.keys())
         screendata = []
         for fn in fieldnames:
             screendata.append({
@@ -133,12 +133,12 @@ class TablesPOMS(object):
         import poms.model.poms_model
         self.admin_map = {}
         self.pk_map = {}
-        for k in poms.model.poms_model.__dict__.keys():
+        for k in list(poms.model.poms_model.__dict__.keys()):
             if hasattr(poms.model.poms_model.__dict__[k], '__module__') and poms.model.poms_model.__dict__[k].__module__ == 'poms.model.poms_model':
                 self.admin_map[k] = poms.model.poms_model.__dict__[k]
                 found = self.admin_map[k]()
                 columns = found._sa_instance_state.class_.__table__.columns
-                for fieldname in columns.keys():
+                for fieldname in list(columns.keys()):
                     if columns[fieldname].primary_key:
                         self.pk_map[k] = fieldname
         logit.log(" ---- admin map: %s " % repr(self.admin_map))
