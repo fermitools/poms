@@ -7,6 +7,8 @@ from utc import utc
 import atexit
 from textwrap import dedent
 from io import StringIO
+import dowser
+import poms.webservice.pomscache as pomscache
 
 #
 #if os.environ.get("SETUP_POMS", "") == "":
@@ -310,9 +312,13 @@ if True:
         parser.print_help()
         raise SystemExit
 
+    # add dowser in to monitor memory...
+    dapp = cherrypy.tree.mount(dowser.Root(), '/dowser')
+
     pomsInstance = poms_service.poms_service()
     app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, StringIO(confs))
     #app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, configfile)
+
 
     SAEnginePlugin(cherrypy.engine, app).subscribe()
     cherrypy.tools.db = SATool()
@@ -326,6 +332,9 @@ if True:
     logit.setlevel(log_level)
     logit.log("POMSPATH: %s" % pomsInstance.path)
     pidfile()
+
+    # configure cache
+    pomscache.configure(cherrypy.config)
 
     pomsInstance.post_initalize()
 

@@ -937,9 +937,3 @@ class poms_service:
 #-----------------------
 # debugging
 
-    @cherrypy.expose
-    def memory_summary(self):
-        from pympler import summary, muppy
-        mem_summary = summary.summarize(muppy.get_objects())
-        rows = summary.format_(mem_summary)
-        return 'pid: %d<br><pre>\n%s\n</pre>' % (os.getpid(),'\n'.join(rows))

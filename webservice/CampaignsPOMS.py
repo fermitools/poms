@@ -23,6 +23,7 @@ import json
 from .utc import utc
 import os
 import glob
+from .pomscache import pomscache
 
 
 
@@ -394,7 +395,7 @@ class CampaignsPOMS():
         dbhandle.commit()
         return "Task=%d" % t.task_id
 
-
+    @pomscache.cache_on_arguments()
     def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag = None):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
@@ -435,6 +436,7 @@ class CampaignsPOMS():
         return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string
 
 
+    @pomscache.cache_on_arguments()
     def campaign_info(self, dbhandle, samhandle, err_res, campaign_id,  tmin = None, tmax = None, tdays = None):
         campaign_id = int(campaign_id)
 
@@ -476,6 +478,7 @@ class CampaignsPOMS():
         return Campaign_info, time_range_string, tmins, tmaxs, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist
 
 
+    @pomscache.cache_on_arguments()
     def campaign_time_bars(self, dbhandle, campaign_id = None, tag = None, tmin = None, tmax = None, tdays = 1):
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string,tdays = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
         tg = time_grid.time_grid()
