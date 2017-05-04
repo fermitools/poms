@@ -333,9 +333,6 @@ if True:
     logit.log("POMSPATH: %s" % pomsInstance.path)
     pidfile()
 
-    # configure cache
-    pomscache.configure(cherrypy.config)
-
     pomsInstance.post_initalize()
 
     if args.use_wsgi:
