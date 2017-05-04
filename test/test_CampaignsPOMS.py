@@ -44,36 +44,36 @@ def add_mock_job_launcher():
     fqdn = socket.gethostname()
     # add launch template
     if launch == None:
-	res = mps.campaignsPOMS.launch_template_edit(
-	   dbh.get(), 
-	   camp_seshandle, 
-	   action = 'add',
-	   ae_launch_name= 'test_launch_local_generic',
-	   ae_launch_id ='',
-	   ae_launch_host = fqdn,
-	   ae_launch_account =  os.environ['USER'],      
-	   ae_launch_setup = "source /grid/fermiapp/products/common/etc/setups; set -x; klist; cd %s;   setup -. poms; setup ifdhc" % os.environ['POMS_DIR'],
-	   experiment = 'samdev',
-	   experimenter_id = '4'
-	)
+        res = mps.campaignsPOMS.launch_template_edit(
+           dbh.get(), 
+           camp_seshandle, 
+           action = 'add',
+           ae_launch_name= 'test_launch_local_generic',
+           ae_launch_id ='',
+           ae_launch_host = fqdn,
+           ae_launch_account =  os.environ['USER'],      
+           ae_launch_setup = "source /grid/fermiapp/products/common/etc/setups; set -x; klist; cd %s;   setup -. poms; setup ifdhc" % os.environ['POMS_DIR'],
+           experiment = 'samdev',
+           experimenter_id = '4'
+        )
         print("lte returns: ", res)
     # add job type
     if campaign_definition == None:
-	res = mps.campaignsPOMS.campaign_definition_edit(
-	   dbh.get(), 
-	   camp_seshandle, 
-	   action = 'add',
-	   ae_campaign_definition_id = '',
-	   ae_definition_name = 'test_launch_mock_job_generic',
-	   ae_input_files_per_job = '0',
-	   ae_output_files_per_job = '0',
-	   ae_output_file_patterns = '%',
-	   ae_launch_script = 'nohup python $POMS_DIR/test/mock_job.py --campaign_id $POMS_CAMPAIGN_ID -N 3 -D %(dataset)s > /tmp/launch$$ 2>&1 ; sleep 5; cat /tmp/launch$$',
-	   ae_definition_parameters = '[]',
-	   ae_definition_recovery = '[]',
-	   experiment = 'samdev',
-	   experimenter_id = '4'
-	)
+        res = mps.campaignsPOMS.campaign_definition_edit(
+           dbh.get(), 
+           camp_seshandle, 
+           action = 'add',
+           ae_campaign_definition_id = '',
+           ae_definition_name = 'test_launch_mock_job_generic',
+           ae_input_files_per_job = '0',
+           ae_output_files_per_job = '0',
+           ae_output_file_patterns = '%',
+           ae_launch_script = 'nohup python $POMS_DIR/test/mock_job.py --campaign_id $POMS_CAMPAIGN_ID -N 3 -D %(dataset)s > /tmp/launch$$ 2>&1 ; sleep 5; cat /tmp/launch$$',
+           ae_definition_parameters = '[]',
+           ae_definition_recovery = '[]',
+           experiment = 'samdev',
+           experimenter_id = '4'
+        )
         print("cde returns: ", res)
 
 def del_mock_job_launcher():
@@ -82,22 +82,22 @@ def del_mock_job_launcher():
     
     if launch:
         launch_id = launch.launch_id
-	mps.campaignsPOMS.launch_template_edit(
-	    dbh.get(), 
-	    camp_seshandle, 
-	    action = 'delete',
-	    name= 'test_launch_local_generic',
-	    ae_launch_id = launch_id
-	)
+        mps.campaignsPOMS.launch_template_edit(
+            dbh.get(), 
+            camp_seshandle, 
+            action = 'delete',
+            name= 'test_launch_local_generic',
+            ae_launch_id = launch_id
+        )
     if campaign_definition:
         campaign_definition_id = campaign_definition.campaign_definition_id
-	mps.campaignsPOMS.campaign_definition_edit(
-	    dbh.get(), 
-	    camp_seshandle, 
-	    action = 'delete',
-	    name = 'test_launch_mock_job_generic',
-	    campaign_definition_id = campaign_definition_id,
-	)
+        mps.campaignsPOMS.campaign_definition_edit(
+            dbh.get(), 
+            camp_seshandle, 
+            action = 'delete',
+            name = 'test_launch_mock_job_generic',
+            campaign_definition_id = campaign_definition_id,
+        )
 
 def add_campaign(name, deps, dataset = None, split = 'None'):
     campaign = dbh.get().query(Campaign).filter(Campaign.name=='name').first()

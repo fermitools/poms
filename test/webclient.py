@@ -48,4 +48,4 @@ class WebClient(object):
             response = error
             self.code = response.status_code
             logging.info("url: " + self.url + "  data: " + str(data) + "  method: " + method + "  status: " +str(self.code) + "  response_time: " + str(duration) )
-	    response.close()
+            response.close()

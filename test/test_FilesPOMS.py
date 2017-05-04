@@ -116,11 +116,11 @@ def test_get_inflight():
     print "q object", q.all()
     print "*"*10
     for x in q.all():
-	print "element_jobid", x.job_id
-	print "element_file", x.file_type
-	print "element_filename", x.file_name 
-    	print "declare", x.declared
-	#fn_list.append(x.file_name)
+        print "element_jobid", x.job_id
+        print "element_file", x.file_type
+        print "element_filename", x.file_name 
+        print "declare", x.declared
+        #fn_list.append(x.file_name)
     '''
     outlist = mps.filesPOMS.get_inflight(dbhandle, task_id=task_id_test)
     outlist.sort()

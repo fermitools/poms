@@ -66,6 +66,7 @@ def test_handle_dates_2(utils_poms):
                                        tmax="",
                                        tdays="7", baseurl="foo/")
 
+    assert (tdays == 7)
     assert (tmax - tmin == datetime.timedelta(days=7))
     assert (tmax - now < datetime.timedelta(seconds=1))
 

@@ -33,8 +33,8 @@ class mock_job:
         else:
            projname = None
            
-	mps = mock_poms_service.mock_poms_service()
-	dbh = DBHandle.DBHandle()
+        mps = mock_poms_service.mock_poms_service()
+        dbh = DBHandle.DBHandle()
         task_id = mps.taskPOMS.get_task_id_for(dbh.get(), campaign_id, experiment = "samdev", command_executed = 'fake_task')
 
         print("got POMS_TASK_ID=%s" % task_id)
@@ -50,7 +50,7 @@ class mock_job:
          
     def run(self, task_id, i, n_jobs, fileflag = False, dataset = None, projname = None, exit_code = 0):
 
-	jid = str(int(time.time()) + i/10.0)+"@fakebatch1.fnal.gov"
+        jid = str(int(time.time()) + i/10.0)+"@fakebatch1.fnal.gov"
         self.jids.append(jid)
 
         logger.info("launching fake job id %s" % jid)
@@ -62,9 +62,9 @@ class mock_job:
         elif n > 0:
             self.pids.append(n)
         else:
-	    mps = mock_poms_service.mock_poms_service()
+            mps = mock_poms_service.mock_poms_service()
             self.jp = mps.jobsPOMS
-	    dbh = DBHandle.DBHandle()
+            dbh = DBHandle.DBHandle()
             samhandle = samweb_lite()
 
             if dataset and i == 0:
@@ -109,7 +109,7 @@ class mock_job:
                       print("Trying to start project..." , time.asctime())
                       u = ih.startProject(projname, 'samdev', dataset, os.environ['USER'],'samdev')
                       time.sleep(7)  # wait for project to actually start
-	   
+           
                       print("started project", u, time.asctime())
                    else:
                       u = ih.findProject(projname, 'samdev')
@@ -133,60 +133,60 @@ class mock_job:
                              break
                     print("finished waiting for startproject ", time.asctime())
                 else:
-		    time.sleep(2)
+                    time.sleep(2)
 
-		self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
-		time.sleep(0.5)
-		self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
+                time.sleep(0.5)
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
 
-		self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code', user_script = '/fake/job/script', node_name='fakenode', vendor_id = 'FakeCPU')
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code', user_script = '/fake/job/script', node_name='fakenode', vendor_id = 'FakeCPU')
                  
                 if dataset:
                     self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, task_project = projname)
 
                     import ifdh
                     ih = ifdh.ifdh()
-		    print("Trying to find project..." , time.asctime())
-		    u = ih.findProject(projname, 'samdev')
+                    print("Trying to find project..." , time.asctime())
+                    u = ih.findProject(projname, 'samdev')
                     #hostname = socket.gethostname()
                     hostname = 'fnpc3000.fnal.gov'
 
-     	            # ifdh establishProcess  projecturi  appname  appversion  location  user  appfamily   description   filelimit   schemas  
+                    # ifdh establishProcess  projecturi  appname  appversion  location  user  appfamily   description   filelimit   schemas  
 
                     print("trying to establishProcess(%s, 'demo', %s, %s, %s, %s, %s %s) %s \n" % (u, version, hostname, os.environ['USER'], 'demo', jid, 1, time.asctime()))
 
-		    cid = ih.establishProcess( u, 'demo', version, hostname, os.environ['USER'], 'demo', jid, 1)
-		    f = ih.getNextFile(u, cid)
+                    cid = ih.establishProcess( u, 'demo', version, hostname, os.environ['USER'], 'demo', jid, 1)
+                    f = ih.getNextFile(u, cid)
                     inpf = os.path.basename(f)
-		    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files in', input_file_names = os.path.basename(f))
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files in', input_file_names = os.path.basename(f))
                     time.sleep(0.5)
-		    ih.updateFileStatus(u, cid, f, 'transferred')
-		    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running')
+                    ih.updateFileStatus(u, cid, f, 'transferred')
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running')
                     time.sleep(0.5)
-		    ih.updateFileStatus(u, cid, f, 'consumed')
+                    ih.updateFileStatus(u, cid, f, 'consumed')
                     ih.endProcess(u, cid)
                 else:
                     inpf = 'fake_input_%s' % jid
                     if fileflag:
-		        self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files in', input_file_names = inpf )
+                        self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files in', input_file_names = inpf )
                     time.sleep(2)
                 
-		if fileflag:
+                if fileflag:
                     ofn = ('fake_output_%s' % jid).replace('@','_')
                     self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files out', output_file_names = ofn )
 
                 if exit_code == 0:
-		    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code succeeded', user_exe_exit_code = 0)
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code succeeded', user_exe_exit_code = 0)
                 elif exit_code == -1:
-		    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = str(i))
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = str(i))
                 else:
-		    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = exit_code)
-		self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = exit_code)
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
             time.sleep(1)
 
             # have file appear with location...
 
-	    if fileflag:
+            if fileflag:
                 vers = "v1_0"
                 # stats for a file containing "hello\n"
                 checksum = '"enstore:138740254"'
