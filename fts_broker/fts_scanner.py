@@ -19,9 +19,9 @@ class fts_status_watcher:
         if self.debug: print("fetching: " , url)
         res = None
         try:
-	    res = self.rs.get(url)
-	    info = res.json()
-	    res.close()
+            res = self.rs.get(url)
+            info = res.json()
+            res.close()
         except:
             if res: res.close()
             return {}
@@ -53,17 +53,17 @@ class fts_status_watcher:
                if oldexp != item["experiment"]:
                    if fs: 
                        fs.close()
-	               gc.collect(2)
+                       gc.collect(2)
 
-                   fs = shelve.open("%s/%s_files.new.db" % (self.workdir, item["experiment"]),flag="n",writeback=True)
+                   fs = shelve.open("%s/%s_files.new.db" % (self.workdir, item["experiment"]),flag="n",writeback=True,protocol=3)
                status = self.fetch_json(item["uris"]["service"] + "/status?format=json")
                for t in status.get("errorstates",[]) + status.get("pendingstates",[]) + status.get("newstates",[]):
                    count = count + 1
                    if (count % 100) == 99:
                       fs.sync()
                       gc.collect(2)
-                   k = t["name"].encode('ascii','ignore')
-                   v = t["msg"].encode('ascii','ignore')
+                   k = t["name"].encode('ascii','ignore').decode()
+                   v = t["msg"].encode('ascii','ignore').decode()
                    fs[k] = "%s:%s" % (item["name"], v)
 
         if fs: fs.close()

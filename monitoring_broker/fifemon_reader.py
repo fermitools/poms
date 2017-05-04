@@ -19,8 +19,8 @@ from io import StringIO
 requests.packages.urllib3.disable_warnings()
 
 # don't barf if we need to log utf8...
-import codecs
-sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+#import codecs
+#sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 
 class status_scraper:
@@ -50,9 +50,9 @@ class status_scraper:
         #self.do_login()
 
     def do_login(self, page):
-	#
-	# First stab at SSO stuff...
-	#
+        #
+        # First stab at SSO stuff...
+        #
         l1 = page.find('action="') + 8
         l2 = page.find('"',l1)
         path = page[l1:l2]
@@ -148,16 +148,16 @@ class status_scraper:
         if self.debug:
            print("recurse: ", s , self.percents.get(s,0), "%")
 
-	if n_good == 0 and n_bad == 0:
+        if n_good == 0 and n_bad == 0:
             self.status[section] = 'unknown'
-	elif (self.percents[section] < percent):
+        elif (self.percents[section] < percent):
             self.status[section] = 'bad'
-	elif (self.percents[section] < warnpercent):
+        elif (self.percents[section] < warnpercent):
             self.status[section] = 'degraded'
         else:
             self.status[section] = 'good'
 
-	return self.status[section]
+        return self.status[section]
 
     def one_pass(self):
 
@@ -175,28 +175,28 @@ class status_scraper:
             self.source_urls[s] = surl
 
             if path:
-		self.paths[s] = path
-		low = self.cf.get(s,'above')
-		high = self.cf.get(s,'below')
-		wlow = self.cf.get(s,'warnabove')
-		whigh = self.cf.get(s,'warnbelow')
+                self.paths[s] = path
+                low = self.cf.get(s,'above')
+                high = self.cf.get(s,'below')
+                wlow = self.cf.get(s,'warnabove')
+                whigh = self.cf.get(s,'warnbelow')
                 data = self.fetch_item(path)
                 if data: 
-		    self.status[s] = 'good'
-		    if whigh and data[0]["datapoints"][0][0] > float(whigh):
+                    self.status[s] = 'good'
+                    if whigh and data[0]["datapoints"][0][0] > float(whigh):
                         print("degraded because ", data[0]["datapoints"][0][0], "above", warnhigh)
-			self.status[s] = 'degraded'
-		    if wlow and data[0]["datapoints"][0][0] < float(wlow):
+                        self.status[s] = 'degraded'
+                    if wlow and data[0]["datapoints"][0][0] < float(wlow):
                         print("degraded because ", data[0]["datapoints"][0][0], "below", warnlow)
-			self.status[s] = 'degraded'
-		    if high and data[0]["datapoints"][0][0] > float(high):
+                        self.status[s] = 'degraded'
+                    if high and data[0]["datapoints"][0][0] > float(high):
                         print("bad because ", data[0]["datapoints"][0][0], "above", high)
-			self.status[s] = 'bad'
-		    if low and data[0]["datapoints"][0][0] < float(low):
+                        self.status[s] = 'bad'
+                    if low and data[0]["datapoints"][0][0] < float(low):
                         print("bad because ", data[0]["datapoints"][0][0], "below", low)
-			self.status[s] = 'bad'
+                        self.status[s] = 'bad'
                 else:
-		    self.status[s] = "unknown"
+                    self.status[s] = "unknown"
         #
         # next check the ones that have sub-sections
         # to decide if they're bad or good.
@@ -217,14 +217,14 @@ class status_scraper:
 
                 self.one_pass()
 
-	    except KeyboardInterrupt:
-		print("Interupted. Quitting")
+            except KeyboardInterrupt:
+                print("Interupted. Quitting")
 
-	    except:
-	        print("Exception!")
-	        traceback.print_exc()
-	        pass
-	    time.sleep(300)
+            except:
+                print("Exception!")
+                traceback.print_exc()
+                pass
+            time.sleep(300)
 
 
     def report(self):
@@ -249,7 +249,7 @@ class status_scraper:
                     break
                 except:
                     retries = retries + 1
-	            traceback.print_exc()
+                    traceback.print_exc()
             print(c.text)
             c.close()
 

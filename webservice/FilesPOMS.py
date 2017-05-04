@@ -249,7 +249,7 @@ class Files_status(object):
         if c:
             fss_file = "%s/%s_files.db" % (getconfig("ftsscandir"), c.experiment)
             if os.path.exists(fss_file):
-                fss = shelve.open(fss_file, 'r')
+                fss = shelve.open(fss_file, flag='r', protocol=3)
                 for f in outlist:
                     try:
                         statusmap[f] = fss.get(f.encode('ascii', 'ignore'), '')

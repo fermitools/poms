@@ -14,16 +14,17 @@ import pycurl
 from io import StringIO
 
 # don't barf if we need to log utf8...
-import codecs
-sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+#import codecs
+#sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 class status_scraper():
 
     def __init__(self,configfile, poms_url):
         self.poms_url = poms_url
         self.rs = requests.Session()
-        defaults = { "subservices" : "", "scrape_url":"" , "scrape_regex":"", "percent":"100", "scrape_match_1":"", "scrape_warn_match_1":"", "scrape_bad_match_1":"", "debug":"0", "multiline":None }
+        defaults = { "subservices" : u"", "scrape_url":u"" , "scrape_regex":u"", "percent":u"100", "scrape_match_1":u"", "scrape_warn_match_1":u"", "scrape_bad_match_1":u"", "debug":u"0", "multiline":None }
         self.cf = SafeConfigParser(defaults)
+        # self.cf._strict = False
         self.cf.read(configfile)
         self.flush_cache()
         self.percents = {}
@@ -118,16 +119,16 @@ class status_scraper():
         if self.debug:
            print("recurse: ", s , self.percents.get(s,0), "%")
 
-	if n_good == 0 and n_bad == 0:
+        if n_good == 0 and n_bad == 0:
             self.status[section] = 'unknown'
-	elif (self.percents[section] < percent):
+        elif (self.percents[section] < percent):
             self.status[section] = 'bad'
-	elif (self.percents[section] < warnpercent):
+        elif (self.percents[section] < warnpercent):
             self.status[section] = 'degraded'
         else:
             self.status[section] = 'good'
 
-	return self.status[section]
+        return self.status[section]
 
     def one_pass(self):
 
@@ -159,15 +160,15 @@ class status_scraper():
             else:
                 bad2 = None
             percent = int(self.cf.get(s,'percent'))
-	    if self.cf.has_option(s,'warnpercent'):
-		warnpercent = int(self.cf.get(s,'warnpercent'))
-	    else:
-		warnpercent = 0
+            if self.cf.has_option(s,'warnpercent'):
+                warnpercent = int(self.cf.get(s,'warnpercent'))
+            else:
+                warnpercent = 0
             n_good = 0
             n_bad = 0
             n_warn = 0
             if scrape_url and scrape_regex:
-	        if self.debug: print("scraping %s for matches of ruleset %s" % (scrape_url, s))
+                if self.debug: print("scraping %s for matches of ruleset %s" % (scrape_url, s))
                 re_obj = re.compile(scrape_regex)
                 lines = self.fetch_page(scrape_url)
                 if not lines:
@@ -207,15 +208,15 @@ class status_scraper():
 
                 if len(lines) == 0 or (n_good == 0 and n_bad == 0 and n_warn == 0):
                     self.status[s] = 'unknown'
-	        else:
+                else:
                     if n_warn > 0 and n_bad == 0:
-	 	        self.status[s] = 'degraded'
+                        self.status[s] = 'degraded'
                     elif n_good == 0 and n_warn == 0 or self.percents[s] < percent:
-	 	        self.status[s] = 'bad'
+                        self.status[s] = 'bad'
                     elif  self.percents[s] < warnpercent:
-	 	        self.status[s] = 'degraded'
-	            else:
-		        self.status[s] = 'good'
+                        self.status[s] = 'degraded'
+                    else:
+                        self.status[s] = 'good'
 
                 self.totals[s] = n_good + n_bad + n_warn
                 self.warns[s] = n_warn
@@ -239,14 +240,14 @@ class status_scraper():
             try:
                 self.one_pass()
 
-	    except KeyboardInterrupt:
-		print("Interupted. Quitting")
+            except KeyboardInterrupt:
+                print("Interupted. Quitting")
 
-	    except:
-	        print("Exception!")
-	        traceback.print_exc()
-	        pass
-	    time.sleep(300)
+            except:
+                print("Exception!")
+                traceback.print_exc()
+                pass
+            time.sleep(300)
 
 
     def report(self):

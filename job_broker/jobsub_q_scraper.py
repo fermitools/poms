@@ -12,7 +12,7 @@ import resource
 import gc
 import pprint
 import threading
-from .job_reporter import job_reporter
+from job_reporter import job_reporter
 
 do_memdebug = False
 
@@ -49,15 +49,15 @@ class jobsub_q_scraper:
         self.debug = debug
         self.passcount = 0
         if do_memdebug:
-	    self.memory_tracker = tracker.SummaryTracker()
-	    self.memory_tracker.print_diff()
-	    self.memory_tracker.print_diff()
-	    self.memory_tracker.print_diff()
+            self.memory_tracker = tracker.SummaryTracker()
+            self.memory_tracker.print_diff()
+            self.memory_tracker.print_diff()
+            self.memory_tracker.print_diff()
         sys.stdout.flush()
 
     def get_open_jobs(self):
         self.prevjobmap = self.jobmap
-	self.jobmap = {}
+        self.jobmap = {}
         conn = None
         try:
             conn = self.rs.get(self.job_reporter.report_url + '/active_jobs')
@@ -72,11 +72,11 @@ class jobsub_q_scraper:
                 self.jobmap[j] = 0
             del jobs
             jobs = None
-	except KeyboardInterrupt:
-	    raise
+        except KeyboardInterrupt:
+            raise
         except Exception as e:
             print("Ouch!", sys.exc_info())
-	    traceback.print_exc()
+            traceback.print_exc()
             if conn: 
                 conn.close()
                 del conn
@@ -91,11 +91,11 @@ class jobsub_q_scraper:
             conn = None
 
             if self.debug: print("got: ", text)
-	except KeyboardInterrupt:
-	    raise
+        except KeyboardInterrupt:
+            raise
         except Exception as e:
             print("Ouch!", sys.exc_info())
-	    traceback.print_exc()
+            traceback.print_exc()
             if conn:
                 conn.close()
                 del conn
@@ -120,19 +120,19 @@ class jobsub_q_scraper:
                 
             if self.debug:
                 print("saw line: " , line)
-	    jobenv={}
-	    for evv in line.split(";"):
-		name,val = evv.split("=",1)
-		jobenv[name] = val
+            jobenv={}
+            for evv in line.split(";"):
+                name,val = evv.split("=",1)
+                jobenv[name] = val
 
-	    if "JOBSUBJOBID" in jobenv:
-		jobsub_job_id = jobenv["JOBSUBJOBID"];
-	    else:
-		jobsub_job_id = '%s.%s@%s' % (
-		    jobenv['CLUSTER'],
-		    jobenv['PROCESS'],
-		    jobenv['SCHEDD']
-		  )
+            if "JOBSUBJOBID" in jobenv:
+                jobsub_job_id = jobenv["JOBSUBJOBID"];
+            else:
+                jobsub_job_id = '%s.%s@%s' % (
+                    jobenv['CLUSTER'],
+                    jobenv['PROCESS'],
+                    jobenv['SCHEDD']
+                  )
 
             jobsub_job_id = jobsub_job_id.strip()
 
@@ -176,7 +176,7 @@ class jobsub_q_scraper:
                 }
 
                 prev = self.prev_report.get(jobsub_job_id, None)
-	        self.cur_report[jobsub_job_id] = args
+                self.cur_report[jobsub_job_id] = args
 
                 #
                 # only report status if its different
@@ -184,11 +184,11 @@ class jobsub_q_scraper:
                 if not prev or prev['status'] != args['status'] or prev['node_name'] != args['node_name'] or prev['cpu_time'] != args['cpu_time'] or prev['wall_time'] != args['wall_time'] or prev['task_project'] != args['task_project']:
                     try: 
                         self.job_reporter.report_status(**args)
-	            except KeyboardInterrupt:
-	                raise
+                    except KeyboardInterrupt:
+                        raise
                     except:
-	                print("Reporting Exception!")
-	                traceback.print_exc()
+                        print("Reporting Exception!")
+                        traceback.print_exc()
                         pass
                 else:
                     if self.debug: 
@@ -203,18 +203,18 @@ class jobsub_q_scraper:
         res = f.close()
 
         if res == 0 or res == None:
-	    for jobsub_job_id in list(self.jobmap.keys()):
-		if self.jobmap[jobsub_job_id] == 0 and self.prevjobmap.get(jobsub_job_id,0) == 0:
-		    # it is in the database, but not in our output, 
+            for jobsub_job_id in list(self.jobmap.keys()):
+                if self.jobmap[jobsub_job_id] == 0 and self.prevjobmap.get(jobsub_job_id,0) == 0:
+                    # it is in the database, but not in our output, 
                     # nor in the previous output, we conclude it's completed.
-		    # we could get a false alarm here if condor_q fails...
-		    # thats why we only do this if our close() returned 0/None.
+                    # we could get a false alarm here if condor_q fails...
+                    # thats why we only do this if our close() returned 0/None.
                     # and we make sure we didn't see it two runs in a row...
                     print("reporting %s as completed" % jobsub_job_id)
 
-		    self.job_reporter.report_status(
-			jobsub_job_id = jobsub_job_id,
-			status = "Completed")
+                    self.job_reporter.report_status(
+                        jobsub_job_id = jobsub_job_id,
+                        status = "Completed")
         else:
             print("error code: %s from condor_q" % res)
 
@@ -232,22 +232,22 @@ class jobsub_q_scraper:
 
             try:
                 self.scan()
-			 
-	    except KeyboardInterrupt:
-	        raise
+                         
+            except KeyboardInterrupt:
+                raise
  
             except OSError as e:
-	        print("Exception!")
-	        traceback.print_exc()
+                print("Exception!")
+                traceback.print_exc()
                 # if we're out of memory, dump core...
                 if e.errno == 12:
                     resource.setrlimit(resource.RLIMIT_CORE,resource.RLIM_INFINITY)
                     os.abort()
 
-	    except:
-	        print("Exception!")
-	        traceback.print_exc()
-	        pass
+            except:
+                print("Exception!")
+                traceback.print_exc()
+                pass
 
             sys.stderr.write("%s pausing...\n" % time.asctime())
             sys.stderr.flush()
@@ -262,8 +262,8 @@ class jobsub_q_scraper:
             sys.stdout.flush()
 
 # don't barf if we need to log utf8...
-import codecs
-sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+#import codecs
+#sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 if __name__ == '__main__':
     debug = 0

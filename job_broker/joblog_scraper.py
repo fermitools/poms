@@ -9,11 +9,11 @@ import traceback
 import time
 import threading
 
-from .job_reporter import job_reporter
+from job_reporter import job_reporter
 
 # don't barf if we need to log utf8...
-import codecs
-sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+#import codecs
+#sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 import prometheus_client as prom
 
@@ -35,11 +35,11 @@ class joblog_scraper:
         pid_pat = "[0-9]*"
 
         ifdhline_pat = "(%s) (%s) (%s)/(%s):? ?(%s)/(%s)/(%s)/(%s)\[(%s)\]:.ifdh:(.*)" % (
-		timestamp_pat, hostname_pat, user_pat, exp_pat,taskid_pat,
+                timestamp_pat, hostname_pat, user_pat, exp_pat,taskid_pat,
                 jobsub_job_id_pat, ifdh_vers_pat,exp_pat, pid_pat )
 
         oldifdhline_pat ="(%s) (%s) (%s)/(%s)/(%s)\[(%s)\]:.ifdh:(.*)" % (
-	     timestamp_pat, hostname_pat, exp_pat, ifdh_vers_pat, exp_pat, 
+             timestamp_pat, hostname_pat, exp_pat, ifdh_vers_pat, exp_pat, 
              pid_pat)
 
         self.ifdhline_re = re.compile(ifdhline_pat)
@@ -52,16 +52,16 @@ class joblog_scraper:
         
 
     def parse_line(self, line):
-	timestamp = ""
-	hostname = ""
-	user = ""
-	experiment = ""
-	task = ""
-	jobsub_job_id = ""
-	ifdh_vers = ""
-	experiment = ""
-	pid = ""
-	message  = ""
+        timestamp = ""
+        hostname = ""
+        user = ""
+        experiment = ""
+        task = ""
+        jobsub_job_id = ""
+        ifdh_vers = ""
+        experiment = ""
+        pid = ""
+        message  = ""
         m1 = self.oldifdhline_re.match(line)
         m2 = self.ifdhline_re.match(line)
         if m1:
@@ -101,15 +101,15 @@ class joblog_scraper:
             task = self.job_task_map[jobsub_job_id]
             
         return { 
-		'timestamp': timestamp.strip(),
-		'hostname': hostname.strip(),
-		'user': user.strip(),
-		'experiment': experiment.strip(),
-		'task': task.strip(),
-		'jobsub_job_id': jobsub_job_id.strip(),
-		'ifdh_vers': ifdh_vers.strip(),
-		'pid': pid.strip(),
-		'message': message.strip() ,
+                'timestamp': timestamp.strip(),
+                'hostname': hostname.strip(),
+                'user': user.strip(),
+                'experiment': experiment.strip(),
+                'task': task.strip(),
+                'jobsub_job_id': jobsub_job_id.strip(),
+                'ifdh_vers': ifdh_vers.strip(),
+                'pid': pid.strip(),
+                'message': message.strip() ,
         }
 
     def find_files(self, message):
@@ -143,7 +143,7 @@ class joblog_scraper:
         if message.find("starting ifdh::cp") >= 0:
             if self.debug:
                 print("saw copy")
-	    if self.copyin_re.match(message):
+            if self.copyin_re.match(message):
                 dir = "in"
                 data['input_file_names'] = self.find_files(message)
             else:
@@ -185,17 +185,17 @@ class joblog_scraper:
                   print("still failed, continuing..")
                   pass
 
-	   for k in list(newdata.keys()):
-	       if newdata[k] == '':
-		   del newdata[k]
+           for k in list(newdata.keys()):
+               if newdata[k] == '':
+                   del newdata[k]
 
-	   if 'vendor_id' in newdata:
+           if 'vendor_id' in newdata:
                # round off bogomips so rounding errors do not give us
                # fake distinctions in bogomips
-	       newdata['cpu_type'] = "%s@%s" % (
+               newdata['cpu_type'] = "%s@%s" % (
                        newdata['vendor_id'], str(round(float(newdata.get('bogomips','0')))))
 
-	   data.update(newdata)
+           data.update(newdata)
 
         if self.debug:
             print("reporting: " , data)
