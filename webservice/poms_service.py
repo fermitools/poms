@@ -389,7 +389,7 @@ class poms_service:
     @logit.logstartstop
     def campaign_info(self, campaign_id, tmin=None, tmax=None, tdays=None):
         (Campaign_info, time_range_string,
-         tmins, tmaxs,
+         tmins, tmaxs, tdays,
          Campaign_definition_info,
          Launch_template_info, tags,
          launched_campaigns, dimlist, cl,

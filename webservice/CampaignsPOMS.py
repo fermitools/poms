@@ -515,7 +515,7 @@ class CampaignsPOMS():
            os.environ['HOME'],campaign_id)
         launch_flist = glob.glob('%s/*' % dirname)
         launch_flist = list(map(os.path.basename, launch_flist))
-        return Campaign_info, time_range_string, tmins, tmaxs, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist
+        return Campaign_info, time_range_string, tmins, tmaxs, tdays, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist
 
 
     @pomscache.cache_on_arguments()
