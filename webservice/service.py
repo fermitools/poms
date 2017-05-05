@@ -200,7 +200,7 @@ class SessionTool(cherrypy.Tool):
 
         cherrypy.session['id']              = cherrypy.session.originalid  #The session ID from the users cookie.
         cherrypy.session['X-Forwarded-For'] = cherrypy.request.headers.get('X-Forwarded-For', None)
-        # someone had all these SHIB- headers mixed case, which is not 
+        # someone had all these SHIB- headers mixed case, which is not
         # how they are on fermicloud045 or on pomsgpvm01...
         cherrypy.session['Remote-Addr']     = cherrypy.request.headers.get('Remote-Addr', None)
         cherrypy.session['X-Shib-Userid']   = cherrypy.request.headers.get('X-Shib-Userid', None)
@@ -289,17 +289,11 @@ if True:
     # make %(HOME) and %(POMS_DIR) work in various sections
     #
     confs = dedent("""
-       [/static]
-       HOME="%(HOME)s"
-       POMS_DIR="%(POMS_DIR)s"
-       [global]
-       HOME="%(HOME)s"
-       POMS_DIR="%(POMS_DIR)s"
-       [POMS]
+       [DEFAULT]
        HOME="%(HOME)s"
        POMS_DIR="%(POMS_DIR)s"
     """ % os.environ)
-    
+
     cf = open(configfile,"r")
     confs = confs + cf.read()
     cf.close
