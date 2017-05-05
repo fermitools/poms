@@ -311,6 +311,11 @@ class poms_service:
         return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path, help_page="LaunchTemplateEditHelp", version=self.version)
 
+    @cherrypy.expose
+    @logit.logstartsop
+    def campaign_deps_svg(self, tag):
+        cherrypy.serving.response.headers['Content-Type'] = 'image/svg+xml'
+        return self.campaignsPOMS.campaign_deps_svg(self, cherrypy.request.db, cherrypy.config, tag)
 
     @cherrypy.expose
     @logit.logstartstop
