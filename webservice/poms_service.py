@@ -313,17 +313,17 @@ class poms_service:
 
     
     @cherrypy.expose
-    def campaign_deps(self, tag):
+    def campaign_deps(self, tag ):
         template = self.jinja_env.get_template('campaign_deps.html')
         return template.render(tag=tag, current_experimenter=cherrypy.session.get('experimenter'),
 		   pomspath=self.path, help_page="CampaignDepsHelp", version=self.version)
 
         
     @cherrypy.expose
-    @logit.logstartsop
-    def campaign_deps_svg(self, tag):
+    @logit.logstartstop
+    def campaign_deps_svg(self, tag ):
         cherrypy.serving.response.headers['Content-Type'] = 'image/svg+xml'
-        return self.campaignsPOMS.campaign_deps_svg(self, cherrypy.request.db, cherrypy.config, tag)
+        return self.campaignsPOMS.campaign_deps_svg( cherrypy.request.db, cherrypy.config, tag)
 
     @cherrypy.expose
     @logit.logstartstop
@@ -357,7 +357,6 @@ class poms_service:
         return self.campaignsPOMS.new_task_for_campaign(cherrypy.request.db, campaign_name, command_executed, experimenter_name, dataset_name)
 
 
-    #@gcwrap.mem_diff
     @cherrypy.expose
     @logit.logstartstop
     def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag = None, **kwargs):
@@ -482,8 +481,8 @@ class poms_service:
     def make_stale_campaigns_inactive(self):
         # TODO: not finished yet!
         # XXXX 'c' below does not exist!
-        if not cherrypy.session.get('experimenter').is_authorized(c.experiment):
-            raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
+        #if not cherrypy.session.get('experimenter').is_authorized(c.experiment):
+        #    raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         res = self.campaignsPOMS.make_stale_campaigns_inactive(cherrypy.request.db, cherrypy.HTTPError)
         return "Marked inactive stale: " + ",".join(res)
 #--------------------------------------
@@ -950,3 +949,4 @@ class poms_service:
 #-----------------------
 # debugging
 
+print("this is THIS poms_service")

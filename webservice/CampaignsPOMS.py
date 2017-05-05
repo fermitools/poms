@@ -24,6 +24,7 @@ from .utc import utc
 import os
 import glob
 from .pomscache import pomscache
+import subprocess
 
 
 
@@ -396,32 +397,33 @@ class CampaignsPOMS():
         return "Task=%d" % t.task_id
 
     def campaign_deps_svg(self, dbhandle, config, tag):
-        cl = dbhandle.query(Campaign).join(CampaignTags,Tags).filter(Tag.name == tag, CampaignTags.tag_id == Tag.tag_id, CampaignsTags.campaign_id == Campaign.campaign_id).all()
+        cl = dbhandle.query(Campaign).join(CampaignsTags,Tag).filter(Tag.tag_name == tag, CampaignsTags.tag_id == Tag.tag_id, CampaignsTags.campaign_id == Campaign.campaign_id).all()
         c_ids = []
-        pdot = subtask.Popen(["dot", "-Tsvg", "-"], stdin=PIPE, stdout=PIPE)
-	pdot.stdin.write('digraph %sDependencies {\n' % tag)
+        pdot = subprocess.Popen("tee /tmp/dotstuff | dot -Tsvg", shell=True, stdin = subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines = True)
+        pdot.stdin.write('digraph %sDependencies {\n' % tag)
         pdot.stdin.write('node [shape=box, style=rounded, color=lightgrey, fontcolor=black]\nrankdir = "LR";\n')
-	baseurl="%s/campaign_info?campaign_id=" % config.get("pomspath")
+        baseurl="%s/campaign_info?campaign_id=" % config.get("pomspath")
         for c in cl:
+            count = 0 # XXX look up job counts?
             c_ids.append(c.campaign_id)
-            pdot.stdin.write('c%d [URL=%s%d,label="%s\nCompleted %d"' % (
-		c.campaign_id,
+            pdot.stdin.write('c%d [URL="%s%d",label="%s\\nCompleted %d"];\n' % (
+                c.campaign_id,
                 baseurl,
                 c.campaign_id,
                 c.name,
                 count
                 ))
 
-         cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_id.in_(c_ids)).all()
+        cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id.in_(c_ids)).all()
 
-         for cd in cdl:
-             pdot.stdin.write('c%d -> c%d;\n' % ( cd.needs_id, cd.uses_id ))
+        for cd in cdl:
+             pdot.stdin.write('c%d -> c%d;\n' % ( cd.needs_camp_id, cd.uses_camp_id ))
 
-         pdot.stdin.write('}\n')
-         pdot.stdin.close()
-         text =  pdot.stdout.read()
-         pdot.stdout.close()
-         return text
+        pdot.stdin.write('}\n')
+        pdot.stdin.close()
+        text = pdot.stdout.read()
+        pdot.wait()
+        return bytes(text,encoding="utf-8")
 
     @pomscache.cache_on_arguments()
     def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag = None):
