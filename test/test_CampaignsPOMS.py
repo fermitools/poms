@@ -52,7 +52,7 @@ def add_mock_job_launcher():
            ae_launch_id ='',
            ae_launch_host = fqdn,
            ae_launch_account =  os.environ['USER'],      
-           ae_launch_setup = "source /grid/fermiapp/products/common/etc/setups; set -x; klist; cd %s;   setup -. poms; setup ifdhc" % os.environ['POMS_DIR'],
+           ae_launch_setup = "source /grid/fermiapp/products/common/etc/setups; set -x; klist; cd %s;   source $HOME/poms_python3/bin/activate; setup ifdhc" % (os.environ['POMS_DIR'],os.environ("VIRTUAL_ENV")),
            experiment = 'samdev',
            experimenter_id = '4'
         )
@@ -68,7 +68,7 @@ def add_mock_job_launcher():
            ae_input_files_per_job = '0',
            ae_output_files_per_job = '0',
            ae_output_file_patterns = '%',
-           ae_launch_script = 'nohup python $POMS_DIR/test/mock_job.py --campaign_id $POMS_CAMPAIGN_ID -N 3 -D %(dataset)s > /tmp/launch$$ 2>&1 ; sleep 5; cat /tmp/launch$$',
+           ae_launch_script = 'nohup python ./test/mock_job.py --campaign_id $POMS_CAMPAIGN_ID -N 3 -D %(dataset)s > /tmp/launch$$ 2>&1 ; sleep 5; cat /tmp/launch$$',
            ae_definition_parameters = '[]',
            ae_definition_recovery = '[]',
            experiment = 'samdev',

@@ -52,7 +52,7 @@ class CampaignsPOMS():
             except Exception as e:
                 message = "The launch template, %s, has been used and may not be deleted." % name
                 logit.log(message)
-                logit.log(e.message)
+                logit.log(' '.join(e.args))
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
@@ -94,11 +94,11 @@ class CampaignsPOMS():
                     template = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).update(columns)
             except IntegrityError as e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
-                logit.log(e.message)
+                logit.log(' '.join(e.args))
                 dbhandle.rollback()
             except SQLAlchemyError as e:
-                message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
-                logit.log(e.message)
+                message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % ' '.join(e.args)
+                logit.log(' '.join(e.args))
                 dbhandle.rollback()
             else:
                 dbhandle.commit()
@@ -128,7 +128,7 @@ class CampaignsPOMS():
             except Exception as e:
                 message = "The campaign definition, %s, has been used and may not be deleted." % name
                 logit.log(message)
-                logit.log(e.message)
+                logit.log(' '.join(e.args))
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
@@ -178,11 +178,11 @@ class CampaignsPOMS():
                 dbhandle.commit()
             except IntegrityError as e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
-                logit.log(e.message)
+                logit.log(' '.join(e.args))
                 dbhandle.rollback()
             except SQLAlchemyError as e:
-                message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
-                logit.log(e.message)
+                message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % ' '.join(e.args)
+                logit.log(' '.join(e.args))
                 dbhandle.rollback()
             else:
                 dbhandle.commit()
@@ -244,7 +244,7 @@ class CampaignsPOMS():
             except Exception as e:
                 message = "The campaign, %s, has been used and may not be deleted." % name
                 logit.log(message)
-                logit.log(e.message)
+                logit.log(' '.join(e.args))
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
@@ -308,11 +308,11 @@ class CampaignsPOMS():
                 dbhandle.commit()
             except IntegrityError as e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
-                logit.log(e.message)
+                logit.log(' '.join(e.args))
                 dbhandle.rollback()
             except SQLAlchemyError as e:
-                message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
-                logit.log(e.message)
+                message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % ' '.join(e.args)
+                logit.log(' '.join(e.args))
                 dbhandle.rollback()
             else:
                 dbhandle.commit()
@@ -473,7 +473,7 @@ class CampaignsPOMS():
             i = i + 1
 
         logit.log(logit.DEBUG, "show_campaigns: wrapping up..")
-        return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string
+        return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
 
 
     @pomscache.cache_on_arguments()

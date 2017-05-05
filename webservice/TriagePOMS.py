@@ -214,7 +214,7 @@ class TriagePOMS(object):
             filtered_fields['output_dataset'] = output_dataset
 
         task_status = kwargs.get('task_status')
-        if task_status:
+        if task_status and task_status != 'All' and task_status != 'Total Completed':
             q = q.filter(Task.status == task_status)
             filtered_fields['task_status'] = task_status
 
@@ -258,7 +258,7 @@ class TriagePOMS(object):
             filtered_fields['host_site'] = host_site
 
         job_status = kwargs.get('job_status')
-        if job_status:
+        if job_status and job_status != 'All' and job_status != 'Total Completed':
             # this rather bizzare hoseyness is because we want
             # "Running" to also match "running: copying files in", etc.
             # so we ignore the first character and do a "like" match
