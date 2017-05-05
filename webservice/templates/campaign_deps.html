@@ -1,7 +1,7 @@
 {%extends "layout.html" %}
 
 {%block title%}
-    <title>POMS Job Triage</title>
+    <title>POMS Campaign Dependencies</title>
 {%endblock%}
 
 {%block breadcrumbs%}
@@ -24,19 +24,14 @@
 </h1>
 {%endblock%}
 
-
-
-
 {%block subheader%}
-<h2 class="ui dividing header">Tag {{tag}}</h2>
+&nbsp;
 {%endblock%}
-
-
 
 {%block content %}
 
 <div>
-<img src="{{pomspath}}/campaign_deps_svg?tag={{tag}}">
+ <svg>{{svgdata}}</svg>
 </div>
 
 {%endblock%}
