@@ -205,6 +205,18 @@ $( document ).ready(function() {
                    {% endif %}
                   </a>
                 </td>
+              {% elif k == "All" %}
+                <td>
+                  <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
+                    {{counts[c.campaign_id][k]}}
+                  </a>
+                </td>
+              {% elif k == "Total Completed" %}
+                <td>
+                  <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&job_status=Completed&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
+                    {{counts[c.campaign_id][k]}}
+                  </a>
+                </td>
               {% elif k %}
                 <td>
                   <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">

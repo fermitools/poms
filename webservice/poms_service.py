@@ -4,21 +4,21 @@ import socket
 from jinja2 import Environment, PackageLoader
 from poms.model.poms_model import Service, Task, Campaign
 
-from elasticsearch import Elasticsearch
+from .elasticsearch import Elasticsearch
 import pprint
-import version
-import logit
+from . import version
+from . import logit
 
-import CalendarPOMS
-import DBadminPOMS
-import CampaignsPOMS
-import JobsPOMS
-import TaskPOMS
-import UtilsPOMS
-import TagsPOMS
-import TriagePOMS
-import FilesPOMS
-import TablesPOMS
+from . import CalendarPOMS
+from . import DBadminPOMS
+from . import CampaignsPOMS
+from . import JobsPOMS
+from . import TaskPOMS
+from . import UtilsPOMS
+from . import TagsPOMS
+from . import TriagePOMS
+from . import FilesPOMS
+from . import TablesPOMS
 #import gcwrap
 
 def error_response():
@@ -91,7 +91,7 @@ class poms_service:
         template = self.jinja_env.get_template('index.html')
         return template.render(services=self.service_status_hier('All'), current_experimenter=cherrypy.session.get('experimenter'),
                                launches=self.taskPOMS.get_job_launches(cherrypy.request.db),
-                               do_refresh=1, pomspath=self.path, help_page="DashboardHelp", version=self.version)
+                               do_refresh=300, pomspath=self.path, help_page="DashboardHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -255,7 +255,7 @@ class poms_service:
         if not cherrypy.session.get('experimenter').is_root():
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
-        return template.render(list=self.tablesPOMS.admin_map.keys(), current_experimenter=cherrypy.session.get('experimenter'),
+        return template.render(list=list(self.tablesPOMS.admin_map.keys()), current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path, help_page="RawTablesHelp", version=self.version)
 
 
@@ -311,6 +311,14 @@ class poms_service:
         return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path, help_page="LaunchTemplateEditHelp", version=self.version)
 
+    
+    @cherrypy.expose
+    def campaign_deps(self, tag ):
+        template = self.jinja_env.get_template('campaign_deps.html')
+        svgdata = self.campaignsPOMS.campaign_deps_svg( cherrypy.request.db, cherrypy.config, tag)
+        return template.render(tag=tag, svgdata = svgdata, current_experimenter=cherrypy.session.get('experimenter'),
+		   pomspath=self.path, help_page="CampaignDepsHelp", version=self.version)
+
 
     @cherrypy.expose
     @logit.logstartstop
@@ -344,10 +352,9 @@ class poms_service:
         return self.campaignsPOMS.new_task_for_campaign(cherrypy.request.db, campaign_name, command_executed, experimenter_name, dataset_name)
 
 
-    #@gcwrap.mem_diff
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=1, active=True, tag = None, **kwargs):
+    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag = None, **kwargs):
         (counts, counts_keys, clist, dimlist,
             tmin, tmax, tmins, tmaxs,
             nextlink, prevlink, time_range_string
@@ -370,7 +377,7 @@ class poms_service:
         return template.render(In=("In" if active=="False" or not active else ""), limit_experiment=experiment,
                                 services=self.service_status_hier('All'), counts=counts, counts_keys=counts_keys,
                                 cl=clist, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
-                                current_experimenter=current_experimenter, do_refresh=1,
+                                current_experimenter=current_experimenter, do_refresh=300,
                                 next=nextlink, prev=prevlink, days=tdays, time_range_string=time_range_string,
                                 key='', dimlist=dimlist, pomspath=self.path, help_page="ShowCampaignsHelp",
                                 experiments=experiments,
@@ -408,7 +415,7 @@ class poms_service:
         template = self.jinja_env.get_template('campaign_time_bars.html')
         return template.render(job_counts=job_counts, blob=blob, name=name, tmin=tmin, tmax=tmax,
                     current_experimenter=cherrypy.session.get('experimenter'),
-                    do_refresh=1, next=nextlink, prev=prevlink, days=tdays, key=key,
+                    do_refresh=300, next=nextlink, prev=prevlink, days=tdays, key=key,
                     pomspath=self.path, extramap=extramap, help_page="CampaignTimeBarsHelp", version=self.version)
 
 
@@ -423,10 +430,10 @@ class poms_service:
     @cherrypy.expose
     @logit.logstartstop
     def list_launch_file(self, campaign_id, fname):
-        lines = self.campaignsPOMS.list_launch_file(campaign_id, fname)
+        lines,refresh = self.campaignsPOMS.list_launch_file(campaign_id, fname)
         output = "".join(lines)
         template = self.jinja_env.get_template('launch_jobs.html')
-        res = template.render(command='', output=output,
+        res = template.render(command='', output=output, do_refresh = refresh,
                                 current_experimenter=cherrypy.session.get('experimenter'),
                                 c=None, campaign_id=campaign_id, pomspath=self.path,
                                 help_page="LaunchedJobsHelp", version=self.version)
@@ -469,8 +476,8 @@ class poms_service:
     def make_stale_campaigns_inactive(self):
         # TODO: not finished yet!
         # XXXX 'c' below does not exist!
-        if not cherrypy.session.get('experimenter').is_authorized(c.experiment):
-            raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
+        #if not cherrypy.session.get('experimenter').is_authorized(c.experiment):
+        #    raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         res = self.campaignsPOMS.make_stale_campaigns_inactive(cherrypy.request.db, cherrypy.HTTPError)
         return "Marked inactive stale: " + ",".join(res)
 #--------------------------------------
@@ -596,7 +603,7 @@ class poms_service:
                                 campaign_id=campaign_id,
                                 tdays=tdays, tmin=tmin, tmax=tmax,
                                 current_experimenter=cherrypy.session.get('experimenter'),
-                                do_refresh=1, next=nextlink, prev=prevlink,
+                                do_refresh=300, next=nextlink, prev=prevlink,
                                 days=tdays, pomspath=self.path,
                                 help_page="JobEfficiencyHistoHelp", version=self.version)
 
@@ -625,13 +632,10 @@ class poms_service:
                         cherrypy.request.samweb_lite,
                         cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
         logit.log("Got vals: %s" % repr(vals))
-        lcmd, output, c, campaign_id, outdir, outfile = vals
-        template = self.jinja_env.get_template('launch_jobs.html')
-        res = template.render(command=lcmd, output=output,
-                                current_experimenter=cherrypy.session.get('experimenter'),
-                                c=c, campaign_id=campaign_id, pomspath=self.path,
-                                help_page="LaunchedJobsHelp", version=self.version)
-        return res
+        lcmd, c, campaign_id, outdir, outfile = vals
+        
+        raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_id=%s&fname=%s" % (self.path, campaign_id, os.path.basename(outfile)))
+
 #----------------------
 ########################
 ### TaskPOMS
@@ -667,7 +671,7 @@ class poms_service:
         template = self.jinja_env.get_template('show_task_jobs.html')
         return template.render(blob=blob, job_counts=job_counts, taskid=task_id, tmin=tmin, tmax=tmax,
                                 current_experimenter=cherrypy.session.get('experimenter'),
-                                extramap=extramap, do_refresh=1, key=key, pomspath=self.path, help_page="ShowTaskJobsHelp",
+                                extramap=extramap, do_refresh=300, key=key, pomspath=self.path, help_page="ShowTaskJobsHelp",
                                 task_jobsub_id=task_jobsub_id,
                                 campaign_id=campaign_id, cname=cname, version=self.version)
 
@@ -940,9 +944,4 @@ class poms_service:
 #-----------------------
 # debugging
 
-    @cherrypy.expose
-    def memory_summary(self):
-        from pympler import summary, muppy
-	mem_summary = summary.summarize(muppy.get_objects())
-	rows = summary.format_(mem_summary)
-	return 'pid: %d<br><pre>\n%s\n</pre>' % (os.getpid(),'\n'.join(rows))
+print("this is THIS poms_service")

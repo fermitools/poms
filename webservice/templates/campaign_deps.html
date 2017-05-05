@@ -1,0 +1,41 @@
+{%extends "layout.html" %}
+
+{%block title%}
+    <title>POMS Campaign Dependencies</title>
+{%endblock%}
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="{{pomspath}}/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">Campaign Dependencies</div>
+</div>
+
+{%endblock%}
+
+
+{%block header%}
+<h1 class="ui header">
+          Campaign Dependencies for Tag {{tag}}
+                    
+          <div class="sub header">
+              see dependencies
+          </div>
+</h1>
+{%endblock%}
+
+{%block subheader%}
+&nbsp;
+{%endblock%}
+
+{%block content %}
+
+<svg style="width:100%; border: 1px solid grey; padding: 1em;">
+   {{svgdata}}
+</svg>
+
+{%endblock%}
+
+{%block final%}
+
+{%endblock%}

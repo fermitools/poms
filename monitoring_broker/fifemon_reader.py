@@ -1,26 +1,26 @@
 #!/usr/bin/env python
 
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 import re
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import requests
 import traceback
 import os
 import sys
 import ssl,socket
 import time
-import cookielib
+import http.cookiejar
 import json
 
 import pycurl
-from StringIO import StringIO
+from io import StringIO
 
 # don't whine about certificates
 requests.packages.urllib3.disable_warnings()
 
 # don't barf if we need to log utf8...
-import codecs
-sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+#import codecs
+#sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 
 class status_scraper:
@@ -50,19 +50,19 @@ class status_scraper:
         #self.do_login()
 
     def do_login(self, page):
-	#
-	# First stab at SSO stuff...
-	#
+        #
+        # First stab at SSO stuff...
+        #
         l1 = page.find('action="') + 8
         l2 = page.find('"',l1)
         path = page[l1:l2]
-        print "got action= path: ", path
+        print("got action= path: ", path)
         login = self.cf.get('global','login')
         pw = self.cf.get('global','password')
         res = self.session.post("https://pingprod.fnal.gov:9031%s" % path, data={"pf.username":login, "pf.pass": pw, "pf.ok": "clicked", "pf.cancel":""})
         page = res.text
-        print "login gives ", repr(res.text)
-        print "cookies:", self.session.cookies
+        print("login gives ", repr(res.text))
+        print("cookies:", self.session.cookies)
         
         #
         # this is brittle, we should use regex or something...
@@ -86,7 +86,7 @@ class status_scraper:
 
     def fetch_item(self, path):
             
-        if not self.page_cache.has_key(path):
+        if path not in self.page_cache:
             try:
                 res = self.session.post(self.url+'/api/datasources/proxy/1/render', data = {'target':path, 'from': '-10min', 'until':'-5min', 'format':'json'}, verify=False)
 
@@ -98,13 +98,13 @@ class status_scraper:
                     self.do_login(jdata)
                     res = self.session.post(self.url+'/api/datasources/proxy/1/render', data = {'target':path, 'from': '-10min', 'until':'-5min', 'format':'json'}, verify=False)
                     jdata = res.text
-                print "fetch for ", path, " yeilds: ", jdata
+                print("fetch for ", path, " yeilds: ", jdata)
                 self.page_cache[path] = json.loads(jdata)
                 res.close()
             except Exception as e:
-                print "Ouch! "
-                print traceback.format_exc()
-                if self.page_cache.has_key(path):
+                print("Ouch! ")
+                print(traceback.format_exc())
+                if path in self.page_cache:
                     del self.page_cache[path]
                 return None
         return self.page_cache[path]
@@ -112,7 +112,7 @@ class status_scraper:
     def recurse(self, section ):
         n_good = 0
         n_bad = 0
-        if self.status.has_key(section):
+        if section in self.status:
             return self.status[section]
         subservices = self.cf.get(section,'subservices').split(' ')
         res = 'good'
@@ -146,18 +146,18 @@ class status_scraper:
             self.percents[section] = -1
 
         if self.debug:
-           print "recurse: ", s , self.percents.get(s,0), "%"
+           print("recurse: ", s , self.percents.get(s,0), "%")
 
-	if n_good == 0 and n_bad == 0:
+        if n_good == 0 and n_bad == 0:
             self.status[section] = 'unknown'
-	elif (self.percents[section] < percent):
+        elif (self.percents[section] < percent):
             self.status[section] = 'bad'
-	elif (self.percents[section] < warnpercent):
+        elif (self.percents[section] < warnpercent):
             self.status[section] = 'degraded'
         else:
             self.status[section] = 'good'
 
-	return self.status[section]
+        return self.status[section]
 
     def one_pass(self):
 
@@ -175,28 +175,28 @@ class status_scraper:
             self.source_urls[s] = surl
 
             if path:
-		self.paths[s] = path
-		low = self.cf.get(s,'above')
-		high = self.cf.get(s,'below')
-		wlow = self.cf.get(s,'warnabove')
-		whigh = self.cf.get(s,'warnbelow')
+                self.paths[s] = path
+                low = self.cf.get(s,'above')
+                high = self.cf.get(s,'below')
+                wlow = self.cf.get(s,'warnabove')
+                whigh = self.cf.get(s,'warnbelow')
                 data = self.fetch_item(path)
                 if data: 
-		    self.status[s] = 'good'
-		    if whigh and data[0]["datapoints"][0][0] > float(whigh):
-                        print "degraded because ", data[0]["datapoints"][0][0], "above", warnhigh
-			self.status[s] = 'degraded'
-		    if wlow and data[0]["datapoints"][0][0] < float(wlow):
-                        print "degraded because ", data[0]["datapoints"][0][0], "below", warnlow
-			self.status[s] = 'degraded'
-		    if high and data[0]["datapoints"][0][0] > float(high):
-                        print "bad because ", data[0]["datapoints"][0][0], "above", high
-			self.status[s] = 'bad'
-		    if low and data[0]["datapoints"][0][0] < float(low):
-                        print "bad because ", data[0]["datapoints"][0][0], "below", low
-			self.status[s] = 'bad'
+                    self.status[s] = 'good'
+                    if whigh and data[0]["datapoints"][0][0] > float(whigh):
+                        print("degraded because ", data[0]["datapoints"][0][0], "above", warnhigh)
+                        self.status[s] = 'degraded'
+                    if wlow and data[0]["datapoints"][0][0] < float(wlow):
+                        print("degraded because ", data[0]["datapoints"][0][0], "below", warnlow)
+                        self.status[s] = 'degraded'
+                    if high and data[0]["datapoints"][0][0] > float(high):
+                        print("bad because ", data[0]["datapoints"][0][0], "above", high)
+                        self.status[s] = 'bad'
+                    if low and data[0]["datapoints"][0][0] < float(low):
+                        print("bad because ", data[0]["datapoints"][0][0], "below", low)
+                        self.status[s] = 'bad'
                 else:
-		    self.status[s] = "unknown"
+                    self.status[s] = "unknown"
         #
         # next check the ones that have sub-sections
         # to decide if they're bad or good.
@@ -217,14 +217,14 @@ class status_scraper:
 
                 self.one_pass()
 
-	    except KeyboardInterrupt:
-		print "Interupted. Quitting"
+            except KeyboardInterrupt:
+                print("Interupted. Quitting")
 
-	    except:
-	        print "Exception!"
-	        traceback.print_exc()
-	        pass
-	    time.sleep(300)
+            except:
+                print("Exception!")
+                traceback.print_exc()
+                pass
+            time.sleep(300)
 
 
     def report(self):
@@ -232,7 +232,7 @@ class status_scraper:
         for s in self.cf.sections():
             if s == 'global':
                  continue
-            print "service %s has status %s percent %d kids %s\n" % ( s, self.status[s], self.percents.get(s,100), self.cf.get(s, "subservices"))
+            print("service %s has status %s percent %d kids %s\n" % ( s, self.status[s], self.percents.get(s,100), self.cf.get(s, "subservices")))
             # this should POST, but for now this is easier to debug
             name = s.replace("service ","")
             parent = self.parent.get(s,'').replace("service ","")
@@ -240,8 +240,8 @@ class status_scraper:
                 description = self.cf.get(s,'description')
             else:
                 description = s
-            report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.source_urls.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.quote_plus(description))
-            print "trying: " , report_url
+            report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.source_urls.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.parse.quote_plus(description))
+            print("trying: " , report_url)
             retries = 0
             while retries < 3:
                 try:
@@ -249,8 +249,8 @@ class status_scraper:
                     break
                 except:
                     retries = retries + 1
-	            traceback.print_exc()
-            print c.text
+                    traceback.print_exc()
+            print(c.text)
             c.close()
 
 if __name__ == '__main__':

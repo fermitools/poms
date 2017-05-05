@@ -1,6 +1,5 @@
-import exceptions
 
-class mock_redirect_exception(exceptions.Exception):
+class mock_redirect_exception(Exception):
     def __init__(self, url ):
         self.url = url
 
