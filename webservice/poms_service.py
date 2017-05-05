@@ -311,6 +311,14 @@ class poms_service:
         return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path, help_page="LaunchTemplateEditHelp", version=self.version)
 
+    
+    @cherrypy.expose
+    def campaign_deps(self, tag):
+        template = self.jinja_env.get_template('campaign_deps.html')
+        return template.render(tag=tag, current_experimenter=cherrypy.session.get('experimenter'),
+		   pomspath=self.path, help_page="CampaignDepsHelp", version=self.version)
+
+        
     @cherrypy.expose
     @logit.logstartsop
     def campaign_deps_svg(self, tag):

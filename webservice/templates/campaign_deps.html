@@ -1,0 +1,46 @@
+{%extends "layout.html" %}
+
+{%block title%}
+    <title>POMS Job Triage</title>
+{%endblock%}
+
+{%block breadcrumbs%}
+<div class="ui breadcrumb" style="margin-top: -45px;">
+  <a href="{{pomspath}}/" class="section">Home</a>
+  <div class="divider"> / </div>
+  <div class="section">Campaign Dependencies</div>
+</div>
+
+{%endblock%}
+
+
+{%block header%}
+<h1 class="ui header">
+          Campaign Dependencies for Tag {{tag}}
+                    
+          <div class="sub header">
+              see dependencies
+          </div>
+</h1>
+{%endblock%}
+
+
+
+
+{%block subheader%}
+<h2 class="ui dividing header">Tag {{tag}}</h2>
+{%endblock%}
+
+
+
+{%block content %}
+
+<div>
+<img src="{{pomspath}}/campaign_deps_svg?tag={{tag}}">
+</div>
+
+{%endblock%}
+
+{%block final%}
+
+{%endblock%}
