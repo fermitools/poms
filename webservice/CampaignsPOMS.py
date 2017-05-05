@@ -7,8 +7,9 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
-import logit
+from . import logit
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy import func, desc, not_, and_
 from poms.model.poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
     LaunchTemplate, CampaignDefinition, CampaignRecovery,
     CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
@@ -18,11 +19,13 @@ from sqlalchemy import or_, and_ , not_
 from crontab import CronTab
 from datetime import datetime, tzinfo,timedelta
 import time
-import time_grid
+from . import time_grid
 import json
-from utc import utc
+from .utc import utc
 import os
 import glob
+from .pomscache import pomscache
+import subprocess
 
 
 
@@ -46,7 +49,7 @@ class CampaignsPOMS():
             try:
                 dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).delete()
                 dbhandle.commit()
-            except Exception, e:
+            except Exception as e:
                 message = "The launch template, %s, has been used and may not be deleted." % name
                 logit.log(message)
                 logit.log(e.message)
@@ -89,11 +92,11 @@ class CampaignsPOMS():
                                 "updater":        experimenter_id
                                 }
                     template = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).update(columns)
-            except IntegrityError, e:
+            except IntegrityError as e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
                 logit.log(e.message)
                 dbhandle.rollback()
-            except SQLAlchemyError, e:
+            except SQLAlchemyError as e:
                 message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
                 logit.log(e.message)
                 dbhandle.rollback()
@@ -122,7 +125,7 @@ class CampaignsPOMS():
                 dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id==cid).delete()
                 dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==cid).delete()
                 dbhandle.commit()
-            except Exception, e:
+            except Exception as e:
                 message = "The campaign definition, %s, has been used and may not be deleted." % name
                 logit.log(message)
                 logit.log(e.message)
@@ -173,11 +176,11 @@ class CampaignsPOMS():
                     cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt, param_overrides = recpar)
                     dbhandle.add(cr)
                 dbhandle.commit()
-            except IntegrityError, e:
+            except IntegrityError as e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
                 logit.log(e.message)
                 dbhandle.rollback()
-            except SQLAlchemyError, e:
+            except SQLAlchemyError as e:
                 message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
                 logit.log(e.message)
                 dbhandle.rollback()
@@ -205,8 +208,8 @@ class CampaignsPOMS():
                     .order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
                 rec_list  = []
                 for rec in recs:
-                    if  type(rec.param_overrides) == type(u""):
-                        if rec.param_overrides in (u'',u'{}',u'[]'): rec.param_overrides="[]"
+                    if  type(rec.param_overrides) == type(""):
+                        if rec.param_overrides in ('','{}','[]'): rec.param_overrides="[]"
                         rec_vals=[rec.recovery_type.name,json.loads(rec.param_overrides)]
                     else:
                         rec_vals=[rec.recovery_type.name,rec.param_overrides]
@@ -238,7 +241,7 @@ class CampaignsPOMS():
                                 CampaignDependency.uses_camp_id==campaign_id)).delete()
                 dbhandle.query(Campaign).filter(Campaign.campaign_id==campaign_id).delete()
                 dbhandle.commit()
-            except Exception, e:
+            except Exception as e:
                 message = "The campaign, %s, has been used and may not be deleted." % name
                 logit.log(message)
                 logit.log(e.message)
@@ -303,11 +306,11 @@ class CampaignsPOMS():
                     d = CampaignDependency(uses_camp_id = campaign_id, needs_camp_id = depcamps[i].campaign_id, file_patterns=depends['file_patterns'][i])
                     dbhandle.add(d)
                 dbhandle.commit()
-            except IntegrityError, e:
+            except IntegrityError as e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
                 logit.log(e.message)
                 dbhandle.rollback()
-            except SQLAlchemyError, e:
+            except SQLAlchemyError as e:
                 message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
                 logit.log(e.message)
                 dbhandle.rollback()
@@ -394,8 +397,46 @@ class CampaignsPOMS():
         dbhandle.commit()
         return "Task=%d" % t.task_id
 
+    def campaign_deps_svg(self, dbhandle, config, tag):
+        cl = dbhandle.query(Campaign).join(CampaignsTags,Tag).filter(Tag.tag_name == tag, CampaignsTags.tag_id == Tag.tag_id, CampaignsTags.campaign_id == Campaign.campaign_id).all()
+        c_ids = []
+        pdot = subprocess.Popen("tee /tmp/dotstuff | dot -Tsvg", shell=True, stdin = subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines = True)
+        pdot.stdin.write('digraph %sDependencies {\n' % tag)
+        pdot.stdin.write('node [shape=box, style=rounded, color=lightgrey, fontcolor=black]\nrankdir = "LR";\n')
+        baseurl="%s/campaign_info?campaign_id=" % config.get("pomspath")
+       
+        for c in cl:
+            tcl = dbhandle.query(func.count(Task.status), Task.status).group_by(Task.status).filter(Task.campaign_id == c.campaign_id).all()
+            tot = 0
+            ltot = 0
+            for (count, status) in tcl:
+                 tot = tot + count
+                 if status == 'Located':
+                     ltot = count
+            c_ids.append(c.campaign_id)
+            pdot.stdin.write('c%d [URL="%s%d",label="%s\\nSubmissions %d Located %d",color=%s];\n' % (
+                c.campaign_id,
+                baseurl,
+                c.campaign_id,
+                c.name,
+                tot,
+                ltot,
+                ("darkgreen" if ltot == tot else "black")
+                ))
 
-    def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=1, active=True, tag = None):
+        cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id.in_(c_ids)).all()
+
+        for cd in cdl:
+             pdot.stdin.write('c%d -> c%d;\n' % ( cd.needs_camp_id, cd.uses_camp_id ))
+
+        pdot.stdin.write('}\n')
+        pdot.stdin.close()
+        text = pdot.stdout.read()
+        pdot.wait()
+        return bytes(text,encoding="utf-8")
+
+    @pomscache.cache_on_arguments()
+    def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag = None):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
@@ -428,13 +469,14 @@ class CampaignsPOMS():
             counts[c.campaign_id]['efficiency'] = effs[i]
             if len(pendings) > i:
                 counts[c.campaign_id]['pending'] = pendings[i]
-            counts_keys[c.campaign_id] = counts[c.campaign_id].keys()
+            counts_keys[c.campaign_id] = list(counts[c.campaign_id].keys())
             i = i + 1
 
-	logit.log(logit.DEBUG, "show_campaigns: wrapping up..")
+        logit.log(logit.DEBUG, "show_campaigns: wrapping up..")
         return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string
 
 
+    @pomscache.cache_on_arguments()
     def campaign_info(self, dbhandle, samhandle, err_res, campaign_id,  tmin = None, tmax = None, tdays = None):
         campaign_id = int(campaign_id)
 
@@ -465,17 +507,18 @@ class CampaignsPOMS():
         counts[campaign_id]['efficiency'] = effs[0]
         if pendings:
             counts[campaign_id]['pending'] = pendings[0]
-        counts_keys[campaign_id] = counts[campaign_id].keys()
+        counts_keys[campaign_id] = list(counts[campaign_id].keys())
         #
         # any launch outputs to look at?
         #
         dirname="%s/private/logs/poms/launches/campaign_%s" % (
            os.environ['HOME'],campaign_id)
         launch_flist = glob.glob('%s/*' % dirname)
-        launch_flist = map(os.path.basename, launch_flist)
+        launch_flist = list(map(os.path.basename, launch_flist))
         return Campaign_info, time_range_string, tmins, tmaxs, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist
 
 
+    @pomscache.cache_on_arguments()
     def campaign_time_bars(self, dbhandle, campaign_id = None, tag = None, tmin = None, tmax = None, tdays = 1):
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string,tdays = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
         tg = time_grid.time_grid()
@@ -628,7 +671,7 @@ class CampaignsPOMS():
              camp.cs_split_type == 'new_local' ):
 
             # default parameters
-	    tfts = 1800.0 # half an hour
+            tfts = 1800.0 # half an hour
             twindow = 604800.0     # one week
             tround = 1             # one second
             tlocaltime = 0         # assume GMT
@@ -661,9 +704,9 @@ class CampaignsPOMS():
             # if we've not been run before, and also as a boundary to
             # say we have nothing to do yet if our last run isnt that far
             # back...
-	    #   go back one time window (plus fts delay) and then
+            #   go back one time window (plus fts delay) and then
             # round down to nearest tround to get a start time...
-	    # then later ones should come out even.
+            # then later ones should come out even.
 
             bound_time = time.time() - tfts - twindow
             bound_time = int(bound_time) - (int(bound_time) % int(tround))
@@ -712,9 +755,15 @@ class CampaignsPOMS():
         dirname="%s/private/logs/poms/launches/campaign_%s" % (
            os.environ['HOME'],campaign_id)
         lf = open("%s/%s" % (dirname, fname), "r")
+        sb = os.fstat(lf.fileno())
         lines = lf.readlines()
         lf.close()
-        return lines
+        # if file is recent set refresh to watch it
+        if (time.time() - sb[8]) < 30 :
+            refresh = 10
+        else:
+            refresh = 0
+        return lines, refresh
 
 
     def schedule_launch(self, dbhandle, campaign_id ):
@@ -731,20 +780,20 @@ class CampaignsPOMS():
         dirname="%s/private/logs/poms/launches/campaign_%s" % (
            os.environ['HOME'],campaign_id)
         launch_flist = glob.glob('%s/*' % dirname)
-        launch_flist = map(os.path.basename, launch_flist)
+        launch_flist = list(map(os.path.basename, launch_flist))
         return c, job, launch_flist
 
 
     def update_launch_schedule(self, campaign_id, dowlist = '',  domlist = '', monthly = '', month = '', hourlist = '', submit = '' , minlist = '', delete = ''):
 
         # deal with single item list silliness
-        if isinstance(minlist, basestring):
+        if isinstance(minlist, str):
            minlist = minlist.split(",")
-        if isinstance(hourlist, basestring):
+        if isinstance(hourlist, str):
            hourlist = hourlist.split(",")
-        if isinstance(dowlist, basestring):
+        if isinstance(dowlist, str):
            dowlist = dowlist.split(",")
-        if isinstance(domlist, basestring):
+        if isinstance(domlist, str):
            domlist = domlist.split(",")
 
         logit.log("hourlist is %s " % hourlist)

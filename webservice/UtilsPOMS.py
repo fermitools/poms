@@ -8,8 +8,8 @@
 ### October, 2016.
 from poms.model.poms_model import Job
 from datetime import datetime, timedelta
-from utc import utc
-import urllib
+from .utc import utc
+import urllib.request, urllib.parse, urllib.error
 
 
 
@@ -32,14 +32,14 @@ class UtilsPOMS():
 
         if tmax in (None, ''):
             if tmin not in (None, '') and tdays not in (None, ''):
-                if isinstance(tmin, basestring):
+                if isinstance(tmin, str):
                     tmin = datetime.strptime(tmin[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=utc)
                 tmax = tmin + timedelta(days=float(tdays))
             else:
                 # if we're not given a max, pick now
                 tmax = datetime.now(utc)
 
-        elif isinstance(tmax, basestring):
+        elif isinstance(tmax, str):
             tmax = datetime.strptime(tmax[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=utc)
 
         if tdays in (None, ''):  # default to one day
@@ -50,7 +50,7 @@ class UtilsPOMS():
         if tmin in (None, ''):
             tmin = tmax - timedelta(days=tdays)
 
-        elif isinstance(tmin, basestring):
+        elif isinstance(tmin, str):
             tmin = datetime.strptime(tmin[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=utc)
 
         if set_tdays:
@@ -83,5 +83,5 @@ class UtilsPOMS():
             raise redirect("%s/triage_job?job_id=%s&tmin=%s" % (self.poms_service.path, str(job_info.job_id), tmins))
         else:
             search_term = search_term.replace("+", " ")
-            query = urllib.urlencode({'q': search_term})
+            query = urllib.parse.urlencode({'q': search_term})
             raise redirect("%s/search_tags?%s" % (self.poms_service.path, query))

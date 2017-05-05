@@ -43,7 +43,7 @@ def do_update_job(fielddict):
 
     assert(j != None)
 
-    for f,v in fielddict.items():
+    for f,v in list(fielddict.items()):
         if f.startswith('task_'):
             f = f[5:]
             assert(getattr(j.task_obj, f) == v)
@@ -135,7 +135,7 @@ def test_update_job_2():
     }
     do_update_job(fielddict)
 
-    print "testing all the info that the jobscraper pass the job_log_scraper"
+    print("testing all the info that the jobscraper pass the job_log_scraper")
     fielddict = {
                 'status': 'test_status' ,
                  # 'slot':'finally_something_in_this_field', # -- ??? mengel
@@ -149,7 +149,7 @@ def test_update_job_2():
 
 def test_update_job_q_scraper():
 
-    print "check this from the jobsub_q scrapper"
+    print("check this from the jobsub_q scrapper")
     fielddict = {
                 }
 
@@ -209,7 +209,7 @@ def test_kill_jobs():
     #Check kill jobs in one task
     sep=output_killTask.rfind('--jobid ')
     assert(sep!=-1) #--jobid option was in called in the command
-    print "got output:", output_killTask
+    print("got output:", output_killTask)
     jrm_idtl=output_killTask.split('--jobid ')[1].split(",")
     jrm_idtl[-1]=jrm_idtl[-1].rstrip('\n')
     jrm_idtl.sort()
@@ -218,7 +218,7 @@ def test_kill_jobs():
     #Check kill all jobs in one Campaign,  that also prof that the job market as completed is not killed.
     sep=output_killCampaign.rfind('--jobid ')
     assert(sep!=-1) #--jobid option was in called in the command
-    print "got output:", output_killCampaign
+    print("got output:", output_killCampaign)
     jrm_idcl=output_killCampaign.split('--jobid ')[1].split(",")
     jrm_idcl[-1]=jrm_idcl[-1].rstrip('\n')
     jrm_idcl.sort()

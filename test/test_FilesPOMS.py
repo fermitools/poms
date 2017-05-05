@@ -91,13 +91,13 @@ def test_get_inflight():
     dbhandle.commit()
 
     #Verbosity
-    print "t", t
-    print "UTC", tUTC
-    print "jid", jid
-    print "task_id", task_id_test
-    print "job object id in the db", jobj.job_id
-    print "the jobsub_job_id", jobj.jobsub_job_id
-    print jf
+    print("t", t)
+    print("UTC", tUTC)
+    print("jid", jid)
+    print("task_id", task_id_test)
+    print("job object id in the db", jobj.job_id)
+    print("the jobsub_job_id", jobj.jobsub_job_id)
+    print(jf)
     #jf.job_files.append(jf) extracted from poms files ....
 
     ''' 
@@ -116,15 +116,15 @@ def test_get_inflight():
     print "q object", q.all()
     print "*"*10
     for x in q.all():
-	print "element_jobid", x.job_id
-	print "element_file", x.file_type
-	print "element_filename", x.file_name 
-    	print "declare", x.declared
-	#fn_list.append(x.file_name)
+        print "element_jobid", x.job_id
+        print "element_file", x.file_type
+        print "element_filename", x.file_name 
+        print "declare", x.declared
+        #fn_list.append(x.file_name)
     '''
     outlist = mps.filesPOMS.get_inflight(dbhandle, task_id=task_id_test)
     outlist.sort()
     fn_list.sort()
-    print "the outlist is", outlist
-    print "the fn_list is", fn_list
+    print("the outlist is", outlist)
+    print("the fn_list is", fn_list)
     assert(outlist == fn_list)

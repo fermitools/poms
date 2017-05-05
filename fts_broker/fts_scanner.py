@@ -16,12 +16,12 @@ class fts_status_watcher:
         self.workdir = "/home/poms/private/var/ftsscanner"
 
     def fetch_json(self, url):
-        if self.debug: print "fetching: " , url
+        if self.debug: print("fetching: " , url)
         res = None
         try:
-	    res = self.rs.get(url)
-	    info = res.json()
-	    res.close()
+            res = self.rs.get(url)
+            info = res.json()
+            res.close()
         except:
             if res: res.close()
             return {}
@@ -34,7 +34,7 @@ class fts_status_watcher:
         explist = {}
         oldexp = None
         registry = self.fetch_json(self.registry_url)
-        print "got registry:", registry
+        print("got registry:", registry)
         count = 0
         for item in registry:
             if item["type"] == "fts" and item["tier"] == "prd":
@@ -53,29 +53,29 @@ class fts_status_watcher:
                if oldexp != item["experiment"]:
                    if fs: 
                        fs.close()
-	               gc.collect(2)
+                       gc.collect(2)
 
-                   fs = shelve.open("%s/%s_files.new.db" % (self.workdir, item["experiment"]),flag="n",writeback=True)
+                   fs = shelve.open("%s/%s_files.new.db" % (self.workdir, item["experiment"]),flag="n",writeback=True,protocol=3)
                status = self.fetch_json(item["uris"]["service"] + "/status?format=json")
                for t in status.get("errorstates",[]) + status.get("pendingstates",[]) + status.get("newstates",[]):
                    count = count + 1
                    if (count % 100) == 99:
                       fs.sync()
                       gc.collect(2)
-                   k = t["name"].encode('ascii','ignore')
-                   v = t["msg"].encode('ascii','ignore')
+                   k = t["name"].encode('ascii','ignore').decode()
+                   v = t["msg"].encode('ascii','ignore').decode()
                    fs[k] = "%s:%s" % (item["name"], v)
 
         if fs: fs.close()
 
-        for exp in explist.keys():
+        for exp in list(explist.keys()):
             if exp == "unknown":
                 continue
             try:
                 os.rename("%s/%s_files.new.db" % (self.workdir, exp ),
                          "%s/%s_files.db" % (self.workdir, exp))
             except:
-                print "Error renaming %s/%s_files.new.db" % (self.workdir, item["experiment"])
+                print("Error renaming %s/%s_files.new.db" % (self.workdir, item["experiment"]))
  
     def poll(self):
         while 1:

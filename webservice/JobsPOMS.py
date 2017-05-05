@@ -11,11 +11,11 @@ from poms.model.poms_model import Job, Task, Campaign, CampaignDefinitionSnapsho
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func, not_, and_
-from utc import utc
+from .utc import utc
 import json
 import os
 
-import logit
+from . import logit
 
 
 class JobsPOMS(object):
@@ -87,50 +87,51 @@ class JobsPOMS(object):
     def bulk_update_job(self, dbhandle, rpstatus, samhandle, json_data='{}'):
         logit.log("Entering bulk_update_job(%s)" % json_data)
         ldata = json.loads(json_data)
+        del json_data
 
         # make one merged entry per job_id
         data = {}
         for d in ldata:
-            data[d['jobsub_job_id']] = {}
+            data["%s" % d['jobsub_job_id']] = {}
 
         for d in ldata:
             data[d['jobsub_job_id']].update(d)
 
         # figure out what tasks are involved
         foundtasks = {}
-        for jid, d in data.items():
+        for jid, d in list(data.items()):
             if d['task_id']:
                 foundtasks[int(d['task_id'])] = 1
 
-        logit.log("found task ids for %s" % ",".join(map(str, foundtasks.keys())))
+        logit.log("found task ids for %s" % ",".join(map(str, list(foundtasks.keys()))))
 
         # lookup what job-id's we already have database entries for
-        jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(data.keys())).execution_options(stream_results=True).all()
+        jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(list(data.keys()))).execution_options(stream_results=True).all()
 
         # make a list of jobs we can update
         jlist = []
         foundjobs = {}
         for j in jobs:
-            foundjobs[j.jobsub_job_id] = j
+            foundjobs["%s"%j.jobsub_job_id] = j
             jlist.append(j)
 
         # get the tasks we have that are mentioned
         if len(foundtasks) > 0:
-            tasks = dbhandle.query(Task).filter(Task.task_id.in_(foundtasks.keys())).all()
+            tasks = dbhandle.query(Task).filter(Task.task_id.in_(list(foundtasks.keys()))).all()
         else:
             tasks = []
 
         fulltasks = {}
         for t in tasks:
-            fulltasks[t.task_id] = t
+            fulltasks[int(t.task_id)] = t
 
-        logit.log("found full tasks for %s" % ",".join(map(str, fulltasks.keys())))
+        logit.log("found full tasks for %s" % ",".join(map(str, list(fulltasks.keys()))))
 
         # now look for jobs for which  we don't have Job ORM entries, but
         # whose Tasks we do have entries for, and make new Job entries for
         # them.
-        for jid in data.keys():
-            if not foundjobs.get(jid, None) and data[jid].has_key('task_id') and fulltasks.get(int(data[jid]['task_id']), None):
+        for jid in list(data.keys()):
+            if not foundjobs.get(jid, None) and 'task_id' in data[jid] and fulltasks.get(int(data[jid]['task_id']), None):
                 logit.log("need new Job for %s" % jid)
                 j = Job(jobsub_job_id=jid,
                         task_obj=fulltasks[int(data[jid]['task_id'])],
@@ -152,7 +153,7 @@ class JobsPOMS(object):
             self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
 
         # update any related tasks status if changed
-        for t in fulltasks.values():
+        for t in list(fulltasks.values()):
             newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, t)
             if newstatus != t.status:
                 logit.log("update_job: task %d status now %s" % (t.task_id, newstatus))
@@ -289,7 +290,7 @@ class JobsPOMS(object):
             # floating point fields need conversion
             for field in ['cpu_time', 'wall_time']:
                 if kwargs.get(field, None) and kwargs[field] != "None":
-                    if (isinstance(kwargs[field], basestring)):
+                    if (isinstance(kwargs[field], str)):
                         setattr(j, field, float(kwargs[field].rstrip("\n")))
                     if (isinstance(kwargs[field], float)):
                         setattr(j, field, kwargs[field])

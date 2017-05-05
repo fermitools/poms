@@ -4,7 +4,7 @@
 import logging
 logger = logging.getLogger('cherrypy.error')
 
-import jobsub_fetcher
+from . import jobsub_fetcher
 from datetime import datetime, timedelta
 from poms.model.poms_model import Job
 
@@ -85,8 +85,8 @@ def parse_condor_log(dbhandle, lines, batchhost):
             logger.debug( "term record end %s" % line )
             job = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == jobsub_job_id).first()
             if job:
-		job.cpu_time = remote_cpu
-		job.wall_time = (finish_time - stimes[jobsub_job_id]).total_seconds()
+                job.cpu_time = remote_cpu
+                job.wall_time = (finish_time - stimes[jobsub_job_id]).total_seconds()
                 logger.debug( "start: %s end: %s wall_time %s "%( stimes[jobsub_job_id],  finish_time,  job.wall_time ))
             else:
                 # XXX we should create the job 'cause jobsub_q agent, etc missed it...

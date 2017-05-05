@@ -9,7 +9,7 @@ def debug(message):
     global dbg
     global log
     if dbg:
-        print message
+        print(message)
     if log:
         log.write(message+'\n')
 
@@ -76,7 +76,7 @@ def main():
         log = open(logfile,'w')
     if os.path.isfile(args.file) == False:
         debug("main: missing file: %s" % args.file)
-        print "addusers.py -- main: missing file: %s" % args.file
+        print("addusers.py -- main: missing file: %s" % args.file)
         raise SystemExit
     else:
         json_data = open(args.file)
@@ -88,7 +88,7 @@ def main():
             password="password=%s" % args.password
         conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s %s" % (args.dbname, args.host, args.port, args.user, password))
         cursor = conn.cursor()
-        for exp in expdict.keys():
+        for exp in list(expdict.keys()):
             if verify_exp(cursor,exp) == False:
                 debug('experiment: %s does not exist in poms' % exp)
             else:
@@ -104,4 +104,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
