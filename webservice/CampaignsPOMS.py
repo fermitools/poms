@@ -9,6 +9,7 @@ Date: September 30, 2016.
 
 from . import logit
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy import func, desc, not_, and_
 from poms.model.poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
     LaunchTemplate, CampaignDefinition, CampaignRecovery,
     CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
@@ -403,15 +404,24 @@ class CampaignsPOMS():
         pdot.stdin.write('digraph %sDependencies {\n' % tag)
         pdot.stdin.write('node [shape=box, style=rounded, color=lightgrey, fontcolor=black]\nrankdir = "LR";\n')
         baseurl="%s/campaign_info?campaign_id=" % config.get("pomspath")
+       
         for c in cl:
-            count = 0 # XXX look up job counts?
+            tcl = dbhandle.query(func.count(Task.status), Task.status).group_by(Task.status).filter(Task.campaign_id == c.campaign_id).all()
+            tot = 0
+            ltot = 0
+            for (count, status) in tcl:
+                 tot = tot + count
+                 if status == 'Located':
+                     ltot = count
             c_ids.append(c.campaign_id)
-            pdot.stdin.write('c%d [URL="%s%d",label="%s\\nCompleted %d"];\n' % (
+            pdot.stdin.write('c%d [URL="%s%d",label="%s\\nSubmissions %d Located %d",color=%s];\n' % (
                 c.campaign_id,
                 baseurl,
                 c.campaign_id,
                 c.name,
-                count
+                tot,
+                ltot,
+                ("darkgreen" if ltot == tot else "black")
                 ))
 
         cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id.in_(c_ids)).all()
