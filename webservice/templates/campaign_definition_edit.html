@@ -33,6 +33,9 @@
 
 {%block content%}
 
+{% macro show_hint(anchor, hint) %}
+	{% include 'help_button.html' %}
+{% endmacro %}
 
 <form id="campaign_definition_form" class="ui form" action="campaign_definition_edit" method="POST">
 
@@ -43,20 +46,20 @@
     {% endfor %}
   </select>
 
-  {% if data.curr_experiment is defined %} 
+  {% if data.curr_experiment is defined %}
 <div id="double-scroll" class="scrollable">
 
-  <table class="ui sortable single line celled table">
+  <table class="ui sortable single line celled table" style="margin-top: 3em;">
     <thead>
       <tr>
-	<th></th>
-	<th>Name</th>
-	<th>Input Files Per Job</th>
-	<th>Output Files Per Job</th>
-	<th>Output File Patterns</th>
-	<th>Launch Script</th>
-	<th>Definition Parameters</th>
-	<th>Recoveries</th>
+		<th></th>
+		<th> Name {{ show_hint('#Name', 'Name string') }} </th>
+		<th> Input Files Per Job {{ show_hint('#Input-Files-Per-Job', 'Integer number') }} </th>
+		<th> Output Files Per Job {{ show_hint('#Output-Files-Per-Job', 'Integer number') }} </th>
+		<th> Output File Patterns {{ show_hint('#Output-File-Patterns', 'Regex?') }} </th>
+		<th> Launch Script {{ show_hint('#Launch-Script', 'Shell script with arguments') }} </th>
+		<th> Definition Parameters {{ show_hint('#Definition-Parameters', 'List of key/value pairs') }}	</th>
+		<th> Recoveries {{ show_hint('#Recoveries', 'List of key/value pairs') }} </th>
       </tr>
     </thead>
     <tbody>
@@ -100,7 +103,7 @@
 	<th colspan="8">
 	  <button class="ui labled teal icon button" onclick="add_definition();return false;" {{ 'disabled' if (data.authorized==False) }}>
 	    <i class="icon add square"></i>
-	    Add 
+	    Add
 	  </button>
 	</th>
       </tr>
@@ -137,7 +140,7 @@
   </div>
 </div> <!-- Ends confirm_modal -->
 
-<div class="ui modal" id="definition_add_edit_modal">
+<div class="ui large modal" id="definition_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header"><span id="ae_experiment">
     Job Type Editor </span> {%include 'help_button.html'%}
@@ -145,27 +148,27 @@
   <div class="ui hidden divider"></div>
   <div class="ui text container">
     <form id="definition_add_edit_form" class="ui form" method="POST" action="campaign_definition_edit">
-      <div class="three fields">
-	<div class="field">
-          <label>Name</label>
-          <input type="text" id="ae_definition_name" name="ae_definition_name" placeholder="Definition Name">
-	</div>
+      <div class="two fields">
+		<div class="field">
+			<label>Name</label>
+			<input type="text" id="ae_definition_name" name="ae_definition_name" placeholder="Definition Name">
+		</div>
        <!--
-	<div class="field">
-          <label>Input Files Per Job</label>
-          <input type="text" id="ae_input_files_per_job" name="ae_input_files_per_job">
-	</div>
-	<div class="field">
-          <label>Output Files Per Job</label>
-          <input type="text" id="ae_output_files_per_job" name="ae_output_files_per_job">
-	</div>
+		<div class="field">
+			  <label>Input Files Per Job</label>
+			  <input type="text" id="ae_input_files_per_job" name="ae_input_files_per_job">
+		</div>
+		<div class="field">
+			  <label>Output Files Per Job</label>
+			  <input type="text" id="ae_output_files_per_job" name="ae_output_files_per_job">
+		</div>
       -->
         <input type="hidden" name="ae_output_files_per_job" value="0">
         <input type="hidden" name="ae_input_files_per_job" value="0">
-	<div class="field">
-          <label>Output File Patterns</label>
-          <input type="text" id="ae_output_file_patterns" name="ae_output_file_patterns">
-	</div>
+		<div class="field">
+			<label>Output File Patterns</label>
+			<input type="text" id="ae_output_file_patterns" name="ae_output_file_patterns">
+		</div>
       </div>
       <div class="one field">
 	<div class="field">
@@ -188,7 +191,7 @@
       <div class="actions">
 	<div class="ui button deny red">Cancel</div>
 	<input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
-      </div>      
+      </div>
       <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
       <input type="hidden" name="action" id="ae_definition_action" value="add">
       <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id}}">
@@ -285,7 +288,7 @@
 	</thead>
 	<tbody id="er_tbody">
          {% for i in range(5) %}
-            <tr> 
+            <tr>
                 <td> <select id="re_recover_{{i}}" onchange="updateRepo({{i}})">
                     <option value="">-</option>
                     {% for rtype in data.rtypes %}
@@ -312,7 +315,7 @@
 <!--
        <ol>
          {% for i in range(5) %}
-         <li> 
+         <li>
            <select id="re_recover_{{i}}">
              <option value="">-</option>
              {% for rtype in data.rtypes %}
@@ -360,30 +363,30 @@ function create_row(index, key, value) {
 
 var ep_parms = [];
 var repo_parms = [];  //recovery parameters override
-var do_recp = false;   
+var do_recp = false;
 
-var ini_empty_index =[];        // used when cancelling 
+var ini_empty_index =[];        // used when cancelling
 
 function updateRepo(ind){
-  
+
   rtype_id = "#re_recover_" + ind;
   repo_id = "#re_recover_p_" +ind;
   repo_icon_id = "#re_recover_p_icon_" +ind;
   var rtype_val = $(rtype_id).val();
 
   if (rtype_val!='') {
-    $(repo_id).children().show();                              // this is when rtypein not empty 
+    $(repo_id).children().show();                              // this is when rtypein not empty
     $(repo_icon_id).show();
   }
   if ( $(repo_id).children("span").is (":hidden") ) {
-    $(repo_id).children().show();                              // this is when rtype was empty 
+    $(repo_id).children().show();                              // this is when rtype was empty
     $(repo_icon_id).show();
   } else {
     // if we go from existing rtype to empty we need to hide params override
     if (rtype_val=='') {
       $(repo_id).children().hide();                            // this is when we change to empty rtype
       $(repo_icon_id).hide();
-    }   
+    }
   }
 
 }
@@ -409,7 +412,7 @@ $("#edit_recovery_modal_btn").click(function() {
   }
   var rlist_ind=[];
   for (i = 0 ; i < rlist.length; i++ ) {
-      
+
       var sel = "#re_recover_"+i.toString()+" option[value="+rlist[i][0]+"]";
       $(sel).prop('selected','selected');
       cval = JSON.stringify(rlist[i][1]);
@@ -475,11 +478,11 @@ $("#edit_recovery_modal_btn").click(function() {
     var rec_parms_str = $("#re_recover_p_"+index).children("span").text();
     if (rec_parms_str != "{}" || rec_parms_str != " ") {
       repo_parms = JSON.parse(rec_parms_str);
-    } else { 
+    } else {
         repo_parms=[];
     }
     ep_build_table_body('repo');
-    
+
    $("#edit_recovery_param_modal").modal({
      closable  : false,
      onApprove : function(){
@@ -498,7 +501,7 @@ $("#edit_recovery_modal_btn").click(function() {
     }).modal('show');
 
   }
-  
+
 // ------------  Done Editing recovery params override here ...
 // ----------------- Done section for editing Recovery Launches ------------------------------
 // -----------------------------------------------------------------------------
@@ -518,7 +521,7 @@ $("#edit_param_modal_btn").click(function() {
   var parms_str = $("#ae_definition_parameters").val();
   if (parms_str != "") {
     //ep_parms = eval ("(" + parms_str + ")");
-    
+
     ep_parms = JSON.parse(parms_str);
     if (Array.isArray(ep_parms)==false) { ep_parms = toList(ep_parms)}
   }
@@ -545,7 +548,7 @@ function ep_build_parms_string(pval) {
 
   var parms = "[";
   var message = "";
-  
+
   rebuild_ep_parms(pval);
 
   if (typeof pval !== 'undefined') {
@@ -568,12 +571,12 @@ function ep_build_parms_string(pval) {
       break;
     }
   }
-  
+
   parms += "]"
   var ret_parms= parms;   //JSON.stringify(local_ep_parms);
   //return [message, parms];
   return [message, ret_parms];
-} 
+}
 
 //function ep_build_table_body() {
 
@@ -603,7 +606,7 @@ function ep_build_table_body(tbtype) {
     var tt = "ep_row_" + tbval + index;
     var ep_row = "ep_row_" + tbval + index;
     var ep_key = "ep_key_" + tbval + index;
-    var ep_val = "ep_val_" + tbval + index;		  
+    var ep_val = "ep_val_" + tbval + index;
     var row = '<tr id="' +ep_row+ '">';
     row +=       '<td class="brown">'
     row +=          '<div class="ui fluid input">'
@@ -630,13 +633,13 @@ function ep_build_table_body(tbtype) {
     } else {
       $("#ep_tbody").append(row);
     }
-  }		
+  }
   if (typeof tbtype !== 'undefined') {
      $("#edit_recovery_param_modal").modal('refresh');
   } else {
      $("#edit_param_modal").modal('refresh');
   }
-  
+
 }
 
 // -------------- Normal definitions ------------------
@@ -676,10 +679,10 @@ function ep_add_button(current_row) {
     rebuild_ep_parms();
     ep_parms.splice(current_row+1, 0, ["",""] );
     ep_build_table_body();
-  
+
   }
 }
-		  
+
 function ep_delete_button(current_row) {
   if (do_recp == true){
     pval='repo';
@@ -694,7 +697,7 @@ function ep_delete_button(current_row) {
   }
 }
 
-		  
+
 
 function ep_up_button(current_row) {
   if (current_row > 0) {
@@ -713,9 +716,9 @@ function ep_up_button(current_row) {
       ep_parms[current_row] = hold;
       ep_build_table_body();
     }
-  } 
+  }
 }
-		  
+
 function ep_down_button(current_row) {
   if (current_row < (ep_parms.length-1)) {
     if (do_recp == true){
@@ -733,11 +736,11 @@ function ep_down_button(current_row) {
       ep_parms[current_row] = hold;
       ep_build_table_body();
     }
-  } 
+  }
 }
-		  
+
   function delete_definition(name,campaign_definition_id) {
-    var cdname = name; 
+    var cdname = name;
     $("#confirm_modal_message").text("Delete the campaign definition named " +name+" ?")
     mod_form = $("#confirm_modal").modal({
     closable  : false,
@@ -781,7 +784,7 @@ function ep_down_button(current_row) {
 $(document).ready(function(){
   if ("{{ data.message }}" != "None") {
     $("#poms_message_data").text("{{ data.message }}");
-    $("#display_message_modal").modal('show');  
+    $("#display_message_modal").modal('show');
   }
 });
 
@@ -797,4 +800,3 @@ $(document).ready(function(){
 
 
 {%endblock%}
-
