@@ -181,7 +181,7 @@ class TaskPOMS:
 
             res.append("completion_type: complete Task %d cfrac %d pct %f " % (task.task_id, cfrac,(compcount * 100)/totcount))
 
-            if (compcount * 100.0) / totcount > cfrac:
+            if (compcount * 100.0) / totcount >= cfrac:
                 n_located = n_located + 1
                 task.status = "Located"
                 finish_up_tasks[task.task_id] = task

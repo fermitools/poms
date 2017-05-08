@@ -356,7 +356,7 @@ class poms_service:
     @logit.logstartstop
     def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag = None, **kwargs):
         (counts, counts_keys, clist, dimlist,
-            tmin, tmax, tmins, tmaxs,
+            tmin, tmax, tmins, tmaxs, tdays,
             nextlink, prevlink, time_range_string
         ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db,
                                             cherrypy.request.samweb_lite, experiment=experiment,
@@ -378,7 +378,7 @@ class poms_service:
                                 services=self.service_status_hier('All'), counts=counts, counts_keys=counts_keys,
                                 cl=clist, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
                                 current_experimenter=current_experimenter, do_refresh=300,
-                                next=nextlink, prev=prevlink, days=tdays, time_range_string=time_range_string,
+                                next=nextlink, prev=prevlink, tdays=tdays, time_range_string=time_range_string,
                                 key='', dimlist=dimlist, pomspath=self.path, help_page="ShowCampaignsHelp",
                                 experiments=experiments,
                                 dbg=kwargs,
@@ -389,7 +389,7 @@ class poms_service:
     @logit.logstartstop
     def campaign_info(self, campaign_id, tmin=None, tmax=None, tdays=None):
         (Campaign_info, time_range_string,
-         tmins, tmaxs,
+         tmins, tmaxs, tdays,
          Campaign_definition_info,
          Launch_template_info, tags,
          launched_campaigns, dimlist, cl,
@@ -415,7 +415,7 @@ class poms_service:
         template = self.jinja_env.get_template('campaign_time_bars.html')
         return template.render(job_counts=job_counts, blob=blob, name=name, tmin=tmin, tmax=tmax,
                     current_experimenter=cherrypy.session.get('experimenter'),
-                    do_refresh=300, next=nextlink, prev=prevlink, days=tdays, key=key,
+                    do_refresh=300, next=nextlink, prev=prevlink, tdays=tdays, key=key,
                     pomspath=self.path, extramap=extramap, help_page="CampaignTimeBarsHelp", version=self.version)
 
 
@@ -604,7 +604,7 @@ class poms_service:
                                 tdays=tdays, tmin=tmin, tmax=tmax,
                                 current_experimenter=cherrypy.session.get('experimenter'),
                                 do_refresh=300, next=nextlink, prev=prevlink,
-                                days=tdays, pomspath=self.path,
+                                pomspath=self.path,
                                 help_page="JobEfficiencyHistoHelp", version=self.version)
 
 
@@ -707,7 +707,7 @@ class poms_service:
         return template.render(name=c.name if c else "",
                                 columns=columns, datarows=datarows,
                                 tmin=tmins, tmax=tmaxs,
-                                prev=prevlink, next=nextlink, days=tdays,
+                                prev=prevlink, next=nextlink, tdays=tdays,
                                 current_experimenter=cherrypy.session.get('experimenter'),
                                 campaign_id=campaign_id, pomspath=self.path, help_page="CampaignTaskFilesHelp", version=self.version)
 
@@ -784,7 +784,7 @@ class poms_service:
                                tmaxs=tmaxs,
                                prev=prevlink,
                                next=nextlink,
-                               days=tdays,
+                               tdays=tdays,
                                tmin=tmin,
                                tmax=tmax,
                                current_experimenter=cherrypy.session.get('experimenter'),
@@ -862,7 +862,7 @@ class poms_service:
                                 tmax=tmaxs,
                                 prev=prevlink,
                                 next=nextlink,
-                                days=tdays,
+                                tdays=tdays,
                                 extra=extra,
                                 hidecolumns=hidecolumns,
                                 filtered_fields=filtered_fields,
@@ -900,7 +900,6 @@ class poms_service:
                                 prev=prevlink,
                                 next=nextlink,
                                 time_range_string=time_range_string,
-                                days=tdays,
                                 pomspath=self.path,
                                 help_page="JobsByExitcodeHelp",
                                 version=self.version)

@@ -26,10 +26,14 @@ class UtilsPOMS():
         and a string describing the date range.  Use everywhere.
         """
 
-        # set a flag to remind us to set tdays from max and min if
-        # they are both set coming in.
-        set_tdays = tmax not in (None, '') and tmin not in (None, '')
-
+        # if they set max and min (i.e. from calendar) set tdays from that.
+        if not tmax in (None,'') and not tmin in (None, ''):
+            if isinstance(tmin, str):
+                tmin = datetime.strptime(tmin[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=utc)
+            if isinstance(tmax, str):
+                tmax = datetime.strptime(tmax[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=utc)
+            tdays = (tmax - tmin).total_seconds() / 86400.0
+            
         if tmax in (None, ''):
             if tmin not in (None, '') and tdays not in (None, ''):
                 if isinstance(tmin, str):
@@ -53,10 +57,6 @@ class UtilsPOMS():
         elif isinstance(tmin, str):
             tmin = datetime.strptime(tmin[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=utc)
 
-        if set_tdays:
-            # if we're given tmax and tmin, compute tdays
-            tdays = (tmax - tmin).total_seconds() / 86400.0
-
         tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
         tsnext = (tmax + timedelta(days=tdays)).strftime("%Y-%m-%d+%H:%M:%S")
         tmax_s = tmax.strftime("%Y-%m-%d %H:%M:%S")
@@ -71,6 +71,7 @@ class UtilsPOMS():
         # redundant, but trying to rule out tz woes here...
         tmin = tmin.replace(tzinfo=utc)
         tmax = tmax.replace(tzinfo=utc)
+        tdays = (tmax - tmin).total_seconds() / 86400.0
 
         return (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays)
 
