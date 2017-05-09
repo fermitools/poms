@@ -351,6 +351,24 @@ class poms_service:
     def new_task_for_campaign(self, campaign_name, command_executed, experimenter_name, dataset_name=None):
         return self.campaignsPOMS.new_task_for_campaign(cherrypy.request.db, campaign_name, command_executed, experimenter_name, dataset_name)
 
+    @cherrypy.expose
+    @logit.logstartstop
+    def show_tags(self, experiment):
+
+        tl = self.tagsPOMS.show_tags( cherrypy.request.db, experiment)
+
+        current_experimenter = cherrypy.session.get('experimenter')
+
+        experiments = self.dbadminPOMS.member_experiments(cherrypy.request.db, current_experimenter.username)
+
+
+        template = self.jinja_env.get_template('show_tags.html')
+        return template.render( tl = tl,
+                                pomspath=self.path, help_page="ShowCampaignTagsHelp",
+                                current_experimenter = current_experimenter,
+                                experiments=experiments,
+                                version=self.version)
+       
 
     @cherrypy.expose
     @logit.logstartstop
@@ -943,4 +961,3 @@ class poms_service:
 #-----------------------
 # debugging
 
-print("this is THIS poms_service")

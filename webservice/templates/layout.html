@@ -134,6 +134,21 @@
             </div>
 
             <div class="item">
+              <div class="header">Campaign Info</div>
+              <div class="menu">
+		{% if current_experimenter is defined and current_experimenter.authorized_for %}
+                {% for e in current_experimenter.authorized_for.keys() %}
+                {%if e != 'root' and current_experimenter.authorized_for[e] %}
+                <a class="item" href="{{pomspath}}/show_tags?experiment={{e}}">
+                  Campaign Tags for {{e}}
+                </a>
+                {%endif%}
+                {%endfor%}
+                {%endif%}
+              </div>
+            </div>
+
+            <div class="item">
               <div class="header">Campaign Stage Info</div>
               <div class="menu">
 		{% if current_experimenter is defined and current_experimenter.authorized_for %}
@@ -267,6 +282,21 @@
                         Raw Tables
                     </a>
                 </div>
+            </div>
+
+            <div class="item">
+              <div class="header">Campaign Info</div>
+              <div class="menu">
+		{% if current_experimenter is defined and current_experimenter.authorized_for %}
+                {% for e in current_experimenter.authorized_for.keys() %}
+                {%if e != 'root' and current_experimenter.authorized_for[e] %}
+                <a class="item" href="{{pomspath}}/show_tags?experiment={{e}}">
+                  Campaign Tags for {{e}}
+                </a>
+                {%endif%}
+                {%endfor%}
+                {%endif%}
+              </div>
             </div>
 
             <div class="item">
