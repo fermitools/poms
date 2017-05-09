@@ -2,7 +2,7 @@ import cherrypy
 import os
 import socket
 from jinja2 import Environment, PackageLoader
-from poms.model.poms_model import Service, Task, Campaign
+from poms_model import Service, Task, Campaign
 
 from .elasticsearch import Elasticsearch
 import pprint
@@ -311,7 +311,7 @@ class poms_service:
         return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path, help_page="LaunchTemplateEditHelp", version=self.version)
 
-    
+
     @cherrypy.expose
     def campaign_deps(self, tag ):
         template = self.jinja_env.get_template('campaign_deps.html')
@@ -633,7 +633,7 @@ class poms_service:
                         cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
         logit.log("Got vals: %s" % repr(vals))
         lcmd, c, campaign_id, outdir, outfile = vals
-        
+
         raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_id=%s&fname=%s" % (self.path, campaign_id, os.path.basename(outfile)))
 
 #----------------------

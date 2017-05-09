@@ -10,7 +10,7 @@ Date: September 30, 2016.
 from . import logit
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, desc, not_, and_
-from poms.model.poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
+from poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
     LaunchTemplate, CampaignDefinition, CampaignRecovery,
     CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
 )
@@ -217,7 +217,7 @@ class CampaignsPOMS():
                     #rec_vals=[rec.recovery_type.name,rec.param_overrides]
                     rec_list.append(rec_vals)
                 recs_dict[cid] = json.dumps(rec_list)
-             
+
             data['recoveries'] = recs_dict
             data['rtypes'] = (dbhandle.query(RecoveryType.name,RecoveryType.description).order_by(RecoveryType.name).all())
 
@@ -404,7 +404,7 @@ class CampaignsPOMS():
         pdot.stdin.write('digraph %sDependencies {\n' % tag)
         pdot.stdin.write('node [shape=box, style=rounded, color=lightgrey, fontcolor=black]\nrankdir = "LR";\n')
         baseurl="%s/campaign_info?campaign_id=" % config.get("pomspath")
-       
+
         for c in cl:
             tcl = dbhandle.query(func.count(Task.status), Task.status).group_by(Task.status).filter(Task.campaign_id == c.campaign_id).all()
             tot = 0
@@ -441,7 +441,7 @@ class CampaignsPOMS():
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
         #cq = dbhandle.query(Campaign).filter(Campaign.active==active).order_by(Campaign.experiment)
-        
+
         logit.log(logit.DEBUG, "show_campaigns: querying active")
         cq = dbhandle.query(Campaign).options(joinedload('experiment_obj')).filter(Campaign.active==active).order_by(Campaign.experiment)
 

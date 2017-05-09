@@ -9,7 +9,7 @@ Date: September 30, 2016.
 
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from . import logit
-from poms.model.poms_model import Experimenter, Experiment, ExperimentsExperimenters
+from poms_model import Experimenter, Experiment, ExperimentsExperimenters
 from sqlalchemy.orm.exc import NoResultFound
 
 class DBadminPOMS:

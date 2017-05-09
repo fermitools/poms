@@ -130,12 +130,12 @@ class TablesPOMS(object):
             and self.pk_map a map of primary keys for that class
         """
         logit.log(" ---- make_admin_map: starting...")
-        import poms.model.poms_model
+        import poms_model
         self.admin_map = {}
         self.pk_map = {}
-        for k in list(poms.model.poms_model.__dict__.keys()):
-            if hasattr(poms.model.poms_model.__dict__[k], '__module__') and poms.model.poms_model.__dict__[k].__module__ == 'poms.model.poms_model':
-                self.admin_map[k] = poms.model.poms_model.__dict__[k]
+        for k in list(poms_model.__dict__.keys()):
+            if hasattr(poms_model.__dict__[k], '__module__') and poms_model.__dict__[k].__module__ == 'poms_model':
+                self.admin_map[k] = poms_model.__dict__[k]
                 found = self.admin_map[k]()
                 columns = found._sa_instance_state.class_.__table__.columns
                 for fieldname in list(columns.keys()):

@@ -6,7 +6,7 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py
 ### written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
-from poms.model.poms_model import Job
+from poms_model import Job
 from datetime import datetime, timedelta
 from .utc import utc
 import urllib.request, urllib.parse, urllib.error
@@ -33,7 +33,7 @@ class UtilsPOMS():
             if isinstance(tmax, str):
                 tmax = datetime.strptime(tmax[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=utc)
             tdays = (tmax - tmin).total_seconds() / 86400.0
-            
+
         if tmax in (None, ''):
             if tmin not in (None, '') and tdays not in (None, ''):
                 if isinstance(tmin, str):
