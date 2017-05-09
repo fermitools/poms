@@ -1,5 +1,9 @@
 {%extends "layout.html"%}
 
+{% macro show_hint(anchor, hint) %}
+    {% include 'help_button.html' %}
+{% endmacro %}
+
 {%block title%}
     <title>POMS</title>
 
@@ -23,7 +27,7 @@
 {%endblock%}
 
 {%block header%}
-<h1 class="ui header">Campaign Stages {%include 'help_button.html'%}</h1>
+<h1 class="ui header">Campaign Stages {{ show_hint('', 'Help page') }}</h1>
 {%endblock%}
 
 {%block subheader%}
@@ -61,73 +65,76 @@
     </div>
   </div>
 
-  
-  {% if data.curr_experiment is defined %} 
-  <table class="ui sortable single line celled table">
+
+  {% if data.curr_experiment is defined %}
+  <div id="double-scroll" class="scrollable">
+
+  <table class="ui sortable single line celled table" style="margin-top: 3em;">
     <thead>
       <tr>
-	<th></th>
-	<th>Name</th>
-        <th>Active</th>
-	<th>VO Role</th>
-	<th>Software<br>Version</th>
-	<th>Dataset</th>
-        <th>Split Type</th>
-        <th>Completion<br>Type</th>
-        <th>Completion<br>Percent</th>
-	<th>Parameter Overrides</th>
-	<th>Depends On</th>
+        <th></th>
+        <th> Name {{ show_hint('#Name', 'Name string') }} </th>
+        <th> Active {{ show_hint('#Active', 'True/False') }} </th>
+        <th> VO Role {{ show_hint('#VO-Role', 'Role name') }} </th>
+        <th> Software<br>Version {{ show_hint('#Software-Version', 'Version tag') }} </th>
+        <th> Dataset {{ show_hint('#Dataset', 'Dataset name') }} </th>
+        <th> Split Type {{ show_hint('#Split-Type', 'Type string') }} </th>
+        <th> Completion<br>Type {{ show_hint('#Completion-Type', '[complete|located|...]') }} </th>
+        <th> Completion<br>Percent {{ show_hint('#Completion-Percent', 'Integer number') }} </th>
+        <th> Parameter Overrides {{ show_hint('#Parameter-Overrides', 'List of key/value pairs') }} </th>
+        <th> Depends On {{ show_hint('#Depends-On', 'List of key/value pairs') }} </th>
       </tr>
     </thead>
     <tbody>
       {% for row in data.campaigns %}
       <tr>
-	<td class="collapsing">
+        <td class="collapsing">
           {% if data.authorized==True %}
-	  <i class="large edit link blue icon"  onclick="edit_campaign({{loop.index}});"></i>
-	  <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i>
-	  <i class="large trash link blue icon" onclick="delete_campaign('{{row.name}}',{{row.campaign_id}});"></i>
-	  {% else %}
-	  <i class="large unhide link blue icon" onclick="edit_campaign({{loop.index}});">
-	  {% endif %}
-	</td>
-	<td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.campaign_id}}</td>
-	<td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.campaign_definition_id}}</td>
-	<td id="c_launch_id_{{loop.index}}" style="display:none">{{row.launch_id}}</td>
-	<td id="c_name_{{loop.index}}">{{row.name}}</td>
-	<td id="c_active_{{loop.index}}">{{row.active}}</td>
-	<td id="c_vo_role_{{loop.index}}">{{row.vo_role}}</td>
-	<td id="c_software_version_{{loop.index}}">{{row.software_version}}</td>
-	<td id="c_dataset_{{loop.index}}">{{row.dataset}}</td>
-	<td id="c_split_type_{{loop.index}}">{{row.cs_split_type}}</td>
-	<td id="c_completion_type_{{loop.index}}">{{row.completion_type}}</td>
-	<td id="c_completion_pct_{{loop.index}}">{{row.completion_pct}}</td>
-       {% if row.param_overrides is string %}
-	<td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|replace("None","")}}</td>
-       {% else %}
-        <td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|tojson|replace("null","")}}</td>
-       {% endif %}
+          <i class="large edit link blue icon"  onclick="edit_campaign({{loop.index}});"></i>
+          <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i>
+          <i class="large trash link blue icon" onclick="delete_campaign('{{row.name}}',{{row.campaign_id}});"></i>
+          {% else %}
+          <i class="large unhide link blue icon" onclick="edit_campaign({{loop.index}});">
+          {% endif %}
+        </td>
+        <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.campaign_id}}</td>
+        <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.campaign_definition_id}}</td>
+        <td id="c_launch_id_{{loop.index}}" style="display:none">{{row.launch_id}}</td>
+        <td id="c_name_{{loop.index}}">{{row.name}}</td>
+        <td id="c_active_{{loop.index}}">{{row.active}}</td>
+        <td id="c_vo_role_{{loop.index}}">{{row.vo_role}}</td>
+        <td id="c_software_version_{{loop.index}}">{{row.software_version}}</td>
+        <td id="c_dataset_{{loop.index}}">{{row.dataset}}</td>
+        <td id="c_split_type_{{loop.index}}">{{row.cs_split_type}}</td>
+        <td id="c_completion_type_{{loop.index}}">{{row.completion_type}}</td>
+        <td id="c_completion_pct_{{loop.index}}">{{row.completion_pct}}</td>
+        {% if row.param_overrides is string %}
+            <td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|replace("None","")}}</td>
+        {% else %}
+            <td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|tojson|replace("null","")}}</td>
+        {% endif %}
         <td id="c_depends_{{loop.index}}">
-	  {% for key, value in data.depends.iteritems() %}
-	    {% if key == row.campaign_id %}
-	      {{ value }}
-            {% endif %}
-	  {% endfor %}
+        {% for key, value in data.depends.items() %}
+            {% if key == row.campaign_id %}
+            {{ value }}
+        {% endif %}
+            {% endfor %}
         </td>
       </tr>
       {% endfor %}
     </tbody>
     <tfoot>
-      <tr>
-	<th colspan="9">
-	  <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (data.authorized==False) }}>
-	    <i class="icon add square"></i>
-	    Add 
-	  </button>
-	</th>
-      </tr>
+        <tr>
+            <th colspan="9">
+                <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (data.authorized==False) }}>
+                    <i class="icon add square"></i>
+                    Add
+                </button>
+            </th>
+        </tr>
     </tfoot>
   </table>
+  </div> <!-- double-scroll -->
   {% endif %}
   <input type="hidden" id="action" name="action" value="find">
 </form>
@@ -148,11 +155,11 @@
   <div class="actions">
     <div class="two fluid ui buttons">
       <button class="ui red deny button">
-	No
+        No
       </button>
       <button id="approved_btn" class="ui teal approve button">
-	<i class="checkmark icon"></i>
-	Yes
+        <i class="checkmark icon"></i>
+        Yes
       </button>
     </div>
   </div>
@@ -160,134 +167,140 @@
 
 <div class="ui modal" id="campaign_add_edit_modal">
   <i class="close icon"></i>
-  <h3 class="block header"><span id="ae_experiment">Campaign Stage Editor </span>{%include 'help_button.html'%}</h3>
+  <h3 class="block header"><span id="ae_experiment">Campaign Stage Editor {{ show_hint('', 'Help Page') }}</span></h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
     <form id="campaign_add_edit_form" class="ui form" method="POST" action="campaign_edit">
-      <div class="four fields">
-	<div class="field">
-          <label>Name</label>
-          <input type="text" id="ae_campaign_name" name="ae_campaign_name" placeholder="Campaign Stage Name">
-	</div>
-	<div class="field">
-          <label>VO Role</label>
-          <input type="text" id="ae_vo_role" name="ae_vo_role">
-	</div>
 
-	<div>
-	  <label>State</label>
-	  <br/>
-	  <select class="ui dropdown" name="ae_active" id="ae_active">
-            <option value="True" >Active</option>
-	    <option value="False">Inactive</option>
-	  </select>
-	</div>
-
-	<div class="field">
-          <label>Exp. Software Version</label>
-          <input type="text" id="ae_software_version" name="ae_software_version">
-	</div>
-      </div>
-
-
-      <div class="two fields">
-	<div class="field">
-          <label>Dataset</label>
-          <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset"></input>
-	</div>
-	<div class="field">
-          <label>Dataset Split Type</label>
-          <input type="text" id="ae_split_type" name="ae_split_type">
-	</div>
+      <div class="fields">
+        <div class="field">
+            <label>Name {{ show_hint('#Stage-Name', 'Stage name') }}</label>
+            <input type="text" id="ae_campaign_name" name="ae_campaign_name" placeholder="Campaign Stage Name">
+        </div>
+        <div class="field">
+            <label>VO Role {{ show_hint('#VO-Role', 'Role name') }}</label>
+            <input type="text" id="ae_vo_role" name="ae_vo_role">
+        </div>
+        <div class="field">
+          <label>State {{ show_hint('#State', 'Select state') }}</label>
+          <select class="ui dropdown" name="ae_active" id="ae_active">
+            <option value="True">Active</option>
+            <option value="False">Inactive</option>
+          </select>
+        </div>
+        <div class="field">
+            <label>Exp. Software Version {{ show_hint('#Software-Version', 'Version tag') }}</label>
+            <input type="text" id="ae_software_version" name="ae_software_version">
+        </div>
       </div>
 
       <div class="two fields">
-	<div class="field">
-	  <label>Completion Type</label>
-	  <select class="ui dropdown" name="ae_completion_type" id="ae_completion_type">
-	    <option value="located" >Located</option>
-	    <option value="complete" >Complete</option>
-	  </select>
-	</div>
+        <div class="field">
+            <label>Dataset{{ show_hint('#Dataset', 'Dataset name') }}</label>
+            <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset"></input>
+        </div>
+        <div class="field">
+            <label>Dataset Split Type {{ show_hint('#Dataset-Split-Type', 'Set type') }}</label>
+            <input type="text" id="ae_split_type" name="ae_split_type">
+        </div>
+      </div>
 
-	<div class="field">
-          <label>Completion %</label>
-          <input type="text" id="ae_completion_pct" name="ae_completion_pct" placeholder="95">
-	</div>
+      <div class="two fields">
+        <div class="field">
+          <label>Completion Type {{ show_hint('#Completion-Type', 'Select type') }}</label>
+          <select class="ui dropdown" name="ae_completion_type" id="ae_completion_type">
+            <option value="located" >Located</option>
+            <option value="complete" >Complete</option>
+          </select>
+        </div>
+        <div class="field">
+            <label>Completion % {{ show_hint('#Completion', 'Integer') }}</label>
+            <input type="text" id="ae_completion_pct" name="ae_completion_pct" placeholder="95">
+        </div>
       </div>
 
       <div class="one field">
-	<div class="field">
-          <label>Parameter Overrides<i class="large edit link blue icon" id="edit_param_modal_btn"></i></label>
-          <textarea rows="2" id="ae_param_overrides_text" disabled>[]</textarea>
-	</div>
+        <div class="field">
+            <label>Parameter Overrides<i class="large edit link blue icon" id="edit_param_modal_btn"></i></label>
+            <textarea rows="2" id="ae_param_overrides_text" disabled>[]</textarea>
+        </div>
       </div>
 
       <div class="one field">
-	<div class="field">
-          <label>Depends On<i class="large edit link blue icon" id="edit_depends_modal_btn"></i></label>
-          <textarea rows="2" id="ae_depends_text" disabled>[]</textarea>
-	</div>
+        <div class="field">
+            <label>Depends On<i class="large edit link blue icon" id="edit_depends_modal_btn"></i></label>
+            <textarea rows="2" id="ae_depends_text" disabled>[]</textarea>
+        </div>
       </div>
+
       <h4 class="ui horizontal divider">Launch Template</h4>
+
       <div class="three fields">
-	
-	<div>
-	  <label>Launch Template</label><br/>
-	  <select class="ui dropdown" name="ae_launch_id" id="ae_launch_id">
-	    <option value=""></option>
-	    {% for row in data.templates %}
-	    <option value={{row.launch_id}}>{{row.name}}</option>
-	    {% endfor %}
-	  </select>
-	</div>
-	<div class="field">
-          <label>Host</label>
-          <input type="text" id="ae_launch_host" disabled>
-	</div>
-	<div class="field">
-          <label>Account</label>
-          <input type="text" id="ae_launch_account" disabled>
-	</div>
+        <div class="field">
+          <label>Launch Template {{ show_hint('#Launch-Template', 'Select template name') }}</label>
+          <select class="ui dropdown" name="ae_launch_id" id="ae_launch_id">
+            <option value=""></option>
+            {% for row in data.templates %}
+            <option value={{row.launch_id}}>{{row.name}}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+            <label>Host {{ show_hint('#Host', 'Host name') }}</label>
+            <input type="text" id="ae_launch_host" disabled>
+        </div>
+        <div class="field">
+            <label>Account {{ show_hint('#Account', 'Account name') }}</label>
+            <input type="text" id="ae_launch_account" disabled>
+        </div>
       </div>
+
       <div class="one field">
-	<label>Setup</label>
-	<input type="text" id="ae_launch_setup" disabled>
+        <div class="field">
+            <label>Setup {{ show_hint('#Setup', 'Setup commands') }}</label>
+            <input type="text" id="ae_launch_setup" disabled>
+        </div>
       </div>
+
       <h4 class="ui horizontal divider">Job Type</h4>
+
       <div class="three fields">
-	<div>
-	  <label>Job Type</label><br/>
-	  <select class="ui dropdown" name="ae_campaign_definition_id" id="ae_campaign_definition_id">
-	    <option value=""></option>
-	    {% for row in data.definitions %}
-	    <option value="{{row.campaign_definition_id}}">{{row.name}}</option>
-	    {% endfor %}
-	  </select>
-	</div>
-	<div class="field">
-          <label>Input Files/Job</label>
-          <input type="text" id="ae_input_files_per_job" disabled>
-	</div>
-	<div class="field">
-          <label>Output Files/Job</label>
-          <input type="text" id="ae_output_files_per_job" disabled>
-	</div>
+        <div class="field">
+          <label>Job Type {{ show_hint('#Job-Type', 'Select job type') }}</label>
+          <!--<br/>-->
+          <select class="ui dropdown" name="ae_campaign_definition_id" id="ae_campaign_definition_id">
+            <option value=""></option>
+            {% for row in data.definitions %}
+            <option value="{{row.campaign_definition_id}}">{{row.name}}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+              <label>Input Files/Job {{ show_hint('#Input-Files', 'Integer') }}</label>
+              <input type="text" id="ae_input_files_per_job" disabled>
+        </div>
+        <div class="field">
+              <label>Output Files/Job {{ show_hint('#Output-Files', 'Integer') }}</label>
+              <input type="text" id="ae_output_files_per_job" disabled>
+        </div>
       </div>
+
       <div class="two fields">
-	<div class="field">
-	  <label>Launch Script</label>
-	  <input type="text" id="ae_launch_script" disabled>
-	</div>
-	<div class="field">
-	  <label>Definition Parameters</label>
-	  <input type="text" id="ae_launch_definition_parameters" disabled>
-	</div>
+        <div class="field">
+          <label>Launch Script {{ show_hint('#Launch-Script', 'Script name with arguments') }}</label>
+          <input type="text" id="ae_launch_script" disabled>
+        </div>
+        <div class="field">
+          <label>Definition Parameters {{ show_hint('#Definition-Parameters', 'Parameter set') }}</label>
+          <input type="text" id="ae_launch_definition_parameters" disabled>
+        </div>
       </div>
+
       <div class="actions">
-	<div class="ui button deny red">Cancel</div>
-	<input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
-      </div>      
+        <div class="ui button deny red">Cancel</div>
+        <input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
+      </div>
+
       <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
       <input type="hidden" name="action" id="ae_definition_action" value="add">
       <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id}}">
@@ -306,25 +319,26 @@
   </div>
   <div class="ui text container">
     <div class="scrollable">
+      <br>
       <table class="ui celled table" id="ep_table">
-	<thead>
-	  <tr>
-	    <th>Key</th>
-	    <th>Value</th>
-	    <th></th>
-	  </tr>
-	</thead>
-	<tbody id="ep_tbody"></tbody>
-	<tfoot>
-	  <tr>
-	    <th colspan="3">
-	      <div class="actions">
-		<button class="ui button deny red">Cancel</button>
-		<button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
-	      </div>
-	    </th>
-	  </tr>
-	</tfoot>
+        <thead>
+          <tr>
+            <th>Key {{ show_hint('#Key', 'String') }}</th>
+            <th>Value {{ show_hint('#Value', 'String') }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="ep_tbody"></tbody>
+        <tfoot>
+          <tr>
+            <th colspan="3">
+              <div class="actions">
+                <button class="ui button deny red">Cancel</button>
+                <button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
+              </div>
+            </th>
+          </tr>
+        </tfoot>
       </table>
     </div>
   </div>
@@ -339,39 +353,40 @@
   <div class="ui text container">
     <div class="scrollable">
       <table class="ui celled table" id="ep_table">
-	<thead>
-	  <tr>
-	    <th>Campaign Stage</th>
-	    <th>File Pattern</th>
-	  </tr>
-	</thead>
-	<tbody id="ed_tbody">
-          {% for i in range(5) %}
-	  <tr>
-	    <td>
-             {{i}}. <select name="de_select_{{i}}" id="de_select_{{i}}">
-                <option value="">-</option>
-                {%for c in data['campaigns']%}
-                   <option value="{{c.name}}">{{c.name}}</option>
-                {% endfor %}
-             </select>
-	    </td>
-	    <td>
-              <input name="de_filepat_{{i}}" id="de_filepat_{{i}}">
-	    </td>
+        <thead>
+          <tr>
+            <th>Campaign Stage</th>
+            <th>File Pattern</th>
           </tr>
-          {% endfor %}
-	</tbody>
-	<tfoot>
-	  <tr>
-	    <th colspan="2">
-	      <div class="actions">
-		<button class="ui button deny red">Cancel</button>
-		<button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
-	      </div>
-	    </th>
-	  </tr>
-	</tfoot>
+        </thead>
+        <tbody id="ed_tbody">
+            {% for i in range(5) %}
+              <tr>
+                <td>
+                 {{i}}.
+                    <select name="de_select_{{i}}" id="de_select_{{i}}">
+                        <option value="">-</option>
+                        {% for c in data['campaigns'] %}
+                           <option value="{{c.name}}">{{c.name}}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                  <input name="de_filepat_{{i}}" id="de_filepat_{{i}}">
+                </td>
+          </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="2">
+              <div class="actions">
+                <button class="ui button deny red">Cancel</button>
+                <button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
+              </div>
+            </th>
+          </tr>
+        </tfoot>
       </table>
     </div>
   </div>
@@ -381,7 +396,7 @@
 
 <script type="text/javascript">
 
-// form validation fields,they will appear in red if missing.. 
+// form validation fields,they will appear in red if missing..
 $('#campaign_add_edit_form')
   .form({
     fields: {
@@ -411,7 +426,7 @@ $("#c_experiment").change(function() {
 $("#ae_launch_id").change(function() {
   var formdata = {'ae_launch_id': $("#ae_launch_id").val()};
   $.ajax({
-      url: "{{pomspath}}/campaign_edit_query", 
+      url: "{{pomspath}}/campaign_edit_query",
       type: 'GET',
       data: formdata,
       success: function(dat){
@@ -426,7 +441,7 @@ $("#ae_launch_id").change(function() {
 $("#ae_campaign_definition_id").change(function() {
   var formdata = {'ae_campaign_definition_id': $("#ae_campaign_definition_id").val()};
   $.ajax({
-      url: "{{pomspath}}/campaign_edit_query", 
+      url: "{{pomspath}}/campaign_edit_query",
       type: 'GET',
       data: formdata,
       success: function(dat){
@@ -441,7 +456,7 @@ $("#ae_campaign_definition_id").change(function() {
          $("#ae_output_files_per_job").val("");
          $("#ae_launch_script").val("");
          $("#ae_launch_definition_parameters").val("[]");
-        
+
         }
       }
    });
@@ -548,18 +563,18 @@ function ep_build_parms_string() {
   }
   parms += "]";
   return [message, parms];
-} 
+}
 
 function ep_build_table_body() {
   $("#ep_tbody").text("");
-  
+
   if (ep_parms===null || ep_parms.length ==0) {
     ep_parms.push(["",""]);
   }
   for (index = 0; index < ep_parms.length; index++) {
     var ep_row = "ep_row_" + index;
     var ep_key = "ep_key_" + index;
-    var ep_val = "ep_val_" + index;		  
+    var ep_val = "ep_val_" + index;
     var row = '<tr id="' +ep_row+ '">';
     row +=       '<td class="brown">'
     row +=          '<div class="ui fluid input">'
@@ -575,13 +590,13 @@ function ep_build_table_body() {
     row +=       '</td>';
     row +=       '<td  class="collapsing">'
     row +=         '<i class="blue icon link add square" onclick="ep_add_button('+index+');"></i>'
-    row +=	   '<i class="blue icon link minus square" onclick="ep_delete_button('+index+');"></i>'
-    row +=	   '<i class="blue icon link arrow square up" onclick="ep_up_button('+index+');"></i>'
-    row +=	   '<i class="blue icon link arrow square down" onclick="ep_down_button('+index+');"></i>'
+    row +=       '<i class="blue icon link minus square" onclick="ep_delete_button('+index+');"></i>'
+    row +=       '<i class="blue icon link arrow square up" onclick="ep_up_button('+index+');"></i>'
+    row +=       '<i class="blue icon link arrow square down" onclick="ep_down_button('+index+');"></i>'
     row +=       '</td>';
     row +=     '</tr>'
     $("#ep_tbody").append(row);
-  }		
+  }
   $("#edit_param_modal").modal('refresh');
 }
 
@@ -602,13 +617,13 @@ function ep_add_button(current_row) {
   ep_parms.splice(current_row+1, 0, ["",""] );
   ep_build_table_body();
 }
-		  
+
 function ep_delete_button(current_row) {
   rebuild_ep_parms();
   ep_parms.splice(current_row, 1 );
   ep_build_table_body();
 }
-		  
+
 function ep_up_button(current_row) {
   if (current_row > 0) {
     rebuild_ep_parms();
@@ -616,9 +631,9 @@ function ep_up_button(current_row) {
     ep_parms[current_row-1] = ep_parms[current_row];
     ep_parms[current_row] = hold;
     ep_build_table_body();
-  } 
+  }
 }
-		  
+
 function ep_down_button(current_row) {
   if (current_row < (ep_parms.length-1)) {
     rebuild_ep_parms();
@@ -626,9 +641,9 @@ function ep_down_button(current_row) {
     ep_parms[current_row+1] = ep_parms[current_row];
     ep_parms[current_row] = hold;
     ep_build_table_body();
-  } 
+  }
 }
-		  
+
 function delete_campaign(name,campaign_id) {
   var cname = name;
   $("#confirm_modal_message").text("Delete the campaign named " +name+" ?");
@@ -655,8 +670,8 @@ function edit_campaign(index,clone) {
     $("#ae_definition_action").val("add");
     $("#ae_campaign_name").val( "CLONE OF: " + $("#c_name_"+index).text() );
     // campaign_depends records are NOT cloned.
-    $("#ae_depends").val( '{"campaigns": [], "file_patterns": []}' );  
-    $("#ae_depends_text").val( '{"campaigns": [], "file_patterns": []}' );  
+    $("#ae_depends").val( '{"campaigns": [], "file_patterns": []}' );
+    $("#ae_depends_text").val( '{"campaigns": [], "file_patterns": []}' );
   }
   $("#ae_experiment").text("Campaign Stage Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
   $("#ae_active").val( $("#c_active_"+index).text() ).trigger('change');
@@ -688,7 +703,7 @@ function add_campaign() {
 $(document).ready(function(){
   if ("{{ data.message }}" != "None") {
     $("#poms_message_data").text("{{ data.message }}");
-    $("#display_message_modal").modal('show');  
+    $("#display_message_modal").modal('show');
   }
 });
 
@@ -697,8 +712,11 @@ $('.ui.dropdown')
   .dropdown()
 ;
 
+$(document).ready(function(){
+  $('#double-scroll').doubleScroll();
+});
+
 </script>
 
 
 {%endblock%}
-

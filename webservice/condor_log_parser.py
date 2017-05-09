@@ -6,7 +6,7 @@ logger = logging.getLogger('cherrypy.error')
 
 from . import jobsub_fetcher
 from datetime import datetime, timedelta
-from poms.model.poms_model import Job
+from poms_model import Job
 
 def get_joblogs(dbhandle, jobsub_job_id, experiment, role):
     if jobsub_job_id == None:
@@ -16,7 +16,7 @@ def get_joblogs(dbhandle, jobsub_job_id, experiment, role):
     files = jf.index( jobsub_job_id, experiment, role, True)
     for row in files:
         if row[5].endswith(".log") and not row[5].endswith(".dagman.log"):
-            # first non dagman.log .log we see is either the xyz.log 
+            # first non dagman.log .log we see is either the xyz.log
             # that goes with xyz.cmd, or the dag.nodes.log, which has
             # the individual job.logs in it.
             logger.debug( "checking file %s " %row[5] )
@@ -44,8 +44,8 @@ def parse_date(date_time_str):
         -- the trick is to add the *right* year.  At the year boundary
            (i.e. it's Jan 1, and the job started on Dec 31) we may
            need to pick *yesterday's* year, not todays... so check
-           by checking yesterdays month.   
-           ... in fact we should go a little further back (27 days) 
+           by checking yesterdays month.
+           ... in fact we should go a little further back (27 days)
            for to get last month right further into this month.
     '''
     # get todays, yesterdays year and month
@@ -59,7 +59,7 @@ def parse_date(date_time_str):
     else:
        # if it is some other month, just guess this year.. sorry
        date_time_str = "%s/%s" % (ty , date_time_str)
-     
+
     return datetime.strptime(date_time_str, "%Y/%m/%d %H:%M:%S")
 
 def parse_condor_log(dbhandle, lines, batchhost):
@@ -107,4 +107,3 @@ def parse_condor_log(dbhandle, lines, batchhost):
             logger.info( "condor_log_parser: remote_cpu %s disk_used %s memory_used %s job_exit %s" % (remote_cpu,  disk_used,  memory_used, job_exit ))
 
     dbhandle.commit()
-
