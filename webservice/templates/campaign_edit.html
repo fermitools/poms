@@ -114,7 +114,7 @@
             <td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|tojson|replace("null","")}}</td>
         {% endif %}
         <td id="c_depends_{{loop.index}}">
-        {% for key, value in data.depends.iteritems() %}
+        {% for key, value in data.depends.items() %}
             {% if key == row.campaign_id %}
             {{ value }}
         {% endif %}
