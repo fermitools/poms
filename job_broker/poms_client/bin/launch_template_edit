@@ -5,6 +5,10 @@ import argparse
 #action = None, name = None, launch_host = None, user_account = None, lauch_setup = None, experiment = None, pc_email
 parser = argparse.ArgumentParser(description='edit_launch_template.')
 groupArg = parser.add_argument_group('Require Arguments')
+
+groupArg.add_argument('--email', metavar='your email', type=str, help='Please provide your email adress')
+groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete')
+
 parser.add_argument('--name', metavar='Name of your template', type=str, help='the name of the launch template', default = None)
 parser.add_argument('--host', metavar='your experiment machine', type=str, help='You should provide your interactive machine (e.g. dunegpvm01)', default = None)
 parser.add_argument('--user_account', metavar='username at submission node', type=str, help='Please provide the user account for the submission (e.g. your user, or production user e.g. novapro, minospro, dunepro)', default = None)
@@ -12,8 +16,7 @@ parser.add_argument('--setup', metavar='the setup you do at your interactive nod
 parser.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', default = None)
 parser.add_argument('--test_client', metavar='want to test the client URL query', type=str, help='use to test the client URL query', default = False)
 
-groupArg.add_argument('--email', metavar='your email', type=str, help='Please provide your email adress', default = None)
-groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', default = None)
+
 
 
 args = parser.parse_args()
