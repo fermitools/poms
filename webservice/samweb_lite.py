@@ -11,7 +11,7 @@ import traceback
 import os
 import cherrypy
 from utc import utc
-from model.poms_model import FaultyRequest
+from poms.model.poms_model import FaultyRequest
 
 
 def safe_get(sess, url, *args, **kwargs):
@@ -239,14 +239,14 @@ class samweb_lite:
         return infos
 
     def create_definition(self, experiment, name, dims):
-        cherrypy.log("create_definition( %s, %s, %s )" % (experiment, name, dims))
+        cherrypy.log.error("create_definition( %s, %s, %s )" % (experiment, name, dims))
         base = "https://samweb.fnal.gov:8483"
         path = "/sam/%s/api/definitions/create" % experiment
         url = "%s%s" % (base, path)
         res = None
 
         pdict = {"defname": name, "dims": dims, "user": "sam", "group": experiment}
-        cherrypy.log("create_definition: calling: %s with %s " % (url, pdict))
+        cherrypy.log.error("create_definition: calling: %s with %s " % (url, pdict))
         try:
             res = requests.post(url,
                                 data=pdict,
@@ -255,9 +255,9 @@ class samweb_lite:
                                       "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]))
                   )
             text = res.content
-            cherrypy.log("definitions/create returns: %s" % text)
+            cherrypy.log.error("definitions/create returns: %s" % text)
         except Exception as e:
-            cherrypy.log("Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
+            cherrypy.log.error("Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
             return "Fail."
         finally:
             if res:

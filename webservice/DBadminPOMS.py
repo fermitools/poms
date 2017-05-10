@@ -7,15 +7,16 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
+import logit
 from poms.model.poms_model import Experimenter, Experiment, ExperimentsExperimenters
 from sqlalchemy.orm.exc import NoResultFound
 
 class DBadminPOMS:
-    #def user_edit(self, db = cherrypy.request.db,email = None, action = None, *args, **kwargs):
+    #def user_edit(self, db = cherrypy.request.db,username = None, action = None, *args, **kwargs):
     def user_edit(self, dbhandle, *args, **kwargs):
         message = None
         data = {}
-        email = kwargs.pop('email',None)
+        username = kwargs.pop('username',None)
         action = kwargs.pop('action',None)
 
         if action == 'membership':
@@ -37,28 +38,27 @@ class DBadminPOMS:
             dbhandle.commit()
 
         elif action == "add":
-            if dbhandle.query(Experimenter).filter(Experimenter.email==email).first():
-                message = "An experimenter with the email %s already exists" %  email
+            if dbhandle.query(Experimenter).filter(Experimenter.username==username).first():
+                message = "An experimenter with the username %s already exists" %  username
             else:
                 experimenter = Experimenter()
                 experimenter.first_name = kwargs.get('first_name')
                 experimenter.last_name = kwargs.get('last_name')
-                experimenter.email = email
+                experimenter.username = username
                 dbhandle.add( experimenter)
                 dbhandle.commit()
 
         elif action == "edit":
             values = {    "first_name" : kwargs.get('first_name'),
                         "last_name"  : kwargs.get('last_name'),
-                        "email"      : email    }
+                        "username"      : username    }
             dbhandle.query(Experimenter).filter(Experimenter.experimenter_id==kwargs.get('experimenter_id')).update(values)
             dbhandle.commit()
 
-        if email:
-            ###VP experimenter = dbhandle.query(Experimenter).filter(Experimenter.email==email).first()
-            experimenter = dbhandle.query(Experimenter).filter(Experimenter.email.like('%'+email+'%')).first()
+        if username:
+            experimenter = dbhandle.query(Experimenter).filter(Experimenter.username==username).first()
             if experimenter == None:
-                message = "There is no experimenter with the email %s" % email
+                message = "There is no experimenter with the username %s" % username
             else:
                 data['experimenter'] = experimenter
                 # Experiments that are members of an experiment can be active or inactive
@@ -85,16 +85,16 @@ class DBadminPOMS:
             active = "No"
             if e2e.active:
                 active = "Yes"
-            trow = """<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>""" % (experimenter.first_name, experimenter.last_name, experimenter.email, active)
+            trow = """<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>""" % (experimenter.first_name, experimenter.last_name, experimenter.username, active)
             trows = "%s%s" % (trows, trow)
         return (trows)
 
 
-    def member_experiments(self, dbhandle, email, *args, **kwargs):
+    def member_experiments(self, dbhandle, username, *args, **kwargs):
 
-        subq = (dbhandle.query(ExperimentsExperimenters, Experimenter.email, Experimenter.first_name, Experimenter.last_name)
+        subq = (dbhandle.query(ExperimentsExperimenters, Experimenter.username, Experimenter.first_name, Experimenter.last_name)
                     .join(Experimenter, Experimenter.experimenter_id==ExperimentsExperimenters.experimenter_id)
-                    .filter(Experimenter.email==email)
+                    .filter(Experimenter.username==username)
                 )
         #~ return '{}'.format('\n'.join(map(str, subq)))   # DEBUG
 
@@ -104,11 +104,11 @@ class DBadminPOMS:
                     .order_by(Experiment.experiment)
                 )
 
-# (Experiment, experimenter_id, experiment, active, email, first_name, last_name)
+# (Experiment, experimenter_id, experiment, active, username, first_name, last_name)
         trows = []
-        for (experiment, experimenter_id, exp, active, email, first_name, last_name) in query:
-            #~ trow = "{}\t{}\t{}\t{}\t{}\n".format(experiment.experiment, first_name, last_name, email, 'Active' if active else 'No')
-            trows.append((experiment.experiment, first_name, last_name, email, active and 'Active'))
+        for (experiment, experimenter_id, exp, active, username, first_name, last_name) in query:
+            #~ trow = "{}\t{}\t{}\t{}\t{}\n".format(experiment.experiment, first_name, last_name, username, 'Active' if active else 'No')
+            trows.append((experiment.experiment, first_name, last_name, username, active and 'Active'))
         return trows
         return '{}'.format('\n'.join(map(str, trows)))  # DEBUG
 
@@ -116,7 +116,7 @@ class DBadminPOMS:
         return(dbhandle.query(Experiment).order_by(Experiment.experiment))
 
 
-    def experiment_authorize(self, dbhandle, loghandle, *args, **kwargs):
+    def experiment_authorize(self, dbhandle, *args, **kwargs):
         message = None
         # Add new experiment, if any
         try:
@@ -139,10 +139,10 @@ class DBadminPOMS:
             dbhandle.commit()
         except IntegrityError, e:
             message = "The experiment, %s, is used and may not be deleted." % experiment
-            loghandle(e.message)
+            logit.log(e.message)
             dbhandle.rollback()
         except SQLAlchemyError, e:
             dbhandle.rollback()
             message = "SqlAlchemy error - %s" % e.message
-            loghandle(e.message)
+            logit.log(e.message)
         return(message)

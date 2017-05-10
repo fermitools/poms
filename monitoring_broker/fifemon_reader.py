@@ -15,7 +15,14 @@ import json
 import pycurl
 from StringIO import StringIO
 
+# don't whine about certificates
 requests.packages.urllib3.disable_warnings()
+
+# don't barf if we need to log utf8...
+import codecs
+sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+
+
 
 
 class status_scraper:
@@ -178,10 +185,10 @@ class status_scraper:
                 data = self.fetch_item(path)
                 if data: 
 		    self.status[s] = 'good'
-		    if high and data[0]["datapoints"][0][0] > float(warnhigh):
+		    if whigh and data[0]["datapoints"][0][0] > float(whigh):
                         print "degraded because ", data[0]["datapoints"][0][0], "above", warnhigh
 			self.status[s] = 'degraded'
-		    if low and data[0]["datapoints"][0][0] < float(warnlow):
+		    if wlow and data[0]["datapoints"][0][0] < float(wlow):
                         print "degraded because ", data[0]["datapoints"][0][0], "below", warnlow
 			self.status[s] = 'degraded'
 		    if high and data[0]["datapoints"][0][0] > float(high):

@@ -7,6 +7,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: April 28th, 2017. (changes for the POMS_client)
 '''
 
+import logit
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from poms.model.poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
     LaunchTemplate, CampaignDefinition, CampaignRecovery,
@@ -32,14 +33,14 @@ class CampaignsPOMS():
         self.poms_service=ps
 
 
-    def launch_template_edit(self, dbhandle, loghandle, seshandle, *args, **kwargs):
+    def launch_template_edit(self, dbhandle, seshandle, *args, **kwargs):
         data = {}
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
         pcl_call = kwargs.pop('pcl_call', 0)
-        pc_email = kwargs.pop('pc_email',None)
+        pc_username = kwargs.pop('pc_username',None)
         if action == 'delete':
             name = kwargs.pop('name')
             try:
@@ -47,13 +48,13 @@ class CampaignsPOMS():
                 dbhandle.commit()
             except Exception, e:
                 message = "The launch template, %s, has been used and may not be deleted." % name
-                loghandle(message)
-                loghandle(e.message)
+                logit.log(message)
+                logit.log(e.message)
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
             if pcl_call == 1:
-                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
                 ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_id
                 ae_launch_name = kwargs.pop('ae_launch_name')
                 ae_launch_host = kwargs.pop('ae_launch_host')
@@ -90,11 +91,11 @@ class CampaignsPOMS():
                     template = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id==ae_launch_id).update(columns)
             except IntegrityError, e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
-                loghandle(e.message)
+                logit.log(e.message)
                 dbhandle.rollback()
             except SQLAlchemyError, e:
                 message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
-                loghandle(e.message)
+                logit.log(e.message)
                 dbhandle.rollback()
             else:
                 dbhandle.commit()
@@ -108,7 +109,7 @@ class CampaignsPOMS():
         return data
 
 
-    def campaign_definition_edit(self, dbhandle, loghandle, seshandle, *args, **kwargs):
+    def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
         data = {}
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
@@ -130,8 +131,8 @@ class CampaignsPOMS():
                 dbhandle.commit()
             except Exception, e:
                 message = "The campaign definition, %s, has been used and may not be deleted." % name
-                loghandle(message)
-                loghandle(e.message)
+                logit.log(message)
+                logit.log(e.message)
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
@@ -207,11 +208,11 @@ class CampaignsPOMS():
 
             except IntegrityError, e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
-                loghandle(e.message)
+                logit.log(e.message)
                 dbhandle.rollback()
             except SQLAlchemyError, e:
                 message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
-                loghandle(e.message)
+                logit.log(e.message)
                 dbhandle.rollback()
             else:
                 dbhandle.commit()
@@ -249,7 +250,7 @@ class CampaignsPOMS():
         return data
 
 
-    def campaign_edit(self, dbhandle, loghandle, sesshandle, *args, **kwargs):
+    def campaign_edit(self, dbhandle, sesshandle, *args, **kwargs):
         data = {}
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
@@ -274,8 +275,8 @@ class CampaignsPOMS():
                 dbhandle.commit()
             except Exception, e:
                 message = "The campaign, %s, has been used and may not be deleted." % name
-                loghandle(message)
-                loghandle(e.message)
+                logit.log(message)
+                logit.log(e.message)
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
@@ -343,20 +344,20 @@ class CampaignsPOMS():
                     cd = dbhandle.query(Campaign).filter(Campaign.campaign_id==campaign_id).update(columns)
             # now redo dependencies
                 dbhandle.query(CampaignDependency).filter(CampaignDependency.uses_camp_id == campaign_id).delete()
-                loghandle("depends for %s are: %s" % (campaign_id, depends))
+                logit.log("depends for %s are: %s" % (campaign_id, depends))
                 depcamps = dbhandle.query(Campaign).filter(Campaign.name.in_(depends['campaigns'])).all()
                 for i in range(len(depcamps)):
-                    loghandle("trying to add dependency for: %s" % depcamps[i].name)
+                    logit.log("trying to add dependency for: %s" % depcamps[i].name)
                     d = CampaignDependency(uses_camp_id = campaign_id, needs_camp_id = depcamps[i].campaign_id, file_patterns=depends['file_patterns'][i])
                     dbhandle.add(d)
                 dbhandle.commit()
             except IntegrityError, e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
-                loghandle(e.message)
+                logit.log(e.message)
                 dbhandle.rollback()
             except SQLAlchemyError, e:
                 message = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % e.message
-                loghandle(e.message)
+                logit.log(e.message)
                 dbhandle.rollback()
             else:
                 dbhandle.commit()
@@ -422,7 +423,7 @@ class CampaignsPOMS():
 
     def new_task_for_campaign(dbhandle , campaign_name, command_executed, experimenter_name, dataset_name = None):
         c = dbhandle.query(Campaign).filter(Campaign.name == campaign_name).first()
-        e = dbhandle.query(Experimenter).filter(Experimenter.email.ilike("%s@%%" % experimenter_name)).first()
+        e = dbhandle.query(Experimenter).filter(Experimenter.username==experimenter_name).first()
         t = Task()
         t.campaign_id = c.campaign_id
         t.campaign_definition_id = c.campaign_definition_id
@@ -442,7 +443,7 @@ class CampaignsPOMS():
         return "Task=%d" % t.task_id
 
 
-    def show_campaigns(self, dbhandle, loghandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=1, active=True):
+    def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=1, active=True):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
@@ -457,8 +458,8 @@ class CampaignsPOMS():
         counts = {}
         counts_keys = {}
 
-        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, loghandle, samhandle, cl, tmin, tmax)
-        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, loghandle, cl, tmin, tmax)
+        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cl, tmin, tmax)
+        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cl, tmin, tmax)
 
         i = 0
         for c in cl:
@@ -471,7 +472,7 @@ class CampaignsPOMS():
         return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string
 
 
-    def campaign_info(self, dbhandle, loghandle, samhandle, err_res, campaign_id,  tmin = None, tmax = None, tdays = None):
+    def campaign_info(self, dbhandle, samhandle, err_res, campaign_id,  tmin = None, tmax = None, tdays = None):
         campaign_id = int(campaign_id)
 
         Campaign_info = dbhandle.query(Campaign, Experimenter).filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id).first()
@@ -495,8 +496,8 @@ class CampaignsPOMS():
         cl = [Campaign_info[0]]
         counts = {}
         counts_keys = {}
-        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, loghandle, samhandle, cl, tmin, tmax)
-        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, loghandle, cl,tmin, tmax)
+        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cl, tmin, tmax)
+        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cl,tmin, tmax)
         counts[campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
         counts[campaign_id]['efficiency'] = effs[0]
         if pendings:
@@ -572,13 +573,13 @@ class CampaignsPOMS():
         return job_counts, blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays,key, extramap
 
 
-    def register_poms_campaign(self, dbhandle, loghandle, experiment,  campaign_name, version, user = None, campaign_definition = None, dataset = "", role = "Analysis", params = []):
+    def register_poms_campaign(self, dbhandle, experiment,  campaign_name, version, user = None, campaign_definition = None, dataset = "", role = "Analysis", params = []):
          if dataset == None:
               dataset = ''
          if user == None:
               user = 4
          else:
-              u = dbhandle.query(Experimenter).filter(Experimenter.email.ilike("%s@%%" % user)).first()
+              u = dbhandle.query(Experimenter).filter(Experimenter.username==user).first()
               if u:
                    user = u.experimenter_id
 
@@ -590,7 +591,7 @@ class CampaignsPOMS():
 
          ld = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.name.ilike("%generic%"), LaunchTemplate.experiment == experiment).first()
 
-         loghandle("campaign_definition = %s " % cd)
+         logit.log("campaign_definition = %s " % cd)
 
          c = dbhandle.query(Campaign).filter( Campaign.experiment == experiment, Campaign.name == campaign_name).first()
          if c:
@@ -610,7 +611,7 @@ class CampaignsPOMS():
                c.experimenter = user
                changed = True
 
-         loghandle("register_campaign -- campaign is %s" % c.__dict__)
+         logit.log("register_campaign -- campaign is %s" % c.__dict__)
 
          if changed:
                 c.updated = datetime.now(utc)
@@ -771,7 +772,7 @@ class CampaignsPOMS():
         return c, job, launch_flist
 
 
-    def update_launch_schedule(self, loghandle, campaign_id, dowlist = '',  domlist = '', monthly = '', month = '', hourlist = '', submit = '' , minlist = '', delete = ''):
+    def update_launch_schedule(self, campaign_id, dowlist = '',  domlist = '', monthly = '', month = '', hourlist = '', submit = '' , minlist = '', delete = ''):
 
         # deal with single item list silliness
         if isinstance(minlist, basestring):
@@ -783,7 +784,7 @@ class CampaignsPOMS():
         if isinstance(domlist, basestring):
            domlist = domlist.split(",")
 
-        loghandle("hourlist is %s " % hourlist)
+        logit.log("hourlist is %s " % hourlist)
 
         if minlist[0] == "*":
             minlist = None
@@ -814,7 +815,7 @@ class CampaignsPOMS():
 
             # make job for new -- use current link for product
             pdir=os.environ.get("POMS_DIR","/etc/poms")
-            pdir=pdir[:pdir.rfind("poms")+4] + "/current"
+            pdir=pdir[:pdir.rfind("poms",0,len(pdir)-1)+4] + "/current"
             job = my_crontab.new(command="%s/cron/launcher --campaign_id=%s" % (
                               pdir, campaign_id),
                               comment="POMS_CAMPAIGN_ID=%s" % campaign_id)

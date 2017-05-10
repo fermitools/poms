@@ -177,6 +177,9 @@ def test_workflow_1():
      time.sleep(10)
      mps.taskPOMS.wrapup_tasks(dbh.get(), logger.info, samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
      time.sleep(10)
+     mps.taskPOMS.wrapup_tasks(dbh.get(), logger.info, samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
+     time.sleep(10)
+     mps.taskPOMS.wrapup_tasks(dbh.get(), logger.info, samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
 
      after_fred = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_fred , tdays=1)
      after_joe = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_joe , tdays=1)
@@ -230,6 +233,9 @@ def test_campaign_time_bars():
      for j in task.jobs:
          l.append(j.jobsub_job_id)
      l.sort()
+     print "task.jobs: ", repr(task.jobs)
+     print "items:" , repr(items)
+     print "l:" , repr(l)
      assert(str(items).find(l[0].replace('.fnal.gov','')) > 0)
 
 def test_register_existing_campaign():

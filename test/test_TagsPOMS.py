@@ -24,7 +24,7 @@ def test_tags_1():
     
     c = dbhandle.query(Campaign).filter(Campaign.name == 'mwm_test_1').first()
 
-    mps.tagsPOMS.link_tags(sesshandle, dbhandle, c.campaign_id, tag_name, c.experiment)
+    mps.tagsPOMS.link_tags( dbhandle, sesshandle, c.campaign_id, tag_name, c.experiment)
 
     clist = mps.tagsPOMS.search_tags(dbhandle, tag_name)
 

@@ -5,20 +5,27 @@
 ### List of methods: calendar_json, calendar, add_event, service_downtimes, update_service, service_status
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel. September, 2016.
 
+import logit
 
 # CalendarPOMS.calendar_json(cherrypy.request.db,start, end, timezone)
-from poms.model.poms_model import Service, ServiceDowntime, Experimenter
-from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
-from sqlalchemy import Column, Integer, Sequence, String, DateTime, ForeignKey, and_, or_, not_,  create_engine, null, desc, text, func, exc, distinct
+from poms.model.poms_model import Service, ServiceDowntime
+from sqlalchemy import desc, exc
 from utc import utc
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
-class CalendarPOMS:
+class CalendarPOMS(object):
 
-    def calendar_json(self, dbhandle,start, end, timezone, _):
-        rows = dbhandle.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).filter(ServiceDowntime.downtime_started.between(start, end)).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(~Service.name.endswith("sam")).all()
-        list=[]
+    def calendar_json(self, dbhandle, start, end, timezone, _):
+        rows = (dbhandle.query(ServiceDowntime, Service)
+                .filter(ServiceDowntime.service_id == Service.service_id)
+                .filter(ServiceDowntime.downtime_started.between(start, end))
+                .filter(Service.name != "All")
+                .filter(Service.name != "DCache")
+                .filter(Service.name != "Enstore")
+                .filter(Service.name != "SAM")
+                .filter(~Service.name.endswith("sam")).all())
+        alist = []
         for row in rows:
             if row.ServiceDowntime.downtime_type == 'scheduled':
                     editable = 'true'
@@ -37,19 +44,31 @@ class CalendarPOMS:
                 color = "#21A8BD"
             else:
                 color = "red"
-            list.append({'start_key': str(row.ServiceDowntime.downtime_started), 'title': row.Service.name, 's_id': row.ServiceDowntime.service_id, 'start': str(row.ServiceDowntime.downtime_started), 'end': str(row.ServiceDowntime.downtime_ended), 'editable': editable, 'color': color})
+            alist.append({'start_key': str(row.ServiceDowntime.downtime_started),
+                          'title': row.Service.name,
+                          's_id': row.ServiceDowntime.service_id,
+                          'start': str(row.ServiceDowntime.downtime_started),
+                          'end': str(row.ServiceDowntime.downtime_ended),
+                          'editable': editable,
+                          'color': color})
 
-        return list
+        return alist
 
 
     #CalendarPOMS.calendar(cherrypy.request.db)
     def calendar(self, dbhandle):
-        rows = dbhandle.query(Service).filter(Service.name != "All").filter(Service.name != "DCache").filter(Service.name != "Enstore").filter(Service.name != "SAM").filter(Service.name != "FifeBatch").filter(~Service.name.endswith("sam")).all()
+        rows = (dbhandle.query(Service)
+                .filter(Service.name != "All")
+                .filter(Service.name != "DCache")
+                .filter(Service.name != "Enstore")
+                .filter(Service.name != "SAM")
+                .filter(Service.name != "FifeBatch")
+                .filter(~Service.name.endswith("sam")).all())
         return rows
 
 
     #CalendarPOMS.edit_event(cherrypy.request.db, title, start, new_start, end, s_id)
-    def add_event(self, dbhandle,title, start, end):
+    def add_event(self, dbhandle, title, start, end):
 
         start_dt = datetime.fromtimestamp(float(start), tz=utc)
         end_dt = datetime.fromtimestamp(float(end), tz=utc)
@@ -82,12 +101,12 @@ class CalendarPOMS:
         return rows
 
 
-    #CalendarPOMS.update_service(cherrypy.request.db, dbhandle, log_handle, name, parent, status, host_site, total, failed, description)
-    def update_service(self, dbhandle, log_handle, name, parent, status, host_site, total, failed, description):
+    #CalendarPOMS.update_service(cherrypy.request.db, dbhandle, name, parent, status, host_site, total, failed, description)
+    def update_service(self, dbhandle, name, parent, status, host_site, total, failed, description):
         s = dbhandle.query(Service).filter(Service.name == name).first()
         if parent:
             p = dbhandle.query(Service).filter(Service.name == parent).first()
-            log_handle("got parent %s -> %s" % (parent, p))
+            logit.log("got parent %s -> %s" % (parent, p))
             if not p:
                 p = Service()
                 p.name = parent
@@ -102,7 +121,7 @@ class CalendarPOMS:
             s = Service()
             s.name = name
             s.parent_service_obj = p
-            s.updated =  datetime.now(utc)
+            s.updated = datetime.now(utc)
             s.host_site = host_site
             s.status = "unknown"
             dbhandle.add(s)
@@ -110,8 +129,10 @@ class CalendarPOMS:
 
         if s.status != status and status == "bad" and s.service_id:
             # start downtime, if we aren't in one
-            d = dbhandle.query(ServiceDowntime).filter(ServiceDowntime.service_id == s.service_id ).order_by(desc(ServiceDowntime.downtime_started)).first()
-            if (d == None or d.downtime_ended != None):
+            d = (dbhandle.query(ServiceDowntime)
+                 .filter(ServiceDowntime.service_id == s.service_id)
+                 .order_by(desc(ServiceDowntime.downtime_started)).first())
+            if (d is None or d.downtime_ended is not None):
                 d = ServiceDowntime()
                 d.service_id = s.service_id
                 d.downtime_started = datetime.now(utc)
@@ -127,17 +148,19 @@ class CalendarPOMS:
 
         if s.status != status and status == "good":
             # end downtime, if we're in one
-            d = dbhandle.query(ServiceDowntime).filter(ServiceDowntime.service_id == s.service_id ).order_by(desc(ServiceDowntime.downtime_started)).first()
+            d = (dbhandle.query(ServiceDowntime)
+                 .filter(ServiceDowntime.service_id == s.service_id)
+                 .order_by(desc(ServiceDowntime.downtime_started)).first())
             if d:
-                if d.downtime_ended == None:
+                if d.downtime_ended is None:
                     d.downtime_ended = datetime.now(utc)
                     dbhandle.add(d)
 
                     if s.name == "All":
-			try:
-			    self.poms_service.set_job_launches("allowed")
-			except:
-			    pass
+                        try:
+                            self.poms_service.set_job_launches("allowed")
+                        except:
+                            pass
 
 
         s.parent_service_obj = p
@@ -153,16 +176,14 @@ class CalendarPOMS:
         return "Ok."
 
 
-    def service_status(self, dbhandle, under = 'All'):
-        prev = None
-        prevparent = None
+    def service_status(self, dbhandle, under='All'):
         p = dbhandle.query(Service).filter(Service.name == under).first()
-        list = []
+        alist = []
         for s in dbhandle.query(Service).filter(Service.parent_service_id == p.service_id).all():
             if s.host_site:
-                 url = s.host_site
+                url = s.host_site
             else:
-                 url = "./service_status?under=%s" % s.name
-            list.append({'name': s.name,'status': s.status, 'url': url})
+                url = "./service_status?under=%s" % s.name
+            alist.append({'name': s.name, 'status': s.status, 'url': url})
 
-        return list
+        return alist

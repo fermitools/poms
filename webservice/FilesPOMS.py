@@ -4,29 +4,14 @@
 ### List of methods: def list_task_logged_files, campaign_task_files, job_file_list, get_inflight,  inflight_files, show_dimension_files, campaign_sheet, actual_pending_files
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
-import os
 
-# from model.poms_model import Experimenter, Experiment, ExperimentsExperimenters
-from model.poms_model import Job, Task, Campaign, JobFile
+import os
+import shelve
+import logit
+
+from poms.model.poms_model import Job, Task, Campaign, JobFile
 from sqlalchemy.orm import subqueryload, joinedload
-# from sqlalchemy.orm import contains_eager
-from sqlalchemy import (
-    # Column,
-    # Integer,
-    # Sequence,
-    # String,
-    # DateTime,
-    # ForeignKey,
-    # and_,
-    # or_,
-    # not_,
-    # create_engine,
-    # null,
-    desc,
-    # text,
-    # func,
-    # exc,
-    distinct)
+from sqlalchemy import (desc, distinct)
 from utc import utc
 from datetime import datetime
 
@@ -44,7 +29,7 @@ class Files_status(object):
         #DELETE: template = self.poms_service.jinja_env.get_template('list_task_logged_files.html')
         #return template.render(fl = fl, campaign = t.campaign_snap_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
 
-    def campaign_task_files(self, dbhandle, loghandle, samhandle, campaign_id, tmin=None, tmax=None, tdays=1):
+    def campaign_task_files(self, dbhandle, samhandle, campaign_id, tmin=None, tmax=None, tdays=1):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
@@ -131,7 +116,7 @@ class Files_status(object):
         datarows = []
         i = -1
         for t in tl:
-            loghandle("task %d" % t.task_id)
+            logit.log("task %d" % t.task_id)
             i = i + 1
             psummary = summary_list[i]
             partpending = psummary.get('files_in_snapshot', 0) - some_kids_list[i]
@@ -182,7 +167,7 @@ class Files_status(object):
         return jobhandle.index(jobsub_job_id, j.task_obj.campaign_snap_obj.experiment, role, force_reload)
 
 
-    def job_file_contents(self, dbhandle, loghandle, jobhandle, job_id, task_id, file, tmin=None, tmax=None, tdays=None):
+    def job_file_contents(self, dbhandle, jobhandle, job_id, task_id, file, tmin=None, tmax=None, tdays=None):
         #jobhandle = cherrypy.request.jobsub_fetcher
 
         # we don't really use these for anything but we might want to
@@ -195,7 +180,7 @@ class Files_status(object):
         j = dbhandle.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
         jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, j.task_id)
-        loghandle("found job: %s " % jobsub_job_id)
+        logit.log("found job: %s " % jobsub_job_id)
         role = j.task_obj.campaign_snap_obj.vo_role
         job_file_contents = jobhandle.contents(file, j.jobsub_job_id, j.task_obj.campaign_snap_obj.experiment, role)
         return job_file_contents, tmin
@@ -237,17 +222,16 @@ class Files_status(object):
         q = q.filter(Task.task_id == Job.task_id)
         q = q.filter(Job.job_id == JobFile.job_id)
         q = q.filter(JobFile.file_type == 'output')
-        q = q.filter(JobFile.declared is None)
+        q = q.filter(JobFile.declared == None)
         if campaign_id is not None:
             q = q.filter(Task.campaign_id == campaign_id)
         if task_id is not None:
             q = q.filter(Job.task_id == task_id)
-        q = q.filter(Job.output_files_declared is False)
+        q = q.filter(Job.output_files_declared == False)
         outlist = []
-        # jjid = "xxxxx"
         for jf in q.all():
             outlist.append(jf.file_name)
-
+        # jjid = "xxxxx"
         return outlist
 
 
@@ -286,7 +270,7 @@ class Files_status(object):
         return flist
 
 
-    def actual_pending_files(self, dbhandle, loghandle, count_or_list, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
+    def actual_pending_files(self, dbhandle, count_or_list, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
@@ -317,7 +301,7 @@ class Files_status(object):
                     pat = "%"
                 dims = "%s %s isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (dims, sep, pat, t.campaign_obj.software_version)
                 sep = "and"
-                loghandle("dims now: %s" % dims)
+                logit.log("dims now: %s" % dims)
             dims = dims + ")"
         else:
             c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
@@ -327,11 +311,11 @@ class Files_status(object):
             raise ValueError("None == dims in actual_pending_files method")
         else:
 
-            loghandle("actual pending files: got dims %s" % dims)
+            logit.log("actual pending files: got dims %s" % dims)
             return c.experiment, dims
 
 
-    def campaign_sheet(self, dbhandle, loghandle, samhandle, campaign_id, tmin=None, tmax=None, tdays=7):   # maybe at the future for a  ReportsPOMS module
+    def campaign_sheet(self, dbhandle, samhandle, campaign_id, tmin=None, tmax=None, tdays=7):   # maybe at the future for a  ReportsPOMS module
 
         daynames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -354,7 +338,7 @@ class Files_status(object):
         for e in el:
             exitcodes.append(e[0])
 
-        loghandle("got exitcodes: " + repr(exitcodes))
+        logit.log("got exitcodes: " + repr(exitcodes))
         day = -1
         date = None
         first = 1
@@ -472,7 +456,7 @@ class Files_status(object):
         # get pending counts for the task list for each day
         # and fill in the 7th column...
         #
-        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_task_lists(dbhandle, loghandle, samhandle, daytasks)
+        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_task_lists(dbhandle, samhandle, daytasks)
         for i in range(len(pendings)):
             outrows[i][7] = pendings[i]
 
@@ -484,11 +468,11 @@ class Files_status(object):
         return name, columns, outrows, dimlist, experiment, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
 
 
-    def get_pending_for_campaigns(self, dbhandle, loghandle, samhandle, campaign_list, tmin, tmax):
+    def get_pending_for_campaigns(self, dbhandle, samhandle, campaign_list, tmin, tmax):
 
         task_list_list = []
 
-        loghandle("in get_pending_for_campaigns, tmin %s tmax %s" % (tmin, tmax))
+        logit.log("in get_pending_for_campaigns, tmin %s tmax %s" % (tmin, tmax))
 
         for c in campaign_list:
             tl = (dbhandle.query(Task).
@@ -499,14 +483,14 @@ class Files_status(object):
                   all())
             task_list_list.append(tl)
 
-        return self.poms_service.filesPOMS.get_pending_for_task_lists(dbhandle, loghandle, samhandle, task_list_list)
+        return self.poms_service.filesPOMS.get_pending_for_task_lists(dbhandle, samhandle, task_list_list)
 
 
-    def get_pending_for_task_lists(self, dbhandle, loghandle, samhandle, task_list_list):
+    def get_pending_for_task_lists(self, dbhandle, samhandle, task_list_list):
         dimlist = []
         explist = []
         # experiment = None
-        loghandle("get_pending_for_task_lists: task_list_list (%d): %s" % (len(task_list_list), task_list_list))
+        logit.log("get_pending_for_task_lists: task_list_list (%d): %s" % (len(task_list_list), task_list_list))
         for tl in task_list_list:
             diml = ["("]
             for task in tl:
@@ -538,9 +522,9 @@ class Files_status(object):
             else:
                 explist.append("samdev")
 
-        loghandle("get_pending_for_task_lists: dimlist (%d): %s" % (len(dimlist), dimlist))
+        logit.log("get_pending_for_task_lists: dimlist (%d): %s" % (len(dimlist), dimlist))
         count_list = samhandle.count_files_list(explist, dimlist)
-        loghandle("get_pending_for_task_lists: count_list (%d): %s" % (len(dimlist), count_list))
+        logit.log("get_pending_for_task_lists: count_list (%d): %s" % (len(dimlist), count_list))
         return dimlist, count_list
 
 

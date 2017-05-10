@@ -35,16 +35,16 @@
 
 <script type="text/javascript">
 function user_action(action) {
-  var email = $("#search_email").val();
-  if (action=='edit_user' && email) {
-    $("#user_email").val(email);
+  var username = $("#search_username").val();
+  if (action=='edit_user' && username) {
+    $("#user_username").val(username);
     $("#user_first_name").val($("#search_first_name").val());
     $("#user_last_name").val($("#search_last_name").val());
     $("#user_experimenter_id").val($("#search_experimenter_id").val());
     $("#user_action").val("edit");
     $("#user_header").text("Edit User");
   } else {
-    $("#user_email").val("");
+    $("#user_username").val("");
     $("#user_first_name").val("");
     $("#user_last_name").val("");
     $("#user_experimenter_id").val("");
@@ -60,7 +60,7 @@ function user_action(action) {
     {% if data.experimenter is defined %}
     <div class="field">
       <label></label>
-      <input type="text" id="search_email" name="email" placeholder="Email Address" value="{{data.experimenter.email}}">
+      <input type="text" id="search_username" name="username" placeholder="Username" value="{{data.experimenter.username}}">
     </div>
     <div class="field">
       <label></label>
@@ -73,7 +73,7 @@ function user_action(action) {
     {% else %}
     <div class="field">
       <label></label>
-      <input type="text" name="email" placeholder="Email Address">
+      <input type="text" name="username" placeholder="Username">
     </div>
     <div class="field">
       <label></label>
@@ -141,7 +141,7 @@ function user_action(action) {
     </tfoot>
   </table>
   <input type="hidden" name="action" value="membership">
-  <input type="hidden" name="email" value="{{data.experimenter.email}}">
+  <input type="hidden" name="username" value="{{data.experimenter.username}}">
   <input type="hidden" name="experimenter_id" value="{{data.experimenter.experimenter_id}}">
   {% endif %}
 </form>
@@ -154,7 +154,7 @@ function user_action(action) {
     <div class="three fields">
       <div class="field">
         <label></label>
-        <input type="text" id="user_email" name="email" placeholder="Email Address">
+        <input type="text" id="user_username" name="username" placeholder="Username">
       </div>
       <div class="field">
         <label></label>
@@ -175,7 +175,7 @@ function user_action(action) {
 $('#user_add_edit_form')
   .form({
     fields: {
-      email      : 'empty',
+      username   : 'empty',
       first_name : 'empty',
       last_name  : 'empty'
     }
