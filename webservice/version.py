@@ -24,4 +24,4 @@ def get_version():
            pass
 
     logit.log("POMS Version: %s" % version)
-    return version
+    return str(version.strip(),'utf-8')
