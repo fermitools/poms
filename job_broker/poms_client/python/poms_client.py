@@ -167,7 +167,7 @@ def campaign_edit (action, ae_campaign_name, pc_email, experiment, vo_role,
                             ae_launch_name=ae_launch_name,
                             ae_campaign_definition=ae_campaign_definition,
                             test_client=test_client)
-    return status_code
+    return "status_code =", status_code
     #return data['message']
 
 
