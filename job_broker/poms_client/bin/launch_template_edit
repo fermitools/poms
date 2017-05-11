@@ -30,7 +30,7 @@ print 'user_account=',args.user_account
 print "launch_setup =", args.setup
 print "experiment=", args.experiment
 print "pc_email=", args.email
-
+print "test_client", args.test_client
 
 
 

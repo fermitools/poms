@@ -182,7 +182,8 @@ def make_poms_call(**kwargs):
         base='http://fermicloud045.fnal.gov:8080/poms/'
         del kwargs["test"]
     elif test_client:
-        base='http://localhost:8888/poms/'
+        base='http://pomsgpvm01.fnal.gov:8080/poms/'
+	#base='http://localhost:8888/poms/'
     else:
         base='http://pomsgpvm01.fnal.gov:8080/poms/'
 
