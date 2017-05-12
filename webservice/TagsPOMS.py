@@ -16,6 +16,9 @@ class TagsPOMS():
         def __init__(self, ps):
             self.poms_service = ps
 
+        def show_tags(self, dbhandle, experiment):
+            tl = dbhandle.query(Tag).filter(Tag.experiment == experiment)
+            return tl
 
         def link_tags(self, dbhandle, ses_get, campaign_id, tag_name, experiment):
             if ses_get.get('experimenter').is_authorized(experiment):

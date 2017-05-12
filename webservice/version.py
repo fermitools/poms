@@ -20,8 +20,8 @@ def get_version():
            vf = open("%s/.version" % os.environ["POMS_DIR"] ,"r")
            version = vf.read()
            vf.close()
-       except Exeception as e:
+       except Exception as e:
            pass
 
     logit.log("POMS Version: %s" % version)
-    return version
+    return str(version.strip(),'utf-8')
