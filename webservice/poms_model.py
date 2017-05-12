@@ -49,6 +49,7 @@ class Experimenter(Base):
     last_name = Column(Text)
     username = Column(Text, nullable=False)
     last_login = Column(DateTime(True), nullable=False, default="now()")
+    session_experiment = Column(Text, nullable=False)
 
 
 class ExperimentsExperimenters(Base):
