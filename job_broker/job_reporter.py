@@ -172,7 +172,7 @@ class job_reporter:
                 del e
                 time.sleep(5)
                 retries = retries - 1
-            except (http.client.BadStatusLine) as e:
+            except (requests.exceptions.ConnectionError) as e:
                 if uh:
                     uh.close()
                     uh = None

@@ -40,8 +40,11 @@ class TestJobsub_q_scraper:
         for line in df:
 
             if i >= len(bulk_data):
-                data_log = next(self.mw.log)
-                post_log = next(self.mw.log)
+                try:
+                    data_log = next(self.mw.log)
+                    post_log = next(self.mw.log)
+                except StopIteration:
+                    break
                 post_data =  json.loads(data_log[12:-1])
                 bulk_data = json.loads(urllib.parse.unquote_plus(post_data['data']))
                 print("got bulk_data:" , bulk_data)
