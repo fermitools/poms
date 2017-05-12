@@ -17,25 +17,25 @@ LOG_CONF = {
         },
     'handlers': {
         'default': {
-            'level': 'DEBUG',
+            'level': 0,
             'class': 'logging.StreamHandler',
             'formatter': 'error',
             'stream': 'ext://sys.stdout'
             },
         'cherrypy_console': {
-            'level': 'DEBUG',
+            'level': 0,
             'class': 'logging.StreamHandler',
             'formatter': 'error',
             'stream': 'ext://sys.stdout'
             },
         'cherrypy_access': {
-            'level': 'DEBUG',
+            'level': 0,
             'class': 'logging.StreamHandler',
             'formatter': 'access',
             'stream': 'ext://sys.stdout'
             },
         'cherrypy_error': {
-            'level': 'DEBUG',
+            'level': 0,
             'class': 'logging.StreamHandler',
             'formatter': 'error',
             'stream': 'ext://sys.stderr'

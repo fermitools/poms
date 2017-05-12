@@ -2,7 +2,7 @@ import cherrypy
 import os
 import socket
 from jinja2 import Environment, PackageLoader
-from poms_model import Service, Task, Campaign
+from .poms_model import Service, Task, Campaign
 
 from .elasticsearch import Elasticsearch
 import pprint

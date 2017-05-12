@@ -5,6 +5,7 @@ import time
 import subprocess
 import sys
 import os
+import poms
 
 # put envioronment vars into some config sections...
 
@@ -28,13 +29,7 @@ def get_config(config = None):
         config = configparser.RawConfigParser()
     configfile = '../webservice/poms.ini'
     confs = dedent("""
-       [/static]
-       HOME="%(HOME)s"
-       POMS_DIR="%(POMS_DIR)s"
-       [global]
-       HOME="%(HOME)s"
-       POMS_DIR="%(POMS_DIR)s"
-       [POMS]
+       [DEFAULT]
        HOME="%(HOME)s"
        POMS_DIR="%(POMS_DIR)s"
     """ % os.environ)

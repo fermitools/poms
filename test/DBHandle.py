@@ -3,6 +3,7 @@ import os
 import configparser
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import poms
 
 class fake_cherrypy_config:
     def __init__(self, cf):

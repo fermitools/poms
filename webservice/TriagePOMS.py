@@ -8,7 +8,7 @@
 import urllib.request, urllib.parse, urllib.error
 from . import logit
 
-from poms_model import JobHistory, Job, Task, Campaign, CampaignDefinition, ServiceDowntime, Service
+from .poms_model import JobHistory, Job, Task, Campaign, CampaignDefinition, ServiceDowntime, Service
 from .elasticsearch import Elasticsearch
 from sqlalchemy import func, desc, not_, and_
 from collections import OrderedDict

@@ -3,6 +3,7 @@
 import os
 from os import system as os_system
 import _thread
+from .logit import log
 
 class jobsub_fetcher():
     def __init__(self):
@@ -45,12 +46,15 @@ class jobsub_fetcher():
              if user == None:
                 user = "%spro" % group
 
-         os.system("cd %s && jobsub_fetchlog --group=%s --role=%s --user=%s --jobid=%s > /dev/null" %(
+         cmd = "cd %s && /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_fetchlog --group=%s --role=%s --user=%s --jobid=%s > /dev/null" %(
                      self.workdir,
                      group,
                      role,
                      user,
-                     jobsubjobid))
+                     jobsubjobid)
+         
+         log("jobsub_fetcher.fetch(): running: %s" % cmd)
+         os.system(cmd)
          # os.system("ls -l %s " % self.workdir)
 
     def index(self, jobsubjobid, group, role = "Production", force_reload = False):

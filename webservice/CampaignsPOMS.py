@@ -10,7 +10,7 @@ Date: September 30, 2016.
 from . import logit
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, desc, not_, and_
-from poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
+from .poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
     LaunchTemplate, CampaignDefinition, CampaignRecovery,
     CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
 )

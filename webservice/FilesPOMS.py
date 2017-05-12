@@ -9,7 +9,7 @@ import os
 import shelve
 from . import logit
 
-from poms_model import Job, Task, Campaign, JobFile
+from .poms_model import Job, Task, Campaign, JobFile
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy import (desc, distinct)
 from .utc import utc

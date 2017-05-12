@@ -2,7 +2,7 @@ from mock_job import mock_job
 import DBHandle
 import datetime
 from poms.webservice.utc import utc
-from poms.model.poms_model import Job
+from poms.webservice.poms_model import Job
 from mock_poms_service import mock_poms_service
 import time
 

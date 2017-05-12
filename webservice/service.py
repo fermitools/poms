@@ -17,7 +17,7 @@ import poms.webservice.pomscache as pomscache
 #    ups = setups.setups()
 #    ups.use_package("poms", "", "SETUP_POMS")
 
-from poms_model import Experimenter, ExperimentsExperimenters
+from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters
 # from sqlalchemy.orm import subqueryload, joinedload, contains_eager
 import os.path
 import argparse

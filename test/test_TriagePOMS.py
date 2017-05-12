@@ -5,7 +5,7 @@ import os
 import socket
 from poms.webservice.utc import utc
 from poms.webservice.samweb_lite import samweb_lite
-from poms.model.poms_model import Campaign, Job
+from poms.webservice.poms_model import Campaign, Job
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 

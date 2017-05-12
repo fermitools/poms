@@ -4,9 +4,10 @@ import datetime
 import time
 import os
 import socket
+import poms
 from poms.webservice.utc import utc
 from poms.webservice.samweb_lite import samweb_lite
-from poms.model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Task
+from poms.webservice.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Task
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
