@@ -19,7 +19,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
               resp = "Ok.\n"
               content_type = 'text/plain'
 
-          fresp = io.StringIO(resp)
+          #fresp = io.StringIO(resp)
+          fresp = io.BytesIO(resp.encode('UTF-8'))
           self.send_response(200)
           self.send_header("Content-type", content_type)
           self.send_header("Content-length", str(len(resp)))
@@ -45,6 +46,6 @@ def run_while_true(server_class = http.server.HTTPServer,
             #print "bailing..."
             keep_running = False
 
-print("serving at port", PORT)
+print(("serving at port", PORT))
 
 run_while_true()

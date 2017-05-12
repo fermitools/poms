@@ -7,6 +7,17 @@ import sys
 import os
 import poms
 
+from poms.webservice.logit import  setlevel, log, DEBUG, INFO, CRITICAL
+import logging.config
+from poms.webservice import logging_conf
+
+def beverbose():
+    logging.config.dictConfig(logging_conf.LOG_CONF)
+    setlevel(level=DEBUG)
+    log(CRITICAL, "testing 1 2 3")
+    log(INFO, "testing 4 5 6")
+    log(DEBUG, "testing 7 8 9")
+
 # put envioronment vars into some config sections...
 
 def get_config_py():

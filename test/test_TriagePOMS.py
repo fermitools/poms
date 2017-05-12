@@ -1,9 +1,6 @@
 import DBHandle
 import datetime
 import time
-import os
-import socket
-from poms.webservice.utc import utc
 from poms.webservice.samweb_lite import samweb_lite
 from poms.webservice.poms_model import Campaign, Job
 
