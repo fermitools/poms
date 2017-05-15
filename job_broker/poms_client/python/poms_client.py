@@ -62,8 +62,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
 
         if action == 'add':
             if ae_launch_name == None or ae_launch_host == None or ae_launch_account == None or ae_launch_setup == None:
-                print "Your should provide the launch_name in order to add\
-                        name, launch_host, user_account, launch_setup. \n\
+                print "Your should provide the launch_name in order to add name, launch_host, user_account, launch_setup. \n\
                         Curently you provide name ="+str(ae_launch_name)+",launch_host="+str(ae_launch_host)+", user_account="+str(ae_launch_account)+", launch_setup="+str(ae_launch_setup)+"."
             else:
                 data, status_code  = make_poms_call(
