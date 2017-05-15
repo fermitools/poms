@@ -2,14 +2,14 @@
 
 import os
 from os import system as os_system
-import thread
+import _thread
 
 class jobsub_fetcher():
     def __init__(self):
          self.workdir = "%s/jf%d%s" % (
                           os.environ.get("TMPDIR","/var/tmp"),
                           os.getpid(),
-                          thread.get_ident())
+                          _thread.get_ident())
          try:
              os.mkdir(self.workdir)
          except:
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     jf = jobsub_fetcher()
     jobid="15200109.0@fifebatch2.fnal.gov"
     flist = jf.index(jobid, "samdev", "Analysis") 
-    print "------------------"
-    print flist
-    print "------------------"
-    print jf.contents(flist[2][-1], jobid, "samdev", "Analysis")
+    print("------------------")
+    print(flist)
+    print("------------------")
+    print(jf.contents(flist[2][-1], jobid, "samdev", "Analysis"))

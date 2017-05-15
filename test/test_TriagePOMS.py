@@ -12,6 +12,7 @@ from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getco
 dbh = DBHandle.DBHandle()
 dbhandle = dbh.get()
 
+import utils
 from mock_poms_service import mock_poms_service
 from mock_redirect import mock_redirect_exception
 import logging
@@ -33,7 +34,7 @@ def test_triage_job():
     mj.close()
     job = dbhandle.query(Job).filter(Job.jobsub_job_id == mj.jids[0]).first()
 
-    res = mps.triagePOMS.triage_job(dbhandle, fetcher, dbh.cf, job.job_id)
+    res = mps.triagePOMS.triage_job(dbhandle, fetcher, utils.get_config_py(), job.job_id)
 
     # we should get ( [], (job,task,camp) , [JobHistory,...], ...)
     # so check a bit.. 
@@ -61,9 +62,9 @@ def test_job_table():
 
 def test_failed_jobs():
 
-    print "jids:", mj.jids
+    print("jids:", mj.jids)
 
-    res = mps.triagePOMS.failed_jobs_by_whatever(dbhandle, logger.info,  f = ['jobsub_job_id'])
+    res = mps.triagePOMS.failed_jobs_by_whatever(dbhandle,  f = ['jobsub_job_id'])
 
     # our jobs from test_triage_job should have jobs .0, .1, and .2 exit
     # code 0, 1, and 2 respectively, so .1 and .2 should be found

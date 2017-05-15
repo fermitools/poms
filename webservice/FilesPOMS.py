@@ -7,13 +7,13 @@
 
 import os
 import shelve
-import logit
+from . import logit
 
-from poms.model.poms_model import Job, Task, Campaign, JobFile
+from poms_model import Job, Task, Campaign, JobFile
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy import (desc, distinct)
-from utc import utc
-from datetime import datetime
+from .utc import utc
+from datetime import datetime,timedelta
 
 
 class Files_status(object):
@@ -33,7 +33,7 @@ class Files_status(object):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
-         time_range_string) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
+         time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
                                                                        'campaign_task_files?campaign_id=%s&' % campaign_id)
         # inhale all the campaign related task info for the time window
         # in one fell swoop
@@ -175,7 +175,7 @@ class Files_status(object):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
-         time_range_string) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
+         time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
         ### You don't use many of those arguments, is just because you need one of them then you call the whole method ???????
         j = dbhandle.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
         # find the job with the logs -- minimum jobsub_job_id for this task
@@ -189,7 +189,7 @@ class Files_status(object):
 
     def format_job_counts(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=7, range_string=None): ##This method was deleted from the main script
         counts = self.poms_service.triagePOMS.job_counts(dbhandle, task_id=task_id, campaign_id=campaign_id, tmin=tmin, tmax=tmax, tdays=tdays)
-        ck = counts.keys()
+        ck = list(counts.keys())
         res = ['<div><b>Job States</b><br>',
                '<table class="ui celled table unstackable">',
                '<tr><th>Total</th><th colspan=3>Active</th><th colspan=3>Completed In %s</th></tr>' % range_string,
@@ -249,7 +249,7 @@ class Files_status(object):
         if c:
             fss_file = "%s/%s_files.db" % (getconfig("ftsscandir"), c.experiment)
             if os.path.exists(fss_file):
-                fss = shelve.open(fss_file, 'r')
+                fss = shelve.open(fss_file, flag='r', protocol=3)
                 for f in outlist:
                     try:
                         statusmap[f] = fss.get(f.encode('ascii', 'ignore'), '')
@@ -274,7 +274,7 @@ class Files_status(object):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
-         time_range_string
+         time_range_string, tdays
          ) = self.poms_services.utilsPOMS.handle_dates(tmin, tmax, tdays,
                                                        'actual_pending_files?count_or_list=%s&%s=%s&' %
                                                        (count_or_list, 'campaign_id', campaign_id) if campaign_id else (count_or_list, 'task_id', task_id))
@@ -322,7 +322,7 @@ class Files_status(object):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
-         time_range_string) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s&' % campaign_id)
+         time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s&' % campaign_id)
 
         tl = (dbhandle.query(Task)
               .filter(Task.campaign_id == campaign_id, Task.created > tmin, Task.created < tmax)
@@ -487,6 +487,8 @@ class Files_status(object):
 
 
     def get_pending_for_task_lists(self, dbhandle, samhandle, task_list_list):
+        now = datetime.now(utc)
+        twodays = timedelta(days=2)
         dimlist = []
         explist = []
         # experiment = None
@@ -494,8 +496,10 @@ class Files_status(object):
         for tl in task_list_list:
             diml = ["("]
             for task in tl:
-                #if task.project == None:
-                #    continue
+                if task.project == None or (now - task.created) > twodays:
+                     # no project/ old projects have no counts, so short-circuit
+                     diml.append( "(file_name _)")
+                     continue
                 diml.append("(snapshot_for_project_name %s" % task.project)
                 diml.append("minus ( snapshot_for_project_name %s and (" % task.project)
                 sep = ""

@@ -20,6 +20,4 @@ class MockWebservice:
            os.unlink(self.outf)
            self.log.close()
    
-    def __del__(self):
-        self.close()
 

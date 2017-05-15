@@ -25,5 +25,5 @@ for exp in experiments:
         userdict["commonname"] = users[user]
         data["prousers"][exp].append(userdict)
 
-print json.dumps(data)
+print(json.dumps(data))
 

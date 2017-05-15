@@ -7,6 +7,7 @@ def gethead(h,d):
 class fake_e:
     def __init__(self):
         self.email = 'mengel@fnal.gov'
+        self.username = 'mengel'
 
     def is_authorized_for(self,exp):
         return True
@@ -30,7 +31,9 @@ class mock_seshandle:
 def getconfig(x, y=None):
     if x == 'poms.launch_recovery_jobs':
         return True
-    return None
+    import utils
+    config = utils.getconfig()
+    return config.get('[globals]',x)
 
 camp_seshandle = mock_seshandle()
 launch_seshandle = mock_seshandle()

@@ -30,7 +30,7 @@ def testMockWebservice2():
      assert(txt == "Ok.\n")
      l = mw.log.readlines()
      mw.close()
-     print l
+     print(l)
      assert(l[0] == "post_data = %s\n" % json.dumps(data))
      assert(l[1] == ('127.0.0.1 - - [%s] "POST /foo/bar HTTP/1.1" 200 -\n' % ts))
 

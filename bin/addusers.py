@@ -1,13 +1,17 @@
 #!/bin/env python
 
-import os, argparse, psycopg2, json
+import os, argparse, psycopg2, json, time
 
 dbg = False
+log = None
 
 def debug(message):
     global dbg
+    global log
     if dbg:
-        print message
+        print(message)
+    if log:
+        log.write(message+'\n')
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description='Loads a VOMS generated JSON file of experimenters into POMS.')
@@ -17,7 +21,8 @@ def parse_command_line():
     parser.add_argument('user', help="User to connect as")
     parser.add_argument('file', help="File of users to read in.")
     parser.add_argument('-p', '--password', help="Password for the database user account. For testing only, for production use .pgpass .")
-    parser.add_argument('-d', '--debug', action="store_true", help="Debug")
+    parser.add_argument('-d', '--debug', action="store_true", help="Send debug data to screen")
+    parser.add_argument('-l', '--log', help="Directory/filename for logging debug data.")
     args = parser.parse_args()
     # Get password if not suppled
     #d = vars(args)
@@ -35,7 +40,7 @@ def verify_exp(cursor,exp):
         retval = False
     return retval
 
-def add_user(cursor,username,commonname):
+def add_user(cursor,username,commonname,exp):
     sql = "select experimenter_id from experimenters where username='%s'" % username
     cursor.execute(sql)
     (experimenterid,) = cursor.fetchone() or (None,)
@@ -46,7 +51,7 @@ def add_user(cursor,username,commonname):
         names = commonname.split(" ")
         if len(names) == 2:
             (first_name, last_name) = commonname.split(" ")
-        sql = "insert into experimenters (last_name,first_name,username) values ('%s','%s','%s') returning experimenter_id" % (last_name,first_name,username)
+        sql = "insert into experimenters (last_name,first_name,username,session_experiment) values ('%s','%s','%s','%s') returning experimenter_id" % (last_name,first_name,username,exp)
         cursor.execute(sql)
         experimenterid = cursor.fetchone()[0]
         debug("add_user: inserted new experimenter id=%s" % experimenterid)
@@ -62,11 +67,16 @@ def add_relationship(cursor,experimenterid,exp):
 
 def main():
     global dbg
+    global log
     args = parse_command_line()
     if args.debug:
         dbg = True
+    if args.log:
+        logfile = "%s-%s.log" % (args.log,time.strftime('%Y%m%d%H%M%S'))
+        log = open(logfile,'w')
     if os.path.isfile(args.file) == False:
-        print "main: missing file: %s" % args.file
+        debug("main: missing file: %s" % args.file)
+        print("addusers.py -- main: missing file: %s" % args.file)
         raise SystemExit
     else:
         json_data = open(args.file)
@@ -78,13 +88,13 @@ def main():
             password="password=%s" % args.password
         conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s %s" % (args.dbname, args.host, args.port, args.user, password))
         cursor = conn.cursor()
-        for exp in expdict.keys():
+        for exp in list(expdict.keys()):
             if verify_exp(cursor,exp) == False:
-                print 'experiment: %s does not exist in poms' % exp
+                debug('experiment: %s does not exist in poms' % exp)
             else:
                 for user in expdict[exp]:
                     debug("main: processing <%s> <%s> <%s>" % (exp, user['username'], user['commonname']))
-                    experimenterid = add_user(cursor, user['username'], user['commonname'])
+                    experimenterid = add_user(cursor, user['username'], user['commonname'],exp)
                     add_relationship(cursor, experimenterid, exp)
         conn.commit()
         conn.close()
@@ -94,4 +104,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

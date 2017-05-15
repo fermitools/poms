@@ -8,43 +8,34 @@ written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 
 from datetime import datetime
 
-import time_grid
+from . import time_grid
 from sqlalchemy.orm import subqueryload, joinedload, contains_eager
 from sqlalchemy import func, text
-from utc import utc
+from .utc import utc
 from datetime import timedelta
-import condor_log_parser
+from . import condor_log_parser
 import json
 from collections import OrderedDict
 import subprocess
 import time
 import select
 import os
-import logit
-from exceptions import KeyError
+from . import logit
+#from exceptions import KeyError
 
-from poms.model.poms_model import (Service,
-                                   # ServiceDowntime,
-                                   Experimenter,
-                                   # Experiment,
-                                   # ExperimentsExperimenters,
-                                   Job,
-                                   JobHistory,
-                                   Task,
-                                   CampaignDefinition,
-                                   # TaskHistory,
-                                   Campaign,
-                                   LaunchTemplate,
-                                   # Tag,
-                                   # CampaignsTags,
-                                   # JobFile,
-                                   CampaignSnapshot,
-                                   CampaignDefinitionSnapshot,
-                                   LaunchTemplateSnapshot,
-                                   # CampaignRecovery,
-                                   # RecoveryType,
-                                   CampaignDependency,
-                                   HeldLaunch)
+from poms_model import (Service,
+                        Experimenter,
+                        Job,
+                        JobHistory,
+                        Task,
+                        CampaignDefinition,
+                        Campaign,
+                        LaunchTemplate,
+                        CampaignSnapshot,
+                        CampaignDefinitionSnapshot,
+                        LaunchTemplateSnapshot,
+                        CampaignDependency,
+                        HeldLaunch)
 
 
 #
@@ -181,7 +172,7 @@ class TaskPOMS:
 
             res.append("completion_type: complete Task %d cfrac %d pct %f " % (task.task_id, cfrac,(compcount * 100)/totcount))
 
-            if (compcount * 100.0) / totcount > cfrac:
+            if (compcount * 100.0) / totcount >= cfrac:
                 n_located = n_located + 1
                 task.status = "Located"
                 finish_up_tasks[task.task_id] = task
@@ -301,7 +292,7 @@ class TaskPOMS:
                                               task.campaign_snap_obj.vo_role)
         logit.log("Starting finish_up_tasks loops, len %d" % len(finish_up_tasks))
 
-        for task_id, task in finish_up_tasks.items():
+        for task_id, task in list(finish_up_tasks.items()):
             # get logs for job for final cpu values, etc.
             logit.log("Starting finish_up_tasks items for task %s" % task_id)
 
@@ -313,7 +304,7 @@ class TaskPOMS:
 
     def show_task_jobs(self, dbhandle, task_id, tmax=None, tmin=None, tdays=1):
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=%s' % task_id)
+        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string,tdays = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=%s' % task_id)
 
         jl = dbhandle.query(JobHistory,Job).filter(Job.job_id == JobHistory.job_id, Job.task_id==task_id ).order_by(JobHistory.job_id,JobHistory.created).all()
         tg = time_grid.time_grid()
@@ -385,7 +376,7 @@ class TaskPOMS:
     def task_min_job(self, dbhandle, task_id):  # This method deleted from the main script.
         # find the job with the logs -- minimum jobsub_job_id for this task
         # also will be nickname for the task...
-        if ( self.task_min_job_cache.has_key(task_id) ):
+        if ( task_id in self.task_min_job_cache ):
            return self.task_min_job_cache.get(task_id)
         j = dbhandle.query(Job).filter( Job.task_id == task_id ).order_by(Job.jobsub_job_id).first()
         if j:
@@ -447,7 +438,7 @@ class TaskPOMS:
              if (i[0] == None or j == None or j.updated == None or  i[0] < j.updated):
                 newsnap = snaptable()
                 columns = j._sa_instance_state.class_.__table__.columns
-                for fieldname in columns.keys():
+                for fieldname in list(columns.keys()):
                      setattr(newsnap, fieldname, getattr(j,fieldname))
                 dbhandle.add(newsnap)
              else:
@@ -476,7 +467,7 @@ class TaskPOMS:
               dname = "poms_depends_%d_%d" % (t.task_id,i)
 
               samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-              self.launch_jobs(dbhandle, loggetconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id, dataset_override = dname)
+              self.launch_jobs(dbhandle, getconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id, dataset_override = dname)
         return 1
 
 
@@ -598,6 +589,7 @@ class TaskPOMS:
         lt = c.launch_template_obj
 
         if self.get_job_launches(dbhandle) == "hold":
+            # fix me!!
             output = "Job launches currently held.... queuing this request"
             hl = HeldLaunch()
             hl.campaign_id = campaign_id
@@ -609,7 +601,7 @@ class TaskPOMS:
             dbhandle.commit()
             lcmd = ""
 
-            return lcmd, output, c, campaign_id, outdir, outfile
+            return lcmd, c, campaign_id, outdir, outfile
 
         e = seshandle('experimenter')
         xff = gethead('X-Forwarded-For', None)
@@ -620,7 +612,8 @@ class TaskPOMS:
             output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
             return lcmd, output, c, campaign_id, outdir, outfile
 
-        lt.launch_account = lt.launch_account % {"experimenter": e.username,}
+        experimenter_login = e.username
+        lt.launch_account = lt.launch_account % {"experimenter": experimenter_login}
 
         if dataset_override:
             dataset = dataset_override
@@ -637,7 +630,7 @@ class TaskPOMS:
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.poms_service.hostname,
-            "ssh -tx %s@%s <<'EOF'" % (lt.launch_account, lt.launch_host),
+            "ssh -tx %s@%s <<'EOF' &" % (lt.launch_account, lt.launch_host),
             lt.launch_setup % {
                 "dataset": dataset,
                 "version": c.software_version,
@@ -652,7 +645,7 @@ class TaskPOMS:
             "export JOBSUB_GROUP=%s" % group,
         ]
         if cd.definition_parameters:
-            if isinstance(cd.definition_parameters, basestring):
+            if isinstance(cd.definition_parameters, str):
                 params = OrderedDict(json.loads(cd.definition_parameters))
             else:
                 params = OrderedDict(cd.definition_parameters)
@@ -660,12 +653,18 @@ class TaskPOMS:
             params = OrderedDict([])
 
         if c.param_overrides is not None and c.param_overrides != "":
-            params.update(json.loads(c.param_overrides))
+            if isinstance(c.param_overrides, str):
+                params.update(json.loads(c.param_overrides))
+            else:
+                params.update(c.param_overrides)
 
         if param_overrides is not None and param_overrides != "":
-            params.update(json.loads(param_overrides))
+            if isinstance(param_overrides, str):
+                params.update(json.loads(param_overrides))
+            else:
+                params.update(param_overrides)
 
-        lcmd = cd.launch_script + " " + ' '.join((x[0] + x[1]) for x in params.items())
+        lcmd = cd.launch_script + " " + ' '.join((x[0] + x[1]) for x in list(params.items()))
         lcmd = lcmd % {
             "dataset": dataset,
             "version": c.software_version,
@@ -679,14 +678,13 @@ class TaskPOMS:
 
         cmd = cmd.replace('\r', '')
 
-        # make sure launch doesn't take more that half an hour...
-        output = popen_read_with_timeout(cmd, 1800)     ### Question???
-
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
+        dn = open("/dev/null","r")
         lf = open(outfile, "w")
-        lf.write(output)
+        pp = subprocess.Popen(cmd, shell=True, stdin=dn,stdout=lf, stderr=lf, close_fds=True)
         lf.close()
+        dn.close()
+        pp.wait()
 
-        # always record launch...
-        return lcmd, output, c, campaign_id, outdir, outfile
+        return lcmd, c, campaign_id, outdir, outfile

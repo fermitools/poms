@@ -7,8 +7,9 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
-import logit
-from poms.model.poms_model import Experimenter, Experiment, ExperimentsExperimenters
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from . import logit
+from poms_model import Experimenter, Experiment, ExperimentsExperimenters
 from sqlalchemy.orm.exc import NoResultFound
 
 class DBadminPOMS:
@@ -23,7 +24,7 @@ class DBadminPOMS:
             # To update memberships set all the tags to false and then reset the needed ones to true.
             e_id = kwargs.pop('experimenter_id',None)
             dbhandle.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e_id).update({"active":False})
-            for key,exp in kwargs.items():
+            for key,exp in list(kwargs.items()):
                 updated = (
                             dbhandle.query(ExperimentsExperimenters)
                             .filter(ExperimentsExperimenters.experimenter_id==e_id)
@@ -137,11 +138,11 @@ class DBadminPOMS:
             for experiment in kwargs:
                 dbhandle.query(Experiment).filter(Experiment.experiment==experiment).delete()
             dbhandle.commit()
-        except IntegrityError, e:
+        except IntegrityError as e:
             message = "The experiment, %s, is used and may not be deleted." % experiment
             logit.log(e.message)
             dbhandle.rollback()
-        except SQLAlchemyError, e:
+        except SQLAlchemyError as e:
             dbhandle.rollback()
             message = "SqlAlchemy error - %s" % e.message
             logit.log(e.message)

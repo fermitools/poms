@@ -1,3 +1,4 @@
+import re
 import DBHandle
 import datetime
 import time
@@ -38,44 +39,42 @@ def add_mock_job_launcher():
     launch = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local_generic').first()
 
     if campaign_definition or launch:
-        print "Hm.. some already exist?", campaign_definition, launch
+        print("Hm.. some already exist?", campaign_definition, launch)
 
     fqdn = socket.gethostname()
     # add launch template
     if launch == None:
-	res = mps.campaignsPOMS.launch_template_edit(
-	   dbh.get(), 
-	   logger.info, 
-	   camp_seshandle, 
-	   action = 'add',
-	   ae_launch_name= 'test_launch_local_generic',
-	   ae_launch_id ='',
-	   ae_launch_host = fqdn,
-	   ae_launch_account =  os.environ['USER'],      
-	   ae_launch_setup = "source /grid/fermiapp/products/common/etc/setups; set -x; klist; cd %s;   setup -. poms" % os.environ['POMS_DIR'],
-	   experiment = 'samdev',
-	   experimenter_id = '4'
-	)
-        print "lte returns: ", res
+        res = mps.campaignsPOMS.launch_template_edit(
+           dbh.get(), 
+           camp_seshandle, 
+           action = 'add',
+           ae_launch_name= 'test_launch_local_generic',
+           ae_launch_id ='',
+           ae_launch_host = fqdn,
+           ae_launch_account =  os.environ['USER'],      
+           ae_launch_setup = "source /grid/fermiapp/products/common/etc/setups; set -x; klist; cd %s;   source $HOME/poms_python3/bin/activate; setup ifdhc" % (os.environ['POMS_DIR'],os.environ("VIRTUAL_ENV")),
+           experiment = 'samdev',
+           experimenter_id = '4'
+        )
+        print("lte returns: ", res)
     # add job type
     if campaign_definition == None:
-	res = mps.campaignsPOMS.campaign_definition_edit(
-	   dbh.get(), 
-	   logger.info, 
-	   camp_seshandle, 
-	   action = 'add',
-	   ae_campaign_definition_id = '',
-	   ae_definition_name = 'test_launch_mock_job_generic',
-	   ae_input_files_per_job = '0',
-	   ae_output_files_per_job = '0',
-	   ae_output_file_patterns = '%',
-	   ae_launch_script = 'python $POMS_DIR/test/mock_job.py --campaign_id $POMS_CAMPAIGN_ID -N 3',
-	   ae_definition_parameters = '[]',
-	   ae_definition_recovery = '[]',
-	   experiment = 'samdev',
-	   experimenter_id = '4'
-	)
-        print "cde returns: ", res
+        res = mps.campaignsPOMS.campaign_definition_edit(
+           dbh.get(), 
+           camp_seshandle, 
+           action = 'add',
+           ae_campaign_definition_id = '',
+           ae_definition_name = 'test_launch_mock_job_generic',
+           ae_input_files_per_job = '0',
+           ae_output_files_per_job = '0',
+           ae_output_file_patterns = '%',
+           ae_launch_script = 'nohup python ./test/mock_job.py --campaign_id $POMS_CAMPAIGN_ID -N 3 -D %(dataset)s > /tmp/launch$$ 2>&1 ; sleep 5; cat /tmp/launch$$',
+           ae_definition_parameters = '[]',
+           ae_definition_recovery = '[]',
+           experiment = 'samdev',
+           experimenter_id = '4'
+        )
+        print("cde returns: ", res)
 
 def del_mock_job_launcher():
     campaign_definition = dbh.get().query(CampaignDefinition).filter(CampaignDefinition.name=='test_launch_mock_job_generic').first()
@@ -83,24 +82,22 @@ def del_mock_job_launcher():
     
     if launch:
         launch_id = launch.launch_id
-	mps.campaignsPOMS.launch_template_edit(
-	    dbh.get(), 
-	    logger.info, 
-	    camp_seshandle, 
-	    action = 'delete',
-	    name= 'test_launch_local_generic',
-	    ae_launch_id = launch_id
-	)
+        mps.campaignsPOMS.launch_template_edit(
+            dbh.get(), 
+            camp_seshandle, 
+            action = 'delete',
+            name= 'test_launch_local_generic',
+            ae_launch_id = launch_id
+        )
     if campaign_definition:
         campaign_definition_id = campaign_definition.campaign_definition_id
-	mps.campaignsPOMS.campaign_definition_edit(
-	    dbh.get(), 
-	    logger.info, 
-	    camp_seshandle, 
-	    action = 'delete',
-	    name = 'test_launch_mock_job_generic',
-	    campaign_definition_id = campaign_definition_id,
-	)
+        mps.campaignsPOMS.campaign_definition_edit(
+            dbh.get(), 
+            camp_seshandle, 
+            action = 'delete',
+            name = 'test_launch_mock_job_generic',
+            campaign_definition_id = campaign_definition_id,
+        )
 
 def add_campaign(name, deps, dataset = None, split = 'None'):
     campaign = dbh.get().query(Campaign).filter(Campaign.name=='name').first()
@@ -108,10 +105,10 @@ def add_campaign(name, deps, dataset = None, split = 'None'):
     launch = dbh.get().query(LaunchTemplate).filter(LaunchTemplate.name == 'test_launch_local_generic').first()
 
     if campaign:
-        print "campaign %s already exists..." % name
+        print("campaign %s already exists..." % name)
         return
     if not campaign_definition or not launch:
-        print "Ouch! adding campaign definition or launch didn't work"
+        print("Ouch! adding campaign definition or launch didn't work")
         return
 
     if dataset == None:
@@ -119,7 +116,6 @@ def add_campaign(name, deps, dataset = None, split = 'None'):
 
     mps.campaignsPOMS.campaign_edit(
         dbh.get(), 
-        logger.info, 
         launch_seshandle, 
         action='add',
         ae_campaign_id = '',
@@ -145,7 +141,6 @@ def del_campaign(name):
     campaign_id = dbh.get().query(Campaign).filter(Campaign.name==name).first().campaign_id
     mps.campaignsPOMS.campaign_edit(
         dbh.get(), 
-        logger.info, 
         camp_seshandle, 
         action = 'delete',
         name = name,
@@ -165,25 +160,33 @@ def test_workflow_1():
      # setup workflow bits for _joe depending on _fred,
      # launch it
 
+     print("test_workflow_1: starting")
+
      cid_fred = add_campaign('_fred','{"campaigns":[],"file_patterns":[]}')
      cid_joe = add_campaign('_joe','{"campaigns":["_fred"],"file_patterns":["%"]}')
 
      before_fred = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_fred , tdays=1)
      before_joe = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_joe , tdays=1)
 
-     mps.taskPOMS.launch_jobs(dbh.get(), logger.info, getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_fred)
+     print("test_workflow_1: before: ", before_fred, before_joe)
 
+     mps.taskPOMS.launch_jobs(dbh.get(), getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_fred)
 
-     time.sleep(10)
-     mps.taskPOMS.wrapup_tasks(dbh.get(), logger.info, samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
-     time.sleep(10)
-     mps.taskPOMS.wrapup_tasks(dbh.get(), logger.info, samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
-     time.sleep(10)
-     mps.taskPOMS.wrapup_tasks(dbh.get(), logger.info, samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
+     print("test_workflow_1: launched")
+
+     time.sleep(5)
+     print("test_workflow_1: first wrapup...")
+     mps.taskPOMS.wrapup_tasks(dbh.get(), samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
+     print("test_workflow_1: first wrapup:complete")
+     time.sleep(5)
+     print("test_workflow_1: second wrapup...")
+     mps.taskPOMS.wrapup_tasks(dbh.get(), samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
+     print("test_workflow_1: second wrapup:complete")
 
      after_fred = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_fred , tdays=1)
      after_joe = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_joe , tdays=1)
      
+     print("test_workflow_1: after:" , after_fred, after_joe)
      #
      # check here that the jobs actually ran etc.
      # 
@@ -192,18 +195,66 @@ def test_workflow_1():
      #del_campaign('_joe')
      #del_mock_job_launcher()
 
-     print "before:", before_fred, before_joe
-     print "after:" , after_fred, after_joe
-
      assert(after_fred['All'] > before_fred['All'])
      assert(after_joe['All'] > before_joe['All'])
+
+     #assert(False)
+
+def test_workflow_2():
+     # setup workflow bits for _joe depending on _fred,
+     # launch it
+
+     print("test_workflow_1: starting")
+
+     cid_jane = add_campaign('_jane','{"campaigns":[],"file_patterns":[]}', dataset='gen_cfg')
+     cid_janet = add_campaign('_janet','{"campaigns":["_jane"],"file_patterns":["%"]}')
+
+     before_jane = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_jane , tdays=1)
+     before_janet = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_janet , tdays=1)
+
+     print("test_workflow_2: before: ", before_jane, before_janet)
+
+     res = mps.taskPOMS.launch_jobs(dbh.get(), getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_jane)
+     output = res[1]
+     m = re.search('POMS_TASK_ID=([0-9]*)', output)
+     tid = m.group(1)
+
+     print("test_workflow_2: launched")
+     print("output:" , output)
+
+     time.sleep(15)
+     print("test_workflow_2: first wrapup...")
+ 
+     res = mps.taskPOMS.wrapup_tasks(dbh.get(), samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
+     print("\n".join(res))
+     print("test_workflow_2: first wrapup:complete")
+     time.sleep(15)
+     print("test_workflow_2: second wrapup...")
+     res = mps.taskPOMS.wrapup_tasks(dbh.get(), samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
+     print("\n".join(res))
+     print("test_workflow_2: second wrapup:complete")
+
+     after_jane = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_jane , tdays=1)
+     after_janet = mps.triagePOMS.job_counts(dbh.get(), campaign_id = cid_janet , tdays=1)
+     
+     print("test_workflow_2: after:" , after_jane, after_janet)
+     #
+     # check here that the jobs actually ran etc.
+     # 
+
+     #del_campaign('_jane')
+     #del_campaign('_janet')
+     #del_mock_job_launcher()
+
+     assert(after_jane['All'] > before_jane['All'])
+     assert(after_janet['All'] > before_janet['All'])
 
      #assert(False)
 
 def test_show_campaigns():
      # NOTE: this assumes someone has run the test_workflow_1 test sometime
      #       recently. Otherwise we might not have the _fred campaign
-     items = mps.campaignsPOMS.show_campaigns(dbhandle, logger.info, samweb_lite(), experiment = 'samdev' )
+     items = mps.campaignsPOMS.show_campaigns(dbhandle, samweb_lite(), experiment = 'samdev' )
      found = False
 
      for c in items[2]:
@@ -216,7 +267,7 @@ def test_campaign_info():
      #       recently. Otherwise we might not have the _fred campaign
      c = dbh.get().query(Campaign).filter(Campaign.name=='_fred').first()
 
-     items = mps.campaignsPOMS.campaign_info(dbhandle, logger.info, samweb_lite(), err_res, campaign_id = c.campaign_id )
+     items = mps.campaignsPOMS.campaign_info(dbhandle, samweb_lite(), err_res, campaign_id = c.campaign_id )
 
      assert(items[0][0].name == '_fred')
 
@@ -233,16 +284,16 @@ def test_campaign_time_bars():
      for j in task.jobs:
          l.append(j.jobsub_job_id)
      l.sort()
-     print "task.jobs: ", repr(task.jobs)
-     print "items:" , repr(items)
-     print "l:" , repr(l)
+     print("task.jobs: ", repr(task.jobs))
+     print("items:" , repr(items))
+     print("l:" , repr(l))
      assert(str(items).find(l[0].replace('.fnal.gov','')) > 0)
 
 def test_register_existing_campaign():
      
     mps.campaignsPOMS.register_poms_campaign(
         dbh.get(), 
-        logger.info, 
+        
         'samdev',
         '_fred',
         version = 'v1_0',
@@ -253,7 +304,7 @@ def test_register_new_campaign():
     # Note: this assumes we have a *generic* launch type and campaign def
     mps.campaignsPOMS.register_poms_campaign(
         dbh.get(), 
-        logger.info, 
+        
         'samdev',
         'test_%d' % time.time() ,
         version = 'v1_0',
@@ -264,7 +315,7 @@ def test_register_new_campaign_2():
     # Note: this assumes we have a *generic* launch type and campaign def
     mps.campaignsPOMS.register_poms_campaign(
         dbh.get(), 
-        logger.info, 
+        
         'samdev',
         'test_%d' % time.time() ,
         version = 'v1_0',
@@ -275,7 +326,7 @@ def test_register_new_campaign_2():
 def test_update_launch_schedule():
     campaign_id = dbh.get().query(Campaign).filter(Campaign.name=='_fred').first().campaign_id
 
-    mps.campaignsPOMS.update_launch_schedule(logger.info, campaign_id, dowlist = '*', domlist = '1', monthly = '' , month = '1', hourlist = '1', submit = 'submit' , minlist = '1', delete = '')
+    mps.campaignsPOMS.update_launch_schedule(campaign_id, dowlist = '*', domlist = '1', monthly = '' , month = '1', hourlist = '1', submit = 'submit' , minlist = '1', delete = '')
 
     comment = "POMS_CAMPAIGN_ID=%d" % campaign_id
 
@@ -301,7 +352,7 @@ def test_update_launch_schedule():
     #
     # try to delete it
     #
-    mps.campaignsPOMS.update_launch_schedule(logger.info,  campaign_id,  minlist = '', hourlist = '', delete = 'True')
+    mps.campaignsPOMS.update_launch_schedule( campaign_id,  minlist = '', hourlist = '', delete = 'True')
 
     #
     # verify its NOT in crontab

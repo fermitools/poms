@@ -8,7 +8,7 @@
 <div class="ui breadcrumb" style="margin-top: -45px;">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
-  <a href="{{pomspath}}/show_campaigns/" class="section">Campaign Layers</a>
+  <a href="{{pomspath}}/show_campaigns/" class="section">Campaign Stages</a>
   <div class="divider"> / </div>
   <a href="{{pomspath}}/campaign_time_bars/campaign_id=?{{job_info.Campaign.campaign_id}}" class="section">Campaign_Layer {{job_info.Campaign.name}}</a>
   <div class="divider"> / </div>
@@ -154,7 +154,7 @@
       </tr>
       
       <tr>
-        <td>Campaign Layer</td>
+        <td>Campaign Stage</td>
         <td>
           <p>{{job_info.Campaign.name}}</p>
         </td>
@@ -359,7 +359,7 @@
                             <td colspan="3">
                                 <table>
                                     <tbody>
-                                        {% for key, value in record_meat.iteritems() %}
+                                        {% for key, value in record_meat.items() %}
                                         <tr>
                                             <td><b>{{ key|e }}</b></td>
                                             <td width="1%" style="display:none;"></td>

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import time
 import datetime
 import concurrent.futures
@@ -10,8 +10,8 @@ from requests.adapters import HTTPAdapter
 import traceback
 import os
 import cherrypy
-from utc import utc
-from poms.model.poms_model import FaultyRequest
+from .utc import utc
+from poms_model import FaultyRequest
 
 
 def safe_get(sess, url, *args, **kwargs):
@@ -32,7 +32,8 @@ def safe_get(sess, url, *args, **kwargs):
             traceback.print_exc()
             return None         # No need to return the response
         finally:
-            reply.close()
+            if reply:
+                reply.close()
         # Everything went OK
         return reply
 
@@ -49,7 +50,7 @@ def safe_get(sess, url, *args, **kwargs):
     try:
         sess.mount('http://', HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2)))
         reply = sess.get(url, timeout=5.0, *args, **kwargs)    # Timeout may need adjustment!
-        if reply.status_code != 200:
+        if reply.status_code != 200 and reply.status_code != 404:
             # Process error, store faulty query in DB
             fault = FaultyRequest(url=url, status=reply.status_code, message=reply.reason)
             dbh.add(fault)
@@ -65,16 +66,21 @@ def safe_get(sess, url, *args, **kwargs):
         dbh.commit()
         return None         # No need to return the response
     finally:
-        reply.close()
+        if reply:
+            reply.close()
     # Everything went OK
     return reply
 
+
+class proj_class_dict(dict):
+     # keep a separate type for project dicts for bookkeeping
+     pass
 
 class samweb_lite:
     def __init__(self):
         self.proj_cache = {}
         self.proj_cache_time = {}
-        self.valid = 60
+        self.valid = 300
 
     def flush(self):
         self.proj_cache = None
@@ -105,7 +111,7 @@ class samweb_lite:
             res = safe_get(sess, url, dbhandle=dbhandle)
         info = {}
         if res:
-            info = res.json()
+            info = proj_class_dict(res.json())
             self.do_totals(info)
             self.proj_cache[experiment + projid] = info
             self.proj_cache_time[experiment + projid] = time.time()
@@ -126,7 +132,7 @@ class samweb_lite:
         for r in replies:
             if r:
                 try:
-                    info = r.json()
+                    info = proj_class_dict(r.json())
                     self.do_totals(info)
                     infos.append(info)
                 except:
@@ -138,6 +144,8 @@ class samweb_lite:
         return infos
 
     def do_totals(self, info):
+        if not info.get("processes",None):
+             return
         tot_consumed = 0
         tot_skipped = 0
         tot_failed = 0
@@ -156,6 +164,8 @@ class samweb_lite:
         info["tot_skipped"] = tot_skipped
         info["tot_jobs"] = tot_jobs
         info["tot_jobfails"] = tot_jobfails
+        # we don't need the individual process info, just the totals..
+        del info["processes"]
 
     def update_project_description(self, experiment, projname, desc):
         base = "http://samweb.fnal.gov:8480"
@@ -172,7 +182,8 @@ class samweb_lite:
         except:
             traceback.print_exc()
         finally:
-            res.close()
+            if reply:
+                res.close()
         return r1
 
     def list_files(self, experiment, dims, dbhandle=None):
@@ -208,21 +219,22 @@ class samweb_lite:
         def getit(req, url):
             retries = 5
             r = req.get(url)
-            while r.status_code >= 500 and retries > 0:
+            while r and r.status_code >= 500 and retries > 0:
                 time.sleep(5)
                 retries = retries - 1
                 r = req.get(url)
-            r.close()
+            if r:
+                r.close()
             return r
 
         # if given an individual experiment, make it a list for
         # all the fetches
-        if isinstance(experiment, basestring):
+        if isinstance(experiment, str):
             experiment = [experiment] * len(dims_list)
 
         base = "http://samweb.fnal.gov:8480"
         urls = ["%s/sam/%s/api/files/count?%s" % (base, experiment[i],
-                                                  urllib.urlencode({"dims": dims_list[i]})) for i in range(len(dims_list))]
+                                                  urllib.parse.urlencode({"dims": dims_list[i]})) for i in range(len(dims_list))]
         with requests.Session() as sess:
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                 #replies = executor.map(getit, urls)
@@ -267,12 +279,12 @@ class samweb_lite:
 if __name__ == "__main__":
     import pprint
     sl = samweb_lite()
-    print sl.create_definition("samdev", "mwm_test_%d" % os.getpid(), "(snapshot_for_project_name mwm_test_proj_1465918505)")
+    print(sl.create_definition("samdev", "mwm_test_%d" % os.getpid(), "(snapshot_for_project_name mwm_test_proj_1465918505)"))
     i = sl.fetch_info("nova", "arrieta1-Offsite_test_Caltech-20160404_1157")
     i2 = sl.fetch_info("nova", "brebel-AnalysisSkimmer-20151120_0126")
-    print "got:"
+    print("got:")
     pprint.pprint(i)
-    print "got:"
+    print("got:")
     pprint.pprint(i2)
 
     l = sl.list_files("nova",
@@ -290,7 +302,7 @@ if __name__ == "__main__":
                        "project_name 'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.e-neardet-20160210_1624',"
                        "'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.a-fardet-20160202_1814'")
 
-    print "got count:", c
+    print("got count:", c)
 
     l = sl.count_files_list("nova", ["defname:mwm_test_6", "defname:mwm_test_9", "defname:mwm_test_11"])
-    print "got count list: ", l
+    print("got count list: ", l)
