@@ -200,7 +200,7 @@ class SessionTool(cherrypy.Tool):
         logit.log("mengel -- in establish_session")
 
         if cherrypy.session.get('id', None):
-            logit.log("mengel -- bailing no session id")
+            #logit.log("mengel -- bailing no session id")
             #logit.log("EXISTING SESSION: %s" % str(cherrypy.session['experimenter']))
             return
 
@@ -226,6 +226,7 @@ class SessionTool(cherrypy.Tool):
             # being me for testing...
             
             logit.log("faking user...")
+            username = os.environ['USER']
             experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == os.environ['USER']).first()
             # experimenter = None
 
