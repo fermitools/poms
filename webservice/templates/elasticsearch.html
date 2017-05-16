@@ -21,7 +21,7 @@
 {%block header%}
 <h1 class="ui header">
          Elasticsearch Table Demo {%include 'help_button.html'%}
-                    
+
           <div class="sub header">
               view key value pairs of es query result set
           </div>
@@ -80,8 +80,8 @@
 {% for record in es_response.get('hits').get('hits') %}
 
     {% set record_meat = record.get('_source') %}
-          
-        {% for key, value in record_meat.iteritems() %}
+
+        {% for key, value in record_meat.items() %}
         <b>{{ key|e }}</b>:
         {{ value|e }}
         <br/>
@@ -89,7 +89,7 @@
 <br/><br/>
 {% endfor %}
 
-	
+
 
 
 
@@ -248,4 +248,3 @@
 
 
 {%endblock%}
-

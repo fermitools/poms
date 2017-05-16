@@ -5,14 +5,19 @@ import os
 from datetime import datetime
 from utc import utc
 import atexit
+from textwrap import dedent
+from io import StringIO
+import dowser
+import poms.webservice.pomscache as pomscache
 
-if os.environ.get("SETUP_POMS", "") == "":
-    sys.path.insert(0, os.environ.get('SETUPS_DIR', os.environ.get('HOME') + '/products'))
-    import setups
-    ups = setups.setups()
-    ups.use_package("poms", "", "SETUP_POMS")
+#
+#if os.environ.get("SETUP_POMS", "") == "":
+#    sys.path.insert(0, os.environ.get('SETUPS_DIR', os.environ.get('HOME') + '/products'))
+#    import setups
+#    ups = setups.setups()
+#    ups.use_package("poms", "", "SETUP_POMS")
 
-from poms.model.poms_model import Experimenter, ExperimentsExperimenters
+from poms_model import Experimenter, ExperimentsExperimenters, Experiment
 # from sqlalchemy.orm import subqueryload, joinedload, contains_eager
 import os.path
 import argparse
@@ -24,15 +29,16 @@ from cherrypy.process import wspbus, plugins
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
-import poms_service
+from poms.webservice import poms_service
 
-import jobsub_fetcher
-import samweb_lite
-import logging_conf
+from poms.webservice import jobsub_fetcher
+from poms.webservice import samweb_lite
+from poms.webservice import logging_conf
+from poms.webservice import logit
 
 
 class SAEnginePlugin(plugins.SimplePlugin):
-    def __init__(self, bus):
+    def __init__(self, bus, app):
         """
         The plugin is registered to the CherryPy engine and therefore
         is part of the bus (the engine *is* a bus) registery.
@@ -45,6 +51,7 @@ class SAEnginePlugin(plugins.SimplePlugin):
         will use to map a session to the SA engine at request time.
         """
         plugins.SimplePlugin.__init__(self, bus)
+        self.app = app
         self.sa_engine = None
         self.bus.subscribe("bind", self.bind)
 
@@ -55,7 +62,7 @@ class SAEnginePlugin(plugins.SimplePlugin):
 
 
     def start(self):
-        section = cherrypy.request.app.config['Databases']
+        section = self.app.config['Databases']
         db = section["db"]
         dbuser = section["dbuser"]
         dbhost = section["dbhost"]
@@ -105,12 +112,13 @@ class SATool(cherrypy.Tool):
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
-        self.session.execute("SET SESSION lock_timeout = '1s';")
-        self.session.execute("SET SESSION statement_timeout = '45s';")
+        self.session.execute("SET SESSION lock_timeout = '60s';")
+        self.session.execute("SET SESSION statement_timeout = '120s';")
         self.session.commit()
 
     def release_session(self):
-        cherrypy.request.jobsub_fetcher.flush()
+        # flushing here deletes it too soon...
+        #cherrypy.request.jobsub_fetcher.flush()
         cherrypy.request.samweb_lite.flush()
         cherrypy.request.db.close()
         cherrypy.request.db = None
@@ -121,12 +129,13 @@ class SATool(cherrypy.Tool):
 
 class SessionExperimenter(object):
 
-    def __init__(self, experimenter_id=None, first_name=None, last_name=None, username=None, authorized_for=None, **kwargs):
+    def __init__(self, experimenter_id=None, first_name=None, last_name=None, username=None, authorized_for=None, session_experiment=None, **kwargs):
         self.experimenter_id = experimenter_id
         self.first_name = first_name
         self.last_name = last_name
         self.username = username
         self.authorized_for = authorized_for
+        self.session_experiment = session_experiment
         self.extra = kwargs
         self.valid_ip_list = []     # FIXME
 
@@ -165,6 +174,9 @@ class SessionExperimenter(object):
             return True
         return self.authorized_for.get('root', False)
 
+    def all_experiments(self):
+        return self.authorized_for.keys()
+
     def __str__(self):
         return "%s %s %s" % (self.first_name, self.last_name, self.username)
 
@@ -185,61 +197,64 @@ class SessionTool(cherrypy.Tool):
     #                                  priority=90)
 
     def establish_session(self):
+        logit.log("mengel -- in establish_session")
 
         if cherrypy.session.get('id', None):
+            logit.log("mengel -- bailing no session id")
             #logit.log("EXISTING SESSION: %s" % str(cherrypy.session['experimenter']))
             return
 
         cherrypy.session['id']              = cherrypy.session.originalid  #The session ID from the users cookie.
         cherrypy.session['X-Forwarded-For'] = cherrypy.request.headers.get('X-Forwarded-For', None)
+        # someone had all these SHIB- headers mixed case, which is not
+        # how they are on fermicloud045 or on pomsgpvm01...
         cherrypy.session['Remote-Addr']     = cherrypy.request.headers.get('Remote-Addr', None)
         cherrypy.session['X-Shib-Userid']   = cherrypy.request.headers.get('X-Shib-Userid', None)
 
         username = None
+        logit.log("mengel -- checking Shib-Userid")
         if cherrypy.request.headers.get('X-Shib-Userid', None):
+            logit.log("mengel --have Shib-Userid")
             username = cherrypy.request.headers['X-Shib-Userid']
+            experimenter = None
             experimenter = (cherrypy.request.db.query(Experimenter)
                             .filter(ExperimentsExperimenters.active == True)
                             .filter(Experimenter.username == username)
                             .first()
                             )
         else:
-            experimenter = None
+            # being me for testing...
+            
+            logit.log("faking user...")
+            experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == os.environ['USER']).first()
+            # experimenter = None
 
-        if not experimenter and cherrypy.request.headers.get('X-Shib-Userid', None):
-            username = cherrypy.request.headers['X-Shib-Userid']
-            experimenter = Experimenter(
-                                first_name=cherrypy.request.headers['X-Shib-Name-First'],
-                                last_name=cherrypy.request.headers['X-Shib-Name-Last'],
-                                username=username
-                            )
-            cherrypy.request.db.add(experimenter)
-            cherrypy.request.db.flush()
-            e2e = ExperimentsExperimenters(
-                        experimenter_id=experimenter.experimenter_id,
-                        experiment='public',
-                        active=True
-                    )
-            cherrypy.request.db.add(e2e)
-            cherrypy.request.db.commit()
+        if not experimenter:
+            raise cherrypy.HTTPError(401, 'POMS account does not exist.  To be added you must registered in VOMS.')
 
         e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == username).all()
-        if len(e):
-            e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e[0].experimenter_id)
-        else:
-            e2e = []
+
+        # Now determine what experiments a user has access too.  If they have 'root' then all them to all experiments.
         exps = {}
-        for row in e2e:
-            exps[row.experiment] = row.active
-        if len(e):
-            extra = {'selected': exps.keys()}
-            cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
-                                                                   e[0].first_name, e[0].last_name, e[0].username, exps, **extra)
+
+        root = (cherrypy.request.db.query(ExperimentsExperimenters)
+                .filter(ExperimentsExperimenters.experimenter_id==e[0].experimenter_id)
+                .filter(ExperimentsExperimenters.experiment=='root')).all()
+        if len(root):
+            all_exps = cherrypy.request.db.query(Experiment)
+            for row in all_exps:
+                exps[row.experiment] = True
         else:
-            cherrypy.session['experimenter'] = SessionExperimenter("anonymous", "", "", "", {})
+            e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e[0].experimenter_id)
+            for row in e2e:
+                exps[row.experiment] = row.active
+
+        extra = {'selected': list(exps.keys())}
+        cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
+                                                               e[0].first_name, e[0].last_name, e[0].username, exps, e[0].session_experiment, **extra)
         cherrypy.request.db.query(Experimenter).filter(Experimenter.username == username).update({'last_login': datetime.now(utc)})
         cherrypy.request.db.commit()
-        cherrypy.log.error("NEW SESSION: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For', 'Unknown'),
+        cherrypy.log.error("New Session: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For', 'Unknown'),
                                                             cherrypy.session['id'],
                                                             experimenter.username if experimenter else 'none',
                                                             experimenter.first_name if experimenter else 'none',
@@ -273,23 +288,47 @@ if True:
     parser, args = parse_command_line()
     if args.config:
         configfile = args.config
+
+    #
+    # make %(HOME) and %(POMS_DIR) work in various sections
+    #
+    confs = dedent("""
+       [DEFAULT]
+       HOME="%(HOME)s"
+       POMS_DIR="%(POMS_DIR)s"
+    """ % os.environ)
+
+    cf = open(configfile,"r")
+    confs = confs + cf.read()
+    cf.close
+
     try:
-        cherrypy.config.update(configfile)
-    except IOError, mess:
-        print >> sys.stderr, mess
+        cherrypy.config.update(StringIO(confs))
+        #cherrypy.config.update(configfile)
+    except IOError as mess:
+        print(mess, file=sys.stderr)
         parser.print_help()
         raise SystemExit
 
-    SAEnginePlugin(cherrypy.engine).subscribe()
+    # add dowser in to monitor memory...
+    dapp = cherrypy.tree.mount(dowser.Root(), '/dowser')
+
+    pomsInstance = poms_service.poms_service()
+    app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, StringIO(confs))
+    #app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, configfile)
+
+
+    SAEnginePlugin(cherrypy.engine, app).subscribe()
     cherrypy.tools.db = SATool()
     cherrypy.tools.psess = SessionTool()
-    pomsInstance = poms_service.poms_service()
-    app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, configfile)
 
     cherrypy.engine.unsubscribe('graceful', cherrypy.log.reopen_files)
 
     logging.config.dictConfig(logging_conf.LOG_CONF)
-    cherrypy.log.error("POMSPATH: %s" % pomsInstance.path)
+    section = app.config['POMS']
+    log_level = section["log_level"]
+    logit.setlevel(log_level)
+    logit.log("POMSPATH: %s" % pomsInstance.path)
     pidfile()
 
     pomsInstance.post_initalize()
@@ -301,7 +340,7 @@ if True:
 
     if not args.use_wsgi:
         cherrypy.engine.block()		# Disable built-in HTTP server when behind wsgi
-        print >> sys.stderr, "Starting Cherrypy HTTP"
+        logit.log("Starting Cherrypy HTTP")
 
     application = cherrypy.tree
     if 0:

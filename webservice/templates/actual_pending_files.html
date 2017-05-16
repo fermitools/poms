@@ -26,8 +26,8 @@
 
 
 {%block subheader%}
-<a href="{{prev}}">&lt;previous {{days}} days</a> | 
-<a href="{{next}}">next {{days}} days &gt;</a>
+<a href="{{prev}}">&lt;previous {{tdays}} days</a> | 
+<a href="{{next}}">next {{tdays}} days &gt;</a>
 {%endblock%}
 
 
@@ -37,7 +37,7 @@
 Pending files for:
 
      {% if campaign_id is not none %}
-        Campaign Layer {{c.name}}
+        Campaign Stage {{c.name}}
      {% elif task_id is not none %}
        Submissions(s) {{jjid}}
      {% elif job_id is not none %}

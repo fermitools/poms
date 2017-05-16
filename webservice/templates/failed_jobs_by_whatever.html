@@ -9,7 +9,7 @@
 <div class="ui breadcrumb" style="margin-top: -45px;">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
-  <div class="section">Jobs by exit code {% if days == 7 %} (weekly) {% elif days == 1 %} (daily) {% endif %}</div>
+  <div class="section">Jobs by exit code {% if tdays == 7 %} (weekly) {% elif tdays == 1 %} (daily) {% endif %}</div>
 </div>
 {%endblock%}
 
@@ -29,8 +29,8 @@
 
 
 <br/>
-<a href="{{prev}}">&lt;previous {{days}} days</a> | 
-<a href="{{next}}">next {{days}} days &gt;</a>
+<a href="{{prev}}">&lt;previous {{tdays}} days</a> | 
+<a href="{{next}}">next {{tdays}} days &gt;</a>
 <br/>
 {%endblock%}
 
@@ -71,7 +71,7 @@
       <tr {% if job[0] == 0 %} class="%itive" {%else%} class="negative" {%endif%} >
          {%for col in range(0, columns|count) %}
             {% if loop.last %}
-              <td><a href="{{pomspath}}/job_table?tdays={{days}}&tmax={{tmax}}{%for c2 in range(0,columns|count-1)%}&{{columns[c2]}}={{job[c2]}}{%endfor%}">{{job[col]}}</a></td>
+              <td><a href="{{pomspath}}/job_table?tdays={{tdays}}&tmax={{tmax}}{%for c2 in range(0,columns|count-1)%}&{{columns[c2]}}={{job[c2]}}{%endfor%}">{{job[col]}}</a></td>
             {% elif columns[col]== 'user_exe_exit_code' %}
 		<td><a href="https://cdcvs.fnal.gov/redmine/projects/offline_production_operations_service/wiki/_{%for c in range(0,columns|count-1)%}{%if columns[c]== 'experiment'%}{{job[c]}}{% endif %}{%endfor%}_error_codes_#{{job[col]}}">{{job[col]}}</a></td>
     	    {% else %}

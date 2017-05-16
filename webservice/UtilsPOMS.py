@@ -6,10 +6,11 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py
 ### written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
-from poms.model.poms_model import Job
+from poms_model import Job
 from datetime import datetime, timedelta
-from utc import utc
-import urllib
+from .utc import utc
+from poms_model import Experimenter
+import urllib.request, urllib.parse, urllib.error
 
 
 
@@ -26,20 +27,24 @@ class UtilsPOMS():
         and a string describing the date range.  Use everywhere.
         """
 
-        # set a flag to remind us to set tdays from max and min if
-        # they are both set coming in.
-        set_tdays = tmax not in (None, '') and tmin not in (None, '')
+        # if they set max and min (i.e. from calendar) set tdays from that.
+        if not tmax in (None,'') and not tmin in (None, ''):
+            if isinstance(tmin, str):
+                tmin = datetime.strptime(tmin[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=utc)
+            if isinstance(tmax, str):
+                tmax = datetime.strptime(tmax[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=utc)
+            tdays = (tmax - tmin).total_seconds() / 86400.0
 
         if tmax in (None, ''):
             if tmin not in (None, '') and tdays not in (None, ''):
-                if isinstance(tmin, basestring):
+                if isinstance(tmin, str):
                     tmin = datetime.strptime(tmin[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=utc)
                 tmax = tmin + timedelta(days=float(tdays))
             else:
                 # if we're not given a max, pick now
                 tmax = datetime.now(utc)
 
-        elif isinstance(tmax, basestring):
+        elif isinstance(tmax, str):
             tmax = datetime.strptime(tmax[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=utc)
 
         if tdays in (None, ''):  # default to one day
@@ -50,12 +55,8 @@ class UtilsPOMS():
         if tmin in (None, ''):
             tmin = tmax - timedelta(days=tdays)
 
-        elif isinstance(tmin, basestring):
+        elif isinstance(tmin, str):
             tmin = datetime.strptime(tmin[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=utc)
-
-        if set_tdays:
-            # if we're given tmax and tmin, compute tdays
-            tdays = (tmax - tmin).total_seconds() / 86400.0
 
         tsprev = tmin.strftime("%Y-%m-%d+%H:%M:%S")
         tsnext = (tmax + timedelta(days=tdays)).strftime("%Y-%m-%d+%H:%M:%S")
@@ -71,8 +72,9 @@ class UtilsPOMS():
         # redundant, but trying to rule out tz woes here...
         tmin = tmin.replace(tzinfo=utc)
         tmax = tmax.replace(tzinfo=utc)
+        tdays = (tmax - tmin).total_seconds() / 86400.0
 
-        return (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange)
+        return (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays)
 
 
     def quick_search(self, dbhandle, redirect, search_term):
@@ -83,5 +85,12 @@ class UtilsPOMS():
             raise redirect("%s/triage_job?job_id=%s&tmin=%s" % (self.poms_service.path, str(job_info.job_id), tmins))
         else:
             search_term = search_term.replace("+", " ")
-            query = urllib.urlencode({'q': search_term})
+            query = urllib.parse.urlencode({'q': search_term})
             raise redirect("%s/search_tags?%s" % (self.poms_service.path, query))
+
+    def update_session_experiment(self, db, seshandle, *args, **kwargs):
+        session_experiment = kwargs.pop('session_experiment',None)
+        id = seshandle('experimenter').experimenter_id
+        sql = db.query(Experimenter).filter(Experimenter.experimenter_id==id).update({'session_experiment':session_experiment})
+        db.commit()
+        seshandle('experimenter').session_experiment = session_experiment

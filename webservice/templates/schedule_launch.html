@@ -1,7 +1,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS:Campaign Layer {{c.name}} Scheduled Launches</title>
+    <title>POMS:Campaign Stage {{c.name}} Scheduled Launches</title>
 {%endblock%}
 
 
@@ -9,7 +9,7 @@
 <div class="ui breadcrumb" style="margin-top: -45px;">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
-  <div class="section"> <a href="{{pomspath}}/show_campaigns">Campaign Layers</a></div>
+  <div class="section"> <a href="{{pomspath}}/show_campaigns">Campaign Stages</a></div>
   <div class="divider"> / </div>
   <div class="section">Scheduled Launches {{c.name}}</div>
 </div>
@@ -18,7 +18,7 @@
 
 {%block header%}
 <h1 class="ui header">
-     Campaign Layer Launch Schedule{%include 'help_button.html'%}
+     Campaign Stage Launch Schedule{%include 'help_button.html'%}
 </h1>
 {%endblock%}
 

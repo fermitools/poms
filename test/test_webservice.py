@@ -36,7 +36,7 @@ def test_dashboard_status(client):
 def test_active_campaigns(client):
     client.get('show_campaigns')
     assert client.code == 200
-    assert 'Active Campaign Layers' in client.text
+    assert 'Active Campaign Stages' in client.text
 
 
 def test_calendar(client):
@@ -60,19 +60,19 @@ def test_user_edit(client):
 def test_public_campaigns(client):
     client.get('show_campaigns?experiment=public')
     assert client.code == 200
-    assert 'Active Campaign Layers' in client.text
+    assert 'Active Campaign Stages' in client.text
 
 
 def test_inactive_campaigns(client):
     client.get('show_campaigns?active=False')
     assert client.code == 200
-    assert 'InActive Campaign Layers' in client.text
+    assert 'InActive Campaign Stages' in client.text
 
 
 def test_campaign_edit(client):
     client.get('campaign_edit')
     assert client.code == 200
-    assert 'Campaign Layers' in client.text
+    assert 'Campaign Stages' in client.text
 
 
 def test_campaign_definition_edit(client):
