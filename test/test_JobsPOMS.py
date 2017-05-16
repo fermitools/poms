@@ -205,6 +205,7 @@ def test_kill_jobs():
     assert(jrm_id==c_output_killjob)
 
     #Check kill jobs in one task
+
     sep=output_killTask.rfind('--jobid ')
     assert(sep!=-1) #--jobid option was in called in the command
     print("got output:", output_killTask)

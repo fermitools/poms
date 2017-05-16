@@ -108,15 +108,6 @@
                 <b>Calendar</b>
             </a>
 
-            <a class="item requests"  href="#">
-                <b>Requests</b>
-            </a>
-
-	    <!--
-           <a class="item" href="{{pomspath}}/admin_screen">
-        	<b>DB Admin</b>
-           </a>
-	   -->
 
             <div class="item">
                 <div class="header">DB Admin</div>
@@ -265,9 +256,6 @@
                             <b>Calendar</b>
                         </a>
 
-                        <a class="item requests" href="#">
-                            <b>Requests</b>
-                        </a>
 
             <div class="item">
                 <div class="header">DB Admin</div>
@@ -395,77 +383,58 @@ function validateQuickSearchForm(formid)
 
 
                 <div class="article">  <!--header of page-->
+		  <br/>
+		  <div class="ui three column grid">
+		    <div class="row">
+		      <div class="column">
+			<select class="ui dropdown" name="session_experiment_id" id="session_experiment_id" style="margin-left: 10px;">
+			  <option value="">Choose Experiment</option>
+			  {% for exp in allowed_experiments %}
+			  {% if exp != 'root' %}
+			  <option value="{{exp}}" {{ 'selected="selected"' if (session_experiment == exp) }}>{{exp}}</option>
+			  {% endif %}
+			  {% endfor %}
+			</select>
+		      </div>
+		      <div class="column">
+			<h1 class="ui header" style="margin: 0px 10px 0px 10px;">
+                          {%block header%} {%endblock%}
+			</h1>
+			  {%block header_desc%}{%endblock%}
+			<h2 class="ui header" style="margin: 0px 10px 0px 10px;">
+			  {%block subheader%} {%endblock%}
+			</h2>
+		      </div>
+		      <div class="column right float">
+			<i class="user icon"></i>{{current_experimenter.first_name}} {{current_experimenter.last_name}}
+		      </div>
+		    </div>
+		    <div class="row">
+		      <div class="column">
+                        {%block breadcrumbs%} {%endblock%}
+		      </div>
+		      <div class="column">
+		      </div>
+		      <div class="column">
+		      </div>
+		    </div>
+		  </div>
+		  <div class="ui divider"  style="margin-top: 0px;"></div>
 
-                    <div class="ui masthead vertical segment">
-
-
-                    {% if current_experimenter is defined %}
-                       <div class="ui right floated segment" id="auth_info" style="z-index: 1">
-                       <i class="user icon"></i>
-                       {{current_experimenter.first_name}} {{current_experimenter.last_name}}
-
-                           <div class="ui dimmer">
-                             <div class="content">
-                               <div class="center">
-                                 <div class="ui small primary button" id="sign_out"> <i class="sign out icon"></i> Sign Out</div>
-                               </div>
-                             </div>
-                           </div>
-
-                       </div>
+                  {% include 'datepicker_block.html' %}
 
 
 
-<script>
-$( "#sign_out" ).click(function() {
-  window.location.href="sign_out"
-});
-</script>
-
-                    {% endif %}
-                        <div class="ui container">
-                            <div class="introduction">
-                                {%block breadcrumbs%} {%endblock%}
-
-                                {%block header%} {%endblock%}
-
-                                {% include 'datepicker_block.html' %}
-                            </div>
-
-                        </div>
+                    <div class="no example" style="margin: 0px 10px 0px 10px;">
+                      {%block content%} {%endblock%}
                     </div>
 
-
-
-
-
-
-
-                    <div class="main ui intro container">
-
-                        {%block subheader%} {%endblock%}
-
-                        <div class="no example" style="margin: 0px 10px 0px 10px;">
-                        {%block content%} {%endblock%}
-
-
-                         <div class="ui small basic test modal" id="under_construction">
-                            <div class="ui icon header">
-                              <i class="warning sign icon"></i>
-                              Under Construction
-                            </div>
-                         </div>
-
-
-                        </div>
-
-                    </div>  <!--ends main ui intro container-->
-
-
-                    <div class="ui mini label" style="float:right;">{{version}}</div>
+		  </div> <!-- fields -->
 
 
                 </div>  <!--ends article-->
+
+            <div class="ui small label" style="float:right;">Version: {{version}}&nbsp&nbsp</div>
 
 
 
@@ -502,15 +471,21 @@ $( "#sign_out" ).click(function() {
 
 
 <script>
-$( ".requests" ).click(function() {
-  $('#under_construction').modal('show');
+
+$("#session_experiment_id").change(function() {
+  var formdata = {'session_experiment': $("#session_experiment_id").val()};
+  $.ajax({
+      url: "{{pomspath}}/update_session_experiment",
+      type: 'GET',
+      data: formdata,
+      success: function(data){
+        location.reload();
+      }
+    });
 });
 
-</script>
 
 
-
-<script>
 $('.tbox')
   .popup({
     position : 'top left',
