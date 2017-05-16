@@ -217,7 +217,7 @@ def test_workflow_2():
 
      res = mps.taskPOMS.launch_jobs(dbh.get(), getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_jane)
      time.sleep(5) 
-     output_file = res[3] + '/' + res[4]
+     output_file = res[4]
      f = open(output_file, "r")
      output = f.read()
      f.close()
