@@ -9,6 +9,7 @@
 from poms_model import Job
 from datetime import datetime, timedelta
 from .utc import utc
+from poms_model import Experimenter
 import urllib.request, urllib.parse, urllib.error
 
 
@@ -86,3 +87,10 @@ class UtilsPOMS():
             search_term = search_term.replace("+", " ")
             query = urllib.parse.urlencode({'q': search_term})
             raise redirect("%s/search_tags?%s" % (self.poms_service.path, query))
+
+    def update_session_experiment(self, db, seshandle, *args, **kwargs):
+        session_experiment = kwargs.pop('session_experiment',None)
+        id = seshandle('experimenter').experimenter_id
+        sql = db.query(Experimenter).filter(Experimenter.experimenter_id==id).update({'session_experiment':session_experiment})
+        db.commit()
+        seshandle('experimenter').session_experiment = session_experiment

@@ -40,7 +40,7 @@ def verify_exp(cursor,exp):
         retval = False
     return retval
 
-def add_user(cursor,username,commonname):
+def add_user(cursor,username,commonname,exp):
     sql = "select experimenter_id from experimenters where username='%s'" % username
     cursor.execute(sql)
     (experimenterid,) = cursor.fetchone() or (None,)
@@ -51,7 +51,7 @@ def add_user(cursor,username,commonname):
         names = commonname.split(" ")
         if len(names) == 2:
             (first_name, last_name) = commonname.split(" ")
-        sql = "insert into experimenters (last_name,first_name,username) values ('%s','%s','%s') returning experimenter_id" % (last_name,first_name,username)
+        sql = "insert into experimenters (last_name,first_name,username,session_experiment) values ('%s','%s','%s','%s') returning experimenter_id" % (last_name,first_name,username,exp)
         cursor.execute(sql)
         experimenterid = cursor.fetchone()[0]
         debug("add_user: inserted new experimenter id=%s" % experimenterid)
@@ -94,7 +94,7 @@ def main():
             else:
                 for user in expdict[exp]:
                     debug("main: processing <%s> <%s> <%s>" % (exp, user['username'], user['commonname']))
-                    experimenterid = add_user(cursor, user['username'], user['commonname'])
+                    experimenterid = add_user(cursor, user['username'], user['commonname'],exp)
                     add_relationship(cursor, experimenterid, exp)
         conn.commit()
         conn.close()
