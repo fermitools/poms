@@ -366,7 +366,7 @@ class poms_service:
         return template.render( tl = tl,
                                 pomspath=self.path, help_page="ShowCampaignTagsHelp",
                                 current_experimenter = current_experimenter,
-                                experiments=experiments,
+                                experiment=experiment,
                                 version=self.version)
        
 
