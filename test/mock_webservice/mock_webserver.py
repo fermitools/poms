@@ -42,6 +42,8 @@ def run_while_true(server_class = http.server.HTTPServer,
     while keep_running:
          try:
             httpd.handle_request()
+            sys.stderr.flush()
+            sys.stdout.flush()
          except KeyboardInterrupt:
             #print "bailing..."
             keep_running = False

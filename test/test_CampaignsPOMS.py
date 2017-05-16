@@ -216,7 +216,11 @@ def test_workflow_2():
      print("test_workflow_2: before: ", before_jane, before_janet)
 
      res = mps.taskPOMS.launch_jobs(dbh.get(), getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_jane)
-     output = res[1]
+     time.sleep(5) 
+     output_file = res[3] + '/' + res[4]
+     f = open(output_file, "r")
+     output = f.read()
+     f.close()
      m = re.search('POMS_TASK_ID=([0-9]*)', output)
      tid = m.group(1)
 
