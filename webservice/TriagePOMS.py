@@ -142,8 +142,9 @@ class TriagePOMS(object):
         # pomspath=self.path, help_page="TriageJobHelp", task_jobsub_job_id=task_jobsub_job_id, version=self.version)
 
 
-    def job_table(self, dbhandle, tmin=None, tmax=None, tdays=1, **kwargs):
+    def job_table(self, dbhandle, sesshandle, tmin=None, tmax=None, tdays=1, **kwargs):
 
+        session_experiment = sesshandle.get('experimenter').session_experiment
         (tmin, tmax, tmins, tmaxs,
          nextlink, prevlink, time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'job_table?')
         extra = ""
@@ -151,7 +152,7 @@ class TriagePOMS(object):
 
         q = dbhandle.query(Job, Task, Campaign)
         q = q.execution_options(stream_results=True)
-        q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == Campaign.campaign_id)
+        q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == Campaign.campaign_id, Campaign.experiment == session_experiment)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax)
 
         keyword = kwargs.get('keyword')
@@ -327,7 +328,8 @@ class TriagePOMS(object):
         return jl, jobcolumns, taskcolumns, campcolumns, tmins, tmaxs, prevlink, nextlink, tdays, extra, hidecolumns, filtered_fields, time_range_string
 
 
-    def failed_jobs_by_whatever(self, dbhandle, tmin=None, tmax=None, tdays=1, f=[], go=None):
+    def failed_jobs_by_whatever(self, dbhandle, sesshandle, tmin=None, tmax=None, tdays=1, f=[], go=None):
+        session_experiment = sesshandle.get('experimenter').session_experiment
         # deal with single/multiple argument silliness
         if isinstance(f, str):
             f = [f]
@@ -376,6 +378,7 @@ class TriagePOMS(object):
         #
         q = dbhandle.query(*qargs)
         q = q.join(Task, Campaign)
+        q = q.filter(Campaign.experiment == session_experiment)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax, Job.user_exe_exit_code != 0)
         q = q.group_by(*gbl).order_by(desc(func.count(Job.job_id)))
 

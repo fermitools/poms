@@ -45,12 +45,14 @@
 
 <form id="launch_template_form" class="ui form" action="launch_template_edit" method="POST">
 
+  <!--
   <select class="ui dropdown" name="experiment" id="experiment">
     <option value="">Choose Experiment</option>
     {% for row in data.exp_selections %}
     <option value="{{row.experiment}}" {{ 'selected="selected"' if (data.curr_experiment == row.experiment) }}>{{row.name}}</option>
     {% endfor %}
   </select>
+  -->
 
   {% if data.curr_experiment is defined %}
   <div id="double-scroll" class="ui scrollable">
@@ -182,9 +184,11 @@ $('#template_add_edit_form')
   })
 ;
 
+/*
 $("#experiment").change(function() {
     $("#launch_template_form").submit();
   });
+*/
 
   function delete_template(name) {
     var template = name;

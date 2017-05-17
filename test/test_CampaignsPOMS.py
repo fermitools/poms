@@ -220,17 +220,16 @@ def test_workflow_2():
 
      res = mps.taskPOMS.launch_jobs(dbh.get(), getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_jane)
      time.sleep(10) 
-     output_file = res[4]
-     f = open(output_file, "r")
-     output = f.read()
-     f.close()
-     m = re.search('POMS_TASK_ID=([0-9]*)', output)
-     tid = m.group(1)
+     #output_file = res[4]
+     #f = open(output_file, "r")
+     #output = f.read()
+     #f.close()
+     #m = re.search('POMS_TASK_ID=([0-9]*)', output)
+     #tid = m.group(1)
 
      print("test_workflow_2: launched")
-     print("output:" , output)
 
-     time.sleep(2020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020)
+     time.sleep(40)
      print("test_workflow_2: first wrapup...")
  
      res = mps.taskPOMS.wrapup_tasks(dbh.get(), samweb_lite(), getconfig, gethead, launch_seshandle, err_res )

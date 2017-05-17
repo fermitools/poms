@@ -197,10 +197,8 @@ class SessionTool(cherrypy.Tool):
     #                                  priority=90)
 
     def establish_session(self):
-        logit.log("mengel -- in establish_session")
 
         if cherrypy.session.get('id', None):
-            #logit.log("mengel -- bailing no session id")
             #logit.log("EXISTING SESSION: %s" % str(cherrypy.session['experimenter']))
             return
 
@@ -212,9 +210,7 @@ class SessionTool(cherrypy.Tool):
         cherrypy.session['X-Shib-Userid']   = cherrypy.request.headers.get('X-Shib-Userid', None)
 
         username = None
-        logit.log("mengel -- checking Shib-Userid")
         if cherrypy.request.headers.get('X-Shib-Userid', None):
-            logit.log("mengel --have Shib-Userid")
             username = cherrypy.request.headers['X-Shib-Userid']
             experimenter = None
             experimenter = (cherrypy.request.db.query(Experimenter)
@@ -222,13 +218,6 @@ class SessionTool(cherrypy.Tool):
                             .filter(Experimenter.username == username)
                             .first()
                             )
-        else:
-            # being me for testing...
-            
-            logit.log("faking user...")
-            username = os.environ['USER']
-            experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == os.environ['USER']).first()
-            # experimenter = None
 
         if not experimenter:
             raise cherrypy.HTTPError(401, 'POMS account does not exist.  To be added you must registered in VOMS.')

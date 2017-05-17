@@ -1,16 +1,11 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS:{{In}}Active Campaign Stages
-       {%if limit_experiment %}
-           for {{limit_experiment}}
-       {%endif%}
-   </title>
+POMS:{{In}}Active Campaign Stages
 {%endblock%}
 
-
 {%block breadcrumbs%}
-<div class="ui breadcrumb" style="margin-top: -45px;">
+<div class="ui breadcrumb" style="margin-top: -45px; margin-left: 10px">
   <a href="{{pomspath}}/" class="section">Home</a>
   <div class="divider"> / </div>
   <div class="section">Campaign Stages</div>
@@ -19,85 +14,12 @@
 
 
 {%block header%}
-<h1 class="ui header">
-     Campaign Stages{%include 'help_button.html'%}
-       {%if limit_experiment %}
-           for {{limit_experiment}}
-       {%endif%}
-</h1>
+{{In}}Active Campaign Stages{%include 'help_button.html'%}
 {%endblock%}
-
-
-
-
-{%block subheader%}
-<!--
-    <h2 class="ui dividing header">{{In}}Active Campaign Stages <!--for {{time_range_string}} - ->
-           {%if limit_experiment %}
-               for {{limit_experiment}}
-           {%endif%}
-    </h2>
-    -->
-    <!-- <div class="ui two column doubling stackable grid container"> -->
-    <div class="ui grid container">
-        <h2 class="ui __dividing header">{{In}}Active Campaign Stages<!--for {{time_range_string}} -->
-               {%if limit_experiment %}
-                   for {{limit_experiment}}
-               {%endif%}
-        </h2>
-        <form method="POST" class="ui form">
-            <select class="ui inline __search dropdown" multiple="multiple" name="exp_selected">
-                <option value="">Experiments</option>
-                {# for c in cl if not c.experiment_obj.restricted or current_experimenter.is_authorized(c.experiment) #}
-                {% for e in experiments %}
-                    <!-- e: "{{e}}" "{{e.4}}" -->
-                    {% if current_experimenter.extra %}
-                      <option value="{{e.0}}" {{'selected' if e.4 or e.0 in current_experimenter.extra.selected }}>{{e.0}}</option>
-                    {% else %}
-                        {% if not e.restricted %}
-                            <option value="{{e.0}}" {{'selected' if False }}>{{e.0}}</option>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            </select>
-<!--
-            <div class="ui compact inline __primary submit button">Save</div>
--->
-            <input type="submit" value="Update" class="ui inline mini compact __teal button" />
-        </form>
-    </div>
-    <br>
-    <a href="{{prev}}">&lt;previous {{tdays}} days</a> |
-    <a href="{{next}}">next {{tdays}} days &gt;</a>
-
-    <div class="ui basic label">
-      <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
-    </div>
-
-{%endblock%}
-
-
-
 
 {%block content%}
-<style>
-    /* Patch for semantic ui dropdown to make it horizontally aligned */
-    .ui.selection.dropdown {
-        line-height: 2em;
-    }
-</style>
-<!--
- {{counts}}
- {{counts_keys}}
- current_experimenter: {{current_experimenter}}
- authorized_for: {{current_experimenter.authorized_for}}
- extra: {{current_experimenter.extra}}
- experiments: {{experiments}}
- dbg: {{dbg}}
--->
 
   <div id="double-scroll" class="ui scrollable">
-
 
    <table class="ui celled table unstackable">
      <tr>
@@ -115,7 +37,7 @@
       <th colspan=2 align="center">Stats</th>
      </tr>
      <tr>
-        <th>Experiment </th>
+        <!-- <th>Experiment </th> -->
         <th>Name </th>
         <th>All</th>
         <th>Idle
@@ -152,7 +74,7 @@
      {% for c in cl if current_experimenter.extra and c.experiment in current_experimenter.extra.selected %}
      {% set outer_loop = loop %}
             <tr>
-            <td>{{c.experiment}}</td>
+            <!-- <td>{{c.experiment}}</td> -->
             <!-- c.experiment_obj.restricted: {{c.experiment_obj.restricted}} -->
             <!-- current_experimenter.is_authorized(c.experiment): {{current_experimenter.is_authorized(c.experiment)}} -->
             <!-- c.experiment in current_experimenter.extra.selected {{c.experiment in current_experimenter.extra.selected}}-->
