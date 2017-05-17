@@ -343,7 +343,7 @@ class Files_status(object):
         date = None
         first = 1
         columns = ['day', 'date', 'requested files', 'delivered files', 'jobs', 'failed', 'outfiles', 'pending', 'efficiency%']
-        exitcodes.sort()
+        exitcodes.sort(key=(lambda x:  x if x else -1))
         for e in exitcodes:
             if e is not None:
                 columns.append('exit(%d)' % (e))
