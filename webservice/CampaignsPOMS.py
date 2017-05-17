@@ -42,6 +42,7 @@ class CampaignsPOMS():
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
+        exp = seshandle('experimenter').session_experiment
         pcl_call = kwargs.pop('pcl_call', 0)
         pc_username = kwargs.pop('pc_username',None)
         if action == 'delete':
@@ -117,7 +118,7 @@ class CampaignsPOMS():
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action',None)
-        exp = kwargs.pop('experiment',None)
+        exp = seshandle('experimenter').session_experiment
         if action == 'delete':
             name = kwargs.pop('name')
             cid = kwargs.pop('campaign_definition_id')
@@ -228,11 +229,16 @@ class CampaignsPOMS():
     def campaign_edit(self, dbhandle, sesshandle, *args, **kwargs):
         data = {}
         message = None
+        exp = sesshandle.get('experimenter').session_experiment
+        print("*"*80)
+        print("*"*80)
+        print("%s" % exp)
+        print("*"*80)
+        print("*"*80)
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         #for k,v in kwargs.items():
         #    print ' k=%s, v=%s ' %(k,v)
         action = kwargs.pop('action',None)
-        exp = kwargs.pop('experiment',None)
         if action == 'delete':
             campaign_id = kwargs.pop('campaign_id')
             name = kwargs.pop('name')
