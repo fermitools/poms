@@ -406,7 +406,7 @@ function validateQuickSearchForm(formid)
 			</h2>
 		      </div>
 		      <div class="column right float">
-                        {%if defined(current_experimenter) %}
+                        {%if current_experimenter is defined %}
 			<i class="user icon"></i>{{current_experimenter.first_name}} {{current_experimenter.last_name}}
                         {% endif %}
 		      </div>
