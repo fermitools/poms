@@ -39,12 +39,14 @@
 
 <form id="campaign_definition_form" class="ui form" action="campaign_definition_edit" method="POST">
 
+  <!--
   <select class="ui dropdown" name="experiment" id="cdf_experiment">
     <option value="">Choose Experiment</option>
     {% for row in data.exp_selections %}
     <option value="{{row.experiment}}" {{ 'selected="selected"' if (data.curr_experiment == row.experiment) }}>{{row.name}}</option>
     {% endfor %}
   </select>
+  -->
 
   {% if data.curr_experiment is defined %}
 <div id="double-scroll" class="scrollable">
@@ -352,10 +354,11 @@ $('#definition_add_edit_form')
     }
   })
 
-
+/*
 $("#cdf_experiment").change(function() {
     $("#campaign_definition_form").submit();
   });
+*/
 
 function create_row(index, key, value) {
     return row;

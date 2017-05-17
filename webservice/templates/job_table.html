@@ -1,7 +1,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS</title>
+POMS: Jobs
 {%endblock%}
 
 
@@ -16,21 +16,20 @@
 
 
 {%block header%}
-<h1 class="ui header">
     Jobs{%include 'help_button.html'%}
-</h1>
+{%endblock%}
+
+{%block subheader%}
 <div class="ui subheader" style="display:inline;">
 <!-- Jobs for {{time_range_string}} -->
     <div class="ui basic label">
       <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
     </div>
 </div>
-
-<a href="{{prev}}">&lt;previous {{tdays}} days</a> |
-<a href="{{next}}">next {{tdays}} days &gt;</a>
-{%endblock%}
-
-{%block subheader%}
+<div class="ui subheader">
+  <a href="{{prev}}">&lt;previous {{tdays}} days</a> |
+  <a href="{{next}}">next {{tdays}} days &gt;</a>
+</div>
 {%endblock%}
 
 

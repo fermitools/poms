@@ -1,0 +1,92 @@
+
+<!-- Standard Menu -->
+
+<div class="ui vertical menu">
+
+  <a class="active item"href="{{pomspath}}/">
+    <div class="ui image label">
+      <i class="rocket icon"></i>
+    </div>
+    <b>POMS</b>
+  </a>
+
+  <div class="item">
+    <div class="ui icon input">
+      <input type="text" id="quick_search" name="quick_search" placeholder="Search...">
+      <i class="search icon"></i>
+    </div>
+  </div>
+
+  <a class="item" href="{{pomspath}}/calendar">
+    <b>Calendar</b>
+  </a>
+
+  {% if (current_experimenter.is_root()) %}
+  <div class="item">
+    <div class="header">DB Admin</div>
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/experiment_edit">
+        Experiments
+      </a>
+      <a class="item" href="{{pomspath}}/user_edit">
+        Users
+      </a>
+      <a class="item" href="{{pomspath}}/raw_tables">
+        Raw Tables
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="item">
+    <div class="header">Campaign Data</div>
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/show_tags">
+        Campaign Tags
+      </a>
+      <a class="item" href="{{pomspath}}/show_campaigns">
+        Active Stage
+      </a>
+      <a class="item" href="{{pomspath}}/show_campaigns?active=False">
+        InActive Stage
+      </a>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="header">Configure Work</div>
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/launch_template_edit">
+        Compose Launch Template
+      </a>
+      <a class="item" href="{{pomspath}}/campaign_definition_edit">
+        Compose Job Type
+      </a>
+      <a class="item" href="{{pomspath}}/campaign_edit">
+        Compose Campaign Stages
+      </a>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="header">Jobs</div>
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/job_table?tdays=1">
+	All (Last Day)
+      </a>
+      <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=name">
+        Failed_By Exit Code and Campaign Stage Name (Last Day)
+      </a>
+      <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=7&f=user_exe_exit_code&f=name">
+        Failed_By Exit Code and Campaign Stage Name (Last Week)
+      </a>
+      <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=node_name">
+        Failed_By Exit Code and Node Name (Last Day)
+      </a>
+      <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=cpu_type">
+        Failed_By Exit Code and CPU Type(Last Day)
+      </a>
+    </div>
+  </div>
+
+</div>   <!--ends ui vertical inverted sticky menu-->
