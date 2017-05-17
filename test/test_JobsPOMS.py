@@ -165,20 +165,20 @@ def test_kill_jobs():
 
     jid_n = time.time()
     #Create jobs in the same campaign, 2 in one task_id, one in another task_id but same campaign, and on job in the same task_id, campaign but market as completed.
-    jid1 = "%d@fakebatch1.fnal.gov" % jid_n  #1 Job in the first task_id
+    jid1 = "%d.0@fakebatch1.fnal.gov" % jid_n  #1 Job in the first task_id
     mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid1, host_site = "fake_host", status = 'running')
-    jid2 = "%d@fakebatch1.fnal.gov" % (jid_n + 1) #2Job in the first task_id
+    jid2 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 1) #2Job in the first task_id
     mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid2, host_site = "fake_host", status = 'running')
-    jid3 = "%d@fakebatch1.fnal.gov" % (jid_n + 2) #3Job in a new task_id but same campaign
+    jid3 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 2) #3Job in a new task_id but same campaign
     mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id2, jobsub_job_id = jid3, host_site = "fake_host", status = 'running')
-    jid4 = "%d@fakebatch1.fnal.gov" % (jid_n + 3) 
+    jid4 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 3) 
     mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid4, host_site = "fake_host", status = 'Completed')
 
     #Control arguments
     c_arg="-G fermilab --role Analysis --jobid "
     c_output_killjob = jid1 #Control output
-    c_output_killTask = [jid1] #Control output #it is going to kill the task just killing the first job without .0, cluster.
-    c_output_killCampaign =[jid1,jid3] #Control output it is going to kill the Campaign just killing the first job without of each task_id
+    c_output_killTask = [jid1.replace('.0','')] #Control output #it is going to kill the task just killing the first job without .0, cluster.
+    c_output_killCampaign =[jid1.replace('.0',''),jid3.replace('.0','')] #Control output it is going to kill the Campaign just killing the first job without of each task_id
 
     #Guetting the jid (key in database) that belong to the jobid in jobsub. They are different. The key db is used in the next code block
     job_obj1 = dbhandle.query(Job).filter(Job.jobsub_job_id == jid1).first()
@@ -224,7 +224,9 @@ def test_kill_jobs():
     jrm_idcl[-1]=jrm_idcl[-1].rstrip('\n')
 
     # there may be *other* jobs in this campaign than the ones we added in this test
+
     # just make sure the ones we have are in there.
+    #
     for jid in c_output_killCampaign:
         assert(jid in jrm_idcl)
 
