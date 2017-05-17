@@ -68,6 +68,9 @@ class mock_job:
 
         logger.info("launching fake job id %s" % jid)
 
+        if exit_code == -1:
+           exit_code = i;
+
         n = os.fork()
 
         if n < 0:
@@ -183,10 +186,9 @@ class mock_job:
                 if fileflag:
                     ofn = ('fake_output_%s' % jid).replace('@','_')
                     self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files out', output_file_names = ofn )
-                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code succeeded', user_exe_exit_code = 0)
-                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = str(i))
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code completed', user_exe_exit_code = str(exit_code))
                 else:
-                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = exit_code)
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = str(exit_code))
                 self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
             time.sleep(1)
 

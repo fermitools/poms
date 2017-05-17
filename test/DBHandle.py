@@ -13,16 +13,16 @@ class fake_cherrypy_config:
 
 class DBHandle:
     def __init__(self):
-    '''
-    ###HEAD
-	cf = ConfigParser.SafeConfigParser()
-	cf.read("%s/webservice/poms.ini" % os.environ['POMS_DIR'])
-	db =cf.get("Databases","db").strip('"')
-	dbuser = cf.get("Databases","dbuser").strip('"')
-	dbhost = cf.get("Databases","dbhost").strip('"')
-	dbport = cf.get("Databases","dbport").strip('"')
-    =======
-    '''
+        '''
+        ###HEAD
+            cf = ConfigParser.SafeConfigParser()
+            cf.read("%s/webservice/poms.ini" % os.environ['POMS_DIR'])
+            db =cf.get("Databases","db").strip('"')
+            dbuser = cf.get("Databases","dbuser").strip('"')
+            dbhost = cf.get("Databases","dbhost").strip('"')
+            dbport = cf.get("Databases","dbport").strip('"')
+        =======
+        '''
         cf = configparser.SafeConfigParser()
         cf.read("%s/webservice/poms.ini" % os.environ['POMS_DIR'])
         db =cf.get("Databases","db").strip('"')

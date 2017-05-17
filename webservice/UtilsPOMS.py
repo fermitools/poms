@@ -9,9 +9,8 @@
 from .poms_model import Job
 from datetime import datetime, timedelta
 from .utc import utc
-from poms_model import Experimenter
+from .poms_model import Experimenter
 import urllib.request, urllib.parse, urllib.error
-
 
 
 class UtilsPOMS():

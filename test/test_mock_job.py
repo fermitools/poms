@@ -38,13 +38,15 @@ def test_mock_job_2():
     m.launch("14", njobs, fileflag=1, dataset="gen_cfg")
     print("mock_job_ids == ", m.jids)
     
-    time.sleep(25)
+    m.close()
 
     # make sure all jobs showed up...
 
     print("jobids: ", repr(m.jids))
     for j in m.jids:
         dj = dbh.get().query(Job).filter(Job.jobsub_job_id == j ).first()
+        if not dj:
+            print( j , " -- not found!")
         assert(dj != None )
         print("jobid: " , j , "found")
 

@@ -38,6 +38,7 @@ def test_triage_job():
     # - we got the job we asked for
     # - we got a JobHistory for that job
     # - the first one is "Idle"
+    print("got: ", repr(res))
     assert(res[1][0].jobsub_job_id == mj.jids[0])
     assert(res[2][0].job_id == res[1][0].job_id)
     assert(res[2][0].status == 'Idle')
@@ -47,6 +48,8 @@ def test_triage_job():
 def test_job_table():
 
     res = mps.triagePOMS.job_table(dbhandle, jobsub_job_id = mj.jids[0])
+
+    print("got: ", repr(res))
 
     # we should get a ( [(job,task,camp),...] , ['columns'], ['columns'], ...)
     # where we have one (job,task,camp) tuple (the one we asked for)
@@ -63,13 +66,19 @@ def test_failed_jobs():
 
     res = mps.triagePOMS.failed_jobs_by_whatever(dbhandle,  f = ['jobsub_job_id'])
 
+    print("got: ", repr(res))
+
     # our jobs from test_triage_job should have jobs .0, .1, and .2 exit
     # code 0, 1, and 2 respectively, so .1 and .2 should be found
     # in the failed_jobs by whatever, and the .0 should *not* be in there
+
     found0 = False
     found1 = False
     found2 = False
+
     tlist = res[0]
+    print("tlist: ", repr(tlist))
+
     for row in tlist:
         if row[0] == mj.jids[0]:
             found0 = True

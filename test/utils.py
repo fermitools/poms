@@ -24,7 +24,10 @@ def get_config_py():
 
     class fakeconfig(configparser.SafeConfigParser):
         def newget(self, var, default = None):
-            return self.oldget('global',var, default)
+            try:
+                return self.oldget('global',var)
+            except:
+                return default
 
     fakeconfig.oldget = fakeconfig.get
     fakeconfig.get = fakeconfig.newget
