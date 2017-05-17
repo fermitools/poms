@@ -299,12 +299,12 @@ class CampaignsPOMS():
             completion_type = kwargs.pop('ae_completion_type')
             completion_pct =  kwargs.pop('ae_completion_pct')
             depends = kwargs.pop('ae_depends')
-            launch_name=kwargs.pop('ae_launch_name')
-            campaign_definition_name=kwargs.pop('ae_campaign_definition')
             param_overrides = kwargs.pop('ae_param_overrides')
             if param_overrides:param_overrides = json.loads(param_overrides)
 
             if pcl_call == 1:
+                launch_name=kwargs.pop('ae_launch_name')
+                campaign_definition_name=kwargs.pop('ae_campaign_definition')
                 #all this variables depend on the arguments passed.
                 experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
                 campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id

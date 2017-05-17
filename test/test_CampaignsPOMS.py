@@ -174,11 +174,11 @@ def test_workflow_1():
 
      print("test_workflow_1: before: ", before_fred, before_joe)
 
-     mps.taskPOMS.launch_jobs(dbh.get(), getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_fred)
+     res = mps.taskPOMS.launch_jobs(dbh.get(), getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_fred)
 
-     print("test_workflow_1: launched")
+     print("test_workflow_1: launched: ", repr(res))
 
-     time.sleep(10)
+     time.sleep(30)
      print("test_workflow_1: first wrapup...")
      mps.taskPOMS.wrapup_tasks(dbh.get(), samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
      print("test_workflow_1: first wrapup:complete")
