@@ -1,5 +1,6 @@
 import os
 import sys
+import poms
 
 class Mock_jobsub_rm:
      def __init__(self):

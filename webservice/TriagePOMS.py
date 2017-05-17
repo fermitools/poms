@@ -8,11 +8,12 @@
 import urllib.request, urllib.parse, urllib.error
 from . import logit
 
-from poms_model import JobHistory, Job, Task, Campaign, CampaignDefinition, ServiceDowntime, Service
+from .poms_model import JobHistory, Job, Task, Campaign, CampaignDefinition, ServiceDowntime, Service
 from .elasticsearch import Elasticsearch
 from sqlalchemy import func, desc, not_, and_
 from collections import OrderedDict
 
+from .pomscache import pomscache
 
 class TriagePOMS(object):
 
@@ -53,6 +54,7 @@ class TriagePOMS(object):
         return out
 
 
+    @pomscache.cache_on_arguments()
     def triage_job(self, dbhandle, jobsub_fetcher, config, job_id, tmin=None, tmax=None, tdays=None, force_reload=False):
         # we don't really use these for anything but we might want to
         # pass them into a template to set time ranges...

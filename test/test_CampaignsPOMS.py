@@ -4,9 +4,10 @@ import datetime
 import time
 import os
 import socket
+import poms
 from poms.webservice.utc import utc
 from poms.webservice.samweb_lite import samweb_lite
-from poms.model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Task
+from poms.webservice.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Task
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -107,6 +108,7 @@ def add_campaign(name, deps, dataset = None, split = 'None'):
     if campaign:
         print("campaign %s already exists..." % name)
         return
+
     if not campaign_definition or not launch:
         print("Ouch! adding campaign definition or launch didn't work")
         return
@@ -128,6 +130,8 @@ def add_campaign(name, deps, dataset = None, split = 'None'):
         ae_param_overrides = '[]',
         ae_campaign_definition_id = campaign_definition.campaign_definition_id,
         ae_launch_id = launch.launch_id,
+        ae_launch_name = 'test_launch_local_generic',
+        ae_campaign_definition = 'test_launch_mock_job_generic',
         ae_completion_type = "located",
         ae_completion_pct = "95",
         ae_depends = deps,
@@ -170,15 +174,15 @@ def test_workflow_1():
 
      print("test_workflow_1: before: ", before_fred, before_joe)
 
-     mps.taskPOMS.launch_jobs(dbh.get(), getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_fred)
+     res = mps.taskPOMS.launch_jobs(dbh.get(), getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_fred)
 
-     print("test_workflow_1: launched")
+     print("test_workflow_1: launched: ", repr(res))
 
-     time.sleep(5)
+     time.sleep(30)
      print("test_workflow_1: first wrapup...")
      mps.taskPOMS.wrapup_tasks(dbh.get(), samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
      print("test_workflow_1: first wrapup:complete")
-     time.sleep(5)
+     time.sleep(10)
      print("test_workflow_1: second wrapup...")
      mps.taskPOMS.wrapup_tasks(dbh.get(), samweb_lite(), getconfig, gethead, launch_seshandle, err_res )
      print("test_workflow_1: second wrapup:complete")
@@ -215,14 +219,18 @@ def test_workflow_2():
      print("test_workflow_2: before: ", before_jane, before_janet)
 
      res = mps.taskPOMS.launch_jobs(dbh.get(), getconfig, gethead, launch_seshandle, samweb_lite(), err_res, cid_jane)
-     output = res[1]
+     time.sleep(10) 
+     output_file = res[4]
+     f = open(output_file, "r")
+     output = f.read()
+     f.close()
      m = re.search('POMS_TASK_ID=([0-9]*)', output)
      tid = m.group(1)
 
      print("test_workflow_2: launched")
      print("output:" , output)
 
-     time.sleep(15)
+     time.sleep(2020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020)
      print("test_workflow_2: first wrapup...")
  
      res = mps.taskPOMS.wrapup_tasks(dbh.get(), samweb_lite(), getconfig, gethead, launch_seshandle, err_res )

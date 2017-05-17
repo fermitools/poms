@@ -1,9 +1,12 @@
+#!/usr/bin/env python
 #!/usr/bin/python
 
 import sys
 import os
 import re
-import urllib.request, urllib.error, urllib.parse
+import requests
+import urllib.error
+import urllib.parse
 import json
 import traceback
 import time
@@ -128,7 +131,7 @@ class joblog_scraper:
         if self.debug:
             print("found files: " , file_map)
 
-        return ' '.join(list(file_map.keys()))
+        return ' '.join(file_map.keys())
 
     def report_item(self, taskid, jobsub_job_id, hostname, message, experiment = "none"):
         data = { 

@@ -1,7 +1,7 @@
 from mock.mock import MagicMock
 from mock_poms_service import mock_poms_service
 from DBHandle import DBHandle
-from poms.model.poms_model import Service,ServiceDowntime
+from poms.webservice.poms_model import Service,ServiceDowntime
 from webservice.utc import utc
 import time
 from datetime import datetime, timedelta

@@ -6,12 +6,11 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py
 ### written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
-from poms_model import Job
+from .poms_model import Job
 from datetime import datetime, timedelta
 from .utc import utc
-from poms_model import Experimenter
+from .poms_model import Experimenter
 import urllib.request, urllib.parse, urllib.error
-
 
 
 class UtilsPOMS():

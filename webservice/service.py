@@ -17,7 +17,7 @@ import poms.webservice.pomscache as pomscache
 #    ups = setups.setups()
 #    ups.use_package("poms", "", "SETUP_POMS")
 
-from poms_model import Experimenter, ExperimentsExperimenters, Experiment
+from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters
 # from sqlalchemy.orm import subqueryload, joinedload, contains_eager
 import os.path
 import argparse
@@ -218,9 +218,6 @@ class SessionTool(cherrypy.Tool):
                             .filter(Experimenter.username == username)
                             .first()
                             )
-        else:
-            experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == os.environ['USER']).first()
-            # experimenter = None
 
         if not experimenter:
             raise cherrypy.HTTPError(401, 'POMS account does not exist.  To be added you must registered in VOMS.')

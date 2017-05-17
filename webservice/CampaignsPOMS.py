@@ -4,13 +4,13 @@
 This module contain the methods that allow to create campaigns, definitions and templates.
 List of methods:  launch_template_edit, campaign_definition_edit, campaign_edit, campaign_edit_query.
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
-Date: September 30, 2016.
+Date: April 28th, 2017. (changes for the POMS_client)
 '''
 
 from . import logit
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, desc, not_, and_
-from poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
+from .poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
     LaunchTemplate, CampaignDefinition, CampaignRecovery,
     CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
 )
@@ -119,9 +119,16 @@ class CampaignsPOMS():
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action',None)
         exp = seshandle('experimenter').session_experiment
+        #added for poms_client
+        pcl_call = kwargs.pop('pcl_call', 0) #pcl_call == 1 means the method was access through the poms_client.
+        pc_email = kwargs.pop('pc_email',None) #email is the info we know about the user in POMS DB.
+
         if action == 'delete':
             name = kwargs.pop('name')
-            cid = kwargs.pop('campaign_definition_id')
+            if pcl_call == 1: #Enter here if the access was from the poms_client
+                cid=campaign_definition_id=dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==name).firts().campaign_definition_id
+            else:
+                cid = kwargs.pop('campaign_definition_id')
             try:
                 dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id==cid).delete()
                 dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==cid).delete()
@@ -133,15 +140,37 @@ class CampaignsPOMS():
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
-            campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
-            name = kwargs.pop('ae_definition_name')
-            input_files_per_job = kwargs.pop('ae_input_files_per_job')
-            output_files_per_job = kwargs.pop('ae_output_files_per_job')
-            output_file_patterns = kwargs.pop('ae_output_file_patterns')
-            launch_script = kwargs.pop('ae_launch_script')
-            definition_parameters = json.loads(kwargs.pop('ae_definition_parameters'))
-            recoveries = kwargs.pop('ae_definition_recovery')
-            experimenter_id = kwargs.pop('experimenter_id')
+            if pcl_call == 1: #Enter here if the access was from the poms_client
+                name = kwargs.pop('ae_definition_name')
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
+                campaign_definition_id=dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==name).firts().campaign_definition_id
+                input_files_per_job = kwargs.pop('ae_input_files_per_job')
+                output_files_per_job = kwargs.pop('ae_output_files_per_job')
+                output_file_patterns = kwargs.pop('ae_output_file_patterns')
+                launch_script = kwargs.pop('ae_launch_script')
+                definition_parameters = kwargs.pop('ae_definition_parameters')
+                recoveries = kwargs.pop('ae_definition_recovery')
+                #Guetting the info that was not passed by the poms_client arguments
+                if input_files_per_job in [None,""]:
+                    input_files_per_job = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().input_files_per_job
+                if output_files_per_job in [None,""]:
+                    output_files_per_job= dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().output_files_per_job
+                if output_file_patterns in [None,""]:
+                    output_file_patterns = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().output_file_patterns
+                if launch_script in [None,""]:
+                    launch_script = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().launch_script
+                if definition_parameters in [None,""]:
+                    definition_parameters = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().definition_parameters
+            else:
+                experimenter_id = kwargs.pop('experimenter_id')
+                campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
+                name = kwargs.pop('ae_definition_name')
+                input_files_per_job = kwargs.pop('ae_input_files_per_job')
+                output_files_per_job = kwargs.pop('ae_output_files_per_job')
+                output_file_patterns = kwargs.pop('ae_output_file_patterns')
+                launch_script = kwargs.pop('ae_launch_script')
+                definition_parameters = json.loads(kwargs.pop('ae_definition_parameters'))
+                recoveries = kwargs.pop('ae_definition_recovery')
             try:
                 if action == 'add':
                     cd = CampaignDefinition( name=name, experiment=exp,
@@ -166,17 +195,21 @@ class CampaignsPOMS():
                                 }
                     cd = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).update(columns)
 
-            # now fixup recoveries -- clean out existing ones, and
-            # add listed ones.
-                dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == campaign_definition_id).delete()
-                i = 0
-                for rtn in json.loads(recoveries):
-                    rect   = rtn[0]
-                    recpar = rtn[1]
-                    rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rect).first()
-                    cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt, param_overrides = recpar)
-                    dbhandle.add(cr)
-                dbhandle.commit()
+                # now fixup recoveries -- clean out existing ones, and
+                # add listed ones.
+                if pcl_call == 0:
+                    dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == campaign_definition_id).delete()
+                    i = 0
+                    for rtn in json.loads(recoveries):
+                        rect   = rtn[0]
+                        recpar = rtn[1]
+                        rt = dbhandle.query(RecoveryType).filter(RecoveryType.name==rect).first()
+                        cr = CampaignRecovery(campaign_definition_id = campaign_definition_id, recovery_order = i, recovery_type = rt, param_overrides = recpar)
+                        dbhandle.add(cr)
+                    dbhandle.commit()
+                else:
+                    pass #We need to define later if it is going to be possible to modify the recovery type from the client.
+
             except IntegrityError as e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
                 logit.log(' '.join(e.args))
@@ -230,17 +263,20 @@ class CampaignsPOMS():
         data = {}
         message = None
         exp = sesshandle.get('experimenter').session_experiment
-        print("*"*80)
-        print("*"*80)
-        print("%s" % exp)
-        print("*"*80)
-        print("*"*80)
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         #for k,v in kwargs.items():
         #    print ' k=%s, v=%s ' %(k,v)
         action = kwargs.pop('action',None)
+        pcl_call = kwargs.pop('pcl_call', 0) #pcl_call == 1 means the method was access through the poms_client.
+        pc_email = kwargs.pop('pc_email',None) #email is the info we know about the user in POMS DB.
+
         if action == 'delete':
-            campaign_id = kwargs.pop('campaign_id')
+            if pcl_call==1:
+                name = kwargs.pop('ae_campaign_name')
+                campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
+            else:
+                campaign_id = kwargs.pop('campaign_id')
+
             name = kwargs.pop('name')
             try:
                 dbhandle.query(CampaignDependency).filter(or_(CampaignDependency.needs_camp_id==campaign_id,
@@ -254,21 +290,36 @@ class CampaignsPOMS():
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
-            campaign_id = kwargs.pop('ae_campaign_id')
             name = kwargs.pop('ae_campaign_name')
             active = kwargs.pop('ae_active')
             split_type = kwargs.pop('ae_split_type')
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
             dataset = kwargs.pop('ae_dataset')
-            param_overrides = kwargs.pop('ae_param_overrides')
-            if param_overrides:param_overrides = json.loads(param_overrides)
-            campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
-            launch_id = kwargs.pop('ae_launch_id')
-            experimenter_id = kwargs.pop('experimenter_id')
+            ###Mark
+
             completion_type = kwargs.pop('ae_completion_type')
             completion_pct =  kwargs.pop('ae_completion_pct')
             depends = kwargs.pop('ae_depends')
+            param_overrides = kwargs.pop('ae_param_overrides')
+            if param_overrides:param_overrides = json.loads(param_overrides)
+
+            if pcl_call == 1:
+                launch_name=kwargs.pop('ae_launch_name')
+                campaign_definition_name=kwargs.pop('ae_campaign_definition')
+                #all this variables depend on the arguments passed.
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
+                campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
+                launch_id=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==launch_name).fist().launch_id
+                campaign_definition_id =dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==campaign_definition_name).firts().campaign_definition_id
+
+
+            else:
+                campaign_id = kwargs.pop('ae_campaign_id')
+                campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
+                launch_id = kwargs.pop('ae_launch_id')
+                experimenter_id = kwargs.pop('experimenter_id')
+
             if depends and depends != "[]":
                 depends = json.loads(depends)
             else:
