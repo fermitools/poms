@@ -12,10 +12,9 @@
 
   <div class="item">
     <div class="ui icon input">
-      {% set qs = qs|default(0) + 1 %}
-      <form action="{{pomspath}}/quick_search">
-      <input type="text" id="quick_search{{qs}}" name="search_term" placeholder="Search...">
-      <button type="submit" style="margin-left: -2em; height: 1.5em;">
+      <form action="{{pomspath}}/quick_search" style="width: 99%">
+       <input type="text" name="search_term" placeholder="Search..." style="width: 95%">
+      <button type="submit" style="margin-left: -2.5em; height: 1.5em;">
          <i class="ui icon search"></i>
       </button>
       </form>
