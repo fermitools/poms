@@ -138,15 +138,6 @@
     $('.ui.accordion').accordion();
   });
 
-
-  $("#quick_search").change(function() {
-    var qs = $("#quick_search").val();
-    var html = '<form method="GET" action="{{pomspath}}/quick_search"><input type="text" name="search_term" value="'
-    html += qs + '"></form>';
-    $(html).appendTo('body').submit();
-  });
-
-
   $("#session_experiment_id").change(function() {
     var formdata = {'session_experiment': $("#session_experiment_id").val()};
     $.ajax({

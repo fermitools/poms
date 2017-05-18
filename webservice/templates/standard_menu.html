@@ -1,6 +1,6 @@
 
 <!-- Standard Menu -->
-
+<div class="toc">
 <div class="ui vertical menu">
 
   <a class="active item"href="{{pomspath}}/">
@@ -12,8 +12,13 @@
 
   <div class="item">
     <div class="ui icon input">
-      <input type="text" id="quick_search" name="quick_search" placeholder="Search...">
-      <i class="search icon"></i>
+      {% set qs = qs|default(0) + 1 %}
+      <form action="{{pomspath}}/quick_search">
+      <input type="text" id="quick_search{{qs}}" name="search_term" placeholder="Search...">
+      <button type="submit" style="margin-left: -2em; height: 1.5em;">
+         <i class="ui icon search"></i>
+      </button>
+      </form>
     </div>
   </div>
 
@@ -90,3 +95,4 @@
   </div>
 
 </div>   <!--ends ui vertical inverted sticky menu-->
+</div>
