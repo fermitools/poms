@@ -70,26 +70,18 @@
 
   {% include 'mobil_menu.html' %}
 
-  <!--big screen -->>
-  <div class="pusher">  <!--  This is a requirment of semantic-ui when using a sidebar.  For all purposes it is the "body" -->
+  <!--big screen -->
+  <div class="pusher" >  <!--  This is a requirment of semantic-ui when using a sidebar.  For all purposes it is the "body" -->
+
     <div class="full height">
+
       {% include 'standard_menu.html' %}
 
-      <div class="article">  <!--header of page-->
+      <div class="article" style="padding-left: 1em; padding-top: 1em">  <!--header of page-->
 	<br/>
 	<div class="ui three column grid">
 	  <div class="row">
-	    <div class="column">
-	      <select class="ui dropdown" name="session_experiment_id" id="session_experiment_id" style="margin-left: 20px;">
-		<option value="">Choose Experiment</option>
-		{% for exp in allowed_experiments %}
-		{% if exp != 'root' %}
-		<option value="{{exp}}" {{ 'selected="selected"' if (session_experiment == exp) }}>{{exp}}</option>
-		{% endif %}
-		{% endfor %}
-	      </select>
-	    </div>
-	    <div class="column">
+	    <div class="ten wide column">
 	      <h1 class="ui header" style="margin: 0px 10px 0px 10px;">
 		{%block header%} {%endblock%}
 	      </h1>
@@ -98,8 +90,23 @@
 		{%block subheader%} {%endblock%}
 	      </h2>
 	    </div>
-	    <div class="column right float">
-	      <i class="user icon"></i>{{current_experimenter.first_name}} {{current_experimenter.last_name}}
+	    <div class="column">
+              <br>
+              {% if current_experimenter is defined %}
+	      <i class="user icon" style="margin-left: 1em"></i>{{current_experimenter.first_name}} {{current_experimenter.last_name}}
+              {% endif %}
+              <br>
+              <br>
+	      <select class="ui dropdown" name="session_experiment_id" id="session_experiment_id" style="margin-left: 1em;">
+		<option value="">Choose Experiment</option>
+		{% for exp in allowed_experiments %}
+		{% if exp != 'root' %}
+		<option value="{{exp}}" {{ 'selected="selected"' if (session_experiment == exp) }}>{{exp}}</option>
+		{% endif %}
+		{% endfor %}
+	      </select>
+              <br>
+              &nbsp;
 	    </div>
 	  </div>
 	  <div class="row">

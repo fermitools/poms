@@ -71,7 +71,7 @@ class UtilsPOMS():
         # redundant, but trying to rule out tz woes here...
         tmin = tmin.replace(tzinfo=utc)
         tmax = tmax.replace(tzinfo=utc)
-        tdays = (tmax - tmin).total_seconds() / 86400.0
+        tdays = int((tmax - tmin).total_seconds() / 864.0) / 100
 
         return (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays)
 

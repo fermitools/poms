@@ -202,6 +202,8 @@ class SessionTool(cherrypy.Tool):
             #logit.log("EXISTING SESSION: %s" % str(cherrypy.session['experimenter']))
             return
 
+        logit.log("establish_session startup -- mengel")
+
         cherrypy.session['id']              = cherrypy.session.originalid  #The session ID from the users cookie.
         cherrypy.session['X-Forwarded-For'] = cherrypy.request.headers.get('X-Forwarded-For', None)
         # someone had all these SHIB- headers mixed case, which is not
@@ -209,8 +211,11 @@ class SessionTool(cherrypy.Tool):
         cherrypy.session['Remote-Addr']     = cherrypy.request.headers.get('Remote-Addr', None)
         cherrypy.session['X-Shib-Userid']   = cherrypy.request.headers.get('X-Shib-Userid', None)
 
+        experimenter = None
         username = None
+
         if cherrypy.request.headers.get('X-Shib-Userid', None):
+            logit.log("Shib-Userid case")
             username = cherrypy.request.headers['X-Shib-Userid']
             experimenter = None
             experimenter = (cherrypy.request.db.query(Experimenter)
@@ -219,6 +224,15 @@ class SessionTool(cherrypy.Tool):
                             .first()
                             )
 
+        elif cherrypy.config.get('standalone_test_user',None):
+            logit.log("standalone_test_user case")
+            username = cherrypy.config.get('standalone_test_user',None)
+            experimenter = (cherrypy.request.db.query(Experimenter)
+                            .filter(ExperimentsExperimenters.active == True)
+                            .filter(Experimenter.username == username)
+                            .first()
+                            )
+               
         if not experimenter:
             raise cherrypy.HTTPError(401, 'POMS account does not exist.  To be added you must registered in VOMS.')
 
