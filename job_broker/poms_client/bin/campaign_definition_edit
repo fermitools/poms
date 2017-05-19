@@ -10,8 +10,8 @@ groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you
 groupArg.add_argument('--name', metavar='Name of your template', type=str, help='the name of the campaign definition', required = True, default = None)
 groupArg.add_argument('--email', metavar='your email', type=str, help='Please provide your email adress, the one you use when you get register at POMS', required = True, default = None)
 groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True, default = None)
-parser.add_argument('--input_files_per_job', metavar='number of input files per job', type=int, help='set the number of input files you would like to process per job', default = 0)
-parser.add_argument('--output_files_per_job', metavar='number of output files per job', type=int, help='set the number of output files you expected from each input file ', default = 0)
+#parser.add_argument('--input_files_per_job', metavar='number of input files per job', type=int, help='set the number of input files you would like to process per job', default = 0)
+#parser.add_argument('--output_files_per_job', metavar='number of output files per job', type=int, help='set the number of output files you expected from each input file ', default = 0)
 parser.add_argument('--output_file_patterns', metavar='string with output file pattern', type=str, help='The output pattern you are interested in your campaign (eg. \%\.root)', default = None)
 parser.add_argument('--launch_script', metavar='the setup you do at your interactive node', type=str, help='the script that you run to submit jobs in your machine', default = None)
 parser.add_argument('--def_parameter', metavar='parameters pass to the launch_script', type=str, nargs='*', help='The arguments your script (included in Launch script) use for the submission', default = "")
@@ -24,8 +24,8 @@ print 'action =',args.action
 print 'name =', args.name
 print 'email=',args.email
 print 'experiment=',args.experiment
-print 'input_files_per_job=', args.input_files_per_job
-print 'output_files_per_job=', args.output_files_per_job
+#print 'input_files_per_job=', args.input_files_per_job
+#print 'output_files_per_job=', args.output_files_per_job
 print 'output_file_patterns=', args.output_file_patterns
 print 'launch_script=', args.launch_script
 print 'def_parameter=', args.def_parameter
@@ -38,8 +38,6 @@ if args.action in ['add','delete','edit']:
                         action = args.action,
                         name=args.name,
                         experiment=args.experiment,
-                        input_files_per_job=args.input_files_per_job,
-                        output_files_per_job=args.output_files_per_job,
                         output_file_patterns=args.output_file_patterns,
                         launch_script=args.launch_script,
                         def_parameter=args.def_parameter,
