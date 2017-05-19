@@ -5,6 +5,18 @@ import time
 import subprocess
 import sys
 import os
+import poms
+
+from poms.webservice.logit import  setlevel, log, DEBUG, INFO, CRITICAL
+import logging.config
+from poms.webservice import logging_conf
+
+def beverbose():
+    logging.config.dictConfig(logging_conf.LOG_CONF)
+    setlevel(level=DEBUG)
+    log(CRITICAL, "testing 1 2 3")
+    log(INFO, "testing 4 5 6")
+    log(DEBUG, "testing 7 8 9")
 
 # put envioronment vars into some config sections...
 
@@ -12,7 +24,10 @@ def get_config_py():
 
     class fakeconfig(configparser.SafeConfigParser):
         def newget(self, var, default = None):
-            return self.oldget('global',var, default)
+            try:
+                return self.oldget('global',var)
+            except:
+                return default
 
     fakeconfig.oldget = fakeconfig.get
     fakeconfig.get = fakeconfig.newget
@@ -28,13 +43,7 @@ def get_config(config = None):
         config = configparser.RawConfigParser()
     configfile = '../webservice/poms.ini'
     confs = dedent("""
-       [/static]
-       HOME="%(HOME)s"
-       POMS_DIR="%(POMS_DIR)s"
-       [global]
-       HOME="%(HOME)s"
-       POMS_DIR="%(POMS_DIR)s"
-       [POMS]
+       [DEFAULT]
        HOME="%(HOME)s"
        POMS_DIR="%(POMS_DIR)s"
     """ % os.environ)

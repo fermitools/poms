@@ -2,7 +2,7 @@ import cherrypy
 import os
 import socket
 from jinja2 import Environment, PackageLoader
-from poms_model import Service, Task, Campaign
+from .poms_model import Service, Task, Campaign
 
 from .elasticsearch import Elasticsearch
 import pprint
@@ -380,7 +380,8 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_tags(self, experiment):
+    def show_tags(self):
+        experiment = cherrypy.session.get('experimenter').session_experiment
 
         tl = self.tagsPOMS.show_tags( cherrypy.request.db, experiment)
 
@@ -394,15 +395,17 @@ class poms_service:
                                 pomspath=self.path, help_page="ShowCampaignTagsHelp",
                                 current_experimenter = current_experimenter,
                                 experiments=experiments,
-                                version=self.version)
-       
+                                version=self.version,
+                                allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
+                                session_experiment=cherrypy.session.get('experimenter').session_experiment)
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaigns(self, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag = None, **kwargs):
+    def show_campaigns(self, tmin=None, tmax=None, tdays=7, active=True, tag = None, **kwargs):
+        experiment = cherrypy.session.get('experimenter').session_experiment
         (counts, counts_keys, clist, dimlist,
-            tmin, tmax, tmins, tmaxs, tdays,
-            nextlink, prevlink, time_range_string
+         tmin, tmax, tmins, tmaxs, tdays,
+         nextlink, prevlink, time_range_string
         ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db,
                                             cherrypy.request.samweb_lite, experiment=experiment,
                                             tmin=tmin, tmax=tmax, tdays=tdays, active=active,  tag = tag)
@@ -934,7 +937,7 @@ class poms_service:
             campcolumns, tmins, tmaxs,
             prevlink, nextlink, tdays,
             extra, hidecolumns, filtered_fields,
-            time_range_string) = self.triagePOMS.job_table(cherrypy.request.db, **kwargs)
+            time_range_string) = self.triagePOMS.job_table(cherrypy.request.db, cherrypy.session, **kwargs)
 
         template = self.jinja_env.get_template('job_table.html')
 
@@ -973,7 +976,7 @@ class poms_service:
         (jl, possible_columns, columns,
             tmins, tmaxs, tdays,
             prevlink, nextlink,
-            time_range_string, tdays) = self.triagePOMS.failed_jobs_by_whatever(cherrypy.request.db, tmin, tmax, tdays, f, go)
+            time_range_string, tdays) = self.triagePOMS.failed_jobs_by_whatever(cherrypy.request.db, cherrypy.session, tmin, tmax, tdays, f, go)
         template = self.jinja_env.get_template('failed_jobs_by_whatever.html')
         return template.render(joblist=jl,
                                possible_columns=possible_columns,
@@ -1032,4 +1035,3 @@ class poms_service:
         return(self.tagsPOMS.auto_complete_tags_search(cherrypy.request.db, experiment, q))
 #-----------------------
 # debugging
-

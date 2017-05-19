@@ -1,41 +1,37 @@
-<span id="global_datepicker_container" style="display:none; padding-top:5px;">
+<span id="global_datepicker_container" style="display:none; padding-top:5px; padding-left:10px">
 
 
-<div class="ui small basic icon buttons">
- <button class="ui button" id="opener"><i class="calendar icon"></i></button>
-</div>
+  <div class="ui small basic icon buttons">
+    <button class="ui button" id="opener"><i class="calendar icon"></i></button>
+  </div>
 
 
-<div id="datepicker_content" style="display: none;">
-<form id="datepicker_form" action="">
-<b>From:</b>
-</br>
-<div class="ui corner labeled input">
-      <input type="text" placeholder="" id="from_datepicker">
-      <input type="hidden" name="tmin" id="from_datepicker_to_send">
-      <div class="ui corner label">
-            <i class="calendar outline icon"></i>
+  <div id="datepicker_content" style="display: none; padding-left:10px">
+    <form id="datepicker_form" action="">
+      <b>From:</b>
+      </br>
+      <div class="ui corner labeled input">
+	<input type="text" placeholder="" id="from_datepicker">
+	<input type="hidden" name="tmin" id="from_datepicker_to_send">
+	<div class="ui corner label">
+	  <i class="calendar outline icon"></i>
+	</div>
       </div>
-</div>
-<br/>
-
-<b>To:</b>
-</br>
-<div class="ui corner labeled input">
-      <input type="text" placeholder="" id="to_datepicker">
-      <input type="hidden" name="tmax" id="to_datepicker_to_send">
-      <div class="ui corner label">
-            <i class="calendar outline icon"></i>
-      </div>
-</div>
-
-<br/>
-<br/>
-<button class="ui teal small button" id="form_submit_button">Go</button>
-</form>
-</div>   <!--ends datepicker_content-->
-
-
+      <br/>
+       <b>To:</b>
+       </br>
+       <div class="ui corner labeled input">
+	 <input type="text" placeholder="" id="to_datepicker">
+	 <input type="hidden" name="tmax" id="to_datepicker_to_send">
+	 <div class="ui corner label">
+           <i class="calendar outline icon"></i>
+	 </div>
+       </div>
+       <br/>
+       <br/>
+       <button class="ui teal small button" id="form_submit_button">Go</button>
+    </form>
+  </div>   <!--ends datepicker_content-->
 
 <script>
 $( "#opener" ).click(function() {

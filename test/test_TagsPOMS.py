@@ -5,7 +5,7 @@ from DBHandle import DBHandle
 from poms.webservice.utc import utc
 import time
 from datetime import datetime, timedelta
-from poms.model.poms_model import Campaign, Tag
+from poms.webservice.poms_model import Campaign, Tag
 
 mps = mock_poms_service()
 dbhandle = DBHandle().get()

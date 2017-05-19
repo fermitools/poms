@@ -6,12 +6,11 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py
 ### written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
-from poms_model import Job
+from .poms_model import Job
 from datetime import datetime, timedelta
 from .utc import utc
-from poms_model import Experimenter
+from .poms_model import Experimenter
 import urllib.request, urllib.parse, urllib.error
-
 
 
 class UtilsPOMS():
@@ -72,7 +71,7 @@ class UtilsPOMS():
         # redundant, but trying to rule out tz woes here...
         tmin = tmin.replace(tzinfo=utc)
         tmax = tmax.replace(tzinfo=utc)
-        tdays = (tmax - tmin).total_seconds() / 86400.0
+        tdays = int((tmax - tmin).total_seconds() / 864.0) / 100
 
         return (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays)
 

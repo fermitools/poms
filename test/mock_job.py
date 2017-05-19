@@ -1,5 +1,4 @@
 
-import logging
 import mock_poms_service
 import DBHandle
 from webservice.samweb_lite import samweb_lite
@@ -7,8 +6,22 @@ import time
 import os
 import os.path
 import socket
+import subprocess
+import sys
 
+import logging
 logger = logging.getLogger('cherrypy.error')
+
+def do_ifdh(*args):
+    args = ['ifdh']+[str(x) for x in args]
+    logger.debug("running: " + repr(args))
+
+    p = subprocess.Popen(args, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+    so, se = p.communicate()
+    print("\nstdout:\n", so, "\nstderr:\n", se)
+    p.wait()
+    return so[:-1]
+  
 
 rpstatus = "200 Ok."
 
@@ -54,6 +67,9 @@ class mock_job:
         self.jids.append(jid)
 
         logger.info("launching fake job id %s" % jid)
+
+        if exit_code == -1:
+           exit_code = i;
 
         n = os.fork()
 
@@ -102,18 +118,16 @@ class mock_job:
 
                 os.environ['EXPERIMENT'] = 'samdev'
 
-                import ifdh
-                ih = ifdh.ifdh()
                 try:
                    if i == 1:
-                      print("Trying to start project..." , time.asctime())
-                      u = ih.startProject(projname, 'samdev', dataset, os.environ['USER'],'samdev')
+                      print("Trying to start project..." , projname, str(time.asctime()))
+                      u = do_ifdh('startProject', projname, 'samdev', dataset, os.environ['USER'],'samdev')
                       time.sleep(7)  # wait for project to actually start
            
                       print("started project", u, time.asctime())
                    else:
-                      u = ih.findProject(projname, 'samdev')
-                      ih.endProject(u)
+                      u = do_ifdh('findProject',projname, 'samdev')
+                      do_ifdh('endProject',u)
                 except:
                     print("exception in start/end project")
                     print(sys.exc_info())
@@ -144,10 +158,8 @@ class mock_job:
                 if dataset:
                     self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, task_project = projname)
 
-                    import ifdh
-                    ih = ifdh.ifdh()
                     print("Trying to find project..." , time.asctime())
-                    u = ih.findProject(projname, 'samdev')
+                    u = do_ifdh('findProject',projname, 'samdev')
                     #hostname = socket.gethostname()
                     hostname = 'fnpc3000.fnal.gov'
 
@@ -155,16 +167,16 @@ class mock_job:
 
                     print("trying to establishProcess(%s, 'demo', %s, %s, %s, %s, %s %s) %s \n" % (u, version, hostname, os.environ['USER'], 'demo', jid, 1, time.asctime()))
 
-                    cid = ih.establishProcess( u, 'demo', version, hostname, os.environ['USER'], 'demo', jid, 1)
-                    f = ih.getNextFile(u, cid)
+                    cid = do_ifdh('establishProcess', u, 'demo', version, hostname, os.environ['USER'], 'demo', jid, 1)
+                    f = do_ifdh('getNextFile', u, cid)
                     inpf = os.path.basename(f)
                     self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files in', input_file_names = os.path.basename(f))
                     time.sleep(0.5)
-                    ih.updateFileStatus(u, cid, f, 'transferred')
+                    do_ifdh('updateFileStatus',u, cid, f, 'transferred')
                     self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running')
                     time.sleep(0.5)
-                    ih.updateFileStatus(u, cid, f, 'consumed')
-                    ih.endProcess(u, cid)
+                    do_ifdh('updateFileStatus', u, cid, f, 'consumed')
+                    do_ifdh('endProcess', u, cid)
                 else:
                     inpf = 'fake_input_%s' % jid
                     if fileflag:
@@ -174,13 +186,9 @@ class mock_job:
                 if fileflag:
                     ofn = ('fake_output_%s' % jid).replace('@','_')
                     self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files out', output_file_names = ofn )
-
-                if exit_code == 0:
-                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code succeeded', user_exe_exit_code = 0)
-                elif exit_code == -1:
-                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = str(i))
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code completed', user_exe_exit_code = str(exit_code))
                 else:
-                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = exit_code)
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = str(exit_code))
                 self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
             time.sleep(1)
 

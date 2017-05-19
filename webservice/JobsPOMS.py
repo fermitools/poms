@@ -7,7 +7,7 @@ version of functions in poms_service.py written by Marc Mengel, Michael Gueith a
 '''
 
 import re
-from poms_model import Job, Task, Campaign, CampaignDefinitionSnapshot, CampaignSnapshot, JobFile, JobHistory
+from .poms_model import Job, Task, Campaign, CampaignDefinitionSnapshot, CampaignSnapshot, JobFile, JobHistory
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func, not_, and_
@@ -265,7 +265,7 @@ class JobsPOMS(object):
                     continue
 
                 if kwargs.get(field, None):
-                    setattr(j, field, kwargs[field].rstrip("\n"))
+                    setattr(j, field, str(kwargs[field]).rstrip("\n"))
                 if not getattr(j, field, None):
                     if field != 'user_exe_exit_code':
                         setattr(j, field, 'unknown')
@@ -284,14 +284,14 @@ class JobsPOMS(object):
                     do_SAM_project = True
 
                 if kwargs.get("task_%s" % field, None) and kwargs.get("task_%s" % field) != "None" and j.task_obj:
-                    setattr(j.task_obj, field, kwargs["task_%s" % field].rstrip("\n"))
+                    setattr(j.task_obj, field, str(kwargs["task_%s" % field]).rstrip("\n"))
                     logit.log("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field, kwargs["task_%s" % field])))
 
             # floating point fields need conversion
             for field in ['cpu_time', 'wall_time']:
                 if kwargs.get(field, None) and kwargs[field] != "None":
                     if (isinstance(kwargs[field], str)):
-                        setattr(j, field, float(kwargs[field].rstrip("\n")))
+                        setattr(j, field, float(str(kwargs[field]).rstrip("\n")))
                     if (isinstance(kwargs[field], float)):
                         setattr(j, field, kwargs[field])
 

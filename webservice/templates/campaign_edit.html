@@ -27,7 +27,7 @@
 {%endblock%}
 
 {%block header%}
-<h1 class="ui header">Campaign Stages {{ show_hint('', 'Help page') }}</h1>
+Campaign Stages {{ show_hint('', 'Help page') }}
 {%endblock%}
 
 {%block subheader%}
@@ -38,6 +38,7 @@
 <form id="campaign_form" class="ui form" action="campaign_edit" method="POST">
 
   <div class="inline fields">
+    <!--
     <select class="ui dropdown" name="experiment" id="c_experiment">
       <option value="">Choose Experiment</option>
       {% for row in data.exp_selections %}
@@ -45,6 +46,7 @@
       {% endfor %}
     </select>
     &nbsp;&nbsp;&nbsp;
+    -->
     <div class="field">
       <div class="ui radio checkbox">
         <input type="radio" name="state" id="state_active" value="state_active" {{ 'checked="checked"' if (data.state is not defined or data.state == "state_active")  }}>
@@ -418,10 +420,11 @@ $('#campaign_add_edit_form')
 //    }
 
 
-
+/*
 $("#c_experiment").change(function() {
     $("#campaign_form").submit();
 });
+*/
 
 $("#ae_launch_id").change(function() {
   var formdata = {'ae_launch_id': $("#ae_launch_id").val()};
