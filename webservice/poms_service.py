@@ -802,6 +802,8 @@ class poms_service:
         return template.render(file=file, job_file_contents=job_file_contents,
                                task_id=task_id, job_id=job_id, tmin=tmin,
                                pomspath=self.path, help_page="JobFileContentsHelp", version=self.version,
+                               current_experimenter=cherrypy.session.get('experimenter'),
+                           
                                allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
                                session_experiment=cherrypy.session.get('experimenter').session_experiment)
 
