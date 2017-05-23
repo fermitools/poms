@@ -130,10 +130,14 @@ class job_reporter:
           
         uh = None
         res = None
-      
+
         while retries > 0:
+
+            if retries < 3:
+                sys.stderr.write("Retrying...\n")
+
             try:
-                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data)
+                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=30)
                 res = uh.text
                 uh.close()
 
@@ -143,7 +147,10 @@ class job_reporter:
 
                 return res
 
-            except (urllib.error.HTTPError) as e:
+            except (KeyboardInterrupt):
+                raise
+
+            except (urllib.error.HTTPError,urllib.error.URLError,requests.exceptions.RequestException,requests.packages.urllib3.exceptions.ReadTimeoutError) as e:
                 sys.stderr.write("Exception: HTTP error %d" % e.code)
                 sys.stderr.write("\n--------\n")
                 sys.stderr.flush()
@@ -153,45 +160,24 @@ class job_reporter:
                     uh = None
 
                 # don't retry on 401's...
-                if e.code in [401,404]:
+                if hasattr(e,'code') and getattr(e,'code') in [401,404]:
+                    sys.stderr.write("Not retrying.\n")
                     del e
                     return ""
 
                 del e
+                
+                sys.stderr.write("Sleeping...\n")
                 time.sleep(5)
                 retries = retries - 1
 
-            except (urllib.error.URLError) as e:
-                if uh:
-                    uh.close()
-                    uh = None
-                errtext = str(e)
-                sys.stderr.write("Exception:" + errtext)
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                del e
-                time.sleep(5)
-                retries = retries - 1
-            except (requests.exceptions.ConnectionError) as e:
-                if uh:
-                    uh.close()
-                    uh = None
-                errtext = str(e)
-                sys.stderr.write("Exception:" + errtext)
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                del e
-                time.sleep(5)
-                retries = retries - 1
-                
-            except (KeyboardInterrupt):
-                raise
 
             except (Exception) as e:
                 errtext = str(e)
                 sys.stderr.write("Unknown Exception:" + errtext + repr(sys.exc_info()))
                 sys.stderr.write(traceback.format_exc())
                 sys.stderr.write("\n--------\n")
+                sys.stderr.write("Not retrying.\n")
                 sys.stderr.flush()
                 raise
 
@@ -225,8 +211,14 @@ class job_reporter:
                 return res
 
 
-            except (urllib.error.HTTPError) as e:
-                sys.stderr.write("Exception: HTTP error %d" % e.code)
+            except (urllib.error.HTTPError,urllib.error.URLError,requests.exceptions.RequestException,requests.packages.urllib3.exceptions.ReadTimeoutError) as e:
+                # don't retry on 401's...
+
+                if hasattr(e,'code'): 
+                    sys.stderr.write("Exception: HTTP error %d\n" % e.code)
+                else:
+                    sys.stderr.write("Exception: \n")
+
                 sys.stderr.write("\n--------\n")
                 sys.stderr.flush()
 
@@ -234,34 +226,11 @@ class job_reporter:
                     uh.close()
                     uh = None
 
-                # don't retry on 401's...
-                if e.code in [401,404]:
+                if hasattr(e,'code') and getattr(e,'code') in [401,404]:
+                    sys.stderr.write("Not retrying.\n")
                     del e
                     return ""
 
-                del e
-                time.sleep(5)
-                retries = retries - 1
-
-            except (urllib.error.URLError) as e:
-                if uh:
-                    uh.close()
-                    uh = None
-                errtext = str(e)
-                sys.stderr.write("Exception:" + errtext)
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                del e
-                time.sleep(5)
-                retries = retries - 1
-            except (http.client.BadStatusLine) as e:
-                if uh:
-                    uh.close()
-                    uh = None
-                errtext = str(e)
-                sys.stderr.write("Exception:" + errtext)
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
                 del e
                 time.sleep(5)
                 retries = retries - 1
