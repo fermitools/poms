@@ -388,7 +388,7 @@ class JobsPOMS(object):
             if test == true:
                 os.open("echo jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
             '''
-            f = os.popen("jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
+            f = os.popen("/usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
             output = f.read()
             f.close()
 

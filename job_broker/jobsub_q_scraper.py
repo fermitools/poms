@@ -289,10 +289,11 @@ if __name__ == '__main__':
             print("test mode: done")
         else:
             js.poll()
+
     except KeyboardInterrupt:
-        n = gc.collect()
-        #print "gc.collect() returns %d unreachable" % n
-        #print "Remaining garbage:"
-        #pprint.pprint(gc.garbage)
+        from pympler import summary, muppy
+        sum1 = summary.summarize(muppy.get_objects())
+        summary.print_(sum1)
+
     jr.cleanup()
     print("end of __main__")

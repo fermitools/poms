@@ -25,7 +25,7 @@
     <b>Calendar</b>
   </a>
 
-  {% if (current_experimenter.is_root()) %}
+  {% if current_experimenter is defined and  (current_experimenter.is_root()) %}
   <div class="item">
     <div class="header">DB Admin</div>
     <div class="menu">
