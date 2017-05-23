@@ -1,5 +1,6 @@
 import os
 import sys
+import poms
 
 class MockCondor_q:
      def __init__(self):

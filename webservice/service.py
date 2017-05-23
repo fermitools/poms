@@ -17,7 +17,7 @@ import poms.webservice.pomscache as pomscache
 #    ups = setups.setups()
 #    ups.use_package("poms", "", "SETUP_POMS")
 
-from poms_model import Experimenter, ExperimentsExperimenters, Experiment
+from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment
 # from sqlalchemy.orm import subqueryload, joinedload, contains_eager
 import os.path
 import argparse
@@ -197,12 +197,12 @@ class SessionTool(cherrypy.Tool):
     #                                  priority=90)
 
     def establish_session(self):
-        logit.log("mengel -- in establish_session")
 
         if cherrypy.session.get('id', None):
-            logit.log("mengel -- bailing no session id")
             #logit.log("EXISTING SESSION: %s" % str(cherrypy.session['experimenter']))
             return
+
+        logit.log("establish_session startup -- mengel")
 
         cherrypy.session['id']              = cherrypy.session.originalid  #The session ID from the users cookie.
         cherrypy.session['X-Forwarded-For'] = cherrypy.request.headers.get('X-Forwarded-For', None)
@@ -211,10 +211,11 @@ class SessionTool(cherrypy.Tool):
         cherrypy.session['Remote-Addr']     = cherrypy.request.headers.get('Remote-Addr', None)
         cherrypy.session['X-Shib-Userid']   = cherrypy.request.headers.get('X-Shib-Userid', None)
 
+        experimenter = None
         username = None
-        logit.log("mengel -- checking Shib-Userid")
+
         if cherrypy.request.headers.get('X-Shib-Userid', None):
-            logit.log("mengel --have Shib-Userid")
+            logit.log("Shib-Userid case")
             username = cherrypy.request.headers['X-Shib-Userid']
             experimenter = None
             experimenter = (cherrypy.request.db.query(Experimenter)
@@ -222,13 +223,16 @@ class SessionTool(cherrypy.Tool):
                             .filter(Experimenter.username == username)
                             .first()
                             )
-        else:
-            # being me for testing...
-            
-            logit.log("faking user...")
-            experimenter = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == os.environ['USER']).first()
-            # experimenter = None
 
+        elif cherrypy.config.get('standalone_test_user',None):
+            logit.log("standalone_test_user case")
+            username = cherrypy.config.get('standalone_test_user',None)
+            experimenter = (cherrypy.request.db.query(Experimenter)
+                            .filter(ExperimentsExperimenters.active == True)
+                            .filter(Experimenter.username == username)
+                            .first()
+                            )
+               
         if not experimenter:
             raise cherrypy.HTTPError(401, 'POMS account does not exist.  To be added you must registered in VOMS.')
 

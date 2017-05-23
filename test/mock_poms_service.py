@@ -1,16 +1,6 @@
 import socket
 
-from poms.webservice import (
-                             CalendarPOMS,
-                             CampaignsPOMS,
-                             DBadminPOMS,
-                             FilesPOMS,
-                             JobsPOMS,
-                             TablesPOMS,
-                             TagsPOMS,
-                             TaskPOMS,
-                             TriagePOMS,
-                             UtilsPOMS)
+from poms.webservice import CalendarPOMS, CampaignsPOMS, DBadminPOMS, FilesPOMS, JobsPOMS, TablesPOMS, TagsPOMS, TaskPOMS, TriagePOMS, UtilsPOMS
 
 
 class mock_poms_service(object):

@@ -10,7 +10,7 @@ Date: April 28th, 2017. (changes for the POMS_client)
 from . import logit
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, desc, not_, and_
-from poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
+from .poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
     LaunchTemplate, CampaignDefinition, CampaignRecovery,
     CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
 )
@@ -42,6 +42,7 @@ class CampaignsPOMS():
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
+        exp = seshandle('experimenter').session_experiment
         pcl_call = kwargs.pop('pcl_call', 0)
         pc_username = kwargs.pop('pc_username',None)
         if action == 'delete':
@@ -117,7 +118,7 @@ class CampaignsPOMS():
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action',None)
-        exp = kwargs.pop('experiment',None)
+        exp = seshandle('experimenter').session_experiment
         #added for poms_client
         pcl_call = kwargs.pop('pcl_call', 0) #pcl_call == 1 means the method was access through the poms_client.
         pc_email = kwargs.pop('pc_email',None) #email is the info we know about the user in POMS DB.
@@ -261,13 +262,14 @@ class CampaignsPOMS():
     def campaign_edit(self, dbhandle, sesshandle, *args, **kwargs):
         data = {}
         message = None
+        exp = sesshandle.get('experimenter').session_experiment
         data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root","public"])).order_by(Experiment.experiment)
         #for k,v in kwargs.items():
         #    print ' k=%s, v=%s ' %(k,v)
         action = kwargs.pop('action',None)
-        exp = kwargs.pop('experiment',None)
         pcl_call = kwargs.pop('pcl_call', 0) #pcl_call == 1 means the method was access through the poms_client.
         pc_email = kwargs.pop('pc_email',None) #email is the info we know about the user in POMS DB.
+
         if action == 'delete':
             if pcl_call==1:
                 name = kwargs.pop('ae_campaign_name')
@@ -299,12 +301,12 @@ class CampaignsPOMS():
             completion_type = kwargs.pop('ae_completion_type')
             completion_pct =  kwargs.pop('ae_completion_pct')
             depends = kwargs.pop('ae_depends')
-            launch_name=kwargs.pop('ae_launch_name')
-            campaign_definition_name=kwargs.pop('ae_campaign_definition')
             param_overrides = kwargs.pop('ae_param_overrides')
             if param_overrides:param_overrides = json.loads(param_overrides)
 
             if pcl_call == 1:
+                launch_name=kwargs.pop('ae_launch_name')
+                campaign_definition_name=kwargs.pop('ae_campaign_definition')
                 #all this variables depend on the arguments passed.
                 experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
                 campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
@@ -814,7 +816,9 @@ class CampaignsPOMS():
         lines = lf.readlines()
         lf.close()
         # if file is recent set refresh to watch it
-        if (time.time() - sb[8]) < 30 :
+        if (time.time() - sb[8]) < 5 :
+            refresh = 2
+        elif (time.time() - sb[8]) < 30 :
             refresh = 10
         else:
             refresh = 0

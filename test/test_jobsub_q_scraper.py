@@ -7,6 +7,7 @@ import os
 import time
 import json
 import urllib.request, urllib.parse, urllib.error
+import poms
 
 class TestJobsub_q_scraper:
 

@@ -23,7 +23,7 @@ import os
 from . import logit
 #from exceptions import KeyError
 
-from poms_model import (Service,
+from .poms_model import (Service,
                         Experimenter,
                         Job,
                         JobHistory,

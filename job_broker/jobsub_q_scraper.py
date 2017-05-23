@@ -13,13 +13,22 @@ import gc
 import pprint
 import threading
 from job_reporter import job_reporter
-
-do_memdebug = False
-
-if do_memdebug:
-    from pympler import tracker
+from subprocess import Popen, PIPE
 
 import prometheus_client as prom
+
+#
+# define a couple of clone classes of dict so we can see which one(s) we're using/leaking
+#
+
+class JobAttrs(dict):
+     pass
+
+class JobEnv(dict):
+     pass
+
+class JobSet(dict):
+     pass
 
 class jobsub_q_scraper:
     """
@@ -33,41 +42,51 @@ class jobsub_q_scraper:
         self.jobCount = prom.Gauge("jobs_in_queue","Jobs in the queue this run")
         self.threadCount = prom.Gauge("Thread_count","Number of probe threads")
 
+        self.jobsub_q_cmd = "for n in 1 2; do m=$((n+2)); condor_q -pool fifebatchhead$m.fnal.gov -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID && break; done"
+
         self.map = {
-           "0": "Unexplained",
-           "1": "Idle",
-           "2": "Running",
-           "3": "Removed",
-           "4": "Completed",
-           "5": "Held",
-           "6": "Submission_error",
+           "0": sys.intern("Unexplained"),
+           "1": sys.intern("Idle"),
+           "2": sys.intern("Running"),
+           "3": sys.intern("Removed"),
+           "4": sys.intern("Completed"),
+           "5": sys.intern("Held"),
+           "6": sys.intern("Submission_error"),
         }
-        self.cur_report = {}
-        self.prev_report = {}
-        self.jobmap = {}
-        self.prevjobmap = {}
+        # intern strings we use for maps, etc. to cut down on memory
+        self.k_jobsub_job_id = sys.intern('jobsub_job_id')
+        self.k_taskid = sys.intern('taskid')
+        self.k_status = sys.intern('status')
+        self.k_restarts = sys.intern('restarts')
+        self.k_node_name = sys.intern('node_name')
+        self.k_host_site = sys.intern('host_site')
+        self.k_task_project = sys.intern('task_project')
+        self.k_cpu_time = sys.intern('cpu_time')
+        self.k_wall_time = sys.intern('wall_time')
+        self.k_task_recovery_tasks_parent = sys.intern('task_recovery_tasks_parent')
+        self.k_JOBSUBJOBID = sys.intern('JOBSUBJOBID')
+
+        self.cur_report = JobAttrs()
+        self.prev_report = JobAttrs()
+        self.jobmap = JobSet()
+        self.prevjobmap = JobSet()
         self.debug = debug
         self.passcount = 0
-        if do_memdebug:
-            self.memory_tracker = tracker.SummaryTracker()
-            self.memory_tracker.print_diff()
-            self.memory_tracker.print_diff()
-            self.memory_tracker.print_diff()
         sys.stdout.flush()
 
     def get_open_jobs(self):
         self.prevjobmap = self.jobmap
-        self.jobmap = {}
+        self.jobmap = JobSet()
         conn = None
         try:
             conn = self.rs.get(self.job_reporter.report_url + '/active_jobs')
             jobs = conn.json()
             conn.close()
-            conn = None
+            del conn
 
             #print "got: ", jobs
             print("got %d jobs" % len(jobs))
-            self.jobCount.set(len(jobs))
+            self.jobCount.set(len(jobs)+0)
             for j in jobs:
                 self.jobmap[j] = 0
             del jobs
@@ -103,8 +122,10 @@ class jobsub_q_scraper:
 
     def scan(self):
         # roll our previous/current status
+        del self.prev_report
         self.prev_report = self.cur_report
-        self.cur_report = {}
+        self.cur_report = JobAttrs()
+        jobenv = JobEnv()
 
         self.get_open_jobs()
 
@@ -113,20 +134,23 @@ class jobsub_q_scraper:
         # for now we have a for loop and use condor_q, in future
         # we hope to be able to use jobsub_q with -format...
 
-        f = os.popen("for n in 1 2; do m=$((n+2)); condor_q -pool fifebatchhead$m.fnal.gov -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID && break; done", "r")
+        p = Popen(self.jobsub_q_cmd, shell = True, stdout = PIPE, close_fds = True, universal_newlines=True)
+        f = p.stdout
         for line in f:
 
             line = line.rstrip('\n')
                 
             if self.debug:
                 print("saw line: " , line)
-            jobenv={}
+
+            del jobenv
+            jobenv=JobEnv()
             for evv in line.split(";"):
                 name,val = evv.split("=",1)
-                jobenv[name] = val
+                jobenv[sys.intern(name)] = sys.intern(val)
 
-            if "JOBSUBJOBID" in jobenv:
-                jobsub_job_id = jobenv["JOBSUBJOBID"];
+            if self.k_JOBSUBJOBID in jobenv:
+                jobsub_job_id = jobenv[self.k_JOBSUBJOBID]
             else:
                 jobsub_job_id = '%s.%s@%s' % (
                     jobenv['CLUSTER'],
@@ -134,7 +158,7 @@ class jobsub_q_scraper:
                     jobenv['SCHEDD']
                   )
 
-            jobsub_job_id = jobsub_job_id.strip()
+            jobsub_job_id = sys.intern(jobsub_job_id.strip())
 
             self.jobmap[jobsub_job_id] = 1
             
@@ -163,16 +187,16 @@ class jobsub_q_scraper:
                 if self.debug: print("jobenv is: ", jobenv)
 
                 args = {
-                    'jobsub_job_id' : jobsub_job_id,
-                    'taskid' : jobenv['POMS_TASK_ID'],
-                    'status' : self.map[jobenv['JOBSTATUS']],
-                    'restarts' : jobenv['NumRestarts'],
-                    'node_name' : host, 
-                    'host_site' : jobenv.get('GLIDEIN_SITE', ''),
-                    'task_project' : jobenv.get('SAM_PROJECT_NAME',None),
-                    'cpu_time' : jobenv.get('RemoteUserCpu'),
-                    'wall_time' : wall_time,
-                    'task_recovery_tasks_parent': jobenv.get('POMS_PARENT_TASK_ID',None),
+                    self.k_jobsub_job_id : jobsub_job_id,
+                    self.k_taskid : jobenv['POMS_TASK_ID'],
+                    self.k_status : self.map[jobenv['JOBSTATUS']],
+                    self.k_restarts : jobenv['NumRestarts'],
+                    self.k_node_name : host, 
+                    self.k_host_site : jobenv.get('GLIDEIN_SITE', ''),
+                    self.k_task_project : jobenv.get('SAM_PROJECT_NAME',None),
+                    self.k_cpu_time : jobenv.get('RemoteUserCpu'),
+                    self.k_wall_time : wall_time,
+                    self.k_task_recovery_tasks_parent: jobenv.get('POMS_PARENT_TASK_ID',None),
                 }
 
                 prev = self.prev_report.get(jobsub_job_id, None)
@@ -200,7 +224,8 @@ class jobsub_q_scraper:
                 #print "skipping:" , line
                 pass
 
-        res = f.close()
+        f.close()
+        res = p.wait()
 
         if res == 0 or res == None:
             for jobsub_job_id in list(self.jobmap.keys()):
@@ -208,7 +233,7 @@ class jobsub_q_scraper:
                     # it is in the database, but not in our output, 
                     # nor in the previous output, we conclude it's completed.
                     # we could get a false alarm here if condor_q fails...
-                    # thats why we only do this if our close() returned 0/None.
+                    # thats why we only do this if our p.wait() returned 0/None.
                     # and we make sure we didn't see it two runs in a row...
                     print("reporting %s as completed" % jobsub_job_id)
 
@@ -255,10 +280,6 @@ class jobsub_q_scraper:
             sys.stderr.write("%s done...\n" % time.asctime())
             sys.stderr.flush()
 
-            n = gc.collect()
-            print("gc.collect() returns %d unreachable" % n)
-            if do_memdebug:
-                self.memory_tracker.print_diff()
             sys.stdout.flush()
 
 # don't barf if we need to log utf8...
@@ -289,10 +310,11 @@ if __name__ == '__main__':
             print("test mode: done")
         else:
             js.poll()
+
     except KeyboardInterrupt:
-        n = gc.collect()
-        #print "gc.collect() returns %d unreachable" % n
-        #print "Remaining garbage:"
-        #pprint.pprint(gc.garbage)
+        from pympler import summary, muppy
+        sum1 = summary.summarize(muppy.get_objects())
+        summary.print_(sum1)
+
     jr.cleanup()
     print("end of __main__")

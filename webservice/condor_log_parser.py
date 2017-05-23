@@ -1,27 +1,35 @@
 #!/usr/bin/env python
 
 # our own logging handle, goes to cherrypy
-import logging
-logger = logging.getLogger('cherrypy.error')
+from .logit import log
 
 from . import jobsub_fetcher
 from datetime import datetime, timedelta
-from poms_model import Job
+from .poms_model import Job
+import time
 
 def get_joblogs(dbhandle, jobsub_job_id, experiment, role):
+    print("entering joblogs, why doesn't this log?")
+    log("INFO", "entering get_joblogs" )
     if jobsub_job_id == None:
         return
     jf = jobsub_fetcher.jobsub_fetcher()
-    logger.debug( "checking index" )
+    log("DEBUG", "checking index" )
     files = jf.index( jobsub_job_id, experiment, role, True)
+    task = dbhandle.query(Job.task_id).filter(Job.jobsub_job_id == jobsub_job_id).first()
+    if task == None:
+        task_id = 14
+    else:
+        task_id = task.task_id
+
     for row in files:
         if row[5].endswith(".log") and not row[5].endswith(".dagman.log"):
             # first non dagman.log .log we see is either the xyz.log
             # that goes with xyz.cmd, or the dag.nodes.log, which has
             # the individual job.logs in it.
-            logger.debug( "checking file %s " %row[5] )
+            log("DEBUG", "checking file %s " %row[5] )
             lines = jf.contents(row[5], jobsub_job_id, experiment, role)
-            parse_condor_log(dbhandle, lines, jobsub_job_id[jobsub_job_id.find("@")+1:])
+            parse_condor_log(dbhandle, lines, jobsub_job_id[jobsub_job_id.find("@")+1:], task_id)
             break
     del jf
 
@@ -62,17 +70,31 @@ def parse_date(date_time_str):
 
     return datetime.strptime(date_time_str, "%Y/%m/%d %H:%M:%S")
 
-def parse_condor_log(dbhandle, lines, batchhost):
+def parse_condor_log(dbhandle, lines, batchhost, task_id):
     in_termination = 0
     stimes = {}
+    job_sites = {}
+    execute_hosts = {}
+    job_exit = None
+    jobsub_job_id = None
     for line in lines:
         if line[:5] == "001 (":
-            logger.debug( "start record start: %s" % line )
+            log("DEBUG", "start record start: %s" % line )
             ppos = line.find(")")
             jobsub_job_id = fix_jobid(line[5:ppos], batchhost)
             stimes[jobsub_job_id] = parse_date(line[ppos+2:ppos+16])
+        if line[:5] == "001 (":
+            log("DEBUG", "job classad record start: %s" % line )
+            jobsub_job_id = fix_jobid(line[5:ppos], batchhost)
+
+        if line[:10] == "JOB_Site =":
+            job_sites[jobsub_job_id] = line[11:-1]
+
+        if line[:13] == "ExecuteHost =":
+            execute_hosts[jobsub_job_id] = line[15:-2]
+
         if line[:5] == "005 (":
-            logger.debug( "term record start: %s" % line )
+            log("DEBUG", "term record start: %s" % line )
             ppos = line.find(")")
             in_termination = 1
             finish_time = parse_date(line[ppos+2:ppos+16])
@@ -82,20 +104,45 @@ def parse_condor_log(dbhandle, lines, batchhost):
             memory_used = None
             continue
         if line[:3] == "..." and in_termination:
-            logger.debug( "term record end %s" % line )
+            log("DEBUG", "term record end %s" % line )
             job = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == jobsub_job_id).first()
             if job:
                 job.cpu_time = remote_cpu
                 job.wall_time = (finish_time - stimes[jobsub_job_id]).total_seconds()
-                logger.debug( "start: %s end: %s wall_time %s "%( stimes[jobsub_job_id],  finish_time,  job.wall_time ))
+                if job.user_exe_exit_code in (None, 'None'): 
+                     job.user_exe_exit_code = job_exit
+                if job.node_name in (None, 'None','unknown'): 
+                     job.node_name = execute_hosts[jobsub_job_id]
+                if job.host_site in (None, 'None','unknown'): 
+                     job.host_site = job_sites[jobsub_job_id]
+
+                log("DEBUG", "start: %s end: %s wall_time %s "%( stimes[jobsub_job_id],  finish_time,  job.wall_time ))
             else:
-                # XXX we should create the job 'cause jobsub_q agent, etc missed it...
-                pass
+                # missing job, add it...
+                job = Job()
+                job.task_id = task_id
+                job.jobsub_job_id = jobsub_job_id
+                job.node_name = execute_hosts[jobsub_job_id]
+                job.cpu_type = 'unknown'
+                job.host_site = job_sites[jobsub_job_id]
+                job.status = 'Running'
+                job.updated = stimes[jobsub_job_id]
+                job.output_files_declared = True
+                job.user_exe_exit_code = job_exit
+                dbhandle.add(job)
+                dbhandle.commit()
+
+                # workaround for job history constraint
+                time.sleep(0.1)
+                job.status = 'Completed'
+                job.updated = finish_time
+                dbhandle.add(job)
+                dbhandle.flush()
 
             in_termination = 0
             continue
         if in_termination:
-            logger.debug( "saw: ", line )
+            log("DEBUG", "saw: ", line )
             if line.find("(return value") > 0:
                  job_exit = int(line.split()[5].strip(')'))
             if line.find("Total Remote Usage") > 0:
@@ -104,6 +151,6 @@ def parse_condor_log(dbhandle, lines, batchhost):
                  disk_used = line.split()[3]
             if line.find("Memory (KB)") > 0:
                  memory_used = line.split()[3]
-            logger.info( "condor_log_parser: remote_cpu %s disk_used %s memory_used %s job_exit %s" % (remote_cpu,  disk_used,  memory_used, job_exit ))
+            log("INFO", "condor_log_parser: remote_cpu %s disk_used %s memory_used %s job_exit %s" % (remote_cpu,  disk_used,  memory_used, job_exit ))
 
     dbhandle.commit()
