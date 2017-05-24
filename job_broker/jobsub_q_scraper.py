@@ -37,6 +37,9 @@ class jobsub_q_scraper:
        at the fifebatchhead nodes.
     """
     def __init__(self, job_reporter, debug = 0):
+
+        gc.enable()
+
         self.rs = requests.Session()
         self.job_reporter = job_reporter
         self.jobCount = prom.Gauge("jobs_in_queue","Jobs in the queue this run")
@@ -137,8 +140,7 @@ class jobsub_q_scraper:
 
             line = line.rstrip('\n')
                 
-            if self.debug:
-                print("saw line: " , line)
+            #if self.debug: print("saw line: " , line)
 
             del jobenv
             jobenv=JobEnv()
@@ -181,7 +183,7 @@ class jobsub_q_scraper:
 
             if "POMS_TASK_ID" in jobenv:
 
-                if self.debug: print("jobenv is: ", jobenv)
+                #if self.debug: print("jobenv is: ", jobenv)
 
                 args = {
                     self.k_jobsub_job_id : jobsub_job_id,
@@ -207,7 +209,7 @@ class jobsub_q_scraper:
                         self.job_reporter.report_status(**args)
                     except KeyboardInterrupt:
                         raise
-                    except:
+                    except Exception:
                         print("Reporting Exception!")
                         traceback.print_exc()
                         pass
@@ -270,6 +272,8 @@ class jobsub_q_scraper:
                 print("Exception!")
                 traceback.print_exc()
                 pass
+
+            gc.collect()
 
             sys.stderr.write("%s pausing...\n" % time.asctime())
             sys.stderr.flush()

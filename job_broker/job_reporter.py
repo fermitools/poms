@@ -33,7 +33,7 @@ class job_reporter:
         self.wthreads = []
         self.nthreads = nthreads
         # for bulk updates, do batches of 25 or every 10 seconds
-        self.batchsize = 25
+        self.batchsize = 256 
         self.timemax = 10
         if self.bulk:
             self.wthreads.append(threading.Thread(target=self.runqueue_bulk))
@@ -50,6 +50,8 @@ class job_reporter:
             sys.stderr.write("HTTP error %d\n" % e.code)
             if uh.text:
                 sys.stderr.write("Page Text: \n %s \n" % uh.text)
+        elif isinstance(e,requests.exceptions.ReadTimeout):
+            sys.stderr.write("Read Timeout, moving on...\n")
         else:
             errtext = str(e)
             traceback.print_exc(file=sys.stderr)
@@ -70,8 +72,8 @@ class job_reporter:
         
     def check(self):
         # make sure we still have nthreads reporting threads
-        if self.work.qsize() > 4 * self.batchsize:
-            sys.stderr.write("Seriously Backlogged: exiting!\n")
+        if self.work.qsize() > 100 * self.batchsize:
+            sys.stderr.write("Seriously Backlogged: qsize %d exiting!\n" % self.work.qsize())
             os._exit(1)
            
         if self.bulk:
@@ -95,6 +97,8 @@ class job_reporter:
         bail = False
         while not bail:
             if self.work.qsize() > self.batchsize or time.time() - lastsent > self.timemax:
+
+                if self.debug: sys.stderr.write("runqueue_bulk:  before:qsize is %d\n" % self.work.qsize()); sys.stderr.flush()
                 batch = []
                 for i in range(self.batchsize):
                     try:
@@ -120,8 +124,11 @@ class job_reporter:
 
                 self.bulk_update(batch)
                 lastsent = time.time()
+
+                if self.debug: sys.stderr.write("\nrunqueue_bulk: after: qsize is %d\n" % self.work.qsize())
             else:
                 time.sleep(1)
+
 
     def runqueue(self):
         while 1:
@@ -150,7 +157,11 @@ class job_reporter:
 
     def bulk_update(self, batch):
 
-        if self.debug: sys.stderr.write("bulk_update: %s\n" % repr(batch))
+        if self.debug: sys.stderr.write("bulk_update: %d\n\n" % len(batch))
+
+        if len(batch) == 0:
+             if self.debug: sys.stderr.write("bulk_update: completed\n")
+             return
 
         data = {'data': json.dumps(batch)}
         
@@ -166,7 +177,13 @@ class job_reporter:
                 sys.stderr.write("Retrying...\n")
 
             try:
-                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=120)
+                #
+                # in an unscientific sampling, 90% of updates were under 3 secons
+                # then a separate batch at 30 and 90 seconds split the other 10%
+                # so we bail after 3 seconds.  The request actually continues, 
+                # and probablly enters the data, but we go on..
+                #
+                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=3)
                 res = uh.text
 
                 if self.debug: sys.stderr.write("response: %s\n" % res)
@@ -177,7 +194,7 @@ class job_reporter:
 
             except (Exception) as e:
                 if self.log_exception(e, uh):
-                    time.sleep(5)
+                    #time.sleep(1) not keeping up... don't delay so much
                     retries = retries - 1
                 else:
                     retries = 0
@@ -210,7 +227,7 @@ class job_reporter:
         while retries > 0:
             uh = None
             try:
-                uh = self.rs.post(self.report_url + "/update_job", data = data, timeout=120)
+                uh = self.rs.post(self.report_url + "/update_job", data = data, timeout=5)
                 res = uh.text
 
                 if self.debug: sys.stderr.write("response: %s\n" % res)
