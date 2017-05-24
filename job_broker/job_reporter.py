@@ -65,6 +65,7 @@ class job_reporter:
             del e
             return 1
         else:
+            del e
             return 0
         
     def check(self):
@@ -179,7 +180,7 @@ class job_reporter:
                     time.sleep(5)
                     retries = retries - 1
                 else:
-                    break
+                    retries = 0
 
             finally:
                 if uh:
