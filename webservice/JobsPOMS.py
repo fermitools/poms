@@ -131,7 +131,7 @@ class JobsPOMS(object):
         # whose Tasks we do have entries for, and make new Job entries for
         # them.
         for jid in list(data.keys()):
-            if not foundjobs.get(jid, None) and 'task_id' in data[jid] and fulltasks.get(int(data[jid]['task_id']), None):
+            if not foundjobs.get(jid, None) and 'task_id' in data[jid] and data[jid]['task_id'] and fulltasks.get(int(data[jid]['task_id']), None):
                 logit.log("need new Job for %s" % jid)
                 j = Job(jobsub_job_id=jid,
                         task_obj=fulltasks[int(data[jid]['task_id'])],

@@ -44,6 +44,32 @@ class job_reporter:
                 #self.wthreads[i].daemon = True
                 self.wthreads[i].start()
 
+    def log_exception(self, e, uh):
+        sys.stderr.write("Exception: ")
+        if hasattr(e,'code'):
+            sys.stderr.write("HTTP error %d\n" % e.code)
+            if uh.text:
+                sys.stderr.write("Page Text: \n %s \n" % uh.text)
+        else:
+            errtext = str(e)
+            traceback.print_exc(file=sys.stderr)
+        sys.stderr.write("\n--------\n")
+        sys.stderr.flush()
+
+        if uh:
+            uh.close()
+
+        # don't retry on 401's...
+        if hasattr(e,'code') and getattr(e,'code') in [401,404]:
+            sys.stderr.write("Not retrying.\n")
+            del e
+            return 0
+        elif hasattr(e,'code'):
+            del e
+            return 1
+        else:
+            return 0
+        
     def check(self):
         # make sure we still have nthreads reporting threads
         if self.bulk:
@@ -150,36 +176,13 @@ class job_reporter:
             except (KeyboardInterrupt):
                 raise
 
-            except (urllib.error.HTTPError,urllib.error.URLError,requests.exceptions.RequestException,requests.packages.urllib3.exceptions.ReadTimeoutError) as e:
-                sys.stderr.write("Exception: HTTP error %d" % e.code)
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-
-                if uh:
-                    uh.close()
-                    uh = None
-
-                # don't retry on 401's...
-                if hasattr(e,'code') and getattr(e,'code') in [401,404]:
-                    sys.stderr.write("Not retrying.\n")
-                    del e
-                    return ""
-
-                del e
-                
-                sys.stderr.write("Sleeping...\n")
-                time.sleep(5)
-                retries = retries - 1
-
-
             except (Exception) as e:
-                errtext = str(e)
-                sys.stderr.write("Unknown Exception:" + errtext + repr(sys.exc_info()))
-                sys.stderr.write(traceback.format_exc())
-                sys.stderr.write("\n--------\n")
-                sys.stderr.write("Not retrying.\n")
-                sys.stderr.flush()
-                raise
+                if self.log_exception(e, uh):
+                    time.sleep(5)
+                    retries = retries - 1
+                else:
+                    break
+
 
     def actually_report_status(self, jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
         data = {}
@@ -210,40 +213,12 @@ class job_reporter:
 
                 return res
 
-
-            except (urllib.error.HTTPError,urllib.error.URLError,requests.exceptions.RequestException,requests.packages.urllib3.exceptions.ReadTimeoutError) as e:
-                # don't retry on 401's...
-
-                if hasattr(e,'code'): 
-                    sys.stderr.write("Exception: HTTP error %d\n" % e.code)
-                else:
-                    sys.stderr.write("Exception: \n")
-
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-
-                if uh:
-                    uh.close()
-                    uh = None
-
-                if hasattr(e,'code') and getattr(e,'code') in [401,404]:
-                    sys.stderr.write("Not retrying.\n")
-                    del e
-                    return ""
-
-                del e
-                time.sleep(5)
-                retries = retries - 1
-                
-            except (KeyboardInterrupt):
-                raise
-
             except (Exception) as e:
-                errtext = str(e)
-                sys.stderr.write("Unknown Exception:" + errtext + sys.exc_info())
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                raise
+                if self.log_exception(e, uh):
+                    time.sleep(5)
+                    retries = retries - 1
+                else:
+                    break
 
 if __name__ == '__main__':
     print("self test:")
