@@ -56,9 +56,6 @@ class job_reporter:
         sys.stderr.write("\n--------\n")
         sys.stderr.flush()
 
-        if uh:
-            uh.close()
-
         # don't retry on 401's...
         if hasattr(e,'code') and getattr(e,'code') in [401,404]:
             sys.stderr.write("Not retrying.\n")
@@ -72,6 +69,10 @@ class job_reporter:
         
     def check(self):
         # make sure we still have nthreads reporting threads
+        if self.work.qsize() > 4 * self.batchsize:
+            sys.stderr.write("Seriously Backlogged: exiting!\n")
+            os._exit(1)
+           
         if self.bulk:
             if not(self.wthreads[0].is_alive()):
                 self.wthreads[0].join(0.1)
@@ -154,24 +155,21 @@ class job_reporter:
         
         retries = 3
           
-        uh = None
         res = None
 
         while retries > 0:
+
+            uh = None
 
             if retries < 3:
                 sys.stderr.write("Retrying...\n")
 
             try:
-                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=30)
+                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=120)
                 res = uh.text
-                uh.close()
 
                 if self.debug: sys.stderr.write("response: %s\n" % res)
-
-                uh = None
-
-                return res
+                retries = 0
 
             except (KeyboardInterrupt):
                 raise
@@ -183,7 +181,12 @@ class job_reporter:
                 else:
                     break
 
+            finally:
+                if uh:
+                    uh.close()
+
         if self.debug: sys.stderr.write("bulk_update: completed\n" % repr(batch))
+        return res
 
 
     def actually_report_status(self, jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
@@ -201,19 +204,16 @@ class job_reporter:
 
         retries = 3
           
-        uh = None
         res = None
       
         while retries > 0:
+            uh = None
             try:
-                uh = self.rs.post(self.report_url + "/update_job", data = data)
+                uh = self.rs.post(self.report_url + "/update_job", data = data, timeout=120)
                 res = uh.text
-                uh.close()
+
                 if self.debug: sys.stderr.write("response: %s\n" % res)
-
-                uh = None
-
-                return res
+                retries = 0
 
             except (Exception) as e:
                 if self.log_exception(e, uh):
@@ -221,6 +221,10 @@ class job_reporter:
                     retries = retries - 1
                 else:
                     break
+            finally:
+                if uh:
+                    uh.close()
+        return res
 
 if __name__ == '__main__':
     print("self test:")

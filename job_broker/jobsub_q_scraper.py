@@ -81,8 +81,6 @@ class jobsub_q_scraper:
         try:
             conn = self.rs.get(self.job_reporter.report_url + '/active_jobs')
             jobs = conn.json()
-            conn.close()
-            del conn
 
             #print "got: ", jobs
             print("got %d jobs" % len(jobs))
@@ -93,32 +91,31 @@ class jobsub_q_scraper:
             jobs = None
         except KeyboardInterrupt:
             raise
+
         except Exception as e:
-            print("Ouch!", sys.exc_info())
-            traceback.print_exc()
-            if conn: 
-                conn.close()
-                del conn
+            sys.stderr.write("Ouch! when getting active jobs\n")
+            traceback.print_exc(file=sys.stderr)
             del e
+        finally:
+            if conn:
+               conn.close()
 
     def call_wrapup_tasks(self):
         conn = None
         try:
-            conn = self.rs.get(self.job_reporter.report_url + '/wrapup_tasks')
+            conn = self.rs.get(self.job_reporter.report_url + '/wrapup_tasks') 
             text = conn.text
-            conn.close()
-            conn = None
 
             if self.debug: print("got: ", text)
         except KeyboardInterrupt:
             raise
         except Exception as e:
-            print("Ouch!", sys.exc_info())
-            traceback.print_exc()
-            if conn:
-                conn.close()
-                del conn
+            sys.stderr.write("Ouch! while calling wrapup_tasks\n")
+            traceback.print_exc(file=sys.stderr)
             del e
+        finally:
+            if conn:
+               conn.close()
 
     def scan(self):
         # roll our previous/current status
