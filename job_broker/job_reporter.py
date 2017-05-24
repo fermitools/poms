@@ -186,7 +186,7 @@ class job_reporter:
                 if uh:
                     uh.close()
 
-        if self.debug: sys.stderr.write("bulk_update: completed\n" % repr(batch))
+        if self.debug: sys.stderr.write("bulk_update: completed\n")
         return res
 
 
