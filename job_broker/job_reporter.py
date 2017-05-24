@@ -73,13 +73,13 @@ class job_reporter:
     def check(self):
         # make sure we still have nthreads reporting threads
         if self.bulk:
-            if not(self.wthreads[0].isAlive()):
+            if not(self.wthreads[0].is_alive()):
                 self.wthreads[0].join(0.1)
                 self.wthreads[0] = threading.Thread(target=self.runqueue_bulk)
                 self.wthreads[0].start()
         else:
             for i in range(self.nthreads):
-                if not(self.wthreads[i].isAlive()):
+                if not(self.wthreads[i].is_alive()):
                     self.wthreads[i].join(0.1)
                     self.wthreads[i] = threading.Thread(target=self.runqueue) 
                     self.wthreads[i].start()
@@ -182,6 +182,8 @@ class job_reporter:
                     retries = retries - 1
                 else:
                     break
+
+        if self.debug: sys.stderr.write("bulk_update: completed\n" % repr(batch))
 
 
     def actually_report_status(self, jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
