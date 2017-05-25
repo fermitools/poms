@@ -277,7 +277,7 @@ class jobsub_q_scraper:
 
             sys.stderr.write("%s pausing...\n" % time.asctime())
             sys.stderr.flush()
-            time.sleep(30)
+            time.sleep(120)
             sys.stderr.write("%s done...\n" % time.asctime())
             sys.stderr.flush()
 
