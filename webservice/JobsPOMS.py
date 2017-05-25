@@ -105,17 +105,8 @@ class JobsPOMS(object):
 
         logit.log("found task ids for %s" % ",".join(map(str, list(foundtasks.keys()))))
 
-        # lookup what job-id's we already have database entries for
-        jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(list(data.keys()))).execution_options(stream_results=True).all()
-
-        # make a list of jobs we can update
-        jlist = []
-        foundjobs = {}
-        for j in jobs:
-            foundjobs["%s"%j.jobsub_job_id] = j
-            jlist.append(j)
-
-        # get the tasks we have that are mentioned
+        # get the tasks we have that are mentioned -- do it *before* we take
+        # for update locks
         if len(foundtasks) > 0:
             tasks = dbhandle.query(Task).filter(Task.task_id.in_(list(foundtasks.keys()))).all()
         else:
@@ -126,6 +117,22 @@ class JobsPOMS(object):
             fulltasks[int(t.task_id)] = t
 
         logit.log("found full tasks for %s" % ",".join(map(str, list(fulltasks.keys()))))
+        # trying just locking the whole table, 'cause we're waiting around
+        # for row locks...
+        # -- mengel 
+        #dbhandle.execute("lock table jobs in share mode")
+        # -- sigh. Seems to do worse..
+
+        # lookup what job-id's we already have database entries for
+        jobs = dbhandle.query(Job).filter(Job.jobsub_job_id.in_(list(data.keys()))).execution_options(stream_results=True).all()
+
+        # make a list of jobs we can update
+        jlist = []
+        foundjobs = {}
+        for j in jobs:
+            foundjobs["%s"%j.jobsub_job_id] = j
+            jlist.append(j)
+
 
         # now look for jobs for which  we don't have Job ORM entries, but
         # whose Tasks we do have entries for, and make new Job entries for
@@ -146,11 +153,16 @@ class JobsPOMS(object):
             else:
                 pass
 
+        # move the locked portion as small as possible
+        # refetch jobs, with_for_update
+        dbhandle.begin_nested()
+        dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(list(data.keys()))).execution_options(stream_results=True).all()
 
         # now actually update each such job, 'cause we should now have a
         # ORM mapped Job object for each one.
         for j in jlist:
             self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
+        dbhandle.commit()
 
         # update any related tasks status if changed
         for t in list(fulltasks.values()):

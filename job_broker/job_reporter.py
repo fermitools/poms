@@ -33,7 +33,7 @@ class job_reporter:
         self.wthreads = []
         self.nthreads = nthreads
         # for bulk updates, do batches of 25 or every 10 seconds
-        self.batchsize = 256 
+        self.batchsize = 50
         self.timemax = 10
         if self.bulk:
             self.wthreads.append(threading.Thread(target=self.runqueue_bulk))
@@ -52,6 +52,7 @@ class job_reporter:
                 sys.stderr.write("Page Text: \n %s \n" % uh.text)
         elif isinstance(e,requests.exceptions.ReadTimeout):
             sys.stderr.write("Read Timeout, moving on...\n")
+            return 0
         else:
             errtext = str(e)
             traceback.print_exc(file=sys.stderr)
@@ -67,8 +68,9 @@ class job_reporter:
             del e
             return 1
         else:
+            # connection errors, etc.
             del e
-            return 0
+            return 1
         
     def check(self):
         # make sure we still have nthreads reporting threads
@@ -183,7 +185,7 @@ class job_reporter:
                 # so we bail after 3 seconds.  The request actually continues, 
                 # and probablly enters the data, but we go on..
                 #
-                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=3)
+                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=30)
                 res = uh.text
 
                 if self.debug: sys.stderr.write("response: %s\n" % res)
