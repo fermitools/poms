@@ -160,6 +160,7 @@ class job_reporter:
     def bulk_update(self, batch):
 
         if self.debug: sys.stderr.write("bulk_update: %d\n\n" % len(batch))
+        if self.debug: sys.stderr.write("%s\n\n" % repr(batch))
 
         if len(batch) == 0:
              if self.debug: sys.stderr.write("bulk_update: completed\n")
@@ -185,7 +186,7 @@ class job_reporter:
                 # so we bail after 3 seconds.  The request actually continues, 
                 # and probablly enters the data, but we go on..
                 #
-                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=30)
+                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=5)
                 res = uh.text
 
                 if self.debug: sys.stderr.write("response: %s\n" % res)
