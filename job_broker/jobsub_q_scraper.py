@@ -210,14 +210,14 @@ class jobsub_q_scraper:
                     except KeyboardInterrupt:
                         raise
                     except Exception:
-                        print("Reporting Exception!")
+                        print("Reporting Exception!\n")
                         traceback.print_exc()
                         pass
                 else:
                     if self.debug: 
-                         print("unchanged, not reporting")
-                         print("prev", prev)
-                         print("args", args)
+                         print("unchanged, not reporting\n", file=sys.stderr)
+                         print("prev", prev, "\n",file=sys.stderr)
+                         print("args", args, "\n",file=sys.stderr)
                           
             else:
                 #print "skipping:" , line
@@ -234,7 +234,7 @@ class jobsub_q_scraper:
                     # we could get a false alarm here if condor_q fails...
                     # thats why we only do this if our p.wait() returned 0/None.
                     # and we make sure we didn't see it two runs in a row...
-                    print("reporting %s as completed" % jobsub_job_id)
+                    print("reporting %s as completed \n" % jobsub_job_id, file=sys.stderr)
 
                     self.job_reporter.report_status(
                         jobsub_job_id = jobsub_job_id,
@@ -261,16 +261,16 @@ class jobsub_q_scraper:
                 raise
  
             except OSError as e:
-                print("Exception!")
-                traceback.print_exc()
+                print("Exception!\n", file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
                 # if we're out of memory, dump core...
                 if e.errno == 12:
                     resource.setrlimit(resource.RLIMIT_CORE,resource.RLIM_INFINITY)
                     os.abort()
 
             except:
-                print("Exception!")
-                traceback.print_exc()
+                print("Exception!", file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
                 pass
 
             gc.collect()
@@ -306,9 +306,9 @@ if __name__ == '__main__':
     js = jobsub_q_scraper(jr, debug = debug)
     try:
         if testing:
-            print("test mode, run one scan")
+            print("test mode, run one scan\n")
             js.scan()
-            print("test mode: done")
+            print("test mode: done\n")
         else:
             js.poll()
 
