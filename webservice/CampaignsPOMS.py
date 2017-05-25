@@ -24,7 +24,7 @@ import json
 from .utc import utc
 import os
 import glob
-from .pomscache import pomscache
+from .pomscache import pomscache, pomscache_10
 import subprocess
 
 
@@ -575,7 +575,7 @@ class CampaignsPOMS():
         return Campaign_info, time_range_string, tmins, tmaxs, tdays, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist
 
 
-    @pomscache.cache_on_arguments()
+    @pomscache_10.cache_on_arguments()
     def campaign_time_bars(self, dbhandle, campaign_id = None, tag = None, tmin = None, tmax = None, tdays = 1):
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string,tdays = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
         tg = time_grid.time_grid()
