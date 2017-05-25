@@ -134,6 +134,8 @@ class JobsPOMS(object):
             jlist.append(j)
 
 
+        dbhandle.begin_nested()
+
         # now look for jobs for which  we don't have Job ORM entries, but
         # whose Tasks we do have entries for, and make new Job entries for
         # them.
@@ -148,14 +150,14 @@ class JobsPOMS(object):
                 j.updated = datetime.now(utc)
                 jlist.append(j)
                 dbhandle.add(j)
+                logit.log("Adding new Job for %s, task %s" % (jid, data[jid]['task_id']))
             elif not foundjobs.get(jid, 0):
                 logit.log("need new Job for %s, but no task %s" % (jid, data[jid]['task_id']))
             else:
                 pass
 
         # move the locked portion as small as possible
-        # refetch jobs, with_for_update
-        dbhandle.begin_nested()
+        # refetch jobs, with_for_update to lock the rows
         dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(list(data.keys()))).execution_options(stream_results=True).all()
 
         # now actually update each such job, 'cause we should now have a
