@@ -69,7 +69,7 @@ def add_mock_job_launcher():
            ae_input_files_per_job = '0',
            ae_output_files_per_job = '0',
            ae_output_file_patterns = '%',
-           ae_launch_script = 'nohup python ./test/mock_job.py --campaign_id $POMS_CAMPAIGN_ID -N 3 -D %(dataset)s > /tmp/launch$$ 2>&1 ; sleep 5; cat /tmp/launch$$',
+           ae_launch_script = 'nohup python ./test/mock_job.py --campaign_id $POMS_CAMPAIGN_ID -N 3 -D %(dataset)s --wait > /tmp/launch$$ 2>&1 & ; sleep 10; cat /tmp/launch$$',
            ae_definition_parameters = '[]',
            ae_definition_recovery = '[]',
            experiment = 'samdev',

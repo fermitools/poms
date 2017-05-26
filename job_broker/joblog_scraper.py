@@ -11,6 +11,7 @@ import json
 import traceback
 import time
 import threading
+import gc
 
 from job_reporter import job_reporter
 
@@ -25,6 +26,8 @@ class joblog_scraper:
         self.job_reporter = job_reporter
         self.debug = debug
         self.read_lines = 0
+
+        gc.enable()
 
         # lots of names for parts of regexps to make it readable(?)
         timestamp_pat ="[-0-9T:]*"
@@ -211,12 +214,14 @@ class joblog_scraper:
         self.filehandle = filehandle
         last_update = time.time()
         for line in self.filehandle:
+            
              #print "got: ", line
              if (time.time() - last_update) > 60:
                  last_update = time.time()
                  self.itemCount.set(self.read_lines)
                  self.read_lines = 0
                  self.threadCount.set(threading.active_count())
+                 gc.collect()
              d = self.parse_line(line)
              self.read_lines += 1
              

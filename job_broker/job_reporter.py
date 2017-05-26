@@ -33,7 +33,7 @@ class job_reporter:
         self.wthreads = []
         self.nthreads = nthreads
         # for bulk updates, do batches of 25 or every 10 seconds
-        self.batchsize = 25
+        self.batchsize = 50
         self.timemax = 10
         if self.bulk:
             self.wthreads.append(threading.Thread(target=self.runqueue_bulk))
@@ -44,16 +44,48 @@ class job_reporter:
                 #self.wthreads[i].daemon = True
                 self.wthreads[i].start()
 
+    def log_exception(self, e, uh):
+        sys.stderr.write("Exception: ")
+        if hasattr(e,'code'):
+            sys.stderr.write("HTTP error %d\n" % e.code)
+            if uh.text:
+                sys.stderr.write("Page Text: \n %s \n" % uh.text)
+        elif isinstance(e,requests.exceptions.ReadTimeout):
+            sys.stderr.write("Read Timeout, moving on...\n")
+            return 0
+        else:
+            errtext = str(e)
+            traceback.print_exc(file=sys.stderr)
+        sys.stderr.write("\n--------\n")
+        sys.stderr.flush()
+
+        # don't retry on 401's...
+        if hasattr(e,'code') and getattr(e,'code') in [401,404]:
+            sys.stderr.write("Not retrying.\n")
+            del e
+            return 0
+        elif hasattr(e,'code'):
+            del e
+            return 1
+        else:
+            # connection errors, etc.
+            del e
+            return 1
+        
     def check(self):
         # make sure we still have nthreads reporting threads
+        if self.work.qsize() > 100 * self.batchsize:
+            sys.stderr.write("Seriously Backlogged: qsize %d exiting!\n" % self.work.qsize())
+            os._exit(1)
+           
         if self.bulk:
-            if not(self.wthreads[0].isAlive()):
+            if not(self.wthreads[0].is_alive()):
                 self.wthreads[0].join(0.1)
                 self.wthreads[0] = threading.Thread(target=self.runqueue_bulk)
                 self.wthreads[0].start()
         else:
             for i in range(self.nthreads):
-                if not(self.wthreads[i].isAlive()):
+                if not(self.wthreads[i].is_alive()):
                     self.wthreads[i].join(0.1)
                     self.wthreads[i] = threading.Thread(target=self.runqueue) 
                     self.wthreads[i].start()
@@ -67,6 +99,8 @@ class job_reporter:
         bail = False
         while not bail:
             if self.work.qsize() > self.batchsize or time.time() - lastsent > self.timemax:
+
+                if self.debug: sys.stderr.write("runqueue_bulk:  before:qsize is %d\n" % self.work.qsize()); sys.stderr.flush()
                 batch = []
                 for i in range(self.batchsize):
                     try:
@@ -92,8 +126,11 @@ class job_reporter:
 
                 self.bulk_update(batch)
                 lastsent = time.time()
+
+                if self.debug: sys.stderr.write("\nrunqueue_bulk: after: qsize is %d\n" % self.work.qsize())
             else:
                 time.sleep(1)
+
 
     def runqueue(self):
         while 1:
@@ -122,78 +159,56 @@ class job_reporter:
 
     def bulk_update(self, batch):
 
-        if self.debug: sys.stderr.write("bulk_update: %s\n" % repr(batch))
+        if self.debug: sys.stderr.write("bulk_update: %d\n\n" % len(batch))
+        if self.debug: sys.stderr.write("%s\n\n" % repr(batch))
+
+        if len(batch) == 0:
+             if self.debug: sys.stderr.write("bulk_update: completed\n")
+             return
 
         data = {'data': json.dumps(batch)}
         
         retries = 3
           
-        uh = None
         res = None
-      
+
         while retries > 0:
+
+            uh = None
+
+            if retries < 3:
+                sys.stderr.write("Retrying...\n")
+
             try:
-                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data)
+                #
+                # in an unscientific sampling, 90% of updates were under 3 secons
+                # then a separate batch at 30 and 90 seconds split the other 10%
+                # so we bail after 3 seconds.  The request actually continues, 
+                # and probablly enters the data, but we go on..
+                #
+                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=5)
                 res = uh.text
-                uh.close()
 
                 if self.debug: sys.stderr.write("response: %s\n" % res)
+                retries = 0
 
-                uh = None
-
-                return res
-
-            except (urllib.error.HTTPError) as e:
-                sys.stderr.write("Exception: HTTP error %d" % e.code)
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-
-                if uh:
-                    uh.close()
-                    uh = None
-
-                # don't retry on 401's...
-                if e.code in [401,404]:
-                    del e
-                    return ""
-
-                del e
-                time.sleep(5)
-                retries = retries - 1
-
-            except (urllib.error.URLError) as e:
-                if uh:
-                    uh.close()
-                    uh = None
-                errtext = str(e)
-                sys.stderr.write("Exception:" + errtext)
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                del e
-                time.sleep(5)
-                retries = retries - 1
-            except (requests.exceptions.ConnectionError) as e:
-                if uh:
-                    uh.close()
-                    uh = None
-                errtext = str(e)
-                sys.stderr.write("Exception:" + errtext)
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                del e
-                time.sleep(5)
-                retries = retries - 1
-                
             except (KeyboardInterrupt):
                 raise
 
             except (Exception) as e:
-                errtext = str(e)
-                sys.stderr.write("Unknown Exception:" + errtext + repr(sys.exc_info()))
-                sys.stderr.write(traceback.format_exc())
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                raise
+                if self.log_exception(e, uh):
+                    #time.sleep(1) not keeping up... don't delay so much
+                    retries = retries - 1
+                else:
+                    retries = 0
+
+            finally:
+                if uh:
+                    uh.close()
+
+        if self.debug: sys.stderr.write("bulk_update: completed\n")
+        return res
+
 
     def actually_report_status(self, jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
         data = {}
@@ -210,71 +225,27 @@ class job_reporter:
 
         retries = 3
           
-        uh = None
         res = None
       
         while retries > 0:
+            uh = None
             try:
-                uh = self.rs.post(self.report_url + "/update_job", data = data)
+                uh = self.rs.post(self.report_url + "/update_job", data = data, timeout=5)
                 res = uh.text
-                uh.close()
+
                 if self.debug: sys.stderr.write("response: %s\n" % res)
-
-                uh = None
-
-                return res
-
-
-            except (urllib.error.HTTPError) as e:
-                sys.stderr.write("Exception: HTTP error %d" % e.code)
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-
-                if uh:
-                    uh.close()
-                    uh = None
-
-                # don't retry on 401's...
-                if e.code in [401,404]:
-                    del e
-                    return ""
-
-                del e
-                time.sleep(5)
-                retries = retries - 1
-
-            except (urllib.error.URLError) as e:
-                if uh:
-                    uh.close()
-                    uh = None
-                errtext = str(e)
-                sys.stderr.write("Exception:" + errtext)
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                del e
-                time.sleep(5)
-                retries = retries - 1
-            except (http.client.BadStatusLine) as e:
-                if uh:
-                    uh.close()
-                    uh = None
-                errtext = str(e)
-                sys.stderr.write("Exception:" + errtext)
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                del e
-                time.sleep(5)
-                retries = retries - 1
-                
-            except (KeyboardInterrupt):
-                raise
+                retries = 0
 
             except (Exception) as e:
-                errtext = str(e)
-                sys.stderr.write("Unknown Exception:" + errtext + sys.exc_info())
-                sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                raise
+                if self.log_exception(e, uh):
+                    time.sleep(5)
+                    retries = retries - 1
+                else:
+                    break
+            finally:
+                if uh:
+                    uh.close()
+        return res
 
 if __name__ == '__main__':
     print("self test:")

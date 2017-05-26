@@ -108,7 +108,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
             You did not change anything in your template"
 
 
-def campaign_definition_edit(input_files_per_job, output_files_per_job, output_file_patterns, launch_script,
+def campaign_definition_edit(output_file_patterns, launch_script,
                             def_parameter, pc_email=None, action = None, name = None, experiment = None, test_client=False):
     # You can not modify the recovery_type from the poms_client (future feauture)
     test_client = test_client
@@ -118,8 +118,6 @@ def campaign_definition_edit(input_files_per_job, output_files_per_job, output_f
     ae_definition_name = name
     experiment = experiment
 
-    ae_input_files_per_job = input_files_per_job
-    ae_output_files_per_job = output_files_per_job
     ae_output_file_patterns = output_file_patterns
     ae_launch_script = launch_script
     ae_definition_parameters= json.dumps(def_parameter)
@@ -131,8 +129,6 @@ def campaign_definition_edit(input_files_per_job, output_files_per_job, output_f
                             ae_definition_name = ae_definition_name,
                             experiment = experiment,
 
-                            ae_input_files_per_job = ae_input_files_per_job ,
-                            ae_output_files_per_job = ae_output_files_per_job,
                             ae_output_file_patterns = ae_output_file_patterns,
                             ae_launch_script = ae_launch_script,
                             ae_definition_parameters= ae_definition_parameters,
