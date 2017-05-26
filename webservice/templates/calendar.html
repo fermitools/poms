@@ -1,19 +1,8 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS Downtime Calendar</title>
+POMS Downtime Calendar
 {%endblock%}
-
-{%block breadcrumbs%}
-<div class="ui breadcrumb" style="margin-top:-45px;">
-  <a href="{{pomspath}}/" class="section">Home</a>
-  <div class="divider"> / </div>
-  <div class="section">Calendar</div>
-</div>
-{%endblock%}
-
-
-
 
 
 {%block header%}
@@ -48,7 +37,7 @@
 
                 var date = new Date();
 
-		
+
 		var calendar = $('#calendar').fullCalendar({
 			header: {
 				left: 'prev,next today',
@@ -86,7 +75,7 @@
 				if (title) {
 
 
-                                        $.post("{{pomspath}}/add_event", {title: title, start: start/1000, end: end/1000}, 
+                                        $.post("{{pomspath}}/add_event", {title: title, start: start/1000, end: end/1000},
                                                   function(data){
                                                       alert(data);
                                                       if(data == "Ok.")
@@ -102,9 +91,9 @@
                                                                   //true // make the event "stick"
                                                           //);
 
-                                             
+
                                                       }
-                            
+
                                                       else
                                                       {
                                                         alert("Something went wrong, please try again.");
@@ -153,15 +142,15 @@
                                   //remember that we are using starttime and serviceid as primary key
                                   //so be sure to pass in the original start key
 
-                                  $.post("{{pomspath}}/edit_event", {title: title, start: event.start_key, new_start: new_start_epoch, end: end_epoch, s_id:event.s_id}, 
+                                  $.post("{{pomspath}}/edit_event", {title: title, start: event.start_key, new_start: new_start_epoch, end: end_epoch, s_id:event.s_id},
                                             function(data){
                                                 alert(data);
                                                 if(data == "Ok.")
                                                 {
                                                     $('#calendar').fullCalendar('refetchEvents');
-                                             
+
                                                 }
-                            
+
                                                 else
                                                 {
                                                   alert("Something went wrong, please try again.");
@@ -207,15 +196,15 @@
                                        var new_start_epoch = moment(event.start).unix();
                                        var end_epoch = moment(event.end).unix();
 
-                                       $.post("{{pomspath}}/edit_event", {title: event.title, start: event.start_key, new_start: new_start_epoch, end: end_epoch, s_id:event.s_id}, 
+                                       $.post("{{pomspath}}/edit_event", {title: event.title, start: event.start_key, new_start: new_start_epoch, end: end_epoch, s_id:event.s_id},
                                                function(data){
                                                    alert(data);
                                                    if(data == "Ok.")
                                                    {
                                                        $('#calendar').fullCalendar('refetchEvents');
-                                             
+
                                                    }
-                             
+
                                                    else
                                                    {
                                                      alert("Something went wrong, please try again.");
@@ -259,7 +248,7 @@
 $('#calendar').fullCalendar('unselect');
 //revertFunc();
 //$('#calendar').fullCalendar('rerenderEvents');
-                                      
+
                                 }
 
 
@@ -305,7 +294,7 @@ $('#calendar').fullCalendar('unselect');
 
 
 		});  //ends var calendar = $('#calendar').fullCalendar({
-		
+
 	});  //ends dom ready
 
 </script>

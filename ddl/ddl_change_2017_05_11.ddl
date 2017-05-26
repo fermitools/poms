@@ -21,3 +21,31 @@ where experimenter_id in (
 update experimenters set session_experiment='nova' where session_experiment is null;
 
 alter table experimenters alter column session_experiment set not null;
+
+CREATE OR REPLACE FUNCTION public.update_job_history()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF TG_OP = 'INSERT' or  NEW.status != OLD.status THEN
+        INSERT INTO job_histories SELECT NEW.job_id, clock_timestamp(), NEW.status;
+    END IF;
+    RETURN NULL;
+END;
+$function$;
+
+
+CREATE OR REPLACE FUNCTION public.update_task_history()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF TG_OP = 'INSERT' or NEW.status != OLD.status THEN
+       INSERT INTO task_histories SELECT NEW.task_id, clock_timestamp(), NEW.status;
+    END IF;
+    RETURN NULL;
+END;
+$function$
+
+
+-- end

@@ -1,22 +1,13 @@
 {%extends "layout.html" %}
 
 {%block title%}
-    <title>Launch Jobs Results</title>
-{%endblock%}
-
-{%block breadcrumbs%}
-    <div class="item">
-       Dashboard  <!--label of current location on mobile-->
-    </div>
-    <div class="item">
-      Launch jobs result<!--label of current location on mobile-->
-    </div>
+Launch Jobs Results
 {%endblock%}
 
 {%block header%}
 <h1 class="ui header">
          Results {%include 'help_button.html'%}
-                    
+
           <div class="sub header">
               Output of submit command
           </div>
@@ -41,5 +32,5 @@
 {{output}}
 </pre>
 </div>
-	
+
 {%endblock%}

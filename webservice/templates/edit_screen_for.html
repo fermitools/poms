@@ -1,30 +1,13 @@
 {%extends "layout.html" %}
 
 {%block title%}
-    <title>POMS DB Admin</title>
+POMS DB Admin
 {%endblock%}
-
-{%block breadcrumbs%}
-<div class="ui breadcrumb" style="margin-top: -45px;">
-  <a href="{{pomspath}}/" class="section">Home</a>
-  <div class="divider"> / </div>
-  <a class="section" href="{{pomspath}}/raw_tables">Raw Tables</a>
-  <div class="divider"> / </div>
-  <a href="{{pomspath}}/list_generic?classname={{classname}}" class="section">{{classname}}</a>
-  <div class="divider"> / </div>
-  <div class="section">edit {{classname}}</div>
-</div>
-{%endblock%}
-
-
-
-
-
 
 {%block header%}
 <h1 class="ui header">
          {{clasname}} Items{%include 'help_button.html'%}
-                    
+
           <div class="sub header">
               Edit {{classname}} Item
           </div>
@@ -56,17 +39,17 @@
            {% for ov in row.valmap %}
             <option value="{{ov.key}}" {% if ov.key == row.value%} selected=1 {%endif %} > {{ov.value}} </option>
            {% endfor %}
-         </select> 
+         </select>
       {% else %}
          <div style="text-align: right; width:20em;float: left; padding-right: 1em">
-         {{row.name}} 
+         {{row.name}}
          </div>
          <input name='{{row.name}}' value='{%if row.value is none %}{%else%}{{row.value}}{%endif%}'> <br>
       {% endif %}
       </div>
    {% endfor %}
 
-   <input type="submit" name="_submit"> 
+   <input type="submit" name="_submit">
 </form>
-	
+
 {%endblock%}

@@ -1,25 +1,13 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS DB Admin</title>
+POMS DB Admin
 {%endblock%}
-
-
-{%block breadcrumbs%}
-<div class="ui breadcrumb" style="margin-top:-45px;">
-  <a href="{{pomspath}}/" class="section">Home</a>
-  <div class="divider"> / </div>
-  <a href="{{pomspath}}/raw_tables" class="section">Raw Tables</a>
-  <div class="divider"> / </div>
-  <div class="section">{{classname}}</div>
-</div>
-{%endblock%}
-
 
 {%block header%}
 <h1 class="ui header">
      {{classname}} Items{%include 'help_button.html'%}
-                    
+
      <div class="sub header">
          View/Edit {{classname}} Items
       </div>
@@ -39,12 +27,12 @@
 
 
 {%block content%}
-	
+
 <ul>
 {% for i in list %}
    <li> <a href="{{edit_screen}}?classname={{classname}}&id={{i.key}}">{{i.key}}:{{i.value}}</a>
 {% endfor %}
   <li> <a href="{{edit_screen}}?classname={{classname}}&id=">[[New {{classname}}]]</a>
 <ul>
-	
+
 {%endblock%}

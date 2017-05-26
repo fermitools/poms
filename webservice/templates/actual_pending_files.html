@@ -1,16 +1,7 @@
 {%extends "layout.html" %}
 
 {%block title%}
-    <title>Pending files for Jobs</title>
-{%endblock%}
-
-{%block breadcrumbs%}
-    <div class="item">
-       Dashboard  <!--label of current location on mobile-->
-    </div>
-    <div class="item">
-      Pending Files<!--label of current location on mobile-->
-    </div>
+Pending files for Jobs
 {%endblock%}
 
 {%block header%}
@@ -26,7 +17,7 @@
 
 
 {%block subheader%}
-<a href="{{prev}}">&lt;previous {{tdays}} days</a> | 
+<a href="{{prev}}">&lt;previous {{tdays}} days</a> |
 <a href="{{next}}">next {{tdays}} days &gt;</a>
 {%endblock%}
 
