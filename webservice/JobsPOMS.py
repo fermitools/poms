@@ -402,7 +402,7 @@ class JobsPOMS(object):
             if test == true:
                 os.open("echo jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
             '''
-            f = os.popen("PATH=$HOME/bin:$PATH; /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
+            f = os.popen("export PATH=$HOME/bin:$PATH; /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
             output = f.read()
             f.close()
 

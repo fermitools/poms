@@ -85,8 +85,8 @@ class jobsub_q_scraper:
             conn = self.rs.get(self.job_reporter.report_url + '/active_jobs')
             jobs = conn.json()
 
-            #print "got: ", jobs
-            print("got %d jobs" % len(jobs))
+            print( "got: ", jobs)
+            #print("got %d jobs" % len(jobs))
             self.jobCount.set(len(jobs)+0)
             for j in jobs:
                 self.jobmap[j] = 0
