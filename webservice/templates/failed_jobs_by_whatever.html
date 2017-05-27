@@ -4,18 +4,6 @@
 POMS: Failed Jobs
 {%endblock%}
 
-
-{%block breadcrumbs%}
-<div class="ui breadcrumb" style="margin-top: -45px;">
-  <a href="{{pomspath}}/" class="section">Home</a>
-  <div class="divider"> / </div>
-  <div class="section">Jobs by exit code {% if tdays == 7 %} (weekly) {% elif tdays == 1 %} (daily) {% endif %}</div>
-</div>
-{%endblock%}
-
-
-
-
 {%block header%}
 Jobs by {{columns[:-1]|join(',')}} {%include 'help_button.html'%}
 {%endblock%}

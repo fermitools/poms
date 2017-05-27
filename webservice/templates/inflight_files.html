@@ -1,16 +1,7 @@
 {%extends "layout.html" %}
 
 {%block title%}
-    <title>In-Flight files for Jobs</title>
-{%endblock%}
-
-{%block breadcrumbs%}
-    <div class="item">
-       Dashboard  <!--label of current location on mobile-->
-    </div>
-    <div class="item">
-      In-Flight Files<!--label of current location on mobile-->
-    </div>
+In-Flight files for Jobs
 {%endblock%}
 
 {%block header%}
@@ -18,9 +9,6 @@
          In-Flight Files {%include 'help_button.html'%}
 </h1>
 {%endblock%}
-
-
-
 
 {%block subheader%}
 {%endblock%}
@@ -44,11 +32,11 @@ In-Flight files for:
 <div class="ui list">
 {% for f in flist %}
 <div class="item"> {{f}}  <br>
-   {% if statusmap[f] != '' %} 
+   {% if statusmap[f] != '' %}
      <div class="ui pointing label">{{statusmap[f]}}</div>
    {% endif %}
 </div>
 {%endfor%}
 </div>
-	
+
 {%endblock%}

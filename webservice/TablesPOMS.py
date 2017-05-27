@@ -130,7 +130,7 @@ class TablesPOMS(object):
             and self.pk_map a map of primary keys for that class
         """
         logit.log(" ---- make_admin_map: starting...")
-        from . import poms_model
+        import poms_model
         self.admin_map = {}
         self.pk_map = {}
         for k in list(poms_model.__dict__.keys()):

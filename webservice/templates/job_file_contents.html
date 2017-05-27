@@ -1,33 +1,13 @@
 {%extends "layout.html" %}
 
 {%block title%}
-    <title>POMS Job Triage</title>
+POMS Job Triage
 {%endblock%}
-
-{%block breadcrumbs%}
-<div class="ui breadcrumb" style="margin-top: -45px;">
-  <a href="{{pomspath}}/" class="section">Home</a>
-  <div class="divider"> / </div>
-  <a href="{{pomspath}}/show_campaigns/" class="section">Campaign Stage</a>
-  <div class="divider"> / </div>
-  <a href="{{pomspath}}/show_task_jobs?task_id={{task_id}}&tmin={{tmin}}" class="section">Jobs in Submission {{task_id}}</a>
-  <div class="divider"> / </div>
-  <a href= "{{pomspath}}/triage_job?job_id={{job_id}}&tmin={{tmin}}" class="section">Triage job {{job_id}}</a>
-  <div class="divider"> / </div>
-  <div class="section">File contents</div>
-</div>
-
-{%endblock%}
-
-
-
-
-
 
 {%block header%}
 <h1 class="ui header">
          Job Triage{%include 'help_button.html'%}
-                    
+
           <div class="sub header">
               triage your jobs
           </div>
@@ -65,9 +45,9 @@ line-height: 12px;
 {%block final%}
 <!--
 <script type="text/javascript">
-$( document ).on("load",function() { 
+$( document ).on("load",function() {
        $(document).off("scroll")
-       $(document).off("scrollchange"); 
+       $(document).off("scrollchange");
   } )
 </script>
 -->
