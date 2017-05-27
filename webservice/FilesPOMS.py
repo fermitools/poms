@@ -252,7 +252,7 @@ class Files_status(object):
                 fss = shelve.open(fss_file, flag='r', protocol=3)
                 for f in outlist:
                     try:
-                        statusmap[f] = fss.get(f.encode('ascii', 'ignore'), '')
+                        statusmap[f] = fss.get(f, '')
                     except KeyError:
                         statusmap[f] = ''
                 fss.close()

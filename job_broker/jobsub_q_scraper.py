@@ -140,7 +140,7 @@ class jobsub_q_scraper:
 
             line = line.rstrip('\n')
                 
-            #if self.debug: print("saw line: " , line)
+            if self.debug: print("saw line: " , line)
 
             del jobenv
             jobenv=JobEnv()
