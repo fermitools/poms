@@ -591,6 +591,7 @@ class TaskPOMS:
         if self.get_job_launches(dbhandle) == "hold":
             # fix me!!
             output = "Job launches currently held.... queuing this request"
+            logit.log("launch_jobs -- holding launch")
             hl = HeldLaunch()
             hl.campaign_id = campaign_id
             hl.created = datetime.now(utc)
@@ -682,6 +683,7 @@ class TaskPOMS:
             os.makedirs(outdir)
         dn = open("/dev/null","r")
         lf = open(outfile, "w")
+        logit.log("actually starting launch ssh")
         pp = subprocess.Popen(cmd, shell=True, stdin=dn,stdout=lf, stderr=lf, close_fds=True)
         lf.close()
         dn.close()

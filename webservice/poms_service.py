@@ -623,7 +623,7 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def update_job(self, task_id, jobsub_job_id, **kwargs):
+    def update_job(self,  jobsub_job_id, task_id = None, **kwargs):
         cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
         if not cherrypy.session.get('experimenter').is_root():
             cherrypy.log("update_job: not allowed")

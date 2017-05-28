@@ -10,7 +10,7 @@ import re
 from .poms_model import Job, Task, Campaign, CampaignDefinitionSnapshot, CampaignSnapshot, JobFile, JobHistory
 from datetime import datetime
 from sqlalchemy.orm import joinedload
-from sqlalchemy import func, not_, and_
+from sqlalchemy import func, not_, and_, or_
 from .utc import utc
 import json
 import os
@@ -57,7 +57,7 @@ class JobsPOMS(object):
                                                           Job.task_id == Task.task_id,
                                                           Job.job_id == JobFile.job_id,
                                                           Job.status == "Completed",
-                                                          JobFile.declared == None, JobFile.file_type == 'output')
+                                                          or_(Job.output_files_declared == False, JobFile.declared == None), JobFile.file_type == 'output')
                                                   .order_by(CampaignSnapshot.experiment, Job.jobsub_job_id).all()):
             # convert fpattern "%.root,%.dat" to regexp ".*\.root|.*\.dat"
             if fpattern is None:
@@ -402,7 +402,7 @@ class JobsPOMS(object):
             if test == true:
                 os.open("echo jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
             '''
-            f = os.popen("PATH=$HOME/bin:$PATH; /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
+            f = os.popen("export PATH=$HOME/bin:$PATH; /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
             output = f.read()
             f.close()
 
