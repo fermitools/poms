@@ -52,7 +52,7 @@ class job_reporter:
                 sys.stderr.write("Page Text: \n %s \n" % uh.text)
         elif isinstance(e,requests.exceptions.ReadTimeout):
             sys.stderr.write("Read Timeout, moving on...\n")
-            sleep(5)
+            time.sleep(1)
             return 1
         else:
             errtext = str(e)

@@ -159,14 +159,22 @@ class JobsPOMS(object):
 
         jlist.sort(key=lambda x:x.jobsub_job_id)
 
-        for j in jlist:
+        for i in range(3):
+            if len(jlist) == 0:
+                break
+            retrylist = []
+            for j in jlist:
 
-            dbhandle.begin_nested()
-            
-            dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == j.jobsub_job_id).first()
-
-            self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
-            dbhandle.commit()
+                dbhandle.begin_nested()
+                
+                try:
+                    dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == j.jobsub_job_id).first()
+                    self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
+                    dbhandle.commit()
+                except sqlalchemy.exc.OperationalError as e:
+                    retrylist.append(j)
+                    dbhandle.rollback()
+                jlist = retrylist 
 
         # update any related tasks status if changed
         for t in list(fulltasks.values()):
