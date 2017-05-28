@@ -163,7 +163,7 @@ class JobsPOMS(object):
 
             dbhandle.begin_nested()
             
-            dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == j).first()
+            dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == j.jobsub_job_id).first()
 
             self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
             dbhandle.commit()
