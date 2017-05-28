@@ -532,7 +532,7 @@ class TaskPOMS:
                 samhandle.create_definition(t.campaign_snap_obj.experiment, rname, recovery_dims)
 
 
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle, samhandle, err_res, t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id, param_overrides = param_overrides)
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id, param_overrides = param_overrides)
                 return 1
 
         return 0
@@ -559,7 +559,7 @@ class TaskPOMS:
             dbhandle.commit()
             self.launch_jobs(dbhandle,
                              getconfig, gethead,
-                             seshandle, samhandle,
+                             seshandle.get, samhandle,
                              err_res, hl.campaign_id,
                              dataset_override=hl.dataset,
                              parent_task_id=hl.parent_task_id,
