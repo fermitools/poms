@@ -539,5 +539,5 @@ class Files_status(object):
         # then try to get a lock on Job, but can deadlock with someone
         # otherwise doing update_job()..
         dbhandle.query(Job, JobFile).with_for_update(of=Job, read=True).filter(JobFile.job_id == Job.job_id, JobFile.file_name.in_(flist)).all()
-        dbhandle.query(JobFile).filter(JobFile.file_name.in_(flist)).update({JobFile.declared: now})
+        dbhandle.query(JobFile).filter(JobFile.file_name.in_(flist)).update({JobFile.declared: now}, synchronize_session = False)
         dbhandle.commit()

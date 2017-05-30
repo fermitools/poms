@@ -47,18 +47,18 @@ class JobsPOMS(object):
         # directly -- we would have to convert comma to pipe...
         # for now, I'm just going to make it a regexp and filter them here.
         for e, jobsub_job_id, fname, fpattern in (dbhandle.query(CampaignSnapshot.experiment,
-                                                                 Job.jobsub_job_id,
-                                                                 JobFile.file_name,
-                                                                 CampaignDefinitionSnapshot.output_file_patterns)
-                                                  .join(Task).join(CampaignDefinitionSnapshot)
-                                                  .filter(Task.campaign_definition_snap_id == CampaignDefinitionSnapshot.campaign_definition_snap_id,
-                                                          Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
-                                                          Job.jobsub_job_id != "unknown",
-                                                          Job.task_id == Task.task_id,
-                                                          Job.job_id == JobFile.job_id,
-                                                          Job.status == "Completed",
-                                                          or_(Job.output_files_declared == False, JobFile.declared == None), JobFile.file_type == 'output')
-                                                  .order_by(CampaignSnapshot.experiment, Job.jobsub_job_id).all()):
+                                 Job.jobsub_job_id,
+                                 JobFile.file_name,
+                                 CampaignDefinitionSnapshot.output_file_patterns)
+                  .join(Task).join(CampaignDefinitionSnapshot)
+                  .filter(Task.campaign_definition_snap_id == CampaignDefinitionSnapshot.campaign_definition_snap_id,
+                          Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
+                          Job.jobsub_job_id != "unknown",
+                          Job.task_id == Task.task_id,
+                          Job.job_id == JobFile.job_id,
+                          Job.status == "Completed",
+                          or_(Job.output_files_declared == False, JobFile.declared == None), JobFile.file_type == 'output')
+                  .order_by(CampaignSnapshot.experiment, Job.jobsub_job_id).all()):
             # convert fpattern "%.root,%.dat" to regexp ".*\.root|.*\.dat"
             if fpattern is None:
                 fpattern = '%'
@@ -134,8 +134,6 @@ class JobsPOMS(object):
             jlist.append(j)
 
 
-        dbhandle.begin_nested()
-
         # now look for jobs for which  we don't have Job ORM entries, but
         # whose Tasks we do have entries for, and make new Job entries for
         # them.
@@ -157,14 +155,26 @@ class JobsPOMS(object):
                 pass
 
         # move the locked portion as small as possible
-        # refetch jobs, with_for_update to lock the rows
-        dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(list(data.keys()))).execution_options(stream_results=True).all()
+        # lock each job, in ascending order before doing the update_job work
 
-        # now actually update each such job, 'cause we should now have a
-        # ORM mapped Job object for each one.
-        for j in jlist:
-            self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
-        dbhandle.commit()
+        jlist.sort(key=lambda x:x.jobsub_job_id)
+
+        for i in range(3):
+            if len(jlist) == 0:
+                break
+            retrylist = []
+            for j in jlist:
+
+                dbhandle.begin_nested()
+                
+                try:
+                    dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == j.jobsub_job_id).first()
+                    self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
+                    dbhandle.commit()
+                except sqlalchemy.exc.OperationalError as e:
+                    retrylist.append(j)
+                    dbhandle.rollback()
+                jlist = retrylist 
 
         # update any related tasks status if changed
         for t in list(fulltasks.values()):
