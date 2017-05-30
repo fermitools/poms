@@ -62,7 +62,7 @@ class CampaignsPOMS():
                 experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
                 if action == 'edit':
                     ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_id
-                else
+                else:
                     pass
                 ae_launch_name = kwargs.pop('ae_launch_name')
                 ae_launch_host = kwargs.pop('ae_launch_host')
