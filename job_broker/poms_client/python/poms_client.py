@@ -31,7 +31,7 @@ def get_task_id_for(campaign, user = None, command_executed = None, input_datase
     return int(data)
 
 
-def launch_template_edit(action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_email = None, test_client=False):
+def launch_template_edit(action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_username = None, test_client=False):
 
 
     method = 'launch_template_edit'
@@ -112,7 +112,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
 
 
 def campaign_definition_edit(output_file_patterns, launch_script,
-                            def_parameter, pc_email=None, action = None, name = None, experiment = None, test_client=False):
+                            def_parameter, pc_username=None, action = None, name = None, experiment = None, test_client=False):
     # You can not modify the recovery_type from the poms_client (future feauture)
     test_client = test_client
     method = "campaign_definition_edit"
@@ -142,7 +142,7 @@ def campaign_definition_edit(output_file_patterns, launch_script,
     #return data['message']
 
 
-def campaign_edit (action, ae_campaign_name, pc_email, experiment, vo_role,
+def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
                     dataset, ae_active, ae_split_type, ae_software_version,
                     ae_completion_type, ae_completion_pct, ae_param_overrides,
                     ae_depends, ae_launch_name, ae_campaign_definition, test_client):
