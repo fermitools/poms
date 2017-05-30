@@ -41,7 +41,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
     ae_launch_account = user_account
     ae_launch_setup = launch_setup
     experiment = experiment
-    pc_email = pc_email
+    #pc_email = pc_email #no useing pc_username
 
     if experiment == None or pc_email == None:
         print " You should provide an experiment name and email"
@@ -53,6 +53,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
             else:
                 data, status_code = make_poms_call(
                     pcl_call=1,
+                    pc_username=pc_username,
                     method=method,
                     action = action,
                     ae_launch_name = ae_launch_name,
@@ -67,6 +68,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
             else:
                 data, status_code  = make_poms_call(
                     pcl_call=1,
+                    pc_username=pc_username,
                     method = method,
                     action = action,
                     ae_launch_name = ae_launch_name,
@@ -89,6 +91,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
             else:
                 data, status_code = make_poms_call(
                     pcl_call=1,
+                    pc_username=pc_username,
                     method = method,
                     action = action,
                     ae_launch_name = ae_launch_name,
@@ -113,7 +116,7 @@ def campaign_definition_edit(output_file_patterns, launch_script,
     # You can not modify the recovery_type from the poms_client (future feauture)
     test_client = test_client
     method = "campaign_definition_edit"
-    pc_email = pc_email
+    pc_username = pc_username
     action = action
     ae_definition_name = name
     experiment = experiment
@@ -123,7 +126,7 @@ def campaign_definition_edit(output_file_patterns, launch_script,
     ae_definition_parameters= json.dumps(def_parameter)
     data, status_code = make_poms_call(  pcl_call=1,
                             method = method,
-                            pc_email = pc_email,
+                            pc_username = pc_username,
 
                             action = action,
                             ae_definition_name = ae_definition_name,
@@ -177,8 +180,9 @@ def make_poms_call(**kwargs):
         base='http://fermicloud045.fnal.gov:8080/poms/'
         del kwargs["test"]
     elif test_client:
-        base='http://pomsgpvm01.fnal.gov:8080/poms/'
-	#base='http://localhost:8888/poms/'
+        #base='http://pomsgpvm01.fnal.gov:8080/poms/'
+	base='http://localhost:8888/poms/'
+        #base='http://fermicloud045.fnal.gov:8080/poms/'
     else:
         base='http://pomsgpvm01.fnal.gov:8080/poms/'
 

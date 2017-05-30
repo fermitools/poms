@@ -45,6 +45,7 @@ class CampaignsPOMS():
         exp = seshandle('experimenter').session_experiment
         pcl_call = kwargs.pop('pcl_call', 0)
         pc_username = kwargs.pop('pc_username',None)
+
         if action == 'delete':
             name = kwargs.pop('name')
             try:
@@ -59,7 +60,10 @@ class CampaignsPOMS():
         if action == 'add' or action == 'edit':
             if pcl_call == 1:
                 experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
-                ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_id
+                if action == 'edit':
+                    ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_id
+                else
+                    pass
                 ae_launch_name = kwargs.pop('ae_launch_name')
                 ae_launch_host = kwargs.pop('ae_launch_host')
                 ae_launch_account = kwargs.pop('ae_launch_account')
@@ -121,7 +125,7 @@ class CampaignsPOMS():
         exp = seshandle('experimenter').session_experiment
         #added for poms_client
         pcl_call = kwargs.pop('pcl_call', 0) #pcl_call == 1 means the method was access through the poms_client.
-        pc_email = kwargs.pop('pc_email',None) #email is the info we know about the user in POMS DB.
+        pc_username = kwargs.pop('pc_username',None) #email is the info we know about the user in POMS DB.
 
         if action == 'delete':
             name = kwargs.pop('name')
@@ -142,8 +146,11 @@ class CampaignsPOMS():
         if action == 'add' or action == 'edit':
             if pcl_call == 1: #Enter here if the access was from the poms_client
                 name = kwargs.pop('ae_definition_name')
-                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
-                campaign_definition_id=dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==name).firts().campaign_definition_id
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
+                if action == 'edit':
+                    campaign_definition_id=dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==name).firts().campaign_definition_id #Check here!
+                else:
+                    pass
                 input_files_per_job = kwargs.pop('ae_input_files_per_job')
                 output_files_per_job = kwargs.pop('ae_output_files_per_job')
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
@@ -268,7 +275,7 @@ class CampaignsPOMS():
         #    print ' k=%s, v=%s ' %(k,v)
         action = kwargs.pop('action',None)
         pcl_call = kwargs.pop('pcl_call', 0) #pcl_call == 1 means the method was access through the poms_client.
-        pc_email = kwargs.pop('pc_email',None) #email is the info we know about the user in POMS DB.
+        pc_username = kwargs.pop('pc_username',None) #email is the info we know about the user in POMS DB.
 
         if action == 'delete':
             if pcl_call==1:
@@ -308,12 +315,13 @@ class CampaignsPOMS():
                 launch_name=kwargs.pop('ae_launch_name')
                 campaign_definition_name=kwargs.pop('ae_campaign_definition')
                 #all this variables depend on the arguments passed.
-                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
-                campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
                 launch_id=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==launch_name).fist().launch_id
                 campaign_definition_id =dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==campaign_definition_name).firts().campaign_definition_id
-
-
+                if action == 'edit':
+                    campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
+                else:
+                    pass
             else:
                 campaign_id = kwargs.pop('ae_campaign_id')
                 campaign_definition_id = kwargs.pop('ae_campaign_definition_id')

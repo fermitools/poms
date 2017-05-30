@@ -8,7 +8,7 @@ groupArg = parser.add_argument_group('Require Arguments')
 #parser.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', default = None)
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
 groupArg.add_argument('--name', metavar='Name of your template', type=str, help='the name of the campaign definition', required = True, default = None)
-groupArg.add_argument('--email', metavar='your email', type=str, help='Please provide your email adress, the one you use when you get register at POMS', required = True, default = None)
+groupArg.add_argument('--user_name', metavar='your user_name ', type=str, help='your user_name register at POMS', required = True, default = None)
 groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True, default = None)
 #parser.add_argument('--input_files_per_job', metavar='number of input files per job', type=int, help='set the number of input files you would like to process per job', default = 0)
 #parser.add_argument('--output_files_per_job', metavar='number of output files per job', type=int, help='set the number of output files you expected from each input file ', default = 0)
@@ -22,7 +22,7 @@ print args
 print 'The arguments you pass are:'
 print 'action =',args.action
 print 'name =', args.name
-print 'email=',args.email
+print 'user_name=',args.user_name
 print 'experiment=',args.experiment
 #print 'input_files_per_job=', args.input_files_per_job
 #print 'output_files_per_job=', args.output_files_per_job
@@ -34,7 +34,7 @@ print 'test_client=', args.test_client
 
 #Calling the poms_client.campaign_definition_edit'
 if args.action in ['add','delete','edit']:
-    campaign_definition_edit(pc_email=args.email,
+    campaign_definition_edit(pc_username=args.user_name,
                         action = args.action,
                         name=args.name,
                         experiment=args.experiment,

@@ -6,7 +6,7 @@ import argparse
 parser = argparse.ArgumentParser(description='edit_launch_template.')
 groupArg = parser.add_argument_group('Require Arguments')
 
-groupArg.add_argument('--email', metavar='your email', type=str, help='Please provide your email adress', required = True)
+groupArg.add_argument('--user_name', metavar='user_name', type=str, help='Please provide your user name at POMS', required = True)
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
 groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True)
 
@@ -29,7 +29,7 @@ print 'launch_host=',args.host
 print 'user_account=',args.user_account
 print "launch_setup =", args.setup
 print "experiment=", args.experiment
-print "pc_email=", args.email
+print "user_name=", args.user_name
 print "test_client", args.test_client
 
 
@@ -40,5 +40,5 @@ launch_template_edit(action = args.action,
                     user_account = args.user_account,
                     launch_setup = args.setup,
                     experiment = args.experiment,
-                    pc_email = args.email,
+                    pc_username = args.user_name,
                     test_client=args.test_client)
