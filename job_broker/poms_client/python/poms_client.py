@@ -43,7 +43,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
     experiment = experiment
     #pc_email = pc_email #no useing pc_username
 
-    if experiment == None or pc_email == None:
+    if experiment == None or pc_username == None:
         print " You should provide an experiment name and email"
     else:
 
@@ -151,7 +151,7 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
                             method=method,
                             action=action,
                             ae_campaign_name=ae_campaign_name,
-                            pc_email=pc_email,
+                            pc_username=pc_username,
                             experiment=experiment,
                             vo_role=vo_role,
                             dataset=dataset,
