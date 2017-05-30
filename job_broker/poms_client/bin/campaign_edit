@@ -9,7 +9,7 @@ groupArg = parser.add_argument_group('Require Arguments')
 #parser.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', default = None)
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
 groupArg.add_argument('--campaign_name', metavar='Name of your campaign', type=str, help='campaign_name', required = True)
-groupArg.add_argument('--email', metavar='your email', type=str, help='Please provide your email adress, the one you use when you get register at POMS', required = True)
+groupArg.add_argument('--user_name', metavar='your user name', type=str, help='Please provide your user name', required = True)
 groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True)
 groupArg.add_argument('--vo_role', metavar='Analysis-Production', type=str, help='Define your role Analysis or Production', required = True)
 groupArg.add_argument('--dataset', metavar='campaign dataset', type=str, help='provide the dataset that will be use in the campaign', required=True)
@@ -54,7 +54,7 @@ if args.action in ['add','delete','edit']:
     if args.completion > 0 and args.completion <= 100:
         campaign_edit(action=args.action,
                                 ae_campaign_name=args.campaign_name,
-                                pc_email=args.email,
+                                pc_username=args.user_name,
                                 experiment=args.experiment,
                                 vo_role=args.vo_role,
                                 dataset=args.dataset,
