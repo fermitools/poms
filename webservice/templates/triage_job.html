@@ -1,32 +1,13 @@
 {%extends "layout.html" %}
 
 {%block title%}
-    <title>POMS Job Triage</title>
+POMS Job Triage
 {%endblock%}
-
-{%block breadcrumbs%}
-<div class="ui breadcrumb" style="margin-top: -45px;">
-  <a href="{{pomspath}}/" class="section">Home</a>
-  <div class="divider"> / </div>
-  <a href="{{pomspath}}/show_campaigns/" class="section">Campaign Stages</a>
-  <div class="divider"> / </div>
-  <a href="{{pomspath}}/campaign_time_bars/campaign_id=?{{job_info.Campaign.campaign_id}}" class="section">Campaign_Layer {{job_info.Campaign.name}}</a>
-  <div class="divider"> / </div>
-  <a href="{{pomspath}}/show_task_jobs?task_id={{job_info.Job.task_id}}&tmin={{tmin}}" class="section">Jobs in Submission {{task_jobsub_jobid}}</a>
-  <div class="divider"> / </div>
-  <div class="section">Triage job {{job_info.Job.jobsub_job_id}}</div>
-</div>
-{%endblock%}
-
-
-
-
-
 
 {%block header%}
 <h1 class="ui header">
          Job Triage{%include 'help_button.html'%}
-                    
+
           <div class="sub header">
               triage your jobs
          </div>
@@ -114,7 +95,7 @@
 
 <span style="display:inline-block; min-width: 6em; text-align: right">{{item[2]}}</span> &nbsp;
 {% if item[5].find(jobsub_job_id_digits) > -1 %}
-<mark> 
+<mark>
 <a href="{{pomspath}}/job_file_contents?job_id={{job_id}}&task_id={{job_info.Job.task_id}}&tmin={{tmin}}&file={{item[5]}}">{{item[5]}}</a>
 </mark>
 {% else %}
@@ -152,7 +133,7 @@
           <p>{{job_info.Campaign.experiment}}</p>
         </td>
       </tr>
-      
+
       <tr>
         <td>Campaign Stage</td>
         <td>

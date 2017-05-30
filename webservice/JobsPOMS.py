@@ -10,7 +10,8 @@ import re
 from .poms_model import Job, Task, Campaign, CampaignDefinitionSnapshot, CampaignSnapshot, JobFile, JobHistory
 from datetime import datetime
 from sqlalchemy.orm import joinedload
-from sqlalchemy import func, not_, and_
+from sqlalchemy.exc import OperationalError
+from sqlalchemy import func, not_, and_, or_
 from .utc import utc
 import json
 import os
@@ -47,18 +48,18 @@ class JobsPOMS(object):
         # directly -- we would have to convert comma to pipe...
         # for now, I'm just going to make it a regexp and filter them here.
         for e, jobsub_job_id, fname, fpattern in (dbhandle.query(CampaignSnapshot.experiment,
-                                                                 Job.jobsub_job_id,
-                                                                 JobFile.file_name,
-                                                                 CampaignDefinitionSnapshot.output_file_patterns)
-                                                  .join(Task).join(CampaignDefinitionSnapshot)
-                                                  .filter(Task.campaign_definition_snap_id == CampaignDefinitionSnapshot.campaign_definition_snap_id,
-                                                          Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
-                                                          Job.jobsub_job_id != "unknown",
-                                                          Job.task_id == Task.task_id,
-                                                          Job.job_id == JobFile.job_id,
-                                                          Job.status == "Completed",
-                                                          JobFile.declared == None, JobFile.file_type == 'output')
-                                                  .order_by(CampaignSnapshot.experiment, Job.jobsub_job_id).all()):
+                                 Job.jobsub_job_id,
+                                 JobFile.file_name,
+                                 CampaignDefinitionSnapshot.output_file_patterns)
+                  .join(Task).join(CampaignDefinitionSnapshot)
+                  .filter(Task.campaign_definition_snap_id == CampaignDefinitionSnapshot.campaign_definition_snap_id,
+                          Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
+                          Job.jobsub_job_id != "unknown",
+                          Job.task_id == Task.task_id,
+                          Job.job_id == JobFile.job_id,
+                          Job.status == "Completed",
+                          or_(Job.output_files_declared == False, JobFile.declared == None), JobFile.file_type == 'output')
+                  .order_by(CampaignSnapshot.experiment, Job.jobsub_job_id).all()):
             # convert fpattern "%.root,%.dat" to regexp ".*\.root|.*\.dat"
             if fpattern is None:
                 fpattern = '%'
@@ -105,17 +106,8 @@ class JobsPOMS(object):
 
         logit.log("found task ids for %s" % ",".join(map(str, list(foundtasks.keys()))))
 
-        # lookup what job-id's we already have database entries for
-        jobs = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id.in_(list(data.keys()))).execution_options(stream_results=True).all()
-
-        # make a list of jobs we can update
-        jlist = []
-        foundjobs = {}
-        for j in jobs:
-            foundjobs["%s"%j.jobsub_job_id] = j
-            jlist.append(j)
-
-        # get the tasks we have that are mentioned
+        # get the tasks we have that are mentioned -- do it *before* we take
+        # for update locks
         if len(foundtasks) > 0:
             tasks = dbhandle.query(Task).filter(Task.task_id.in_(list(foundtasks.keys()))).all()
         else:
@@ -126,12 +118,28 @@ class JobsPOMS(object):
             fulltasks[int(t.task_id)] = t
 
         logit.log("found full tasks for %s" % ",".join(map(str, list(fulltasks.keys()))))
+        # trying just locking the whole table, 'cause we're waiting around
+        # for row locks...
+        # -- mengel 
+        #dbhandle.execute("lock table jobs in share mode")
+        # -- sigh. Seems to do worse..
+
+        # lookup what job-id's we already have database entries for
+        jobs = dbhandle.query(Job).filter(Job.jobsub_job_id.in_(list(data.keys()))).execution_options(stream_results=True).all()
+
+        # make a list of jobs we can update
+        jlist = []
+        foundjobs = {}
+        for j in jobs:
+            foundjobs["%s"%j.jobsub_job_id] = j
+            jlist.append(j)
+
 
         # now look for jobs for which  we don't have Job ORM entries, but
         # whose Tasks we do have entries for, and make new Job entries for
         # them.
         for jid in list(data.keys()):
-            if not foundjobs.get(jid, None) and 'task_id' in data[jid] and fulltasks.get(int(data[jid]['task_id']), None):
+            if not foundjobs.get(jid, None) and 'task_id' in data[jid] and data[jid]['task_id'] and fulltasks.get(int(data[jid]['task_id']), None):
                 logit.log("need new Job for %s" % jid)
                 j = Job(jobsub_job_id=jid,
                         task_obj=fulltasks[int(data[jid]['task_id'])],
@@ -141,16 +149,33 @@ class JobsPOMS(object):
                 j.updated = datetime.now(utc)
                 jlist.append(j)
                 dbhandle.add(j)
+                logit.log("Adding new Job for %s, task %s" % (jid, data[jid]['task_id']))
             elif not foundjobs.get(jid, 0):
                 logit.log("need new Job for %s, but no task %s" % (jid, data[jid]['task_id']))
             else:
                 pass
 
+        # move the locked portion as small as possible
+        # lock each job, in ascending order before doing the update_job work
 
-        # now actually update each such job, 'cause we should now have a
-        # ORM mapped Job object for each one.
-        for j in jlist:
-            self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
+        jlist.sort(key=lambda x:x.jobsub_job_id)
+
+        for i in range(3):
+            if len(jlist) == 0:
+                break
+            retrylist = []
+            for j in jlist:
+
+                dbhandle.begin_nested()
+                
+                try:
+                    dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == j.jobsub_job_id).first()
+                    self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
+                    dbhandle.commit()
+                except OperationalError as e:
+                    retrylist.append(j)
+                    dbhandle.rollback()
+                jlist = retrylist 
 
         # update any related tasks status if changed
         for t in list(fulltasks.values()):
@@ -306,7 +331,12 @@ class JobsPOMS(object):
                 newfiles = kwargs['output_file_names'].split(' ')
                 # don't include metadata files
 
-                output_match_re = j.task_obj.campaign_definition_snap_obj.output_file_patterns.replace(',','|').replace('.','\\.').replace('%','.*')
+                if j.task_obj.campaign_definition_snap_obj.output_file_patterns:
+                   ofp = j.task_obj.campaign_definition_snap_obj.output_file_patterns
+                else:
+                   ofp = '%'
+
+                output_match_re = ofp.replace(',','|').replace('.','\\.').replace('%','.*')
 
                 newfiles = [f for f in newfiles if f.find('.json') == -1 and f.find('.metadata') == -1]
 
@@ -388,7 +418,7 @@ class JobsPOMS(object):
             if test == true:
                 os.open("echo jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
             '''
-            f = os.popen("/usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
+            f = os.popen("export PATH=$HOME/bin:$PATH; /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
             output = f.read()
             f.close()
 

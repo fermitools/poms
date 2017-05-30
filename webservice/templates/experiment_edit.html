@@ -1,31 +1,22 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS</title>
+POMS
 
-    <style type="text/css">
-    div.scrollable {
-        width: 100%;
-        overflow-x: scroll;
-    }
-    div.scrollable table {
-        width: 300%;
-    }
-    </style>
 {%endblock%}
 
-{%block breadcrumbs%}
-<div class="ui breadcrumb" style="margin-top: -45px;">
-  <a href="{{pomspath}}/" class="section">Home</a>
-  <div class="divider"> / </div>
-  <div class="section">Experiment Authorization</div>
-</div>
-{%endblock%}
+<style type="text/css">
+  div.scrollable {
+  width: 100%;
+  overflow-x: scroll;
+  }
+  div.scrollable table {
+  width: 300%;
+  }
+</style>
 
 {%block header%}
-<h1 class="ui header">
     Experiment Authorization{%include 'help_button.html'%}
-</h1>
 {%endblock%}
 
 {%block subheader%}
@@ -196,4 +187,3 @@ $(document).ready(function(){
 </script>
 
 {%endblock%}
-

@@ -268,6 +268,11 @@ class poms_service:
         if not cherrypy.session.get('experimenter').is_root():
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
+        print("*"*80)
+        print("*"*80)
+        print("%s" % str(list(self.tablesPOMS.admin_map.keys())))
+        print("*"*80)
+        print("*"*80)
         return template.render(list=list(self.tablesPOMS.admin_map.keys()), current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path, help_page="RawTablesHelp", version=self.version,
                                allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
@@ -618,7 +623,7 @@ class poms_service:
 
     @cherrypy.expose
     @logit.logstartstop
-    def update_job(self, task_id, jobsub_job_id, **kwargs):
+    def update_job(self,  jobsub_job_id, task_id = None, **kwargs):
         cherrypy.log("update_job( task_id %s, jobsub_job_id %s,  kwargs %s )" % (task_id, jobsub_job_id, repr(kwargs)))
         if not cherrypy.session.get('experimenter').is_root():
             cherrypy.log("update_job: not allowed")

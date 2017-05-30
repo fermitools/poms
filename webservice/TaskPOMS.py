@@ -460,14 +460,14 @@ class TaskPOMS:
         for cd in cdlist:
            if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
               # self-reference, just do a normal launch
-              self.launch_jobs(dbhandle, getconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id)
+              self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id)
            else:
               i = i + 1
               dims = "ischildof: (snapshot_for_project_name %s) and version %s and file_name like '%s' " % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
               dname = "poms_depends_%d_%d" % (t.task_id,i)
 
               samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-              self.launch_jobs(dbhandle, getconfig, gethead, seshandle, samhandle, err_res, cd.uses_camp_id, dataset_override = dname)
+              self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, dataset_override = dname)
         return 1
 
 
@@ -532,7 +532,7 @@ class TaskPOMS:
                 samhandle.create_definition(t.campaign_snap_obj.experiment, rname, recovery_dims)
 
 
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle, samhandle, err_res, t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id, param_overrides = param_overrides)
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id, param_overrides = param_overrides)
                 return 1
 
         return 0
@@ -549,7 +549,7 @@ class TaskPOMS:
         s = dbhandle.query(Service).filter(Service.name == "job_launches").first()
         return s.status
 
-    def launch_queued_job(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res):
+    def launch_queued_job(self, dbhandle, samhandle, getconfig, gethead, seshandle_get, err_res):
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
@@ -559,7 +559,7 @@ class TaskPOMS:
             dbhandle.commit()
             self.launch_jobs(dbhandle,
                              getconfig, gethead,
-                             seshandle, samhandle,
+                             seshandle_get, samhandle,
                              err_res, hl.campaign_id,
                              dataset_override=hl.dataset,
                              parent_task_id=hl.parent_task_id,
@@ -568,7 +568,7 @@ class TaskPOMS:
         else:
             return "None."
 
-    def launch_jobs(self, dbhandle, getconfig, gethead, seshandle, samhandle,
+    def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
                     err_res, campaign_id, dataset_override=None, parent_task_id=None, param_overrides=None):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
@@ -591,6 +591,7 @@ class TaskPOMS:
         if self.get_job_launches(dbhandle) == "hold":
             # fix me!!
             output = "Job launches currently held.... queuing this request"
+            logit.log("launch_jobs -- holding launch")
             hl = HeldLaunch()
             hl.campaign_id = campaign_id
             hl.created = datetime.now(utc)
@@ -603,7 +604,7 @@ class TaskPOMS:
 
             return lcmd, c, campaign_id, outdir, outfile
 
-        e = seshandle('experimenter')
+        e = seshandle_get('experimenter')
         xff = gethead('X-Forwarded-For', None)
         ra = gethead('Remote-Addr', None)
         if not e.is_authorized(c.experiment) and not (ra == '127.0.0.1' and xff == None):
@@ -682,6 +683,7 @@ class TaskPOMS:
             os.makedirs(outdir)
         dn = open("/dev/null","r")
         lf = open(outfile, "w")
+        logit.log("actually starting launch ssh")
         pp = subprocess.Popen(cmd, shell=True, stdin=dn,stdout=lf, stderr=lf, close_fds=True)
         lf.close()
         dn.close()

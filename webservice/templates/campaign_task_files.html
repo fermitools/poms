@@ -1,22 +1,8 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS</title>
+POMS
 {%endblock%}
-
-
-{%block breadcrumbs%}
-<div class="ui breadcrumb" style="margin-top: -45px;">
-  <a href="{{pomspath}}/" class="section">Home</a>
-  <div class="divider"> / </div>
-  <a href="{{pomspath}}/show_campaigns/" class="section">Campaign Stages</a>
-  <div class="divider"> / </div>
-  <a href="{{pomspath}}/campaign_info?campaign_id={{campaign_id}}" class="section">{{name}}</a>
-  <div class="divider"> / </div>
-  <div class="section">Submission file info</div>
-</div>
-{%endblock%}
-
 
 {%block header%}
 <h1 class="ui header">
@@ -28,7 +14,7 @@
     </div>
 </div>
 
-<a href="{{prev}}">&lt;previous {{tdays}} days</a> | 
+<a href="{{prev}}">&lt;previous {{tdays}} days</a> |
 <a href="{{next}}">next {{tdays}} days &gt;</a>
 {%endblock%}
 
@@ -42,6 +28,7 @@
 <!--
  {{datarows}}
 -->
+<div id="double-scroll" class="scrollable">
 <table class="ui sortable celled collapsing table">
   <thead>
     <tr>
@@ -62,7 +49,7 @@
     {%endfor%}
   </tbody>
 </table>
-
+</div>
 
 
 
@@ -81,6 +68,10 @@ $( ".tmax" ).html( tmax_local_time );
 <script>
 $(function() {
     $('#global_datepicker_container').show();
+});
+
+$(document).ready(function(){
+  $('#double-scroll').doubleScroll();
 });
 </script>
 {%endblock%}

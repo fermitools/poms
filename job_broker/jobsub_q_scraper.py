@@ -37,6 +37,9 @@ class jobsub_q_scraper:
        at the fifebatchhead nodes.
     """
     def __init__(self, job_reporter, debug = 0):
+
+        gc.enable()
+
         self.rs = requests.Session()
         self.job_reporter = job_reporter
         self.jobCount = prom.Gauge("jobs_in_queue","Jobs in the queue this run")
@@ -81,11 +84,9 @@ class jobsub_q_scraper:
         try:
             conn = self.rs.get(self.job_reporter.report_url + '/active_jobs')
             jobs = conn.json()
-            conn.close()
-            del conn
 
-            #print "got: ", jobs
-            print("got %d jobs" % len(jobs))
+            print( "got: ", jobs)
+            #print("got %d jobs" % len(jobs))
             self.jobCount.set(len(jobs)+0)
             for j in jobs:
                 self.jobmap[j] = 0
@@ -93,32 +94,31 @@ class jobsub_q_scraper:
             jobs = None
         except KeyboardInterrupt:
             raise
+
         except Exception as e:
-            print("Ouch!", sys.exc_info())
-            traceback.print_exc()
-            if conn: 
-                conn.close()
-                del conn
+            sys.stderr.write("Ouch! when getting active jobs\n")
+            traceback.print_exc(file=sys.stderr)
             del e
+        finally:
+            if conn:
+               conn.close()
 
     def call_wrapup_tasks(self):
         conn = None
         try:
-            conn = self.rs.get(self.job_reporter.report_url + '/wrapup_tasks')
+            conn = self.rs.get(self.job_reporter.report_url + '/wrapup_tasks') 
             text = conn.text
-            conn.close()
-            conn = None
 
             if self.debug: print("got: ", text)
         except KeyboardInterrupt:
             raise
         except Exception as e:
-            print("Ouch!", sys.exc_info())
-            traceback.print_exc()
-            if conn:
-                conn.close()
-                del conn
+            sys.stderr.write("Ouch! while calling wrapup_tasks\n")
+            traceback.print_exc(file=sys.stderr)
             del e
+        finally:
+            if conn:
+               conn.close()
 
     def scan(self):
         # roll our previous/current status
@@ -140,8 +140,7 @@ class jobsub_q_scraper:
 
             line = line.rstrip('\n')
                 
-            if self.debug:
-                print("saw line: " , line)
+            if self.debug: print("saw line: " , line)
 
             del jobenv
             jobenv=JobEnv()
@@ -184,7 +183,7 @@ class jobsub_q_scraper:
 
             if "POMS_TASK_ID" in jobenv:
 
-                if self.debug: print("jobenv is: ", jobenv)
+                #if self.debug: print("jobenv is: ", jobenv)
 
                 args = {
                     self.k_jobsub_job_id : jobsub_job_id,
@@ -210,15 +209,15 @@ class jobsub_q_scraper:
                         self.job_reporter.report_status(**args)
                     except KeyboardInterrupt:
                         raise
-                    except:
-                        print("Reporting Exception!")
+                    except Exception:
+                        print("Reporting Exception!\n")
                         traceback.print_exc()
                         pass
                 else:
                     if self.debug: 
-                         print("unchanged, not reporting")
-                         print("prev", prev)
-                         print("args", args)
+                         print("unchanged, not reporting\n", file=sys.stderr)
+                         print("prev", prev, "\n",file=sys.stderr)
+                         print("args", args, "\n",file=sys.stderr)
                           
             else:
                 #print "skipping:" , line
@@ -235,7 +234,7 @@ class jobsub_q_scraper:
                     # we could get a false alarm here if condor_q fails...
                     # thats why we only do this if our p.wait() returned 0/None.
                     # and we make sure we didn't see it two runs in a row...
-                    print("reporting %s as completed" % jobsub_job_id)
+                    print("reporting %s as completed \n" % jobsub_job_id, file=sys.stderr)
 
                     self.job_reporter.report_status(
                         jobsub_job_id = jobsub_job_id,
@@ -262,21 +261,23 @@ class jobsub_q_scraper:
                 raise
  
             except OSError as e:
-                print("Exception!")
-                traceback.print_exc()
+                print("Exception!\n", file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
                 # if we're out of memory, dump core...
                 if e.errno == 12:
                     resource.setrlimit(resource.RLIMIT_CORE,resource.RLIM_INFINITY)
                     os.abort()
 
             except:
-                print("Exception!")
-                traceback.print_exc()
+                print("Exception!", file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
                 pass
+
+            gc.collect()
 
             sys.stderr.write("%s pausing...\n" % time.asctime())
             sys.stderr.flush()
-            time.sleep(30)
+            time.sleep(120)
             sys.stderr.write("%s done...\n" % time.asctime())
             sys.stderr.flush()
 
@@ -305,9 +306,9 @@ if __name__ == '__main__':
     js = jobsub_q_scraper(jr, debug = debug)
     try:
         if testing:
-            print("test mode, run one scan")
+            print("test mode, run one scan\n")
             js.scan()
-            print("test mode: done")
+            print("test mode: done\n")
         else:
             js.poll()
 
