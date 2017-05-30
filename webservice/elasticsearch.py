@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
     es = Elasticsearch(debug=1)
 
-    print "Indices: ", es.indices()
+    print("Indices: ", es.indices())
 
     #example of basic searching and getting particular fields from object
     query = {
@@ -110,14 +110,14 @@ if __name__ == '__main__':
     response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
     pprint.pprint(response)
 
-    print "# of records: ", response.get('hits').get('total')
-    print "# of ms to query: ", response.get('took')
+    print("# of records: ", response.get('hits').get('total'))
+    print("# of ms to query: ", response.get('took'))
     for record in response.get('hits').get('hits'):
-        print record.get('_source').get('jobid')
-        print record.get('_source').get('event_message')
-        print "*" * 13
+        print(record.get('_source').get('jobid'))
+        print(record.get('_source').get('event_message'))
+        print("*" * 13)
 
-    print "*" * 80
+    print("*" * 80)
 
     #emample of searching by field
     query = {
@@ -129,7 +129,7 @@ if __name__ == '__main__':
     response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
     pprint.pprint(response)
 
-    print "*" * 80
+    print("*" * 80)
 
     #example of iterating the result set
     query = {
@@ -141,11 +141,11 @@ if __name__ == '__main__':
     response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
 
     for record in response.get('hits').get('hits'):
-        for k, v in record.get("_source").iteritems():
-            print str(k) + ": " + str(v)
-        print "---"
+        for k, v in record.get("_source").items():
+            print(str(k) + ": " + str(v))
+        print("---")
 
-    print "*" * 80
+    print("*" * 80)
 
     #example of specifying a from and a size which can be useful for pagination
     query = {
@@ -157,7 +157,7 @@ if __name__ == '__main__':
     response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
     pprint.pprint(response)
 
-    print "*" * 80
+    print("*" * 80)
 
     #example of sorting by date
     query = {
@@ -169,21 +169,21 @@ if __name__ == '__main__':
     response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
     pprint.pprint(response)
 
-    print "*" * 80
+    print("*" * 80)
 
     #example of sending a record where datetimes will be serialized
     payload = {'timestamp': datetime.utcnow(), 'message': 'trying out elasticsearch with poms', 'user': 'mengel'}
     response = es.index(index='poms-2016-09-02', doc_type='my-poms-type', body=payload)
     pprint.pprint(response)
 
-    print "*" * 80
+    print("*" * 80)
 
     #example of sending a record where datetimes will not be serialized
     payload = {'timestamp': '2016-09-02T20:00:00', 'message': 'trying out elasticsearch with poms not serialized', 'user': 'mengel'}
     response = es.index(index='poms-2016-09-02', doc_type='my-poms-type', body=payload)
     pprint.pprint(response)
 
-    print "= " * 40
+    print("= " * 40)
 
     query = {
         "sort": [{"@timestamp": {"order": "asc"}}],

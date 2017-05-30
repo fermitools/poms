@@ -5,14 +5,15 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of
 ### functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
-import urllib
-import logit
+import urllib.request, urllib.parse, urllib.error
+from . import logit
 
-from poms.model.poms_model import JobHistory, Job, Task, Campaign, CampaignDefinition, ServiceDowntime, Service
-from elasticsearch import Elasticsearch
+from .poms_model import JobHistory, Job, Task, Campaign, CampaignDefinition, ServiceDowntime, Service
+from .elasticsearch import Elasticsearch
 from sqlalchemy import func, desc, not_, and_
 from collections import OrderedDict
 
+from .pomscache import pomscache
 
 class TriagePOMS(object):
 
@@ -53,6 +54,7 @@ class TriagePOMS(object):
         return out
 
 
+    @pomscache.cache_on_arguments()
     def triage_job(self, dbhandle, jobsub_fetcher, config, job_id, tmin=None, tmax=None, tdays=None, force_reload=False):
         # we don't really use these for anything but we might want to
         # pass them into a template to set time ranges...
@@ -122,7 +124,7 @@ class TriagePOMS(object):
             es_efficiency_response = None
 
         try:
-            if es_efficiency_response and "fields" in es_efficiency_response.get("hits").get("hits")[0].keys():
+            if es_efficiency_response and "fields" in list(es_efficiency_response.get("hits").get("hits")[0].keys()):
                 efficiency = int(es_efficiency_response.get('hits').get('hits')[0].get('fields').get('efficiency')[0] * 100)
             else:
                 efficiency = None
@@ -140,8 +142,9 @@ class TriagePOMS(object):
         # pomspath=self.path, help_page="TriageJobHelp", task_jobsub_job_id=task_jobsub_job_id, version=self.version)
 
 
-    def job_table(self, dbhandle, tmin=None, tmax=None, tdays=1, **kwargs):
+    def job_table(self, dbhandle, sesshandle, tmin=None, tmax=None, tdays=1, **kwargs):
 
+        session_experiment = sesshandle.get('experimenter').session_experiment
         (tmin, tmax, tmins, tmaxs,
          nextlink, prevlink, time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'job_table?')
         extra = ""
@@ -149,7 +152,7 @@ class TriagePOMS(object):
 
         q = dbhandle.query(Job, Task, Campaign)
         q = q.execution_options(stream_results=True)
-        q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == Campaign.campaign_id)
+        q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == Campaign.campaign_id, Campaign.experiment == session_experiment)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax)
 
         keyword = kwargs.get('keyword')
@@ -214,7 +217,7 @@ class TriagePOMS(object):
             filtered_fields['output_dataset'] = output_dataset
 
         task_status = kwargs.get('task_status')
-        if task_status:
+        if task_status and task_status != 'All' and task_status != 'Total Completed':
             q = q.filter(Task.status == task_status)
             filtered_fields['task_status'] = task_status
 
@@ -258,7 +261,7 @@ class TriagePOMS(object):
             filtered_fields['host_site'] = host_site
 
         job_status = kwargs.get('job_status')
-        if job_status:
+        if job_status and job_status != 'All' and job_status != 'Total Completed':
             # this rather bizzare hoseyness is because we want
             # "Running" to also match "running: copying files in", etc.
             # so we ignore the first character and do a "like" match
@@ -282,9 +285,9 @@ class TriagePOMS(object):
 
 
         if jl:
-            jobcolumns = jl[0][0]._sa_instance_state.class_.__table__.columns.keys()
-            taskcolumns = jl[0][1]._sa_instance_state.class_.__table__.columns.keys()
-            campcolumns = jl[0][2]._sa_instance_state.class_.__table__.columns.keys()
+            jobcolumns = list(jl[0][0]._sa_instance_state.class_.__table__.columns.keys())
+            taskcolumns = list(jl[0][1]._sa_instance_state.class_.__table__.columns.keys())
+            campcolumns = list(jl[0][2]._sa_instance_state.class_.__table__.columns.keys())
         else:
             jobcolumns = []
             taskcolumns = []
@@ -310,8 +313,8 @@ class TriagePOMS(object):
             filtered_fields_checkboxes = {"campaign_checkbox": campaign_box, "task_checkbox": task_box, "job_checkbox": job_box}
             filtered_fields.update(filtered_fields_checkboxes)
 
-            prevlink = prevlink + "&" + urllib.urlencode(filtered_fields).replace("checked", "on") + "&sift=" + str(sift)
-            nextlink = nextlink + "&" + urllib.urlencode(filtered_fields).replace("checked", "on") + "&sift=" + str(sift)
+            prevlink = prevlink + "&" + urllib.parse.urlencode(filtered_fields).replace("checked", "on") + "&sift=" + str(sift)
+            nextlink = nextlink + "&" + urllib.parse.urlencode(filtered_fields).replace("checked", "on") + "&sift=" + str(sift)
         else:
             filtered_fields_checkboxes = {"campaign_checkbox": "checked",
                                           "task_checkbox": "checked",
@@ -325,9 +328,10 @@ class TriagePOMS(object):
         return jl, jobcolumns, taskcolumns, campcolumns, tmins, tmaxs, prevlink, nextlink, tdays, extra, hidecolumns, filtered_fields, time_range_string
 
 
-    def failed_jobs_by_whatever(self, dbhandle, tmin=None, tmax=None, tdays=1, f=[], go=None):
+    def failed_jobs_by_whatever(self, dbhandle, sesshandle, tmin=None, tmax=None, tdays=1, f=[], go=None):
+        session_experiment = sesshandle.get('experimenter').session_experiment
         # deal with single/multiple argument silliness
-        if isinstance(f, basestring):
+        if isinstance(f, str):
             f = [f]
 
         if 'experiment' not in f:
@@ -374,6 +378,7 @@ class TriagePOMS(object):
         #
         q = dbhandle.query(*qargs)
         q = q.join(Task, Campaign)
+        q = q.filter(Campaign.experiment == session_experiment)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax, Job.user_exe_exit_code != 0)
         q = q.group_by(*gbl).order_by(desc(func.count(Job.job_id)))
 

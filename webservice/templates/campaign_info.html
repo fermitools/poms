@@ -1,18 +1,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS:Campaign {{Campaign_info.Campaign.name}}</title>
-{%endblock%}
-
-
-{%block breadcrumbs%}
-<div class="ui breadcrumb" style="margin-top: -45px;">
-  <a href="{{pomspath}}/" class="section">Home</a>
-  <div class="divider"> / </div>
-  <div class="section"> <a href="{{pomspath}}/show_campaigns">Campaigns</a></div>
-  <div class="divider"> / </div>
-  <div class="section">{{Campaign_info.Campaign.name}}</div>
-</div>
+POMS:Campaign {{Campaign_info.Campaign.name}}
 {%endblock%}
 
 
@@ -203,6 +192,18 @@ $( document ).ready(function() {
                    {% else %}
                     -
                    {% endif %}
+                  </a>
+                </td>
+              {% elif k == "All" %}
+                <td>
+                  <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
+                    {{counts[c.campaign_id][k]}}
+                  </a>
+                </td>
+              {% elif k == "Total Completed" %}
+                <td>
+                  <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&job_status=Completed&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
+                    {{counts[c.campaign_id][k]}}
                   </a>
                 </td>
               {% elif k %}

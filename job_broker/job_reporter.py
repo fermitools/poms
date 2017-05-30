@@ -4,12 +4,12 @@ import sys
 import os
 import re
 import requests
-import urllib2
-import httplib
+import urllib.request, urllib.error, urllib.parse
+import http.client
 import json
 import concurrent.futures
-import Queue
-import thread
+import queue
+import _thread
 import threading
 import time
 import traceback
@@ -29,37 +29,70 @@ class job_reporter:
         self.bulk = bulk
         self.report_url = report_url
         self.debug = debug
-        self.work = Queue.Queue()
+        self.work = queue.Queue()
         self.wthreads = []
         self.nthreads = nthreads
         # for bulk updates, do batches of 25 or every 10 seconds
-        self.batchsize = 25
+        self.batchsize = 50
         self.timemax = 10
         if self.bulk:
             self.wthreads.append(threading.Thread(target=self.runqueue_bulk))
-	    self.wthreads[0].start()
+            self.wthreads[0].start()
         else:
-	    for i in range(nthreads):
-		self.wthreads.append(threading.Thread(target=self.runqueue))
-		#self.wthreads[i].daemon = True
-		self.wthreads[i].start()
+            for i in range(nthreads):
+                self.wthreads.append(threading.Thread(target=self.runqueue))
+                #self.wthreads[i].daemon = True
+                self.wthreads[i].start()
 
+    def log_exception(self, e, uh):
+        sys.stderr.write("Exception: ")
+        if hasattr(e,'code'):
+            sys.stderr.write("HTTP error %d\n" % e.code)
+            if uh.text:
+                sys.stderr.write("Page Text: \n %s \n" % uh.text)
+        elif isinstance(e,requests.exceptions.ReadTimeout):
+            sys.stderr.write("Read Timeout, moving on...\n")
+            time.sleep(1)
+            return 1
+        else:
+            errtext = str(e)
+            traceback.print_exc(file=sys.stderr)
+        sys.stderr.write("\n--------\n")
+        sys.stderr.flush()
+
+        # don't retry on 401's...
+        if hasattr(e,'code') and getattr(e,'code') in [401,404]:
+            sys.stderr.write("Not retrying.\n")
+            del e
+            return 0
+        elif hasattr(e,'code'):
+            del e
+            return 1
+        else:
+            # connection errors, etc.
+            del e
+            return 1
+        
     def check(self):
         # make sure we still have nthreads reporting threads
+        if self.work.qsize() > 100 * self.batchsize:
+            sys.stderr.write("Seriously Backlogged: qsize %d exiting!\n" % self.work.qsize())
+            os._exit(1)
+           
         if self.bulk:
-	    if not(self.wthreads[0].isAlive()):
-		self.wthreads[0].join(0.1)
-		self.wthreads[0] = threading.Thread(target=self.runqueue_bulk)
-		self.wthreads[0].start()
+            if not(self.wthreads[0].is_alive()):
+                self.wthreads[0].join(0.1)
+                self.wthreads[0] = threading.Thread(target=self.runqueue_bulk)
+                self.wthreads[0].start()
         else:
-	    for i in range(self.nthreads):
-		if not(self.wthreads[i].isAlive()):
-		    self.wthreads[i].join(0.1)
-		    self.wthreads[i] = threading.Thread(target=self.runqueue) 
-		    self.wthreads[i].start()
+            for i in range(self.nthreads):
+                if not(self.wthreads[i].is_alive()):
+                    self.wthreads[i].join(0.1)
+                    self.wthreads[i] = threading.Thread(target=self.runqueue) 
+                    self.wthreads[i].start()
 
     def bail(self):
-        print "thread: %d -- bailing" % thread.get_ident()
+        print("thread: %d -- bailing" % _thread.get_ident())
         raise KeyboardInterrupt("just quitting a thread")
 
     def runqueue_bulk(self):
@@ -67,11 +100,13 @@ class job_reporter:
         bail = False
         while not bail:
             if self.work.qsize() > self.batchsize or time.time() - lastsent > self.timemax:
+
+                if self.debug: sys.stderr.write("runqueue_bulk:  before:qsize is %d\n" % self.work.qsize()); sys.stderr.flush()
                 batch = []
                 for i in range(self.batchsize):
                     try:
                         d = self.work.get(block = False)
-                    except Queue.Empty:
+                    except queue.Empty:
                         break
 
                     if d['f'] == job_reporter.bail:
@@ -80,30 +115,33 @@ class job_reporter:
 
                     a = {}
                     try:
-			for k in ('self', 'jobsub_job_id', 'task_id', 'status','cpu_type', 'slot'):
-			    a[k] = d['args'].pop(0)
+                        for k in ('self', 'jobsub_job_id', 'task_id', 'status','cpu_type', 'slot'):
+                            a[k] = d['args'].pop(0)
                     except:
                         pass
 
                     del a['self']
-		    a.update(d['kwargs'])
+                    a.update(d['kwargs'])
 
                     batch.append(a)
 
                 self.bulk_update(batch)
                 lastsent = time.time()
+
+                if self.debug: sys.stderr.write("\nrunqueue_bulk: after: qsize is %d\n" % self.work.qsize())
             else:
                 time.sleep(1)
 
+
     def runqueue(self):
-	while 1:
+        while 1:
             try:
                 d = self.work.get(block = True)
                 d['f'](*d['args'], **d['kwargs']) 
             except KeyboardInterrupt:
                 break
             except:
-                print "Unhandled exception", sys.exc_info()
+                print("Unhandled exception", sys.exc_info())
                 time.sleep(1)
                 pass
   
@@ -122,78 +160,56 @@ class job_reporter:
 
     def bulk_update(self, batch):
 
-	if self.debug: sys.stderr.write("bulk_update: %s\n" % repr(batch))
+        if self.debug: sys.stderr.write("bulk_update: %d\n\n" % len(batch))
+        if self.debug: sys.stderr.write("%s\n\n" % repr(batch))
+
+        if len(batch) == 0:
+             if self.debug: sys.stderr.write("bulk_update: completed\n")
+             return
 
         data = {'data': json.dumps(batch)}
         
         retries = 3
           
-        uh = None
         res = None
-      
+
         while retries > 0:
-     	    try:
-	        uh = self.rs.post(self.report_url + "/bulk_update_job", data = data)
-		res = uh.text
-                uh.close()
 
-		if self.debug: sys.stderr.write("response: %s\n" % res)
+            uh = None
 
-                uh = None
+            if retries < 3:
+                sys.stderr.write("Retrying...\n")
 
-		return res
+            try:
+                #
+                # in an unscientific sampling, 90% of updates were under 3 secons
+                # then a separate batch at 30 and 90 seconds split the other 10%
+                # so we bail after 3 seconds.  The request actually continues, 
+                # and probablly enters the data, but we go on..
+                #
+                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=5)
+                res = uh.text
 
-	    except (urllib2.HTTPError) as e:
-		sys.stderr.write("Exception: HTTP error %d" % e.code)
-		sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
+                if self.debug: sys.stderr.write("response: %s\n" % res)
+                retries = 0
 
-                if uh:
-                    uh.close()
-                    uh = None
-
-                # don't retry on 401's...
-                if e.code in [401,404]:
-                    del e
-                    return ""
-
-		del e
-                time.sleep(5)
-                retries = retries - 1
-
-	    except (urllib2.URLError) as e:
-                if uh:
-                    uh.close()
-                    uh = None
-		errtext = str(e)
-		sys.stderr.write("Exception:" + errtext)
-		sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                del e
-                time.sleep(5)
-                retries = retries - 1
-	    except (httplib.BadStatusLine) as e:
-                if uh:
-                    uh.close()
-                    uh = None
-		errtext = str(e)
-		sys.stderr.write("Exception:" + errtext)
-		sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                del e
-                time.sleep(5)
-                retries = retries - 1
-                
-	    except (KeyboardInterrupt):
+            except (KeyboardInterrupt):
                 raise
 
-	    except (Exception) as e:
-		errtext = str(e)
-		sys.stderr.write("Unknown Exception:" + errtext + repr(sys.exc_info()))
-                sys.stderr.write(traceback.format_exc())
-		sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                raise
+            except (Exception) as e:
+                if self.log_exception(e, uh):
+                    #time.sleep(1) not keeping up... don't delay so much
+                    retries = retries - 1
+                else:
+                    retries = 0
+
+            finally:
+                if uh:
+                    uh.close()
+
+        if self.debug: sys.stderr.write("bulk_update: completed\n")
+        return res
+
 
     def actually_report_status(self, jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
         data = {}
@@ -210,80 +226,36 @@ class job_reporter:
 
         retries = 3
           
-        uh = None
         res = None
       
         while retries > 0:
-	    try:
-		uh = self.rs.post(self.report_url + "/update_job", data = data)
-		res = uh.text
-                uh.close()
-		if self.debug: sys.stderr.write("response: %s\n" % res)
+            uh = None
+            try:
+                uh = self.rs.post(self.report_url + "/update_job", data = data, timeout=5)
+                res = uh.text
 
-                uh = None
+                if self.debug: sys.stderr.write("response: %s\n" % res)
+                retries = 0
 
-		return res
-
-
-	    except (urllib2.HTTPError) as e:
-		sys.stderr.write("Exception: HTTP error %d" % e.code)
-		sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-
+            except (Exception) as e:
+                if self.log_exception(e, uh):
+                    time.sleep(5)
+                    retries = retries - 1
+                else:
+                    break
+            finally:
                 if uh:
                     uh.close()
-                    uh = None
-
-                # don't retry on 401's...
-                if e.code in [401,404]:
-                    del e
-                    return ""
-
-		del e
-                time.sleep(5)
-                retries = retries - 1
-
-	    except (urllib2.URLError) as e:
-                if uh:
-                    uh.close()
-                    uh = None
-		errtext = str(e)
-		sys.stderr.write("Exception:" + errtext)
-		sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                del e
-                time.sleep(5)
-                retries = retries - 1
-	    except (httplib.BadStatusLine) as e:
-                if uh:
-                    uh.close()
-                    uh = None
-		errtext = str(e)
-		sys.stderr.write("Exception:" + errtext)
-		sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                del e
-                time.sleep(5)
-                retries = retries - 1
-                
-	    except (KeyboardInterrupt):
-                raise
-
-	    except (Exception) as e:
-		errtext = str(e)
-		sys.stderr.write("Unknown Exception:" + errtext + sys.exc_info())
-		sys.stderr.write("\n--------\n")
-                sys.stderr.flush()
-                raise
+        return res
 
 if __name__ == '__main__':
-    print "self test:"
+    print("self test:")
     r = job_reporter("http://127.0.0.1:8080/poms", debug=1)
     r.report_status(jobsub_job_id="12345.0@fifebatch3.fnal.gov",output_files_declared = "True",status="Located")
     r.report_status(jobsub_job_id="12346.0@fifebatch3.fnal.gov",output_files_declared = "True",status="Located")
     r.report_status(jobsub_job_id="12347.0@fifebatch3.fnal.gov",output_files_declared = "True",status="Located")
     r.report_status(jobsub_job_id="12348.0@fifebatch3.fnal.gov",output_files_declared = "True",status="Located")
-    print "started reports:"
+    print("started reports:")
     sys.stdout.flush()
     r.cleanup()
     r = job_reporter("http://127.0.0.1:8080/nosuch", debug=1)

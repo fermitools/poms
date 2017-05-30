@@ -35,7 +35,7 @@ def setlevel(level="INFO", loggers=["cherrypy.error", "cherrypy.access", "sqlalc
     new_level = __getlevel(level)
     for da_logger in loggers:
         logging.getLogger(da_logger).setLevel(new_level)
-        logger.critical("%s level set to: %s" % (da_logger,level))
+        logger.critical("%s level set to: %s:%d" % (da_logger,level,new_level))
 
 
 def __logmess(level=INFO, message="message not supplied to logit.__logmess",da_frame=2):
@@ -49,7 +49,7 @@ def __logmess(level=INFO, message="message not supplied to logit.__logmess",da_f
 
 def __getlevel(level):
     # support use of logging values passed in
-    if isinstance( level, ( int, long ) ):
+    if isinstance( level, int ):
         return level
     if level == "NOTSET":
         return logging.NOTSET
@@ -63,3 +63,4 @@ def __getlevel(level):
         return logging.ERROR
     if level == "CRITICAL":
         return logging.CRITICAL
+    return 5

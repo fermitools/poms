@@ -1,19 +1,23 @@
+#!/usr/bin/env python
 #!/usr/bin/python
 
 import sys
 import os
 import re
-import urllib2
+import requests
+import urllib.error
+import urllib.parse
 import json
 import traceback
 import time
 import threading
+import gc
 
 from job_reporter import job_reporter
 
 # don't barf if we need to log utf8...
-import codecs
-sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+#import codecs
+#sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 import prometheus_client as prom
 
@@ -22,6 +26,8 @@ class joblog_scraper:
         self.job_reporter = job_reporter
         self.debug = debug
         self.read_lines = 0
+
+        gc.enable()
 
         # lots of names for parts of regexps to make it readable(?)
         timestamp_pat ="[-0-9T:]*"
@@ -35,11 +41,11 @@ class joblog_scraper:
         pid_pat = "[0-9]*"
 
         ifdhline_pat = "(%s) (%s) (%s)/(%s):? ?(%s)/(%s)/(%s)/(%s)\[(%s)\]:.ifdh:(.*)" % (
-		timestamp_pat, hostname_pat, user_pat, exp_pat,taskid_pat,
+                timestamp_pat, hostname_pat, user_pat, exp_pat,taskid_pat,
                 jobsub_job_id_pat, ifdh_vers_pat,exp_pat, pid_pat )
 
         oldifdhline_pat ="(%s) (%s) (%s)/(%s)/(%s)\[(%s)\]:.ifdh:(.*)" % (
-	     timestamp_pat, hostname_pat, exp_pat, ifdh_vers_pat, exp_pat, 
+             timestamp_pat, hostname_pat, exp_pat, ifdh_vers_pat, exp_pat, 
              pid_pat)
 
         self.ifdhline_re = re.compile(ifdhline_pat)
@@ -52,16 +58,16 @@ class joblog_scraper:
         
 
     def parse_line(self, line):
-	timestamp = ""
-	hostname = ""
-	user = ""
-	experiment = ""
-	task = ""
-	jobsub_job_id = ""
-	ifdh_vers = ""
-	experiment = ""
-	pid = ""
-	message  = ""
+        timestamp = ""
+        hostname = ""
+        user = ""
+        experiment = ""
+        task = ""
+        jobsub_job_id = ""
+        ifdh_vers = ""
+        experiment = ""
+        pid = ""
+        message  = ""
         m1 = self.oldifdhline_re.match(line)
         m2 = self.ifdhline_re.match(line)
         if m1:
@@ -88,33 +94,33 @@ class joblog_scraper:
 
         # clean up mapping at COMPLETED with...
         if key and message.find("COMPLETED with") > 0:
-            if self.job_id_map.has_key(key):
-                if self.job_task_map.has_key(self.job_id_map[key]):
+            if key in self.job_id_map:
+                if self.job_id_map[key] in self.job_task_map:
                     del self.job_task_map[self.job_id_map[key]]
                 del self.job_id_map[key]
   
         # use mapping to fill in missing bits
-        if key and not jobsub_job_id and self.job_id_map.has_key(key):
+        if key and not jobsub_job_id and key in self.job_id_map:
             jobsub_job_id = self.job_id_map[key]
 
-        if key and not task and jobsub_job_id and self.job_task_map.has_key(jobsub_job_id):
+        if key and not task and jobsub_job_id and jobsub_job_id in self.job_task_map:
             task = self.job_task_map[jobsub_job_id]
             
         return { 
-		'timestamp': timestamp.strip(),
-		'hostname': hostname.strip(),
-		'user': user.strip(),
-		'experiment': experiment.strip(),
-		'task': task.strip(),
-		'jobsub_job_id': jobsub_job_id.strip(),
-		'ifdh_vers': ifdh_vers.strip(),
-		'pid': pid.strip(),
-		'message': message.strip() ,
+                'timestamp': timestamp.strip(),
+                'hostname': hostname.strip(),
+                'user': user.strip(),
+                'experiment': experiment.strip(),
+                'task': task.strip(),
+                'jobsub_job_id': jobsub_job_id.strip(),
+                'ifdh_vers': ifdh_vers.strip(),
+                'pid': pid.strip(),
+                'message': message.strip() ,
         }
 
     def find_files(self, message):
         if self.debug:
-            print "looking for input/output files in: " , message
+            print("looking for input/output files in: " , message)
         file_map = {}
         message = message[message.find("ifdh::cp(")+9:]
         message = message[:message.find(")")]
@@ -126,7 +132,7 @@ class joblog_scraper:
                 file_map[item] = 1
 
         if self.debug:
-            print "found files: " , file_map
+            print("found files: " , file_map)
 
         return ' '.join(file_map.keys())
 
@@ -138,12 +144,12 @@ class joblog_scraper:
         }
 
         if self.debug:
-           print "report_item: message:" , message
+           print("report_item: message:" , message)
 
         if message.find("starting ifdh::cp") >= 0:
             if self.debug:
-                print "saw copy"
-	    if self.copyin_re.match(message):
+                print("saw copy")
+            if self.copyin_re.match(message):
                 dir = "in"
                 data['input_file_names'] = self.find_files(message)
             else:
@@ -172,33 +178,33 @@ class joblog_scraper:
         pos = message.find('poms_data={')
         if pos >= 0:
            s = message[message.find('{'):]
-           if self.debug: print "unpacking: " , s
+           if self.debug: print("unpacking: " , s)
            try:
               newdata = json.loads(s)
            except:
               s = s[0:s.find(', "bogo')] + " }"
-              print "failed, unpacking: " , s
+              print("failed, unpacking: " , s)
               try:
                   newdata = json.loads(s)
               except:
                   newdata = {}
-                  print "still failed, continuing.."
+                  print("still failed, continuing..")
                   pass
 
-	   for k in newdata.keys():
-	       if newdata[k] == '':
-		   del newdata[k]
+           for k in list(newdata.keys()):
+               if newdata[k] == '':
+                   del newdata[k]
 
-	   if newdata.has_key('vendor_id'):
+           if 'vendor_id' in newdata:
                # round off bogomips so rounding errors do not give us
                # fake distinctions in bogomips
-	       newdata['cpu_type'] = "%s@%s" % (
+               newdata['cpu_type'] = "%s@%s" % (
                        newdata['vendor_id'], str(round(float(newdata.get('bogomips','0')))))
 
-	   data.update(newdata)
+           data.update(newdata)
 
         if self.debug:
-            print "reporting: " , data
+            print("reporting: " , data)
 
         self.job_reporter.report_status(**data)
 
@@ -208,12 +214,14 @@ class joblog_scraper:
         self.filehandle = filehandle
         last_update = time.time()
         for line in self.filehandle:
+            
              #print "got: ", line
              if (time.time() - last_update) > 60:
                  last_update = time.time()
                  self.itemCount.set(self.read_lines)
                  self.read_lines = 0
                  self.threadCount.set(threading.active_count())
+                 gc.collect()
              d = self.parse_line(line)
              self.read_lines += 1
              
@@ -230,7 +238,7 @@ if __name__ == '__main__':
    server = "http://localhost:8080/poms"
    testing = False
    if len(sys.argv) > 1 and sys.argv[1] == "-t":
-        print "doing test flag"
+        print("doing test flag")
         server = "http://localhost:8888/poms"
         testing = True
         sys.argv = sys.argv[1:]
@@ -239,14 +247,14 @@ if __name__ == '__main__':
    js = joblog_scraper( job_reporter(server, debug=debug, namespace = ns), debug)
    while 1:
       if debug:
-           print "Starting..."
+           print("Starting...")
       try:
           if testing:
               h = open(os.environ['TEST_JOBLOG'],"r")
           else:
               h = open("/home/poms/private/rsyslogd/joblog_fifo","r")
           if debug:
-             print "re-reading...";
+             print("re-reading...");
 
           js.scan(h)
 
@@ -257,7 +265,7 @@ if __name__ == '__main__':
           break
 
       except:
-          print time.asctime(), "Exception!"
+          print(time.asctime(), "Exception!")
           traceback.print_exc()
           pass
    js.job_reporter.cleanup()

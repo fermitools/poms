@@ -1,31 +1,25 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS</title>
-
-    <style type="text/css">
-    div.scrollable {
-        width: 100%;
-        overflow-x: scroll;
-    }
-    div.scrollable table {
-        width: 300%;
-    }
-    </style>
+POMS
 {%endblock%}
 
-{%block breadcrumbs%}
-<div class="ui breadcrumb" style="margin-top: -45px;">
-  <a href="{{pomspath}}/" class="section">Home</a>
-  <div class="divider"> / </div>
-  <div class="section">Launch Templates</div>
-</div>
-{%endblock%}
+<style type="text/css">
+  div.scrollable {
+  width: 100%;
+  overflow-x: scroll;
+  }
+  div.scrollable table {
+  width: 300%;
+  }
+</style>
+
+{% macro show_hint(anchor, hint) %}
+    {% include 'help_button.html' %}
+{% endmacro %}
 
 {%block header%}
-<h1 class="ui header">
-    Launch Templates {%include 'help_button.html'%}
-</h1>
+Launch Templates {{ show_hint('', 'Help page') }}
 {%endblock%}
 
 {%block subheader%}
@@ -33,58 +27,68 @@
 
 {%block content%}
 
+{% macro show_hint(anchor, hint) %}
+    {% include 'help_button.html' %}
+{% endmacro %}
+
+
 <form id="launch_template_form" class="ui form" action="launch_template_edit" method="POST">
 
+  <!--
   <select class="ui dropdown" name="experiment" id="experiment">
     <option value="">Choose Experiment</option>
     {% for row in data.exp_selections %}
     <option value="{{row.experiment}}" {{ 'selected="selected"' if (data.curr_experiment == row.experiment) }}>{{row.name}}</option>
     {% endfor %}
   </select>
+  -->
 
-  {% if data.curr_experiment is defined %} 
-  <table class="ui sortable single line celled table">
+  {% if data.curr_experiment is defined %}
+  <div id="double-scroll" class="ui scrollable">
+
+  <table class="ui sortable single line celled table" style="margin-top: 3em;">
     <thead>
       <tr>
-	<th></th>
-	<th>Name</th>
-	<th>Host</th>
-	<th>Account</th>
-	<th>Setup</th>
+        <th></th>
+        <th> Name {{ show_hint('#Name', 'Campaign name') }}    </th>
+        <th> Host {{ show_hint('#Host', 'Host name') }}    </th>
+        <th> Account {{ show_hint('#Account', 'Account name') }} </th>
+        <th> Setup {{ show_hint('#Setup', 'Shell commands to set up campaign environment<br>') }}    </th>
       </tr>
     </thead>
     <tbody>
       {% for row in data.templates %}
       <tr>
-	<td class="collapsing">
+        <td class="collapsing">
           {% if data.authorized==True %}
-	  <i class="large edit link blue icon"  onclick="edit_template({{loop.index}});"></i>
-	  <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
-	  <i class="large trash link blue icon" onclick="delete_template('{{row.LaunchTemplate.name}}'); "></i>
-	  {% else %}
-	  <i class="disabled large edit link blue icon">
-	  <i class="disabled large trash link blue icon">
-	  {% endif %}
+          <i class="large edit link blue icon"  onclick="edit_template({{loop.index}});"></i>
+          <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
+          <i class="large trash link blue icon" onclick="delete_template('{{row.LaunchTemplate.name}}'); "></i>
+          {% else %}
+          <i class="disabled large edit link blue icon">
+          <i class="disabled large trash link blue icon">
+          {% endif %}
         </td>
-	<td id="ldf_launch_id_{{loop.index}}" style="display:none;">{{row.LaunchTemplate.launch_id}}</td>
-	<td id="ldf_name_{{loop.index}}">{{row.LaunchTemplate.name}}</td>
-	<td id="ldf_launch_host_{{loop.index}}">{{row.LaunchTemplate.launch_host}}</td>
-	<td id="ldf_launch_account_{{loop.index}}">{{row.LaunchTemplate.launch_account}}</td>
-	<td id="ldf_launch_setup_{{loop.index}}">{{row.LaunchTemplate.launch_setup|e}}</td>
+        <td id="ldf_launch_id_{{loop.index}}" style="display:none;">{{row.LaunchTemplate.launch_id}}</td>
+        <td id="ldf_name_{{loop.index}}">{{row.LaunchTemplate.name}}</td>
+        <td id="ldf_launch_host_{{loop.index}}">{{row.LaunchTemplate.launch_host}}</td>
+        <td id="ldf_launch_account_{{loop.index}}">{{row.LaunchTemplate.launch_account}}</td>
+        <td id="ldf_launch_setup_{{loop.index}}">{{row.LaunchTemplate.launch_setup|e}}</td>
       </tr>
       {% endfor %}
     </tbody>
     <tfoot>
       <tr>
-	<th colspan="5">
-	  <button class="ui labled teal icon button" onclick="add_template();return false;") {{ 'disabled' if (data.authorized==False) }}>
-	    <i class="icon add square"></i>
-	    Add 
-	  </button>
-	</th>
+        <th colspan="5">
+          <button class="ui labled teal icon button" onclick="add_template();return false;") {{ 'disabled' if (data.authorized==False) }}>
+            <i class="icon add square"></i>
+            Add
+          </button>
+        </th>
       </tr>
     </tfoot>
   </table>
+  </div> <!-- double-scroll -->
   {% endif %}
   <input type="hidden" id="action" name="action" value="find">
 </form>
@@ -105,11 +109,11 @@
   <div class="actions">
     <div class="two fluid ui buttons">
       <button class="ui red deny button">
-	No
+        No
       </button>
       <button id="approved_btn" class="ui teal approve button">
-	<i class="checkmark icon"></i>
-	Yes
+        <i class="checkmark icon"></i>
+        Yes
       </button>
     </div>
   </div>
@@ -118,28 +122,28 @@
 <div class="ui modal" id="template_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header"><span id="template_header">
-    Launch Template Editor </span> {%include 'help_button.html'%}
+    Launch Template Editor </span> {{ show_hint('', 'Edit template') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
   <form id="template_add_edit_form" class="ui form" method="POST" action="launch_template_edit">
     <div class="three fields">
       <div class="field">
-        <label>Name</label>
+        <label>Name {{ show_hint('#Name', 'Campaign name') }}</label>
         <input type="text" id="ae_launch_name" name="ae_launch_name" placeholder="Template Name">
       </div>
       <div class="field">
-        <label>Host</label>
+        <label>Host {{ show_hint('#Host', 'Host name') }}</label>
         <input type="text" id="ae_launch_host" name="ae_launch_host" placeholder="Launch Host">
       </div>
       <div class="field">
-        <label>Account</label>
+        <label>Account {{ show_hint('#Host', 'Host name') }}</label>
         <input type="text" id="ae_launch_account" name="ae_launch_account" placeholder="Launch Account">
       </div>
     </div>
     <div class="one field">
       <div class="field">
-        <label>Setup</label>
+        <label>Setup {{ show_hint('#Setup', 'Shell commands to set up campaign environment<br>') }}</label>
         <textarea id="ae_launch_setup" name="ae_launch_setup" placeholder="Launch Setup"></textarea>
       </div>
     </div>
@@ -169,12 +173,14 @@ $('#template_add_edit_form')
   })
 ;
 
+/*
 $("#experiment").change(function() {
     $("#launch_template_form").submit();
   });
+*/
 
   function delete_template(name) {
-    var template = name; 
+    var template = name;
     $("#confirm_modal_message").text("Delete the launch template named " +name+" ?")
     mod_form = $("#confirm_modal").modal({
     closable  : false,
@@ -218,7 +224,7 @@ $("#experiment").change(function() {
 $(document).ready(function(){
   if ("{{ data.message }}" != "None") {
     $("#poms_message_data").text("{{ data.message }}");
-    $("#display_message_modal").modal('show');  
+    $("#display_message_modal").modal('show');
   }
 });
 
@@ -226,8 +232,10 @@ $('.ui.dropdown')
   .dropdown()
 ;
 
+  $(document).ready(function(){
+    $('#double-scroll').doubleScroll();
+  });
 </script>
 
 
 {%endblock%}
-

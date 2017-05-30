@@ -1,7 +1,7 @@
 from mock.mock import MagicMock
 from mock_poms_service import mock_poms_service
 from DBHandle import DBHandle
-from poms.model.poms_model import Service,ServiceDowntime
+from poms.webservice.poms_model import Service,ServiceDowntime
 from webservice.utc import utc
 import time
 from datetime import datetime, timedelta
@@ -132,7 +132,7 @@ def test_update_service_good():
      #print ' parent name = %s ' %p.name
 
      ret = mps.calendarPOMS.update_service(dbhandle,service,p.name,status,s.host_site,s.items,s.failed_items,s.description)
-     print 'ret = %s' %ret
+     print('ret = %s' %ret)
      assert ('ok' in ret.lower())
      #assert (1==2)   # Just to force printing on screen..
 

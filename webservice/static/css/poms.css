@@ -2010,7 +2010,7 @@ code .chunk {
 #example .full.height > .toc {
     position: relative;
     z-index: 1;
-    background-color: #1b1c1d;
+    /*VP background-color: #1b1c1d; */
     width: 250px;
     -webkit-box-flex: 0;
     -webkit-flex: 0 0 auto;
@@ -2490,5 +2490,41 @@ code .chunk {
     }
 }
 
+    /* For tooltips */
 
+    .tooltip {
+        position: relative;
+        display: inline-block;
+        cursor: help !important;
+        /*display: inline;*/
+        /*border-bottom: 1px dotted black;*/
+    }
 
+    .tooltip .tooltiptext {
+        /*display: none;*/
+        display: inline;
+        visibility: hidden;
+        color: #000;
+        background:rgba(180,220,255,0.90);
+        padding: 4px;
+        border: 1px solid #AAA;
+        border-radius: 4px;
+        -moz-border-radius: 4px;
+        -webkit-border-radius: 4px;
+        left: -170px;
+        /*left: -60%;*/
+        /*top: -3em;*/
+        bottom:  1em;
+        box-sizing: border-box;
+        text-align: center;
+        position: absolute;
+        z-index: 999;
+        box-shadow: 6px 6px 18px #CCC;
+        font-size: small;
+        line-height: 1.5em;
+    }
+
+    .tooltip:hover .tooltiptext {
+        /*display: initial;*/
+        visibility: visible;
+    }

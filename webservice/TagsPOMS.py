@@ -8,7 +8,7 @@
 
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, desc
-from poms.model.poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
+from .poms_model import Service, ServiceDowntime, Experimenter, Experiment, ExperimentsExperimenters, Job, JobHistory, Task, CampaignDefinition, TaskHistory, Campaign, LaunchTemplate, Tag, CampaignsTags, JobFile, CampaignSnapshot, CampaignDefinitionSnapshot,LaunchTemplateSnapshot,CampaignRecovery,RecoveryType, CampaignDependency
 import json
 
 class TagsPOMS():
@@ -16,6 +16,9 @@ class TagsPOMS():
         def __init__(self, ps):
             self.poms_service = ps
 
+        def show_tags(self, dbhandle, experiment):
+            tl = dbhandle.query(Tag).filter(Tag.experiment == experiment)
+            return tl
 
         def link_tags(self, dbhandle, ses_get, campaign_id, tag_name, experiment):
             if ses_get.get('experimenter').is_authorized(experiment):

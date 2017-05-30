@@ -1,18 +1,33 @@
-import ConfigParser
+import configparser
 import getpass
 
 import time
 import subprocess
 import sys
 import os
+import poms
+
+from poms.webservice.logit import  setlevel, log, DEBUG, INFO, CRITICAL
+import logging.config
+from poms.webservice import logging_conf
+
+def beverbose():
+    logging.config.dictConfig(logging_conf.LOG_CONF)
+    setlevel(level=DEBUG)
+    log(CRITICAL, "testing 1 2 3")
+    log(INFO, "testing 4 5 6")
+    log(DEBUG, "testing 7 8 9")
 
 # put envioronment vars into some config sections...
 
 def get_config_py():
 
-    class fakeconfig(ConfigParser.SafeConfigParser):
+    class fakeconfig(configparser.SafeConfigParser):
         def newget(self, var, default = None):
-            return self.oldget('global',var, default)
+            try:
+                return self.oldget('global',var)
+            except:
+                return default
 
     fakeconfig.oldget = fakeconfig.get
     fakeconfig.get = fakeconfig.newget
@@ -22,19 +37,13 @@ def get_config_py():
     
 def get_config(config = None):
     from textwrap import dedent
-    from StringIO import StringIO
+    from io import StringIO
 
     if config == None:
-        config = ConfigParser.RawConfigParser()
+        config = configparser.RawConfigParser()
     configfile = '../webservice/poms.ini'
     confs = dedent("""
-       [/static]
-       HOME="%(HOME)s"
-       POMS_DIR="%(POMS_DIR)s"
-       [global]
-       HOME="%(HOME)s"
-       POMS_DIR="%(POMS_DIR)s"
-       [POMS]
+       [DEFAULT]
        HOME="%(HOME)s"
        POMS_DIR="%(POMS_DIR)s"
     """ % os.environ)
@@ -66,7 +75,7 @@ def get_db_info():
     dbport = config.get('global', 'dbport').replace("\"", "'")
     try:
         dbpass = config.get('global', 'dbpass').replace("\"", "'")
-    except ConfigParser.NoOptionError as e:
+    except configparser.NoOptionError as e:
         dbpass = getpass.getpass("Please enter database password: ")
     return dbhost, dbname, dbuser, dbpass, dbport
 
@@ -87,21 +96,21 @@ def get_base_url():
 
 
 def setUpPoms():
-    print "************* SETTING UP POMS *************"
+    print("************* SETTING UP POMS *************")
     try:
         # proc = subprocess.Popen("cd ../ && source /fnal/ups/etc/setups.sh && setup -. poms && cd webservice/ && python service.py --no-wsgi",
         #                         shell=True)
-        proc = subprocess.Popen("python ../webservice/service.py --no-wsgi -c ../../poms.ini", shell=True)
-        print "PID =", proc.pid
+        proc = subprocess.Popen("python ../webservice/service.py --no-wsgi -c ../webservice/poms.ini > webservice.out 2>&1", shell=True)
+        print("PID =", proc.pid)
     except OSError as e:
-        print "Execution failed:", e
+        print("Execution failed:", e)
     time.sleep(5)
     return proc
 
 
 def tearDownPoms(proc):
-    print "************* TEARING DOWN POMS *************"
-    print "PID =", proc.pid
+    print("************* TEARING DOWN POMS *************")
+    print("PID =", proc.pid)
     proc.kill()
     # pid = get_pid(p)
     # try:

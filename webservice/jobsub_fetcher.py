@@ -2,14 +2,15 @@
 
 import os
 from os import system as os_system
-import thread
+import threading
+from poms.webservice.logit import log, logstartstop
 
 class jobsub_fetcher():
     def __init__(self):
          self.workdir = "%s/jf%d%s" % (
                           os.environ.get("TMPDIR","/var/tmp"),
                           os.getpid(),
-                          thread.get_ident())
+                          threading.get_ident())
          try:
              os.mkdir(self.workdir)
          except:
@@ -22,6 +23,7 @@ class jobsub_fetcher():
          if self.workdir:
               os_system("rm -rf %s" % self.workdir)
 
+    @logstartstop
     def fetch(self, jobsubjobid, group, role, force_reload = False, user = None):
          if group == "samdev": group = "fermilab"
          thistar = "%s/%s.tgz" % (self.workdir, jobsubjobid.rstrip("\n"))
@@ -45,14 +47,18 @@ class jobsub_fetcher():
              if user == None:
                 user = "%spro" % group
 
-         os.system("cd %s && jobsub_fetchlog --group=%s --role=%s --user=%s --jobid=%s > /dev/null" %(
+         cmd = "cd %s && /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_fetchlog --group=%s --role=%s --user=%s --jobid=%s > /dev/null" %(
                      self.workdir,
                      group,
                      role,
                      user,
-                     jobsubjobid))
+                     jobsubjobid)
+         
+         log("jobsub_fetcher.fetch(): running: %s" % cmd)
+         os.system(cmd)
          # os.system("ls -l %s " % self.workdir)
 
+    @logstartstop
     def index(self, jobsubjobid, group, role = "Production", force_reload = False):
 
         if group == "samdev": group = "fermilab"
@@ -64,6 +70,7 @@ class jobsub_fetcher():
         f.close()
         return res
 
+    @logstartstop
     def contents(self, filename, jobsubjobid, group, role = "Production"):
         self.fetch(jobsubjobid, group, role)
         f = os.popen( "tar --to-stdout -xzf %s/%s.tgz %s" % (self.workdir, jobsubjobid.rstrip("\n"), filename), "r")
@@ -76,9 +83,9 @@ class jobsub_fetcher():
 if __name__ == "__main__":
      
     jf = jobsub_fetcher()
-    jobid="15200109.0@fifebatch2.fnal.gov"
+    jobid="20224406.0@fifebatch2.fnal.gov"
     flist = jf.index(jobid, "samdev", "Analysis") 
-    print "------------------"
-    print flist
-    print "------------------"
-    print jf.contents(flist[2][-1], jobid, "samdev", "Analysis")
+    print("------------------")
+    print(flist)
+    print("------------------")
+    print(jf.contents(flist[2][-1], jobid, "samdev", "Analysis"))

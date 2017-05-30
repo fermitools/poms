@@ -1,33 +1,19 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    <title>POMS</title>
+POMS
 {%endblock%}
-
-
-{%block breadcrumbs%}
-<div class="ui breadcrumb" style="margin-top: -45px;">
-  <a href="{{pomspath}}/" class="section">Home</a>
-  <div class="divider"> / </div>
-  <a href="{{pomspath}}/show_campaigns/" class="section">Campaign Stage</a>
-  <div class="divider"> / </div>
-  <a href="{{pomspath}}/campaign_info?campaign_id={{campaign_id}}" class="section">{{name}}</a>
-  <div class="divider"> / </div>
-  <div class="section">Campaign Stage Sheet</div>
-</div>
-{%endblock%}
-
 
 {%block header%}
 <h1 class="ui header">
   Info by day{%include 'help_button.html'%}
 </h1>
 <!--<div class="ui subheader">
-{{days}} Days ending  {{tmax}}
+{{tdays}} Days ending  {{tmax}}
 </div>-->
 
-<a href="{{prev}}">&lt;previous {{days}} days</a> |
-<a href="{{next}}">next {{days}} days &gt;</a>
+<a href="{{prev}}">&lt;previous {{tdays}} days</a> |
+<a href="{{next}}">next {{tdays}} days &gt;</a>
 {%endblock%}
 
 

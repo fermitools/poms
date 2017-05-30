@@ -5,7 +5,7 @@ from DBHandle import DBHandle
 from poms.webservice.utc import utc
 import time
 from datetime import datetime, timedelta
-from poms.model.poms_model import Campaign, Tag
+from poms.webservice.poms_model import Campaign, Tag
 
 mps = mock_poms_service()
 dbhandle = DBHandle().get()
@@ -83,13 +83,13 @@ def test_tags_delete():
 
 def test_tags_create_multi():
 
-    print ' Testings : create a tag to multiple campaigns'
+    print(' Testings : create a tag to multiple campaigns')
     tag_name = 'mvi_tag_%d' %time.time()
     #cname = 'mwm_test_1'
     campaigns = dbhandle.query(Campaign).filter(Campaign.name.like('%mwm%')).all()
-    print ' found %s campaigns ' %len(campaigns)
+    print(' found %s campaigns ' %len(campaigns))
     for ac in campaigns:
-        print ' %s %s %s' %(ac.campaign_id,ac.name, ac.experiment)
+        print(' %s %s %s' %(ac.campaign_id,ac.name, ac.experiment))
         mps.tagsPOMS.link_tags(dbhandle, sesshandle, ac.campaign_id, tag_name, ac.experiment)
 
     # now verify
@@ -97,7 +97,7 @@ def test_tags_create_multi():
     results=clist[0]
     if results: 
         for val in results: 
-            print ' found tag %s for campaign id =%s' %(tag_name,val.campaign_id)
+            print(' found tag %s for campaign id =%s' %(tag_name,val.campaign_id))
     assert(len(results)>0)
 
     #assert (1==2)   # Just to force printing on screen..

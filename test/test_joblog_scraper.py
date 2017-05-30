@@ -7,17 +7,18 @@ import os
 import sys
 import time
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
+import poms
 
 class TestJobsub_q_scraper:
 
     def setup(self):
-        print "setting up..."
+        print("setting up...")
         self.mw = MockWebservice.MockWebservice()
         self.mq = MockCondor_q.MockCondor_q()
 
     def teardown(self):
-        print "tearing down..."
+        print("tearing down...")
         self.mw.close()
         self.mq.close()
 
@@ -39,17 +40,20 @@ class TestJobsub_q_scraper:
         for line in df:
 
             if i >= len(bulk_data):
-		data_log = self.mw.log.next()
-		post_log = self.mw.log.next()
-		post_data =  json.loads(data_log[12:-1])
-		bulk_data = json.loads(urllib.unquote_plus(post_data['data']))
-                print "got bulk_data:" , bulk_data
+                try:
+                    data_log = next(self.mw.log)
+                    post_log = next(self.mw.log)
+                except StopIteration:
+                    break
+                post_data =  json.loads(data_log[12:-1])
+                bulk_data = json.loads(urllib.parse.unquote_plus(post_data['data']))
+                print("got bulk_data:" , bulk_data)
                 i = 0
 
             post_data =  bulk_data[i]
 
-            print "line:", line
-            print "post_data", post_data
+            print("line:", line)
+            print("post_data", post_data)
 
             # need checks for log stuff..
             assert(post_log.find("bulk_update_job") > 0)

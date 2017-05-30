@@ -1,67 +1,52 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <!-- Standard Meta -->
-        {%if do_refresh %}
-        <meta http-equiv="refresh" content="300" />
-        {% endif %}
-        <meta charset="utf-8" />
-        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
+  <head>
+    <!-- Standard Meta -->
+    {%if do_refresh %}
+    <meta http-equiv="refresh" content="{{do_refresh}}" />
+    {% endif %}
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
 
+    <!-- Site Properities -->
 
-            <!-- Site Properities -->
+    {%block title%} {%endblock%}
 
-		{%block title%} {%endblock%}
+    <script src="{{pomspath}}/static/js/jquery-2.1.4.min.js"></script>
 
+    <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/semantic.css">
 
+    <script src="{{pomspath}}/static/js/semantic.js"></script>
 
+    <script src="{{pomspath}}/static/js/poms.js"></script>
+    <script src="{{pomspath}}/static/js/tablesort.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/poms.css">
 
-		<script src="{{pomspath}}/static/js/jquery-2.1.4.min.js"></script>
+    <link href='{{pomspath}}/static/css/fullcalendar.css' rel='stylesheet' />
+    <link href='{{pomspath}}/static/css/fullcalendar.print.css' rel='stylesheet' media='print' />
+    <script src='{{pomspath}}/static/js/moment.min.js'></script>
+    <script src='{{pomspath}}/static/js/fullcalendar.min.js'></script>
 
-		<link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/semantic.css">
+    <script src='{{pomspath}}/static/js/jquery-ui.js'></script>
+    <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/datepicker.css">
 
-		<script src="{{pomspath}}/static/js/semantic.js"></script>
+    <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/search.min.css">
+    <script src='{{pomspath}}/static/js/index.js'></script>
+    <script src='{{pomspath}}/static/js/search.min.js'></script>
 
-		<script src="{{pomspath}}/static/js/poms.js"></script>
-		<script src="{{pomspath}}/static/js/tablesort.min.js"></script>
-		<link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/poms.css">
+    <script src="{{pomspath}}/static/js/jquery.doublescroll.js"></script> <!-- VP -->
 
-
-
-		<link href='{{pomspath}}/static/css/fullcalendar.css' rel='stylesheet' />
-		<link href='{{pomspath}}/static/css/fullcalendar.print.css' rel='stylesheet' media='print' />
-		<script src='{{pomspath}}/static/js/moment.min.js'></script>
-		<script src='{{pomspath}}/static/js/fullcalendar.min.js'></script>
-
-
-		<script src='{{pomspath}}/static/js/jquery-ui.js'></script>
-		<link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/datepicker.css">
-
-
-		<link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/search.min.css">
-		<script src='{{pomspath}}/static/js/index.js'></script>
-		<script src='{{pomspath}}/static/js/search.min.js'></script>
-
-		<script src="{{pomspath}}/static/js/jquery.doublescroll.js"></script> <!-- VP -->
-
-		<style type="text/css">
-		div.scrollable {
-			width: 100%;
-			overflow-x: scroll;
-		}
-		div.scrollable table {
-			width: 300%;
-		}
-		</style>
-
-    </head>
-
-
-
-
-
-
+    <style type="text/css">
+      div.scrollable {
+        width: 100%;
+        overflow-x: scroll;
+      }
+      div.scrollable table {
+        width: 300%;
+      }
+    </style>
+  </head>
 
 
 <body id="example" class="started" ontouchstart="">
@@ -83,436 +68,105 @@
   </div> <!-- Ends display_message_modal  -->
 
 
+  {% include 'mobil_menu.html' %}
 
-        <!--mobile menu-->
+  <!--big screen -->
+  <div class="pusher" >  <!--  This is a requirment of semantic-ui when using a sidebar.  For all purposes it is the "body" -->
 
-        <div class="ui vertical inverted sidebar menu" id="toc">
+    <div class="full height">
 
-            <div class="item">
-                <div style="cursor: default;">
-                <i class="rocket icon"></i>
-              <!--
-                <a class="ui logo icon image" href="">
-                    <img src="{{pomspath}}/static/images/logo.png">
-                </a>
-              -->
-                <b>POMS</b>
-                </div>
-            </div>
+      {% include 'standard_menu.html' %}
 
-            <a class="item" href="{{pomspath}}/">
-                <b>Dashboard</b>
-            </a>
+      <div class="article" style="padding-left: 1em; padding-top: 1em">  <!--header of page-->
+	<br/>
+	<div class="ui three column grid">
+	  <div class="row">
+	    <div class="ten wide column">
+	      <h1 class="ui header" style="margin: 0px 10px 0px 10px;">
+		{%block header%} {%endblock%}
+	      </h1>
+	      {%block header_desc%}{%endblock%}
+	      <h2 class="ui header" style="margin: 0px 10px 0px 10px;">
+		{%block subheader%} {%endblock%}
+	      </h2>
+	    </div>
+	    <div class="column">
+              <br>
+              {% if current_experimenter is defined %}
+	      <i class="user icon" style="margin-left: 1em"></i>{{current_experimenter.first_name}} {{current_experimenter.last_name}}
+              {% endif %}
+              <br>
+              <br>
+	      <select class="ui dropdown" name="session_experiment_id" id="session_experiment_id" style="margin-left: 1em;">
+		<option value="">Choose Experiment</option>
+		{% for exp in allowed_experiments %}
+		{% if exp != 'root' %}
+		<option value="{{exp}}" {{ 'selected="selected"' if (session_experiment == exp) }}>{{exp}}</option>
+		{% endif %}
+		{% endfor %}
+	      </select>
+              <br>
+              &nbsp;
+	    </div>
+	  </div>
+	</div>
+	<div class="ui divider"  style="margin-top: 0px;">
+	</div>
+	{% include 'datepicker_block.html' %}
+	<div class="no example" style="margin: 0px 10px 0px 10px;">
+	  {%block content%} {%endblock%}
+	</div>
+      </div>  <!--ends article-->
 
-            <a class="item" href="{{pomspath}}/calendar">
-                <b>Calendar</b>
-            </a>
-
-            <a class="item requests"  href="#">
-                <b>Requests</b>
-            </a>
-
-	    <!--
-           <a class="item" href="{{pomspath}}/admin_screen">
-        	<b>DB Admin</b>
-           </a>
-	   -->
-
-            <div class="item">
-                <div class="header">DB Admin</div>
-                <div class="menu">
-                    <a class="item" href="{{pomspath}}/experiment_edit">
-                        Experiments
-                    </a>
-                    <a class="item" href="{{pomspath}}/user_edit">
-                        Users
-                    </a>
-                    <a class="item" href="{{pomspath}}/raw_tables">
-                        Raw Tables
-                    </a>
-                </div>
-            </div>
-
-            <div class="item">
-              <div class="header">Campaign Stage Info</div>
-              <div class="menu">
-		{% if current_experimenter is defined and current_experimenter.authorized_for %}
-                {% for e in current_experimenter.authorized_for.keys() %}
-                {%if e != 'root' and current_experimenter.authorized_for[e] %}
-                <a class="item" href="{{pomspath}}/show_campaigns?experiment={{e}}">
-                  Active for {{e}}
-                </a>
-                {%endif%}
-                {%endfor%}
-                {%endif%}
-                <a class="item" href="{{pomspath}}/show_campaigns">
-                  All Active
-                </a>
-                <a class="item" href="{{pomspath}}/show_campaigns?active=False">
-                  InActive
-                </a>
-              </div>
-            </div>
-            <div class="item">
-              <div class="header">Configure Work</div>
-              <div class="menu">
-                <a class="item" href="{{pomspath}}/launch_template_edit">
-                  Compose Launch Template
-                </a>
-                <a class="item" href="{{pomspath}}/campaign_definition_edit">
-                  Compose Job Type
-                </a>
-                <a class="item" href="{{pomspath}}/campaign_edit">
-                  Compose Campaign Stage
-                </a>
-              </div>
-            </div>
-
-            <div class="item">
-                <div class="header">Jobs</div>
-                <div class="menu">
-
-                    <a class="item" href="{{pomspath}}/job_table?tdays=1">
-                        All (Last Day)
-                    </a>
-                    <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=name">
-                        Failed_By Exit Code and Campaign Stage Name (Last Day)
-                    </a>
-                    <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=7&f=user_exe_exit_code&f=name">
-                        Failed_By Exit Code and Campaign Stage Name (Last Week)
-                    </a>
-                    <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=node_name">
-                        Failed_By Exit Code and Node Name (Last Day)
-                    </a>
-                    <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=cpu_type">
-                        Failed_By Exit Code and CPU Type(Last Day)
-                    </a>
-                </div>
-            </div>
-
-            <!--<a class="item requests"  href="#">
-                <b>Filter</b>
-            </a>-->
-
-<div class="item">
-  <div class="ui inverted transparent left icon input">
-         <form id="f1" method="get" action="{{pomspath}}/quick_search" onsubmit="return validateQuickSearchForm('f1')">
-             <input type="text" id=search_term_f1 name="search_term" placeholder="Search...">
-             <i class="search icon"></i>
-             <!--input type="submit" name="."-->
-         </form>
-  </div>
-</div>
-
-        </div>  <!--ends mobile menu-->
-
-
-
-
-
-
-
-
-        <!--more mobile stuff-->
-        <div class="ui fixed inverted main menu">
-            <div class="ui container">
-                <a class="launch icon item">
-                    <i class="content icon"></i>  <!--mobile menu button-->
-                </a>
-            </div>
-        </div>
-
-
-        <!--big screen menu-->
-
-        <div class="pusher">
-            <div class="full height">
-                <div class="toc">
-                    <div class="ui vertical inverted sticky menu">
-
-                       <div class="item">
-                       <!--
-                            <a class="ui logo icon image" href="">
-                                <img src="{{pomspath}}/static/images/logo.png">
-                            </a>
-                        -->
-                              <div style="cursor: default;">
-                                <i class="rocket icon"></i>
-                                <b>POMS</b>
-                              </div>
-                        </div>
-
-                        <a class="item" href="{{pomspath}}/">
-                            <b>Dashboard</b>
-                        </a>
-
-                        <a class="item" href="{{pomspath}}/calendar">
-                            <b>Calendar</b>
-                        </a>
-
-                        <a class="item requests" href="#">
-                            <b>Requests</b>
-                        </a>
-
-            <div class="item">
-                <div class="header">DB Admin</div>
-                <div class="menu">
-                    <a class="item" href="{{pomspath}}/experiment_edit">
-                        Experiments
-                    </a>
-                    <a class="item" href="{{pomspath}}/user_edit">
-                        Users
-                    </a>
-                    <a class="item" href="{{pomspath}}/raw_tables">
-                        Raw Tables
-                    </a>
-                </div>
-            </div>
-
-            <div class="item">
-              <div class="header">Campaign Stage Info</div>
-              <div class="menu">
-		{% if current_experimenter is defined and current_experimenter.authorized_for %}
-                {%for e in current_experimenter.authorized_for.keys()%}
-                {%if e != 'root' and current_experimenter.authorized_for[e] %}
-                <a class="item" href="{{pomspath}}/show_campaigns?experiment={{e}}">
-                  Active for {{e}}
-                </a>
-                {%endif%}
-                {%endfor%}
-                {%endif%}
-                <a class="item" href="{{pomspath}}/show_campaigns">
-                  All Active
-                </a>
-                <a class="item" href="{{pomspath}}/show_campaigns?active=False">
-                  InActive
-                </a>
-              </div>
-            </div>
-            <div class="item">
-              <div class="header">Configure Work</div>
-              <div class="menu">
-                <a class="item" href="{{pomspath}}/launch_template_edit">
-                  Compose Launch Template
-                </a>
-                <a class="item" href="{{pomspath}}/campaign_definition_edit">
-                  Compose Job Type
-                </a>
-                <a class="item" href="{{pomspath}}/campaign_edit">
-                  Compose Campaign Stages
-                </a>
-	      </div>
-            </div>
-
-            <div class="item">
-              <div class="header">Jobs</div>
-	      <div class="menu">
-		<a class="item" href="{{pomspath}}/job_table?tdays=1">
-		  All (Last Day)
-		</a>
-                    <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=name">
-                        Failed_By Exit Code and Campaign Stage Name (Last Day)
-                    </a>
-                    <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=7&f=user_exe_exit_code&f=name">
-                        Failed_By Exit Code and Campaign Stage Name (Last Week)
-                    </a>
-                    <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=node_name">
-                        Failed_By Exit Code and Node Name (Last Day)
-                    </a>
-                    <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=cpu_type">
-                        Failed_By Exit Code and CPU Type(Last Day)
-                    </a>
-	      </div>
-            </div>
-
-            <!--<a class="item requests"  href="#">
-                <b>Filter</b>
-            </a>-->
+    </div> <!--ends full height-->
+  </div>  <!--ends pusher-->
 
 
 <script>
-function validateQuickSearchForm(formid)
-{
-    var inputid="#search_term_"+formid
-    var search_term = $( inputid ).val();
-    if (search_term == null || search_term == "")
-    {
-        alert("Please enter a value.");
-        return false;
-    }
-}
-</script>
 
-
-<div class="item">
-  <div class="ui inverted transparent left icon input">
-         <form id="f2" method="GET" action="{{pomspath}}/quick_search" onsubmit="return validateQuickSearchForm('f2')">
-             <input type="text" id=search_term_f2 name="search_term" placeholder="Search...">
-             <i class="search icon"></i>
-             <!--input type="submit" name="."-->
-         </form>
-  </div>
-</div>
-
-
-                    </div>   <!--ends ui vertical inverted sticky menu-->
-
-
-                </div>  <!--ends toc-->
-
-
-
-
-
-                <div class="article">  <!--header of page-->
-
-                    <div class="ui masthead vertical segment">
-
-
-                    {% if current_experimenter is defined %}
-                       <div class="ui right floated segment" id="auth_info" style="z-index: 1">
-                       <i class="user icon"></i>
-                       {{current_experimenter.first_name}} {{current_experimenter.last_name}}
-
-                           <div class="ui dimmer">
-                             <div class="content">
-                               <div class="center">
-                                 <div class="ui small primary button" id="sign_out"> <i class="sign out icon"></i> Sign Out</div>
-                               </div>
-                             </div>
-                           </div>
-
-                       </div>
-
-
-
-<script>
-$( "#sign_out" ).click(function() {
-  window.location.href="sign_out"
-});
-</script>
-
-                    {% endif %}
-                        <div class="ui container">
-                            <div class="introduction">
-                                {%block breadcrumbs%} {%endblock%}
-
-                                {%block header%} {%endblock%}
-
-                                {% include 'datepicker_block.html' %}
-                            </div>
-
-                        </div>
-                    </div>
-
-
-
-
-
-
-
-                    <div class="main ui intro container">
-
-                        {%block subheader%} {%endblock%}
-
-                        <div class="no example" style="margin: 0px 10px 0px 10px;">
-                        {%block content%} {%endblock%}
-
-
-                         <div class="ui small basic test modal" id="under_construction">
-                            <div class="ui icon header">
-                              <i class="warning sign icon"></i>
-                              Under Construction
-                            </div>
-                         </div>
-
-
-                        </div>
-
-                    </div>  <!--ends main ui intro container-->
-
-
-                    <div class="ui mini label" style="float:right;">{{version}}</div>
-
-
-                </div>  <!--ends article-->
-
-
-
-
-
-
-
-            </div>  <!--ends full height-->
-
-
-
-
-
-
-        </div>  <!--ends pusher-->
-
-
-
-
-
-
-
-
-
-
-
-<!-- enable accordions -->
-<script language='javascript'>
-             $(document).ready(function(){
-                $('.ui.accordion').accordion();
-             });
-</script>
-
-
-
-<script>
-$( ".requests" ).click(function() {
-  $('#under_construction').modal('show');
-});
-
-</script>
-
-
-
-<script>
-$('.tbox')
-  .popup({
+  <!-- enable accordions -->
+  $(document).ready(function(){
+    $('.ui.accordion').accordion();
+  });
+
+  $("#session_experiment_id").change(function() {
+    var formdata = {'session_experiment': $("#session_experiment_id").val()};
+    $.ajax({
+      url: "{{pomspath}}/update_session_experiment",
+      type: 'GET',
+      data: formdata,
+      success: function(data){
+      location.reload(true);
+      }
+    });
+  });
+
+
+
+  $('.tbox').popup({
     position : 'top left',
     delay: {
       show: 2,
       hide: 2
     }
-  })
-;
+  });
 
 
 
-$('.tbox_delayed')
-  .popup({
+  $('.tbox_delayed').popup({
     position : 'top left',
     delay: {
       show: 1024,
       hide: 2
     }
-  })
-;
+  });
 
-</script>
+  $( document ).ready(function() { $('#auth_info').dimmer({on: 'hover'}); });
 
-
-
-<script>
-$( document ).ready(function() { $('#auth_info').dimmer({on: 'hover'}); });
 </script>
 
 
 {%block final%} {%endblock%}
-    </body>
+</body>
 
 </html>

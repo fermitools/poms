@@ -1,0 +1,27 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    POMS: Campaign Tags for {{experiment}}
+{%endblock%}
+
+
+{%block header%}
+Campaign Tags
+{%endblock%}
+
+{%block subheader%}
+&nbsp;
+{%endblock%}
+
+
+{%block content%}
+
+<div>
+Campaign Tags:
+<ul>
+{% for t in tl %}
+<li> <a href="{{pomspath}}/campaign_deps?tag={{t.tag_name}}">{{t.tag_name}}</a>
+{% endfor %}
+</ul>
+
+{%endblock%}

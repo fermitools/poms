@@ -1,5 +1,6 @@
 import os
 import sys
+import poms
 
 class MockCondor_q:
      def __init__(self):
@@ -13,6 +14,6 @@ class MockCondor_q:
              )
 
      def setoutput(self, fname):
-         print "using output " , fname
+         print("using output " , fname)
          os.environ['CONDOR_Q_OUTPUT'] = fname
 

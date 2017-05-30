@@ -7,12 +7,12 @@
 
 import os
 import shelve
-import logit
+from . import logit
 
-from poms.model.poms_model import Job, Task, Campaign, JobFile
+from .poms_model import Job, Task, Campaign, JobFile
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy import (desc, distinct)
-from utc import utc
+from .utc import utc
 from datetime import datetime,timedelta
 
 
@@ -189,7 +189,7 @@ class Files_status(object):
 
     def format_job_counts(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=7, range_string=None): ##This method was deleted from the main script
         counts = self.poms_service.triagePOMS.job_counts(dbhandle, task_id=task_id, campaign_id=campaign_id, tmin=tmin, tmax=tmax, tdays=tdays)
-        ck = counts.keys()
+        ck = list(counts.keys())
         res = ['<div><b>Job States</b><br>',
                '<table class="ui celled table unstackable">',
                '<tr><th>Total</th><th colspan=3>Active</th><th colspan=3>Completed In %s</th></tr>' % range_string,
@@ -249,10 +249,10 @@ class Files_status(object):
         if c:
             fss_file = "%s/%s_files.db" % (getconfig("ftsscandir"), c.experiment)
             if os.path.exists(fss_file):
-                fss = shelve.open(fss_file, 'r')
+                fss = shelve.open(fss_file, flag='r', protocol=3)
                 for f in outlist:
                     try:
-                        statusmap[f] = fss.get(f.encode('ascii', 'ignore'), '')
+                        statusmap[f] = fss.get(f, '')
                     except KeyError:
                         statusmap[f] = ''
                 fss.close()
@@ -343,7 +343,7 @@ class Files_status(object):
         date = None
         first = 1
         columns = ['day', 'date', 'requested files', 'delivered files', 'jobs', 'failed', 'outfiles', 'pending', 'efficiency%']
-        exitcodes.sort()
+        exitcodes.sort(key=(lambda x:  x if x else -1))
         for e in exitcodes:
             if e is not None:
                 columns.append('exit(%d)' % (e))
@@ -539,5 +539,5 @@ class Files_status(object):
         # then try to get a lock on Job, but can deadlock with someone
         # otherwise doing update_job()..
         dbhandle.query(Job, JobFile).with_for_update(of=Job, read=True).filter(JobFile.job_id == Job.job_id, JobFile.file_name.in_(flist)).all()
-        dbhandle.query(JobFile).filter(JobFile.file_name.in_(flist)).update({JobFile.declared: now}, synchronize_session=False)
+        dbhandle.query(JobFile).filter(JobFile.file_name.in_(flist)).update({JobFile.declared: now}, synchronize_session = False)
         dbhandle.commit()

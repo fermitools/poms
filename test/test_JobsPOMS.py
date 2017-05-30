@@ -6,7 +6,7 @@ import json
 import socket
 from poms.webservice.utc import utc
 from poms.webservice.samweb_lite import samweb_lite
-from poms.model.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job, Task
+from poms.webservice.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job, Task
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -43,7 +43,7 @@ def do_update_job(fielddict):
 
     assert(j != None)
 
-    for f,v in fielddict.items():
+    for f,v in list(fielddict.items()):
         if f.startswith('task_'):
             f = f[5:]
             assert(getattr(j.task_obj, f) == v)
@@ -135,7 +135,7 @@ def test_update_job_2():
     }
     do_update_job(fielddict)
 
-    print "testing all the info that the jobscraper pass the job_log_scraper"
+    print("testing all the info that the jobscraper pass the job_log_scraper")
     fielddict = {
                 'status': 'test_status' ,
                  # 'slot':'finally_something_in_this_field', # -- ??? mengel
@@ -149,7 +149,7 @@ def test_update_job_2():
 
 def test_update_job_q_scraper():
 
-    print "check this from the jobsub_q scrapper"
+    print("check this from the jobsub_q scrapper")
     fielddict = {
                 }
 
@@ -163,24 +163,22 @@ def test_kill_jobs():
     task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a task_id for the fake campaign
     task_id2 = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a task_id for the second task
 
+    jid_n = time.time()
     #Create jobs in the same campaign, 2 in one task_id, one in another task_id but same campaign, and on job in the same task_id, campaign but market as completed.
-    jid1 = "%d@fakebatch1.fnal.gov" % time.time() #1 Job in the first task_id
+    jid1 = "%d.0@fakebatch1.fnal.gov" % jid_n  #1 Job in the first task_id
     mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid1, host_site = "fake_host", status = 'running')
-    time.sleep(2)
-    jid2 = "%d@fakebatch1.fnal.gov" % time.time()#2Job in the first task_id
+    jid2 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 1) #2Job in the first task_id
     mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid2, host_site = "fake_host", status = 'running')
-    time.sleep(2)
-    jid3 = "%d@fakebatch1.fnal.gov" % time.time() #3Job in a new task_id but same campaign
+    jid3 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 2) #3Job in a new task_id but same campaign
     mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id2, jobsub_job_id = jid3, host_site = "fake_host", status = 'running')
-    time.sleep(2)
-    jid4 = "%d@fakebatch1.fnal.gov" % time.time()
+    jid4 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 3) 
     mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid4, host_site = "fake_host", status = 'Completed')
 
     #Control arguments
     c_arg="-G fermilab --role Analysis --jobid "
     c_output_killjob = jid1 #Control output
-    c_output_killTask = [jid1] #Control output #it is going to kill the task just killing the first job without .0, cluster.
-    c_output_killCampaign =[jid1,jid3] #Control output it is going to kill the Campaign just killing the first job without of each task_id
+    c_output_killTask = [jid1.replace('.0','')] #Control output #it is going to kill the task just killing the first job without .0, cluster.
+    c_output_killCampaign =[jid1.replace('.0',''),jid3.replace('.0','')] #Control output it is going to kill the Campaign just killing the first job without of each task_id
 
     #Guetting the jid (key in database) that belong to the jobid in jobsub. They are different. The key db is used in the next code block
     job_obj1 = dbhandle.query(Job).filter(Job.jobsub_job_id == jid1).first()
@@ -207,22 +205,30 @@ def test_kill_jobs():
     assert(jrm_id==c_output_killjob)
 
     #Check kill jobs in one task
+
     sep=output_killTask.rfind('--jobid ')
     assert(sep!=-1) #--jobid option was in called in the command
-    print "got output:", output_killTask
+    print("got output:", output_killTask)
     jrm_idtl=output_killTask.split('--jobid ')[1].split(",")
     jrm_idtl[-1]=jrm_idtl[-1].rstrip('\n')
-    jrm_idtl.sort()
-    assert(jrm_idtl==c_output_killTask)
+
+    # we may have jobs besides the ones we just added in the task , just do ours..
+    for jid in c_output_killTask:
+        assert(jid in jrm_idtl)
 
     #Check kill all jobs in one Campaign,  that also prof that the job market as completed is not killed.
     sep=output_killCampaign.rfind('--jobid ')
     assert(sep!=-1) #--jobid option was in called in the command
-    print "got output:", output_killCampaign
+    print("got output:", output_killCampaign)
     jrm_idcl=output_killCampaign.split('--jobid ')[1].split(",")
     jrm_idcl[-1]=jrm_idcl[-1].rstrip('\n')
-    jrm_idcl.sort()
-    assert(jrm_idcl==c_output_killCampaign)
+
+    # there may be *other* jobs in this campaign than the ones we added in this test
+
+    # just make sure the ones we have are in there.
+    #
+    for jid in c_output_killCampaign:
+        assert(jid in jrm_idcl)
 
     #Closing the mock
     mock_rm.close()

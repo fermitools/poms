@@ -1,22 +1,13 @@
 {%extends "layout.html" %}
 
 {%block title%}
-    <title>Kill Jobs Results</title>
-{%endblock%}
-
-{%block breadcrumbs%}
-    <div class="item">
-       Dashboard  <!--label of current location on mobile-->
-    </div>
-    <div class="item">
-      Kill jobs result<!--label of current location on mobile-->
-    </div>
+Kill Jobs Results
 {%endblock%}
 
 {%block header%}
 <h1 class="ui header">
          Results {%include 'help_button.html'%}
-                    
+
           <div class="sub header">
               Output of jobsub_rm
           </div>
@@ -41,5 +32,5 @@
 {{output}}
 </pre>
 </div>
-	
+
 {%endblock%}

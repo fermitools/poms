@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from utc import utc
+from .utc import utc
 import collections
 
 class time_grid:
@@ -36,11 +36,11 @@ class time_grid:
           list = [ "new", "Idle", "Held", "Running", "Completed", "Located"]
           if fancy:
                 list = list + ["running: user code",
-              		"running: copying files in",
-              		"running: copying files out",
-              		"running: user code completed",
-              		"running: user code succeeded",
-              		"running: user code failed"]
+                        "running: copying files in",
+                        "running: copying files out",
+                        "running: user code completed",
+                        "running: user code succeeded",
+                        "running: user code failed"]
 
           for s in list:
               res.append( "<div style='float:left; width:15em'><span style='min-width:3em; background: %s'>&nbsp;&nbsp;</span>%s</div>" % (self.status_color(s), s))
@@ -111,7 +111,7 @@ class time_grid:
           self.tdelta = tmax - tmin
           self.pmap = collections.OrderedDict()
           justnow = datetime.now(utc)
-          for id,dlist in dlistmap.items():
+          for id,dlist in list(dlistmap.items()):
               totwidth = 0.0
               plist = []
               # somehow this is is never false?!?
@@ -166,7 +166,7 @@ class time_grid:
              this makes the large boxes smaller to not
              overflow the row
          '''
-         for id,plist in self.pmap.items():
+         for id,plist in list(self.pmap.items()):
              n_items=0
              n_too_small=0
              fudge = 0.0
@@ -202,7 +202,7 @@ if __name__ == '__main__':
         def __init__(self, **kwargs):
              self.__dict__.update(kwargs)
 
-    print '<hr>'
+    print('<hr>')
     testrows = [ 
          fakerow( jobid= 'job1', created = datetime(2016,2,29,13,1,0,0,utc), status = "Idle"),
          fakerow( jobid= 'job1', created = datetime(2016,2,29,13,6,0,0,utc), status = "ifdh::cp whatever"),
@@ -221,4 +221,4 @@ if __name__ == '__main__':
          fakerow( jobid= 'job4', created = datetime(2016,2,29,13,9,0,0,utc), status = "ifdh::cp whatever"),
          fakerow( jobid= 'job4', created = datetime(2016,2,29,13,11,0,0,utc), status = "Completed"),
         ]
-    print tg.render_query_blob( datetime(2016,2,29,13,0,0,0,utc), datetime(2016,2,29,13,30,0,0,utc), testrows,'jobid')
+    print(tg.render_query_blob( datetime(2016,2,29,13,0,0,0,utc), datetime(2016,2,29,13,30,0,0,utc), testrows,'jobid'))

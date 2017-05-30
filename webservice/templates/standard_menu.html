@@ -1,0 +1,97 @@
+
+<!-- Standard Menu -->
+<div class="toc">
+<div class="ui vertical menu">
+
+  <a class="active item"href="{{pomspath}}/">
+    <div class="ui image label">
+      <i class="rocket icon"></i>
+    </div>
+    <b>POMS</b>
+  </a>
+
+  <div class="item">
+    <div class="ui icon input">
+      <form action="{{pomspath}}/quick_search" style="width: 99%">
+       <input type="text" name="search_term" placeholder="Search..." style="width: 95%">
+      <button type="submit" style="border:none; background-color:transparent; margin-left: -2.5em; height: 1.5em;">
+         <i class="ui icon search"></i>
+      </button>
+      </form>
+    </div>
+  </div>
+
+  <a class="item" href="{{pomspath}}/calendar">
+    <b>Calendar</b>
+  </a>
+
+  {% if current_experimenter is defined and  (current_experimenter.is_root()) %}
+  <div class="item">
+    <div class="header">DB Admin</div>
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/experiment_edit">
+        Experiments
+      </a>
+      <a class="item" href="{{pomspath}}/user_edit">
+        Users
+      </a>
+      <a class="item" href="{{pomspath}}/raw_tables">
+        Raw Tables
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="item">
+    <div class="header">Campaign Data</div>
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/show_tags">
+        Tagged Campaigns
+      </a>
+      <a class="item" href="{{pomspath}}/show_campaigns">
+        Active Campaign Stages
+      </a>
+      <a class="item" href="{{pomspath}}/show_campaigns?active=False">
+        InActive Campaign Stages
+      </a>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="header">Configure Work</div>
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/launch_template_edit">
+        Compose Launch Template
+      </a>
+      <a class="item" href="{{pomspath}}/campaign_definition_edit">
+        Compose Job Type
+      </a>
+      <a class="item" href="{{pomspath}}/campaign_edit">
+        Compose Campaign Stages
+      </a>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="header">Jobs</div>
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/job_table?tdays=1">
+	All (Last Day)
+      </a>
+      <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=name">
+        Failed_By Exit Code and Campaign Stage Name (Last Day)
+      </a>
+      <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=7&f=user_exe_exit_code&f=name">
+        Failed_By Exit Code and Campaign Stage Name (Last Week)
+      </a>
+      <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=node_name">
+        Failed_By Exit Code and Node Name (Last Day)
+      </a>
+      <a class="item" href="{{pomspath}}/failed_jobs_by_whatever?tdays=1&f=user_exe_exit_code&f=cpu_type">
+        Failed_By Exit Code and CPU Type(Last Day)
+      </a>
+    </div>
+  </div>
+
+</div>   <!--ends ui vertical inverted sticky menu-->
+</div>

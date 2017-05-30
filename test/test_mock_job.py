@@ -2,18 +2,24 @@ from mock_job import mock_job
 import DBHandle
 import datetime
 from poms.webservice.utc import utc
-from poms.model.poms_model import Job
+from poms.webservice.poms_model import Job
 from mock_poms_service import mock_poms_service
 import time
+from utils import beverbose
 
 dbh = DBHandle.DBHandle()
 mps = mock_poms_service()
+
+#beverbose()
+
+import logging
+logger = logging.getLogger('cherrypy.error')
 
 def test_mock_job_1():
     m = mock_job()
     njobs = 3
     m.launch("14", njobs)
-    print "mock_job_ids == ", m.jids
+    print("mock_job_ids == ", m.jids)
     
     time.sleep(3)
 
@@ -30,15 +36,19 @@ def test_mock_job_2():
     m = mock_job()
     njobs = 3
     m.launch("14", njobs, fileflag=1, dataset="gen_cfg")
-    print "mock_job_ids == ", m.jids
+    print("mock_job_ids == ", m.jids)
     
-    time.sleep(10)
+    m.close()
 
     # make sure all jobs showed up...
 
+    print("jobids: ", repr(m.jids))
     for j in m.jids:
         dj = dbh.get().query(Job).filter(Job.jobsub_job_id == j ).first()
-        assert(dj != None)
+        if not dj:
+            print( j , " -- not found!")
+        assert(dj != None )
+        print("jobid: " , j , "found")
 
     m.close()
 

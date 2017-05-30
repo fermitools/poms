@@ -4,36 +4,28 @@
     <title>POMS</title>
 {%endblock%}
 
-
-{%block breadcrumbs%}
-{%endblock%}
-
-
-
 {%block header%}
-<h1 class="ui header">
-    Dashboard{%include 'help_button.html'%}
-    <div class="sub header">
-        See everything up and running in real time
-    </div>
-</h1>
+Dashboard{%include 'help_button.html'%}
 {%endblock%}
 
+{%block header_desc%}
+&nbsp;&nbsp;&nbsp;&nbsp;See everything up and running in real time
+{%endblock%}
 
 {%block subheader%}
-<h2 class="ui dividing header">Services</h2>
+Services
 {%endblock%}
 
 
 {%block content%}
 <div class="ui segment raised">
-Job launches: {{launches}}&nbsp;&nbsp; 
- {% if (current_experimenter.is_root()) %} 
+Job launches: {{launches}}&nbsp;&nbsp;
+ {% if (current_experimenter.is_root()) %}
  <a href="set_job_launches?hold=allowed"><button class="tiny ui left attached button"><i class="play icon"></i>Allow</button></a>
  <a href="set_job_launches?hold=hold"><button class="tiny ui right attached button" ><i class="stop icon"></i>Hold</button></a>
  {% endif %}
 </div>
-	   {{services}} 
+	   {{services}}
 <h3> Key:</h3>
 <div class="ui green label">
   Good Component &nbsp; (0/total) <i class="link check icon"></i>
