@@ -28,6 +28,7 @@ POMS
 <!--
  {{datarows}}
 -->
+<div id="double-scroll" class="scrollable">
 <table class="ui sortable celled collapsing table">
   <thead>
     <tr>
@@ -48,7 +49,7 @@ POMS
     {%endfor%}
   </tbody>
 </table>
-
+</div>
 
 
 
@@ -67,6 +68,10 @@ $( ".tmax" ).html( tmax_local_time );
 <script>
 $(function() {
     $('#global_datepicker_container').show();
+});
+
+$(document).ready(function(){
+  $('#double-scroll').doubleScroll();
 });
 </script>
 {%endblock%}
