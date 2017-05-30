@@ -26,6 +26,7 @@ from poms.webservice.samweb_lite import samweb_lite
 
 class declared_files_watcher:
     def __init__(self, job_reporter):
+        self.samweb = samweb_lite()
         self.rs = requests.Session()
         self.job_reporter = job_reporter
         self.old_experiment = None
@@ -84,22 +85,22 @@ class declared_files_watcher:
             pass
 
     def find_located_files(self, experiment, flist):
-        if self.old_experiment != experiment:
-            #self.samweb = SAMWebClient(experiment = experiment)
-            self.samweb = samweb_lite()
-            print("got samweb handle for ", experiment)
-            self.old_experiment = experiment
+
+        #if self.old_experiment != experiment:
+        #    #self.samweb = SAMWebClient(experiment = experiment)
+        #    print("got samweb handle for ", experiment)
+        #    self.old_experiment = experiment
 
         res = []
         while len(flist) > 0:
             batch = flist[:300]
             flist = flist[300:]
             dims = "file_name '%s'" % "','".join(batch)
-            #print "trying dimensions: ", dims
+            print("trying dimensions: ", dims)
             sys.stdout.flush()
             #found = self.samweb.listFiles(dims)
             found = self.samweb.list_files(experiment, dims)
-            #print "got: ", found
+            print( "got: ", found)
             sys.stdout.flush()
             res = res + found
         print("found %d located files for %s" % (len(res), experiment))
@@ -126,18 +127,27 @@ class declared_files_watcher:
              self.totalTracked += len(total_flist[experiment])
              present_files[experiment] = self.find_located_files(experiment, total_flist[experiment])
 
-             self.report_declared_files(total_flist[experiment])
+             print("present files for ", experiment , present_files[experiment])
+
+             #self.report_declared_files(total_flist[experiment])
+             self.report_declared_files(present_files[experiment])
           
+         print("checking experiment jobs...")
          for experiment in list(jobmap.keys()):
+             print("checking experiment", experiment)
              for jobsub_job_id in  list(jobmap[experiment].keys()):
                  flist = jobmap[experiment][jobsub_job_id]
+                 
+                 print("checking job", jobsub_job_id)
 
-                 all_located = 1
+                 all_located = True
                  for f in flist:
                       if not f in present_files[experiment]:
-                          all_located = 0
+                          print("missing file:", f)
+                          all_located = False
 
                  if all_located:
+                     print("reporting files located status located ", jobsub_jobi_id)
                      self.job_reporter.report_status(jobsub_job_id,output_files_declared = "True",status="Located")
 
          print("Looked through files..")
