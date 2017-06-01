@@ -580,15 +580,10 @@ class CampaignsPOMS():
         launch_flist = glob.glob('%s/*' % dirname)
         launch_flist = list(map(os.path.basename, launch_flist))
 
-        #
-        # put together kibana link from format in config file and 
-        # our most recent (highest numbered) completed task_id.
-        #
-
-        latest_task_id = dbhandle.query(func.max(Task.task_id)).filter(Task.campaign_id == campaign_id , Task.status.in_(["Completed","Located"])).first()
+        # put our campaign id in the link
         campaign_kibana_link_format = config_get('campaign_kibana_link_format')
         logit.log("got format %s" %  campaign_kibana_link_format)
-        kibana_link = campaign_kibana_link_format % latest_task_id
+        kibana_link = campaign_kibana_link_format % campaign_id
 
         return Campaign_info, time_range_string, tmins, tmaxs, tdays, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist, kibana_link
 
