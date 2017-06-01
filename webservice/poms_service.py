@@ -448,9 +448,12 @@ class poms_service:
          Launch_template_info, tags,
          launched_campaigns, dimlist, cl,
          counts_keys, counts,
-         launch_flist) = self.campaignsPOMS.campaign_info(cherrypy.request.db,
+         launch_flist,
+         kibana_link) = self.campaignsPOMS.campaign_info(cherrypy.request.db,
                                                           cherrypy.request.samweb_lite,
-                                                          cherrypy.HTTPError, campaign_id, tmin, tmax, tdays)
+                                                          cherrypy.HTTPError, 
+                                                          cherrypy.config.get,
+                                                          campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_info.html')
         return template.render(Campaign_info=Campaign_info, time_range_string=time_range_string, tmins=tmins, tmaxs=tmaxs,
                                Campaign_definition_info=Campaign_definition_info, Launch_template_info=Launch_template_info,
@@ -459,7 +462,9 @@ class poms_service:
                                current_experimenter=cherrypy.session.get('experimenter'),
                                do_refresh=0, pomspath=self.path, help_page="CampaignInfoHelp", version=self.version,
                                allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               session_experiment=cherrypy.session.get('experimenter').session_experiment)
+                               session_experiment=cherrypy.session.get('experimenter').session_experiment,
+                               kibana_link = kibana_link
+                        )
 
 
     @cherrypy.expose
