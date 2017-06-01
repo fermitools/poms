@@ -43,7 +43,7 @@ class CampaignsPOMS():
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
         exp = seshandle('experimenter').session_experiment
-        pcl_call = kwargs.pop('pcl_call', 0)
+        pcl_call = int(kwargs.pop('pcl_call', 0))
         pc_username = kwargs.pop('pc_username',None)
 
         if action == 'delete':
