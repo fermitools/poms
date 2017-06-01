@@ -10,6 +10,7 @@ import re
 from .poms_model import Job, Task, Campaign, CampaignDefinitionSnapshot, CampaignSnapshot, JobFile, JobHistory
 from datetime import datetime
 from sqlalchemy.orm import joinedload
+from sqlalchemy.exc import OperationalError
 from sqlalchemy import func, not_, and_, or_
 from .utc import utc
 import json
@@ -171,7 +172,7 @@ class JobsPOMS(object):
                     dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == j.jobsub_job_id).first()
                     self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
                     dbhandle.commit()
-                except sqlalchemy.exc.OperationalError as e:
+                except OperationalError as e:
                     retrylist.append(j)
                     dbhandle.rollback()
                 jlist = retrylist 
@@ -330,7 +331,12 @@ class JobsPOMS(object):
                 newfiles = kwargs['output_file_names'].split(' ')
                 # don't include metadata files
 
-                output_match_re = j.task_obj.campaign_definition_snap_obj.output_file_patterns.replace(',','|').replace('.','\\.').replace('%','.*')
+                if j.task_obj.campaign_definition_snap_obj.output_file_patterns:
+                   ofp = j.task_obj.campaign_definition_snap_obj.output_file_patterns
+                else:
+                   ofp = '%'
+
+                output_match_re = ofp.replace(',','|').replace('.','\\.').replace('%','.*')
 
                 newfiles = [f for f in newfiles if f.find('.json') == -1 and f.find('.metadata') == -1]
 
