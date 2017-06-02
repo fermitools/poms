@@ -71,7 +71,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
                     pc_username=pc_username,
                     method = method,
                     action = action,
-                    ae_launch_name = ae_launch_name,
+                    name = ae_launch_name,
                     experiment = experiment,
 
                     ae_launch_host = ae_launch_host,
