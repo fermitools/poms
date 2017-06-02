@@ -47,7 +47,7 @@ class CampaignsPOMS():
 
         if action == 'delete':
             ae_launch_name = kwargs.pop('ae_launch_name')
-            name = kwargs.pop('name')
+            name = ae_launch_name
             try:
                 dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).delete()
                 dbhandle.commit()
