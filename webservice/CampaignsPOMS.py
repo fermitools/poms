@@ -60,7 +60,7 @@ class CampaignsPOMS():
         if action == 'add' or action == 'edit':
             if pcl_call == 1:
                 ae_launch_name = kwargs.pop('ae_launch_name')
-                name=ae_launch_name
+                name = ae_launch_name
                 experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
                 if action == 'edit':
                     ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_id
