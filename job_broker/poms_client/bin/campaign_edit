@@ -14,7 +14,7 @@ groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The 
 groupArg.add_argument('--vo_role', metavar='Analysis-Production', type=str, help='Define your role Analysis or Production', required = True)
 groupArg.add_argument('--dataset', metavar='campaign dataset', type=str, help='provide the dataset that will be use in the campaign', required=True)
 groupArg.add_argument('--launch_name', metavar='launch_template_name', type=str, help='you must provide the launch template name related with this campaign', required=True)
-groupArg.add_argument('--job_type', metavar='campaign_definition_name', type=str, help='you must provide teh job_type name')
+groupArg.add_argument('--job_type', metavar='campaign_definition_name', type=str, help='you must provide teh job_type name', required=True)
 
 
 
