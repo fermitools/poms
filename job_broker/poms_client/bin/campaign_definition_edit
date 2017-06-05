@@ -15,7 +15,6 @@ parser.add_argument('--output_file_patterns', metavar='string with output file p
 parser.add_argument('--launch_script', metavar='the setup you do at your interactive node', type=str, help='the script that you run to submit jobs in your machine', default = None)
 parser.add_argument('--def_parameter', metavar='parameters pass to the launch_script', type=str, nargs='*', help='The arguments your script (included in Launch script) use for the submission')
 parser.add_argument('--test_client', metavar='want to test the client URL query', type=str, help='use to test the client URL query', default = False)
-print "testing an error"
 args = parser.parse_args()
 print args
 print 'The arguments you pass are:'
