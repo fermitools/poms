@@ -47,7 +47,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
         print " You should provide an experiment name and email"
     else:
 
-        if action == 'deleted':
+        if action == 'delete':
             if ae_launch_name == None:
                 print "For deleting you need to provide the name of the launch teamplate as name = name_of_your_launch_template"
             else:
@@ -107,7 +107,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
 
         else:
             print "You should define an action on your launch_template, there are just \
-            three posibilities: action = add, action = edit or action = remove. You choose action = "+action+"\n \
+            three posibilities: action = add, action = edit or action = delete. You choose action = "+action+"\n \
             You did not change anything in your template"
 
 
