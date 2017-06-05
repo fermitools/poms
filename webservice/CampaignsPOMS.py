@@ -63,18 +63,18 @@ class CampaignsPOMS():
                 name = ae_launch_name
                 experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
                 if action == 'edit':
-                    ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_id
+                    ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).first().launch_id
                 else:
                     print("I'm action =! add therefore there is no ae_launch_id save")
                 ae_launch_host = kwargs.pop('ae_launch_host', None)
                 ae_launch_account = kwargs.pop('ae_launch_account', None)
                 ae_launch_setup = kwargs.pop('ae_launch_setup', None)
                 if ae_launch_host in [None,""]:
-                    ae_launch_host=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_host
+                    ae_launch_host=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).first().launch_host
                 if ae_launch_account in [None,""]:
-                    ae_launch_account=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_account
+                    ae_launch_account=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).first().launch_account
                 if ae_launch_setup in [None,""]:
-                    ae_launch_account=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_setup
+                    ae_launch_account=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).first().launch_setup
             else:
                 ae_launch_name = kwargs.pop('ae_launch_name')
                 ae_launch_id = kwargs.pop('ae_launch_id')
@@ -315,8 +315,8 @@ class CampaignsPOMS():
                 campaign_definition_name=kwargs.pop('ae_campaign_definition')
                 #all this variables depend on the arguments passed.
                 experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
-                launch_id=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==launch_name).fist().launch_id
-                campaign_definition_id =dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==campaign_definition_name).firts().campaign_definition_id
+                launch_id=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==launch_name).first().launch_id
+                campaign_definition_id =dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==campaign_definition_name).first().campaign_definition_id
                 if action == 'edit':
                     campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
                 else:
