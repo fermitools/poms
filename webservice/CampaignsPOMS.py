@@ -9,13 +9,12 @@ Date: April 28th, 2017. (changes for the POMS_client)
 
 from . import logit
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from sqlalchemy import func, desc, not_, and_
+from sqlalchemy import func, desc, not_, and_, or_
 from .poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
     LaunchTemplate, CampaignDefinition, CampaignRecovery,
     CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
 )
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
-from sqlalchemy import or_, and_ , not_
 from crontab import CronTab
 from datetime import datetime, tzinfo,timedelta
 import time
@@ -43,11 +42,12 @@ class CampaignsPOMS():
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
         exp = seshandle('experimenter').session_experiment
-        pcl_call = kwargs.pop('pcl_call', 0)
+        pcl_call = int(kwargs.pop('pcl_call', 0))
         pc_username = kwargs.pop('pc_username',None)
 
         if action == 'delete':
-            name = kwargs.pop('name')
+            ae_launch_name = kwargs.pop('ae_launch_name')
+            name = ae_launch_name
             try:
                 dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).delete()
                 dbhandle.commit()
@@ -59,15 +59,16 @@ class CampaignsPOMS():
 
         if action == 'add' or action == 'edit':
             if pcl_call == 1:
+                ae_launch_name = kwargs.pop('ae_launch_name')
+                name = ae_launch_name
                 experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
                 if action == 'edit':
-                    ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_id
+                    ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).launch_id
                 else:
-                    print "I'm action =! add therefore there is no ae_launch_id save"
-                ae_launch_name = kwargs.pop('ae_launch_name')
-                ae_launch_host = kwargs.pop('ae_launch_host')
-                ae_launch_account = kwargs.pop('ae_launch_account')
-                ae_launch_setup = kwargs.pop('ae_launch_setup')
+                    print("I'm action =! add therefore there is no ae_launch_id save")
+                ae_launch_host = kwargs.pop('ae_launch_host', None)
+                ae_launch_account = kwargs.pop('ae_launch_account', None)
+                ae_launch_setup = kwargs.pop('ae_launch_setup', None)
                 if ae_launch_host in [None,""]:
                     ae_launch_host=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_host
                 if ae_launch_account in [None,""]:
@@ -278,13 +279,11 @@ class CampaignsPOMS():
         pc_username = kwargs.pop('pc_username',None) #email is the info we know about the user in POMS DB.
 
         if action == 'delete':
+            name = kwargs.pop('ae_campaign_name')
             if pcl_call==1:
-                name = kwargs.pop('ae_campaign_name')
                 campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
             else:
                 campaign_id = kwargs.pop('campaign_id')
-
-            name = kwargs.pop('name')
             try:
                 dbhandle.query(CampaignDependency).filter(or_(CampaignDependency.needs_camp_id==campaign_id,
                                 CampaignDependency.uses_camp_id==campaign_id)).delete()
@@ -501,7 +500,7 @@ class CampaignsPOMS():
         return bytes(text,encoding="utf-8")
 
     @pomscache.cache_on_arguments()
-    def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag = None):
+    def show_campaigns(self, dbhandle, samhandle,  campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag = None):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
@@ -541,8 +540,8 @@ class CampaignsPOMS():
         return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
 
 
-    @pomscache.cache_on_arguments()
-    def campaign_info(self, dbhandle, samhandle, err_res, campaign_id,  tmin = None, tmax = None, tdays = None):
+    # @pomscache.cache_on_arguments()
+    def campaign_info(self, dbhandle, samhandle, err_res, config_get, campaign_id,  tmin = None, tmax = None, tdays = None):
         campaign_id = int(campaign_id)
 
         Campaign_info = dbhandle.query(Campaign, Experimenter).filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id).first()
@@ -580,7 +579,13 @@ class CampaignsPOMS():
            os.environ['HOME'],campaign_id)
         launch_flist = glob.glob('%s/*' % dirname)
         launch_flist = list(map(os.path.basename, launch_flist))
-        return Campaign_info, time_range_string, tmins, tmaxs, tdays, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist
+
+        # put our campaign id in the link
+        campaign_kibana_link_format = config_get('campaign_kibana_link_format')
+        logit.log("got format %s" %  campaign_kibana_link_format)
+        kibana_link = campaign_kibana_link_format % campaign_id
+
+        return Campaign_info, time_range_string, tmins, tmaxs, tdays, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist, kibana_link
 
 
     @pomscache_10.cache_on_arguments()

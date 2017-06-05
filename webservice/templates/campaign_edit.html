@@ -229,7 +229,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
       <h4 class="ui horizontal divider">Launch Template</h4>
 
-      <div class="three fields">
+      <div class="one field">
         <div class="field">
           <label>Launch Template {{ show_hint('#Launch-Template', 'Select template name') }}</label>
           <select class="ui dropdown" name="ae_launch_id" id="ae_launch_id">
@@ -239,6 +239,8 @@ Campaign Stages {{ show_hint('', 'Help page') }}
             {% endfor %}
           </select>
         </div>
+      </div>
+      <div class="two fields">
         <div class="field">
             <label>Host {{ show_hint('#Host', 'Host name') }}</label>
             <input type="text" id="ae_launch_host" disabled>
@@ -258,7 +260,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
       <h4 class="ui horizontal divider">Job Type</h4>
 
-      <div class="three fields">
+      <div class="one field">
         <div class="field">
           <label>Job Type {{ show_hint('#Job-Type', 'Select job type') }}</label>
           <!--<br/>-->
@@ -269,6 +271,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
             {% endfor %}
           </select>
         </div>
+      <div class="two fields">
         <div class="field">
               <label>Input Files/Job {{ show_hint('#Input-Files', 'Integer') }}</label>
               <input type="text" id="ae_input_files_per_job" disabled>

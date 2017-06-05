@@ -88,6 +88,8 @@ class samweb_lite:
         self.valid = 0
 
     def have_cache(self, experiment, projid):
+        if not self.proj_cache_time or not self_proj_cache:
+             return 0
         t = self.proj_cache_time.get(experiment + projid, 0)
         p = self.proj_cache.get(experiment + projid, None)
 
@@ -113,6 +115,10 @@ class samweb_lite:
         if res:
             info = proj_class_dict(res.json())
             self.do_totals(info)
+            if not self.proj_cache:
+                self.proj_cache = {}
+            if not self.proj_cache_time:
+                self.proj_cache_time = {}
             self.proj_cache[experiment + projid] = info
             self.proj_cache_time[experiment + projid] = time.time()
         return info
