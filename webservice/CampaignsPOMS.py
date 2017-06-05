@@ -63,7 +63,7 @@ class CampaignsPOMS():
                 name = ae_launch_name
                 experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
                 if action == 'edit':
-                    ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).launch_id
+                    ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).first().launch_id
                 else:
                     print("I'm action =! add therefore there is no ae_launch_id save")
                 ae_launch_host = kwargs.pop('ae_launch_host', None)
