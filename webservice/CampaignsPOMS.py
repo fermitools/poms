@@ -125,7 +125,7 @@ class CampaignsPOMS():
         action = kwargs.pop('action',None)
         exp = seshandle('experimenter').session_experiment
         #added for poms_client
-        pcl_call = kwargs.pop('pcl_call', 0) #pcl_call == 1 means the method was access through the poms_client.
+        pcl_call = int(kwargs.pop('pcl_call', 0)) #pcl_call == 1 means the method was access through the poms_client.
         pc_username = kwargs.pop('pc_username',None) #email is the info we know about the user in POMS DB.
 
         if action == 'delete':
@@ -275,7 +275,7 @@ class CampaignsPOMS():
         #for k,v in kwargs.items():
         #    print ' k=%s, v=%s ' %(k,v)
         action = kwargs.pop('action',None)
-        pcl_call = kwargs.pop('pcl_call', 0) #pcl_call == 1 means the method was access through the poms_client.
+        pcl_call = int(kwargs.pop('pcl_call', 0)) #pcl_call == 1 means the method was access through the poms_client.
         pc_username = kwargs.pop('pc_username',None) #email is the info we know about the user in POMS DB.
 
         if action == 'delete':
