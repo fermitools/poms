@@ -32,7 +32,7 @@ print args
 print 'The arguments you pass are:'
 print 'action =',args.action
 print 'campaign_name =', args.campaign_name
-print 'email=',args.email
+print 'user_name=',args.user_name
 print 'experiment=',args.experiment
 print 'vo_role=', args.vo_role
 print 'dataset=', args.dataset
