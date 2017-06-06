@@ -157,7 +157,7 @@ class CampaignsPOMS():
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
                 definition_parameters = kwargs.pop('ae_definition_parameters')
-                recoveries = kwargs.pop('ae_definition_recovery')
+                recoveries = kwargs.pop('ae_definition_recovery',"[]")
                 #Guetting the info that was not passed by the poms_client arguments
                 if input_files_per_job in [None,""]:
                     input_files_per_job = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().input_files_per_job
