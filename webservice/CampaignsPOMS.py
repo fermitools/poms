@@ -149,7 +149,7 @@ class CampaignsPOMS():
                 name = kwargs.pop('ae_definition_name')
                 experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
                 if action == 'edit':
-                    campaign_definition_id=dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==name).firts().campaign_definition_id #Check here!
+                    campaign_definition_id=dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==name).first().campaign_definition_id #Check here!
                 else:
                     pass
                 input_files_per_job = kwargs.pop('ae_input_files_per_job',0)
