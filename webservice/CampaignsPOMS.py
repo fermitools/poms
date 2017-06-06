@@ -152,8 +152,8 @@ class CampaignsPOMS():
                     campaign_definition_id=dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==name).firts().campaign_definition_id #Check here!
                 else:
                     pass
-                input_files_per_job = kwargs.pop('ae_input_files_per_job')
-                output_files_per_job = kwargs.pop('ae_output_files_per_job')
+                input_files_per_job = kwargs.pop('ae_input_files_per_job',0)
+                output_files_per_job = kwargs.pop('ae_output_files_per_job',0)
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
                 definition_parameters = kwargs.pop('ae_definition_parameters')
@@ -173,8 +173,8 @@ class CampaignsPOMS():
                 experimenter_id = kwargs.pop('experimenter_id')
                 campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
                 name = kwargs.pop('ae_definition_name')
-                input_files_per_job = kwargs.pop('ae_input_files_per_job')
-                output_files_per_job = kwargs.pop('ae_output_files_per_job')
+                input_files_per_job = kwargs.pop('ae_input_files_per_job',0)
+                output_files_per_job = kwargs.pop('ae_output_files_per_job',0)
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
                 definition_parameters = json.loads(kwargs.pop('ae_definition_parameters'))
