@@ -342,7 +342,7 @@ class CampaignsPOMS():
                                 completion_type=completion_type,completion_pct=completion_pct,
                                 creator=experimenter_id, created=datetime.now(utc))
                     dbhandle.add(c)
-                    dbhandle.flush() ##### Is this flush() necessary or better a commit ?
+                    dbhandle.commit() ##### Is this flush() necessary or better a commit ?
                     campaign_id = c.campaign_id
                 else:
                     columns = {
