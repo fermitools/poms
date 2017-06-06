@@ -307,7 +307,7 @@ class CampaignsPOMS():
             completion_type = kwargs.pop('ae_completion_type')
             completion_pct =  kwargs.pop('ae_completion_pct')
             depends = kwargs.pop('ae_depends',"[]")
-            param_overrides = kwargs.pop('ae_param_overrides')
+            param_overrides = kwargs.pop('ae_param_overrides',"[]")
             if param_overrides:param_overrides = json.loads(param_overrides)
 
             if pcl_call == 1:
