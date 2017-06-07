@@ -18,7 +18,7 @@ groupArg.add_argument('--job_type', metavar='campaign_definition_name', type=str
 
 
 
-parser.add_argument('--state', metavar='Active(True)-Inactive(False)', type=bool, help='Do you want to make the campaing active set this flag as True, for Inactive set the flag as False', default = True)
+parser.add_argument('--state', metavar='Active(True)-Inactive(False)', type=str, help='Do you want to make the campaing active set this flag as True, for Inactive set the flag as False', default = True)
 parser.add_argument('--split_type', metavar='I am still not sure which are the available split types', type=str, help='split type', default = None)
 parser.add_argument('--software_version', metavar='exp_software_version', type=str, help='Provide the the experiment software_version', default = "Non provide")
 parser.add_argument('--completion_type', metavar='located or completed', type=str, help='Please provide the kind of completion type [located] or [Complete], by default it will be located', default = "Located")
