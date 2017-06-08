@@ -133,6 +133,9 @@ class JobsPOMS(object):
         for j in jobs:
             foundjobs["%s"%j.jobsub_job_id] = j
             jlist.append(j)
+            # mengel -- do we need:
+            #if not fulltasks.get(j.task_id, None):
+            #    fulltasks[int(j.task_id)] = j.task_obj
 
 
         # now look for jobs for which  we don't have Job ORM entries, but

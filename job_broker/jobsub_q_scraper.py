@@ -224,7 +224,6 @@ class jobsub_q_scraper:
                 pass
 
         f.close()
-        res = p.wait()
 
         if res == 0 or res == None:
             for jobsub_job_id in list(self.jobmap.keys()):
@@ -244,13 +243,15 @@ class jobsub_q_scraper:
 
         self.call_wrapup_tasks()
 
+        res = p.wait()
+
     def poll(self):
         while(1):
             self.passcount = self.passcount + 1
 
             # just restart periodically, so we don't eat memory, etc.
-            if self.passcount > 1000:
-                os.execvp(sys.argv[0], sys.argv)
+            #if self.passcount > 1000:
+            #    os.execvp(sys.argv[0], sys.argv)
 
             self.threadCount.set(threading.active_count())
 
