@@ -364,6 +364,11 @@ class poms_service:
     def campaign_edit(self, *args, **kwargs):
         data = self.campaignsPOMS.campaign_edit(cherrypy.request.db, cherrypy.session, *args, **kwargs)
         template = self.jinja_env.get_template('campaign_edit.html')
+
+        if kwargs.get('pcl_call','0') == '1':
+            if data['message']:
+               raise cherrypy.HTTPError(400, data['message'])
+
         return template.render(data=data, current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path, help_page="CampaignEditHelp", version=self.version,
                                allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
