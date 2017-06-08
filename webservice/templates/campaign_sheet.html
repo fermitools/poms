@@ -35,7 +35,7 @@ POMS
                {% if col|length > 9  %}
                   {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit_signal"><i class="small icon grey help circle  link"></i>
                {% else  %}
-                  <a href="https://cdcvs.fnal.gov/redmine/projects/offline_production_operations_service/wiki/_{{experiment}}_error_codes_#{{col[5:-1]}}">{{col}}</a><a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit"><i class="small icon grey help circle link"></i>
+                  <a href="https://cdcvs.fnal.gov/redmine/projects/offline_production_operations_service/wiki/_{{session_experiment}}_error_codes_#{{col[5:-1]}}">{{col}}</a><a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit"><i class="small icon grey help circle link"></i>
                {% endif %}
            {% else %}
                {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#{{col|replace(' ','_')}}"><i class="small icon grey help circle link"></i>
@@ -53,7 +53,7 @@ POMS
               {% if columns[col] == 'efficiency%' %}
                 <td><a href="{{pomspath}}/jobs_eff_histo?campaign_id={{campaign_id}}&tmax={{row[1][:10]}} 23:59:59">{{row[col]}}</a></td>
               {% elif columns[col] == 'pending' %}
-                <td><a href="{{pomspath}}/show_dimension_files?experiment={{experiment}}&dims={{dimlist[outer_loop.index0]}}">{{row[col]}}</a></td>
+                <td><a href="{{pomspath}}/show_dimension_files?experiment={{session_experiment}}&dims={{dimlist[outer_loop.index0]}}">{{row[col]}}</a></td>
 
               {% elif columns[col][:4] == 'exit' %}
                 <td><a href="{{pomspath}}/job_table?user_exe_exit_code={{columns[col][5:-1]}}&tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
