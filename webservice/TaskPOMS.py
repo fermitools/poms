@@ -611,7 +611,7 @@ class TaskPOMS:
             logit.log("launch_jobs -- experimenter not authorized")
             err_res = "404 Permission Denied."
             output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
-            return lcmd, output, c, campaign_id, outdir, outfile
+            return lcmd, output, c, campaign_id, outdir, outfile    # FIXME: this returns more elements than others
 
         experimenter_login = e.username
         lt.launch_account = lt.launch_account % {"experimenter": experimenter_login}
