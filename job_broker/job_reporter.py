@@ -36,7 +36,8 @@ class job_reporter:
         self.batchsize = 50
         self.timemax = 10
         if self.bulk:
-            self.wthreads.append(threading.Thread(target=self.runqueue_bulk))
+            for i in range(nthreads):
+                self.wthreads.append(threading.Thread(target=self.runqueue_bulk,args=[i]))
             self.wthreads[0].start()
         else:
             for i in range(nthreads):
@@ -95,11 +96,11 @@ class job_reporter:
         print("thread: %d -- bailing" % _thread.get_ident())
         raise KeyboardInterrupt("just quitting a thread")
 
-    def runqueue_bulk(self):
+    def runqueue_bulk(self, i):
         lastsent = time.time()
         bail = False
         while not bail:
-            if self.work.qsize() > self.batchsize or time.time() - lastsent > self.timemax:
+            if self.work.qsize() > self.batchsize * i or (i == 0 and time.time() - lastsent > self.timemax):
 
                 if self.debug: sys.stderr.write("runqueue_bulk:  before:qsize is %d\n" % self.work.qsize()); sys.stderr.flush()
                 batch = []
@@ -130,7 +131,7 @@ class job_reporter:
 
                 if self.debug: sys.stderr.write("\nrunqueue_bulk: after: qsize is %d\n" % self.work.qsize())
             else:
-                time.sleep(1)
+                time.sleep(0.1 * i)
 
 
     def runqueue(self):
