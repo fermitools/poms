@@ -7,35 +7,34 @@ written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
 from datetime import datetime
-
-from . import time_grid
-from sqlalchemy.orm import subqueryload, joinedload, contains_eager
-from sqlalchemy import func, text
-from .utc import utc
 from datetime import timedelta
-from . import condor_log_parser
 import json
 from collections import OrderedDict
 import subprocess
 import time
 import select
 import os
+from sqlalchemy.orm import subqueryload, joinedload, contains_eager
+from sqlalchemy import func, text
+from . import time_grid
+from .utc import utc
+from . import condor_log_parser
 from . import logit
 #from exceptions import KeyError
 
 from .poms_model import (Service,
-                        Experimenter,
-                        Job,
-                        JobHistory,
-                        Task,
-                        CampaignDefinition,
-                        Campaign,
-                        LaunchTemplate,
-                        CampaignSnapshot,
-                        CampaignDefinitionSnapshot,
-                        LaunchTemplateSnapshot,
-                        CampaignDependency,
-                        HeldLaunch)
+                         Experimenter,
+                         Job,
+                         JobHistory,
+                         Task,
+                         CampaignDefinition,
+                         Campaign,
+                         LaunchTemplate,
+                         CampaignSnapshot,
+                         CampaignDefinitionSnapshot,
+                         LaunchTemplateSnapshot,
+                         CampaignDependency,
+                         HeldLaunch)
 
 
 #
@@ -194,7 +193,7 @@ class TaskPOMS:
             # located as its going to get...
 
 
-            if (now - task.updated > timedelta(days=2)):
+            if now - task.updated > timedelta(days=2):
                 n_located = n_located + 1
                 n_stale = n_stale + 1
                 task.status = "Located"
@@ -286,10 +285,10 @@ class TaskPOMS:
         #
         logit.log("Starting need_joblogs loops, len %d" % len(finish_up_tasks))
         for task in need_joblogs:
-                condor_log_parser.get_joblogs(dbhandle,
-                                              self.task_min_job(dbhandle, task.task_id),
-                                              task.campaign_snap_obj.experiment,
-                                              task.campaign_snap_obj.vo_role)
+            condor_log_parser.get_joblogs(dbhandle,
+                                          self.task_min_job(dbhandle, task.task_id),
+                                          task.campaign_snap_obj.experiment,
+                                          task.campaign_snap_obj.vo_role)
         logit.log("Starting finish_up_tasks loops, len %d" % len(finish_up_tasks))
 
         for task_id, task in list(finish_up_tasks.items()):
@@ -360,15 +359,15 @@ class TaskPOMS:
         if task.status == "Located":
             return task.status
         res = "New"
-        if (st['Idle'] > 0):
+        if st['Idle'] > 0:
             res = "Idle"
-        if (st['Held'] > 0):
+        if st['Held'] > 0:
             res = "Held"
-        if (st['Running'] > 0):
+        if st['Running'] > 0:
             res = "Running"
-        if (st['Completed'] > 0 and  res == "New"):
+        if st['Completed'] > 0 and  res == "New":
             res = "Completed"
-        if (st['Located'] > 0 and  res == "New"):
+        if st['Located'] > 0 and  res == "New":
             res = "Located"
         return res
 
@@ -376,23 +375,22 @@ class TaskPOMS:
     def task_min_job(self, dbhandle, task_id):  # This method deleted from the main script.
         # find the job with the logs -- minimum jobsub_job_id for this task
         # also will be nickname for the task...
-        if ( task_id in self.task_min_job_cache ):
-           return self.task_min_job_cache.get(task_id)
-        j = dbhandle.query(Job).filter( Job.task_id == task_id ).order_by(Job.jobsub_job_id).first()
+        if task_id in self.task_min_job_cache:
+            return self.task_min_job_cache.get(task_id)
+        j = dbhandle.query(Job).filter(Job.task_id == task_id).order_by(Job.jobsub_job_id).first()
         if j:
             self.task_min_job_cache[task_id] = j.jobsub_job_id
             return j.jobsub_job_id
-        else:
-            return None
+        return None
 
 
-    def get_task_id_for(self, dbhandle, campaign, user = None, experiment = None, command_executed = "", input_dataset = "", parent_task_id=None):
-        if user == None:
-             user = 4
+    def get_task_id_for(self, dbhandle, campaign, user=None, experiment=None, command_executed="", input_dataset="", parent_task_id=None):
+        if user is None:
+            user = 4
         else:
-             u = dbhandle.query(Experimenter).filter(Experimenter.username==user).first()
-             if u:
-                  user = u.experimenter_id
+            u = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
+            if u:
+                user = u.experimenter_id
         q = dbhandle.query(Campaign)
         if campaign[0] in "0123456789":
             q = q.filter(Campaign.campaign_id == int(campaign))
@@ -404,19 +402,19 @@ class TaskPOMS:
 
         c = q.first()
         tim = datetime.now(utc)
-        t = Task(campaign_id = c.campaign_id,
-                 task_order = 0,
-                 input_dataset = input_dataset,
-                 output_dataset = "",
-                 status = "New",
-                 task_parameters = "{}",
-                 updater = 4,
-                 creator = 4,
-                 created = tim,
-                 updated = tim,
-                 command_executed = command_executed)
+        t = Task(campaign_id=c.campaign_id,
+                 task_order=0,
+                 input_dataset=input_dataset,
+                 output_dataset="",
+                 status="New",
+                 task_parameters="{}",
+                 updater=4,
+                 creator=4,
+                 created=tim,
+                 updated=tim,
+                 command_executed=command_executed)
 
-        if parent_task_id != None and parent_task_id != "None":
+        if parent_task_id is not None and parent_task_id != "None":
             t.recovery_tasks_parent = int(parent_task_id)
 
         self.snapshot_parts(dbhandle, t, t.campaign_id)
@@ -427,25 +425,25 @@ class TaskPOMS:
 
 
     def snapshot_parts(self, dbhandle, t, campaign_id): ###This function was removed from the main script
-         c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-         for table, snaptable, field, sfield, tid , tfield in [
-                [Campaign,CampaignSnapshot,Campaign.campaign_id,CampaignSnapshot.campaign_id,c.campaign_id, 'campaign_snap_obj' ],
-                [CampaignDefinition, CampaignDefinitionSnapshot,CampaignDefinition.campaign_definition_id, CampaignDefinitionSnapshot.campaign_definition_id, c.campaign_definition_id, 'campaign_definition_snap_obj'],
-                [LaunchTemplate ,LaunchTemplateSnapshot,LaunchTemplate.launch_id,LaunchTemplateSnapshot.launch_id,  c.launch_id, 'launch_template_snap_obj']]:
+        c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        for table, snaptable, field, sfield, tid, tfield in [
+               [Campaign,CampaignSnapshot,Campaign.campaign_id,CampaignSnapshot.campaign_id,c.campaign_id, 'campaign_snap_obj' ],
+               [CampaignDefinition, CampaignDefinitionSnapshot,CampaignDefinition.campaign_definition_id, CampaignDefinitionSnapshot.campaign_definition_id, c.campaign_definition_id, 'campaign_definition_snap_obj'],
+               [LaunchTemplate ,LaunchTemplateSnapshot,LaunchTemplate.launch_id,LaunchTemplateSnapshot.launch_id,  c.launch_id, 'launch_template_snap_obj']]:
 
-             i = dbhandle.query(func.max(snaptable.updated)).filter(sfield == tid).first()
-             j = dbhandle.query(table).filter(field == tid).first()
-             if (i[0] == None or j == None or j.updated == None or  i[0] < j.updated):
-                newsnap = snaptable()
-                columns = j._sa_instance_state.class_.__table__.columns
-                for fieldname in list(columns.keys()):
-                     setattr(newsnap, fieldname, getattr(j,fieldname))
-                dbhandle.add(newsnap)
-             else:
-                newsnap = dbhandle.query(snaptable).filter(snaptable.updated == i[0]).first()
-             setattr(t, tfield, newsnap)
-         dbhandle.add(t) #Felipe change HERE one tap + space to spaces indentation
-         dbhandle.commit()
+            i = dbhandle.query(func.max(snaptable.updated)).filter(sfield == tid).first()
+            j = dbhandle.query(table).filter(field == tid).first()
+            if (i[0] is None or j is None or j.updated is None or  i[0] < j.updated):
+               newsnap = snaptable()
+               columns = j._sa_instance_state.class_.__table__.columns
+               for fieldname in list(columns.keys()):
+                    setattr(newsnap, fieldname, getattr(j,fieldname))
+               dbhandle.add(newsnap)
+            else:
+               newsnap = dbhandle.query(snaptable).filter(snaptable.updated == i[0]).first()
+            setattr(t, tfield, newsnap)
+        dbhandle.add(t) #Felipe change HERE one tap + space to spaces indentation
+        dbhandle.commit()
 
 
     def launch_dependents_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  t):
@@ -607,11 +605,11 @@ class TaskPOMS:
         e = seshandle_get('experimenter')
         xff = gethead('X-Forwarded-For', None)
         ra = gethead('Remote-Addr', None)
-        if not e.is_authorized(c.experiment) and not (ra == '127.0.0.1' and xff == None):
+        if not e.is_authorized(c.experiment) and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
             err_res = "404 Permission Denied."
             output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
-            return lcmd, output, c, campaign_id, outdir, outfile
+            return lcmd, output, c, campaign_id, outdir, outfile    # FIXME: this returns more elements than in other places
 
         experimenter_login = e.username
         lt.launch_account = lt.launch_account % {"experimenter": experimenter_login}
