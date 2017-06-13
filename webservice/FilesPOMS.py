@@ -406,9 +406,9 @@ class Files_status(object):
             #~ ps = self.project_summary_for_task(task.task_id)
             ps = psl[tno]
             if ps:
-                totdfiles += ps['tot_consumed'] + ps['tot_failed']
-                totfiles += ps['files_in_snapshot']
-                totjobfails += ps['tot_jobfails']
+                totdfiles += ps.get('tot_consumed',0) + ps.get('tot_failed',0)
+                totfiles += ps.get('files_in_snapshot',0)
+                totjobfails += ps.get('tot_jobfails',0)
 
             totjobs += len(task.jobs)
 
