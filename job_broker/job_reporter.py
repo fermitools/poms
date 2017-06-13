@@ -81,10 +81,11 @@ class job_reporter:
             os._exit(1)
            
         if self.bulk:
-            if not(self.wthreads[0].is_alive()):
-                self.wthreads[0].join(0.1)
-                self.wthreads[0] = threading.Thread(target=self.runqueue_bulk)
-                self.wthreads[0].start()
+            for i in range(self.nthreads):
+                if not(self.wthreads[i].is_alive()):
+                    self.wthreads[i].join(0.1)
+                    self.wthreads[i] = threading.Thread(target=self.runqueue_bulk, args=[i])
+                    self.wthreads[i].start()
         else:
             for i in range(self.nthreads):
                 if not(self.wthreads[i].is_alive()):
