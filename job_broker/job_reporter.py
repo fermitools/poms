@@ -103,7 +103,8 @@ class job_reporter:
         while not bail:
             if self.work.qsize() > self.batchsize * which or (which == 0 and time.time() - lastsent > self.timemax):
 
-                if self.debug: sys.stderr.write("runqueue_bulk: %d before:qsize is %d\n" % (which ,self.work.qsize())); sys.stderr.flush()
+                if self.debug: sys.stderr.write("runqueue_bulk: %d before:qsize is %d\n" % (which,self.work.qsize())); sys.stderr.flush()
+
                 batch = []
                 for i in range(self.batchsize):
                     try:
