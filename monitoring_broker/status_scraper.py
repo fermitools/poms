@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 from configparser import SafeConfigParser
 import re
@@ -9,8 +9,8 @@ import os
 import sys
 import ssl,socket
 import time
+import requests
 
-import pycurl
 from io import StringIO
 
 # don't barf if we need to log utf8...
@@ -22,6 +22,7 @@ class status_scraper():
     def __init__(self,configfile, poms_url):
         self.poms_url = poms_url
         self.rs = requests.Session()
+        self.rs.verify = False
         defaults = { "subservices" : u"", "scrape_url":u"" , "scrape_regex":u"", "percent":u"100", "scrape_match_1":u"", "scrape_warn_match_1":u"", "scrape_bad_match_1":u"", "debug":u"0", "multiline":None }
         self.cf = SafeConfigParser(defaults)
         # self.cf._strict = False
@@ -48,29 +49,10 @@ class status_scraper():
             if self.debug: print("fetching page: ", url)
             try:
                 lines = []
-                c = pycurl.Curl()
-                buffer = StringIO()
-                c.setopt(c.URL, url)
-                c.setopt(c.WRITEFUNCTION, buffer.write)
-
-                if 'X509_USER_CERT' in os.environ:
-                    c.setopt(c.SSLCERT, os.environ['X509_USER_CERT'])
-                else:
-                    c.setopt(c.SSLCERT,"/tmp/x509up_u%d" % os.getuid())
-
-                if 'X509_USER_KEY' in os.environ:
-                    c.setopt(c.SSLKEY, os.environ['X509_USER_KEY'])
-                else:
-                    c.setopt(c.SSLKEY,"/tmp/x509up_u%d" % os.getuid())
-
-                c.setopt(c.SSL_VERIFYHOST, 0)
-                c.setopt(c.SSL_VERIFYPEER, 0)
-                c.setopt(c.HTTPHEADER, ['Accept: application/json','Accept: text/plain','Accept: text/html'])
-                c.setopt(c.FOLLOWLOCATION, 1)
-                c.perform()
-                c.close()
-                self.page_cache[url] = buffer.getvalue().split("\n")
-                buffer.close()
+                cert = os.environ.get('X509_USER_CERT',"/tmp/x509up_u%d" % os.getuid())
+                key = os.environ.get('X509_USER_KEY',"/tmp/x509up_u%d" % os.getuid())
+                resp = self.rs.get(url, cert=(cert, key) )
+                self.page_cache[url] = resp.text.split("\n")
                 if self.debug: print("Fetched.")
                 if self.debug: print(self.page_cache[url])
             except Exception as e:
