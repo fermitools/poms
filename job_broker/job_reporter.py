@@ -32,13 +32,13 @@ class job_reporter:
         self.work = queue.Queue()
         self.wthreads = []
         self.nthreads = nthreads
-        # for bulk updates, do batches of 25 or every 10 seconds
-        self.batchsize = 50
+        # for bulk updates, do batches of 256 or every 10 seconds
+        self.batchsize = 1024
         self.timemax = 10
         if self.bulk:
             for i in range(nthreads):
                 self.wthreads.append(threading.Thread(target=self.runqueue_bulk,args=[i]))
-            self.wthreads[0].start()
+                self.wthreads[i].start()
         else:
             for i in range(nthreads):
                 self.wthreads.append(threading.Thread(target=self.runqueue))
@@ -81,10 +81,11 @@ class job_reporter:
             os._exit(1)
            
         if self.bulk:
-            if not(self.wthreads[0].is_alive()):
-                self.wthreads[0].join(0.1)
-                self.wthreads[0] = threading.Thread(target=self.runqueue_bulk)
-                self.wthreads[0].start()
+            for i in range(self.nthreads):
+                if not(self.wthreads[i].is_alive()):
+                    self.wthreads[i].join(0.1)
+                    self.wthreads[i] = threading.Thread(target=self.runqueue_bulk, args=[i])
+                    self.wthreads[i].start()
         else:
             for i in range(self.nthreads):
                 if not(self.wthreads[i].is_alive()):
@@ -96,13 +97,13 @@ class job_reporter:
         print("thread: %d -- bailing" % _thread.get_ident())
         raise KeyboardInterrupt("just quitting a thread")
 
-    def runqueue_bulk(self, i):
+    def runqueue_bulk(self, which):
         lastsent = time.time()
         bail = False
         while not bail:
-            if self.work.qsize() > self.batchsize * i or (i == 0 and time.time() - lastsent > self.timemax):
+            if self.work.qsize() > self.batchsize * which or (which == 0 and time.time() - lastsent > self.timemax):
 
-                if self.debug: sys.stderr.write("runqueue_bulk:  before:qsize is %d\n" % self.work.qsize()); sys.stderr.flush()
+                if self.debug: sys.stderr.write("runqueue_bulk: %d before:qsize is %d\n" % (which ,self.work.qsize())); sys.stderr.flush()
                 batch = []
                 for i in range(self.batchsize):
                     try:
@@ -129,9 +130,9 @@ class job_reporter:
                 self.bulk_update(batch)
                 lastsent = time.time()
 
-                if self.debug: sys.stderr.write("\nrunqueue_bulk: after: qsize is %d\n" % self.work.qsize())
+                if self.debug: sys.stderr.write("\nrunqueue_bulk: %d after: qsize is %d\n" % (which ,self.work.qsize()))
             else:
-                time.sleep(0.1 * i)
+                time.sleep(0.1 * which)
 
 
     def runqueue(self):
@@ -188,7 +189,7 @@ class job_reporter:
                 # so we bail after 3 seconds.  The request actually continues, 
                 # and probablly enters the data, but we go on..
                 #
-                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=5)
+                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=10)
                 res = uh.text
 
                 if self.debug: sys.stderr.write("response: %s\n" % res)

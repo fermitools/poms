@@ -136,11 +136,12 @@ class jobsub_q_scraper:
 
         p = Popen(self.jobsub_q_cmd, shell = True, stdout = PIPE, close_fds = True, universal_newlines=True)
         f = p.stdout
+
         for line in f:
 
             line = line.rstrip('\n')
                 
-            if self.debug: print("saw line: " , line)
+            # if self.debug: print("saw line: " , line)
 
             del jobenv
             jobenv=JobEnv()
@@ -209,10 +210,9 @@ class jobsub_q_scraper:
                         self.job_reporter.report_status(**args)
                     except KeyboardInterrupt:
                         raise
-                    except Exception:
-                        print("Reporting Exception!\n")
-                        traceback.print_exc()
-                        pass
+                    except Exception as e:
+                        print("Reporting Exception!\n",file=sys.stderr)
+                        traceback.print_exc(file=sys.stderr)
                 else:
                     if self.debug: 
                          print("unchanged, not reporting\n", file=sys.stderr)
@@ -224,6 +224,8 @@ class jobsub_q_scraper:
                 pass
 
         f.close()
+
+        res = p.wait()
 
         if res == 0 or res == None:
             for jobsub_job_id in list(self.jobmap.keys()):
@@ -243,10 +245,12 @@ class jobsub_q_scraper:
 
         self.call_wrapup_tasks()
 
-        res = p.wait()
 
     def poll(self):
         while(1):
+            print("top of poll", file=sys.stderr)
+            sys.stderr.flush()
+            
             self.passcount = self.passcount + 1
 
             # just restart periodically, so we don't eat memory, etc.
@@ -257,6 +261,8 @@ class jobsub_q_scraper:
 
             try:
                 self.scan()
+                print("out scan", file=sys.stderr)
+                sys.stderr.flush()
                          
             except KeyboardInterrupt:
                 raise
@@ -265,14 +271,16 @@ class jobsub_q_scraper:
                 print("Exception!\n", file=sys.stderr)
                 traceback.print_exc(file=sys.stderr)
                 # if we're out of memory, dump core...
-                if e.errno == 12:
-                    resource.setrlimit(resource.RLIMIT_CORE,resource.RLIM_INFINITY)
-                    os.abort()
+                #if e.errno == 12:
+                #    resource.setrlimit(resource.RLIMIT_CORE,resource.RLIM_INFINITY)
+                #    os.abort()
 
-            except:
+            except Exception as e:
                 print("Exception!", file=sys.stderr)
                 traceback.print_exc(file=sys.stderr)
-                pass
+
+            print("out of try", file=sys.stderr)
+            sys.stderr.flush()
 
             gc.collect()
 
