@@ -38,7 +38,7 @@ class job_reporter:
         if self.bulk:
             for i in range(nthreads):
                 self.wthreads.append(threading.Thread(target=self.runqueue_bulk,args=[i]))
-            self.wthreads[0].start()
+                self.wthreads[i].start()
         else:
             for i in range(nthreads):
                 self.wthreads.append(threading.Thread(target=self.runqueue))
@@ -103,7 +103,7 @@ class job_reporter:
         while not bail:
             if self.work.qsize() > self.batchsize * i or (i == 0 and time.time() - lastsent > self.timemax):
 
-                if self.debug: sys.stderr.write("runqueue_bulk:  before:qsize is %d\n" % self.work.qsize()); sys.stderr.flush()
+                if self.debug: sys.stderr.write("runqueue_bulk: %d before:qsize is %d\n" % (i,self.work.qsize())); sys.stderr.flush()
                 batch = []
                 for i in range(self.batchsize):
                     try:
@@ -130,7 +130,7 @@ class job_reporter:
                 self.bulk_update(batch)
                 lastsent = time.time()
 
-                if self.debug: sys.stderr.write("\nrunqueue_bulk: after: qsize is %d\n" % self.work.qsize())
+                if self.debug: sys.stderr.write("\nrunqueue_bulk: %d after: qsize is %d\n" % (i,self.work.qsize()))
             else:
                 time.sleep(0.1 * i)
 
