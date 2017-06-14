@@ -691,7 +691,7 @@ class poms_service(object):
             nextlink, prevlink, tdays) = self.jobsPOMS.jobs_eff_histo(cherrypy.request.db, campaign_id, tmax, tmin, tdays)
         template = self.jinja_env.get_template('jobs_eff_histo.html')
         return template.render(c=c, maxv=maxv, total=total,
-                               maxeff = max(vals.keys()+[10]),
+                               maxeff = max(list(vals.keys())+[10]),
                                vals=vals, tmaxs=tmaxs,
                                campaign_id=campaign_id,
                                tdays=tdays, tmin=tmin, tmax=tmax,
