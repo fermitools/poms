@@ -453,7 +453,7 @@ class JobsPOMS(object):
         q = dbhandle.query(func.count(Job.job_id), func.floor(Job.cpu_time * 10 / Job.wall_time))
         q = q.join(Job.task_obj)
         q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == campaign_id)
-        q = q.filter(Job.cpu_time > 0, Job.wall_time >= Job.cpu_time)
+        q = q.filter(Job.cpu_time > 0,  Job.wall_time > 0, Job.cpu_time < Job.wall_time * 10)
         q = q.filter(Task.created < tmax, Task.created >= tmin)
         q = q.group_by(func.floor(Job.cpu_time * 10 / Job.wall_time))
         q = q.order_by((func.floor(Job.cpu_time * 10 / Job.wall_time)))
@@ -461,7 +461,7 @@ class JobsPOMS(object):
         qz = dbhandle.query(func.count(Job.job_id))
         qz = qz.join(Job.task_obj)
         qz = qz.filter(Job.task_id == Task.task_id, Task.campaign_id == campaign_id)
-        qz = qz.filter(not_(and_(Job.cpu_time > 0, Job.wall_time >= Job.cpu_time)))
+        qz = qz.filter(not_(and_(Job.cpu_time > 0, Job.wall_time > 0, Job.cpu_time, Job.wall_time * 10)))
         nodata = qz.first()
 
         total = 0
@@ -491,6 +491,7 @@ class JobsPOMS(object):
                        Task.campaign_id.in_(id_list),
                        Job.cpu_time > 0,
                        Job.wall_time > 0,
+                       Job.cpu_time < Job.wall_time * 10,
                        Task.created >= tmin, Task.created < tmax).
                 group_by(Task.campaign_id).all())
 

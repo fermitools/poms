@@ -235,9 +235,9 @@ class TriagePOMS(object):
         eff_d = kwargs.get('eff_d')
         if eff_d:
             if eff_d == "-1":
-                q = q.filter(not_(and_(Job.cpu_time > 0.0, Job.wall_time >= Job.cpu_time)))
+                q = q.filter(not_(and_(Job.cpu_time > 0.0, Job.wall_time > 0 , JOb.cpu_time < Job.wall_time * 10))))
             else:
-                q = q.filter(Job.wall_time != 0.0, func.floor(Job.cpu_time * 10 / Job.wall_time) == eff_d)
+                q = q.filter(Job.wall_time > 0.0, Job.cpu_time > 0.0, Job.cpu_time < Job.wall_time * 10,  Job func.floor(Job.cpu_time * 10 / Job.wall_time) == eff_d)
             filtered_fields['eff_d'] = eff_d
 
         jobsub_job_id = kwargs.get('jobsub_job_id')
