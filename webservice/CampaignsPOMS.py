@@ -941,7 +941,7 @@ class CampaignsPOMS():
         for cid in cp:
             sc.append(cid)
 
-        stale =  dbhandle.query(Campaign).filter(Campaign.campaign_id.notin_(sc), Campaign.active == True).all()
+        stale =  dbhandle.query(Campaign).filter(Campaign.created > lastweek, Campaign.campaign_id.notin_(sc), Campaign.active == True).all()
         res=[]
         for c in stale:
             res.append(c.name)
