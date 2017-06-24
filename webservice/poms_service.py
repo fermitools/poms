@@ -414,8 +414,7 @@ class poms_service(object):
     @logit.logstartstop
     def show_campaigns(self, tmin=None, tmax=None, tdays=7, active=True, tag=None, **kwargs):
         experiment = cherrypy.session.get('experimenter').session_experiment
-        (counts, counts_keys, clist, dimlist,
-         tmin, tmax, tmins, tmaxs, tdays,
+        (clist, tmin, tmax, tmins, tmaxs, tdays,
          nextlink, prevlink, time_range_string
         ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db,
                                               cherrypy.request.samweb_lite, experiment=experiment,
@@ -434,11 +433,10 @@ class poms_service(object):
         template = self.jinja_env.get_template('show_campaigns.html')
 
         return template.render(In=("In" if active == "False" or not active else ""), limit_experiment=experiment,
-                               services=self.service_status_hier('All'), counts=counts, counts_keys=counts_keys,
                                cl=clist, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
                                current_experimenter=current_experimenter, do_refresh=300,
                                next=nextlink, prev=prevlink, tdays=tdays, time_range_string=time_range_string,
-                               key='', dimlist=dimlist, pomspath=self.path, help_page="ShowCampaignsHelp",
+                               key='',  pomspath=self.path, help_page="ShowCampaignsHelp",
                                experiments=experiments,
                                dbg=kwargs,
                                version=self.version,
@@ -657,6 +655,24 @@ class poms_service(object):
         res = self.triagePOMS.job_counts(cherrypy.request.db, task_id, campaign_id)
         return repr(res) + self.filesPOMS.format_job_counts(task_id, campaign_id)
 
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def json_job_counts(self, task_id=None, campaign_id=None, tmin=None, tmax=None, uuid = None):
+        return  self.triagePOMS.job_counts(cherrypy.request.db, task_id, campaign_id, tmin=None, tmax=None, tdays=None)
+
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def json_pending_for_campaigns(self, cl, tmin, tmax,uuid=None):
+        res = self.filesPOMS.get_pending_dict_for_campaigns(cherrypy.request.db, cherrypy.request.samweb_lite, cl, tmin, tmax)
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def json_efficiency_for_campaigns(self, cl, tmin, tmax, uuid=None):
+        res = self.jobsPOMS.get_efficiency(cherrypy.request.db, cl, tmin, tmax)
 
     @cherrypy.expose
     @logit.logstartstop
@@ -867,13 +883,17 @@ class poms_service(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def actual_pendng_files(self, count_or_list, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
+    def actual_pending_files(self, count_or_list, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
         # XXXX ??? Implementation of the exception.
         cherrypy.response.timeout = 600
-        try:
+        #try:
+        if 1:
             experiment, dims = self.filesPOMS.actual_pending_files(cherrypy.request.db, count_or_list, task_id, campaign_id, tmin, tmax, tdays)
             return self.show_dimension_files(experiment, dims)
-        except ValueError:
+            #return repr([experiment,dims])
+            #return self.show_dimension_files(experiment, dims)
+        #except ValueError:
+        else:
             return "None == dims in actual_pending_files method"
 
 

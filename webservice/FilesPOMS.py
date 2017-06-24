@@ -275,7 +275,7 @@ class Files_status(object):
          tmins, tmaxs,
          nextlink, prevlink,
          time_range_string, tdays
-         ) = self.poms_services.utilsPOMS.handle_dates(tmin, tmax, tdays,
+         ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
                                                        'actual_pending_files?count_or_list=%s&%s=%s&' %
                                                        (count_or_list, 'campaign_id', campaign_id) if campaign_id else (count_or_list, 'task_id', task_id))
 
@@ -468,22 +468,33 @@ class Files_status(object):
         return name, columns, outrows, dimlist, experiment, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
 
 
-    def get_pending_for_campaigns(self, dbhandle, samhandle, campaign_list, tmin, tmax):
+    def get_pending_dict_for_campaigns(self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
+        dl, cl =  self.get_pending_for_campaigns(dbhandle, samhandle, campaign_id_list, tmin, tmax)
+        res = {}
+        for i in range(len(campaign_id_list)):
+            res[campaign_id_list[i]] = cl[i]
+        return res
+
+    def get_pending_for_campaigns(self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
 
         task_list_list = []
 
         logit.log("in get_pending_for_campaigns, tmin %s tmax %s" % (tmin, tmax))
+        if isinstance(campaign_id_list, str):
+            campaign_id_list = [cid for cid in campaign_id_list.split(',') if cid]
 
-        for c in campaign_list:
+        for cid in campaign_id_list:
             tl = (dbhandle.query(Task).
                   options(joinedload(Task.campaign_snap_obj)).
                   options(joinedload(Task.campaign_definition_snap_obj)).
-                  filter(Task.campaign_id == c.campaign_id,
+                  filter(Task.campaign_id == cid,
                          Task.created >= tmin, Task.created < tmax).
                   all())
             task_list_list.append(tl)
 
-        return self.poms_service.filesPOMS.get_pending_for_task_lists(dbhandle, samhandle, task_list_list)
+        dl, cl = self.poms_service.filesPOMS.get_pending_for_task_lists(dbhandle, samhandle, task_list_list)
+
+        return dl, cl
 
 
     def get_pending_for_task_lists(self, dbhandle, samhandle, task_list_list):

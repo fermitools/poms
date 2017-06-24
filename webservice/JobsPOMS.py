@@ -481,10 +481,10 @@ class JobsPOMS(object):
         return c, maxv, total, vals, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
 
 
-    def get_efficiency(self, dbhandle, campaign_list, tmin, tmax):  #This method was deleted from the main script
-        id_list = []
-        for c in campaign_list:
-            id_list.append(c.campaign_id)
+    def get_efficiency(self, dbhandle, id_list, tmin, tmax):  #This method was deleted from the main script
+
+        if isinstance( id_list, str):
+            id_list = [cid for cid in id_list.split(',') if cid]
 
         rows = (dbhandle.query(func.sum(Job.cpu_time), func.sum(Job.wall_time), Task.campaign_id).
                 filter(Job.task_id == Task.task_id,
@@ -509,8 +509,8 @@ class JobsPOMS(object):
         logit.log("got map: %s" % repr(mapem))
 
         efflist = []
-        for c in campaign_list:
-            efflist.append(mapem.get(c.campaign_id, -2))
+        for cid in id_list:
+            efflist.append(mapem.get(cid, -2))
 
         logit.log("got list: %s" % repr(efflist))
         return efflist

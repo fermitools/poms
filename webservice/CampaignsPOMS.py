@@ -521,23 +521,7 @@ class CampaignsPOMS():
         counts = {}
         counts_keys = {}
 
-        logit.log(logit.DEBUG, "show_campaigns: getting pending")
-        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cl, tmin, tmax)
-        logit.log(logit.DEBUG, "show_campaigns: getting efficiency")
-        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cl, tmin, tmax)
-
-        i = 0
-        for c in cl:
-            logit.log(logit.DEBUG, "show_campaigns: getting counts for campaign %s" % c.name)
-            counts[c.campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle, tmax=tmax, tmin=tmin, tdays=tdays, campaign_id=c.campaign_id)
-            counts[c.campaign_id]['efficiency'] = effs[i]
-            if len(pendings) > i:
-                counts[c.campaign_id]['pending'] = pendings[i]
-            counts_keys[c.campaign_id] = list(counts[c.campaign_id].keys())
-            i = i + 1
-
-        logit.log(logit.DEBUG, "show_campaigns: wrapping up..")
-        return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
+        return cl, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
 
 
     # @pomscache.cache_on_arguments()
@@ -565,8 +549,9 @@ class CampaignsPOMS():
         cl = [Campaign_info[0]]
         counts = {}
         counts_keys = {}
-        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cl, tmin, tmax)
-        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cl,tmin, tmax)
+        cil = [c.campaign_id for c in cl]
+        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cil, tmin, tmax)
+        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cil,tmin, tmax)
         counts[campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
         counts[campaign_id]['efficiency'] = effs[0]
         if pendings:
