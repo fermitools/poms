@@ -667,12 +667,14 @@ class poms_service(object):
     @logit.logstartstop
     def json_pending_for_campaigns(self, cl, tmin, tmax,uuid=None):
         res = self.filesPOMS.get_pending_dict_for_campaigns(cherrypy.request.db, cherrypy.request.samweb_lite, cl, tmin, tmax)
+        return res
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def json_efficiency_for_campaigns(self, cl, tmin, tmax, uuid=None):
-        res = self.jobsPOMS.get_efficiency(cherrypy.request.db, cl, tmin, tmax)
+        res = self.jobsPOMS.get_efficiency_map(cherrypy.request.db, cl, tmin, tmax)
+        return res
 
     @cherrypy.expose
     @logit.logstartstop

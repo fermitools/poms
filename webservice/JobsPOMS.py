@@ -481,7 +481,7 @@ class JobsPOMS(object):
         return c, maxv, total, vals, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
 
 
-    def get_efficiency(self, dbhandle, id_list, tmin, tmax):  #This method was deleted from the main script
+    def get_efficiency_map(self, dbhandle, id_list, tmin, tmax):  #This method was deleted from the main script
 
         if isinstance( id_list, str):
             id_list = [cid for cid in id_list.split(',') if cid]
@@ -505,9 +505,15 @@ class JobsPOMS(object):
                 mapem[campaign_id] = int(totcpu * 100.0 / totwall)
             else:
                 mapem[campaign_id] = -1
-
         logit.log("got map: %s" % repr(mapem))
+        return mapem
 
+    def get_efficiency(self, dbhandle, id_list, tmin, tmax):  #This method was deleted from the main script
+
+        if isinstance( id_list, str):
+            id_list = [int(cid) for cid in id_list.split(',') if cid]
+
+        mapem = self.get_efficiency_map(dbhandle, id_list, tmin, tmax)
         efflist = []
         for cid in id_list:
             efflist.append(mapem.get(cid, -2))

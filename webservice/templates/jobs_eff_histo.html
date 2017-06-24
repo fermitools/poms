@@ -33,7 +33,7 @@ POMS:Job efficiency in Campaign Stage {{campaign_id}}
            <div "postion: absolute; top: 0; left: 0; width:4em; text-align: right;">Eff.</div>
            <div style="position: absolute; top:0; left: 4em;">Count</div>
        </div>
-     {% for row in range(-1,maxeff) %}
+     {% for row in range(-1,int(maxeff)) %}
         <div class="row" style="width: 100%; height: 2em; position: relative;">
            {% if row == -1 %}
            <div "postion: absolute; top: 0; left: 0; width:4em; text-align: right;">Unk.</div>

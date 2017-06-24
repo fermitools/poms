@@ -469,10 +469,13 @@ class Files_status(object):
 
 
     def get_pending_dict_for_campaigns(self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
+        if isinstance(campaign_id_list, str):
+            campaign_id_list = [cid for cid in campaign_id_list.split(',') if cid]
         dl, cl =  self.get_pending_for_campaigns(dbhandle, samhandle, campaign_id_list, tmin, tmax)
         res = {}
         for i in range(len(campaign_id_list)):
             res[campaign_id_list[i]] = cl[i]
+            logit.log("returning: " + repr(res))
         return res
 
     def get_pending_for_campaigns(self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
