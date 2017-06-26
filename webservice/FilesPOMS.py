@@ -14,6 +14,7 @@ from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy import (desc, distinct)
 from .utc import utc
 from datetime import datetime,timedelta
+from .pomscache import pomscache, pomscache_10
 
 
 class Files_status(object):
@@ -468,6 +469,7 @@ class Files_status(object):
         return name, columns, outrows, dimlist, experiment, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
 
 
+    @pomscache.cache_on_arguments()
     def get_pending_dict_for_campaigns(self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
         if isinstance(campaign_id_list, str):
             campaign_id_list = [cid for cid in campaign_id_list.split(',') if cid]

@@ -17,6 +17,7 @@ import json
 import os
 
 from . import logit
+from .pomscache import pomscache, pomscache_10
 
 
 class JobsPOMS(object):
@@ -481,6 +482,7 @@ class JobsPOMS(object):
         return c, maxv, total, vals, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
 
 
+    @pomscache.cache_on_arguments()
     def get_efficiency_map(self, dbhandle, id_list, tmin, tmax):  #This method was deleted from the main script
 
         if isinstance( id_list, str):

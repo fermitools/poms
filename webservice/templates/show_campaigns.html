@@ -16,11 +16,11 @@ POMS:{{In}}Active Campaign Stages
 
    <table class="ui celled table unstackable">
      <tr>
-       <th colspan = 6></th>
+       <th colspan = 5></th>
        <th colspan = 4>Jobs in  {{time_range_string}}</th>
      </tr>
      <tr>
-       <th colspan=2 align="center"> Campaign Stage
+       <th colspan=1 align="center"> Campaign Stage
         <a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Campaign"><i style="float: none" class="grey help circle link icon"></i></a>
       </th>
       <th>Total</th>
@@ -88,7 +88,7 @@ POMS:{{In}}Active Campaign Stages
                 </td>
               {% elif k %}
                 <td>
-                  <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{c.campaign_id}}_{{k}}">
+                  <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{c.campaign_id}}_{{k|replace(" ","_")}}">
                      ...
                   </a>
                  </td>
@@ -120,23 +120,29 @@ $( ".tmax" ).html( tmax_local_time );
 
 <script>
 $(function() {
+
+var now = new Date()
+var nows = now.getTime()
+nows = nows - (nows % 300000)
+nows = nows.toString()
+
 {% for c in cl %}
-$.getJSON("/poms/json_job_counts?tmin={{tmins}}&tmax={{tmaxs}}&campaign_id={{c.campaign_id}}",function(data){
+$.getJSON("/poms/json_job_counts?tmin={{tmins}}&tmax={{tmaxs}}&campaign_id={{c.campaign_id}}&uuid="+nows,function(data){
     for( var k in data ) {
-       id = "data_{{c.campaign_id}}_" + k
+       id = "data_{{c.campaign_id}}_" + k.replace(" ","_")
        console.log("trying to update a with id " + id )
        $("a#"+id).html(data[k])
     }
 })
 {% endfor %}
-$.getJSON("/poms/json_efficiency_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={%for c in cl%}{{c.campaign_id}},{%endfor%}", function(data){
+$.getJSON("/poms/json_efficiency_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={%for c in cl%}{{c.campaign_id}},{%endfor%}&uuid="+nows, function(data){
     for( var k in data ) {
        id = "data_"+k+"_efficiency"
        console.log("trying to update a with id " + id )
        $("a#"+id).html(data[k])
     }
 })
-$.getJSON("/poms/json_pending_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={%for c in cl%}{{c.campaign_id}},{%endfor%}", function(data){
+$.getJSON("/poms/json_pending_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={%for c in cl%}{{c.campaign_id}},{%endfor%}&uuid="+nows, function(data){
     for( var k in data ) {
        id = "data_"+k+"_pending"
        console.log("trying to update a with id " + id )
