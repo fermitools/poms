@@ -108,8 +108,9 @@ class TaskPOMS:
         res = ["wrapping up:"]
 
         #
-        # make jobs which completed with no output files have status "Located".
-        t = text("update jobs set status = 'Located' where status = 'Completed' and (select count(file_name) from job_files where job_files.job_id = jobs.job_id and job_files.file_type = 'output') = 0")
+        # make jobs which completed with no *undeclared* output files have status "Located".
+        # 
+        t = text("update jobs set status = 'Located' where status = 'Completed' and (select count(file_name) from job_files where job_files.job_id = jobs.job_id and job_files.file_type = 'output' and job_files.declared is null) = 0")
         dbhandle.execute(t)
 
         #
