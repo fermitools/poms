@@ -36,6 +36,8 @@ class declared_files_watcher:
         
     def report_declared_files(self,flist):
         print("entering: report_declared_files:", flist)
+        if len(flist) == 0:
+            return
         url = self.job_reporter.report_url + "/report_declared_files"
         try:
             conn = self.rs.post(url,data = [ ("flist",x) for x in flist])
