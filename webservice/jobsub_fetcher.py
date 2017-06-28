@@ -54,6 +54,7 @@ class jobsub_fetcher():
             if len(fields):
                 fname = fields[0]
                 fields[0] = ""
+                fields[2] = fields[1] 
                 fields.append(fname)
                 log("got fields: " + repr(fields))
                 res.append(fields)
