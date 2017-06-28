@@ -424,7 +424,10 @@ class poms_service(object):
         #~ logit.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
         if 'exp_selected' in kwargs:
             current_experimenter.extra = {'selected': kwargs['exp_selected']}
+            cherrypy.sesssion.acquire_lock()
             cherrypy.session['experimenter'] = current_experimenter
+            cherrypy.session.save()
+            cherrypy.sesssion.release_lock()
             #~ logit.log("current_experimenter.extra update... ")                               # DEBUG
         #~ logit.log("current_experimenter.extra after: "+str(current_experimenter.extra))      # DEBUG
 
