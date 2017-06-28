@@ -33,27 +33,29 @@ class jobsub_fetcher():
         if role == "Production":
             user = "%spro" % group
         else:
-            user = os.environ["USER"]     # XXX
+            user = 'mengel'     # XXX
 
         fifebatch = jobsubjobid[jobsubjobid.find("@")+1:]
 
         url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/" % ( fifebatch, group, user, jobsubjobid) 
 
-        print( "trying url:", url)
+        log( "trying url:" +  url)
 
         r = self.sess.get(url, cert=(self.cert,self.key),  verify=False, headers={"Accept":"text/html"})
-        print ("headers:", r.request.headers)
-        print ("headers:", r.headers)
+        log ("headers:" + repr( r.request.headers))
+        log ("headers:" + repr( r.headers))
         sys.stdout.flush()
         res = []
         for line in r.text.split('\n'):
-            print("got line: " , line)
+            log("got line: " +  line)
             # strip tags...
             line = re.sub('<[^>]*>','', line)
             fields = line.strip().split()
             if len(fields):
-                fname = fields.pop(0)
+                fname = fields[0]
+                fields[0] = ""
                 fields.append(fname)
+                log("got fields: " + repr(fields))
                 res.append(fields)
         r.close()
 
@@ -70,22 +72,22 @@ class jobsub_fetcher():
         if role == "Production":
             user = "%spro" % group
         else:
-            user = os.environ["USER"]    # XXX
+            user = 'mengel'    # XXX
 
         fifebatch = jobsubjobid[jobsubjobid.find("@")+1:]
 
         url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/%s/" % (fifebatch, group, user, jobsubjobid, filename) 
-        print( "trying url:", url)
+        log( "trying url:", url)
 
         r = self.sess.get(url, cert=(self.cert,self.key), stream=True, verify=False, headers={"Accept":"text/plain"})
 
-        print ("headers:", r.request.headers)
-        print ("headers:", r.headers)
+        log ("headers:" + repr( r.request.headers))
+        log ("headers:" + repr( r.headers))
 
         sys.stdout.flush()
         res = []
         for line in r.text.split('\n'):
-            print("got line: " , line)
+            log("got line: " + line)
             res.append(line.rstrip('\n'))
         r.close()
         return res
