@@ -82,7 +82,7 @@ POMS:{{In}}Active Campaign Stages
                 </td>
               {% elif k == "pending" %}
                 <td>
-                  <a href="{{pomspath}}/actual_pending_files?count_or_list=list&campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{c.campaign_id}}_{{k}}">
+                  <a href="{{pomspath}}/actual_pending_files?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{c.campaign_id}}_{{k}}">
                      ...
                   </a>
                 </td>
