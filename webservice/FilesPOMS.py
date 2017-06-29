@@ -284,6 +284,7 @@ class Files_status(object):
               options(joinedload(Task.campaign_obj)).
               options(joinedload(Task.jobs).joinedload(Job.job_files)).
               filter(Task.campaign_id == campaign_id,
+              Task.status != 'Located',       # mengel -- Located ones can't have pending files(?) kind of a lie... could be timeout-located...
               Task.created >= tmin, Task.created < tmax).
               all())
 
@@ -512,6 +513,8 @@ class Files_status(object):
         for tl in task_list_list:
             diml = ["("]
             for task in tl:
+                if task.status == 'Located':
+                   continue  # mengel -- located tasks don't have pending, right?
                 if task.project == None or (now - task.created) > twodays:
                      # no project/ old projects have no counts, so short-circuit
                      diml.append( "(file_name _)")
