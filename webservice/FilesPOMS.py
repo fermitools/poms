@@ -271,14 +271,14 @@ class Files_status(object):
         return flist
 
 
-    def actual_pending_files(self, dbhandle, count_or_list, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
+    def actual_pending_file_dims(self, dbhandle,samhandle, campaign_id=None, tmin=None, tmax=None, tdays=1):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
          time_range_string, tdays
          ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
-                                                       'actual_pending_files?count_or_list=%s&%s=%s&' %
-                                                       (count_or_list, 'campaign_id', campaign_id) if campaign_id else (count_or_list, 'task_id', task_id))
+                                                       'actual_pending_files?%s=%s&' %
+                                                       ('campaign_id', campaign_id))
 
         tl = (dbhandle.query(Task).
               options(joinedload(Task.campaign_obj)).
@@ -288,34 +288,8 @@ class Files_status(object):
               Task.created >= tmin, Task.created < tmax).
               all())
 
-        c = None
-        plist = []
-        for t in tl:
-            if not c:
-                c = t.campaign_obj
-            plist.append(t.project if t.project else 'None')
-
-        if c:
-            dims = "snapshot_for_project_name %s minus (" % ','.join(plist)
-            sep = ""
-            for pat in str(c.campaign_definition_obj.output_file_patterns).split(','):
-                if pat == "None":
-                    pat = "%"
-                dims = "%s %s isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (dims, sep, pat, t.campaign_obj.software_version)
-                sep = "and"
-                logit.log("dims now: %s" % dims)
-            dims = dims + ")"
-        else:
-            c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-            dims = None
-
-        if dims is None or 'None' == dims:
-            raise ValueError("None == dims in actual_pending_files method")
-        else:
-
-            logit.log("actual pending files: got dims %s" % dims)
-            return c.experiment, dims
-
+        explist, dimlist = self.get_pending_dims_for_task_lists(dbhandle, samhandle, [tl])
+        return explist, dimlist
 
     def campaign_sheet(self, dbhandle, samhandle, campaign_id, tmin=None, tmax=None, tdays=7):   # maybe at the future for a  ReportsPOMS module
 
@@ -503,7 +477,7 @@ class Files_status(object):
         return dl, cl
 
 
-    def get_pending_for_task_lists(self, dbhandle, samhandle, task_list_list):
+    def get_pending_dims_for_task_lists(self, dbhandle, samhandle, task_list_list):
         now = datetime.now(utc)
         twodays = timedelta(days=2)
         dimlist = []
@@ -546,8 +520,13 @@ class Files_status(object):
                 explist.append("samdev")
 
         logit.log("get_pending_for_task_lists: dimlist (%d): %s" % (len(dimlist), dimlist))
+        return explist,dimlist
+
+    def get_pending_for_task_lists(self, dbhandle, samhandle, task_list_list):
+        explist,dimlist = self.get_pending_dims_for_task_lists(dbhandle, samhandle, task_list_list)
         count_list = samhandle.count_files_list(explist, dimlist)
         logit.log("get_pending_for_task_lists: count_list (%d): %s" % (len(dimlist), count_list))
+            
         return dimlist, count_list
 
 

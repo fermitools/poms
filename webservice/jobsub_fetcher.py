@@ -7,6 +7,7 @@ import threading
 from poms.webservice.logit import log, logstartstop
 import requests
 import re
+import traceback
 
 class jobsub_fetcher():
 
@@ -41,24 +42,28 @@ class jobsub_fetcher():
 
         log( "trying url:" +  url)
 
-        r = self.sess.get(url, cert=(self.cert,self.key),  verify=False, headers={"Accept":"text/html"})
-        log ("headers:" + repr( r.request.headers))
-        log ("headers:" + repr( r.headers))
-        sys.stdout.flush()
-        res = []
-        for line in r.text.split('\n'):
-            log("got line: " +  line)
-            # strip tags...
-            line = re.sub('<[^>]*>','', line)
-            fields = line.strip().split()
-            if len(fields):
-                fname = fields[0]
-                fields[0] = ""
-                fields[2] = fields[1] 
-                fields.append(fname)
-                log("got fields: " + repr(fields))
-                res.append(fields)
-        r.close()
+        try:
+            r = self.sess.get(url, cert=(self.cert,self.key),  verify=False, headers={"Accept":"text/html"})
+            log ("headers:" + repr( r.request.headers))
+            log ("headers:" + repr( r.headers))
+            sys.stdout.flush()
+            res = []
+            for line in r.text.split('\n'):
+                log("got line: " +  line)
+                # strip tags...
+                line = re.sub('<[^>]*>','', line)
+                fields = line.strip().split()
+                if len(fields):
+                    fname = fields[0]
+                    fields[0] = ""
+                    fields[2] = fields[1] 
+                    fields.append(fname)
+                    log("got fields: " + repr(fields))
+                    res.append(fields)
+        except:
+            log(traceback.format_exc())
+        finally:
+            if r: r.close()
 
         return res
 
@@ -80,17 +85,22 @@ class jobsub_fetcher():
         url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/%s/" % (fifebatch, group, user, jobsubjobid, filename) 
         log( "trying url:", url)
 
-        r = self.sess.get(url, cert=(self.cert,self.key), stream=True, verify=False, headers={"Accept":"text/plain"})
+        try:
+            r = self.sess.get(url, cert=(self.cert,self.key), stream=True, verify=False, headers={"Accept":"text/plain"})
 
-        log ("headers:" + repr( r.request.headers))
-        log ("headers:" + repr( r.headers))
+            log ("headers:" + repr( r.request.headers))
+            log ("headers:" + repr( r.headers))
 
-        sys.stdout.flush()
-        res = []
-        for line in r.text.split('\n'):
-            log("got line: " + line)
-            res.append(line.rstrip('\n'))
-        r.close()
+            sys.stdout.flush()
+            res = []
+            for line in r.text.split('\n'):
+                log("got line: " + line)
+                res.append(line.rstrip('\n'))
+        except:
+            log(traceback.format_exc())
+        finally:
+            if r: r.close()
+
         return res
 
 if __name__ == "__main__":

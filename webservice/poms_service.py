@@ -888,19 +888,9 @@ class poms_service(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def actual_pending_files(self, count_or_list, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
-        # XXXX ??? Implementation of the exception.
-        cherrypy.response.timeout = 600
-        #try:
-        if 1:
-            experiment, dims = self.filesPOMS.actual_pending_files(cherrypy.request.db, count_or_list, task_id, campaign_id, tmin, tmax, tdays)
-            return self.show_dimension_files(experiment, dims)
-            #return repr([experiment,dims])
-            #return self.show_dimension_files(experiment, dims)
-        #except ValueError:
-        else:
-            return "None == dims in actual_pending_files method"
-
+    def actual_pending_files(self, count_or_list = None, campaign_id=None, tmin=None, tmax=None, tdays=1):
+        exps, dims = self.filesPOMS.actual_pending_file_dims( cherrypy.request.db,cherrypy.request.samweb_lite, campaign_id = campaign_id,  tmin=tmin, tmax=tmax, tdays=tdays)
+        return self.show_dimension_files(exps[0], dims[0])
 
     @cherrypy.expose
     @logit.logstartstop
