@@ -284,8 +284,7 @@ class Files_status(object):
               options(joinedload(Task.campaign_obj)).
               options(joinedload(Task.jobs).joinedload(Job.job_files)).
               filter(Task.campaign_id == campaign_id,
-              Task.status != 'Located',       # mengel -- Located ones can't have pending files(?) kind of a lie... could be timeout-located...
-              Task.created >= tmin, Task.created < tmax).
+                  Task.created >= tmin, Task.created < tmax).
               all())
 
         explist, dimlist = self.get_pending_dims_for_task_lists(dbhandle, samhandle, [tl])
@@ -478,6 +477,7 @@ class Files_status(object):
 
 
     def get_pending_dims_for_task_lists(self, dbhandle, samhandle, task_list_list):
+        reason = 'no_project_info'
         now = datetime.now(utc)
         twodays = timedelta(days=2)
         dimlist = []
@@ -489,8 +489,13 @@ class Files_status(object):
             for task in tl:
 
                 if task.project == None or task.status == 'Located':
+                     if task.status == 'Located':
+                        reason = 'all_located'
+                        fakename = 'located'
+                     else:
+                        fakename = 'no_proj'
                      # no project/ old projects have no counts, so short-circuit
-                     diml.append( "(file_name _)")
+                     diml.append( "(file_name __%s__ )" % fakename)
                      diml.append( "union")
                      continue
 
@@ -508,10 +513,11 @@ class Files_status(object):
                 diml.append(")")
                 diml.append(")")
                 diml.append("union")
+
             diml[-1] = ")"
 
             if len(diml) <= 1:
-                diml[0] = "project_name no_project_info"
+                diml[0] = "project_name %s" % reason
 
             dimlist.append(" ".join(diml))
 
