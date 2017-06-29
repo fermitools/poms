@@ -487,12 +487,13 @@ class Files_status(object):
         for tl in task_list_list:
             diml = ["("]
             for task in tl:
-                if task.status == 'Located':
-                   continue  # mengel -- located tasks don't have pending, right?
-                if task.project == None or (now - task.created) > twodays:
+
+                if task.project == None or task.status == 'Located':
                      # no project/ old projects have no counts, so short-circuit
                      diml.append( "(file_name _)")
+                     diml.append( "union")
                      continue
+
                 diml.append("(snapshot_for_project_name %s" % task.project)
                 diml.append("minus ( snapshot_for_project_name %s and (" % task.project)
                 sep = ""
