@@ -288,6 +288,8 @@ class TaskPOMS:
         for task in need_joblogs:
             condor_log_parser.get_joblogs(dbhandle,
                                           self.task_min_job(dbhandle, task.task_id),
+                                          getconfig('elasticsearch_cert'),
+                                          getconfig('elasticsearch_key'),
                                           task.campaign_snap_obj.experiment,
                                           task.campaign_snap_obj.vo_role)
         logit.log("Starting finish_up_tasks loops, len %d" % len(finish_up_tasks))
