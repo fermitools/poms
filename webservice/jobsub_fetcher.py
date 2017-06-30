@@ -83,7 +83,8 @@ class jobsub_fetcher():
         fifebatch = jobsubjobid[jobsubjobid.find("@")+1:]
 
         url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/%s/" % (fifebatch, group, user, jobsubjobid, filename) 
-        log( "trying url:", url)
+
+        log( "trying url:" + url)
 
         try:
             r = self.sess.get(url, cert=(self.cert,self.key), stream=True, verify=False, headers={"Accept":"text/plain"})
