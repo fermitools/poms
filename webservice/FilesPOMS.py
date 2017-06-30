@@ -388,7 +388,7 @@ class Files_status(object):
 
             for job in list(task.jobs):
 
-                if job.cpu_time > 0 and job.wall_time > 0 and job.wall_time < job.cpu_time * 10:
+                if job.cpu_time and job.wall_time and job.cpu_time > 0 and job.wall_time > 0 and job.wall_time < job.cpu_time * 10:
                     totcpu += job.cpu_time
                     totwall += job.wall_time
 
