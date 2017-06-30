@@ -1,24 +1,26 @@
-import cherrypy
 import os
-import socket
-from jinja2 import Environment, PackageLoader
-from .poms_model import Service, Task, Campaign
-
-from .elasticsearch import Elasticsearch
 import pprint
-from . import version
-from . import logit
+import socket
+
+import cherrypy
+from jinja2 import Environment, PackageLoader
 
 from . import CalendarPOMS
-from . import DBadminPOMS
 from . import CampaignsPOMS
-from . import JobsPOMS
-from . import TaskPOMS
-from . import UtilsPOMS
-from . import TagsPOMS
-from . import TriagePOMS
+from . import DBadminPOMS
 from . import FilesPOMS
+from . import JobsPOMS
 from . import TablesPOMS
+from . import TagsPOMS
+from . import TaskPOMS
+from . import TriagePOMS
+from . import UtilsPOMS
+from . import logit
+from . import version
+from .elasticsearch import Elasticsearch
+from .poms_model import Service, Task, Campaign
+
+
 #import gcwrap
 
 
@@ -39,7 +41,7 @@ def error_response():
 
 
 
-class poms_service(object):
+class PomsService(object):
 
 
     _cp_config = {'request.error_response': error_response,
@@ -67,7 +69,7 @@ class poms_service(object):
         self.triagePOMS = TriagePOMS.TriagePOMS(self)
         self.tablesPOMS = None
 
-    def post_initalize(self):
+    def post_initialize(self):
         # Anything that needs to log data must be called here -- after loggers are configured.
         self.tablesPOMS = TablesPOMS.TablesPOMS(self)
 
@@ -535,7 +537,8 @@ class poms_service(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def update_launch_schedule(self, campaign_id, dowlist=None, domlist=None, monthly=None, month=None, hourlist=None, submit=None, minlist=None, delete=None):
+    def update_launch_schedule(self, campaign_id, dowlist=None, domlist=None,
+                               monthly=None, month=None, hourlist=None, submit=None, minlist=None, delete=None):
         self.campaignsPOMS.update_launch_schedule(campaign_id, dowlist, domlist, monthly, month, hourlist, submit, minlist, delete)
         raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id)
 
