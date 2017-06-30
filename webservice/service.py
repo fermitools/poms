@@ -187,7 +187,7 @@ class SessionTool(cherrypy.Tool):
         cherrypy.Tool.__init__(self, 'before_request_body',
                                self.establish_session,
                                priority=90)
-     
+
 
     # Here is how to add aditional hooks. Left as example
     def _setup(self):
@@ -240,7 +240,7 @@ class SessionTool(cherrypy.Tool):
                             .filter(Experimenter.username == username)
                             .first()
                             )
-               
+
         if not experimenter:
             raise cherrypy.HTTPError(401, 'POMS account does not exist.  To be added you must registered in VOMS.')
 
@@ -329,9 +329,9 @@ if True:
     # add dowser in to monitor memory...
     dapp = cherrypy.tree.mount(dowser.Root(), '/dowser')
 
-    pomsInstance = poms_service.poms_service()
-    app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, StringIO(confs))
-    #app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, configfile)
+    poms_instance = poms_service.PomsService()
+    app = cherrypy.tree.mount(poms_instance, poms_instance.path, StringIO(confs))
+    # app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, configfile)
 
 
     SAEnginePlugin(cherrypy.engine, app).subscribe()
@@ -344,10 +344,10 @@ if True:
     section = app.config['POMS']
     log_level = section["log_level"]
     logit.setlevel(log_level)
-    logit.log("POMSPATH: %s" % pomsInstance.path)
+    logit.log("POMSPATH: %s" % poms_instance.path)
     pidfile()
 
-    pomsInstance.post_initalize()
+    poms_instance.post_initialize()
 
     if args.use_wsgi:
         cherrypy.server.unsubscribe()
