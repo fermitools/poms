@@ -146,7 +146,11 @@ $.getJSON("/poms/json_pending_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={%f
     for( var k in data ) {
        id = "data_"+k+"_pending"
        console.log("trying to update a with id " + id )
-       $("a#"+id).html(data[k])
+       if (data[k] == -1) {
+           $("a#"+id).html('N/A')
+       } else {
+           $("a#"+id).html(data[k])
+       }
     }
 })
 });
