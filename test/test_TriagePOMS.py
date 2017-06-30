@@ -21,7 +21,9 @@ from mock_job import mock_job
 
 mps = mock_poms_service()
 
-fetcher = jobsub_fetcher()
+config = utils.get_config()
+
+fetcher = jobsub_fetcher(config.get('global','elasticsearch_cert'), config.get('global','elasticsearch_key'))
 
 mj = mock_job()
 

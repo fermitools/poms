@@ -8,12 +8,12 @@ from datetime import datetime, timedelta
 from .poms_model import Job
 import time
 
-def get_joblogs(dbhandle, jobsub_job_id, experiment, role):
+def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
     print("entering joblogs, why doesn't this log?")
     log("INFO", "entering get_joblogs" )
     if jobsub_job_id == None:
         return
-    jf = jobsub_fetcher.jobsub_fetcher()
+    jf = jobsub_fetcher.jobsub_fetcher(cert, key)
     log("DEBUG", "checking index" )
     files = jf.index( jobsub_job_id, experiment, role, True)
     task = dbhandle.query(Job.task_id).filter(Job.jobsub_job_id == jobsub_job_id).first()
