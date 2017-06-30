@@ -9,13 +9,12 @@ Date: April 28th, 2017. (changes for the POMS_client)
 
 from . import logit
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from sqlalchemy import func, desc, not_, and_
+from sqlalchemy import func, desc, not_, and_, or_
 from .poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
     LaunchTemplate, CampaignDefinition, CampaignRecovery,
     CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
 )
 from sqlalchemy.orm  import subqueryload, joinedload, contains_eager
-from sqlalchemy import or_, and_ , not_
 from crontab import CronTab
 from datetime import datetime, tzinfo,timedelta
 import time
@@ -43,10 +42,12 @@ class CampaignsPOMS():
         action = kwargs.pop('action',None)
         exp = kwargs.pop('experiment',None)
         exp = seshandle('experimenter').session_experiment
-        pcl_call = kwargs.pop('pcl_call', 0)
+        pcl_call = int(kwargs.pop('pcl_call', 0))
         pc_username = kwargs.pop('pc_username',None)
+
         if action == 'delete':
-            name = kwargs.pop('name')
+            ae_launch_name = kwargs.pop('ae_launch_name')
+            name = ae_launch_name
             try:
                 dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).delete()
                 dbhandle.commit()
@@ -58,18 +59,22 @@ class CampaignsPOMS():
 
         if action == 'add' or action == 'edit':
             if pcl_call == 1:
-                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
-                ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_id
                 ae_launch_name = kwargs.pop('ae_launch_name')
-                ae_launch_host = kwargs.pop('ae_launch_host')
-                ae_launch_account = kwargs.pop('ae_launch_account')
-                ae_launch_setup = kwargs.pop('ae_launch_setup')
+                name = ae_launch_name
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
+                if action == 'edit':
+                    ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).first().launch_id
+                else:
+                    print("I'm action =! add therefore there is no ae_launch_id save")
+                ae_launch_host = kwargs.pop('ae_launch_host', None)
+                ae_launch_account = kwargs.pop('ae_launch_account', None)
+                ae_launch_setup = kwargs.pop('ae_launch_setup', None)
                 if ae_launch_host in [None,""]:
-                    ae_launch_host=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_host
+                    ae_launch_host=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).first().launch_host
                 if ae_launch_account in [None,""]:
-                    ae_launch_account=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_account
+                    ae_launch_account=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).first().launch_account
                 if ae_launch_setup in [None,""]:
-                    ae_launch_account=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).fist().launch_setup
+                    ae_launch_account=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==name).first().launch_setup
             else:
                 ae_launch_name = kwargs.pop('ae_launch_name')
                 ae_launch_id = kwargs.pop('ae_launch_id')
@@ -120,13 +125,13 @@ class CampaignsPOMS():
         action = kwargs.pop('action',None)
         exp = seshandle('experimenter').session_experiment
         #added for poms_client
-        pcl_call = kwargs.pop('pcl_call', 0) #pcl_call == 1 means the method was access through the poms_client.
-        pc_email = kwargs.pop('pc_email',None) #email is the info we know about the user in POMS DB.
+        pcl_call = int(kwargs.pop('pcl_call', 0)) #pcl_call == 1 means the method was access through the poms_client.
+        pc_username = kwargs.pop('pc_username',None) #email is the info we know about the user in POMS DB.
 
         if action == 'delete':
-            name = kwargs.pop('name')
+            name = kwargs.pop('ae_definition_name')
             if pcl_call == 1: #Enter here if the access was from the poms_client
-                cid=campaign_definition_id=dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==name).firts().campaign_definition_id
+                cid=campaign_definition_id=dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==name).first().campaign_definition_id
             else:
                 cid = kwargs.pop('campaign_definition_id')
             try:
@@ -142,14 +147,17 @@ class CampaignsPOMS():
         if action == 'add' or action == 'edit':
             if pcl_call == 1: #Enter here if the access was from the poms_client
                 name = kwargs.pop('ae_definition_name')
-                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
-                campaign_definition_id=dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==name).firts().campaign_definition_id
-                input_files_per_job = kwargs.pop('ae_input_files_per_job')
-                output_files_per_job = kwargs.pop('ae_output_files_per_job')
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
+                if action == 'edit':
+                    campaign_definition_id=dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==name).first().campaign_definition_id #Check here!
+                else:
+                    pass
+                input_files_per_job = kwargs.pop('ae_input_files_per_job',0)
+                output_files_per_job = kwargs.pop('ae_output_files_per_job',0)
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
                 definition_parameters = kwargs.pop('ae_definition_parameters')
-                recoveries = kwargs.pop('ae_definition_recovery')
+                recoveries = kwargs.pop('ae_definition_recovery',"[]")
                 #Guetting the info that was not passed by the poms_client arguments
                 if input_files_per_job in [None,""]:
                     input_files_per_job = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id==campaign_definition_id).firts().input_files_per_job
@@ -165,8 +173,8 @@ class CampaignsPOMS():
                 experimenter_id = kwargs.pop('experimenter_id')
                 campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
                 name = kwargs.pop('ae_definition_name')
-                input_files_per_job = kwargs.pop('ae_input_files_per_job')
-                output_files_per_job = kwargs.pop('ae_output_files_per_job')
+                input_files_per_job = kwargs.pop('ae_input_files_per_job',0)
+                output_files_per_job = kwargs.pop('ae_output_files_per_job',0)
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
                 definition_parameters = json.loads(kwargs.pop('ae_definition_parameters'))
@@ -267,17 +275,15 @@ class CampaignsPOMS():
         #for k,v in kwargs.items():
         #    print ' k=%s, v=%s ' %(k,v)
         action = kwargs.pop('action',None)
-        pcl_call = kwargs.pop('pcl_call', 0) #pcl_call == 1 means the method was access through the poms_client.
-        pc_email = kwargs.pop('pc_email',None) #email is the info we know about the user in POMS DB.
+        pcl_call = int(kwargs.pop('pcl_call', 0)) #pcl_call == 1 means the method was access through the poms_client.
+        pc_username = kwargs.pop('pc_username',None) #email is the info we know about the user in POMS DB.
 
         if action == 'delete':
+            name = kwargs.pop('ae_campaign_name')
             if pcl_call==1:
-                name = kwargs.pop('ae_campaign_name')
                 campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
             else:
                 campaign_id = kwargs.pop('campaign_id')
-
-            name = kwargs.pop('name')
             try:
                 dbhandle.query(CampaignDependency).filter(or_(CampaignDependency.needs_camp_id==campaign_id,
                                 CampaignDependency.uses_camp_id==campaign_id)).delete()
@@ -300,20 +306,21 @@ class CampaignsPOMS():
 
             completion_type = kwargs.pop('ae_completion_type')
             completion_pct =  kwargs.pop('ae_completion_pct')
-            depends = kwargs.pop('ae_depends')
-            param_overrides = kwargs.pop('ae_param_overrides')
+            depends = kwargs.pop('ae_depends',"[]")
+            param_overrides = kwargs.pop('ae_param_overrides',"[]")
             if param_overrides:param_overrides = json.loads(param_overrides)
 
             if pcl_call == 1:
                 launch_name=kwargs.pop('ae_launch_name')
                 campaign_definition_name=kwargs.pop('ae_campaign_definition')
                 #all this variables depend on the arguments passed.
-                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.email == pc_email).first().experimenter_id
-                campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
-                launch_id=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==launch_name).fist().launch_id
-                campaign_definition_id =dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==campaign_definition_name).firts().campaign_definition_id
-
-
+                experimenter_id = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first().experimenter_id
+                launch_id=dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment==exp).filter(LaunchTemplate.name==launch_name).first().launch_id
+                campaign_definition_id =dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name==campaign_definition_name).first().campaign_definition_id
+                if action == 'edit':
+                    campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
+                else:
+                    pass
             else:
                 campaign_id = kwargs.pop('ae_campaign_id')
                 campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
@@ -335,7 +342,7 @@ class CampaignsPOMS():
                                 completion_type=completion_type,completion_pct=completion_pct,
                                 creator=experimenter_id, created=datetime.now(utc))
                     dbhandle.add(c)
-                    dbhandle.flush() ##### Is this flush() necessary or better a commit ?
+                    dbhandle.commit() ##### Is this flush() necessary or better a commit ?
                     campaign_id = c.campaign_id
                 else:
                     columns = {
@@ -493,7 +500,7 @@ class CampaignsPOMS():
         return bytes(text,encoding="utf-8")
 
     @pomscache.cache_on_arguments()
-    def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag = None):
+    def show_campaigns(self, dbhandle, samhandle,  campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag = None):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
 
@@ -514,27 +521,11 @@ class CampaignsPOMS():
         counts = {}
         counts_keys = {}
 
-        logit.log(logit.DEBUG, "show_campaigns: getting pending")
-        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cl, tmin, tmax)
-        logit.log(logit.DEBUG, "show_campaigns: getting efficiency")
-        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cl, tmin, tmax)
-
-        i = 0
-        for c in cl:
-            logit.log(logit.DEBUG, "show_campaigns: getting counts for campaign %s" % c.name)
-            counts[c.campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle, tmax=tmax, tmin=tmin, tdays=tdays, campaign_id=c.campaign_id)
-            counts[c.campaign_id]['efficiency'] = effs[i]
-            if len(pendings) > i:
-                counts[c.campaign_id]['pending'] = pendings[i]
-            counts_keys[c.campaign_id] = list(counts[c.campaign_id].keys())
-            i = i + 1
-
-        logit.log(logit.DEBUG, "show_campaigns: wrapping up..")
-        return counts, counts_keys, cl, dimlist, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
+        return cl, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
 
 
-    @pomscache.cache_on_arguments()
-    def campaign_info(self, dbhandle, samhandle, err_res, campaign_id,  tmin = None, tmax = None, tdays = None):
+    # @pomscache.cache_on_arguments()
+    def campaign_info(self, dbhandle, samhandle, err_res, config_get, campaign_id,  tmin = None, tmax = None, tdays = None):
         campaign_id = int(campaign_id)
 
         Campaign_info = dbhandle.query(Campaign, Experimenter).filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id).first()
@@ -558,8 +549,9 @@ class CampaignsPOMS():
         cl = [Campaign_info[0]]
         counts = {}
         counts_keys = {}
-        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cl, tmin, tmax)
-        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cl,tmin, tmax)
+        cil = [c.campaign_id for c in cl]
+        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cil, tmin, tmax)
+        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cil,tmin, tmax)
         counts[campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
         counts[campaign_id]['efficiency'] = effs[0]
         if pendings:
@@ -572,7 +564,13 @@ class CampaignsPOMS():
            os.environ['HOME'],campaign_id)
         launch_flist = glob.glob('%s/*' % dirname)
         launch_flist = list(map(os.path.basename, launch_flist))
-        return Campaign_info, time_range_string, tmins, tmaxs, tdays, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist
+
+        # put our campaign id in the link
+        campaign_kibana_link_format = config_get('campaign_kibana_link_format')
+        logit.log("got format %s" %  campaign_kibana_link_format)
+        kibana_link = campaign_kibana_link_format % campaign_id
+
+        return Campaign_info, time_range_string, tmins, tmaxs, tdays, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist, kibana_link
 
 
     @pomscache_10.cache_on_arguments()
@@ -928,7 +926,7 @@ class CampaignsPOMS():
         for cid in cp:
             sc.append(cid)
 
-        stale =  dbhandle.query(Campaign).filter(Campaign.campaign_id.notin_(sc), Campaign.active == True).all()
+        stale =  dbhandle.query(Campaign).filter(Campaign.created > lastweek, Campaign.campaign_id.notin_(sc), Campaign.active == True).all()
         res=[]
         for c in stale:
             res.append(c.name)

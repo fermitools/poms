@@ -22,8 +22,8 @@ class TriagePOMS(object):
         self.poms_service = ps
 
 
+    @pomscache.cache_on_arguments()
     def job_counts(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=None):
-        ### This one method was deleted from the main script
 
         (tmin, tmax, tmins, tmaxs,
          nextlink, prevlink, time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'job_counts')
@@ -235,9 +235,9 @@ class TriagePOMS(object):
         eff_d = kwargs.get('eff_d')
         if eff_d:
             if eff_d == "-1":
-                q = q.filter(not_(and_(Job.cpu_time > 0.0, Job.wall_time >= Job.cpu_time)))
+                q = q.filter(not_(and_(Job.cpu_time > 0.0, Job.wall_time > 0 , Job.cpu_time < Job.wall_time * 10)))
             else:
-                q = q.filter(Job.wall_time != 0.0, func.floor(Job.cpu_time * 10 / Job.wall_time) == eff_d)
+                q = q.filter(Job.wall_time > 0.0, Job.cpu_time > 0.0, Job.cpu_time < Job.wall_time*10,  func.floor(Job.cpu_time * 10 / Job.wall_time) == eff_d)
             filtered_fields['eff_d'] = eff_d
 
         jobsub_job_id = kwargs.get('jobsub_job_id')

@@ -94,7 +94,7 @@ POMS Job Triage
 {% for item in job_file_list %}
 
 <span style="display:inline-block; min-width: 6em; text-align: right">{{item[2]}}</span> &nbsp;
-{% if item[5].find(jobsub_job_id_digits) > -1 %}
+{% if item|length > 5 and item[5].find(jobsub_job_id_digits) > -1 %}
 <mark>
 <a href="{{pomspath}}/job_file_contents?job_id={{job_id}}&task_id={{job_info.Job.task_id}}&tmin={{tmin}}&file={{item[5]}}">{{item[5]}}</a>
 </mark>

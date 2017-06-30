@@ -25,6 +25,19 @@
     <b>Calendar</b>
   </a>
 
+  <div data-ecl class="item">
+    <div class="header">Logbook</div>
+    <div class="menu">
+      {% if session_experiment == 'dune' %}
+        <a class="item" href="http://dbweb0.fnal.gov/ECL/{{session_experiment ~ 'pro'}}/E/index">
+      {% else %}
+        <a class="item" href="http://dbweb0.fnal.gov/ECL/{{session_experiment}}/E/index">
+      {% endif %}
+        {{session_experiment|capitalize}}
+      </a>
+    </div>
+  </div>
+
   {% if current_experimenter is defined and  (current_experimenter.is_root()) %}
   <div class="item">
     <div class="header">DB Admin</div>

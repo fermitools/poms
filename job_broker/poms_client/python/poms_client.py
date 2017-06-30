@@ -31,7 +31,7 @@ def get_task_id_for(campaign, user = None, command_executed = None, input_datase
     return int(data)
 
 
-def launch_template_edit(action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_email = None, test_client=False):
+def launch_template_edit(action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_username = None, test_client=False):
 
 
     method = 'launch_template_edit'
@@ -41,18 +41,19 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
     ae_launch_account = user_account
     ae_launch_setup = launch_setup
     experiment = experiment
-    pc_email = pc_email
+    #pc_email = pc_email #no useing pc_username
 
-    if experiment == None or pc_email == None:
+    if experiment == None or pc_username == None:
         print " You should provide an experiment name and email"
     else:
 
-        if action == 'deleted':
+        if action == 'delete':
             if ae_launch_name == None:
                 print "For deleting you need to provide the name of the launch teamplate as name = name_of_your_launch_template"
             else:
                 data, status_code = make_poms_call(
                     pcl_call=1,
+                    pc_username=pc_username,
                     method=method,
                     action = action,
                     ae_launch_name = ae_launch_name,
@@ -67,9 +68,10 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
             else:
                 data, status_code  = make_poms_call(
                     pcl_call=1,
+                    pc_username=pc_username,
                     method = method,
                     action = action,
-                    ae_launch_name = ae_launch_name,
+                    name = ae_launch_name,
                     experiment = experiment,
 
                     ae_launch_host = ae_launch_host,
@@ -89,6 +91,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
             else:
                 data, status_code = make_poms_call(
                     pcl_call=1,
+                    pc_username=pc_username,
                     method = method,
                     action = action,
                     ae_launch_name = ae_launch_name,
@@ -104,16 +107,16 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
 
         else:
             print "You should define an action on your launch_template, there are just \
-            three posibilities: action = add, action = edit or action = remove. You choose action = "+action+"\n \
+            three posibilities: action = add, action = edit or action = delete. You choose action = "+action+"\n \
             You did not change anything in your template"
 
 
 def campaign_definition_edit(output_file_patterns, launch_script,
-                            def_parameter, pc_email=None, action = None, name = None, experiment = None, test_client=False):
+                            def_parameter, pc_username=None, action = None, name = None, experiment = None, test_client=False):
     # You can not modify the recovery_type from the poms_client (future feauture)
     test_client = test_client
     method = "campaign_definition_edit"
-    pc_email = pc_email
+    pc_username = pc_username
     action = action
     ae_definition_name = name
     experiment = experiment
@@ -123,7 +126,7 @@ def campaign_definition_edit(output_file_patterns, launch_script,
     ae_definition_parameters= json.dumps(def_parameter)
     data, status_code = make_poms_call(  pcl_call=1,
                             method = method,
-                            pc_email = pc_email,
+                            pc_username = pc_username,
 
                             action = action,
                             ae_definition_name = ae_definition_name,
@@ -139,7 +142,7 @@ def campaign_definition_edit(output_file_patterns, launch_script,
     #return data['message']
 
 
-def campaign_edit (action, ae_campaign_name, pc_email, experiment, vo_role,
+def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
                     dataset, ae_active, ae_split_type, ae_software_version,
                     ae_completion_type, ae_completion_pct, ae_param_overrides,
                     ae_depends, ae_launch_name, ae_campaign_definition, test_client):
@@ -148,10 +151,10 @@ def campaign_edit (action, ae_campaign_name, pc_email, experiment, vo_role,
                             method=method,
                             action=action,
                             ae_campaign_name=ae_campaign_name,
-                            pc_email=pc_email,
+                            pc_username=pc_username,
                             experiment=experiment,
-                            vo_role=vo_role,
-                            dataset=dataset,
+                            ae_vo_role=vo_role,
+                            ae_dataset=dataset,
                             ae_active=ae_active,
                             ae_split_type=ae_split_type,
                             ae_software_version=ae_software_version,
@@ -177,8 +180,9 @@ def make_poms_call(**kwargs):
         base='http://fermicloud045.fnal.gov:8080/poms/'
         del kwargs["test"]
     elif test_client:
-        base='http://pomsgpvm01.fnal.gov:8080/poms/'
+        #base='http://pomsgpvm01.fnal.gov:8080/poms/'
 	#base='http://localhost:8888/poms/'
+        base='http://fermicloud045.fnal.gov:8080/poms/'
     else:
         base='http://pomsgpvm01.fnal.gov:8080/poms/'
 

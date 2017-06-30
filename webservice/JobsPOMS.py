@@ -17,6 +17,7 @@ import json
 import os
 
 from . import logit
+from .pomscache import pomscache, pomscache_10
 
 
 class JobsPOMS(object):
@@ -133,6 +134,9 @@ class JobsPOMS(object):
         for j in jobs:
             foundjobs["%s"%j.jobsub_job_id] = j
             jlist.append(j)
+            # mengel -- do we need:
+            #if not fulltasks.get(j.task_id, None):
+            #    fulltasks[int(j.task_id)] = j.task_obj
 
 
         # now look for jobs for which  we don't have Job ORM entries, but
@@ -161,21 +165,23 @@ class JobsPOMS(object):
         jlist.sort(key=lambda x:x.jobsub_job_id)
 
         for i in range(3):
-            if len(jlist) == 0:
-                break
+            if i > 0:
+                dbhandle.rollback()
+                dbhandle.begin()
             retrylist = []
             for j in jlist:
 
-                dbhandle.begin_nested()
+                #dbhandle.begin_nested()
                 
                 try:
                     dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == j.jobsub_job_id).first()
                     self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
-                    dbhandle.commit()
+                    #dbhandle.commit()
                 except OperationalError as e:
                     retrylist.append(j)
-                    dbhandle.rollback()
-                jlist = retrylist 
+                    #dbhandle.rollback()
+            if len(retrylist) == 0:
+                break
 
         # update any related tasks status if changed
         for t in list(fulltasks.values()):
@@ -448,7 +454,7 @@ class JobsPOMS(object):
         q = dbhandle.query(func.count(Job.job_id), func.floor(Job.cpu_time * 10 / Job.wall_time))
         q = q.join(Job.task_obj)
         q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == campaign_id)
-        q = q.filter(Job.cpu_time > 0, Job.wall_time >= Job.cpu_time)
+        q = q.filter(Job.cpu_time > 0,  Job.wall_time > 0, Job.cpu_time < Job.wall_time * 10)
         q = q.filter(Task.created < tmax, Task.created >= tmin)
         q = q.group_by(func.floor(Job.cpu_time * 10 / Job.wall_time))
         q = q.order_by((func.floor(Job.cpu_time * 10 / Job.wall_time)))
@@ -456,7 +462,7 @@ class JobsPOMS(object):
         qz = dbhandle.query(func.count(Job.job_id))
         qz = qz.join(Job.task_obj)
         qz = qz.filter(Job.task_id == Task.task_id, Task.campaign_id == campaign_id)
-        qz = qz.filter(not_(and_(Job.cpu_time > 0, Job.wall_time >= Job.cpu_time)))
+        qz = qz.filter(not_(and_(Job.cpu_time > 0, Job.wall_time > 0, Job.cpu_time < Job.wall_time * 10)))
         nodata = qz.first()
 
         total = 0
@@ -476,16 +482,18 @@ class JobsPOMS(object):
         return c, maxv, total, vals, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
 
 
-    def get_efficiency(self, dbhandle, campaign_list, tmin, tmax):  #This method was deleted from the main script
-        id_list = []
-        for c in campaign_list:
-            id_list.append(c.campaign_id)
+    @pomscache.cache_on_arguments()
+    def get_efficiency_map(self, dbhandle, id_list, tmin, tmax):  #This method was deleted from the main script
+
+        if isinstance( id_list, str):
+            id_list = [cid for cid in id_list.split(',') if cid]
 
         rows = (dbhandle.query(func.sum(Job.cpu_time), func.sum(Job.wall_time), Task.campaign_id).
                 filter(Job.task_id == Task.task_id,
                        Task.campaign_id.in_(id_list),
                        Job.cpu_time > 0,
                        Job.wall_time > 0,
+                       Job.cpu_time < Job.wall_time * 10,
                        Task.created >= tmin, Task.created < tmax).
                 group_by(Task.campaign_id).all())
 
@@ -499,12 +507,18 @@ class JobsPOMS(object):
                 mapem[campaign_id] = int(totcpu * 100.0 / totwall)
             else:
                 mapem[campaign_id] = -1
-
         logit.log("got map: %s" % repr(mapem))
+        return mapem
 
+    def get_efficiency(self, dbhandle, id_list, tmin, tmax):  #This method was deleted from the main script
+
+        if isinstance( id_list, str):
+            id_list = [int(cid) for cid in id_list.split(',') if cid]
+
+        mapem = self.get_efficiency_map(dbhandle, id_list, tmin, tmax)
         efflist = []
-        for c in campaign_list:
-            efflist.append(mapem.get(c.campaign_id, -2))
+        for cid in id_list:
+            efflist.append(mapem.get(cid, -2))
 
         logit.log("got list: %s" % repr(efflist))
         return efflist

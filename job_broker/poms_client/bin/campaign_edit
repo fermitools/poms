@@ -9,16 +9,16 @@ groupArg = parser.add_argument_group('Require Arguments')
 #parser.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', default = None)
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
 groupArg.add_argument('--campaign_name', metavar='Name of your campaign', type=str, help='campaign_name', required = True)
-groupArg.add_argument('--email', metavar='your email', type=str, help='Please provide your email adress, the one you use when you get register at POMS', required = True)
+groupArg.add_argument('--user_name', metavar='your user name', type=str, help='Please provide your user name', required = True)
 groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True)
 groupArg.add_argument('--vo_role', metavar='Analysis-Production', type=str, help='Define your role Analysis or Production', required = True)
 groupArg.add_argument('--dataset', metavar='campaign dataset', type=str, help='provide the dataset that will be use in the campaign', required=True)
 groupArg.add_argument('--launch_name', metavar='launch_template_name', type=str, help='you must provide the launch template name related with this campaign', required=True)
-groupArg.add_argument('--job_type', metavar='campaign_definition_name', type=str, help='you must provide teh job_type name')
+groupArg.add_argument('--job_type', metavar='campaign_definition_name', type=str, help='you must provide teh job_type name', required=True)
 
 
 
-parser.add_argument('--state', metavar='Active-Inactive', type=str, help='Do you want to make the campaing [Active] or [Inactive]', default = "Active")
+parser.add_argument('--state', metavar='Active(True)-Inactive(False)', type=str, help='Do you want to make the campaing active set this flag as True, for Inactive set the flag as False', default = True)
 parser.add_argument('--split_type', metavar='I am still not sure which are the available split types', type=str, help='split type', default = None)
 parser.add_argument('--software_version', metavar='exp_software_version', type=str, help='Provide the the experiment software_version', default = "Non provide")
 parser.add_argument('--completion_type', metavar='located or completed', type=str, help='Please provide the kind of completion type [located] or [Complete], by default it will be located', default = "Located")
@@ -32,7 +32,7 @@ print args
 print 'The arguments you pass are:'
 print 'action =',args.action
 print 'campaign_name =', args.campaign_name
-print 'email=',args.email
+print 'user_name=',args.user_name
 print 'experiment=',args.experiment
 print 'vo_role=', args.vo_role
 print 'dataset=', args.dataset
@@ -52,22 +52,26 @@ print 'test_client', args.test_client
 #Calling the poms_client.campaign_definition_edit'
 if args.action in ['add','delete','edit']:
     if args.completion > 0 and args.completion <= 100:
-        campaign_edit(action=args.action,
-                                ae_campaign_name=args.campaign_name,
-                                pc_email=args.email,
-                                experiment=args.experiment,
-                                vo_role=args.vo_role,
-                                dataset=args.dataset,
-                                ae_active=args.state,
-                                ae_split_type=args.split_type,
-                                ae_software_version=args.software_version,
-                                ae_completion_type=args.completion_type,
-                                ae_completion_pct=args.completion,
-                                ae_param_overrides=args.param_overrides,
-                                ae_depends=args.depends_on,
-                                ae_launch_name=args.launch_name,
-                                ae_campaign_definition=args.job_type,
-                                test_client=args.test_client)
+        if args.vo_role in ["Analysis", "Production"]:
+            campaign_edit(action=args.action,
+                                    ae_campaign_name=args.campaign_name,
+                                    pc_username=args.user_name,
+                                    experiment=args.experiment,
+                                    vo_role=args.vo_role,
+                                    dataset=args.dataset,
+                                    ae_active=args.state,
+                                    ae_split_type=args.split_type,
+                                    ae_software_version=args.software_version,
+                                    ae_completion_type=args.completion_type,
+                                    ae_completion_pct=args.completion,
+                                    ae_param_overrides=args.param_overrides,
+                                    ae_depends=args.depends_on,
+                                    ae_launch_name=args.launch_name,
+                                    ae_campaign_definition=args.job_type,
+                                    test_client=args.test_client)
+        else:
+            msg = "\n the vo_role may be Analysis or Production,", args.vo_role
+            print msg
     else:
         msg = "\n ERROR: provide the percentage of completion as a value Integer between (0-100], the percentage you set was =", args.completion
         print msg

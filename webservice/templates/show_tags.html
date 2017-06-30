@@ -19,7 +19,7 @@ Campaign Tags
 <div>
 Campaign Tags:
 <ul>
-{% for t in tl %}
+{% for t in tl|sort(attribute='tag_name') %}
 <li> <a href="{{pomspath}}/campaign_deps?tag={{t.tag_name}}">{{t.tag_name}}</a>
 {% endfor %}
 </ul>

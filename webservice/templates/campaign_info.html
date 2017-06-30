@@ -198,12 +198,6 @@ $( document ).ready(function() {
                     {{counts[c.campaign_id][k]}}
                   </a>
                 </td>
-              {% elif k == "Total Completed" %}
-                <td>
-                  <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&job_status=Completed&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
-                    {{counts[c.campaign_id][k]}}
-                  </a>
-                </td>
               {% elif k %}
                 <td>
                   <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}">
@@ -267,6 +261,10 @@ $( document ).ready(function() {
 		 <i class="external unhide icon" data-content="Mark Campaign Active" data-variation="basic"></i>Mark Campaign Active
 	      </a>
               {% endif %}
+	      </div>
+	      <div class=item>
+                 <i class="external icon"></i>
+                 <a href="{{kibana_link}}" target='_blank'>Kibana Usage Info for Campaign</a>
 	      </div>
           </div> <!-- class=menu -->
      </div>  <!-- class=ui segment raised -->

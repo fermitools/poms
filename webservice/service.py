@@ -98,7 +98,7 @@ class SATool(cherrypy.Tool):
                                self.bind_session,
                                priority=20)
         self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
-        self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher()
+        self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher(cherrypy.config.get('elasticsearch_cert'),cherrypy.config.get('elasticsearch_key'))
         self.samweb_lite = samweb_lite.samweb_lite()
 
     def _setup(self):
@@ -125,7 +125,6 @@ class SATool(cherrypy.Tool):
         cherrypy.request.jobsub_fetcher = None
         cherrypy.request.samweb_lite = None
         self.session.remove()
-
 
 class SessionExperimenter(object):
 
@@ -182,27 +181,36 @@ class SessionExperimenter(object):
 
 
 class SessionTool(cherrypy.Tool):
-        # Something must be set in the sessionotherwise a unique session
         # will be created for each request.
+
     def __init__(self):
         cherrypy.Tool.__init__(self, 'before_request_body',
                                self.establish_session,
                                priority=90)
+     
 
     # Here is how to add aditional hooks. Left as example
-    #def _setup(self):
-    #    cherrypy.Tool._setup(self)
-    #    cherrypy.request.hooks.attach('before_request_body',
-    #                                  self.your_method,
-    #                                  priority=90)
+    def _setup(self):
+        cherrypy.Tool._setup(self)
+        cherrypy.request.hooks.attach('before_finalize',
+                                      self.finalize_session,
+                                      priority=10)
+
+    def finalize_session(self):
+        # file session save complains if session isn't locked?!?
+        # so re-lock it on the way out(?)
+        cherrypy.session.acquire_lock()
 
     def establish_session(self):
 
+        cherrypy.session.acquire_lock()
         if cherrypy.session.get('id', None):
             #logit.log("EXISTING SESSION: %s" % str(cherrypy.session['experimenter']))
+            cherrypy.session.release_lock()
             return
 
         logit.log("establish_session startup -- mengel")
+
 
         cherrypy.session['id']              = cherrypy.session.originalid  #The session ID from the users cookie.
         cherrypy.session['X-Forwarded-For'] = cherrypy.request.headers.get('X-Forwarded-For', None)
@@ -256,6 +264,10 @@ class SessionTool(cherrypy.Tool):
         extra = {'selected': list(exps.keys())}
         cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
                                                                e[0].first_name, e[0].last_name, e[0].username, exps, e[0].session_experiment, **extra)
+
+        cherrypy.session.save()
+        cherrypy.session.release_lock()
+
         cherrypy.request.db.query(Experimenter).filter(Experimenter.username == username).update({'last_login': datetime.now(utc)})
         cherrypy.request.db.commit()
         cherrypy.log.error("New Session: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For', 'Unknown'),

@@ -53,7 +53,7 @@ def add_mock_job_launcher():
            ae_launch_id ='',
            ae_launch_host = fqdn,
            ae_launch_account =  os.environ['USER'],      
-           ae_launch_setup = "source /grid/fermiapp/products/common/etc/setups; set -x; klist; cd %s;   source $HOME/poms_python3/bin/activate; setup ifdhc" % (os.environ['POMS_DIR'],os.environ("VIRTUAL_ENV")),
+           ae_launch_setup = "source /grid/fermiapp/products/common/etc/setups; set -x; klist; cd %s;  source bin/activate; setup ifdhc" % os.environ["VIRTUAL_ENV"],
            experiment = 'samdev',
            experimenter_id = '4'
         )
@@ -264,7 +264,7 @@ def test_show_campaigns():
      items = mps.campaignsPOMS.show_campaigns(dbhandle, samweb_lite(), experiment = 'samdev' )
      found = False
 
-     for c in items[2]:
+     for c in items[0]:
          if c.name == '_fred':
              found=True
      assert(found)
@@ -274,7 +274,7 @@ def test_campaign_info():
      #       recently. Otherwise we might not have the _fred campaign
      c = dbh.get().query(Campaign).filter(Campaign.name=='_fred').first()
 
-     items = mps.campaignsPOMS.campaign_info(dbhandle, samweb_lite(), err_res, campaign_id = c.campaign_id )
+     items = mps.campaignsPOMS.campaign_info(dbhandle, samweb_lite(), err_res, getconfig, campaign_id = c.campaign_id )
 
      assert(items[0][0].name == '_fred')
 
