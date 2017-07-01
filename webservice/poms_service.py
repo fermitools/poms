@@ -665,7 +665,7 @@ class PomsService(object):
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def json_job_counts(self, task_id=None, campaign_id=None, tmin=None, tmax=None, uuid = None):
-        return  self.triagePOMS.job_counts(cherrypy.request.db, task_id, campaign_id, tmin=None, tmax=None, tdays=None)
+        return  self.triagePOMS.job_counts(cherrypy.request.db, task_id, campaign_id, tmin=tmin, tmax=tmax, tdays=None)
 
 
     @cherrypy.expose
