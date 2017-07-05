@@ -169,12 +169,27 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
     #return data['message']
 
 
-def make_poms_call(**kwargs):
+def auth_cert():
+        #rs.cert = '/tmp/x509up_u`id -u`'
+        cert=os.environ.get('X509_USER_PROXY')
+        '''
+        if not cert:
+            cert=os.environ.get('X509_USER_CERT')
+            key=os.environ.get('X509_USER_KEY')
+            if cert and key: cert =(cert,key)
+        '''
+        if not cert:
+            proxypath = '/tmp/x509up_u%d' % os.getuid()
+            if os.path.exits(proxypath):
+                cert=pythonpath
+        if not cert:
+            print "You should generate a proxy for use the client, you can use kx509 to generate your proxy. If you have a proxy please provide the location at the enviroment variable X509_USER_PROXY"
+        return cert
 
+def make_poms_call(self, **kwargs):
     method = kwargs.get("method")
     del kwargs["method"]
     test_client=kwargs.get("test_client")
-
 
     if kwargs.get("test"):
         base='http://fermicloud045.fnal.gov:8080/poms/'
@@ -192,8 +207,9 @@ def make_poms_call(**kwargs):
             del kwargs[k]
 
     if os.environ.get("POMS_CLIENT_DEBUG", None):
-        print "poms_client: making call %s( %s ) at %s" % (method, kwargs, base)
-
+        print "poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert)
+    cert=self.auth_cert()
+    rs.cert=cert
     c = rs.post("%s/%s" % (base,method), data=kwargs);
     res = c.text
     status_code = c.status_code
