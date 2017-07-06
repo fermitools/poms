@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 ### This module contain the methods that handle the file status accounting
-### List of methods: def list_task_logged_files, campaign_task_files, job_file_list, get_inflight,  inflight_files, show_dimension_files, campaign_sheet, actual_pending_files
-### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
+### List of methods: def list_task_logged_files, campaign_task_files, job_file_list, get_inflight,
+# inflight_files, show_dimension_files, campaign_sheet, actual_pending_files
+### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions
+# in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
 
 import os
@@ -14,12 +16,14 @@ from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy import (desc, distinct)
 from .utc import utc
 from datetime import datetime,timedelta
+from .pomscache import pomscache, pomscache_10
 
 
 class Files_status(object):
 
     def __init__(self, ps):
         self.poms_service = ps
+
 
     def list_task_logged_files(self, dbhandle, task_id):
         t = dbhandle.query(Task).filter(Task.task_id == task_id).first()
@@ -28,6 +32,7 @@ class Files_status(object):
         return fl, t, jobsub_job_id
         #DELETE: template = self.poms_service.jinja_env.get_template('list_task_logged_files.html')
         #return template.render(fl = fl, campaign = t.campaign_snap_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
+
 
     def campaign_task_files(self, dbhandle, samhandle, campaign_id, tmin=None, tmax=None, tdays=1):
         (tmin, tmax,
@@ -187,8 +192,10 @@ class Files_status(object):
         #DELETE template = self.jinja_env.get_template('job_file_contents.html')
         #DELETE return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version)
 
+
     def format_job_counts(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=7, range_string=None): ##This method was deleted from the main script
-        counts = self.poms_service.triagePOMS.job_counts(dbhandle, task_id=task_id, campaign_id=campaign_id, tmin=tmin, tmax=tmax, tdays=tdays)
+        counts = self.poms_service.triagePOMS.job_counts(dbhandle, task_id=task_id, campaign_id=campaign_id,
+                                                         tmin=tmin, tmax=tmax, tdays=tdays)
         ck = list(counts.keys())
         res = ['<div><b>Job States</b><br>',
                '<table class="ui celled table unstackable">',
@@ -216,7 +223,8 @@ class Files_status(object):
         return "".join(res)
 
 
-    def get_inflight(self, dbhandle, campaign_id=None, task_id=None):   # This method was deleted from the main script
+    @staticmethod
+    def get_inflight(dbhandle, campaign_id=None, task_id=None):   # This method was deleted from the main script
         q = dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
         q = q.filter(Task.campaign_id == Campaign.campaign_id)
         q = q.filter(Task.task_id == Job.task_id)
@@ -228,11 +236,7 @@ class Files_status(object):
         if task_id is not None:
             q = q.filter(Job.task_id == task_id)
         q = q.filter(Job.output_files_declared == False)
-        outlist = []
-        for jf in q.all():
-            outlist.append(jf.file_name)
-        # jjid = "xxxxx"
-        return outlist
+        return [jf.file_name for jf in q.all()]
 
 
     def inflight_files(self, dbhandle, status_response, getconfig, campaign_id=None, task_id=None):
@@ -270,50 +274,24 @@ class Files_status(object):
         return flist
 
 
-    def actual_pending_files(self, dbhandle, count_or_list, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
+    def actual_pending_file_dims(self, dbhandle, samhandle, campaign_id=None, tmin=None, tmax=None, tdays=1):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
          time_range_string, tdays
          ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
-                                                       'actual_pending_files?count_or_list=%s&%s=%s&' %
-                                                       (count_or_list, 'campaign_id', campaign_id) if campaign_id else (count_or_list, 'task_id', task_id))
+                                                      'actual_pending_files?%s=%s&' %
+                                                      ('campaign_id', campaign_id))
 
         tl = (dbhandle.query(Task).
               options(joinedload(Task.campaign_obj)).
               options(joinedload(Task.jobs).joinedload(Job.job_files)).
               filter(Task.campaign_id == campaign_id,
-              Task.created >= tmin, Task.created < tmax).
+                  Task.created >= tmin, Task.created < tmax).
               all())
 
-        c = None
-        plist = []
-        for t in tl:
-            if not c:
-                c = t.campaign_obj
-            plist.append(t.project if t.project else 'None')
-
-        if c:
-            dims = "snapshot_for_project_name %s minus (" % ','.join(plist)
-            sep = ""
-            for pat in str(c.campaign_definition_obj.output_file_patterns).split(','):
-                if pat == "None":
-                    pat = "%"
-                dims = "%s %s isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (dims, sep, pat, t.campaign_obj.software_version)
-                sep = "and"
-                logit.log("dims now: %s" % dims)
-            dims = dims + ")"
-        else:
-            c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-            dims = None
-
-        if dims is None or 'None' == dims:
-            raise ValueError("None == dims in actual_pending_files method")
-        else:
-
-            logit.log("actual pending files: got dims %s" % dims)
-            return c.experiment, dims
-
+        explist, dimlist = self.get_pending_dims_for_task_lists(dbhandle, samhandle, [tl])
+        return explist, dimlist
 
     def campaign_sheet(self, dbhandle, samhandle, campaign_id, tmin=None, tmax=None, tdays=7):   # maybe at the future for a  ReportsPOMS module
 
@@ -334,9 +312,7 @@ class Files_status(object):
         # XXX should be based on Task create date, not job updated date..
         el = dbhandle.query(distinct(Job.user_exe_exit_code)).filter(Job.updated >= tmin, Job.updated <= tmax).all()
         (experiment,) = dbhandle.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).one()
-        exitcodes = []
-        for e in el:
-            exitcodes.append(e[0])
+        exitcodes = [e[0] for e in el]
 
         logit.log("got exitcodes: " + repr(exitcodes))
         day = -1
@@ -351,7 +327,7 @@ class Files_status(object):
                 columns.append('No exitcode')
 
         outrows = []
-        exitcounts = {}
+        exitcounts = {e: 0 for e in exitcodes}
         totfiles = 0
         totdfiles = 0
         totjobs = 0
@@ -361,8 +337,6 @@ class Files_status(object):
         # pendfiles = 0
         tasklist = []
         totwall = 0.0
-        for e in exitcodes:
-            exitcounts[e] = 0
 
         daytasks = []
         for tno, task in enumerate(tl):
@@ -406,15 +380,15 @@ class Files_status(object):
             #~ ps = self.project_summary_for_task(task.task_id)
             ps = psl[tno]
             if ps:
-                totdfiles += ps.get('tot_consumed',0) + ps.get('tot_failed',0)
-                totfiles += ps.get('files_in_snapshot',0)
-                totjobfails += ps.get('tot_jobfails',0)
+                totdfiles += ps.get('tot_consumed', 0) + ps.get('tot_failed', 0)
+                totfiles += ps.get('files_in_snapshot', 0)
+                totjobfails += ps.get('tot_jobfails', 0)
 
             totjobs += len(task.jobs)
 
             for job in list(task.jobs):
 
-                if job.cpu_time > 0 and job.wall_time > 0 and job.wall_time < job.cpu_time * 10:
+                if job.cpu_time and job.wall_time and job.cpu_time > 0 and job.wall_time > 0 and job.wall_time < job.cpu_time * 10:
                     totcpu += job.cpu_time
                     totwall += job.wall_time
 
@@ -468,15 +442,19 @@ class Files_status(object):
         return name, columns, outrows, dimlist, experiment, tmaxs, prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16]
 
 
+    @pomscache.cache_on_arguments()
     def get_pending_dict_for_campaigns(self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
         if isinstance(campaign_id_list, str):
             campaign_id_list = [cid for cid in campaign_id_list.split(',') if cid]
-        dl, cl =  self.get_pending_for_campaigns(dbhandle, samhandle, campaign_id_list, tmin, tmax)
-        res = {}
-        for i in range(len(campaign_id_list)):
-            res[campaign_id_list[i]] = cl[i]
-            logit.log("returning: " + repr(res))
+        dl, cl = self.get_pending_for_campaigns(dbhandle, samhandle, campaign_id_list, tmin, tmax)
+        # res = {}
+        # for i in range(len(campaign_id_list)):
+        #     res[campaign_id_list[i]] = cl[i]
+        #     logit.log("returning: " + repr(res))    # FIXME: Should it be out of loop?
+        res = {cid: c for cid, c in zip(campaign_id_list, cl)}
+        logit.log("returning: " + repr(res))
         return res
+
 
     def get_pending_for_campaigns(self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
 
@@ -500,7 +478,9 @@ class Files_status(object):
         return dl, cl
 
 
-    def get_pending_for_task_lists(self, dbhandle, samhandle, task_list_list):
+    @staticmethod
+    def get_pending_dims_for_task_lists(dbhandle, samhandle, task_list_list):
+        reason = 'no_project_info'
         now = datetime.now(utc)
         twodays = timedelta(days=2)
         dimlist = []
@@ -510,15 +490,23 @@ class Files_status(object):
         for tl in task_list_list:
             diml = ["("]
             for task in tl:
-                if task.project == None or (now - task.created) > twodays:
-                     # no project/ old projects have no counts, so short-circuit
-                     diml.append( "(file_name _)")
-                     continue
+
+                if task.project is None or task.status == 'Located':
+                    if task.status == 'Located':
+                        reason = 'all_located'
+                        fakename = 'located'
+                    else:
+                        fakename = 'no_proj'
+                    # no project/ old projects have no counts, so short-circuit
+                    diml.append("(file_name __%s__ )" % fakename)
+                    diml.append("union")
+                    continue
+
                 diml.append("(snapshot_for_project_name %s" % task.project)
                 diml.append("minus ( snapshot_for_project_name %s and (" % task.project)
                 sep = ""
                 for pat in str(task.campaign_definition_snap_obj.output_file_patterns).split(','):
-                    if (pat == "None"):
+                    if pat == "None":
                         pat = "%"
                     diml.append(sep)
                     diml.append("isparentof: ( file_name '%s' and version '%s' with availability physical )" %
@@ -528,10 +516,11 @@ class Files_status(object):
                 diml.append(")")
                 diml.append(")")
                 diml.append("union")
+
             diml[-1] = ")"
 
             if len(diml) <= 1:
-                diml[0] = "project_name no_project_info"
+                diml[0] = "project_name %s" % reason
 
             dimlist.append(" ".join(diml))
 
@@ -541,17 +530,24 @@ class Files_status(object):
                 explist.append("samdev")
 
         logit.log("get_pending_for_task_lists: dimlist (%d): %s" % (len(dimlist), dimlist))
+        return explist, dimlist
+
+
+    def get_pending_for_task_lists(self, dbhandle, samhandle, task_list_list):
+        explist, dimlist = self.get_pending_dims_for_task_lists(dbhandle, samhandle, task_list_list)
         count_list = samhandle.count_files_list(explist, dimlist)
         logit.log("get_pending_for_task_lists: count_list (%d): %s" % (len(dimlist), count_list))
+
         return dimlist, count_list
 
 
-    def report_declared_files(self, flist, dbhandle):
+    @staticmethod
+    def report_declared_files(flist, dbhandle):
         now = datetime.now(utc)
         # the "extra" first query on Job is to make sure we get a shared lock
         # on Job before trying to get an update lock on JobFile, which will
         # then try to get a lock on Job, but can deadlock with someone
         # otherwise doing update_job()..
         dbhandle.query(Job, JobFile).with_for_update(of=Job, read=True).filter(JobFile.job_id == Job.job_id, JobFile.file_name.in_(flist)).all()
-        dbhandle.query(JobFile).filter(JobFile.file_name.in_(flist)).update({JobFile.declared: now}, synchronize_session = False)
+        dbhandle.query(JobFile).filter(JobFile.file_name.in_(flist)).update({JobFile.declared: now}, synchronize_session=False)
         dbhandle.commit()

@@ -46,6 +46,7 @@ class DBadminPOMS:
                 experimenter.first_name = kwargs.get('first_name')
                 experimenter.last_name = kwargs.get('last_name')
                 experimenter.username = username
+                experimenter.session_experiment = ''
                 dbhandle.add( experimenter)
                 dbhandle.commit()
 

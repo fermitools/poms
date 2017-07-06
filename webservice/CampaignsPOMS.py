@@ -3,7 +3,8 @@
 '''
 This module contain the methods that allow to create campaigns, definitions and templates.
 List of methods:  launch_template_edit, campaign_definition_edit, campaign_edit, campaign_edit_query.
-Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
+Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in
+poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
 Date: April 28th, 2017. (changes for the POMS_client)
 '''
 
@@ -568,7 +569,7 @@ class CampaignsPOMS():
         # put our campaign id in the link
         campaign_kibana_link_format = config_get('campaign_kibana_link_format')
         logit.log("got format %s" %  campaign_kibana_link_format)
-        kibana_link = campaign_kibana_link_format % campaign_id
+        kibana_link = campaign_kibana_link_format.format(campaign_id)
 
         return Campaign_info, time_range_string, tmins, tmaxs, tdays, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist, kibana_link
 

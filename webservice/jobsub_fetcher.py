@@ -1,89 +1,113 @@
 #!/usr/bin/env python
 
+import sys
 import os
 from os import system as os_system
 import threading
 from poms.webservice.logit import log, logstartstop
+import requests
+import re
+import traceback
 
 class jobsub_fetcher():
-    def __init__(self):
-         self.workdir = "%s/jf%d%s" % (
-                          os.environ.get("TMPDIR","/var/tmp"),
-                          os.getpid(),
-                          threading.get_ident())
-         try:
-             os.mkdir(self.workdir)
-         except:
-             pass
-         self.fetchmax = 10
-         self.fetchcount = 0
-         self.tarfiles = []
+
+    def __init__(self, cert, key):
+         self.sess = requests.Session()
+         self.cert = cert
+         self.key = key
 
     def flush(self):
-         if self.workdir:
-              os_system("rm -rf %s" % self.workdir)
+         pass
 
     @logstartstop
     def fetch(self, jobsubjobid, group, role, force_reload = False, user = None):
-         if group == "samdev": group = "fermilab"
-         thistar = "%s/%s.tgz" % (self.workdir, jobsubjobid.rstrip("\n"))
-         if os.path.exists(thistar):
-             if force_reload:
-                 os.unlink(thistar)
-             else:
-                 return
-         else:
-             self.fetchcount = self.fetchcount + 1
-             self.tarfiles.append(thistar)
-
-         if self.fetchcount > self.fetchmax:
-             try:
-                 os.unlink(self.tarfiles[0])
-             except:
-                 pass
-             self.tarfiles = self.tarfiles[1:]
-             self.fetchcount = self.fetchcount - 1   
-
-             if user == None:
-                user = "%spro" % group
-
-         cmd = "cd %s && /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_fetchlog --group=%s --role=%s --user=%s --jobid=%s > /dev/null" %(
-                     self.workdir,
-                     group,
-                     role,
-                     user,
-                     jobsubjobid)
-         
-         log("jobsub_fetcher.fetch(): running: %s" % cmd)
-         os.system(cmd)
-         # os.system("ls -l %s " % self.workdir)
+         pass
 
     @logstartstop
-    def index(self, jobsubjobid, group, role = "Production", force_reload = False):
+    def index(self, jobsubjobid, group,  role = "Production", force_reload = False, retries = 3):
+
+        if retries == -1:
+            return []
 
         if group == "samdev": group = "fermilab"
-        self.fetch(jobsubjobid, group, role, force_reload)
-        f = os.popen( "tar tvzf %s/%s.tgz" % (self.workdir, jobsubjobid.rstrip("\n")), "r")
-        res = []
-        for line in f:
-             res.append(line.rstrip('\n').split())
-        f.close()
+
+        if role == "Production":
+            user = "%spro" % group
+        else:
+            user = 'mengel'     # XXX
+
+        fifebatch = jobsubjobid[jobsubjobid.find("@")+1:]
+
+        url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/" % ( fifebatch, group, user, jobsubjobid) 
+
+        log( "trying url:" +  url)
+
+        try:
+            r = self.sess.get(url, cert=(self.cert,self.key),  verify=False, headers={"Accept":"text/html"})
+            log ("headers:" + repr( r.request.headers))
+            log ("headers:" + repr( r.headers))
+            sys.stdout.flush()
+            res = []
+            for line in r.text.split('\n'):
+                log("got line: " +  line)
+                # strip tags...
+                line = re.sub('<[^>]*>','', line)
+                fields = line.strip().split()
+                if len(fields):
+                    fname = fields[0]
+                    fields[0] = ""
+                    fields[2] = fields[1] 
+                    fields.append(fname)
+                    log("got fields: " + repr(fields))
+                    res.append(fields)
+        except:
+            log(traceback.format_exc())
+        finally:
+            if r: r.close()
+
         return res
 
     @logstartstop
-    def contents(self, filename, jobsubjobid, group, role = "Production"):
-        self.fetch(jobsubjobid, group, role)
-        f = os.popen( "tar --to-stdout -xzf %s/%s.tgz %s" % (self.workdir, jobsubjobid.rstrip("\n"), filename), "r")
-        res = []
-        for line in f:
-            res.append(line.rstrip('\n'))
-        f.close()
+    def contents(self, filename, jobsubjobid, group,  role = "Production", retries = 3):
+
+        if retries == -1:
+            return []
+
+        if group == "samdev": group = "fermilab"
+
+        if role == "Production":
+            user = "%spro" % group
+        else:
+            user = 'mengel'    # XXX
+
+        fifebatch = jobsubjobid[jobsubjobid.find("@")+1:]
+
+        url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/%s/" % (fifebatch, group, user, jobsubjobid, filename) 
+
+        log( "trying url:" + url)
+
+        try:
+            r = self.sess.get(url, cert=(self.cert,self.key), stream=True, verify=False, headers={"Accept":"text/plain"})
+
+            log ("headers:" + repr( r.request.headers))
+            log ("headers:" + repr( r.headers))
+
+            sys.stdout.flush()
+            res = []
+            for line in r.text.split('\n'):
+                log("got line: " + line)
+                res.append(line.rstrip('\n'))
+        except:
+            log(traceback.format_exc())
+        finally:
+            if r: r.close()
+
         return res
 
 if __name__ == "__main__":
      
-    jf = jobsub_fetcher()
-    jobid="20224406.0@fifebatch2.fnal.gov"
+    jf = jobsub_fetcher("/tmp/x509up_u%d" % os.getuid(),"/tmp/x509up_u%d"% os.getuid() )
+    jobid="18533155.0@fifebatch1.fnal.gov"
     flist = jf.index(jobid, "samdev", "Analysis") 
     print("------------------")
     print(flist)

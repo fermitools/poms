@@ -1,24 +1,26 @@
-import cherrypy
 import os
-import socket
-from jinja2 import Environment, PackageLoader
-from .poms_model import Service, Task, Campaign
-
-from .elasticsearch import Elasticsearch
 import pprint
-from . import version
-from . import logit
+import socket
+
+import cherrypy
+from jinja2 import Environment, PackageLoader
 
 from . import CalendarPOMS
-from . import DBadminPOMS
 from . import CampaignsPOMS
-from . import JobsPOMS
-from . import TaskPOMS
-from . import UtilsPOMS
-from . import TagsPOMS
-from . import TriagePOMS
+from . import DBadminPOMS
 from . import FilesPOMS
+from . import JobsPOMS
 from . import TablesPOMS
+from . import TagsPOMS
+from . import TaskPOMS
+from . import TriagePOMS
+from . import UtilsPOMS
+from . import logit
+from . import version
+from .elasticsearch import Elasticsearch
+from .poms_model import Service, Task, Campaign
+
+
 #import gcwrap
 
 
@@ -39,7 +41,7 @@ def error_response():
 
 
 
-class poms_service(object):
+class PomsService(object):
 
 
     _cp_config = {'request.error_response': error_response,
@@ -67,7 +69,7 @@ class poms_service(object):
         self.triagePOMS = TriagePOMS.TriagePOMS(self)
         self.tablesPOMS = None
 
-    def post_initalize(self):
+    def post_initialize(self):
         # Anything that needs to log data must be called here -- after loggers are configured.
         self.tablesPOMS = TablesPOMS.TablesPOMS(self)
 
@@ -424,7 +426,10 @@ class poms_service(object):
         #~ logit.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
         if 'exp_selected' in kwargs:
             current_experimenter.extra = {'selected': kwargs['exp_selected']}
+            cherrypy.sesssion.acquire_lock()
             cherrypy.session['experimenter'] = current_experimenter
+            cherrypy.session.save()
+            cherrypy.sesssion.release_lock()
             #~ logit.log("current_experimenter.extra update... ")                               # DEBUG
         #~ logit.log("current_experimenter.extra after: "+str(current_experimenter.extra))      # DEBUG
 
@@ -532,7 +537,8 @@ class poms_service(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def update_launch_schedule(self, campaign_id, dowlist=None, domlist=None, monthly=None, month=None, hourlist=None, submit=None, minlist=None, delete=None):
+    def update_launch_schedule(self, campaign_id, dowlist=None, domlist=None,
+                               monthly=None, month=None, hourlist=None, submit=None, minlist=None, delete=None):
         self.campaignsPOMS.update_launch_schedule(campaign_id, dowlist, domlist, monthly, month, hourlist, submit, minlist, delete)
         raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id)
 
@@ -659,7 +665,7 @@ class poms_service(object):
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def json_job_counts(self, task_id=None, campaign_id=None, tmin=None, tmax=None, uuid = None):
-        return  self.triagePOMS.job_counts(cherrypy.request.db, task_id, campaign_id, tmin=None, tmax=None, tdays=None)
+        return  self.triagePOMS.job_counts(cherrypy.request.db, task_id, campaign_id, tmin=tmin, tmax=tmax, tdays=None)
 
 
     @cherrypy.expose
@@ -885,19 +891,9 @@ class poms_service(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def actual_pending_files(self, count_or_list, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
-        # XXXX ??? Implementation of the exception.
-        cherrypy.response.timeout = 600
-        #try:
-        if 1:
-            experiment, dims = self.filesPOMS.actual_pending_files(cherrypy.request.db, count_or_list, task_id, campaign_id, tmin, tmax, tdays)
-            return self.show_dimension_files(experiment, dims)
-            #return repr([experiment,dims])
-            #return self.show_dimension_files(experiment, dims)
-        #except ValueError:
-        else:
-            return "None == dims in actual_pending_files method"
-
+    def actual_pending_files(self, count_or_list = None, campaign_id=None, tmin=None, tmax=None, tdays=1):
+        exps, dims = self.filesPOMS.actual_pending_file_dims( cherrypy.request.db,cherrypy.request.samweb_lite, campaign_id = campaign_id,  tmin=tmin, tmax=tmax, tdays=tdays)
+        return self.show_dimension_files(exps[0], dims[0])
 
     @cherrypy.expose
     @logit.logstartstop

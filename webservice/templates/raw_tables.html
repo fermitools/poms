@@ -14,7 +14,7 @@ Raw Tables:
 
 {%block content%}
 <ul>
-   {% for type in list %}
+   {% for type in list|sort %}
     <li> <a href="{{pomspath}}/list_generic?classname={{type}}">{{type}}</a> </li>
    {% endfor %}
 </ul>

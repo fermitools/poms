@@ -53,8 +53,11 @@ POMS
               {% if columns[col] == 'efficiency%' %}
                 <td><a href="{{pomspath}}/jobs_eff_histo?campaign_id={{campaign_id}}&tmax={{row[1][:10]}} 23:59:59">{{row[col]}}</a></td>
               {% elif columns[col] == 'pending' %}
-                <td><a href="{{pomspath}}/show_dimension_files?experiment={{session_experiment}}&dims={{dimlist[outer_loop.index0]}}">{{row[col]}}</a></td>
-
+                <td>
+                    <a href="{{pomspath}}/show_dimension_files?experiment={{session_experiment}}&dims={{dimlist[outer_loop.index0]}}">
+                        {{ 'N/A' if row[col] == -1 else row[col] }}
+                    </a>
+                </td>
               {% elif columns[col][:4] == 'exit' %}
                 <td><a href="{{pomspath}}/job_table?user_exe_exit_code={{columns[col][5:-1]}}&tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
               {% elif columns[col][:4] == 'jobs' %}
