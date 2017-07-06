@@ -124,7 +124,7 @@ def campaign_definition_edit(output_file_patterns, launch_script,
     ae_output_file_patterns = output_file_patterns
     ae_launch_script = launch_script
     ae_definition_parameters= json.dumps(def_parameter)
-    data, status_code = make_poms_call(  pcl_call=1,
+    data, status_code = make_poms_call(pcl_call=1,
                             method = method,
                             pc_username = pc_username,
 
@@ -147,7 +147,7 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
                     ae_completion_type, ae_completion_pct, ae_param_overrides,
                     ae_depends, ae_launch_name, ae_campaign_definition, test_client):
     method="campaign_edit"
-    data, status_code = make_poms_call( pcl_call=1,
+    data, status_code = make_poms_call(pcl_call=1,
                             method=method,
                             action=action,
                             ae_campaign_name=ae_campaign_name,
@@ -186,7 +186,7 @@ def auth_cert():
             print "You should generate a proxy for use the client, you can use kx509 to generate your proxy. If you have a proxy please provide the location at the enviroment variable X509_USER_PROXY"
         return cert
 
-def make_poms_call(self, **kwargs):
+def make_poms_call(**kwargs):
     method = kwargs.get("method")
     del kwargs["method"]
     test_client=kwargs.get("test_client")
@@ -208,7 +208,7 @@ def make_poms_call(self, **kwargs):
 
     if os.environ.get("POMS_CLIENT_DEBUG", None):
         print "poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert)
-    cert=self.auth_cert()
+    cert=auth_cert()
     rs.cert=cert
     c = rs.post("%s/%s" % (base,method), data=kwargs);
     res = c.text
