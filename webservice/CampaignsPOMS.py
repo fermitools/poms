@@ -569,7 +569,7 @@ class CampaignsPOMS():
         # put our campaign id in the link
         campaign_kibana_link_format = config_get('campaign_kibana_link_format')
         logit.log("got format %s" %  campaign_kibana_link_format)
-        kibana_link = campaign_kibana_link_format % campaign_id
+        kibana_link = campaign_kibana_link_format.format(campaign_id)
 
         return Campaign_info, time_range_string, tmins, tmaxs, tdays, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, None, cl, counts_keys, counts, launch_flist, kibana_link
 
