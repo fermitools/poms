@@ -551,13 +551,13 @@ class CampaignsPOMS():
         counts = {}
         counts_keys = {}
         cil = [c.campaign_id for c in cl]
-        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cil, tmin, tmax)
-        effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cil,tmin, tmax)
-        counts[campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
-        counts[campaign_id]['efficiency'] = effs[0]
-        if pendings:
-            counts[campaign_id]['pending'] = pendings[0]
-        counts_keys[campaign_id] = list(counts[campaign_id].keys())
+        #dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cil, tmin, tmax)
+        #effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cil,tmin, tmax)
+        #counts[campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
+        #counts[campaign_id]['efficiency'] = effs[0]
+        #if pendings:
+        #    counts[campaign_id]['pending'] = pendings[0]
+        #counts_keys[campaign_id] = list(counts[campaign_id].keys())
         #
         # any launch outputs to look at?
         #
@@ -571,7 +571,7 @@ class CampaignsPOMS():
         logit.log("got format %s" %  campaign_kibana_link_format)
         kibana_link = campaign_kibana_link_format % campaign_id
 
-        return Campaign_info, time_range_string, tmins, tmaxs, tdays, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, dimlist, cl, counts_keys, counts, launch_flist, kibana_link
+        return Campaign_info, time_range_string, tmins, tmaxs, tdays, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, None, cl, counts_keys, counts, launch_flist, kibana_link
 
 
     @pomscache_10.cache_on_arguments()
