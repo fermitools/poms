@@ -10,8 +10,9 @@ from requests.adapters import HTTPAdapter
 import traceback
 import os
 import cherrypy
-from .utc import utc
-from .poms_model import FaultyRequest
+from poms.webservice.utc import utc
+from poms.webservice.poms_model import FaultyRequest
+import sys
 
 
 def safe_get(sess, url, *args, **kwargs):
@@ -108,7 +109,7 @@ class samweb_lite:
             return self.proj_cache[experiment + projid]
 
         base = "http://samweb.fnal.gov:8480"
-        url = "%s/sam/%s/api/projects/name/%s/summary?format=json" % (base, experiment, projid)
+        url = "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base, experiment, projid)
         with requests.Session() as sess:
             res = safe_get(sess, url, dbhandle=dbhandle)
         info = {}
@@ -151,6 +152,9 @@ class samweb_lite:
 
     def do_totals(self, info):
         if not info.get("processes",None):
+             info["tot_jobs"] = info.get("process_counts",{}).get("completed",0)
+             info["tot_consumed"] = info.get("file_counts",{}).get("consumed",0)
+             info["tot_failed"] = info.get("file_counts",{}).get("failed",0)
              return
         tot_consumed = 0
         tot_skipped = 0
@@ -174,21 +178,26 @@ class samweb_lite:
         del info["processes"]
 
     def update_project_description(self, experiment, projname, desc):
-        base = "http://samweb.fnal.gov:8480"
+        base = "https://samweb.fnal.gov:8483"
         url = "%s/sam/%s/api/projects/%s/%s/description" % (base, experiment, experiment, projname)
+        res = None
         r1 = None
         try:
-            res = requests.post(url, params={"description": desc})
+            res = requests.post(url, data={"description": desc},
+                                verify=False,
+                                cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
+                                      "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"])))
             status = res.status_code
             if status == 200:
-                r1 = res.read()
+                r1 = res.text
             else:
                 # Process error!
+                r1 = res.text
                 pass
         except:
             traceback.print_exc()
         finally:
-            if reply:
+            if res:
                 res.close()
         return r1
 
@@ -285,6 +294,12 @@ class samweb_lite:
 if __name__ == "__main__":
     import pprint
     sl = samweb_lite()
+    r1 = sl.update_project_description("samdev", "mengel-fife_wrap_20170701_102228_3860387", "test_1234")
+    print("got result:" , r1)
+    i = sl.fetch_info("samdev", "mengel-fife_wrap_20170701_102228_3860387")
+    print("got result:" , i)
+    sys.exit(0)
+
     print(sl.create_definition("samdev", "mwm_test_%d" % os.getpid(), "(snapshot_for_project_name mwm_test_proj_1465918505)"))
     i = sl.fetch_info("nova", "arrieta1-Offsite_test_Caltech-20160404_1157")
     i2 = sl.fetch_info("nova", "brebel-AnalysisSkimmer-20151120_0126")
