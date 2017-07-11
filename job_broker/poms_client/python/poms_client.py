@@ -180,7 +180,7 @@ def auth_cert():
         '''
         if not cert:
             proxypath = '/tmp/x509up_u%d' % os.getuid()
-            if os.path.exits(proxypath):
+            if os.path.exists(proxypath):
                 cert=proxypath
         if not cert:
             print "You should generate a proxy for use the client, you can use kx509 to generate your proxy. If you have a proxy please provide the location at the enviroment variable X509_USER_PROXY"
