@@ -124,7 +124,7 @@ def campaign_definition_edit(output_file_patterns, launch_script,
     ae_output_file_patterns = output_file_patterns
     ae_launch_script = launch_script
     ae_definition_parameters= json.dumps(def_parameter)
-    data, status_code = make_poms_call(  pcl_call=1,
+    data, status_code = make_poms_call(pcl_call=1,
                             method = method,
                             pc_username = pc_username,
 
@@ -147,7 +147,7 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
                     ae_completion_type, ae_completion_pct, ae_param_overrides,
                     ae_depends, ae_launch_name, ae_campaign_definition, test_client):
     method="campaign_edit"
-    data, status_code = make_poms_call( pcl_call=1,
+    data, status_code = make_poms_call(pcl_call=1,
                             method=method,
                             action=action,
                             ae_campaign_name=ae_campaign_name,
@@ -169,19 +169,34 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
     #return data['message']
 
 
-def make_poms_call(**kwargs):
+def auth_cert():
+        #rs.cert = '/tmp/x509up_u`id -u`'
+        cert=os.environ.get('X509_USER_PROXY')
+        '''
+        if not cert:
+            cert=os.environ.get('X509_USER_CERT')
+            key=os.environ.get('X509_USER_KEY')
+            if cert and key: cert =(cert,key)
+        '''
+        if not cert:
+            proxypath = '/tmp/x509up_u%d' % os.getuid()
+            if os.path.exists(proxypath):
+                cert=proxypath
+        if not cert:
+            print "You should generate a proxy for use the client, you can use kx509 to generate your proxy. If you have a proxy please provide the location at the enviroment variable X509_USER_PROXY"
+        return cert
 
+def make_poms_call(**kwargs):
     method = kwargs.get("method")
     del kwargs["method"]
     test_client=kwargs.get("test_client")
-
 
     if kwargs.get("test"):
         base='http://fermicloud045.fnal.gov:8080/poms/'
         del kwargs["test"]
     elif test_client:
         #base='http://pomsgpvm01.fnal.gov:8080/poms/'
-	#base='http://localhost:8888/poms/'
+        #base='http://localhost:8888/poms/'
         base='https://fermicloud045.fnal.gov:8443/poms/'
     else:
         base='http://pomsgpvm01.fnal.gov:8080/poms/'
@@ -192,9 +207,11 @@ def make_poms_call(**kwargs):
             del kwargs[k]
 
     if os.environ.get("POMS_CLIENT_DEBUG", None):
-        print "poms_client: making call %s( %s ) at %s" % (method, kwargs, base)
-
-    c = rs.post("%s/%s" % (base,method), data=kwargs);
+        print "poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert)
+    cert=auth_cert()
+    rs.cert=cert
+    #rs.key=cert
+    c = rs.post("%s/%s" % (base,method), data=kwargs, verify=False);
     res = c.text
     status_code = c.status_code
     c.close()
