@@ -210,7 +210,8 @@ def make_poms_call(**kwargs):
         print "poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert)
     cert=auth_cert()
     rs.cert=cert
-    c = rs.post("%s/%s" % (base,method), data=kwargs);
+    #rs.key=cert
+    c = rs.post("%s/%s" % (base,method), data=kwargs, verify=False);
     res = c.text
     status_code = c.status_code
     c.close()
