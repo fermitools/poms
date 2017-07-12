@@ -203,11 +203,11 @@ class samweb_lite:
 
     def cleanup_dims(self, dims):
         # the code currently generates some useless bits..
-        dims = dims.replace("file_name '%'","")
-        dims = dims.replace("union (file_name __located__)", "")
-        dims = dims.replace("union (file_name __no_project__)", "")
-        dims = dims.replace("(file_name __located__) union", "")
-        dims = dims.replace("(file_name __no_project__) union", "")
+        dims = dims.replace("file_name '%' and ","")
+        dims = dims.replace("union (file_name __located__ )", "")
+        dims = dims.replace("union (file_name __no_project__ )", "")
+        dims = dims.replace("(file_name __located__ ) union", "")
+        dims = dims.replace("(file_name __no_project__ ) union", "")
         return dims
 
     def list_files(self, experiment, dims, dbhandle=None):
