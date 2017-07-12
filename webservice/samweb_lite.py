@@ -201,10 +201,20 @@ class samweb_lite:
                 res.close()
         return r1
 
+    def cleanup_dims(self, dims):
+        # the code currently generates some useless bits..
+        dims = dims.replace("file_name '%'","")
+        dims = dims.replace("union (file_name __located__)", "")
+        dims = dims.replace("union (file_name __no_project__)", "")
+        dims = dims.replace("(file_name __located__) union", "")
+        dims = dims.replace("(file_name __no_project__) union", "")
+        return dims
+
     def list_files(self, experiment, dims, dbhandle=None):
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/files/list" % (base, experiment)
         flist = []
+        dims = self.cleanup_dims(dims)
         with requests.Session() as sess:
             res = safe_get(sess, url, params={"dims": dims, "format": "json"}, dbhandle=dbhandle)
         if res:
@@ -218,6 +228,7 @@ class samweb_lite:
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/files/count" % (base, experiment)
         count = 0
+        dims = self.cleanup_dims(dims)
         with requests.Session() as sess:
             res = safe_get(sess, url, params={"dims": dims}, dbhandle=dbhandle)
         if res:
@@ -249,7 +260,7 @@ class samweb_lite:
 
         base = "http://samweb.fnal.gov:8480"
         urls = ["%s/sam/%s/api/files/count?%s" % (base, experiment[i],
-                                                  urllib.parse.urlencode({"dims": dims_list[i]})) for i in range(len(dims_list))]
+                                                  urllib.parse.urlencode({"dims": self.cleanup_dims(dims_list[i])})) for i in range(len(dims_list))]
         with requests.Session() as sess:
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                 #replies = executor.map(getit, urls)
