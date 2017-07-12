@@ -205,7 +205,7 @@ def make_poms_call(**kwargs):
     for k in kwargs.keys():
         if kwargs[k] == None:
             del kwargs[k]
-
+    print "poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert)
     if os.environ.get("POMS_CLIENT_DEBUG", None):
         print "poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert)
     cert=auth_cert()
