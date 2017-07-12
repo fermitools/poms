@@ -128,12 +128,12 @@ class job_reporter:
 
                     batch.append(a)
 
-                self.bulk_update(batch)
                 lastsent = time.time()
+                self.bulk_update(batch)
 
                 if self.debug: sys.stderr.write("\nrunqueue_bulk: %d after: qsize is %d\n" % (which ,self.work.qsize()))
             else:
-                time.sleep(0.1 * which)
+                time.sleep(1 * which)
 
 
     def runqueue(self):
