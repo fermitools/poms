@@ -194,7 +194,7 @@ $( document ).ready(function() {
                 </td>
               {% elif k %}
                 <td>
-                  <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}"  id="data_{{c.campaign_id}}_{{k}}">
+                  <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}"  id="data_{{c.campaign_id}}_{{k|replace(" ","_")}}">
                      ...
                   </a>
                   {%if k == "Idle"%}
