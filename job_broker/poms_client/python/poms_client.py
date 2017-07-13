@@ -205,12 +205,12 @@ def make_poms_call(**kwargs):
     for k in kwargs.keys():
         if kwargs[k] == None:
             del kwargs[k]
-
     if os.environ.get("POMS_CLIENT_DEBUG", None):
         print "poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert)
     cert=auth_cert()
     rs.cert=cert
     #rs.key=cert
+    print "poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert)
     c = rs.post("%s/%s" % (base,method), data=kwargs, verify=False);
     res = c.text
     status_code = c.status_code
