@@ -179,7 +179,8 @@ def auth_cert():
             if cert and key: cert =(cert,key)
         '''
         if not cert:
-            proxypath = '/tmp/x509up_u%d' % os.getuid()
+            #proxypath = '/tmp/x509up_u%d' % os.getuid()
+            proxypath = "/tmp/x509up_u50765"
             if os.path.exists(proxypath):
                 cert=proxypath
         if not cert:
@@ -209,7 +210,7 @@ def make_poms_call(**kwargs):
         print "poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert)
     cert=auth_cert()
     rs.cert=cert
-    #rs.key=cert
+    rs.key=cert
     print "poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert)
     c = rs.post("%s/%s" % (base,method), data=kwargs, verify=False);
     res = c.text
