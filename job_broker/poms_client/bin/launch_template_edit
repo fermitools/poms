@@ -35,7 +35,7 @@ print "test_client", args.test_client
 
 
 launch_template_edit(action = args.action,
-                    name = args.launch_name,
+                    launch_name = args.launch_name,
                     launch_host = args.host,
                     user_account = args.user_account,
                     launch_setup = args.setup,
