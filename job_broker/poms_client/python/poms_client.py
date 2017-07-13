@@ -31,12 +31,12 @@ def get_task_id_for(campaign, user = None, command_executed = None, input_datase
     return int(data)
 
 
-def launch_template_edit(action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_username = None, test_client=False):
+def launch_template_edit(action = None, launch_name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_username = None, test_client=False):
 
 
     method = 'launch_template_edit'
     action = action
-    ae_launch_name = name
+    ae_launch_name = launch_name
     ae_launch_host  = launch_host
     ae_launch_account = user_account
     ae_launch_setup = launch_setup
@@ -49,7 +49,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
 
         if action == 'delete':
             if ae_launch_name == None:
-                print "For deleting you need to provide the name of the launch teamplate as name = name_of_your_launch_template"
+                print "For deleting you need to provide the name of the launch template as name = name_of_your_launch_template"
             else:
                 data, status_code = make_poms_call(
                     pcl_call=1,
@@ -71,7 +71,7 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
                     pc_username=pc_username,
                     method = method,
                     action = action,
-                    name = ae_launch_name,
+                    ae_launch_name = ae_launch_name,
                     experiment = experiment,
 
                     ae_launch_host = ae_launch_host,
