@@ -9,6 +9,7 @@
 
 import os
 import shelve
+from collections import defaultdict
 from . import logit
 
 from .poms_model import Job, Task, Campaign, JobFile
@@ -450,9 +451,9 @@ class Files_status(object):
         # res = {}
         # for i in range(len(campaign_id_list)):
         #     res[campaign_id_list[i]] = cl[i]
-        #     logit.log("returning: " + repr(res))    # FIXME: Should it be out of loop?
+        # logit.log("returning: " + repr(res))
         res = {cid: c for cid, c in zip(campaign_id_list, cl)}
-        logit.log("returning: " + repr(res))
+        logit.log("get_pending_dict_for_campaigns returning: " + repr(res))
         return res
 
 
@@ -464,16 +465,21 @@ class Files_status(object):
         if isinstance(campaign_id_list, str):
             campaign_id_list = [cid for cid in campaign_id_list.split(',') if cid]
 
-        for cid in campaign_id_list:
-            tl = (dbhandle.query(Task).
-                  options(joinedload(Task.campaign_snap_obj)).
-                  options(joinedload(Task.campaign_definition_snap_obj)).
-                  filter(Task.campaign_id == cid,
-                         Task.created >= tmin, Task.created < tmax).
-                  all())
-            task_list_list.append(tl)
+        task_list = (dbhandle.query(Task).
+                     options(joinedload(Task.campaign_snap_obj)).
+                     options(joinedload(Task.campaign_definition_snap_obj)).
+                     filter(Task.campaign_id.in_(campaign_id_list),
+                            Task.created >= tmin, Task.created < tmax).
+                     all())
+        # logit.log("get_pending_for_campaigns: task_list (%d): %s" % (len(task_list), task_list))
 
-        dl, cl = self.poms_service.filesPOMS.get_pending_for_task_lists(dbhandle, samhandle, task_list_list)
+        tll = defaultdict(lambda : [])                              # To prepare the list of task lists
+        for task in task_list:                                      # Group tasks by campaign ids
+            tll[task.campaign_id].append(task)
+        task_list_list = [tll[int(ci)] for ci in campaign_id_list]  # Build the list of task lists in original campaign order
+        # logit.log("get_pending_for_campaigns: task_list_list (%d): %s" % (len(task_list_list), task_list_list))
+
+        dl, cl = self.get_pending_for_task_lists(dbhandle, samhandle, task_list_list)
 
         return dl, cl
 
