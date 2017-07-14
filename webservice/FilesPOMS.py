@@ -187,7 +187,7 @@ class Files_status(object):
         jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, j.task_id)
         logit.log("found job: %s " % jobsub_job_id)
         role = j.task_obj.campaign_snap_obj.vo_role
-        job_file_contents = jobhandle.contents(file, j.jobsub_job_id, j.task_obj.campaign_snap_obj.experiment, role)
+        job_file_contents = jobhandle.contents(file, jobsub_job_id, j.task_obj.campaign_snap_obj.experiment, role)
         return job_file_contents, tmin
         #DELETE template = self.jinja_env.get_template('job_file_contents.html')
         #DELETE return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version)
