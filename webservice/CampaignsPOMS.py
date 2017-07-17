@@ -299,7 +299,7 @@ class CampaignsPOMS():
         if action == 'add' or action == 'edit':
             name = kwargs.pop('ae_campaign_name')
             active = kwargs.pop('ae_active')
-            split_type = kwargs.pop('ae_split_type')
+            split_type = kwargs.pop('ae_split_type', None)
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
             dataset = kwargs.pop('ae_dataset')

@@ -11,7 +11,7 @@ groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you
 groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True)
 
 
-parser.add_argument('--name', metavar='Name of your template', type=str, help='the name of the launch template', default = None)
+parser.add_argument('--launch_name', metavar='Name of your template', type=str, help='the name of the launch template', default = None)
 parser.add_argument('--host', metavar='your experiment machine', type=str, help='You should provide your interactive machine (e.g. dunegpvm01)', default = None)
 parser.add_argument('--user_account', metavar='username at submission node', type=str, help='Please provide the user account for the submission (e.g. your user, or production user e.g. novapro, minospro, dunepro)', default = None)
 parser.add_argument('--setup', metavar='the setup you do at your interactive node', type=str, help='provide the necessary comands for your submission node e.g. setup_nova', default = None)
@@ -24,7 +24,7 @@ args = parser.parse_args()
 print args
 print 'The arguments you pass are:'
 print 'action =',args.action
-print 'name =', args.name
+print 'launch_name =', args.launch_name
 print 'launch_host=',args.host
 print 'user_account=',args.user_account
 print "launch_setup =", args.setup
@@ -35,7 +35,7 @@ print "test_client", args.test_client
 
 
 launch_template_edit(action = args.action,
-                    name = args.name,
+                    launch_name = args.launch_name,
                     launch_host = args.host,
                     user_account = args.user_account,
                     launch_setup = args.setup,
