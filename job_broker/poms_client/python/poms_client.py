@@ -3,11 +3,8 @@
 import requests
 import os
 import json
-
-try:
-  import configparser
-except:
-  import ConfigParser as configparser
+#import configparser
+import ConfigParser
 
 
 rs = requests.Session()
@@ -194,19 +191,23 @@ def auth_cert():
         return cert
 
 def make_poms_call(**kwargs):
-    config = configparser.ConfigParser()
+    #config = configparser.ConfigParser()
+    config = ConfigParser.ConfigParser()
     config.read('client.cfg')
     method = kwargs.get("method")
     del kwargs["method"]
     test_client=kwargs.get("test_client")
 
     if kwargs.get("test"):
-        base= ['url']['base_dev']
+        #base= ['url']['base_dev']
+        base=config.get('url','base_dev')
         del kwargs["test"]
     elif test_client:
-        base=config['url']['base_dev_ssl']
+        #base=config['url']['base_dev_ssl']
+        base=config.get('url','base_dev_ssl')
     else:
-        base=config['url']['base_prod']
+        #base=config['url']['base_prod']
+        base=config.get('url','base_prod')
 
 
     for k in kwargs.keys():
