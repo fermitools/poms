@@ -3,7 +3,11 @@
 import requests
 import os
 import json
-import configparser
+
+try:
+  import configparser
+except:
+  import ConfigParser as configparser
 
 
 rs = requests.Session()
