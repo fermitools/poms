@@ -205,6 +205,7 @@ def make_poms_call(**kwargs):
     elif test_client:
         #base=config['url']['base_dev_ssl']
         base=config.get('url','base_dev_ssl')
+        print "base = ", base
     else:
         #base=config['url']['base_prod']
         base=config.get('url','base_prod')
