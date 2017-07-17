@@ -224,10 +224,10 @@ def make_poms_call(**kwargs):
     res = c.text
     status_code = c.status_code
     c.close()
-    print "\n\nres =", res
+    #print "\n\nres =", res
     print "status_code", status_code
-    #return res, status_code
-    return status_code
+    return res, status_code
+    #return status_code
 
 
 if __name__ == '__main__':
