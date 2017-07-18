@@ -44,9 +44,13 @@ def launch_template_edit(action = None, launch_name = None, launch_host = None, 
     ae_launch_account = user_account
     experiment = experiment
     #ae_launch_setup = launch_setup
-    for arg_setup in launch_setup
-        ae_launch_setup= str(arg_setup)+" "
-    print "The ae_launch_setup is: ", ae_launch_setup
+    if launch_setup != None:
+        ae_launch_setup=""
+        for arg_setup in launch_setup:
+                ae_launch_setup= ae_launch_setup+str(arg_setup)+" "
+        print "The ae_launch_setup is: ", ae_launch_setup
+    else:
+        ae_launch_setup = launch_setup
 
     #pc_email = pc_email #no useing pc_username
 
@@ -186,8 +190,8 @@ def auth_cert():
             if cert and key: cert =(cert,key)
         '''
         if not cert:
-            proxypath = '/tmp/x509up_u%d' % os.getuid()
-            #proxypath = "/tmp/x509up_u50765"
+            #proxypath = '/tmp/x509up_u%d' % os.getuid()
+            proxypath = "/tmp/x509up_u50765"
             if os.path.exists(proxypath):
                 cert=proxypath
         if not cert:
