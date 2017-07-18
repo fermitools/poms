@@ -3,6 +3,9 @@
 import requests
 import os
 import json
+#import configparser
+import ConfigParser
+
 
 rs = requests.Session()
 
@@ -188,19 +191,23 @@ def auth_cert():
         return cert
 
 def make_poms_call(**kwargs):
+    #config = configparser.ConfigParser()
+    config = ConfigParser.ConfigParser()
+    config.read('client.cfg')
     method = kwargs.get("method")
     del kwargs["method"]
     test_client=kwargs.get("test_client")
 
     if kwargs.get("test"):
-        base='http://fermicloud045.fnal.gov:8080/poms/'
+        #base= ['url']['base_dev']
+        base=config.get('url','base_dev')
         del kwargs["test"]
     elif test_client:
-        #base='http://pomsgpvm01.fnal.gov:8080/poms/'
-        #base='http://localhost:8888/poms/'
-        base='https://fermicloud045.fnal.gov:8443/poms/'
+        #base=config['url']['base_dev_ssl']
+        base=config.get('url','base_dev_ssl')
     else:
-        base='http://pomsgpvm01.fnal.gov:8080/poms/'
+        #base=config['url']['base_prod']
+        base=config.get('url','base_prod')
 
 
     for k in kwargs.keys():
@@ -216,9 +223,10 @@ def make_poms_call(**kwargs):
     res = c.text
     status_code = c.status_code
     c.close()
-    print "\n\nres =", res
+    #print "\n\nres =", res
     print "status_code", status_code
     return res, status_code
+    #return status_code
 
 
 if __name__ == '__main__':
