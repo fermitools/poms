@@ -42,8 +42,12 @@ def launch_template_edit(action = None, launch_name = None, launch_host = None, 
     ae_launch_name = launch_name
     ae_launch_host  = launch_host
     ae_launch_account = user_account
-    ae_launch_setup = launch_setup
     experiment = experiment
+    #ae_launch_setup = launch_setup
+    for arg_setup in launch_setup
+        ae_launch_setup= str(arg_setup)+" "
+    print "The ae_launch_setup is: ", ae_launch_setup
+
     #pc_email = pc_email #no useing pc_username
 
     if experiment == None or pc_username == None:
