@@ -9,3 +9,4 @@ Action = setup
    SetupEnv()
    PathPrepend(PATH, ${UPS_PROD_DIR}/bin)
    PathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/python)
+   SetupRequired(python_request)

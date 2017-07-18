@@ -500,7 +500,6 @@ class CampaignsPOMS():
         pdot.wait()
         return bytes(text,encoding="utf-8")
 
-    @pomscache.cache_on_arguments()
     def show_campaigns(self, dbhandle, samhandle,  campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag = None):
 
         tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
