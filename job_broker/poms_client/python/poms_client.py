@@ -134,6 +134,14 @@ def campaign_definition_edit(output_file_patterns, launch_script,
 
     ae_output_file_patterns = output_file_patterns
     ae_launch_script = launch_script
+    if launch_script != None:
+        ae_launch_script=""
+        for arg_setup in launch_script:
+                ae_launch_script= ae_launch_script+str(arg_setup)+" "
+        #print "The ae_launch_setup is: ", ae_launch_setup
+    else:
+        ae_launch_script = launch_script
+
     ae_definition_parameters= json.dumps(def_parameter)
     data, status_code = make_poms_call(pcl_call=1,
                             method = method,
