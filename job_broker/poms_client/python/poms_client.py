@@ -166,6 +166,24 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
                     ae_completion_type, ae_completion_pct, ae_param_overrides,
                     ae_depends, ae_launch_name, ae_campaign_definition, test_client):
     method="campaign_edit"
+    print "#"*10
+    print ae_param_overrides
+    if ae_param_overrides:
+        param_temp=""
+        for arg_param in ae_param_overrides:
+                param_temp= param_temp+str(arg_param)+" "
+        ae_param_overrides=str(param_temp)
+        try:
+            json.dumps(ae_param_overrides)
+        except:
+            print "please use the right json format for the parameters"
+        '''
+        print "#"*10
+        print "type", type(ae_param_overrides)
+        print "The ae_param_overrides is: ", ae_param_overrides 
+        '''
+    else:
+        print "conserving params, not override anything."
     data, status_code = make_poms_call(pcl_call=1,
                             method=method,
                             action=action,
@@ -198,8 +216,8 @@ def auth_cert():
             if cert and key: cert =(cert,key)
         '''
         if not cert:
-            #proxypath = '/tmp/x509up_u%d' % os.getuid()
-            proxypath = "/tmp/x509up_u50765"
+            proxypath = '/tmp/x509up_u%d' % os.getuid()
+            #proxypath = "/tmp/x509up_u50765"
             if os.path.exists(proxypath):
                 cert=proxypath
         if not cert:
