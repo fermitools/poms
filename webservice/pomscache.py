@@ -5,7 +5,6 @@ pomscache = make_region(
    function_key_generator = kwarg_function_key_generator
 ).configure(
    "dogpile.cache.dbm",
-   rw_lockfile = False,
    arguments = {
       "filename": "/tmp/poms_dogpile_cache",
       "rw_lockfile": False,
