@@ -199,7 +199,9 @@ class SessionTool(cherrypy.Tool):
     def finalize_session(self):
         # file session save complains if session isn't locked?!?
         # so re-lock it on the way out(?)
-        cherrypy.session.acquire_lock()
+        # mengel -- turning off for RAM sesions
+        #cherrypy.session.acquire_lock()
+        pass
 
     def establish_session(self):
 
@@ -266,7 +268,8 @@ class SessionTool(cherrypy.Tool):
                                                                e[0].first_name, e[0].last_name, e[0].username, exps, e[0].session_experiment, **extra)
 
         cherrypy.session.save()
-        cherrypy.session.release_lock()
+        # in ram sessions, save releases the lock...
+        # cherrypy.session.release_lock()
 
         cherrypy.request.db.query(Experimenter).filter(Experimenter.username == username).update({'last_login': datetime.now(utc)})
         cherrypy.request.db.commit()
