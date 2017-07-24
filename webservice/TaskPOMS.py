@@ -153,7 +153,7 @@ class TaskPOMS:
         n_project = 0
         n_located = 0
         # try with joinedload()...
-        for task in (dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot)
+        for task in (dbhandle.query(Task).with_for_update(of=Task, read=True).join(CampaignSnapshot)
                      .options(joinedload(Task.jobs))
                      .options(joinedload(Task.campaign_snap_obj))
                      .options(joinedload(Task.campaign_definition_snap_obj))
@@ -182,7 +182,7 @@ class TaskPOMS:
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
 
-        for task in (dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot)
+        for task in (dbhandle.query(Task).with_for_update(of=Task,read=True).join(CampaignSnapshot)
                      .options(joinedload(Task.jobs))
                      .options(contains_eager(Task.campaign_snap_obj))
                      .options(joinedload(Task.campaign_definition_snap_obj))

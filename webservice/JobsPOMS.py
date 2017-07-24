@@ -211,7 +211,7 @@ class JobsPOMS(object):
 
         # host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
 
-        jl = (dbhandle.query(Job).with_for_update(of=Job)
+        jl = (dbhandle.query(Job).with_for_update(of=Job, read=True)
               .options(joinedload(Job.task_obj)).filter(Job.jobsub_job_id == jobsub_job_id).order_by(Job.job_id).execution_options(stream_results=True).all())
         first = True
         j = None
