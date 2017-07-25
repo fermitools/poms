@@ -25,9 +25,9 @@ def logstartstop(function):
 # log(ERROR, "your message here")
 def log(*args):
     if len(args) == 1:
-        __logmess(INFO,args[0])
+        __logmess(INFO,args[0][:4095])
     else:
-        __logmess(args[0],args[1])
+        __logmess(args[0],args[1][:4095])
 
 
 def setlevel(level="INFO", loggers=["cherrypy.error", "cherrypy.access", "sqlalchemy.engine"]):
@@ -44,7 +44,7 @@ def __logmess(level=INFO, message="message not supplied to logit.__logmess",da_f
     source = calframe[da_frame][1]
     source = source[source.rfind('/')+1:]
     source = "%s.%s" % (source[:source.rfind('.')],calframe[1][3])
-    logger.log(__getlevel(level), "%s: %s" % (source, message) )
+    logger.log(__getlevel(level), ("%s: %s" % (source, message))[:4095] )
 
 
 def __getlevel(level):
