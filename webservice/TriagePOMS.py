@@ -271,7 +271,11 @@ class TriagePOMS(object):
 
         user_exe_exit_code = kwargs.get('user_exe_exit_code')
         if user_exe_exit_code:
-            q = q.filter(Job.user_exe_exit_code == int(user_exe_exit_code))
+            if kwargs.get('user_exe_exit_code','') == 'None':
+                searchval = None
+            else:
+                searchval = int(user_exe_exit_code)
+            q = q.filter(Job.user_exe_exit_code == searchval )
             extra = extra + "with exit code %s" % user_exe_exit_code
             filtered_fields['user_exe_exit_code'] = user_exe_exit_code
 
