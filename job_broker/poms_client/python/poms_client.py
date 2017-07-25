@@ -42,8 +42,16 @@ def launch_template_edit(action = None, launch_name = None, launch_host = None, 
     ae_launch_name = launch_name
     ae_launch_host  = launch_host
     ae_launch_account = user_account
-    ae_launch_setup = launch_setup
     experiment = experiment
+    #ae_launch_setup = launch_setup
+    if launch_setup != None:
+        ae_launch_setup=""
+        for arg_setup in launch_setup:
+                ae_launch_setup= ae_launch_setup+str(arg_setup)+" "
+        print "The ae_launch_setup is: ", ae_launch_setup
+    else:
+        ae_launch_setup = launch_setup
+
     #pc_email = pc_email #no useing pc_username
 
     if experiment == None or pc_username == None:
@@ -67,7 +75,7 @@ def launch_template_edit(action = None, launch_name = None, launch_host = None, 
         if action == 'add':
             if ae_launch_name == None or ae_launch_host == None or ae_launch_account == None or ae_launch_setup == None:
                 print "Your should provide the launch_name in order to add name, launch_host, user_account, launch_setup. \n\
-                        Curently you provide name ="+str(ae_launch_name)+",launch_host="+str(ae_launch_host)+", user_account="+str(ae_launch_account)+", launch_setup="+str(ae_launch_setup)+"."
+                        Curently you provide launch_name="+str(ae_launch_name)+",launch_host="+str(ae_launch_host)+", user_account="+str(ae_launch_account)+", setup="+str(ae_launch_setup)+"."
             else:
                 data, status_code  = make_poms_call(
                     pcl_call=1,
@@ -126,6 +134,14 @@ def campaign_definition_edit(output_file_patterns, launch_script,
 
     ae_output_file_patterns = output_file_patterns
     ae_launch_script = launch_script
+    if launch_script != None:
+        ae_launch_script=""
+        for arg_setup in launch_script:
+                ae_launch_script= ae_launch_script+str(arg_setup)+" "
+        #print "The ae_launch_setup is: ", ae_launch_setup
+    else:
+        ae_launch_script = launch_script
+
     ae_definition_parameters= json.dumps(def_parameter)
     data, status_code = make_poms_call(pcl_call=1,
                             method = method,
@@ -150,6 +166,24 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
                     ae_completion_type, ae_completion_pct, ae_param_overrides,
                     ae_depends, ae_launch_name, ae_campaign_definition, test_client):
     method="campaign_edit"
+    print "#"*10
+    print ae_param_overrides
+    if ae_param_overrides:
+        param_temp=""
+        for arg_param in ae_param_overrides:
+                param_temp= param_temp+str(arg_param)+" "
+        ae_param_overrides=str(param_temp)
+        try:
+            json.dumps(ae_param_overrides)
+        except:
+            print "please use the right json format for the parameters"
+        '''
+        print "#"*10
+        print "type", type(ae_param_overrides)
+        print "The ae_param_overrides is: ", ae_param_overrides 
+        '''
+    else:
+        print "conserving params, not override anything."
     data, status_code = make_poms_call(pcl_call=1,
                             method=method,
                             action=action,
@@ -182,8 +216,8 @@ def auth_cert():
             if cert and key: cert =(cert,key)
         '''
         if not cert:
-            #proxypath = '/tmp/x509up_u%d' % os.getuid()
-            proxypath = "/tmp/x509up_u50765"
+            proxypath = '/tmp/x509up_u%d' % os.getuid()
+            #proxypath = "/tmp/x509up_u50765"
             if os.path.exists(proxypath):
                 cert=proxypath
         if not cert:
@@ -205,6 +239,7 @@ def make_poms_call(**kwargs):
     elif test_client:
         #base=config['url']['base_dev_ssl']
         base=config.get('url','base_dev_ssl')
+        print "base = ", base
     else:
         #base=config['url']['base_prod']
         base=config.get('url','base_prod')
