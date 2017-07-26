@@ -79,6 +79,7 @@ class JobsPOMS(object):
         return res
 
     def update_SAM_project(self, samhandle, j, projname):
+        logit.log("Entering update_SAM_project(%s)" % projname)
         tid = j.task_obj.task_id
         exp = j.task_obj.campaign_snap_obj.experiment
         cid = j.task_obj.campaign_snap_obj.campaign_id
@@ -310,7 +311,7 @@ class JobsPOMS(object):
             # next fields we set in our Task
             for field in ['project', 'recovery_tasks_parent']:
 
-                if field == 'project' and j.task_obj.project is None:
+                if field == 'project' and j.task_obj and not j.task_obj.project:
                     # make a note to update project description after commit
                     do_SAM_project = True
 
