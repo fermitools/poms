@@ -12,11 +12,12 @@ import shelve
 from . import logit
 
 from .poms_model import Job, Task, Campaign, JobFile
-from sqlalchemy.orm import subqueryload, joinedload
-from sqlalchemy import (desc, distinct)
+from sqlalchemy.orm import subqueryload, joinedload, aliased
+from sqlalchemy import desc, distinct, func
 from .utc import utc
 from datetime import datetime,timedelta
 from .pomscache import pomscache, pomscache_10
+
 
 
 class Files_status(object):
@@ -109,7 +110,8 @@ class Files_status(object):
 
         columns = ["jobsub_jobid", "project", "date", "submit-<br>ted",
                    "deliv-<br>ered<br>SAM",
-                   "deliv-<br>ered<br> logs",
+                   "deliv-<br>ered<br>logs",
+                   "out-<br>put<br>logs",
                    "con-<br>sumed", "failed", "skipped",
                    "w/some kids<br>declared",
                    "w/all kids<br>declared",
@@ -129,13 +131,13 @@ class Files_status(object):
             pending = partpending
             logdelivered = 0
             # logwritten = 0
-            logkids = 0
+            logoutput = 0
             for j in t.jobs:
                 for f in j.job_files:
                     if f.file_type == "input":
                         logdelivered = logdelivered + 1
                     if f.file_type == "output":
-                        logkids = logkids + 1
+                        logoutput = logoutput + 1
             task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, t.task_id)
             if task_jobsub_job_id is None:
                 task_jobsub_job_id = "t%s" % t.task_id
@@ -147,6 +149,7 @@ class Files_status(object):
                             ["%d" % (psummary.get('tot_consumed', 0) + psummary.get('tot_failed', 0) + psummary.get('tot_skipped', 0)),
                              listfiles % base_dim_list[i] + " and consumed_status consumed,failed,skipped "],
                             ["%d" % logdelivered, "./list_task_logged_files?task_id=%s" % t.task_id],
+                            ["%d" % logoutput, "./list_task_logged_files?task_id=%s" % t.task_id],
                             [psummary.get('tot_consumed', 0), listfiles % base_dim_list[i] + " and consumed_status consumed"],
                             [psummary.get('tot_failed', 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
                             [psummary.get('tot_skipped', 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
@@ -302,23 +305,89 @@ class Files_status(object):
          nextlink, prevlink,
          time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s&' % campaign_id)
 
-        tl = (dbhandle.query(Task)
-              .filter(Task.campaign_id == campaign_id, Task.created > tmin, Task.created < tmax)
-              .order_by(desc(Task.created))
-              .options(joinedload(Task.jobs))
-              .all())
-
-        psl = self.poms_service.project_summary_for_tasks(tl)        # Get project summary list for a given task list in one query
-        # XXX should be based on Task create date, not job updated date..
         el = dbhandle.query(distinct(Job.user_exe_exit_code)).filter(Job.updated >= tmin, Job.updated <= tmax).all()
-        (experiment,) = dbhandle.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).one()
         exitcodes = [e[0] for e in el]
+
+        (experiment,) = dbhandle.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).one()
+
+        #
+        # get list of tasks
+        #
+        tl = (dbhandle.query(Task)
+               .filter(Task.campaign_id == campaign_id, Task.created > tmin, Task.created < tmax)
+               .order_by(Task.created)
+               .all())
+             
+        #
+        # extract list of task ids
+        #
+        tids = [t.task_id for t in tl]
+
+        #
+        # get job counts for each task, put in dict
+        #
+        tjcl = (dbhandle.query(Job.task_id, func.count(Job.job_id))
+               .filter(Job.task_id.in_(tids))
+               .group_by(Job.task_id))
+
+        tjch = dict(tjcl)
+        logit.log("job counts:"+repr(tjch))
+
+        #
+        # get job efficiency for tasks
+        #
+        tjel = (dbhandle.query(Job.task_id, func.sum(Job.wall_time), func.sum(Job.cpu_time))
+               .filter(Job.task_id.in_(tids))
+               .filter(Job.cpu_time > 0.0, Job.wall_time > 0 , Job.cpu_time < Job.wall_time * 10)
+               .group_by(Job.task_id)
+               .all())
+
+        tjcpuh = {}
+        tjwallh = {}
+        for row in tjel:
+            tjcpuh[row[0]] = row[1]
+            tjwallh[row[0]] = row[2]
+ 
+        #
+        # get input/output file counts
+        #
+        tjifl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
+                  .filter(Job.task_id.in_(tids))
+                  .filter(JobFile.job_id == Job.job_id)
+                  .filter(JobFile.file_type == "input")
+                  .group_by(Job.task_id)
+                  .all())
+
+        tjifh = dict(tjifl)
+         
+        tjofl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
+                  .filter(Job.task_id.in_(tids))
+                  .filter(JobFile.job_id == Job.job_id)
+                  .filter(JobFile.file_type == "output")
+                  .group_by(Job.task_id)
+                  .all())
+
+        tjofh = dict(tjofl)
+
+        #
+        # get exit code counts 
+        #
+        ecc = {}
+        for e in exitcodes:
+            tjel = (dbhandle.query(Job.task_id, func.count(Job.job_id))
+               .filter(Job.task_id.in_(tids))
+               .filter(Job.user_exe_exit_code == e)
+               .group_by(Job.task_id)
+               .all())
+            ecc[e] = dict(tjel)
+
+        psl = self.poms_service.project_summary_for_tasks(tl)        # Get project summary list for a given task list in one parallel batch
 
         logit.log("got exitcodes: " + repr(exitcodes))
         day = -1
         date = None
         first = 1
-        columns = ['day', 'date', 'requested files', 'delivered files', 'jobs', 'failed', 'outfiles', 'pending', 'efficiency%']
+        columns = ['day', 'date', 'requested files', 'delivered files', 'input<br>files','jobs', 'output<br>files', 'pending', 'efficiency%']
         exitcodes.sort(key=(lambda x:  x if x else -1))
         for e in exitcodes:
             if e is not None:
@@ -331,7 +400,6 @@ class Files_status(object):
         totfiles = 0
         totdfiles = 0
         totjobs = 0
-        totjobfails = 0
         outfiles = 0
         infiles = 0
         # pendfiles = 0
@@ -349,23 +417,23 @@ class Files_status(object):
                     outrow.append(date.isoformat()[:10])
                     outrow.append(str(totfiles if totfiles > 0 else infiles))
                     outrow.append(str(totdfiles))
+                    outrow.append(str(infiles))
                     outrow.append(str(totjobs))
-                    outrow.append(str(totjobfails))
                     outrow.append(str(outfiles))
-                    outrow.append("")  # we will get pending counts in a minute
+                    outrow.append("...")  # we will get pending counts in a minute
                     if totwall == 0.0 or totcpu == 0.0:     # totcpu undefined
-                        outrow.append("-")
+                        outrow.append(-1)
                     else:
-                        outrow.append(str(int(totcpu * 100.0 / totwall)))   # totcpu undefined
+                        outrow.append(int(totcpu * 100.0 / totwall))   # totcpu undefined
                     for e in exitcodes:
                         outrow.append(exitcounts[e])
+
                     outrows.append(outrow)
                 # clear counters for next days worth
                 first = 0
                 totfiles = 0
                 totdfiles = 0
                 totjobs = 0
-                totjobfails = 0
                 outfiles = 0
                 infiles = 0
                 totcpu = 0.0
@@ -382,25 +450,24 @@ class Files_status(object):
             if ps:
                 totdfiles += ps.get('tot_consumed', 0) + ps.get('tot_failed', 0)
                 totfiles += ps.get('files_in_snapshot', 0)
-                totjobfails += ps.get('tot_jobfails', 0)
 
-            totjobs += len(task.jobs)
+            if tjch.get(task.task_id,None):
+                totjobs += tjch[task.task_id]
 
-            for job in list(task.jobs):
+            if tjcpuh.get(task.task_id,None) and tjwallh.get(task.task_id,None):
+                totwall += tjwallh[task.task_id]
+                totcpu += tjcpuh[task.task_id]
 
-                if job.cpu_time and job.wall_time and job.cpu_time > 0 and job.wall_time > 0 and job.wall_time < job.cpu_time * 10:
-                    totcpu += job.cpu_time
-                    totwall += job.wall_time
+            if tjofh.get(task.task_id,None):
+                outfiles +=tjofh[task.task_id]
 
-                exitcounts[job.user_exe_exit_code] = exitcounts.get(job.user_exe_exit_code, 0) + 1
-                if job.job_files:
-                    nout = len(job.job_files)
-                    outfiles += nout
+            if tjifh.get(task.task_id,None):
+                infiles += tjifh[task.task_id]
 
-                if job.job_files:
-                    nin = len([x for x in job.job_files if x.file_type == "input"])
-                    infiles += nin
-        # end 'for'
+            for i, e in enumerate(exitcodes):
+                if ecc.get(e,None) and ecc[e].get(task.task_id,None):
+                    exitcounts[e] += ecc[e][task.task_id]
+
         # we *should* add another row here for the last set of totals, but
         # initially we just added a day to the query range, so we compute a row of totals we don't use..
         # --- but that doesn't work on new projects...
@@ -414,12 +481,12 @@ class Files_status(object):
             outrow.append('')
         outrow.append(str(totfiles if totfiles > 0 else infiles))
         outrow.append(str(totdfiles))
+        outrow.append(str(infiles))
         outrow.append(str(totjobs))
-        outrow.append(str(totjobfails))
         outrow.append(str(outfiles))
-        outrow.append("")   # we will get pending counts in a minute
+        outrow.append("...")   # we will get pending counts in a minute
         if totwall == 0.0 or totcpu == 0.0:
-            outrow.append("-")
+            outrow.append(-1)
         else:
             outrow.append(str(int(totcpu * 100.0 / totwall)))
         for e in exitcodes:
@@ -427,12 +494,14 @@ class Files_status(object):
         outrows.append(outrow)
 
         #
+        # --stubbed out , page template will make AJAX call to do this
         # get pending counts for the task list for each day
         # and fill in the 7th column...
         #
-        dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_task_lists(dbhandle, samhandle, daytasks)
-        for i in range(len(pendings)):
-            outrows[i][7] = pendings[i]
+        dimlist = []
+        #dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_task_lists(dbhandle, samhandle, daytasks)
+        #for i in range(len(pendings)):
+        #    outrows[i][7] = pendings[i]
 
         if tl and tl[0]:
             name = tl[0].campaign_snap_obj.name

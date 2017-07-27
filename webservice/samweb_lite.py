@@ -243,7 +243,7 @@ class samweb_lite:
         """
         """
         def getit(req, url):
-            retries = 5
+            retries = 2
             r = req.get(url)
             while r and r.status_code >= 500 and retries > 0:
                 time.sleep(5)
