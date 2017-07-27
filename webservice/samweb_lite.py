@@ -304,23 +304,7 @@ class samweb_lite:
 
 if __name__ == "__main__":
     requests.packages.urllib3.disable_warnings()
-    stuff=[
-	[20121,"uboonepro_electron_lifetime_uBooNE_keepup_2016102008_20161020101208"],
-	[20162,"uboonepro_electron_lifetime_uBooNE_keepup_2016102110_20161021121113"],
-	[20127,"uboonepro_electron_lifetime_uBooNE_keepup_2016102016_20161020181030"],
-	[30332,"uboonepro_electron_lifetime_uBooNE_keepup_2017052906_20170529081057"],
-	[20228,"uboonepro_electron_lifetime_uBooNE_keepup_2016102418_20161024201030"],
-	[20128,"uboonepro_electron_lifetime_uBooNE_keepup_2016102018_20161020201043"],
-	[20124,"uboonepro_electron_lifetime_uBooNE_keepup_2016102010_20161020121038"],
-	[20129,"uboonepro_electron_lifetime_uBooNE_keepup_2016102020_20161020221041"],
-	[30333,"uboonepro_electron_lifetime_uBooNE_keepup_2017052908_20170529101053"],
-	[20229,"uboonepro_electron_lifetime_uBooNE_keepup_2016102420_20161024221038"],
-    ]
-    sl = samweb_lite()
-    for tid, project in stuff:
-        sl.update_project_description("uboone", project, "POMS Campaign 42 Task %d" % tid)
 
-    sys.exit(0)
     import pprint
     sl = samweb_lite()
     r1 = sl.update_project_description("samdev", "mengel-fife_wrap_20170701_102228_3860387", "test_1234")

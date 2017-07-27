@@ -43,13 +43,11 @@ class Files_status(object):
                                                                        'campaign_task_files?campaign_id=%s&' % campaign_id)
         # inhale all the campaign related task info for the time window
         # in one fell swoop
-        tl = (dbhandle.query(Task).
-              options(joinedload(Task.campaign_snap_obj)).
-              options(joinedload(Task.campaign_snap_obj)).
-              options(joinedload(Task.jobs).joinedload(Job.job_files)).
-              filter(Task.campaign_id == campaign_id,
-                     Task.created >= tmin, Task.created < tmax).all()
-              )
+        tl = (dbhandle.query(Task)
+              .options(joinedload(Task.campaign_snap_obj))
+              .filter(Task.campaign_id == campaign_id,
+                     Task.created >= tmin, Task.created < tmax)
+              .all())
         #
         # either get the campaign obj from above, or if we didn't
         # find any tasks in that window, look it up
@@ -94,11 +92,6 @@ class Files_status(object):
                                   (allkiddecldims, pat, t.campaign_snap_obj.software_version))
             all_kids_needed.append(allkiddims)
             all_kids_decl_needed.append(allkiddecldims)
-            logoutfiles = []
-            for j in t.jobs:
-                for f in j.job_files:
-                    if f.file_type == "output":
-                        logoutfiles.append(f.file_name)
         #
         # -- now call parallel fetches for items
         #samhandle = cherrypy.request.samweb_lite ####IMPORTANT
@@ -107,6 +100,29 @@ class Files_status(object):
         some_kids_decl_list = samhandle.count_files_list(c.experiment, some_kids_decl_needed)
         all_kids_decl_list = samhandle.count_files_list(c.experiment, all_kids_decl_needed)
         # all_kids_list = samhandle.count_files_list(c.experiment, all_kids_needed)
+        tids = [t.task_id for t in tl]
+
+        #
+        # get input/output file counts
+        #
+        tjifl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
+                  .filter(Job.task_id.in_(tids))
+                  .filter(JobFile.job_id == Job.job_id)
+                  .filter(JobFile.file_type == "input")
+                  .group_by(Job.task_id)
+                  .all())
+
+        tjifh = dict(tjifl)
+         
+        tjofl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
+                  .filter(Job.task_id.in_(tids))
+                  .filter(JobFile.job_id == Job.job_id)
+                  .filter(JobFile.file_type == "output")
+                  .group_by(Job.task_id)
+                  .all())
+
+        tjofh = dict(tjofl)
+
 
         columns = ["jobsub_jobid", "project", "date", "submit-<br>ted",
                    "deliv-<br>ered<br>SAM",
@@ -119,6 +135,7 @@ class Files_status(object):
                    "w/kids<br>located",
                    "pending"]
 
+
         listfiles = "show_dimension_files?experiment=%s&dims=%%s" % c.experiment
         datarows = []
         i = -1
@@ -129,15 +146,9 @@ class Files_status(object):
             partpending = psummary.get('files_in_snapshot', 0) - some_kids_list[i]
             #pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
             pending = partpending
-            logdelivered = 0
-            # logwritten = 0
-            logoutput = 0
-            for j in t.jobs:
-                for f in j.job_files:
-                    if f.file_type == "input":
-                        logdelivered = logdelivered + 1
-                    if f.file_type == "output":
-                        logoutput = logoutput + 1
+            logdelivered = tjifh.get(t.task_id,0)
+            logoutput = tjofh.get(t.task_id,0)
+
             task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, t.task_id)
             if task_jobsub_job_id is None:
                 task_jobsub_job_id = "t%s" % t.task_id
@@ -161,10 +172,6 @@ class Files_status(object):
                             [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                             ])
         return c, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
-
-            ###I didn't include tdays, campaign_id, because it was passed as an argument, should I?????
-            #DELETE template = self.jinja_env.get_template('campaign_task_files.html')
-            #DELETE return template.render(name = c.name if c else "", columns = columns, datarows = datarows, tmin=tmins, tmax=tmaxs,  prev=prevlink, next=nextlink, days=tdays, current_experimenter=cherrypy.session.get('experimenter'),  campaign_id = campaign_id, pomspath=self.path,help_page="CampaignTaskFilesHelp", version=self.version)
 
 
     def job_file_list(self, dbhandle, jobhandle, job_id, force_reload=False):   # Should this funcion be here or at the main script ????

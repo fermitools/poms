@@ -102,9 +102,12 @@ class JobsPOMS(object):
 
         # figure out what tasks are involved
         foundtasks = {}
+        updateproj = {}
         for jid, d in list(data.items()):
-            if d['task_id']:
+            if d.get('task_id',None):
                 foundtasks[int(d['task_id'])] = 1
+                if d.get('task_project',None):
+                    updateproj[d['task_id']] = d['task_project']
 
         logit.log("found task ids for %s" % ",".join(map(str, list(foundtasks.keys()))))
 
@@ -202,6 +205,15 @@ class JobsPOMS(object):
                     t.campaign_obj.active = True
 
         dbhandle.commit()
+
+        for t in list(fulltasks.values()):
+            if updatproj.get(t.task_id,None):
+                updateproj[d['task_id']] = d['task_project']
+                tid = t.task_id
+                exp = t.campaign_snap_obj.experiment
+                cid = t.campaign_snap_obj.campaign_id
+                samhandle.update_project_description(exp, updateproj[t.task_id], "POMS Campaign %s Task %s" % (cid, tid))
+
         logit.log("Exiting bulk_update_job()")
         return "Ok."
 
@@ -316,10 +328,6 @@ class JobsPOMS(object):
 
             # next fields we set in our Task
             for field in ['project', 'recovery_tasks_parent']:
-
-                if field == 'project' and j.task_obj and not j.task_obj.project:
-                    # make a note to update project description after commit
-                    do_SAM_project = True
 
                 if kwargs.get("task_%s" % field, None) and kwargs.get("task_%s" % field) != "None" and j.task_obj:
                     setattr(j.task_obj, field, str(kwargs["task_%s" % field]).rstrip("\n"))
