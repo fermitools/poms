@@ -160,6 +160,9 @@ class JobsPOMS(object):
             else:
                 pass
 
+        dbhandle.commit()
+        dbhandle.begin()
+
         # move the locked portion as small as possible
         # lock each job, in ascending order before doing the update_job work
 
@@ -170,19 +173,22 @@ class JobsPOMS(object):
                 dbhandle.rollback()
                 dbhandle.begin()
             retrylist = []
-            for j in jlist:
+            try:
+                #
+                #
+                #
+                for j in jlist:
 
-                #dbhandle.begin_nested()
-                
-                try:
                     dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == j.jobsub_job_id).first()
                     self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
-                    #dbhandle.commit()
-                except OperationalError as e:
-                    retrylist.append(j)
-                    #dbhandle.rollback()
+            except OperationalError as e:
+                retrylist.append(j)
+
             if len(retrylist) == 0:
                 break
+
+        dbhandle.commit()
+        dbhandle.begin()
 
         # update any related tasks status if changed
         for t in list(fulltasks.values()):
