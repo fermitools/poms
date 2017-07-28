@@ -107,12 +107,15 @@ class JobsPOMS(object):
         tids_present = set()
         for r in ldata:   # make field level dictionaries
             for field, value in r.items():
-                if field == 'task_id':
-                   tids_wanted.add(value)
-        tids_present.update(dbhandle.query(Task.task_id).filter(Task.task_id.in_(tids_wanted)))
+                if field == 'task_id' and value:
+                   tids_wanted.add(int(value))
+
+        tids_present.update([x[0] for x in dbhandle.query(Task.task_id).filter(Task.task_id.in_(tids_wanted))])
                     
+        jjid2tid = {}
+        logit.log("bulk_update_job == tids=%s" % repr(tids_present))
         for r in ldata:   # make field level dictionaries
-            if not r['task_id'] in tids_present:
+            if not r['task_id'] or not int(r['task_id']) in tids_present:
                 continue
             for field, value in r.items():
                 if field == 'task_id':
@@ -128,7 +131,7 @@ class JobsPOMS(object):
 
         logit.log(" bulk_update_job: ldata1")
         for r in ldata: # make lists for [field][value] pairs
-            if not r['task_id'] in tids_present:
+            if not int(r['task_id']) in tids_present:
                 continue
             for field, value in r.items():
                 if field == 'task_id':
@@ -144,7 +147,7 @@ class JobsPOMS(object):
         logit.log(" bulk_update_job: ldata2")
 
         for r in ldata: # put jobids in lists
-            if not r['task_id'] in tids_present:
+            if not int(r['task_id']) in tids_present:
                 continue
             for field, value in r.items():
                 if field == 'task_id':
@@ -152,9 +155,9 @@ class JobsPOMS(object):
                 elif field in ("inputfiles","outputfiles"):
                     pass
                 elif field.startswith("task_"):
-                    task_updates[field[5:]][value].append(jjid_2tid[r['jobsub_job_id']])
+                    task_updates[field[5:]][value].append(jjid2tid[r['jobsub_job_id']])
                 else:
-                    job_updates[field][value].append(jjid_2tid[r['jobsub_job_id']])
+                    job_updates[field][value].append(r['jobsub_job_id'])
 
         logit.log(" bulk_update_job: ldata3")
         logit.log(" bulk_update_job: job_updates %s" % repr(job_updates))
@@ -162,23 +165,28 @@ class JobsPOMS(object):
         #
         # figure out what jobs we need to add/update
         #
-        update_jobids = set()
+        update_jobsub_job_ids = set()
         have_jobids = set()  
-        update_jobids.update(job_updates.get('jobsub_job_id',{}).keys())
+        update_jobsub_job_ids.update(job_updates.get('jobsub_job_id',{}).keys())
 
-        if 0 == len(update_jobids):
+        if 0 == len(update_jobsub_job_ids):
             logit.log(" bulk_update_job: no actionable items, returning")
             return
 
+        # don't need to uptdate jobsub_job_id, its how we find it...
         if job_updates.get('jobsub_job_id',None):
             del job_updates['jobsub_job_id']
+ 
+        # currently ignoring "slot" updates -- don't know where to put them
+        if job_updates.get('slot',None):
+            del job_updates['slot']
 
-        have_jobids.update( 
-            dbhandle.query(Job.jobsub_jobid)
-                .filter(Job.jobsub_jobid.in_(update_jobids))
-                .all())
+        have_jobids.update( [x[0] for x in
+            dbhandle.query(Job.jobsub_job_id)
+                .filter(Job.jobsub_job_id.in_(update_jobsub_job_ids))
+                .all()])
         
-        add_jobids = update_jobids - have_jobids
+        add_jobsub_job_ids = update_jobsub_job_ids - have_jobids
 
         logit.log(" bulk_update_job: ldata4")
         # now insert initial rows
@@ -189,10 +197,12 @@ class JobsPOMS(object):
                     node_name = 'unknown',
                     cpu_type = 'unknown',
                     host_site = 'unknown',
+                    updated = datetime.now(utc),
+                    created = datetime.now(utc),
                     status = 'New',
                     output_files_declared = False
                )
-               for jobsub_job_id in add_jobids]
+               for jobsub_job_id in add_jobsub_job_ids]
            )
         
         dbhandle.commit()
@@ -204,11 +214,11 @@ class JobsPOMS(object):
         for field in job_updates.keys():
             for value in job_updates[field].keys():
                 (dbhandle.query(Job)
-                   .filter(jobsub_job_id.in_(job_updates[field][value]))
-                   .update( { field: value } ))
+                   .filter(Job.jobsub_job_id.in_(job_updates[field][value]))
+                   .update( {field: value}, synchronize_session = False ))
         
         task_ids = set()
-        task_ids.update(jjid2tid.values())
+        task_ids.update([int(x) for x in jjid2tid.values()])
 
         #
         # make a list of tasks which don't have projects set yet
@@ -224,8 +234,8 @@ class JobsPOMS(object):
         for field in task_updates.keys():
             for value in task_updates[field].keys():
                 (dbhandle.query(Task)
-                   .filter(task_id.in_(task_updates[field][value]))
-                   .update( { field: value } ))
+                   .filter(Task.task_id.in_(task_updates[field][value]))
+                   .update( { field: value } , synchronize_session = False ))
         
         dbhandle.commit()
 
