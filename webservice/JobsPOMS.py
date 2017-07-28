@@ -256,7 +256,7 @@ class JobsPOMS(object):
 
         jidmap = dict( dbhandle.query(Job.jobsub_job_id, Job.job_id).filter(Job.jobsub_job_id.in_(job_file_jobs)))
 
-        dbhandle.bulk_insert_mappings(JobFiles, [
+        dbhandle.bulk_insert_mappings(JobFile, [
              dict( job_id = jidmap[r[0]],
                    file_type = r[1],
                    file_name = r[2],
@@ -414,7 +414,7 @@ class JobsPOMS(object):
                     if (isinstance(kwargs[field], float)):
                         setattr(j, field, kwargs[field])
 
-            # filenames need dumping in JobFiles table and attaching
+            # filenames need dumping in JobFile table and attaching
             if kwargs.get('output_file_names', None):
                 logit.log("saw output_file_names: %s" % kwargs['output_file_names'])
                 if j.job_files:
