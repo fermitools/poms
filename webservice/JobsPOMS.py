@@ -164,7 +164,7 @@ class JobsPOMS(object):
                 pass
 
         dbhandle.commit()
-        dbhandle.begin()
+        #dbhandle.begin()
 
         # move the locked portion as small as possible
         # lock each job, in ascending order before doing the update_job work
@@ -174,7 +174,7 @@ class JobsPOMS(object):
         for i in range(3):
             if i > 0:
                 dbhandle.rollback()
-                dbhandle.begin()
+                #dbhandle.begin()
             retrylist = []
             try:
                 #
@@ -191,7 +191,7 @@ class JobsPOMS(object):
                 break
 
         dbhandle.commit()
-        dbhandle.begin()
+        #dbhandle.begin()
 
         # update any related tasks status if changed
         for t in list(fulltasks.values()):
