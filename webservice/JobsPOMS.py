@@ -92,109 +92,123 @@ class JobsPOMS(object):
         ldata = json.loads(json_data)
         del json_data
 
-        # make one merged entry per job_id
-        data = {}
-        for d in ldata:
-            data["%s" % d['jobsub_job_id']] = {}
+        #
+        # build maps[field][value] = [list-of-ids] for tasks, jobs
+        # from the data passed in 
+        #
+        task_updates = {}
+        job_updates = {}
+        new_files = []
+        
+        for r in ldata:   # make field level dictionaries
+            for field in r:
+                if field.startswith("task_"):
+                    task_updates[field[5:]] = {}
+                else:
+                    job_updates[field] = {}
 
-        for d in ldata:
-            data[d['jobsub_job_id']].update(d)
+        job_file_jobs = set()
 
-        # figure out what tasks are involved
-        foundtasks = {}
-        updateproj = {}
-        for jid, d in list(data.items()):
-            if d.get('task_id',None):
-                foundtasks[int(d['task_id'])] = 1
-                if d.get('task_project',None):
-                    updateproj[d['task_id']] = d['task_project']
+        for r in ldata: # make lists for [field][value] pairs
+            for field, value in r.items():
+                if field == 'task_id':
+                    jjid2tid[r['jobsub_job_id']] = value
+                elif field in ("inputfiles","outputfiles"):
+                    newfiles = newfiles + [{ r['jobsub_job_id'], field.replace("files",""), f} for f in value.split(' ')]
+                    job_file_jobs.add(r['jobsub_job_id'])
+                elif field.startswith("task_"):
+                    task_updates[field[5:]][value] = []
+                else:
+                    job_updates[field][value] = []
+         
+        for r in ldata: # put jobids in lists
+            for field, value in r.items():
+                if field == 'task_id':
+                    pass
+                elif field in ("inputfiles","outputfiles"):
+                    pass
+                elif field.startswith("task_"):
+                    task_updates[field[5:]][value].append(jjid_2tid[r['jobsub_job_id']])
+                else:
+                    job_updates[field][value].append(jjid_2tid[r['jobsub_job_id']])
 
-        logit.log("found task ids for %s" % ",".join(map(str, list(foundtasks.keys()))))
+        #
+        # figure out what jobs we need to add/update
+        #
+        update_jobids = set()
+        have_jobids = set()  
+        update_jobids.update(job_updates['jobsub_job_id'].keys())
+        del job_updates['jobsub_job_id']
 
-        # get the tasks we have that are mentioned -- do it *before* we take
-        # for update locks
-        if len(foundtasks) > 0:
-            tasks = dbhandle.query(Task).filter(Task.task_id.in_(list(foundtasks.keys()))).all()
-        else:
-            tasks = []
+        have_jobids.update( 
+            dbhandle.query(Job.jobsub_jobid)
+                .filter(Job.jobsub_jobid.in_(update_jobids))
+                .all())
+        
+        add_jobids = update_jobids - have_jobids
 
-        fulltasks = {}
-        for t in tasks:
-            fulltasks[int(t.task_id)] = t
-
-        logit.log("found full tasks for %s" % ",".join(map(str, list(fulltasks.keys()))))
-        # trying just locking the whole table, 'cause we're waiting around
-        # for row locks...
-        # -- mengel 
-        #dbhandle.execute("lock table jobs in share mode")
-        # -- sigh. Seems to do worse..
-
-        # lookup what job-id's we already have database entries for
-        jobs = dbhandle.query(Job).filter(Job.jobsub_job_id.in_(list(data.keys()))).execution_options(stream_results=True).all()
-
-        # make a list of jobs we can update
-        jlist = []
-        foundjobs = {}
-        for j in jobs:
-            foundjobs["%s"%j.jobsub_job_id] = j
-            jlist.append(j)
-            # mengel -- do we need:
-            #if not fulltasks.get(j.task_id, None):
-            #    fulltasks[int(j.task_id)] = j.task_obj
-
-
-        # now look for jobs for which  we don't have Job ORM entries, but
-        # whose Tasks we do have entries for, and make new Job entries for
-        # them.
-        for jid in list(data.keys()):
-            if not foundjobs.get(jid, None) and 'task_id' in data[jid] and data[jid]['task_id'] and fulltasks.get(int(data[jid]['task_id']), None):
-                logit.log("need new Job for %s" % jid)
-                j = Job(jobsub_job_id=jid,
-                        task_obj=fulltasks[int(data[jid]['task_id'])],
-                        output_files_declared=False,
-                        node_name='unknown', cpu_type='unknown', host_site='unknown', status='Idle')
-                j.created = datetime.now(utc)
-                j.updated = datetime.now(utc)
-                jlist.append(j)
-                dbhandle.add(j)
-                logit.log("Adding new Job for %s, task %s" % (jid, data[jid]['task_id']))
-            elif not foundjobs.get(jid, 0):
-                logit.log("need new Job for %s, but no task %s" % (jid, data[jid]['task_id']))
-            else:
-                pass
-
+        # now insert initial rows
+       
+        dbhandle.bulk_insert_mappings(Job, [
+              dict( jobsub_job_id = jobsub_job_id,
+                    task_id = jjid2tid[jobsub_job_id],
+                    node_name = 'unknown',
+                    cpu_type = 'unknown',
+                    host_site = 'unknown',
+                    status = 'New',
+                    output_files_declared = False
+               )
+               for jobsub_job_id in add_jobids]
+           )
+        
         dbhandle.commit()
-        dbhandle.begin()
 
-        # move the locked portion as small as possible
-        # lock each job, in ascending order before doing the update_job work
+        # now update fields            
+        
+        for field in job_updates.keys():
+            for value in job_updates[field].keys():
+                (dbhandle.query(Job)
+                   .filter(jobsub_job_id.in_(job_updates[field][value])
+                   .update( { field: value } ))
+        
+        task_ids = set().update(jjid2tid.values())
 
-        jlist.sort(key=lambda x:x.jobsub_job_id)
+        #
+        # make a list of tasks which don't have projects set yet
+        # to update after we do the batch below
+        #
+        fix_task_ids = (dbhandle.query(Task.task_id)
+                .filter(Task.task_id.in_(task_ids))
+                .filter(Task.project == None)
+                .all())
 
-        for i in range(3):
-            if i > 0:
-                dbhandle.rollback()
-                dbhandle.begin()
-            retrylist = []
-            try:
-                #
-                #
-                #
-                for j in jlist:
-
-                    dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == j.jobsub_job_id).first()
-                    self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
-            except OperationalError as e:
-                retrylist.append(j)
-
-            if len(retrylist) == 0:
-                break
-
+        for field in task_updates.keys():
+            for value in task_updates[field].keys():
+                (dbhandle.query(Task)
+                   .filter(task_id.in_(task_updates[field][value]))
+                   .update( { field: value } ))
+        
         dbhandle.commit()
-        dbhandle.begin()
 
+        #
+        # now for job files, we need the job_ids for the jobsub_job_ids
+        #
+        jidmap = dict( dbhandle.query(Job.jobsub_job_id, Job.job_id).filter(jobsub_job_id.in_(job_file_jobs)))
+
+        dbhandle.bulk_insert_mappings(JobFiles, [
+             dict( job_id = jidmap[r[0]],
+                   file_type = r[1],
+                   file_name = r[2],
+                   created = datetime.now(utc),
+                   declared = False)
+             for r in newfiles]
+           )
+ 
+        #
         # update any related tasks status if changed
-        for t in list(fulltasks.values()):
+        #
+        tq = dbhandle.query(Task).filter(Task.task_id.in_(task_ids)).options(subqueryload(campaign_obj)):
+        for t in tq.all():
             newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, t)
             if newstatus != t.status:
                 logit.log("update_job: task %d status now %s" % (t.task_id, newstatus))
@@ -203,16 +217,13 @@ class JobsPOMS(object):
                 # jobs make inactive campaigns active again...
                 if t.campaign_obj.active is not True:
                     t.campaign_obj.active = True
+            if t.task_id in fix_task_ids:
+                tid = t.task_id
+                exp = t.campaign_obj.experiment
+                cid = t.campaign_id
+                samhandle.update_project_description(exp, t.project, "POMS Campaign %s Task %s" % (cid, tid))
 
         dbhandle.commit()
-
-        for t in list(fulltasks.values()):
-            if updatproj.get(t.task_id,None):
-                updateproj[d['task_id']] = d['task_project']
-                tid = t.task_id
-                exp = t.campaign_snap_obj.experiment
-                cid = t.campaign_snap_obj.campaign_id
-                samhandle.update_project_description(exp, updateproj[t.task_id], "POMS Campaign %s Task %s" % (cid, tid))
 
         logit.log("Exiting bulk_update_job()")
         return "Ok."
