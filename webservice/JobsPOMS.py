@@ -99,9 +99,26 @@ class JobsPOMS(object):
         task_updates = {}
         job_updates = {}
         new_files = []
+
+        # check for task_ids we have present in the database versus ones
+        # wanted by data.
         
+        tids_wanted = set()
+        tids_present = set()
         for r in ldata:   # make field level dictionaries
-            for field in r:
+            for field, value in r.items():
+                if field == 'task_id':
+                   tids_wanted.add(value)
+        tids_present.update(dbhandle.query(Task.task_id).filter(Task.task_id.in_(tids_wanted)))
+                    
+        for r in ldata:   # make field level dictionaries
+            if not r['task_id'] in tids_present:
+                continue
+            for field, value in r.items():
+                if field == 'task_id':
+                    jjid2tid[r['jobsub_job_id']] = value
+                elif field in ("inputfiles","outputfiles"):
+                    pass
                 if field.startswith("task_"):
                     task_updates[field[5:]] = {}
                 else:
@@ -109,10 +126,13 @@ class JobsPOMS(object):
 
         job_file_jobs = set()
 
+        logit.log(" bulk_update_job: ldata1")
         for r in ldata: # make lists for [field][value] pairs
+            if not r['task_id'] in tids_present:
+                continue
             for field, value in r.items():
                 if field == 'task_id':
-                    jjid2tid[r['jobsub_job_id']] = value
+                    pass
                 elif field in ("inputfiles","outputfiles"):
                     newfiles = newfiles + [{ r['jobsub_job_id'], field.replace("files",""), f} for f in value.split(' ')]
                     job_file_jobs.add(r['jobsub_job_id'])
@@ -121,7 +141,11 @@ class JobsPOMS(object):
                 else:
                     job_updates[field][value] = []
          
+        logit.log(" bulk_update_job: ldata2")
+
         for r in ldata: # put jobids in lists
+            if not r['task_id'] in tids_present:
+                continue
             for field, value in r.items():
                 if field == 'task_id':
                     pass
@@ -132,13 +156,22 @@ class JobsPOMS(object):
                 else:
                     job_updates[field][value].append(jjid_2tid[r['jobsub_job_id']])
 
+        logit.log(" bulk_update_job: ldata3")
+        logit.log(" bulk_update_job: job_updates %s" % repr(job_updates))
+
         #
         # figure out what jobs we need to add/update
         #
         update_jobids = set()
         have_jobids = set()  
-        update_jobids.update(job_updates['jobsub_job_id'].keys())
-        del job_updates['jobsub_job_id']
+        update_jobids.update(job_updates.get('jobsub_job_id',{}).keys())
+
+        if 0 == len(update_jobids):
+            logit.log(" bulk_update_job: no actionable items, returning")
+            return
+
+        if job_updates.get('jobsub_job_id',None):
+            del job_updates['jobsub_job_id']
 
         have_jobids.update( 
             dbhandle.query(Job.jobsub_jobid)
@@ -147,6 +180,7 @@ class JobsPOMS(object):
         
         add_jobids = update_jobids - have_jobids
 
+        logit.log(" bulk_update_job: ldata4")
         # now insert initial rows
        
         dbhandle.bulk_insert_mappings(Job, [
@@ -161,15 +195,20 @@ class JobsPOMS(object):
                for jobsub_job_id in add_jobids]
            )
         
+        dbhandle.commit()
+
+        logit.log(" bulk_update_job: ldata5")
+
         # now update fields            
         
         for field in job_updates.keys():
             for value in job_updates[field].keys():
                 (dbhandle.query(Job)
-                   .filter(jobsub_job_id.in_(job_updates[field][value])
+                   .filter(jobsub_job_id.in_(job_updates[field][value]))
                    .update( { field: value } ))
         
-        task_ids = set().update(jjid2tid.values())
+        task_ids = set()
+        task_ids.update(jjid2tid.values())
 
         #
         # make a list of tasks which don't have projects set yet
@@ -179,6 +218,8 @@ class JobsPOMS(object):
                 .filter(Task.task_id.in_(task_ids))
                 .filter(Task.project == None)
                 .all())
+
+        logit.log(" bulk_update_job: ldata6")
 
         for field in task_updates.keys():
             for value in task_updates[field].keys():
@@ -191,6 +232,8 @@ class JobsPOMS(object):
         #
         # now for job files, we need the job_ids for the jobsub_job_ids
         #
+        logit.log(" bulk_update_job: ldata7")
+
         jidmap = dict( dbhandle.query(Job.jobsub_job_id, Job.job_id).filter(jobsub_job_id.in_(job_file_jobs)))
 
         dbhandle.bulk_insert_mappings(JobFiles, [
@@ -202,10 +245,11 @@ class JobsPOMS(object):
              for r in newfiles]
            )
  
+        logit.log(" bulk_update_job: ldata8")
         #
         # update any related tasks status if changed
         #
-        tq = dbhandle.query(Task).filter(Task.task_id.in_(task_ids)).options(subqueryload(campaign_obj)):
+        tq = dbhandle.query(Task).filter(Task.task_id.in_(task_ids)).options(subqueryload(campaign_obj))
         for t in tq.all():
             newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, t)
             if newstatus != t.status:
