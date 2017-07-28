@@ -118,6 +118,8 @@ class JobsPOMS(object):
             if not r['task_id'] or not int(r['task_id']) in tids_present:
                 continue
             for field, value in r.items():
+                if value == '':
+                    continue
                 if field == 'task_id':
                     jjid2tid[r['jobsub_job_id']] = value
                 elif field in ("inputfiles","outputfiles"):
@@ -134,6 +136,8 @@ class JobsPOMS(object):
             if not int(r['task_id']) in tids_present:
                 continue
             for field, value in r.items():
+                if value == '':
+                    continue
                 if field == 'task_id':
                     pass
                 elif field in ("inputfiles","outputfiles"):
@@ -150,6 +154,8 @@ class JobsPOMS(object):
             if not int(r['task_id']) in tids_present:
                 continue
             for field, value in r.items():
+                if value == '':
+                    continue
                 if field == 'task_id':
                     pass
                 elif field in ("inputfiles","outputfiles"):
@@ -158,6 +164,11 @@ class JobsPOMS(object):
                     task_updates[field[5:]][value].append(jjid2tid[r['jobsub_job_id']])
                 else:
                     job_updates[field][value].append(r['jobsub_job_id'])
+
+        #
+        # done with regrouping the json data, drop it.
+        #
+        del ldata
 
         logit.log(" bulk_update_job: ldata3")
         logit.log(" bulk_update_job: job_updates %s" % repr(job_updates))
@@ -173,14 +184,13 @@ class JobsPOMS(object):
             logit.log(" bulk_update_job: no actionable items, returning")
             return
 
-        # don't need to uptdate jobsub_job_id, its how we find it...
-        if job_updates.get('jobsub_job_id',None):
-            del job_updates['jobsub_job_id']
+        # we get passed some things we dont update; jobsub_job_id
+        # 'cause we use that to look it up, and slot, restarts because
+        # we don't currently have a place to put them...
+        for cleanup in ('jobsub_job_id', 'slot', 'restarts'):
+            if job_updates.get(cleanup,None):
+                del job_updates[cleanup]
  
-        # currently ignoring "slot" updates -- don't know where to put them
-        if job_updates.get('slot',None):
-            del job_updates['slot']
-
         have_jobids.update( [x[0] for x in
             dbhandle.query(Job.jobsub_job_id)
                 .filter(Job.jobsub_job_id.in_(update_jobsub_job_ids))
@@ -244,7 +254,7 @@ class JobsPOMS(object):
         #
         logit.log(" bulk_update_job: ldata7")
 
-        jidmap = dict( dbhandle.query(Job.jobsub_job_id, Job.job_id).filter(jobsub_job_id.in_(job_file_jobs)))
+        jidmap = dict( dbhandle.query(Job.jobsub_job_id, Job.job_id).filter(Job.jobsub_job_id.in_(job_file_jobs)))
 
         dbhandle.bulk_insert_mappings(JobFiles, [
              dict( job_id = jidmap[r[0]],
