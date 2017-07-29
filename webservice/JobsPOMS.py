@@ -123,7 +123,7 @@ class JobsPOMS(object):
                     pass
                 elif field == 'task_id':
                     jjid2tid[r['jobsub_job_id']] = value
-                elif field in ("inputfiles","outputfiles"):
+                elif field in ("input_file_names","output_file_names"):
                     pass
                 if field.startswith("task_"):
                     task_updates[field[5:]] = {}
@@ -142,8 +142,8 @@ class JobsPOMS(object):
                     pass
                 elif field == 'task_id':
                     pass
-                elif field in ("inputfiles","outputfiles"):
-                    newfiles = newfiles + [{ r['jobsub_job_id'], field.replace("files",""), f} for f in value.split(' ')]
+                elif field in ("input_file_names","output_file_names"):
+                    newfiles = newfiles + [{ r['jobsub_job_id'], field.replace("file_names",""), f} for f in value.split(' ')]
                     job_file_jobs.add(r['jobsub_job_id'])
                 elif field.startswith("task_"):
                     task_updates[field[5:]][value] = []
