@@ -113,14 +113,15 @@ class JobsPOMS(object):
         tids_present.update([x[0] for x in dbhandle.query(Task.task_id).filter(Task.task_id.in_(tids_wanted))])
                     
         jjid2tid = {}
-        logit.log("bulk_update_job == tids=%s" % repr(tids_present))
+        logit.log("bulk_update_job == tids_present =%s" % repr(tids_present))
+
         for r in ldata:   # make field level dictionaries
-            if not r['task_id'] or not int(r['task_id']) in tids_present:
+            if r['task_id'] and not (int(r['task_id']) in tids_present):
                 continue
             for field, value in r.items():
                 if value == '':
-                    continue
-                if field == 'task_id':
+                    pass
+                elif field == 'task_id':
                     jjid2tid[r['jobsub_job_id']] = value
                 elif field in ("inputfiles","outputfiles"):
                     pass
@@ -131,14 +132,15 @@ class JobsPOMS(object):
 
         job_file_jobs = set()
 
+        newfiles = []
         logit.log(" bulk_update_job: ldata1")
         for r in ldata: # make lists for [field][value] pairs
-            if not int(r['task_id']) in tids_present:
+            if r['task_id'] and not (int(r['task_id']) in tids_present):
                 continue
             for field, value in r.items():
                 if value == '':
-                    continue
-                if field == 'task_id':
+                    pass
+                elif field == 'task_id':
                     pass
                 elif field in ("inputfiles","outputfiles"):
                     newfiles = newfiles + [{ r['jobsub_job_id'], field.replace("files",""), f} for f in value.split(' ')]
@@ -151,12 +153,12 @@ class JobsPOMS(object):
         logit.log(" bulk_update_job: ldata2")
 
         for r in ldata: # put jobids in lists
-            if not int(r['task_id']) in tids_present:
+            if r['task_id'] and not (int(r['task_id']) in tids_present):
                 continue
             for field, value in r.items():
                 if value == '':
-                    continue
-                if field == 'task_id':
+                    pass
+                elif field == 'task_id':
                     pass
                 elif field in ("inputfiles","outputfiles"):
                     pass
@@ -177,7 +179,9 @@ class JobsPOMS(object):
         # figure out what jobs we need to add/update
         #
         update_jobsub_job_ids = set()
+        task_jobsub_job_ids = set()
         have_jobids = set()  
+        task_jobsub_job_ids.update(jjid2tid.keys())
         update_jobsub_job_ids.update(job_updates.get('jobsub_job_id',{}).keys())
 
         if 0 == len(update_jobsub_job_ids):
@@ -196,7 +200,7 @@ class JobsPOMS(object):
                 .filter(Job.jobsub_job_id.in_(update_jobsub_job_ids))
                 .all()])
         
-        add_jobsub_job_ids = update_jobsub_job_ids - have_jobids
+        add_jobsub_job_ids = task_jobsub_job_ids - have_jobids
 
         logit.log(" bulk_update_job: ldata4")
         # now insert initial rows
@@ -212,7 +216,7 @@ class JobsPOMS(object):
                     status = 'New',
                     output_files_declared = False
                )
-               for jobsub_job_id in add_jobsub_job_ids]
+               for jobsub_job_id in add_jobsub_job_ids if jjid2tid.get(jobsub_job_id,None)]
            )
         
         dbhandle.commit()
@@ -223,9 +227,10 @@ class JobsPOMS(object):
         
         for field in job_updates.keys():
             for value in job_updates[field].keys():
-                (dbhandle.query(Job)
-                   .filter(Job.jobsub_job_id.in_(job_updates[field][value]))
-                   .update( {field: value}, synchronize_session = False ))
+                if len(job_updates[field][value]) > 0:
+                    (dbhandle.query(Job)
+                       .filter(Job.jobsub_job_id.in_(job_updates[field][value]))
+                       .update( {field: value}, synchronize_session = False ))
         
         task_ids = set()
         task_ids.update([int(x) for x in jjid2tid.values()])
@@ -243,9 +248,10 @@ class JobsPOMS(object):
 
         for field in task_updates.keys():
             for value in task_updates[field].keys():
-                (dbhandle.query(Task)
-                   .filter(Task.task_id.in_(task_updates[field][value]))
-                   .update( { field: value } , synchronize_session = False ))
+                if len(task_updates[field][value]) > 0:
+                    (dbhandle.query(Task)
+                       .filter(Task.task_id.in_(task_updates[field][value]))
+                       .update( { field: value } , synchronize_session = False ))
         
         dbhandle.commit()
 
@@ -256,20 +262,21 @@ class JobsPOMS(object):
 
         jidmap = dict( dbhandle.query(Job.jobsub_job_id, Job.job_id).filter(Job.jobsub_job_id.in_(job_file_jobs)))
 
-        dbhandle.bulk_insert_mappings(JobFile, [
-             dict( job_id = jidmap[r[0]],
-                   file_type = r[1],
-                   file_name = r[2],
-                   created = datetime.now(utc),
-                   declared = False)
-             for r in newfiles]
-           )
- 
+        if len(newfiles) > 0:
+            dbhandle.bulk_insert_mappings(JobFile, [
+                 dict( job_id = jidmap[r[0]],
+                       file_type = r[1],
+                       file_name = r[2],
+                       created = datetime.now(utc),
+                       declared = False)
+                 for r in newfiles]
+               )
+     
         logit.log(" bulk_update_job: ldata8")
         #
         # update any related tasks status if changed
         #
-        tq = dbhandle.query(Task).filter(Task.task_id.in_(task_ids)).options(subqueryload(campaign_obj))
+        tq = dbhandle.query(Task).filter(Task.task_id.in_(task_ids)).options(joinedload(Task.campaign_obj))
         for t in tq.all():
             newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, t)
             if newstatus != t.status:
