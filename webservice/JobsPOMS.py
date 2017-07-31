@@ -110,8 +110,32 @@ class JobsPOMS(object):
                 if field == 'task_id' and value:
                    tids_wanted.add(int(value))
 
-        tids_present.update([x[0] for x in dbhandle.query(Task.task_id).filter(Task.task_id.in_(tids_wanted))])
-                    
+        # build upt tids_present in loop below while getting regexes to
+        # match output files, etc.
+        # - tids_present.update([x[0] for x in dbhandle.query(Task.task_id).filter(Task.task_id.in_(tids_wanted))])
+
+        #
+        # using ORM, get affected tasks and campaign definition snap objs. 
+        # Build up:
+        #   * set of task_id's we have in database
+        #   * output file regexes for each task
+        #
+        tq = ( dbhandle.query(Task)
+                .filter(Task.task_id.in_(tids_wanted))
+                .with_for_update(of=Task, read=True)
+                .options(joinedload(Task.campaign_definition_snap_obj)) )
+        tl = tq.all()
+
+        of_res = {}
+        for t in tl:
+            tids_present.add(t.task_id)
+            if t.campaign_definition_snap_obj.output_file_patterns:
+               ofp = t.campaign_definition_snap_obj.output_file_patterns
+            else:
+               ofp = '%'
+
+            of_res[t.task_id] = ofp.replace(',','|').replace('.','\\.').replace('%','.*')
+
         jjid2tid = {}
         logit.log("bulk_update_job == tids_present =%s" % repr(tids_present))
 
@@ -143,7 +167,15 @@ class JobsPOMS(object):
                 elif field == 'task_id':
                     pass
                 elif field in ("input_file_names","output_file_names"):
-                    newfiles = newfiles + [{ r['jobsub_job_id'], field.replace("file_names",""), f} for f in value.split(' ')]
+                    ftype = field.replace("_file_names","")
+                    for v in value.split(' '):
+                        if len(v) < 2 or v[0] == '-':
+                           continue
+                        if ftype == 'output' and not re.match(of_res.get(r['task_id'],''),v) or v.find('.log') > 0:
+                            thisftype = 'log'
+                        else:
+                            thisftype = ftype
+                        newfiles.append([ r['jobsub_job_id'], thisftype, v])
                     job_file_jobs.add(r['jobsub_job_id'])
                 elif field.startswith("task_"):
                     task_updates[field[5:]][value] = []
@@ -160,7 +192,7 @@ class JobsPOMS(object):
                     pass
                 elif field == 'task_id':
                     pass
-                elif field in ("inputfiles","outputfiles"):
+                elif field in ("input_file_names","output_file_names"):
                     pass
                 elif field.startswith("task_"):
                     task_updates[field[5:]][value].append(jjid2tid[r['jobsub_job_id']])
@@ -267,8 +299,7 @@ class JobsPOMS(object):
                  dict( job_id = jidmap[r[0]],
                        file_type = r[1],
                        file_name = r[2],
-                       created = datetime.now(utc),
-                       declared = False)
+                       created = datetime.now(utc))
                  for r in newfiles]
                )
      
@@ -276,8 +307,7 @@ class JobsPOMS(object):
         #
         # update any related tasks status if changed
         #
-        tq = dbhandle.query(Task).filter(Task.task_id.in_(task_ids)).options(joinedload(Task.campaign_obj))
-        for t in tq.all():
+        for t in tl:
             newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, t)
             if newstatus != t.status:
                 logit.log("update_job: task %d status now %s" % (t.task_id, newstatus))
