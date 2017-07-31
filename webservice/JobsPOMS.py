@@ -251,7 +251,6 @@ class JobsPOMS(object):
                for jobsub_job_id in add_jobsub_job_ids if jjid2tid.get(jobsub_job_id,None)]
            )
         
-        dbhandle.commit()
 
         logit.log(" bulk_update_job: ldata5")
 
