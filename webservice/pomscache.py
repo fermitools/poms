@@ -7,7 +7,7 @@ pomscache = make_region(
    "dogpile.cache.dbm",
    arguments = {
       "filename": "/tmp/poms_dogpile_cache",
-      "rw_lockfile": False,
+      # "rw_lockfile": False,
       # "dogpile_lockfile": False,
    }
 )
@@ -19,7 +19,7 @@ pomscache_10 = make_region(
    expiration_time = 10,
    arguments = {
       "filename": "/tmp/poms_dogpile_cache_10",
-      "rw_lockfile": False,
+      # "rw_lockfile": False,
       # "dogpile_lockfile": False, 
    }
 )
