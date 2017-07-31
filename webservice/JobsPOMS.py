@@ -157,6 +157,7 @@ class JobsPOMS(object):
         job_file_jobs = set()
 
         newfiles = []
+        fnames = set()
         logit.log(" bulk_update_job: ldata1")
         for r in ldata: # make lists for [field][value] pairs
             if r['task_id'] and not (int(r['task_id']) in tids_present):
@@ -175,7 +176,8 @@ class JobsPOMS(object):
                             thisftype = 'log'
                         else:
                             thisftype = ftype
-                        newfiles.append([ r['jobsub_job_id'], thisftype, v])
+                        newfiles.append(( r['jobsub_job_id'], thisftype, v))
+                        fnames.add(v)
                     job_file_jobs.add(r['jobsub_job_id'])
                 elif field.startswith("task_"):
                     task_updates[field[5:]][value] = []
@@ -220,12 +222,20 @@ class JobsPOMS(object):
             logit.log(" bulk_update_job: no actionable items, returning")
             return
 
-        # we get passed some things we dont update; jobsub_job_id
-        # 'cause we use that to look it up, and slot, restarts because
-        # we don't currently have a place to put them...
-        for cleanup in ('jobsub_job_id', 'slot', 'restarts'):
-            if job_updates.get(cleanup,None):
+        # we get passed some things we dont update, jobsub_job_id
+        # 'cause we use that to look it up, 
+        # filter out ones we don't have...
+        job_fields = set([x for x in dir(Job) if x[0] != '_'])
+        job_fields = job_fields - set(('metadata','jobsub_job_id'))
+
+        kl = [k for k in job_updates.keys()]
+
+        for cleanup in kl:
+            if cleanup not in job_fields:
                 del job_updates[cleanup]
+
+        # now figure out what jobs we have already, and what ones we need
+        # to insert...
  
         have_jobids.update( [x[0] for x in
             dbhandle.query(Job.jobsub_job_id)
@@ -284,7 +294,6 @@ class JobsPOMS(object):
                        .filter(Task.task_id.in_(task_updates[field][value]))
                        .update( { field: value } , synchronize_session = False ))
         
-        dbhandle.commit()
 
         #
         # now for job files, we need the job_ids for the jobsub_job_ids
@@ -293,14 +302,28 @@ class JobsPOMS(object):
 
         jidmap = dict( dbhandle.query(Job.jobsub_job_id, Job.job_id).filter(Job.jobsub_job_id.in_(job_file_jobs)))
 
+        # check for files already present...
+        # build a query that will find a superset of the 
+        # items we want, if they were there already --i.e.
+        # they have one of the file names and one of the jobids
+        # use it to build a python set of tuples
+
+        fl = (dbhandle.query(JobFile.job_id, JobFile.file_type, JobFile.file_name)
+                  .filter(JobFile.file_name.in_(fnames), 
+                          JobFile.job_id.in_(jidmap.values())
+                      )
+                  .all())
+        #
+        fset = set([(r[0],r[1],r[2]) for r in fl])
+
         if len(newfiles) > 0:
             dbhandle.bulk_insert_mappings(JobFile, [
-                 dict( job_id = jidmap[r[0]],
-                       file_type = r[1],
-                       file_name = r[2],
-                       created = datetime.now(utc))
-                 for r in newfiles]
-               )
+               dict( job_id = jidmap[r[0]],
+                    file_type = r[1],
+                    file_name = r[2],
+                    created = datetime.now(utc))
+               for r in newfiles if not r in fset]
+             )
      
         logit.log(" bulk_update_job: ldata8")
         #
@@ -459,6 +482,7 @@ class JobsPOMS(object):
                     files = []
 
                 newfiles = kwargs['output_file_names'].split(' ')
+
                 # don't include metadata files
 
                 if j.task_obj.campaign_definition_snap_obj.output_file_patterns:
