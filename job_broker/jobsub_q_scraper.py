@@ -193,7 +193,7 @@ class jobsub_q_scraper:
                     self.k_restarts : jobenv['NumRestarts'],
                     self.k_node_name : host, 
                     self.k_host_site : jobenv.get('GLIDEIN_SITE', ''),
-                    self.k_task_project : jobenv.get('SAM_PROJECT_NAME',None),
+                    self.k_task_project : jobenv.get('SAM_PROJECT_NAME',jobenv.get('SAM_PROJECT',None)),
                     self.k_cpu_time : jobenv.get('RemoteUserCpu'),
                     self.k_wall_time : wall_time,
                     self.k_task_recovery_tasks_parent: jobenv.get('POMS_PARENT_TASK_ID',None),

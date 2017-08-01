@@ -143,7 +143,7 @@ class JobsPOMS(object):
             if r['task_id'] and not (int(r['task_id']) in tids_present):
                 continue
             for field, value in r.items():
-                if value == '':
+                if value == '' or value == None or value == 'None':
                     pass
                 elif field == 'task_id':
                     jjid2tid[r['jobsub_job_id']] = value
@@ -163,7 +163,7 @@ class JobsPOMS(object):
             if r['task_id'] and not (int(r['task_id']) in tids_present):
                 continue
             for field, value in r.items():
-                if value == '':
+                if value == '' or value == None or value == 'None':
                     pass
                 elif field == 'task_id':
                     pass
@@ -190,7 +190,7 @@ class JobsPOMS(object):
             if r['task_id'] and not (int(r['task_id']) in tids_present):
                 continue
             for field, value in r.items():
-                if value == '':
+                if value == '' or value == None or value == 'None':
                     pass
                 elif field == 'task_id':
                     pass
@@ -208,6 +208,7 @@ class JobsPOMS(object):
 
         logit.log(" bulk_update_job: ldata3")
         logit.log(" bulk_update_job: job_updates %s" % repr(job_updates))
+        logit.log(" bulk_update_job: task_updates %s" % repr(task_updates))
 
         #
         # figure out what jobs we need to add/update
@@ -234,6 +235,12 @@ class JobsPOMS(object):
             if cleanup not in job_fields:
                 del job_updates[cleanup]
 
+        task_fields = set([x for x in dir(Task) if x[0] != '_'])
+        kl = [k for k in task_updates.keys()]
+        for cleanup in kl:
+            if cleanup not in task_fields:
+                del task_updates[cleanup]
+        
         # now figure out what jobs we have already, and what ones we need
         # to insert...
  
