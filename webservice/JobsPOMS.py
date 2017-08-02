@@ -244,12 +244,19 @@ class JobsPOMS(object):
         
         # now figure out what jobs we have already, and what ones we need
         # to insert...
+        # lock the table briefly so the answer is correct.  You can't 
+        # just lock rows, because the rows we care about don't exist yet...
+
+        dbhandle.begin()
+
+        dbhandle.execute("LOCK jobs IN SHARE ROW EXCLUSIVE MODE")
  
         have_jobids.update( [x[0] for x in
             dbhandle.query(Job.jobsub_job_id)
                 .filter(Job.jobsub_job_id.in_(update_jobsub_job_ids))
                 .all()])
         
+
         add_jobsub_job_ids = task_jobsub_job_ids - have_jobids
 
         logit.log(" bulk_update_job: ldata4")
@@ -263,12 +270,15 @@ class JobsPOMS(object):
                     host_site = 'unknown',
                     updated = datetime.now(utc),
                     created = datetime.now(utc),
-                    status = 'New',
+                    status = 'Idle',
                     output_files_declared = False
                )
                for jobsub_job_id in add_jobsub_job_ids if jjid2tid.get(jobsub_job_id,None)]
            )
         
+        dbhandle.commit()
+
+        # end subtransaction...
 
         logit.log(" bulk_update_job: ldata5")
 
@@ -306,7 +316,6 @@ class JobsPOMS(object):
                        .filter(Task.task_id.in_(task_updates[field][value]))
                        .update( { field: value } , synchronize_session = False ))
         
-
         #
         # now for job files, we need the job_ids for the jobsub_job_ids
         #
