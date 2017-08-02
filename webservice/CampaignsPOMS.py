@@ -501,14 +501,17 @@ class CampaignsPOMS():
         return bytes(text,encoding="utf-8")
 
     @pomscache.cache_on_arguments()
-    def show_campaigns(self, dbhandle, samhandle,  campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag = None):
+    def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag=None):
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'show_campaigns?')
+        (tmin, tmax, tmins, tmaxs,
+         nextlink, prevlink,
+         time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
 
         #cq = dbhandle.query(Campaign).filter(Campaign.active==active).order_by(Campaign.experiment)
 
-        logit.log(logit.DEBUG, "show_campaigns: querying active")
-        cq = dbhandle.query(Campaign).options(joinedload('experiment_obj')).filter(Campaign.active==active).order_by(Campaign.experiment)
+        logit.log(logit.DEBUG, "show_campaigns: querying {}".format('active' if active else 'inactive'))
+        #cq = dbhandle.query(Campaign).options(joinedload('experiment_obj')).filter(Campaign.active==active).order_by(Campaign.experiment)
+        cq = dbhandle.query(Campaign).options(joinedload('experiment_obj')).order_by(Campaign.experiment)
 
         if experiment:
             cq = cq.filter(Campaign.experiment==experiment)
@@ -516,13 +519,13 @@ class CampaignsPOMS():
         if tag:
             cq = cq.join(CampaignsTags).join(Tag).filter(Tag.tag_name == tag)
 
-        cl = cq.all()
+        campaigns = cq.all()
         logit.log(logit.DEBUG,"show_campaigns: back from query")
 
-        counts = {}
-        counts_keys = {}
+        # counts = {}
+        # counts_keys = {}
 
-        return cl, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
+        return campaigns, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
 
 
     # @pomscache.cache_on_arguments()

@@ -416,7 +416,7 @@ class PomsService(object):
     @logit.logstartstop
     def show_campaigns(self, tmin=None, tmax=None, tdays=7, active=True, tag=None, **kwargs):
         experiment = cherrypy.session.get('experimenter').session_experiment
-        (clist, tmin, tmax, tmins, tmaxs, tdays,
+        (campaigns, tmin, tmax, tmins, tmaxs, tdays,
          nextlink, prevlink, time_range_string
         ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db,
                                               cherrypy.request.samweb_lite, experiment=experiment,
@@ -437,8 +437,8 @@ class PomsService(object):
 
         template = self.jinja_env.get_template('show_campaigns.html')
 
-        return template.render(In=("In" if active == "False" or not active else ""), limit_experiment=experiment,
-                               cl=clist, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
+        return template.render(limit_experiment=experiment,
+                               campaigns=campaigns, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
                                current_experimenter=current_experimenter, do_refresh=300,
                                next=nextlink, prev=prevlink, tdays=tdays, time_range_string=time_range_string,
                                key='',  pomspath=self.path, help_page="ShowCampaignsHelp",
