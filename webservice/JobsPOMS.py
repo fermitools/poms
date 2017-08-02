@@ -183,7 +183,7 @@ class JobsPOMS(object):
                     task_updates[field[5:]][value] = []
                 else:
                     job_updates[field][value] = []
-         
+
         logit.log(" bulk_update_job: ldata2")
 
         for r in ldata: # put jobids in lists
@@ -200,16 +200,16 @@ class JobsPOMS(object):
                     task_updates[field[5:]][value].append(jjid2tid[r['jobsub_job_id']])
                 else:
                     job_updates[field][value].append(r['jobsub_job_id'])
-
+ 
         #
         # done with regrouping the json data, drop it.
         #
         del ldata
-
+ 
         logit.log(" bulk_update_job: ldata3")
         logit.log(" bulk_update_job: job_updates %s" % repr(job_updates))
         logit.log(" bulk_update_job: task_updates %s" % repr(task_updates))
-
+         
         #
         # figure out what jobs we need to add/update
         #
@@ -236,6 +236,7 @@ class JobsPOMS(object):
                 del job_updates[cleanup]
 
         task_fields = set([x for x in dir(Task) if x[0] != '_'])
+
         kl = [k for k in task_updates.keys()]
         for cleanup in kl:
             if cleanup not in task_fields:
@@ -275,6 +276,8 @@ class JobsPOMS(object):
         
         for field in job_updates.keys():
             for value in job_updates[field].keys():
+                if not value: # don't clear things cause we didn't get data
+                   continue
                 if len(job_updates[field][value]) > 0:
                     (dbhandle.query(Job)
                        .filter(Job.jobsub_job_id.in_(job_updates[field][value]))
@@ -296,6 +299,8 @@ class JobsPOMS(object):
 
         for field in task_updates.keys():
             for value in task_updates[field].keys():
+                if not value: # don't clear things cause we didn't get data
+                   continue
                 if len(task_updates[field][value]) > 0:
                     (dbhandle.query(Task)
                        .filter(Task.task_id.in_(task_updates[field][value]))
