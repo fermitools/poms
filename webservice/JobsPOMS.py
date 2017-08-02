@@ -247,9 +247,6 @@ class JobsPOMS(object):
         # lock the table briefly so the answer is correct.  You can't 
         # just lock rows, because the rows we care about don't exist yet...
 
-        dbhandle.begin()
-
-        dbhandle.execute("LOCK jobs IN SHARE ROW EXCLUSIVE MODE")
  
         have_jobids.update( [x[0] for x in
             dbhandle.query(Job.jobsub_job_id)
@@ -276,9 +273,6 @@ class JobsPOMS(object):
                for jobsub_job_id in add_jobsub_job_ids if jjid2tid.get(jobsub_job_id,None)]
            )
         
-        dbhandle.commit()
-
-        # end subtransaction...
 
         logit.log(" bulk_update_job: ldata5")
 
