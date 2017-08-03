@@ -80,8 +80,9 @@ def test_active_update_jobs():
     # and jobid should be only in the middle list...
     assert(len(l2)  > len(l1))
     assert(len(l2)  > len(l3))
-    assert(jid in l2)
-    assert(not jid in l3)
+    jpair = (jid,task_id)
+    assert(jpair in l2)
+    assert(not jpair in l3)
 
 def test_update_SAM_project():
     # stubbed out for now, until production SAM implements the call.

@@ -29,7 +29,7 @@ class JobsPOMS(object):
 ###JOBS
     def active_jobs(self, dbhandle):
         res = []
-        for jobsub_job_id, task_id in dbhandle.query(Job.jobsub_id, Job.task_id).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").execution_options(stream_results=True).all():
+        for jobsub_job_id, task_id in dbhandle.query(Job.jobsub_job_id, Job.task_id).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").execution_options(stream_results=True).all():
             if jobsub_job_id == "unknown":
                 continue
             res.append((jobsub_job_id, task_id))
