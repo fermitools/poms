@@ -280,7 +280,7 @@ class CampaignsPOMS():
         pc_username = kwargs.pop('pc_username',None) #email is the info we know about the user in POMS DB.
 
         if action == 'delete':
-            name = kwargs.pop('ae_campaign_name')
+            name = kwargs.get('ae_campaign_name', kwargs.get('name',None))
             if pcl_call==1:
                 campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
             else:
