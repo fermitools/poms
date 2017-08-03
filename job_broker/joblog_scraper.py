@@ -244,7 +244,7 @@ if __name__ == '__main__':
         sys.argv = sys.argv[1:]
 
    ns = "profiling.apps.poms.probes.%s.joblog_scraper" % os.uname()[1].split(".")[0]
-   js = joblog_scraper( job_reporter(server, debug=debug, namespace = ns), debug)
+   js = joblog_scraper( job_reporter(server, debug=debug, namespace = ns ), debug)
    while 1:
       if debug:
            print("Starting...")
