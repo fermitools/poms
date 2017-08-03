@@ -29,12 +29,11 @@ class JobsPOMS(object):
 ###JOBS
     def active_jobs(self, dbhandle):
         res = []
-        for job in dbhandle.query(Job).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").execution_options(stream_results=True).all():
-            if job.jobsub_job_id == "unknown":
+        for jobsub_job_id, task_id in dbhandle.query(Job.jobsub_id, Job.task_id).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").execution_options(stream_results=True).all():
+            if jobsub_job_id == "unknown":
                 continue
-            res.append(job.jobsub_job_id)
+            res.append((jobsub_job_id, task_id))
         logit.log("active_jobs: returning %s" % res)
-        #gc.collect(2)
         return res
 
 
@@ -122,7 +121,6 @@ class JobsPOMS(object):
         #
         tq = ( dbhandle.query(Task)
                 .filter(Task.task_id.in_(tids_wanted))
-                .with_for_update(of=Task, read=True)
                 .options(joinedload(Task.campaign_definition_snap_obj)) )
         tl = tq.all()
 
@@ -244,9 +242,14 @@ class JobsPOMS(object):
         
         # now figure out what jobs we have already, and what ones we need
         # to insert...
-        # lock the table briefly so the answer is correct.  You can't 
-        # just lock rows, because the rows we care about don't exist yet...
+        # lock the tasks the jobs are associated with briefly 
+        # so the answer is correct. 
 
+
+        tl2 = ( dbhandle.query(Task.task_id)
+                .filter(Task.task_id.in_(tids_wanted))
+                .with_for_update(of=Task, read=True)
+                .all())
  
         have_jobids.update( [x[0] for x in
             dbhandle.query(Job.jobsub_job_id)

@@ -73,6 +73,7 @@ class jobsub_q_scraper:
         self.prev_report = JobAttrs()
         self.jobmap = JobSet()
         self.prevjobmap = JobSet()
+        self.tidmap = {}
         self.debug = debug
         self.passcount = 0
         sys.stdout.flush()
@@ -80,6 +81,7 @@ class jobsub_q_scraper:
     def get_open_jobs(self):
         self.prevjobmap = self.jobmap
         self.jobmap = JobSet()
+        self.tidmap = {}
         conn = None
         try:
             conn = self.rs.get(self.job_reporter.report_url + '/active_jobs')
@@ -88,8 +90,9 @@ class jobsub_q_scraper:
             print( "got: ", jobs)
             #print("got %d jobs" % len(jobs))
             self.jobCount.set(len(jobs)+0)
-            for j in jobs:
+            for j, tid in jobs:
                 self.jobmap[j] = 0
+                self.tidmap[j] = tid
             del jobs
             jobs = None
         except KeyboardInterrupt:
@@ -239,6 +242,7 @@ class jobsub_q_scraper:
 
                     self.job_reporter.report_status(
                         jobsub_job_id = jobsub_job_id,
+                        task_id = self.tidmap[jobsub_job_id]
                         status = "Completed")
         else:
             print("error code: %s from condor_q" % res)
