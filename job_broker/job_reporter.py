@@ -79,9 +79,16 @@ class job_reporter:
         
     def check(self):
         # make sure we still have nthreads reporting threads
-        if self.work.qsize() > 100 * self.batchsize:
-            sys.stderr.write("Seriously Backlogged: qsize %d exiting!\n" % self.work.qsize())
-            os._exit(1)
+        if self.bulk:
+            for i in range(self.nthreads):
+                if self.work[i].qsize() > 100 * self.batchsize:
+                    sys.stderr.write("Seriously Backlogged: qsize %d exiting!\n" % self.work.qsize())
+                    os._exit(1)
+                   
+        else:
+             if self.work.qsize() > 100 * self.batchsize:
+                sys.stderr.write("Seriously Backlogged: qsize %d exiting!\n" % self.work.qsize())
+                os._exit(1)
            
         if self.bulk:
             for i in range(self.nthreads):
@@ -104,7 +111,7 @@ class job_reporter:
         lastsent = time.time()
         bail = False
         while not bail:
-            if self.work[which].qsize() > self.batchsize or time.time() - lastsent > self.timemax):
+            if self.work[which].qsize() > self.batchsize or time.time() - lastsent > self.timemax:
 
                 if self.debug: sys.stderr.write("runqueue_bulk: %d before:qsize is %d\n" % (which,self.work[which].qsize())); sys.stderr.flush()
 
@@ -164,14 +171,14 @@ class job_reporter:
         for wth in self.wthreads:
             wth.join()
 
-    def report_status(self,  jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
+    def report_status(self,  jobsub_job_id = '', task_id = '', status = '' , cpu_type = '', slot='', **kwargs ):
         self.check()
         if self.bulk:
-           q = self.work[task_id % self.nthreads]
+           q = self.work[int(task_id) % self.nthreads]
         else:
            q = self.work
 
-        q.put({'f':job_reporter.actually_report_status, 'args': [ self, jobsub_job_id, taskid, status, cpu_type, slot], 'kwargs': kwargs})
+        q.put({'f':job_reporter.actually_report_status, 'args': [ self, jobsub_job_id, task_id, status, cpu_type, slot], 'kwargs': kwargs})
  
     def bulk_update(self, batch):
 
@@ -226,9 +233,9 @@ class job_reporter:
         return res
 
 
-    def actually_report_status(self, jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
+    def actually_report_status(self, jobsub_job_id = '', task_id = '', status = '' , cpu_type = '', slot='', **kwargs ):
         data = {}
-        data['task_id'] = taskid
+        data['task_id'] = task_id
         data['jobsub_job_id'] = jobsub_job_id
         data['cpu_type'] = cpu_type
         data['slot'] = slot

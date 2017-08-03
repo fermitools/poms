@@ -58,7 +58,7 @@ class jobsub_q_scraper:
         }
         # intern strings we use for maps, etc. to cut down on memory
         self.k_jobsub_job_id = sys.intern('jobsub_job_id')
-        self.k_taskid = sys.intern('taskid')
+        self.k_task_id = sys.intern('task_id')
         self.k_status = sys.intern('status')
         self.k_restarts = sys.intern('restarts')
         self.k_node_name = sys.intern('node_name')
@@ -191,7 +191,7 @@ class jobsub_q_scraper:
 
                 args = {
                     self.k_jobsub_job_id : jobsub_job_id,
-                    self.k_taskid : jobenv['POMS_TASK_ID'],
+                    self.k_task_id : jobenv['POMS_TASK_ID'],
                     self.k_status : self.map[jobenv['JOBSTATUS']],
                     self.k_restarts : jobenv['NumRestarts'],
                     self.k_node_name : host, 
@@ -242,7 +242,7 @@ class jobsub_q_scraper:
 
                     self.job_reporter.report_status(
                         jobsub_job_id = jobsub_job_id,
-                        task_id = self.tidmap[jobsub_job_id]
+                        task_id = self.tidmap[jobsub_job_id],
                         status = "Completed")
         else:
             print("error code: %s from condor_q" % res)

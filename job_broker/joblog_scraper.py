@@ -136,9 +136,9 @@ class joblog_scraper:
 
         return ' '.join(file_map.keys())
 
-    def report_item(self, taskid, jobsub_job_id, hostname, message, experiment = "none"):
+    def report_item(self, task_id, jobsub_job_id, hostname, message, experiment = "none"):
         data = { 
-           "taskid": taskid,
+           "task_id": task_id,
            "jobsub_job_id": jobsub_job_id,
            "node_name": hostname,
         }

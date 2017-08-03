@@ -327,8 +327,8 @@ class JobsPOMS(object):
         # use it to build a python set of tuples
 
         fl = (dbhandle.query(JobFile.job_id, JobFile.file_type, JobFile.file_name)
-                  .filter(JobFile.file_name.in_(fnames), 
-                          JobFile.job_id.in_(jidmap.values())
+                  .filter(or_(JobFile.file_name.in_(fnames), 
+                          JobFile.job_id.in_(jidmap.values()))
                       )
                   .all())
         #
