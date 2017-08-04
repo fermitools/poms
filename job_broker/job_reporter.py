@@ -161,8 +161,8 @@ class job_reporter:
     def cleanup(self):
         # first tell threads to exit
         if self.bulk:
-            for wth in self.wthreads:
-                self.work[wth].put({'f': job_reporter.bail, 'args': [self], 'kwargs':{}})
+            for i in range(self.nthreads):
+                self.work[i].put({'f': job_reporter.bail, 'args': [self], 'kwargs':{}})
         else:
             for wth in self.wthreads:
                 self.work.put({'f': job_reporter.bail, 'args': [self], 'kwargs':{}})
@@ -174,7 +174,11 @@ class job_reporter:
     def report_status(self,  jobsub_job_id = '', task_id = '', status = '' , cpu_type = '', slot='', **kwargs ):
         self.check()
         if self.bulk:
-           q = self.work[int(task_id) % self.nthreads]
+           if task_id:
+               which_q = int(task_id) % self.nthreads
+           else:
+               which_q = 0
+           q = self.work[which_q]
         else:
            q = self.work
 
