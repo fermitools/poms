@@ -6,6 +6,28 @@ POMS: Campaign Stages
 <script>
     function pop_mark_inactive_modal() {
         mod_form = $("#mark_inactive_modal").modal('show');
+        var csv = [];
+        // find only visible rows; we're ignoring filtered/hidden rows
+        $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
+            csv.push( $(this).text() );
+        });
+        mod_form.find('span').html("Mark " + csv.length + " selected campaigns as ");
+        console.log("csv="+csv);
+        $("#campaign_ids").val(csv.join(','))
+        /*
+        for (var i in csv) {
+            cid = csv[i];
+            $.ajax({
+                    url: "{{pomspath}}/mark_campaign_active?campaign_id=" + cid + "&is_active=False",
+                    type: 'GET',
+                    //data: formdata,
+                    success: function (x) {
+                        ;
+                    }
+            });
+            console.log("success: "+cid);
+        }
+        */
     }
 </script>
 
@@ -17,123 +39,87 @@ Campaign Stages{%include 'help_button.html'%}
 
 {%block content%}
 
-{%set column_heads = ['All','Idle','Running','Held','Total Completed','Completed', 'Located', 'Removed', 'efficiency', 'pending' ] %}
+{#set column_heads = ['All','Idle','Running','Held','Total Completed','Completed', 'Located', 'Removed', 'efficiency', 'pending' ] #}
+{%set column_heads = [] %}
 
 <style scoped>
     table th {
         font-weight: bold !important;
         padding-right: 12px !important;
     }
+
+    #campaigns th:nth-child(1), table td:nth-child(1) {
+        display: none;
+    }
 </style>
 
-<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_mark_inactive_modal()">Mark Campaign Inactive</div>
+<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_mark_inactive_modal()">Mark Campaign Active/Inactive</div>
 
 <div id="double-scroll" class="ui _scrollable">
+    <!-- campaigns.0.experiment_obj.restricted: {{campaigns.0.experiment_obj.restricted}} -->
+    <!-- current_experimenter.is_authorized(campaigns.0.experiment): {{current_experimenter.is_authorized(campaigns.0.experiment)}} -->
+    <!-- campaigns.0.experiment in current_experimenter.extra.selected {{campaigns.0.experiment in current_experimenter.extra.selected}} -->
     <table id="campaigns" class="ui celled _table unstackable tablesorter tablesorter-ice">
         <thead>
-            <tr class="tablesorter-ignoreRow">
-                <th colspan="6"></th>
-                <th colspan="4">Jobs in {{time_range_string}}</th>
-                <th colspan="2"></th>
-            </tr>
-            <tr class="tablesorter-ignoreRow">
-                <th colspan="2" align="center"> Campaign Stage
-                    <a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Campaign"><i style="float: none" class="grey help circle link icon"></i></a>
-                </th>
-                <th colspan="1" align="center">Total</th>
-                <th colspan="3" align="center">Active Jobs </th>
-                <th colspan="4" align="center">Completed </th>
-<!--
-                <th colspan="1" align="center"></th>
--->
-                <th colspan="2" align="center">Stats</th>
-            </tr>
             <tr>
-                <!-- <th>Experiment </th> -->
+                <th class="hideit">Id</th>
                 <th>Name</th>
                 <th>Active</th>
-                <th class="sorter-false filter-false">All</th>
-                <th class="sorter-false filter-false">Idle<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a></th>
-                <th class="sorter-false filter-false">Running<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a></th>
-                <th class="sorter-false filter-false">Held<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a></th>
-                <th class="sorter-false filter-false">Total<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a></th>
-                <th class="sorter-false filter-false">Not&nbsp;Located<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a></th>
-                <th class="sorter-false filter-false">Located<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a></th>
-                <th class="sorter-false filter-false">Removed<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a></th>
-                <th class="sorter-false filter-false">%Efficiency<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a></th>
-                <th class="sorter-false filter-false">Pending<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a></th>
+<!--
+                <th>S/W Version</th>
+                <th>VO Role</th>
+-->
+                <th>Creator</th>
+                <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
             </tr>
         </thead>
         <tbody>
-            {% for c in campaigns if current_experimenter.extra and c.experiment in current_experimenter.extra.selected %}
-                {% set outer_loop = loop %}
+            {% for campaign in campaigns if current_experimenter.extra and campaign.experiment in current_experimenter.extra.selected %}
                 <tr>
-                    <!-- <td>{{c.experiment}}</td> -->
-                    <!-- c.experiment_obj.restricted: {{c.experiment_obj.restricted}} -->
-                    <!-- current_experimenter.is_authorized(c.experiment): {{current_experimenter.is_authorized(c.experiment)}} -->
-                    <!-- c.experiment in current_experimenter.extra.selected {{c.experiment in current_experimenter.extra.selected}}-->
-                    <td><a href="{{pomspath}}/campaign_info?campaign_id={{c.campaign_id}}">{{c.name}}</a></td>
-                    <td>{{c.active}}</td>
-                    {% for k in column_heads  %}
-
-                      {% if k == "efficiency" %}
-                        <td>
-                          <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{c.campaign_id}}_{{k}}">
-                              ...
-                          </a>
-                        </td>
-                      {% elif k == "pending" %}
-                        <td>
-                          <a href="{{pomspath}}/actual_pending_files?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{c.campaign_id}}_{{k}}">
-                             ...
-                          </a>
-                        </td>
-                      {% elif k %}
-                        <td>
-                          <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{c.campaign_id}}_{{k|replace(' ','_')}}">
-                             ...
-                          </a>
-                         </td>
-                      {%endif%}
-                    {% endfor %}
+                    <td class="hideit">{{campaign.campaign_id}}</td>
+                    <td><a href="{{pomspath}}/campaign_info?campaign_id={{campaign.campaign_id}}">{{campaign.name}}</a></td>
+                    <td>{{'Yes' if campaign.active else 'No'}}</td>
+<!--
+                    <td>{{campaign.software_version}}</td>
+                    <td>{{campaign.vo_role}}</td>
+-->
+                    <td>{{campaign.experimenter_creator_obj.username}}</td>
+                    <td>{{campaign.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
     <script>
         $("#campaigns th").attr("style", "padding: 0.3em; border-left: 1;");
+        //$('.hideit').hide();
     </script>
 </div>
 
-<div class="ui modal" id="mark_inactive_modal" style="padding: 0px 20px;">
+<div class="ui modal small" id="mark_inactive_modal" style="padding: 0px 20px;">
   <i class="close icon"></i>
+
   <div class="header">
-    Mark Campaignes Inactive
+    Campaigns:
   </div>
-  <form id="add_form" class="ui form" action="experiment_authorize" method="POST">
-    <div class="two fields">
-      <div class="field">
-	<label></label>
-	<input type="text" name="experiment" placeholder="Short Name (max: 10 char)" maxlength="10">
-      </div>
-      <div class="field">
-	<label></label>
-	<input type="text" name="name" placeholder="Full Name">
-      </div>
+  <form class="ui form" action="mark_campaign_active" method="GET">
+    <div class="field">
+        <input type="text" id="campaign_ids" name="cl" readonly>
+        <span style="font-size: 1.3em;">Mark selected campaigns as </span>
+        <input type="submit" class="ui teal button" name="is_active" value="Active">
+        <input type="submit" class="ui teal button" name="is_active" value="Inactive">
     </div>
-    <input type="submit" class="ui teal button" value="Submit">
     <div class="ui hidden divider"></div>
   </form>
 </div> <!-- Ends Modal -->
 
 <script>
-var tmin_local_time = moment.utc('{{tmin}}').toDate();
-tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
-$( ".tmin" ).html( tmin_local_time );
+    var tmin_local_time = moment.utc('{{tmin}}').toDate();
+    tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
+    $( ".tmin" ).html( tmin_local_time );
 
-var tmax_local_time = moment.utc('{{tmax}}').toDate();
-tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
-$( ".tmax" ).html( tmax_local_time );
+    var tmax_local_time = moment.utc('{{tmax}}').toDate();
+    tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
+    $( ".tmax" ).html( tmax_local_time );
 
 </script>
 
@@ -144,6 +130,7 @@ $( ".tmax" ).html( tmax_local_time );
 -->
 
 <script>
+    /*
     $(function() {
 
         var now = new Date()
@@ -151,24 +138,24 @@ $( ".tmax" ).html( tmax_local_time );
         nows = nows - (nows % 300000)
         nows = nows.toString()
 
-        {% for c in campaigns %}
-        $.getJSON("/poms/json_job_counts?tmin={{tmins}}&tmax={{tmaxs}}&campaign_id={{c.campaign_id}}&uuid="+nows,function(data){
+        {% for campaign in campaigns %}
+        $.getJSON("/poms/json_job_counts?tmin={{tmins}}&tmax={{tmaxs}}&campaign_id={{campaign.campaign_id}}&uuid="+nows,function(data){
             for( var k in data ) {
-               id = "data_{{c.campaign_id}}_" + k.replace(" ","_")
+               id = "data_{{campaign.campaign_id}}_" + k.replace(" ","_")
                console.log("trying to update a with id " + id )
                $("a#"+id).html(data[k])
             }
         })
         {% endfor %}
-        $.getJSON("/poms/json_efficiency_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={%for c in campaigns%}{{c.campaign_id}},{%endfor%}&uuid="+nows, function(data){
-            for( var k in data ) {
+        $.getJSON("/poms/json_efficiency_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{ campaigns | join(',', attribute='campaign_id') }}&uuid="+nows, function(data) {
+            for (var k in data) {
                id = "data_"+k+"_efficiency"
                console.log("trying to update a with id " + id )
                $("a#"+id).html(data[k])
             }
         })
-        $.getJSON("/poms/json_pending_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={%for c in campaigns%}{{c.campaign_id}},{%endfor%}&uuid="+nows, function(data){
-            for( var k in data ) {
+        $.getJSON("/poms/json_pending_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{ campaigns | join(',', attribute='campaign_id') }}&uuid="+nows, function(data) {
+            for (var k in data) {
                id = "data_"+k+"_pending"
                console.log("trying to update a with id " + id )
                if (data[k] == -1) {
@@ -179,6 +166,7 @@ $( ".tmax" ).html( tmax_local_time );
             }
         })
     });
+    */
 </script>
 
 <script>
@@ -210,7 +198,30 @@ $('.ui.dropdown')
 
 <script>
     $(document).ready(function() {
-        $('#campaigns').tablesorter( { widgets : [ 'filter' ], widgetOptions : {filter_reset: '.reset'}  });
+        $('#campaigns').tablesorter( {
+            widgets : [ 'filter', 'saveSort' ],
+            widgetOptions : {filter_reset: '.reset', saveSort: true},
+            //dateFormat : "yyyymmdd"
+            });
+    });
+
+    $('#campaigns')
+    .bind('filterInit', function() {
+        // check that storage ulility is loaded
+        if ($.tablesorter.storage) {
+            // get saved filters
+            var f = $.tablesorter.storage(this, 'tablesorter-filters') || [];
+            $(this).trigger('search', [f]);
+        }
+    })
+    .bind('filterEnd', function(){
+        if ($.tablesorter.storage) {
+            // save current filters
+            var f = $(this).find('.tablesorter-filter').map(function() {
+                return $(this).val() || '';
+            }).get();
+            $.tablesorter.storage(this, 'tablesorter-filters', f);
+        }
     });
 </script>
 

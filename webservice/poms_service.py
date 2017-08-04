@@ -451,11 +451,11 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def campaign_info(self, campaign_id, tmin=None, tmax=None, tdays=None):
-        (Campaign_info, time_range_string,
+        (campaign_info, time_range_string,
          tmins, tmaxs, tdays,
-         Campaign_definition_info,
-         Launch_template_info, tags,
-         launched_campaigns, dimlist, cl,
+         campaign_definition_info,
+         launch_template_info, tags,
+         launched_campaigns, dimlist, campaign,
          counts_keys, counts,
          launch_flist,
          kibana_link) = self.campaignsPOMS.campaign_info(cherrypy.request.db,
@@ -464,10 +464,10 @@ class PomsService(object):
                                                          cherrypy.config.get,
                                                          campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_info.html')
-        return template.render(Campaign_info=Campaign_info, time_range_string=time_range_string, tmins=tmins, tmaxs=tmaxs,
-                               Campaign_definition_info=Campaign_definition_info, Launch_template_info=Launch_template_info,
+        return template.render(Campaign_info=campaign_info, time_range_string=time_range_string, tmins=tmins, tmaxs=tmaxs,
+                               Campaign_definition_info=campaign_definition_info, Launch_template_info=launch_template_info,
                                tags=tags, launched_campaigns=launched_campaigns, dimlist=dimlist,
-                               cl=cl, counts_keys=counts_keys, counts=counts, launch_flist=launch_flist,
+                               Campaign=campaign, counts_keys=counts_keys, counts=counts, launch_flist=launch_flist,
                                current_experimenter=cherrypy.session.get('experimenter'),
                                do_refresh=0, pomspath=self.path, help_page="CampaignInfoHelp", version=self.version,
                                allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
@@ -545,15 +545,24 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def mark_campaign_active(self, campaign_id, is_active):
-        c = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-        if c and cherrypy.session.get('experimenter').is_authorized(c.experiment):
-            c.active = (is_active == 'True')
-            cherrypy.request.db.add(c)
-            cherrypy.request.db.commit()
+    def mark_campaign_active(self, campaign_id=None, is_active="", cl=None):
+        logit.log("cl={}; is_active='{}'".format(cl, is_active))
+        if campaign_id:
+            campaign_ids = [campaign_id]
+        elif cl:
+            campaign_ids = cl.split(",")
+        for cid in campaign_ids:
+            campaign = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == cid).first()
+            if campaign and cherrypy.session.get('experimenter').is_authorized(campaign.experiment):
+                campaign.active = (is_active in ('True', 'Active'))
+                cherrypy.request.db.add(campaign)
+                cherrypy.request.db.commit()
+            else:
+                raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
+        if campaign_id:
             raise cherrypy.HTTPRedirect("campaign_info?campaign_id=%s" % campaign_id)
-        else:
-            raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
+        elif cl:
+            raise cherrypy.HTTPRedirect("show_campaigns")
 
 
     @cherrypy.expose

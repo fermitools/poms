@@ -500,7 +500,7 @@ class CampaignsPOMS():
         pdot.wait()
         return bytes(text,encoding="utf-8")
 
-    @pomscache.cache_on_arguments()
+    # @pomscache.cache_on_arguments()
     def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag=None):
 
         (tmin, tmax, tmins, tmaxs,
@@ -511,7 +511,11 @@ class CampaignsPOMS():
 
         logit.log(logit.DEBUG, "show_campaigns: querying {}".format('active' if active else 'inactive'))
         #cq = dbhandle.query(Campaign).options(joinedload('experiment_obj')).filter(Campaign.active==active).order_by(Campaign.experiment)
-        cq = dbhandle.query(Campaign).options(joinedload('experiment_obj')).order_by(Campaign.experiment)
+        cq = (dbhandle.query(Campaign)
+              .options(joinedload('experiment_obj'))
+              .order_by(Campaign.experiment)
+              .options(joinedload(Campaign.experimenter_creator_obj))
+              )
 
         if experiment:
             cq = cq.filter(Campaign.experiment==experiment)
@@ -529,20 +533,29 @@ class CampaignsPOMS():
 
 
     # @pomscache.cache_on_arguments()
-    def campaign_info(self, dbhandle, samhandle, err_res, config_get, campaign_id,  tmin = None, tmax = None, tdays = None):
+    def campaign_info(self, dbhandle, samhandle, err_res, config_get, campaign_id, tmin=None, tmax=None, tdays=None):
+
         campaign_id = int(campaign_id)
 
-        Campaign_info = dbhandle.query(Campaign, Experimenter).filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id).first()
+        campaign_info = (dbhandle.query(Campaign, Experimenter)
+                            .filter(Campaign.campaign_id == campaign_id, Campaign.creator == Experimenter.experimenter_id)
+                            .first())
 
         # default to time window of campaign
-        if tmin == None and tdays == None and tdays == None:
-            tmin = Campaign_info.Campaign.created
+        if tmin is None and tdays is None and tdays is None:    # FIXME: tdays appeared twice!
+            tmin = campaign_info.Campaign.created
             tmax = datetime.now(utc)
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(tmin,tmax,tdays,'campaign_info?')
+        tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'campaign_info?')
 
-        Campaign_definition_info =  dbhandle.query(CampaignDefinition, Experimenter).filter(CampaignDefinition.campaign_definition_id == Campaign_info.Campaign.campaign_definition_id, CampaignDefinition.creator == Experimenter.experimenter_id ).first()
-        Launch_template_info = dbhandle.query(LaunchTemplate, Experimenter).filter(LaunchTemplate.launch_id == Campaign_info.Campaign.launch_id, LaunchTemplate.creator == Experimenter.experimenter_id).first()
+        campaign_definition_info = (dbhandle.query(CampaignDefinition, Experimenter)
+                                        .filter(CampaignDefinition.campaign_definition_id == campaign_info.Campaign.campaign_definition_id,
+                                                CampaignDefinition.creator == Experimenter.experimenter_id )
+                                        .first())
+        launch_template_info = (dbhandle.query(LaunchTemplate, Experimenter)
+                                    .filter(LaunchTemplate.launch_id == campaign_info.Campaign.launch_id,
+                                            LaunchTemplate.creator == Experimenter.experimenter_id)
+                                    .first())
         tags = dbhandle.query(Tag).filter(CampaignsTags.campaign_id==campaign_id, CampaignsTags.tag_id==Tag.tag_id).all()
 
         launched_campaigns = dbhandle.query(CampaignSnapshot).filter(CampaignSnapshot.campaign_id == campaign_id).all()
@@ -550,10 +563,10 @@ class CampaignsPOMS():
         #
         # cloned from show_campaigns, but for a one row table..
         #
-        cl = [Campaign_info[0]]
+        campaign = campaign_info[0]
         counts = {}
         counts_keys = {}
-        cil = [c.campaign_id for c in cl]
+        #cil = [c.campaign_id for c in cl]
         #dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cil, tmin, tmax)
         #effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cil,tmin, tmax)
         #counts[campaign_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_id = campaign_id)
@@ -564,22 +577,28 @@ class CampaignsPOMS():
         #
         # any launch outputs to look at?
         #
-        dirname="%s/private/logs/poms/launches/campaign_%s" % (
-           os.environ['HOME'],campaign_id)
+        dirname = "%s/private/logs/poms/launches/campaign_%s" % (os.environ['HOME'], campaign_id)
         launch_flist = glob.glob('%s/*' % dirname)
         launch_flist = list(map(os.path.basename, launch_flist))
 
         # put our campaign id in the link
         campaign_kibana_link_format = config_get('campaign_kibana_link_format')
-        logit.log("got format %s" %  campaign_kibana_link_format)
+        logit.log("got format %s" % campaign_kibana_link_format)
         kibana_link = campaign_kibana_link_format.format(campaign_id)
 
-        return Campaign_info, time_range_string, tmins, tmaxs, tdays, Campaign_definition_info, Launch_template_info, tags, launched_campaigns, None, cl, counts_keys, counts, launch_flist, kibana_link
+        return (campaign_info,
+                time_range_string,
+                tmins, tmaxs, tdays,
+                campaign_definition_info, launch_template_info,
+                tags, launched_campaigns, None,
+                campaign, counts_keys, counts, launch_flist, kibana_link)
 
 
     @pomscache_10.cache_on_arguments()
-    def campaign_time_bars(self, dbhandle, campaign_id = None, tag = None, tmin = None, tmax = None, tdays = 1):
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string,tdays = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'campaign_time_bars?campaign_id=%s&'% campaign_id)
+    def campaign_time_bars(self, dbhandle, campaign_id=None, tag=None, tmin=None, tmax=None, tdays=1):
+        (tmin, tmax, tmins, tmaxs,
+         nextlink, prevlink,
+         time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'campaign_time_bars?campaign_id=%s&' % campaign_id)
         tg = time_grid.time_grid()
         key = tg.key()
 
