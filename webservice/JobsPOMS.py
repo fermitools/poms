@@ -25,8 +25,6 @@ class JobsPOMS(object):
     def __init__(self, poms_service):
         self.poms_service = poms_service
 
-###########
-###JOBS
     def active_jobs(self, dbhandle):
         res = []
         for jobsub_job_id, task_id in dbhandle.query(Job.jobsub_job_id, Job.task_id).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").execution_options(stream_results=True).all():
@@ -154,7 +152,7 @@ class JobsPOMS(object):
 
         job_file_jobs = set()
 
-        newfiles = []
+        newfiles = set()
         fnames = set()
         logit.log(" bulk_update_job: ldata1")
         for r in ldata: # make lists for [field][value] pairs
@@ -174,7 +172,7 @@ class JobsPOMS(object):
                             thisftype = 'log'
                         else:
                             thisftype = ftype
-                        newfiles.append(( r['jobsub_job_id'], thisftype, v))
+                        newfiles.add(( r['jobsub_job_id'], thisftype, v))
                         fnames.add(v)
                     job_file_jobs.add(r['jobsub_job_id'])
                 elif field.startswith("task_"):
@@ -217,7 +215,7 @@ class JobsPOMS(object):
         task_jobsub_job_ids.update(jjid2tid.keys())
         update_jobsub_job_ids.update(job_updates.get('jobsub_job_id',{}).keys())
 
-        if 0 == len(update_jobsub_job_ids):
+        if 0 == len(update_jobsub_job_ids) and 0 == len(update_tasks) and 0 == len(newfiles):
             logit.log(" bulk_update_job: no actionable items, returning")
             return
 
@@ -319,6 +317,7 @@ class JobsPOMS(object):
         logit.log(" bulk_update_job: ldata7")
 
         jidmap = dict( dbhandle.query(Job.jobsub_job_id, Job.job_id).filter(Job.jobsub_job_id.in_(job_file_jobs)))
+        jidmap_r = dict([ (v,k) for k, v in jidmap.items()])
 
         # check for files already present...
         # build a query that will find a superset of the 
@@ -327,12 +326,18 @@ class JobsPOMS(object):
         # use it to build a python set of tuples
 
         fl = (dbhandle.query(JobFile.job_id, JobFile.file_type, JobFile.file_name)
-                  .filter(or_(JobFile.file_name.in_(fnames), 
-                          JobFile.job_id.in_(jidmap.values()))
+                  .filter(JobFile.file_name.in_(fnames), 
+                          JobFile.job_id.in_(jidmap.values())
                       )
                   .all())
         #
-        fset = set([(r[0],r[1],r[2]) for r in fl])
+        fset = set([(jidmap_r[r[0]],r[1],r[2]) for r in fl])
+
+        logit.log("existing set: %s" % repr(fset))
+
+        newfiles = newfiles - fset
+
+        logit.log("newfiles now: %s" % repr(newfiles))
 
         if len(newfiles) > 0:
             dbhandle.bulk_insert_mappings(JobFile, [
@@ -340,7 +345,7 @@ class JobsPOMS(object):
                     file_type = r[1],
                     file_name = r[2],
                     created = datetime.now(utc))
-               for r in newfiles if not r in fset]
+               for r in newfiles ]
              )
      
         logit.log(" bulk_update_job: ldata8")
