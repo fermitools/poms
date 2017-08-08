@@ -547,10 +547,7 @@ class PomsService(object):
     @logit.logstartstop
     def mark_campaign_active(self, campaign_id=None, is_active="", cl=None):
         logit.log("cl={}; is_active='{}'".format(cl, is_active))
-        if campaign_id:
-            campaign_ids = [campaign_id]
-        elif cl:
-            campaign_ids = cl.split(",")
+        campaign_ids = (campaign_id or cl).split(",")
         for cid in campaign_ids:
             campaign = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == cid).first()
             if campaign and cherrypy.session.get('experimenter').is_authorized(campaign.experiment):

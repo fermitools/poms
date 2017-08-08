@@ -14,20 +14,6 @@ POMS: Campaign Stages
         mod_form.find('span').html("Mark " + csv.length + " selected campaigns as ");
         console.log("csv="+csv);
         $("#campaign_ids").val(csv.join(','))
-        /*
-        for (var i in csv) {
-            cid = csv[i];
-            $.ajax({
-                    url: "{{pomspath}}/mark_campaign_active?campaign_id=" + cid + "&is_active=False",
-                    type: 'GET',
-                    //data: formdata,
-                    success: function (x) {
-                        ;
-                    }
-            });
-            console.log("success: "+cid);
-        }
-        */
     }
 </script>
 
