@@ -215,7 +215,7 @@ class JobsPOMS(object):
         task_jobsub_job_ids.update(jjid2tid.keys())
         update_jobsub_job_ids.update(job_updates.get('jobsub_job_id',{}).keys())
 
-        if 0 == len(update_jobsub_job_ids) and 0 == len(update_tasks) and 0 == len(newfiles):
+        if 0 == len(update_jobsub_job_ids) and 0 == len(task_updates) and 0 == len(newfiles):
             logit.log(" bulk_update_job: no actionable items, returning")
             return
 
