@@ -197,8 +197,6 @@ class SessionTool(cherrypy.Tool):
                                       priority=10)
 
     def finalize_session(self):
-        # file session save complains if session isn't locked?!?
-        # so re-lock it on the way out(?)
         pass
 
     def establish_session(self):

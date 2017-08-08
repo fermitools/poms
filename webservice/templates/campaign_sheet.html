@@ -50,17 +50,23 @@ POMS
         <tr>
            {%for col in range(0, columns|count) %}
               {% if columns[col] == 'efficiency%' %}
-                <td><a href="{{pomspath}}/jobs_eff_histo?campaign_id={{campaign_id}}&tmax={{row[1][:10]}} 23:59:59">{{row[col]}}</a></td>
+                <td><a href="{{pomspath}}/jobs_eff_histo?campaign_id={{campaign_id}}&tmax={{row[1][:10]}} 23:59:59">
+                 {{ 'N/A' if row[col] == -1 or row[col] == '-' else row[col] }}
+              </a></td>
               {% elif columns[col] == 'pending' %}
                 <td>
-                    <a href="{{pomspath}}/show_dimension_files?experiment={{session_experiment}}&dims={{dimlist[outer_loop.index0]}}">
-                        {{ 'N/A' if row[col] == -1 else row[col] }}
+                    <a href="{{pomspath}}/campaign_task_files?&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}" id="data_{{row[1][:10]}}">
+                        ...
                     </a>
                 </td>
               {% elif columns[col][:4] == 'exit' %}
                 <td><a href="{{pomspath}}/job_table?user_exe_exit_code={{columns[col][5:-1]}}&tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
               {% elif columns[col][:4] == 'jobs' %}
                 <td><a href="{{pomspath}}/job_table?tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
+              {% elif columns[col] == 'No exitcode' %}
+                <td><a href="{{pomspath}}/job_table?user_exe_exit_code=None&tdays=1&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
+              {% elif columns[col][-5:] == 'files' %}
+                <td><a href="{{pomspath}}/campaign_task_files?&tmax={{row[1][:10]}} 23:59:59&campaign_id={{campaign_id}}">{{row[col]}}</a></td>
               {% else %}
                 <td>{{row[col]}}</td>
               {% endif %}
@@ -88,6 +94,29 @@ $( ".tmax" ).html( tmax_local_time );
 
 
 
+
+<script>
+$(function() {
+
+var now = new Date()
+var nows = now.getTime()
+nows = nows - (nows % 300000)
+
+{%for row in datarows %}
+$.getJSON("/poms/json_pending_for_campaigns?tmin={{row[1][:10]}} 00:00:00&tmax={{row[1][:10]}} 23:59:59&cl={{campaign_id}}&uuid="+nows, function(data){
+    for( var k in data ) {
+       id = "data_{{row[1][:10]}}"
+       console.log("trying to update a with id " + id )
+       if (data[k] == -1) {
+           $("a#"+id).html('N/A')
+       } else {
+           $("a#"+id).html(data[k])
+       }
+    }
+})
+{%endfor%}
+});
+</script>
 
 <script>
   $(function() {

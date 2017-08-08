@@ -280,7 +280,7 @@ class CampaignsPOMS():
         pc_username = kwargs.pop('pc_username',None) #email is the info we know about the user in POMS DB.
 
         if action == 'delete':
-            name = kwargs.pop('ae_campaign_name')
+            name = kwargs.get('ae_campaign_name', kwargs.get('name',None))
             if pcl_call==1:
                 campaign_id=dbhandle.query(Campaign).filter(Campaign.name==name).first().campaign_id
             else:
@@ -299,7 +299,7 @@ class CampaignsPOMS():
         if action == 'add' or action == 'edit':
             name = kwargs.pop('ae_campaign_name')
             active = kwargs.pop('ae_active')
-            split_type = kwargs.pop('ae_split_type')
+            split_type = kwargs.pop('ae_split_type', None)
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
             dataset = kwargs.pop('ae_dataset')
@@ -500,7 +500,6 @@ class CampaignsPOMS():
         pdot.wait()
         return bytes(text,encoding="utf-8")
 
-    # @pomscache.cache_on_arguments()
     def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=7, active=True, tag=None):
 
         (tmin, tmax, tmins, tmaxs,

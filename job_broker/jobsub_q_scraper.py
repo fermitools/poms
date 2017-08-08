@@ -58,7 +58,7 @@ class jobsub_q_scraper:
         }
         # intern strings we use for maps, etc. to cut down on memory
         self.k_jobsub_job_id = sys.intern('jobsub_job_id')
-        self.k_taskid = sys.intern('taskid')
+        self.k_task_id = sys.intern('task_id')
         self.k_status = sys.intern('status')
         self.k_restarts = sys.intern('restarts')
         self.k_node_name = sys.intern('node_name')
@@ -73,6 +73,7 @@ class jobsub_q_scraper:
         self.prev_report = JobAttrs()
         self.jobmap = JobSet()
         self.prevjobmap = JobSet()
+        self.tidmap = {}
         self.debug = debug
         self.passcount = 0
         sys.stdout.flush()
@@ -80,6 +81,7 @@ class jobsub_q_scraper:
     def get_open_jobs(self):
         self.prevjobmap = self.jobmap
         self.jobmap = JobSet()
+        self.tidmap = {}
         conn = None
         try:
             conn = self.rs.get(self.job_reporter.report_url + '/active_jobs')
@@ -88,8 +90,9 @@ class jobsub_q_scraper:
             print( "got: ", jobs)
             #print("got %d jobs" % len(jobs))
             self.jobCount.set(len(jobs)+0)
-            for j in jobs:
+            for j, tid in jobs:
                 self.jobmap[j] = 0
+                self.tidmap[j] = tid
             del jobs
             jobs = None
         except KeyboardInterrupt:
@@ -188,12 +191,12 @@ class jobsub_q_scraper:
 
                 args = {
                     self.k_jobsub_job_id : jobsub_job_id,
-                    self.k_taskid : jobenv['POMS_TASK_ID'],
+                    self.k_task_id : jobenv['POMS_TASK_ID'],
                     self.k_status : self.map[jobenv['JOBSTATUS']],
                     self.k_restarts : jobenv['NumRestarts'],
                     self.k_node_name : host, 
                     self.k_host_site : jobenv.get('GLIDEIN_SITE', ''),
-                    self.k_task_project : jobenv.get('SAM_PROJECT_NAME',None),
+                    self.k_task_project : jobenv.get('SAM_PROJECT_NAME',jobenv.get('SAM_PROJECT',None)),
                     self.k_cpu_time : jobenv.get('RemoteUserCpu'),
                     self.k_wall_time : wall_time,
                     self.k_task_recovery_tasks_parent: jobenv.get('POMS_PARENT_TASK_ID',None),
@@ -239,6 +242,7 @@ class jobsub_q_scraper:
 
                     self.job_reporter.report_status(
                         jobsub_job_id = jobsub_job_id,
+                        task_id = self.tidmap[jobsub_job_id],
                         status = "Completed")
         else:
             print("error code: %s from condor_q" % res)

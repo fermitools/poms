@@ -377,7 +377,7 @@ $( document ).ready(function() {
         nows = nows - (nows % 300000)
         nows = nows.toString()
 
-        $.getJSON("/poms_vmp/json_job_counts?tmin={{tmins}}&tmax={{tmaxs}}&campaign_id={{Campaign.campaign_id}}&uuid="+nows,function(data) {
+        $.getJSON("/poms/json_job_counts?tmin={{tmins}}&tmax={{tmaxs}}&campaign_id={{Campaign.campaign_id}}&uuid="+nows,function(data) {
             for (var k in data) {
                id = "data_{{Campaign.campaign_id}}_" + k.replace(" ","_")
                console.log("trying to update a with id " + id)
@@ -385,7 +385,7 @@ $( document ).ready(function() {
             }
         })
 
-        $.getJSON("/poms_vmp/json_efficiency_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{Campaign.campaign_id}}&uuid="+nows, function(data) {
+        $.getJSON("/poms/json_efficiency_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{Campaign.campaign_id}}&uuid="+nows, function(data) {
             for (var k in data) {
                id = "data_" + k + "_efficiency"
                console.log("trying to update a with id " + id)
@@ -393,7 +393,7 @@ $( document ).ready(function() {
             }
         })
 
-        $.getJSON("/poms_vmp/json_pending_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{Campaign.campaign_id}}&uuid="+nows, function(data) {
+        $.getJSON("/poms/json_pending_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{Campaign.campaign_id}}&uuid="+nows, function(data) {
             for (var k in data) {
                id = "data_" + k + "_pending"
                console.log("trying to update a with id " + id)

@@ -94,7 +94,7 @@ class PomsService(object):
         template = self.jinja_env.get_template('index.html')
         return template.render(services=self.service_status_hier('All'), current_experimenter=cherrypy.session.get('experimenter'),
                                launches=self.taskPOMS.get_job_launches(cherrypy.request.db),
-                               do_refresh=300, pomspath=self.path, help_page="DashboardHelp",
+                               do_refresh=1200, pomspath=self.path, help_page="DashboardHelp",
                                version=self.version, allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
                                session_experiment=cherrypy.session.get('experimenter').session_experiment)
 
@@ -439,7 +439,7 @@ class PomsService(object):
 
         return template.render(limit_experiment=experiment,
                                campaigns=campaigns, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
-                               current_experimenter=current_experimenter, do_refresh=300,
+                               current_experimenter=current_experimenter, do_refresh=1200,
                                next=nextlink, prev=prevlink, tdays=tdays, time_range_string=time_range_string,
                                key='',  pomspath=self.path, help_page="ShowCampaignsHelp",
                                experiments=experiments,
@@ -488,7 +488,7 @@ class PomsService(object):
         template = self.jinja_env.get_template('campaign_time_bars.html')
         return template.render(job_counts=job_counts, blob=blob, name=name, tmin=tmin, tmax=tmax,
                                current_experimenter=cherrypy.session.get('experimenter'),
-                               do_refresh=300, next=nextlink, prev=prevlink, tdays=tdays, key=key,
+                               do_refresh=1200, next=nextlink, prev=prevlink, tdays=tdays, key=key,
                                pomspath=self.path, extramap=extramap, help_page="CampaignTimeBarsHelp", version=self.version,
                                allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
                                session_experiment=cherrypy.session.get('experimenter').session_experiment)
@@ -726,7 +726,7 @@ class PomsService(object):
                                campaign_id=campaign_id,
                                tdays=tdays, tmin=tmin, tmax=tmax,
                                current_experimenter=cherrypy.session.get('experimenter'),
-                               do_refresh=300, next=nextlink, prev=prevlink,
+                               do_refresh=1200, next=nextlink, prev=prevlink,
                                pomspath=self.path,
                                help_page="JobEfficiencyHistoHelp", version=self.version,
                                allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
@@ -796,7 +796,7 @@ class PomsService(object):
         template = self.jinja_env.get_template('show_task_jobs.html')
         return template.render(blob=blob, job_counts=job_counts, taskid=task_id, tmin=tmin, tmax=tmax,
                                current_experimenter=cherrypy.session.get('experimenter'),
-                               extramap=extramap, do_refresh=300, key=key, pomspath=self.path, help_page="ShowTaskJobsHelp",
+                               extramap=extramap, do_refresh=1200, key=key, pomspath=self.path, help_page="ShowTaskJobsHelp",
                                task_jobsub_id=task_jobsub_id,
                                campaign_id=campaign_id, cname=cname, version=self.version,
                                allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),

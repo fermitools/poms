@@ -153,7 +153,7 @@ class TaskPOMS:
         n_project = 0
         n_located = 0
         # try with joinedload()...
-        for task in (dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot)
+        for task in (dbhandle.query(Task).with_for_update(of=Task, read=True).join(CampaignSnapshot)
                      .options(joinedload(Task.jobs))
                      .options(joinedload(Task.campaign_snap_obj))
                      .options(joinedload(Task.campaign_definition_snap_obj))
@@ -182,7 +182,7 @@ class TaskPOMS:
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
 
-        for task in (dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot)
+        for task in (dbhandle.query(Task).with_for_update(of=Task,read=True).join(CampaignSnapshot)
                      .options(joinedload(Task.jobs))
                      .options(contains_eager(Task.campaign_snap_obj))
                      .options(joinedload(Task.campaign_definition_snap_obj))
@@ -380,10 +380,10 @@ class TaskPOMS:
         # also will be nickname for the task...
         if task_id in self.task_min_job_cache:
             return self.task_min_job_cache.get(task_id)
-        j = dbhandle.query(Job).filter(Job.task_id == task_id).order_by(Job.jobsub_job_id).first()
-        if j:
-            self.task_min_job_cache[task_id] = j.jobsub_job_id
-            return j.jobsub_job_id
+        jt = dbhandle.query(func.min(Job.jobsub_job_id)).filter(Job.task_id == task_id).first()
+        if len(jt):
+            self.task_min_job_cache[task_id] = jt[0]
+            return jt[0]
         return None
 
 
