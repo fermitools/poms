@@ -29,25 +29,24 @@ POMS
   <table class="ui sortable celled collapsing table">
     <thead>
       <tr>
-      {%for col in columns%}
+      {% for col in columns %}
          <th class="">
-           {% if col[:4] == 'exit' %}
-               {% if col|length > 9  %}
-                  {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit_signal"><i class="small icon grey help circle  link"></i>
-               {% else  %}
-                  <a href="https://cdcvs.fnal.gov/redmine/projects/offline_production_operations_service/wiki/_{{session_experiment}}_error_codes_#{{col[5:-1]}}">{{col}}</a><a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit"><i class="small icon grey help circle link"></i>
-               {% endif %}
-           {% else %}
-               {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#{{col|replace(' ','_')}}"><i class="small icon grey help circle link"></i>
-           {% endif %}
+           {%- if col[:4] == 'exit' -%}
+               {%- if col|length > 9  -%}
+                  {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit_signal"><i class="small icon grey help circle  link"></i></a>
+               {%- else -%}
+                  <a href="https://cdcvs.fnal.gov/redmine/projects/offline_production_operations_service/wiki/_{{session_experiment}}_error_codes_#{{col[5:-1]}}">{{col}}</a><a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#exit"><i class="small icon grey help circle link"></i></a>
+               {%- endif -%}
+           {%- else -%}
+               {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignSheetHelp#{{col|replace(' ','_')}}"><i class="small icon grey help circle link"></i></a>
+           {%- endif -%}
          </th>
       {%endfor%}
       </tr>
     </thead>
     <tbody>
-      {%for row in datarows %}
-      {% set outer_loop = loop %}
-
+        {% for row in datarows %}
+        {% set outer_loop = loop %}
         <tr>
            {%for col in range(0, columns|count) %}
               {% if columns[col] == 'efficiency%' %}
