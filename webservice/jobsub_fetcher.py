@@ -38,10 +38,11 @@ class jobsub_fetcher():
 
         fifebatch = jobsubjobid[jobsubjobid.find("@")+1:]
 
-        url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/" % ( fifebatch, group, user, jobsubjobid) 
+        url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/" % ( fifebatch, group, user, jobsubjobid)
 
         log( "trying url:" +  url)
 
+        r = None
         try:
             r = self.sess.get(url, cert=(self.cert,self.key),  verify=False, headers={"Accept":"text/html"})
             log ("headers:" + repr( r.request.headers))
@@ -56,14 +57,15 @@ class jobsub_fetcher():
                 if len(fields):
                     fname = fields[0]
                     fields[0] = ""
-                    fields[2] = fields[1] 
+                    fields[2] = fields[1]
                     fields.append(fname)
                     log("got fields: " + repr(fields))
                     res.append(fields)
         except:
             log(traceback.format_exc())
         finally:
-            if r: r.close()
+            if r:
+                r.close()
 
         return res
 
@@ -82,7 +84,7 @@ class jobsub_fetcher():
 
         fifebatch = jobsubjobid[jobsubjobid.find("@")+1:]
 
-        url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/%s/" % (fifebatch, group, user, jobsubjobid, filename) 
+        url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/%s/" % (fifebatch, group, user, jobsubjobid, filename)
 
         log( "trying url:" + url)
 
@@ -105,10 +107,10 @@ class jobsub_fetcher():
         return res
 
 if __name__ == "__main__":
-     
+
     jf = jobsub_fetcher("/tmp/x509up_u%d" % os.getuid(),"/tmp/x509up_u%d"% os.getuid() )
     jobid="18533155.0@fifebatch1.fnal.gov"
-    flist = jf.index(jobid, "samdev", "Analysis") 
+    flist = jf.index(jobid, "samdev", "Analysis")
     print("------------------")
     print(flist)
     print("------------------")
