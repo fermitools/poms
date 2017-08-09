@@ -179,14 +179,13 @@ $("#experiment").change(function() {
   });
 */
 
-  function delete_template(name) {
-    var template = name;
-    $("#confirm_modal_message").text("Delete the launch template named " +name+" ?")
+  function delete_template(template) {
+    $("#confirm_modal_message").text("Delete the launch template named " +template+" ?")
     mod_form = $("#confirm_modal").modal({
     closable  : false,
     onApprove : function(){
       $("#action").val('delete');
-      $("<input>").attr({'type':'hidden','name': 'name', 'value': template}).appendTo("#launch_template_form");
+      $("<input>").attr({'type':'hidden','name': 'ae_launch_name', 'value': template}).appendTo("#launch_template_form");
       $("#launch_template_form").submit();
     },
     }).modal('show');
