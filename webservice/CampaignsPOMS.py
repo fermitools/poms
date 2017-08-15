@@ -118,6 +118,9 @@ class CampaignsPOMS():
         data['message'] = message
         return data
 
+    def campaign_list(self, dbhandle):
+        data = dbhandle.query(Campaign.campaign_id, Campaign.name).all()
+        return data
 
     def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
         data = {}

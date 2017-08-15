@@ -377,6 +377,12 @@ class PomsService(object):
                                allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
                                session_experiment=cherrypy.session.get('experimenter').session_experiment)
 
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def campaign_list_json(self, *args, **kwargs):
+        data = self.campaignsPOMS.campaign_list(cherrypy.request.db)
+        return data
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
