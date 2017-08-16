@@ -363,10 +363,18 @@ class JobsPOMS(object):
                     t.campaign_obj.active = True
         dbhandle.commit()
 
+        #
+        # refetch to update task projects
+        #
+        tq = ( dbhandle.query(Task)
+                .filter(Task.task_id.in_(fix_task_ids))
+                .options(joinedload(Task.campaign_definition_snap_obj)) )
+        tl = tq.all()
+
         for t in tl:
-            if t.task_id in fix_task_ids:
+            if t.project:
                 tid = t.task_id
-                exp = t.campaign_obj.experiment
+                exp = t.campaign_definition_snap_obj.experiment
                 cid = t.campaign_id
                 logit.log("Trying to update project description %d" % tid)
                 samhandle.update_project_description(exp, t.project, "POMS Campaign %s Task %s" % (cid, tid))
