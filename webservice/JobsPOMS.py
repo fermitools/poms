@@ -361,13 +361,15 @@ class JobsPOMS(object):
                 # jobs make inactive campaigns active again...
                 if t.campaign_obj.active is not True:
                     t.campaign_obj.active = True
+        dbhandle.commit()
+
+        for t in tl:
             if t.task_id in fix_task_ids:
                 tid = t.task_id
                 exp = t.campaign_obj.experiment
                 cid = t.campaign_id
+                logit.log("Trying to update project description %d" % tid)
                 samhandle.update_project_description(exp, t.project, "POMS Campaign %s Task %s" % (cid, tid))
-
-        dbhandle.commit()
 
         logit.log("Exiting bulk_update_job()")
         return "Ok."

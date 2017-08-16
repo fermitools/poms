@@ -175,7 +175,8 @@ class samweb_lite:
         info["tot_jobs"] = tot_jobs
         info["tot_jobfails"] = tot_jobfails
         # we don't need the individual process info, just the totals..
-        del info["processes"]
+        if "processes" in info:
+            del info["processes"]
 
     def update_project_description(self, experiment, projname, desc):
         base = "https://samweb.fnal.gov:8483"
