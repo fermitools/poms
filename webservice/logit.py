@@ -23,11 +23,12 @@ def logstartstop(function):
 # examples of calling:
 # log("your message here")
 # log(ERROR, "your message here")
+
 def log(*args):
     if len(args) == 1:
-        __logmess(INFO,args[0][:4095])
+        __logmess(INFO,args[0])
     else:
-        __logmess(args[0],args[1][:4095])
+        __logmess(args[0],args[1])
 
 
 def setlevel(level="INFO", loggers=["cherrypy.error", "cherrypy.access", "sqlalchemy.engine"]):
