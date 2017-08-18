@@ -32,7 +32,7 @@ class CampaignsPOMS():
     def __init__(self, ps):
         self.poms_service = ps
 
-    def launch_template_edit(self, dbhandle,  seshandle, *args, **kwargs):
+    def launch_template_edit(self, dbhandle, seshandle, *args, **kwargs):
         data = {}
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(

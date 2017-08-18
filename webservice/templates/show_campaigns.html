@@ -38,6 +38,11 @@ Campaign Stages{%include 'help_button.html'%}
         display: none;
     }
 </style>
+<!--
+    exp_obj: {{exp_obj}}
+    logbook: {{exp_obj.logbook}}
+    snow_url: {{exp_obj.snow_url}}
+-->
 
 <div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_mark_inactive_modal()">Mark Campaign Active/Inactive</div>
 

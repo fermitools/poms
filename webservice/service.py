@@ -272,6 +272,19 @@ class SessionTool(cherrypy.Tool):
                                                             experimenter.last_name if experimenter else 'none'))
 
 
+def augment_params():
+    experiment = cherrypy.session.get('experimenter').session_experiment
+    exp_obj = cherrypy.request.db.query(Experiment).filter(Experiment.experiment == experiment).first()
+    current_experimenter = cherrypy.session.get('experimenter')
+    root = cherrypy.request.app.root
+    root.jinja_env.globals.update(dict(exp_obj=exp_obj,
+                                       current_experimenter=current_experimenter,
+                                       allowed_experiments=current_experimenter.all_experiments(),
+                                       session_experiment=current_experimenter.session_experiment)
+    )
+    # logit.log("jinja_env.globals: {}".format(str(root.jinja_env.globals)))   # DEBUG
+
+
 def pidfile():
     pidfile = cherrypy.config.get("log.pidfile", None)
     pid = os.getpid()
@@ -332,6 +345,8 @@ if True:
     SAEnginePlugin(cherrypy.engine, app).subscribe()
     cherrypy.tools.db = SATool()
     cherrypy.tools.psess = SessionTool()
+
+    cherrypy.tools.augment_params = cherrypy.Tool('before_handler', augment_params, None, priority=30)
 
     cherrypy.engine.unsubscribe('graceful', cherrypy.log.reopen_files)
 
