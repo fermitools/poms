@@ -135,6 +135,8 @@ class JobsPOMS(object):
         jjid2tid = {}
         logit.log("bulk_update_job == tids_present =%s" % repr(tids_present))
 
+        tasks_job_completed = set()
+
         for r in ldata:   # make field level dictionaries
             if r['task_id'] and not (int(r['task_id']) in tids_present):
                 continue
@@ -149,6 +151,8 @@ class JobsPOMS(object):
                     task_updates[field[5:]] = {}
                 else:
                     job_updates[field] = {}
+            if 'status' in r and 'task_id' in r and r['status'] == 'Completed':
+               tasks_job_completed.add(r['task_id'])               
 
         job_file_jobs = set()
 
@@ -361,13 +365,29 @@ class JobsPOMS(object):
                 # jobs make inactive campaigns active again...
                 if t.campaign_obj.active is not True:
                     t.campaign_obj.active = True
-            if t.task_id in fix_task_ids:
-                tid = t.task_id
-                exp = t.campaign_obj.experiment
-                cid = t.campaign_id
-                samhandle.update_project_description(exp, t.project, "POMS Campaign %s Task %s" % (cid, tid))
-
         dbhandle.commit()
+
+        #
+        # refetch to update task projects
+        # try to update projects when we first see them
+        #  (for folks who start projects before launch)
+        # and when we see a job completed
+        #  (for folks who start projects in a DAG)
+        #
+        need_updates = set(fix_task_ids)
+        need_updates = need_updates.union(tasks_job_completed)
+        tq = ( dbhandle.query(Task)
+                .filter(Task.task_id.in_(need_updates))
+                .options(joinedload(Task.campaign_definition_snap_obj)) )
+        tl = tq.all()
+
+        for t in tl:
+            if t.project:
+                tid = t.task_id
+                exp = t.campaign_definition_snap_obj.experiment
+                cid = t.campaign_id
+                logit.log("Trying to update project description %d" % tid)
+                samhandle.update_project_description(exp, t.project, "POMS Campaign %s Task %s" % (cid, tid))
 
         logit.log("Exiting bulk_update_job()")
         return "Ok."
