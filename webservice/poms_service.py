@@ -93,13 +93,9 @@ class PomsService(object):
     def index(self):
         template = self.jinja_env.get_template('index.html')
         return template.render(services=self.service_status_hier('All'),
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                launches=self.taskPOMS.get_job_launches(cherrypy.request.db),
                                do_refresh=1200, pomspath=self.path, help_page="DashboardHelp",
-                               version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               version=self.version)
 
 
     @cherrypy.expose
@@ -118,10 +114,7 @@ class PomsService(object):
 
         es_response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
         pprint.pprint(es_response)
-        return template.render(pomspath=self.path, es_response=es_response,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+        return template.render(pomspath=self.path, es_response=es_response)
 
 
 ####################
@@ -159,13 +152,7 @@ class PomsService(object):
     def calendar(self):
         template = self.jinja_env.get_template('calendar.html')
         rows = self.calendarPOMS.calendar(dbhandle=cherrypy.request.db)
-        return template.render(rows=rows,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               pomspath=self.path,
-                               help_page="CalendarHelp",
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+        return template.render(rows=rows, pomspath=self.path, help_page="CalendarHelp")
 
 
     @cherrypy.expose
@@ -186,13 +173,7 @@ class PomsService(object):
     def service_downtimes(self):
         template = self.jinja_env.get_template('service_downtimes.html')
         rows = self.calendarPOMS.service_downtimes(cherrypy.request.db)
-        return template.render(rows=rows,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               pomspath=self.path,
-                               help_page="ServiceDowntimesHelp",
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+        return template.render(rows=rows, pomspath=self.path, help_page="ServiceDowntimesHelp")
 
 
     @cherrypy.expose
@@ -206,15 +187,7 @@ class PomsService(object):
     def service_status(self, under='All'):
         template = self.jinja_env.get_template('service_status.html')
         list_ = self.calendarPOMS.service_status(cherrypy.request.db, under)
-        return template.render(list=list_,
-                               name=under,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               pomspath=self.path,
-                               help_page="ServiceStatusHelp",
-                               version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+        return template.render(list=list_, name=under, pomspath=self.path, help_page="ServiceStatusHelp", version=self.version)
 
 ######
     #print "Check where should be this function."
@@ -284,11 +257,7 @@ class PomsService(object):
         print("*" * 80)
         print("*" * 80)
         return template.render(list=list(self.tablesPOMS.admin_map.keys()),
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               pomspath=self.path, help_page="RawTablesHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               pomspath=self.path, help_page="RawTablesHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -296,12 +265,7 @@ class PomsService(object):
     def user_edit(self, *args, **kwargs):
         data = self.dbadminPOMS.user_edit(cherrypy.request.db, *args, **kwargs)
         template = self.jinja_env.get_template('user_edit.html')
-        return template.render(data=data,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               pomspath=self.path, help_page="EditUsersHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+        return template.render(data=data, pomspath=self.path, help_page="EditUsersHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -325,11 +289,7 @@ class PomsService(object):
         experiments = self.dbadminPOMS.experiment_edit(cherrypy.request.db)
         template = self.jinja_env.get_template('experiment_edit.html')
         return template.render(message=message, experiments=experiments,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               pomspath=self.path, help_page="ExperimentEditHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               pomspath=self.path, help_page="ExperimentEditHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -348,12 +308,7 @@ class PomsService(object):
     def launch_template_edit(self, *args, **kwargs):
         data = self.campaignsPOMS.launch_template_edit(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
         template = self.jinja_env.get_template('launch_template_edit.html')
-        return template.render(data=data,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               pomspath=self.path, help_page="LaunchTemplateEditHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+        return template.render(data=data, pomspath=self.path, help_page="LaunchTemplateEditHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -361,11 +316,7 @@ class PomsService(object):
         template = self.jinja_env.get_template('campaign_deps.html')
         svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config, tag)
         return template.render(tag=tag, svgdata=svgdata,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               pomspath=self.path, help_page="CampaignDepsHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               pomspath=self.path, help_page="CampaignDepsHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -373,12 +324,7 @@ class PomsService(object):
     def campaign_definition_edit(self, *args, **kwargs):
         data = self.campaignsPOMS.campaign_definition_edit(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
         template = self.jinja_env.get_template('campaign_definition_edit.html')
-        return template.render(data=data,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               pomspath=self.path, help_page="CampaignDefinitionEditHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+        return template.render(data=data, pomspath=self.path, help_page="CampaignDefinitionEditHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -391,12 +337,7 @@ class PomsService(object):
             if data['message']:
                 raise cherrypy.HTTPError(400, data['message'])
 
-        return template.render(data=data,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               pomspath=self.path, help_page="CampaignEditHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+        return template.render(data=data, pomspath=self.path, help_page="CampaignEditHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -410,7 +351,8 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def new_task_for_campaign(self, campaign_name, command_executed, experimenter_name, dataset_name=None):
-        return self.campaignsPOMS.new_task_for_campaign(cherrypy.request.db, campaign_name, command_executed, experimenter_name, dataset_name)
+        return self.campaignsPOMS.new_task_for_campaign(cherrypy.request.db, campaign_name, command_executed,
+                                                        experimenter_name, dataset_name)
 
     @cherrypy.expose
     @logit.logstartstop
@@ -427,12 +369,8 @@ class PomsService(object):
         template = self.jinja_env.get_template('show_tags.html')
         return template.render(tl=tl,
                                pomspath=self.path, help_page="ShowCampaignTagsHelp",
-                               #VP~ current_experimenter=current_experimenter,
                                experiments=experiments,
-                               version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               version=self.version)
 
     @cherrypy.expose
     @logit.logstartstop
@@ -461,16 +399,12 @@ class PomsService(object):
 
         return template.render(limit_experiment=experiment,
                                campaigns=campaigns, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
-                               #VP~ current_experimenter=current_experimenter,
                                do_refresh=1200,
                                next=nextlink, prev=prevlink, tdays=tdays, time_range_string=time_range_string,
                                key='',  pomspath=self.path, help_page="ShowCampaignsHelp",
                                experiments=experiments,
                                dbg=kwargs,
-                               version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               version=self.version)
 
     @cherrypy.expose
     @logit.logstartstop
@@ -492,10 +426,7 @@ class PomsService(object):
                                Campaign_definition_info=campaign_definition_info, Launch_template_info=launch_template_info,
                                tags=tags, launched_campaigns=launched_campaigns, dimlist=dimlist,
                                Campaign=campaign, counts_keys=counts_keys, counts=counts, launch_flist=launch_flist,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                do_refresh=0, pomspath=self.path, help_page="CampaignInfoHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment,
                                kibana_link=kibana_link)
 
 
@@ -511,12 +442,8 @@ class PomsService(object):
                                                                                            tdays=tdays)
         template = self.jinja_env.get_template('campaign_time_bars.html')
         return template.render(job_counts=job_counts, blob=blob, name=name, tmin=tmin, tmax=tmax,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                do_refresh=1200, next=nextlink, prev=prevlink, tdays=tdays, key=key,
-                               pomspath=self.path, extramap=extramap, help_page="CampaignTimeBarsHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               pomspath=self.path, extramap=extramap, help_page="CampaignTimeBarsHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -539,12 +466,8 @@ class PomsService(object):
         output = "".join(lines)
         template = self.jinja_env.get_template('launch_jobs.html')
         res = template.render(command='', output=output, do_refresh=refresh,
-                              #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                               c=None, campaign_id=campaign_id, pomspath=self.path,
-                              help_page="LaunchedJobsHelp", version=self.version,
-                              #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                              #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                              )
+                              help_page="LaunchedJobsHelp", version=self.version)
         return res
 
 
@@ -554,12 +477,8 @@ class PomsService(object):
         c, job, launch_flist = self.campaignsPOMS.schedule_launch(cherrypy.request.db, campaign_id)
         template = self.jinja_env.get_template('schedule_launch.html')
         return template.render(c=c, campaign_id=campaign_id, job=job,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                do_refresh=0, pomspath=self.path, help_page="ScheduleLaunchHelp",
-                               launch_flist=launch_flist, version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               launch_flist=launch_flist, version=self.version)
 
 
     @cherrypy.expose
@@ -610,11 +529,7 @@ class PomsService(object):
         return template.render(classname=classname,
                                list=l, edit_screen="edit_screen_generic",
                                primary_key='experimenter_id',
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               pomspath=self.path, help_page="ListGenericHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               pomspath=self.path, help_page="ListGenericHelp", version=self.version)
 
 
 
@@ -638,11 +553,7 @@ class PomsService(object):
         template = self.jinja_env.get_template('edit_screen_for.html')
         return template.render(screendata=screendata, action="./" + update_call,
                                classname=classname,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               pomspath=self.path, help_page="GenericEditHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               pomspath=self.path, help_page="GenericEditHelp", version=self.version)
 
 #######
 ### JobPOMS
@@ -723,26 +634,17 @@ class PomsService(object):
         if confirm is None:
             jjil, t, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, campaign_id, task_id, job_id, confirm)
             template = self.jinja_env.get_template('kill_jobs_confirm.html')
-            return template.render(
-                                   #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                                   jjil=jjil, task=t, campaign_id=campaign_id,
+            return template.render(jjil=jjil, task=t, campaign_id=campaign_id,
                                    task_id=task_id, job_id=job_id, pomspath=self.path,
-                                   help_page="KilledJobsHelp", version=self.version,
-                                   #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                                   #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                                   )
+                                   help_page="KilledJobsHelp", version=self.version)
 
         else:
             output, c, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, campaign_id, task_id, job_id, confirm)
             template = self.jinja_env.get_template('kill_jobs.html')
             return template.render(output=output,
-                                   #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                    c=c, campaign_id=campaign_id, task_id=task_id,
                                    job_id=job_id, pomspath=self.path,
-                                   help_page="KilledJobsHelp", version=self.version,
-                                   #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                                   #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                                   )
+                                   help_page="KilledJobsHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -758,13 +660,9 @@ class PomsService(object):
                                vals=vals, tmaxs=tmaxs,
                                campaign_id=campaign_id,
                                tdays=tdays, tmin=tmin, tmax=tmax,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                do_refresh=1200, next=nextlink, prev=prevlink,
                                pomspath=self.path,
-                               help_page="JobEfficiencyHistoHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               help_page="JobEfficiencyHistoHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -828,14 +726,12 @@ class PomsService(object):
             extramap, key, task_jobsub_id,
             campaign_id, cname) = self.taskPOMS.show_task_jobs(cherrypy.request.db, task_id, tmax, tmin, tdays)
         template = self.jinja_env.get_template('show_task_jobs.html')
-        return template.render(blob=blob, job_counts=job_counts, taskid=task_id, tmin=tmin, tmax=tmax,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               extramap=extramap, do_refresh=1200, key=key, pomspath=self.path, help_page="ShowTaskJobsHelp",
+        return template.render(blob=blob, job_counts=job_counts,
+                               taskid=task_id, tmin=tmin, tmax=tmax,
+                               extramap=extramap, do_refresh=1200, key=key,
+                               pomspath=self.path, help_page="ShowTaskJobsHelp",
                                task_jobsub_id=task_jobsub_id,
-                               campaign_id=campaign_id, cname=cname, version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               campaign_id=campaign_id, cname=cname, version=self.version)
 
 
     @cherrypy.expose
@@ -854,12 +750,8 @@ class PomsService(object):
         fl, t, jobsub_job_id = self.filesPOMS.list_task_logged_files(cherrypy.request.db, task_id)
         template = self.jinja_env.get_template('list_task_logged_files.html')
         return template.render(fl=fl, campaign=t.campaign_snap_obj, jobsub_job_id=jobsub_job_id,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                do_refresh=0, pomspath=self.path,
-                               help_page="ListTaskLoggedFilesHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               help_page="ListTaskLoggedFilesHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -873,11 +765,8 @@ class PomsService(object):
                                columns=columns, datarows=datarows,
                                tmin=tmins, tmax=tmaxs,
                                prev=prevlink, next=nextlink, tdays=tdays,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               campaign_id=campaign_id, pomspath=self.path, help_page="CampaignTaskFilesHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               campaign_id=campaign_id, pomspath=self.path, help_page="CampaignTaskFilesHelp",
+                               version=self.version)
 
 
     @cherrypy.expose
@@ -895,11 +784,7 @@ class PomsService(object):
         template = self.jinja_env.get_template('job_file_contents.html')
         return template.render(file=file, job_file_contents=job_file_contents,
                                task_id=task_id, job_id=job_id, tmin=tmin,
-                               pomspath=self.path, help_page="JobFileContentsHelp", version=self.version,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               pomspath=self.path, help_page="JobFileContentsHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -911,14 +796,10 @@ class PomsService(object):
                                                               campaign_id, task_id)
         template = self.jinja_env.get_template('inflight_files.html')
         return template.render(flist=outlist,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                statusmap=statusmap, c=c,
                                jjid=self.taskPOMS.task_min_job(cherrypy.request.db, task_id),
                                campaign_id=campaign_id, task_id=task_id,
-                               pomspath=self.path, help_page="PendingFilesJobsHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               pomspath=self.path, help_page="PendingFilesJobsHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -927,12 +808,8 @@ class PomsService(object):
         flist = self.filesPOMS.show_dimension_files(cherrypy.request.samweb_lite, experiment, dims, dbhandle=cherrypy.request.db)
         template = self.jinja_env.get_template('show_dimension_files.html')
         return template.render(flist=flist, dims=dims,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                statusmap=[],
-                               pomspath=self.path, help_page="ShowDimensionFilesHelp", version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               pomspath=self.path, help_page="ShowDimensionFilesHelp", version=self.version)
 
 
     @cherrypy.expose
@@ -964,15 +841,11 @@ class PomsService(object):
                                tdays=tdays,
                                tmin=tmin,
                                tmax=tmax,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                campaign_id=campaign_id,
                                experiment=experiment,
                                pomspath=self.path,
                                help_page="CampaignSheetHelp",
-                               version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               version=self.version)
 
 
 
@@ -1016,14 +889,10 @@ class PomsService(object):
                                es_response=es_response,
                                efficiency=efficiency,
                                tmin=tmin,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                pomspath=self.path,
                                help_page="TriageJobHelp",
                                task_jobsub_job_id=task_jobsub_job_id,
-                               version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               version=self.version)
 
 
 
@@ -1053,14 +922,10 @@ class PomsService(object):
                                filtered_fields=filtered_fields,
                                time_range_string=time_range_string,
                                offset=int(offset),
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                do_refresh=0,
                                pomspath=self.path,
                                help_page="JobTableHelp",
-                               version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               version=self.version)
 
 
     @cherrypy.expose
@@ -1080,7 +945,6 @@ class PomsService(object):
         return template.render(joblist=jl,
                                possible_columns=possible_columns,
                                columns=columns,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                do_refresh=0,
                                tmin=tmins,
                                tmax=tmaxs,
@@ -1090,10 +954,7 @@ class PomsService(object):
                                time_range_string=time_range_string,
                                pomspath=self.path,
                                help_page="JobsByExitcodeHelp",
-                               version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               version=self.version)
 
 ##############
 ### TagsPOMS
@@ -1119,14 +980,10 @@ class PomsService(object):
         template = self.jinja_env.get_template('search_tags.html')
         return template.render(results=results,
                                q_list=q_list,
-                               #VP~ current_experimenter=cherrypy.session.get('experimenter'),
                                do_refresh=0,
                                pomspath=self.path,
                                help_page="SearchTagsHelp",
-                               version=self.version,
-                               #VP~ allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
-                               #VP~ session_experiment=cherrypy.session.get('experimenter').session_experiment
-                               )
+                               version=self.version)
 
 
     @cherrypy.expose
