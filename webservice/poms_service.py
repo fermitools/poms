@@ -764,12 +764,10 @@ class PomsService(object):
                                          cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
         logit.log("Got vals: %s" % repr(vals))
         lcmd, c, campaign_id, outdir, outfile = vals
-        if (lcmd = "") {
+        if (lcmd == "") :
             return "Launches held, job queued..."
-        } else {
-
+        else:
             raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_id=%s&fname=%s" % (self.path, campaign_id, os.path.basename(outfile)))
-        }
 
 #----------------------
 ########################
