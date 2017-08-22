@@ -10,7 +10,7 @@ Date: April 28th, 2017. (changes for the POMS_client)
 
 from . import logit
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from sqlalchemy import func, desc, not_, and_, or_
+from sqlalchemy import func, desc, not_, and_, or_, distinct
 from .poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
                          LaunchTemplate, CampaignDefinition, CampaignRecovery,
                          CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
@@ -1015,11 +1015,10 @@ class CampaignsPOMS():
 
     def make_stale_campaigns_inactive(self, dbhandle, err_res):
         lastweek = datetime.now(utc) - timedelta(days=7)
-        recent_cp = dbhandle.query(distinct(Task.campaign_id)).filter(Task.created > lastweek).group_by(Task.campaign_id).all()
-        recent_sc = set(recent_cp)
+        recent_sq = dbhandle.query(distinct(Task.campaign_id)).filter(Task.created > lastweek)
 
-        stale = dbhandle.query(Campaign).filter(Campaign.created > lastweek, Campaign.campaign_id.notin_(recent_sc),Campaign.active == True).update({"active":False},synchronize_session=False)
+        stale = dbhandle.query(Campaign).filter(Campaign.created < lastweek, Campaign.campaign_id.notin_(recent_sq),Campaign.active == True).update({"active":False},synchronize_session=False)
 
         dbhandle.commit()
 
-        return res
+        return []
