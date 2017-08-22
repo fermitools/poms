@@ -1015,18 +1015,10 @@ class CampaignsPOMS():
 
     def make_stale_campaigns_inactive(self, dbhandle, err_res):
         lastweek = datetime.now(utc) - timedelta(days=7)
-        cp = dbhandle.query(Task.campaign_id).filter(Task.created > lastweek).group_by(Task.campaign_id).all()
-        sc = []
-        for cid in cp:
-            sc.append(cid)
+        recent_cp = dbhandle.query(distinct(Task.campaign_id)).filter(Task.created > lastweek).group_by(Task.campaign_id).all()
+        recent_sc = set(recent_cp)
 
-        stale = dbhandle.query(Campaign).filter(Campaign.created > lastweek, Campaign.campaign_id.notin_(sc),
-                                                Campaign.active == True).all()
-        res = []
-        for c in stale:
-            res.append(c.name)
-            c.active = False
-            dbhandle.add(c)
+        stale = dbhandle.query(Campaign).filter(Campaign.created > lastweek, Campaign.campaign_id.notin_(recent_sc),Campaign.active == True).update({"active":False},synchronize_session=False)
 
         dbhandle.commit()
 
