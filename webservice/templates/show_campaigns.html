@@ -9,11 +9,21 @@ POMS: Campaign Stages
         var csv = [];
         // find only visible rows; we're ignoring filtered/hidden rows
         $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
-            csv.push( $(this).text() );
+            csv.push($(this).text());
         });
         mod_form.find('span').html("Mark " + csv.length + " selected campaigns as ");
         console.log("csv="+csv);
         $("#campaign_ids").val(csv.join(','))
+    }
+
+    function show_stats() {
+        var csv = [];
+        // find only visible rows; we're ignoring filtered/hidden rows
+        $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
+            csv.push($(this).text());
+        });
+        console.log("csv="+csv);
+        location.href = "./show_campaigns?cl=" + csv.join(',');
     }
 </script>
 
@@ -38,8 +48,16 @@ Campaign Stages{%include 'help_button.html'%}
         display: none;
     }
 </style>
+<!--
+    exp_obj: {{exp_obj}}
+    logbook: {{exp_obj.logbook}}
+    snow_url: {{exp_obj.snow_url}}
+    version: {{version}}
+    pomspath: {{pomspath}}
+-->
 
-<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_mark_inactive_modal()">Mark Campaign Active/Inactive</div>
+<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_mark_inactive_modal();">Mark Campaign Active/Inactive</div>
+<div class="ui teal button" onclick="show_stats();">Show Campaigns Statistics</div>
 
 {% if campaigns|length == 0 %}
 <br>
@@ -55,6 +73,7 @@ Campaign Stages{%include 'help_button.html'%}
                 <th class="hideit">Id</th>
                 <th>Name</th>
                 <th>Active</th>
+                <th>Tags</th>
 <!--
                 <th>S/W Version</th>
                 <th>VO Role</th>
@@ -63,12 +82,15 @@ Campaign Stages{%include 'help_button.html'%}
                 <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
             </tr>
         </thead>
+
         <tbody>
             {% for campaign in campaigns if current_experimenter.extra and campaign.experiment in current_experimenter.extra.selected %}
+                <!-- campaign: {{campaign}} -->
                 <tr>
                     <td class="hideit">{{campaign.campaign_id}}</td>
                     <td><a href="{{pomspath}}/campaign_info?campaign_id={{campaign.campaign_id}}">{{campaign.name}}</a></td>
-                    <td>{{'Yes' if campaign.active else 'No'}}</td>
+                    <td>{{ 'Yes' if campaign.active else 'No' }}</td>
+                    <td>{{ campaign.campaigns_tags | join('<br>', attribute='tag_obj.tag_name') }}</td>
 <!--
                     <td>{{campaign.software_version}}</td>
                     <td>{{campaign.vo_role}}</td>
@@ -161,19 +183,19 @@ Campaign Stages{%include 'help_button.html'%}
 </script>
 
 <script>
-$('.external')
-  .popup({
-    inline   : true,
-    hoverable: true,
-    delay: {
-      show: 300,
-      hide: 80
-    }
-  })
-;
-$('.ui.dropdown')
-  .dropdown()
-;
+    $('.external')
+      .popup({
+        inline   : true,
+        hoverable: true,
+        delay: {
+          show: 300,
+          hide: 80
+        }
+      })
+    ;
+    $('.ui.dropdown')
+      .dropdown()
+    ;
 </script>
 
 

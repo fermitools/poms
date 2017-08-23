@@ -98,7 +98,8 @@ class SATool(cherrypy.Tool):
                                self.bind_session,
                                priority=20)
         self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
-        self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher(cherrypy.config.get('elasticsearch_cert'),cherrypy.config.get('elasticsearch_key'))
+        self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher(cherrypy.config.get('elasticsearch_cert'),
+                                                            cherrypy.config.get('elasticsearch_key'))
         self.samweb_lite = samweb_lite.samweb_lite()
 
     def _setup(self):
@@ -126,9 +127,11 @@ class SATool(cherrypy.Tool):
         cherrypy.request.samweb_lite = None
         self.session.remove()
 
+
 class SessionExperimenter(object):
 
-    def __init__(self, experimenter_id=None, first_name=None, last_name=None, username=None, authorized_for=None, session_experiment=None, **kwargs):
+    def __init__(self, experimenter_id=None, first_name=None, last_name=None,
+                 username=None, authorized_for=None, session_experiment=None, **kwargs):
         self.experimenter_id = experimenter_id
         self.first_name = first_name
         self.last_name = last_name
@@ -228,9 +231,9 @@ class SessionTool(cherrypy.Tool):
                             .first()
                             )
 
-        elif cherrypy.config.get('standalone_test_user',None):
+        elif cherrypy.config.get('standalone_test_user', None):
             logit.log("standalone_test_user case")
-            username = cherrypy.config.get('standalone_test_user',None)
+            username = cherrypy.config.get('standalone_test_user', None)
             experimenter = (cherrypy.request.db.query(Experimenter)
                             .filter(ExperimentsExperimenters.active == True)
                             .filter(Experimenter.username == username)
@@ -246,14 +249,14 @@ class SessionTool(cherrypy.Tool):
         exps = {}
 
         root = (cherrypy.request.db.query(ExperimentsExperimenters)
-                .filter(ExperimentsExperimenters.experimenter_id==e[0].experimenter_id)
-                .filter(ExperimentsExperimenters.experiment=='root')).all()
+                .filter(ExperimentsExperimenters.experimenter_id == e[0].experimenter_id)
+                .filter(ExperimentsExperimenters.experiment == 'root')).all()
         if len(root):
             all_exps = cherrypy.request.db.query(Experiment)
             for row in all_exps:
                 exps[row.experiment] = True
         else:
-            e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id==e[0].experimenter_id)
+            e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id == e[0].experimenter_id)
             for row in e2e:
                 exps[row.experiment] = row.active
 
@@ -270,6 +273,21 @@ class SessionTool(cherrypy.Tool):
                                                             experimenter.username if experimenter else 'none',
                                                             experimenter.first_name if experimenter else 'none',
                                                             experimenter.last_name if experimenter else 'none'))
+
+
+def augment_params():
+    experiment = cherrypy.session.get('experimenter').session_experiment
+    exp_obj = cherrypy.request.db.query(Experiment).filter(Experiment.experiment == experiment).first()
+    current_experimenter = cherrypy.session.get('experimenter')
+    root = cherrypy.request.app.root
+    root.jinja_env.globals.update(dict(exp_obj=exp_obj,
+                                       current_experimenter=current_experimenter,
+                                       allowed_experiments=current_experimenter.all_experiments(),
+                                       session_experiment=current_experimenter.session_experiment,
+                                       version=root.version,
+                                       pomspath=root.path)
+    )
+    # logit.log("jinja_env.globals: {}".format(str(root.jinja_env.globals)))   # DEBUG
 
 
 def pidfile():
@@ -332,6 +350,8 @@ if True:
     SAEnginePlugin(cherrypy.engine, app).subscribe()
     cherrypy.tools.db = SATool()
     cherrypy.tools.psess = SessionTool()
+
+    cherrypy.tools.augment_params = cherrypy.Tool('before_handler', augment_params, None, priority=30)
 
     cherrypy.engine.unsubscribe('graceful', cherrypy.log.reopen_files)
 
