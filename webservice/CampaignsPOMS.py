@@ -10,7 +10,7 @@ Date: April 28th, 2017. (changes for the POMS_client)
 
 from . import logit
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from sqlalchemy import func, desc, not_, and_, or_
+from sqlalchemy import func, desc, not_, and_, or_, distinct
 from .poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
                          LaunchTemplate, CampaignDefinition, CampaignRecovery,
                          CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
@@ -131,6 +131,10 @@ class CampaignsPOMS():
             data['templates'] = dbhandle.query(LaunchTemplate, Experiment).join(Experiment).filter(
                 LaunchTemplate.experiment == exp).order_by(LaunchTemplate.name)
         data['message'] = message
+        return data
+
+    def campaign_list(self, dbhandle):
+        data = dbhandle.query(Campaign.campaign_id, Campaign.name).all()
         return data
 
     def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
@@ -1018,19 +1022,10 @@ class CampaignsPOMS():
 
     def make_stale_campaigns_inactive(self, dbhandle, err_res):
         lastweek = datetime.now(utc) - timedelta(days=7)
-        cp = dbhandle.query(Task.campaign_id).filter(Task.created > lastweek).group_by(Task.campaign_id).all()
-        sc = []
-        for cid in cp:
-            sc.append(cid)
+        recent_sq = dbhandle.query(distinct(Task.campaign_id)).filter(Task.created > lastweek)
 
-        stale = dbhandle.query(Campaign).filter(Campaign.created > lastweek, Campaign.campaign_id.notin_(sc),
-                                                Campaign.active == True).all()
-        res = []
-        for c in stale:
-            res.append(c.name)
-            c.active = False
-            dbhandle.add(c)
+        stale = dbhandle.query(Campaign).filter(Campaign.created < lastweek, Campaign.campaign_id.notin_(recent_sq),Campaign.active == True).update({"active":False},synchronize_session=False)
 
         dbhandle.commit()
 
-        return res
+        return []
