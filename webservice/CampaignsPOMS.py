@@ -556,7 +556,7 @@ class CampaignsPOMS():
         pdot.wait()
         return bytes(text, encoding="utf-8")
 
-    def show_campaigns(self, dbhandle, samhandle, campaign_id=None, experiment=None, tmin=None, tmax=None, tdays=7,
+    def show_campaigns(self, dbhandle, samhandle, campaign_ids=None, experiment=None, tmin=None, tmax=None, tdays=7,
                        active=True, tag=None):
 
         (tmin, tmax, tmins, tmaxs,
@@ -568,6 +568,8 @@ class CampaignsPOMS():
         #logit.log(logit.DEBUG, "show_campaigns: querying {}".format('active' if active else 'inactive'))
         # cq = dbhandle.query(Campaign).options(joinedload('experiment_obj')).filter(Campaign.active==active).order_by(Campaign.experiment)
         cq = (dbhandle.query(Campaign)
+              .outerjoin(CampaignsTags)
+              .options(joinedload('campaigns_tags'))
               .options(joinedload('experiment_obj'))
               .order_by(Campaign.experiment)
               .options(joinedload(Campaign.experimenter_creator_obj))
@@ -576,8 +578,12 @@ class CampaignsPOMS():
         if experiment:
             cq = cq.filter(Campaign.experiment == experiment)
 
+        if campaign_ids:
+            campaign_ids = campaign_ids.split(",")
+            cq = cq.filter(Campaign.campaign_id.in_(campaign_ids))
+
         if tag:
-            cq = cq.join(CampaignsTags).join(Tag).filter(Tag.tag_name == tag)
+            cq = cq.join(Tag).filter(Tag.tag_name == tag)
 
         campaigns = cq.all()
         logit.log(logit.DEBUG, "show_campaigns: back from query")
@@ -653,9 +659,10 @@ class CampaignsPOMS():
 
     @pomscache_10.cache_on_arguments()
     def campaign_time_bars(self, dbhandle, campaign_id=None, tag=None, tmin=None, tmax=None, tdays=1):
-        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) \
-            = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
-                'campaign_time_bars?campaign_id={}&'.format(campaign_id))
+        (
+            tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays
+        ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
+                                                     'campaign_time_bars?campaign_id={}&'.format(campaign_id))
         tg = time_grid.time_grid()
         key = tg.key()
 

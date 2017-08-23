@@ -28,11 +28,11 @@
   <div data-ecl class="item">
     <div class="header">Logbook</div>
     <div class="menu">
-        <a class="item" href="{{exp_obj.logbook}}">{{session_experiment|capitalize}}</a>
+        <a class="item" href="{{exp_obj.logbook if exp_obj else '#'}}">{{session_experiment|capitalize}}</a>
     </div>
     <div class="header">Service Now</div>
     <div class="menu">
-        <a class="item" href="{{exp_obj.snow_url}}">POMS Service Page</a>
+        <a class="item" href="{{exp_obj.snow_url if exp_obj else '#'}}">POMS Service Page</a>
     </div>
   </div>
 

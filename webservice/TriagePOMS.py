@@ -25,8 +25,9 @@ class TriagePOMS(object):
     @pomscache.cache_on_arguments()
     def job_counts(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=None):
 
-        (tmin, tmax, tmins, tmaxs,
-         nextlink, prevlink, time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'job_counts')
+        (
+         tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays
+        ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'job_counts')
         q = dbhandle.query(func.count(Job.status), Job.status).group_by(Job.status)
         if tmax is not None:
             q = q.filter(Job.updated <= tmax, Job.updated >= tmin)
