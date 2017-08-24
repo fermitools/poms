@@ -264,11 +264,11 @@ class TriagePOMS(object):
                         .filter(Task.created < tmax, Task.created >= tmin)
                    ).subquery()
                 sq2 = (dbhandle.query(sq1.c.job_id.label('job_id'), 
-                                 func.sum(sq1.c.end_t - sq1.c.start_t).label('copy_time'))
+                                 func.extract('epoch',func.sum(sq1.c.end_t - sq1.c.start_t)).label('copy_time'))
                      .filter(sq1.c.status == copy_start_status)
                      .group_by(sq1.c.job_id)
                    ).subquery()
-                sq3 = (dbhandle.query(sq3.c.job_id).filter(sq2.c.copy_time >= n * b, sq2.c.copy-time < (n+1)*b)).subquery()
+                sq3 = (dbhandle.query(sq2.c.job_id).filter(sq2.c.copy_time >= n * b, sq2.c.copy_time < (n+1)*b)).subquery()
                 q = q.filter(Job.job_id.in_(sq3))
 
         #
