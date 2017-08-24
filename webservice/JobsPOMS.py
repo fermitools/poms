@@ -11,7 +11,7 @@ from .poms_model import Job, Task, Campaign, CampaignDefinitionSnapshot, Campaig
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import OperationalError
-from sqlalchemy import func, not_, and_, or_
+from sqlalchemy import func, not_, and_, or_, desc
 from .utc import utc
 import json
 import os
@@ -620,6 +620,119 @@ class JobsPOMS(object):
             f.close()
 
             return output, c, campaign_id, task_id, job_id
+
+    def jobs_time_histo(self, dbhandle, campaign_id, timetype, tmax=None, tmin=None, tdays=1):
+        """  histogram based on cpu_time/wall_time/aggregate copy times
+         """
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink,
+         time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'jobs_eff_histo?campaign_id=%s&' % campaign_id)
+
+        c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+       
+        #
+        # use max of wall clock time to pick bin size..
+        #
+        maxwall = (dbhandle.query(func.max(Job.wall_time))
+                 .join(Task, Job.task_id == Task.task_id)
+                 .filter(Task.campaign_id == campaign_id)
+                 .filter(Task.created < tmax, Task.created >= tmin)
+                 .scalar())
+
+        if maxwall == None:
+            return c, 0.01, 0, 0, {'unk.': 0}, 0, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
+
+        if timetype == "wall_time" or timetype == "cpu_time":
+           if timetype == "wall_time":
+               fname = Job.wall_time 
+           else:
+               fname = Job.cpu_time
+ 
+           binsize = maxwall/10
+           qf = func.floor(fname/binsize)
+
+           q = (dbhandle.query(func.count(Job.job_id),qf )
+                .join(Task, Job.task_id == Task.task_id)
+                .filter(Task.campaign_id == campaign_id)
+                .filter(Task.created < tmax, Task.created >= tmin)
+                .filter(Job.wall_time > 0) 
+                .group_by(qf)
+                .order_by(qf)
+               )
+           qz = (dbhandle.query(func.count(Job.job_id))
+                .join(Task, Job.task_id == Task.task_id)
+                .filter(Task.campaign_id == campaign_id)
+                .filter(Task.created < tmax, Task.created >= tmin)
+                .filter(or_(fname == None, fname == 0))
+               )
+                   
+        elif timetype == "copy_in_time" or timetype == "copy_out_time":
+           if timetype == "copy_in_time":
+               copy_start_status = 'running: copying files in'
+           else:
+               copy_start_status = 'running: copying files out'
+
+           binsize = maxwall / 50
+           sq1 = (dbhandle.query(JobHistory.job_id.label('job_id'), 
+                                 JobHistory.created.label('start_t'), 
+                                 JobHistory.status.label('status'), 
+                                 func.max(JobHistory.created).over(partition_by = JobHistory.job_id, 
+                                                                   order_by=desc(JobHistory.created),
+                                                                   rows=(-1,0)
+                                                                   ).label('end_t'))
+                        .join(Job)
+                        .join(Task)
+                        .filter(JobHistory.status.in_([copy_start_status,'running','Running']))
+                        .filter(JobHistory.job_id == Job.job_id)
+                        .filter(Job.task_id == Task.task_id)
+                        .filter(Task.campaign_id == campaign_id)
+                        .filter(Task.created < tmax, Task.created >= tmin)
+                   ).subquery()
+           sq2 = (dbhandle.query(sq1.c.job_id.label('job_id'), 
+                                 func.sum(sq1.c.end_t - sq1.c.start_t).label('copy_time'))
+                     .filter(sq1.c.status == copy_start_status)
+                     .group_by(sq1.c.job_id)
+                   ).subquery()
+           qf = func.floor( func.extract('epoch',sq2.c.copy_time)/ binsize)
+           q = (dbhandle.query(func.count(Job.job_id), qf)
+                .group_by(qf)
+                .order_by(qf)
+                )
+           sqz = (dbhandle.query(func.count(JobHistory.created))
+                   .filter(JobHistory.job_id == Job.job_id)
+                   .filter(JobHistory.status == copy_start_status)
+                 ).subquery()
+           qz = (dbhandle.query(func.count(Job.job_id))
+                        .join(Task)
+                        .filter(Job.task_id == Task.task_id)
+                        .filter(Task.campaign_id == campaign_id)
+                        .filter(Task.created < tmax, Task.created >= tmin)
+                        .filter(sqz == 0)
+                 )
+        else:
+            raise KeyError("invalid timetype value, should be copy_in_time, copy_out_time, wall_time, cpu_time")
+
+        nodata = qz.first()
+        total = 0
+        vals = {-1: nodata[0]}
+        maxv = 0.01
+        maxbucket = 0.01
+        if nodata[0] > maxv:
+            maxv = nodata[0]
+
+        # raise our timeout for this one...
+        dbhandle.execute("SET SESSION statement_timeout = '600s';")
+        for row in q.all():
+            vals[row[1]] = row[0]
+            if row[0] > maxv:
+                maxv = row[0]
+            if row[1] > maxbucket:
+                maxbucket = row[1]
+            total += row[0]
+
+
+        # return "total %d ; vals %s" % (total, vals)
+        # return "Not yet implemented"
+        return c, maxv, maxbucket, total, vals, binsize, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
 
     def jobs_eff_histo(self, dbhandle, campaign_id, tmax=None, tmin=None, tdays=1):
         """  use

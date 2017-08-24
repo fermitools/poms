@@ -216,6 +216,26 @@ $( document ).ready(function() {
 	       </a>
 	      </div>
 	      <div class=item>
+	       <a href="{{pomspath}}/jobs_time_histo?timetype=wall_time&campaign_id={{Campaign.campaign_id}}&tmax={{tmaxs}}">
+		   <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job Wall Clock Time Histogram
+	       </a>
+              </div>
+	      <div class=item>
+	       <a href="{{pomspath}}/jobs_time_histo?timetype=cpu_time&campaign_id={{Campaign.campaign_id}}&tmax={{tmaxs}}">
+		   <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job CPU Time Histogram
+	       </a>
+              </div>
+	      <div class=item>
+	       <a href="{{pomspath}}/jobs_time_histo?timetype=copy_in_time&campaign_id={{Campaign.campaign_id}}&tmax={{tmaxs}}">
+		   <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Copy In Time Histogram (slow)
+	       </a>
+              </div>
+	      <div class=item>
+	       <a href="{{pomspath}}/jobs_time_histo?timetype=copy_out_time&campaign_id={{Campaign.campaign_id}}&tmax={{tmaxs}}">
+		   <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job Copy Out Time Histogram (slow)
+	       </a>
+              </div>
+	      <div class=item>
 	       <a href="{{pomspath}}/campaign_sheet?campaign_id={{Campaign.campaign_id}}&tdays=7">
 		<i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i>Day by Day Spreadsheet (1wk)
 	       </a>

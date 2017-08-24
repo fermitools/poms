@@ -720,6 +720,29 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
+    def jobs_time_histo(self, campaign_id, timetype, tmax=None, tmin=None, tdays=1):
+        (c, maxv, maxbucket, total, vals, binsize,
+            tmaxs, campaign_id,
+            tdays, tmin, tmax,
+            nextlink, prevlink, tdays) = self.jobsPOMS.jobs_time_histo(cherrypy.request.db, campaign_id, timetype, tmax, tmin, tdays)
+        template = self.jinja_env.get_template('jobs_time_histo.html')
+        return template.render(c=c, maxv=maxv, total=total,
+                               timetype = timetype, binsize = binsize, maxbucket = maxbucket,
+                               maxtime = max(list(vals.keys())),
+                               vals=vals, tmaxs=tmaxs,
+                               campaign_id=campaign_id,
+                               tdays=tdays, tmin=tmin, tmax=tmax,
+                               current_experimenter=cherrypy.session.get('experimenter'),
+                               do_refresh=1200, next=nextlink, prev=prevlink,
+                               pomspath=self.path,
+                               help_page="JobEfficiencyHistoHelp", version=self.version,
+                               allowed_experiments=cherrypy.session.get('experimenter').all_experiments(),
+                               session_experiment=cherrypy.session.get('experimenter').session_experiment)
+
+        
+
+    @cherrypy.expose
+    @logit.logstartstop
     def jobs_eff_histo(self, campaign_id, tmax=None, tmin=None, tdays=1):
         (c, maxv, total, vals,
             tmaxs, campaign_id,
