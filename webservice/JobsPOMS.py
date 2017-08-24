@@ -639,7 +639,7 @@ class JobsPOMS(object):
                  .scalar())
 
         if maxwall == None:
-            return c, 0, 0, [], 0, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
+            return c, 0.01, 0, 0, {'unk.': 0}, 0, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
 
         if timetype == "wall_time" or timetype == "cpu_time":
            if timetype == "wall_time":
