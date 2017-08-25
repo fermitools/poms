@@ -625,18 +625,23 @@ class JobsPOMS(object):
         """  histogram based on cpu_time/wall_time/aggregate copy times
          """
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink,
-         time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'jobs_eff_histo?campaign_id=%s&' % campaign_id)
+         time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'jobs_time_histo?timetype=%s&campaign_id=%s&' % (timetype, campaign_id))
 
         c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
        
         #
         # use max of wall clock time to pick bin size..
+        # also, find min jobid while we're there to see if we
+        # can use it to speed up queries on job_histories(?)
         #
-        maxwall = (dbhandle.query(func.max(Job.wall_time))
+        res = (dbhandle.query(func.max(Job.wall_time),func.min(Job.job_id))
                  .join(Task, Job.task_id == Task.task_id)
                  .filter(Task.campaign_id == campaign_id)
                  .filter(Task.created < tmax, Task.created >= tmin)
-                 .scalar())
+                 .first())
+        logit.log("max wall time %s, min job_id %s" % (res[0],res[1]))
+        maxwall = res[0]
+        minjobid = res[1]  
 
         if maxwall == None:
             return c, 0.01, 0, 0, {'unk.': 0}, 0, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
@@ -652,6 +657,7 @@ class JobsPOMS(object):
 
            q = (dbhandle.query(func.count(Job.job_id),qf )
                 .join(Task, Job.task_id == Task.task_id)
+                .filter(Job.job_id >= minjobid)   # see if this speeds up
                 .filter(Task.campaign_id == campaign_id)
                 .filter(Task.created < tmax, Task.created >= tmin)
                 .filter(Job.wall_time > 0) 
@@ -660,9 +666,10 @@ class JobsPOMS(object):
                )
            qz = (dbhandle.query(func.count(Job.job_id))
                 .join(Task, Job.task_id == Task.task_id)
+                .filter(Job.job_id >= minjobid)   # see if this speeds up
                 .filter(Task.campaign_id == campaign_id)
                 .filter(Task.created < tmax, Task.created >= tmin)
-                .filter(or_(fname == None, fname == 0))
+                .filter(fname == None)
                )
                    
         elif timetype == "copy_in_time" or timetype == "copy_out_time":
@@ -683,6 +690,7 @@ class JobsPOMS(object):
                         .join(Task)
                         .filter(JobHistory.status.in_([copy_start_status,'running','Running']))
                         .filter(JobHistory.job_id == Job.job_id)
+                        .filter(JobHistory.job_id >= minjobid)   # see if this speeds up
                         .filter(Job.task_id == Task.task_id)
                         .filter(Task.campaign_id == campaign_id)
                         .filter(Task.created < tmax, Task.created >= tmin)
@@ -693,20 +701,20 @@ class JobsPOMS(object):
                      .group_by(sq1.c.job_id)
                    ).subquery()
            qf = func.floor( func.extract('epoch',sq2.c.copy_time)/ binsize)
-           q = (dbhandle.query(func.count(Job.job_id), qf)
+           q = (dbhandle.query(func.count(sq2.c.job_id), qf)
                 .group_by(qf)
                 .order_by(qf)
-                )
+                ) # subquery -- count of copy start entries in JobHistory
+           # for this Job.job_id
            sqz = (dbhandle.query(func.count(JobHistory.created))
                    .filter(JobHistory.job_id == Job.job_id)
                    .filter(JobHistory.status == copy_start_status)
                  ).subquery()
            qz = (dbhandle.query(func.count(Job.job_id))
-                        .join(Task)
-                        .filter(Job.task_id == Task.task_id)
+                        .join(Task, Job.task_id == Task.task_id)
                         .filter(Task.campaign_id == campaign_id)
                         .filter(Task.created < tmax, Task.created >= tmin)
-                        .filter(sqz == 0)
+                        .filter(0 == sqz)
                  )
         else:
             raise KeyError("invalid timetype value, should be copy_in_time, copy_out_time, wall_time, cpu_time")
