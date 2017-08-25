@@ -259,7 +259,7 @@ class TriagePOMS(object):
                        .filter(JobHistory.job_id == Job.job_id)
                        .filter(JobHistory.status == copy_start_status)
                      ).subquery()
-                     q = q.filter(0 == sqz)
+                    q = q.filter(0 == sqz)
                 else:
                     sq1 = (dbhandle.query(JobHistory.job_id.label('job_id'),
                                      JobHistory.created.label('start_t'),
