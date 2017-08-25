@@ -772,8 +772,9 @@ class JobsPOMS(object):
         q = q.order_by((func.floor(Job.cpu_time * 10 / Job.wall_time)))
 
         qz = dbhandle.query(func.count(Job.job_id))
-        qz = qz.join(Job.task_obj)
-        qz = qz.filter(Job.task_id == Task.task_id, Task.campaign_id == campaign_id)
+        qz = qz.join(Task,Job.task_id == Task.task_id) 
+        qz = qz.filter(Task.campaign_id == campaign_id)
+        qz = qz.filter(Task.created < tmax, Task.created >= tmin)
         qz = qz.filter(not_(and_(Job.cpu_time > 0, Job.wall_time > 0, Job.cpu_time < Job.wall_time * 10)))
         nodata = qz.first()
 
