@@ -235,10 +235,16 @@ class TriagePOMS(object):
             b = float(binsize)
             if kwargs.get('wall_time'):
                 n = float(kwargs.get('wall_time'))
-                q = q.filter(Job.wall_time >= n * b, Job.wall_time < (n+1)*b)
+                if n == -1:
+                    q = q.filter(Job.wall_time == None)
+                else:
+                    q = q.filter(Job.wall_time >= n * b, Job.wall_time < (n+1)*b)
             elif kwargs.get('cpu_time'):
                 n = float(kwargs.get('cpu_time'))
-                q = q.filter(Job.cpu_time >= n * b, Job.cpu_time < (n+1)*b)
+                if n == -1:
+                    q = q.filter(Job.cpu_time == None)
+                else:
+                    q = q.filter(Job.cpu_time >= n * b, Job.cpu_time < (n+1)*b)
             elif kwargs.get('copy_in_time') or kwargs.get('copy_out_time'):
                 if kwargs.get('copy_in_time'):
                     n = float(kwargs.get('copy_in_time'))
@@ -246,30 +252,37 @@ class TriagePOMS(object):
                 else:
                     n = float(kwargs.get('copy_out_time'))
                     copy_start_status = 'running: copying files out'
-                
+
                 logit.log("doing copy in/out time.. in jobs_table...")
-                sq1 = (dbhandle.query(JobHistory.job_id.label('job_id'),
-                                 JobHistory.created.label('start_t'),
-                                 JobHistory.status.label('status'),
-                                 func.max(JobHistory.created).over(partition_by = JobHistory.job_id,
-                                                                   order_by=desc(JobHistory.created),
-                                                                   rows=(-1,0)
-                                                                   ).label('end_t'))
-                        .join(Job)
-                        .join(Task)
-                        .filter(JobHistory.status.in_([copy_start_status,'running','Running']))
-                        .filter(JobHistory.job_id == Job.job_id)
-                        .filter(Job.task_id == Task.task_id)
-                        .filter(Task.campaign_id == campaign_id)
-                        .filter(Task.created < tmax, Task.created >= tmin)
-                   ).subquery()
-                sq2 = (dbhandle.query(sq1.c.job_id.label('job_id'), 
-                                 func.extract('epoch',func.sum(sq1.c.end_t - sq1.c.start_t)).label('copy_time'))
-                     .filter(sq1.c.status == copy_start_status)
-                     .group_by(sq1.c.job_id)
-                   ).subquery()
-                sq3 = (dbhandle.query(sq2.c.job_id).filter(sq2.c.copy_time >= n * b, sq2.c.copy_time < (n+1)*b)).subquery()
-                q = q.filter(Job.job_id.in_(sq3))
+                if n == -1:
+                    sqz = (dbhandle.query(func.count(JobHistory.created))
+                       .filter(JobHistory.job_id == Job.job_id)
+                       .filter(JobHistory.status == copy_start_status)
+                     ).subquery()
+                     q = q.filter(0 == sqz)
+                else:
+                    sq1 = (dbhandle.query(JobHistory.job_id.label('job_id'),
+                                     JobHistory.created.label('start_t'),
+                                     JobHistory.status.label('status'),
+                                     func.max(JobHistory.created).over(partition_by = JobHistory.job_id,
+                                                                       order_by=desc(JobHistory.created),
+                                                                       rows=(-1,0)
+                                                                       ).label('end_t'))
+                            .join(Job)
+                            .join(Task)
+                            .filter(JobHistory.status.in_([copy_start_status,'running','Running']))
+                            .filter(JobHistory.job_id == Job.job_id)
+                            .filter(Job.task_id == Task.task_id)
+                            .filter(Task.campaign_id == campaign_id)
+                            .filter(Task.created < tmax, Task.created >= tmin)
+                       ).subquery()
+                    sq2 = (dbhandle.query(sq1.c.job_id.label('job_id'), 
+                                     func.extract('epoch',func.sum(sq1.c.end_t - sq1.c.start_t)).label('copy_time'))
+                         .filter(sq1.c.status == copy_start_status)
+                         .group_by(sq1.c.job_id)
+                       ).subquery()
+                    sq3 = (dbhandle.query(sq2.c.job_id).filter(sq2.c.copy_time >= n * b, sq2.c.copy_time < (n+1)*b)).subquery()
+                    q = q.filter(Job.job_id.in_(sq3))
 
         #
         # this one for our effeciency percentage decile...
