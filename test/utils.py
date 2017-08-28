@@ -60,7 +60,7 @@ def get_config(config = None):
 def get_pid():
     config = get_config()
 
-    pid_path = config.get('global', 'log.pidfile')[1:-1]
+    pid_path = config.get('log.pidfile')[1:-1]
     with open(pid_path, 'r') as f:
         pid = f.readline()
     f.close()
@@ -70,28 +70,25 @@ def get_pid():
 def get_db_info():
     config = get_config()
 
-    dbname = config.get('global', 'db').replace("\"", "'")
-    dbuser = config.get('global', 'dbuser').replace("\"", "'")
-    dbhost = config.get('global', 'dbhost').replace("\"", "'")
-    dbport = config.get('global', 'dbport').replace("\"", "'")
+    dbname = config.get('db').replace("\"", "'")
+    dbuser = config.get('dbuser').replace("\"", "'")
+    dbhost = config.get('dbhost').replace("\"", "'")
+    dbport = config.get('dbport').replace("\"", "'")
     try:
-        dbpass = config.get('global', 'dbpass').replace("\"", "'")
+        dbpass = config.get('dbpass').replace("\"", "'")
     except configparser.NoOptionError as e:
         dbpass = getpass.getpass("Please enter database password: ")
     return dbhost, dbname, dbuser, dbpass, dbport
-
-
-
  
 
 
 def get_base_url():
     config = get_config()
 
-    port = config.get('global', 'server.socket_port')
-    pomspath = config.get('global', 'pomspath')
+    port = config.get('server.socket_port')
+    pomspath = config.get('pomspath')
     pomspath = pomspath.replace("'", "")
-    # pidpath = config.get('global', 'log.pidfile')[1:-1]
+    # pidpath = config.get('log.pidfile')[1:-1]
     base_url = "http://localhost:" + port + pomspath + "/"
     return base_url
 

@@ -298,7 +298,7 @@ class CampaignsPOMS():
 
                     # rec_vals=[rec.recovery_type.name,rec.param_overrides]
                     rec_list.append(rec_vals)
-                recs_dict[cid] = json.dumps(rec_list)
+                recs_dict[cid] = json.dumps(list(rec_list))
 
             data['recoveries'] = recs_dict
             data['rtypes'] = (

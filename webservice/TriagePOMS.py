@@ -452,4 +452,4 @@ class TriagePOMS(object):
             #logit.log( "got jobtable %s " % repr( jl[0].__dict__) )
             logit.log("got jobtable %s " % repr(jl[0]))
 
-        return jl, possible_columns, columns, tmins, tmaxs, tdays, prevlink, nextlink, time_range_string, tdays
+        return jl, possible_columns, list(columns), tmins, tmaxs, tdays, prevlink, nextlink, time_range_string, tdays
