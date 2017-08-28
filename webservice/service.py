@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from collections import deque
 
 import sys
 import os
@@ -139,7 +140,7 @@ class SessionExperimenter(object):
         self.authorized_for = authorized_for
         self.session_experiment = session_experiment
         self.extra = kwargs
-        self.valid_ip_list = []     # FIXME
+        self.valid_ip_list = deque()     # FIXME
 
     def _is_valid_ip(self, ip, iplist):
         for x in iplist:

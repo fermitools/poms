@@ -6,6 +6,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
+from collections import deque
 from datetime import datetime
 from datetime import timedelta
 import json
@@ -47,7 +48,7 @@ def popen_read_with_timeout(cmd, totaltime=30):
     pp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     f = pp.stdout
 
-    outlist = []
+    outlist = deque()
     block = " "
 
     # read the file, with select timeout of total time remaining
@@ -120,7 +121,7 @@ class TaskPOMS:
         #
         dbhandle.commit()
 
-        need_joblogs = []
+        need_joblogs = deque()
         #
         # check active tasks to see if they're completed/located
         for task in dbhandle.query(Task).options(subqueryload(Task.jobs)).filter(Task.status != "Completed", Task.status != "Located").all():
@@ -140,9 +141,9 @@ class TaskPOMS:
 
         # mark them all completed, so we can look them over..
         dbhandle.commit()
-        lookup_task_list = []
-        lookup_dims_list = []
-        lookup_exp_list = []
+        lookup_task_list = deque()
+        lookup_dims_list = deque()
+        lookup_exp_list = deque()
         #
         # move launch stuff etc, to one place, so we can keep the table rows
         # so we need a list...
@@ -249,7 +250,7 @@ class TaskPOMS:
 
         summary_list = samhandle.fetch_info_list(lookup_task_list, dbhandle=dbhandle)
         count_list = samhandle.count_files_list(lookup_exp_list, lookup_dims_list)
-        thresholds = []
+        thresholds = deque()
         logit.log("wrapup_tasks: summary_list: %s" % repr(summary_list))    # Check if that is working
 
         for i in range(len(summary_list)):
@@ -314,7 +315,7 @@ class TaskPOMS:
         class fakerow:
             def __init__(self, **kwargs):
                 self.__dict__.update(kwargs)
-        items = []
+        items = deque()
         extramap = {}
         laststatus = None
         lastjjid = None

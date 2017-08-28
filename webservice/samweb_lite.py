@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from collections import deque
 import urllib.request, urllib.parse, urllib.error
 import time
 import datetime
@@ -135,7 +136,7 @@ class samweb_lite:
             with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                 # replies = executor.map(sess.get, urls)
                 replies = executor.map(lambda url: safe_get(sess, url, dbhandle=dbhandle), urls)
-        infos = []
+        infos = deque()
         for r in replies:
             if r:
                 try:
@@ -214,7 +215,7 @@ class samweb_lite:
     def list_files(self, experiment, dims, dbhandle=None):
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/files/list" % (base, experiment)
-        flist = []
+        flist = deque()
         dims = self.cleanup_dims(dims)
         with requests.Session() as sess:
             res = safe_get(sess, url, params={"dims": dims, "format": "json"}, dbhandle=dbhandle)
@@ -266,7 +267,7 @@ class samweb_lite:
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                 #replies = executor.map(getit, urls)
                 replies = executor.map(lambda url: getit(sess, url), urls)
-        infos = []
+        infos = deque()
         for r in replies:
             if r.text.find("query limit") > 0:
                 infos.append(-1)

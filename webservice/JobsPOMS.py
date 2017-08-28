@@ -6,6 +6,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify
 version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
+from collections import deque
 import re
 from .poms_model import Job, Task, Campaign, CampaignDefinitionSnapshot, CampaignSnapshot, JobFile, JobHistory
 from datetime import datetime
@@ -26,7 +27,7 @@ class JobsPOMS(object):
         self.poms_service = poms_service
 
     def active_jobs(self, dbhandle):
-        res = []
+        res = deque()
         for jobsub_job_id, task_id in dbhandle.query(Job.jobsub_job_id, Job.task_id).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").execution_options(stream_results=True).all():
             if jobsub_job_id == "unknown":
                 continue
@@ -71,7 +72,7 @@ class JobsPOMS(object):
                 res[e] = {}
             if prevj != jobsub_job_id:
                 prevj = jobsub_job_id
-                res[e][jobsub_job_id] = []
+                res[e][jobsub_job_id] = deque()
             res[e][jobsub_job_id].append(fname)
         return res
 
@@ -95,7 +96,7 @@ class JobsPOMS(object):
         #
         task_updates = {}
         job_updates = {}
-        new_files = []
+        new_files = deque()
 
         # check for task_ids we have present in the database versus ones
         # wanted by data.
@@ -180,9 +181,9 @@ class JobsPOMS(object):
                         fnames.add(v)
                     job_file_jobs.add(r['jobsub_job_id'])
                 elif field.startswith("task_"):
-                    task_updates[field[5:]][value] = []
+                    task_updates[field[5:]][value] = deque()
                 else:
-                    job_updates[field][value] = []
+                    job_updates[field][value] = deque()
 
         logit.log(" bulk_update_job: ldata2")
 
@@ -522,7 +523,7 @@ class JobsPOMS(object):
                 if j.job_files:
                     files = [x.file_name for x in j.job_files]
                 else:
-                    files = []
+                    files = deque()
 
                 newfiles = kwargs['output_file_names'].split(' ')
 
@@ -555,7 +556,7 @@ class JobsPOMS(object):
                 if j.job_files:
                     files = [x.file_name for x in j.job_files if x.file_type == 'input']
                 else:
-                    files = []
+                    files = deque()
                 newfiles = kwargs['input_file_names'].split(' ')
                 for f in newfiles:
                     if len(f) < 2 or f[0] == '-':  # ignore '0', '-D', etc...
@@ -577,7 +578,7 @@ class JobsPOMS(object):
         return repr(res) + self.poms_service.format_job_counts(task_id, campaign_id)
 
     def kill_jobs(self, dbhandle, campaign_id=None, task_id=None, job_id=None, confirm=None):
-        jjil = []
+        jjil = deque()
         jql = None
         t = None
         if campaign_id is not None or task_id is not None:
@@ -621,7 +622,7 @@ class JobsPOMS(object):
 
             return output, c, campaign_id, task_id, job_id
 
-    def jobs_time_histo(self, dbhandle, campaign_id, timetype, tmax=None, tmin=None, tdays=1):
+    def jobs_time_histo(self, dbhandle, campaign_id, timetype, binsize = None, tmax=None, tmin=None, tdays=1, submit=None):
         """  histogram based on cpu_time/wall_time/aggregate copy times
          """
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink,
@@ -652,7 +653,11 @@ class JobsPOMS(object):
            else:
                fname = Job.cpu_time
  
-           binsize = maxwall/10
+           if binsize == None:
+               binsize = maxwall/10
+
+           binsize = float(binsize)
+
            qf = func.floor(fname/binsize)
 
            q = (dbhandle.query(func.count(Job.job_id),qf )
@@ -678,7 +683,12 @@ class JobsPOMS(object):
            else:
                copy_start_status = 'running: copying files out'
 
-           binsize = maxwall / 50
+           if binsize == None:
+               binsize = maxwall / 200
+               if binsize > 900:
+                  binsize = 900
+           binsize = float(binsize)
+
            sq1 = (dbhandle.query(JobHistory.job_id.label('job_id'), 
                                  JobHistory.created.label('start_t'), 
                                  JobHistory.status.label('status'), 
@@ -829,7 +839,7 @@ class JobsPOMS(object):
             id_list = [int(cid) for cid in id_list.split(',') if cid]
 
         mapem = self.get_efficiency_map(dbhandle, id_list, tmin, tmax)
-        efflist = []
+        efflist = deque()
         for cid in id_list:
             efflist.append(mapem.get(cid, -2))
 

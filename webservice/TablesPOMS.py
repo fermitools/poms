@@ -6,6 +6,7 @@
 ### written by Marc Mengel, Stephen White and Michael Gueith.
 ### November, 2016.
 
+from collections import deque
 from . import logit
 from datetime import datetime
 from sqlalchemy import Integer, DateTime, ForeignKey, text
@@ -106,7 +107,7 @@ class TablesPOMS(object):
             found = sample
         columns = sample._sa_instance_state.class_.__table__.columns
         fieldnames = list(columns.keys())
-        screendata = []
+        screendata = deque()
         for fn in fieldnames:
             screendata.append({
                 'name': fn,
@@ -118,7 +119,7 @@ class TablesPOMS(object):
 
 
     def make_list_for(self, dbhandle, eclass, primkey):     # this function was eliminated from the main class.
-        res = []
+        res = deque()
         for i in dbhandle.query(eclass).order_by(primkey).all():
             res.append( {"key": getattr(i,primkey,''), "value": getattr(i,'name',getattr(i,'username','unknown'))})
         return res

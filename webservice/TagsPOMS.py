@@ -7,6 +7,7 @@
 ### November, 2016.
 
 
+from collections import deque
 import json
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func, desc
@@ -84,7 +85,7 @@ class TagsPOMS():
 
         def auto_complete_tags_search(self, dbhandle, experiment, q):
             response = {}
-            results = []
+            results = deque()
             rows = dbhandle.query(Tag).filter(Tag.tag_name.like('%' + q + '%'), Tag.experiment == experiment).order_by(desc(Tag.tag_name)).all()
             for row in rows:
                 results.append({"tag_name": row.tag_name})

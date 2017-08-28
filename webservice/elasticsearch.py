@@ -33,7 +33,7 @@ class Elasticsearch(object):
         requests.packages.urllib3.disable_warnings()
 
     def indices(self, **kwargs):
-        url_bits = []
+        url_bits = deque()
         url_bits.append(self.base_url)
         url_bits.append('_cat')
         url_bits.append('indices?v')
@@ -42,7 +42,7 @@ class Elasticsearch(object):
         return r.text
 
     def search(self, **kwargs):
-        url_bits = []
+        url_bits = deque()
         url_bits.append(self.base_url)
 
         if kwargs.get('index'):

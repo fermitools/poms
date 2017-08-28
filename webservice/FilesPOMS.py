@@ -7,6 +7,7 @@
 # in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
 
+from collections import deque
 import os
 import shelve
 from collections import defaultdict
@@ -63,13 +64,13 @@ class Files_status(object):
         # fetch needed data in tandem
         # -- first build lists of stuff to fetch
         #
-        base_dim_list = []
-        summary_needed = []
-        some_kids_needed = []
-        some_kids_decl_needed = []
-        all_kids_needed = []
-        all_kids_decl_needed = []
-        # finished_flying_needed = []
+        base_dim_list = deque()
+        summary_needed = deque()
+        some_kids_needed = deque()
+        some_kids_decl_needed = deque()
+        all_kids_needed = deque()
+        all_kids_decl_needed = deque()
+        # finished_flying_needed = deque()
         for t in tl:
             summary_needed.append(t)
             basedims = "snapshot_for_project_name %s " % t.project
@@ -138,7 +139,7 @@ class Files_status(object):
 
 
         listfiles = "show_dimension_files?experiment=%s&dims=%%s" % c.experiment
-        datarows = []
+        datarows = deque()
         i = -1
         for t in tl:
             logit.log("task %d" % t.task_id)
@@ -281,7 +282,7 @@ class Files_status(object):
         try:
             flist = samhandle.list_files(experiment, dims, dbhandle=dbhandle)
         except ValueError:
-            flist = []
+            flist = deque()
         return flist
 
 
@@ -403,7 +404,7 @@ class Files_status(object):
             else:
                 columns.append('No exitcode')
 
-        outrows = []
+        outrows = deque()
         exitcounts = {e: 0 for e in exitcodes}
         totfiles = 0
         totdfiles = 0
@@ -411,16 +412,16 @@ class Files_status(object):
         outfiles = 0
         infiles = 0
         # pendfiles = 0
-        tasklist = []
+        tasklist = deque()
         totwall = 0.0
 
-        daytasks = []
+        daytasks = deque()
         for tno, task in enumerate(tl):
             if day != task.created.weekday():
                 if not first:
                     # add a row to the table on the day boundary
                     daytasks.append(tasklist)
-                    outrow = []
+                    outrow = deque()
                     outrow.append(daynames[day])
                     outrow.append(date.isoformat()[:10])
                     outrow.append(str(totfiles if totfiles > 0 else infiles))
@@ -446,7 +447,7 @@ class Files_status(object):
                 infiles = 0
                 totcpu = 0.0
                 totwall = 0.0
-                tasklist = []
+                tasklist = deque()
                 for e in exitcodes:
                     exitcounts[e] = 0
             tasklist.append(task)
@@ -481,7 +482,7 @@ class Files_status(object):
         # --- but that doesn't work on new projects...
         # add a row to the table on the day boundary
         daytasks.append(tasklist)
-        outrow = []
+        outrow = deque()
         outrow.append(daynames[day])
         if date:
             outrow.append(date.isoformat()[:10])
@@ -506,7 +507,7 @@ class Files_status(object):
         # get pending counts for the task list for each day
         # and fill in the 7th column...
         #
-        dimlist = []
+        dimlist = deque()
         #dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_task_lists(dbhandle, samhandle, daytasks)
         #for i in range(len(pendings)):
         #    outrows[i][7] = pendings[i]
@@ -531,7 +532,7 @@ class Files_status(object):
 
     def get_pending_for_campaigns(self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
 
-        task_list_list = []
+        task_list_list = deque()
 
         logit.log("in get_pending_for_campaigns, tmin %s tmax %s" % (tmin, tmax))
         if isinstance(campaign_id_list, str):
@@ -561,8 +562,8 @@ class Files_status(object):
         reason = 'no_project_info'
         now = datetime.now(utc)
         twodays = timedelta(days=2)
-        dimlist = []
-        explist = []
+        dimlist = deque()
+        explist = deque()
         # experiment = None
         logit.log("get_pending_for_task_lists: task_list_list (%d): %s" % (len(task_list_list), task_list_list))
         for tl in task_list_list:

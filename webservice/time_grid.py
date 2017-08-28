@@ -2,6 +2,7 @@ from datetime import datetime
 from .utc import utc
 import collections
 
+from collections import deque
 
 class time_grid:
 
@@ -24,7 +25,7 @@ class time_grid:
         for row in rows:
             key = getattr(row, group_key)
             if key != lastkey:
-                result[key] = []
+                result[key] = deque()
                 lastkey = key
             result[key].append({'time': row.created,
                                 'status': row.status,
@@ -126,7 +127,7 @@ class time_grid:
         justnow = datetime.now(utc)
         for id, dlist in list(dlistmap.items()):
             totwidth = 0.0
-            plist = []
+            plist = deque()
             # somehow this is is never false?!?
             # if dlist[0]['time'] > self.tmin:
             # so compare second conversions...

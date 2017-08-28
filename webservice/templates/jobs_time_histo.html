@@ -19,10 +19,21 @@ POMS:Job efficiency in Campaign Stage {{campaign_id}}
 <div class="ui basic label">
   <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
 </div>
+
+
 {%endblock%}
 
 
 {%block content%}
+    <form method="GET" action="{{cur}}" style="margin-bottom: 2em">
+    Bin Size (sec):
+    <input type="hidden" name="timetype" value="{{timetype}}">
+    <input type="hidden" name="tdays" value="{{tdays}}">
+    <input type="hidden" name="tmax" value="{{tmaxs}}">
+    <input type="hidden" name="campaign_id" value="{{c.campaign_id}}">
+    <input name="binsize" value="{{binsize}}">
+    <input type="submit" name="submit" value="Rebin"> <br>
+    </form>
 
    <div class="ui grid">
 
@@ -49,13 +60,13 @@ POMS:Job efficiency in Campaign Stage {{campaign_id}}
      {% endfor %}
      </div>
      Note: jobs without cpu time/wallclock time in Condor stats are listed as "Unk."
-  </div>
+ </div>
 
 
 
 
 
-<script>
+    <script>
 var tmin_local_time = moment.utc('{{tmin}}').toDate();
 tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
 $( ".tmin" ).html( tmin_local_time );

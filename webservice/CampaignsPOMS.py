@@ -287,7 +287,7 @@ class CampaignsPOMS():
                     joinedload(CampaignRecovery.recovery_type))
                         .filter(CampaignRecovery.campaign_definition_id == cid, CampaignDefinition.experiment == exp)
                         .order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
-                rec_list = []
+                rec_list = deque()
                 for rec in recs:
                     if type(rec.param_overrides) == type(""):
                         if rec.param_overrides in ('', '{}', '[]'): rec.param_overrides = "[]"
@@ -522,7 +522,7 @@ class CampaignsPOMS():
         cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
                                                                       CampaignsTags.tag_id == Tag.tag_id,
                                                                       CampaignsTags.campaign_id == Campaign.campaign_id).all()
-        c_ids = []
+        c_ids = deque()
         pdot = subprocess.Popen("tee /tmp/dotstuff | dot -Tsvg", shell=True, stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE, universal_newlines=True)
         pdot.stdin.write('digraph {}Dependencies {\n'.format(tag))
@@ -674,7 +674,7 @@ class CampaignsPOMS():
             def __init__(self, **kwargs):
                 self.__dict__.update(kwargs)
 
-        sl = []
+        sl = deque()
         # sl.append(self.filesPOMS.format_self.triagePOMS.job_counts(dbhandle,))
 
         if campaign_id is not None:
@@ -692,8 +692,8 @@ class CampaignsPOMS():
             err_res = "404 Permission Denied."
             return "Neither Campaign nor Tag found"
 
-        job_counts_list = []
-        cidl = []
+        job_counts_list = deque()
+        cidl = deque()
         for cp in cpl:
             job_counts_list.append(cp.name)
             job_counts_list.append(
@@ -709,7 +709,7 @@ class CampaignsPOMS():
                                                                and_(Task.updated > tmin,
                                                                     Task.updated < tmax))).order_by(TaskHistory.task_id,
                                                                                                     TaskHistory.created).all()
-        items = []
+        items = deque()
         extramap = {}
         for th in qr:
             jjid = self.poms_service.taskPOMS.task_min_job(dbhandle, th.task_id)
@@ -1013,7 +1013,7 @@ class CampaignsPOMS():
             CampaignRecovery.recovery_order)
 
         # convert to a real list...
-        l = []
+        l = deque()
         for r in rlist:
             l.append(r)
         rlist = l

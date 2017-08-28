@@ -650,11 +650,11 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def jobs_time_histo(self, campaign_id, timetype, tmax=None, tmin=None, tdays=1):
+    def jobs_time_histo(self, campaign_id, timetype, tmax=None, tmin=None, tdays=1,binsize=None, submit=None):
         (c, maxv, maxbucket, total, vals, binsize,
             tmaxs, campaign_id,
             tdays, tmin, tmax,
-            nextlink, prevlink, tdays) = self.jobsPOMS.jobs_time_histo(cherrypy.request.db, campaign_id, timetype, tmax, tmin, tdays)
+            nextlink, prevlink, tdays) = self.jobsPOMS.jobs_time_histo(cherrypy.request.db, campaign_id, timetype, binsize, tmax, tmin, tdays)
         template = self.jinja_env.get_template('jobs_time_histo.html')
         return template.render(c=c, maxv=maxv, total=total,
                                timetype = timetype, binsize = binsize, maxbucket = maxbucket,

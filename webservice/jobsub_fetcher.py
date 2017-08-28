@@ -26,7 +26,7 @@ class jobsub_fetcher():
     @logstartstop
     def index(self, jobsubjobid, group,  role = "Production", force_reload = False, retries = 3):
 
-        res = []
+        res = deque()
         if retries == -1:
             return res
 
@@ -95,7 +95,7 @@ class jobsub_fetcher():
             log ("headers:" + repr( r.headers))
 
             sys.stdout.flush()
-            res = []
+            res = deque()
             for line in r.text.split('\n'):
                 log("got line: " + line)
                 res.append(line.rstrip('\n'))

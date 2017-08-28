@@ -5,6 +5,7 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of
 ### functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
+from collections import deque
 import urllib.request, urllib.parse, urllib.error
 from . import logit
 
@@ -62,7 +63,7 @@ class TriagePOMS(object):
         (tmin, tmax, tmins, tmaxs,
          nextlink, prevlink, time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
         job_file_list = self.poms_service.filesPOMS.job_file_list(dbhandle, jobsub_fetcher, job_id, force_reload)
-        output_file_names_list = []
+        output_file_names_list = deque()
         job_info = (dbhandle.query(Job, Task, CampaignDefinition, Campaign)
                     .filter(Job.job_id == job_id)
                     .filter(Job.task_id == Task.task_id)
@@ -235,12 +236,14 @@ class TriagePOMS(object):
             b = float(binsize)
             if kwargs.get('wall_time'):
                 n = float(kwargs.get('wall_time'))
+                del kwargs['wall_time']
                 if n == -1:
                     q = q.filter(Job.wall_time == None)
                 else:
                     q = q.filter(Job.wall_time >= n * b, Job.wall_time < (n+1)*b)
             elif kwargs.get('cpu_time'):
                 n = float(kwargs.get('cpu_time'))
+                del kwargs['cpu_time']
                 if n == -1:
                     q = q.filter(Job.cpu_time == None)
                 else:
@@ -351,9 +354,9 @@ class TriagePOMS(object):
             taskcolumns = list(jl[0][1]._sa_instance_state.class_.__table__.columns.keys())
             campcolumns = list(jl[0][2]._sa_instance_state.class_.__table__.columns.keys())
         else:
-            jobcolumns = []
-            taskcolumns = []
-            campcolumns = []
+            jobcolumns = deque()
+            taskcolumns = deque()
+            campcolumns = deque()
 
         sift = kwargs.get('sift')
         if sift:  # it was bool(sift)
@@ -362,15 +365,15 @@ class TriagePOMS(object):
             if kwargs.get('campaign_checkbox') == "on":
                 campaign_box = "checked"
             else:
-                campcolumns = []
+                campcolumns = deque()
             if kwargs.get('task_checkbox') == "on":
                 task_box = "checked"
             else:
-                taskcolumns = []
+                taskcolumns = deque()
             if kwargs.get('job_checkbox') == "on":
                 job_box = "checked"
             else:
-                jobcolumns = []
+                jobcolumns = deque()
 
             filtered_fields_checkboxes = {"campaign_checkbox": campaign_box, "task_checkbox": task_box, "job_checkbox": job_box}
             filtered_fields.update(filtered_fields_checkboxes)
@@ -409,9 +412,9 @@ class TriagePOMS(object):
         # * a query-args-list (quargs)
         # * a columns list
         #
-        gbl = []
-        qargs = []
-        columns = []
+        gbl = deque()
+        qargs = deque()
+        columns = deque()
 
 
         for field in f:
