@@ -3,6 +3,7 @@ import requests
 import pprint
 import json
 from datetime import datetime
+from containers import deque
 
 
 class Elasticsearch(object):
