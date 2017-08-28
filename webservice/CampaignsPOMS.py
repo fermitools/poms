@@ -526,7 +526,7 @@ class CampaignsPOMS():
         c_ids = deque()
         pdot = subprocess.Popen("tee /tmp/dotstuff | dot -Tsvg", shell=True, stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE, universal_newlines=True)
-        pdot.stdin.write('digraph {}Dependencies {\n'.format(tag))
+        pdot.stdin.write('digraph {}Dependencies {{\n'.format(tag))
         pdot.stdin.write('node [shape=box, style=rounded, color=lightgrey, fontcolor=black]\nrankdir = "LR";\n')
         baseurl = "{}/campaign_info?campaign_id=".format(config.get("pomspath"))
 
