@@ -195,6 +195,8 @@ def test_kill_jobs():
 
     #Now the check the outputs, they need a bit of pre-processing.
     #Arguments
+
+    print("output_killjob: %s" % output_killjob)
     sep=output_killjob.rfind('--jobid ')
     assert(sep!=-1) #--jobid option was in called in the command
 

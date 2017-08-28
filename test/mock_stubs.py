@@ -33,7 +33,7 @@ def getconfig(x, y=None):
     if x == 'poms.launch_recovery_jobs':
         return True
     import utils
-    config = utils.getconfig()
+    config = utils.get_config()
     return config.get('[globals]',x)
 
 camp_seshandle = mock_seshandle()

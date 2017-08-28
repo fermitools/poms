@@ -40,7 +40,8 @@ def get_config(config = None):
     from io import StringIO
 
     if config == None:
-        config = configparser.RawConfigParser()
+        #config = configparser.RawConfigParser()
+        config = get_config_py()
     configfile = '../webservice/poms.ini'
     confs = dedent("""
        [DEFAULT]
