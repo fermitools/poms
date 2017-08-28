@@ -6,6 +6,8 @@ from poms.webservice.poms_model import Campaign, Job
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
+sesshandle = camp_seshandle
+
 dbh = DBHandle.DBHandle()
 dbhandle = dbh.get()
 
@@ -18,6 +20,7 @@ logger = logging.getLogger('cherrypy.error')
 # when I get one...
 
 from mock_job import mock_job
+
 
 mps = mock_poms_service()
 
@@ -66,7 +69,7 @@ def test_failed_jobs():
 
     print("jids:", mj.jids)
 
-    res = mps.triagePOMS.failed_jobs_by_whatever(dbhandle,  f = ['jobsub_job_id'])
+    res = mps.triagePOMS.failed_jobs_by_whatever(dbhandle,  sesshandle, f = ['jobsub_job_id'])
 
     print("got: ", repr(res))
 
