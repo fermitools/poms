@@ -8,6 +8,7 @@ from poms.webservice.logit import log, logstartstop
 import requests
 import re
 import traceback
+from collections import deque
 
 class jobsub_fetcher():
 

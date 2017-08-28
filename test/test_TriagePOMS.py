@@ -49,7 +49,7 @@ def test_triage_job():
 
 def test_job_table():
 
-    res = mps.triagePOMS.job_table(dbhandle, jobsub_job_id = mj.jids[0])
+    res = mps.triagePOMS.job_table(dbhandle, camp_seshandle, jobsub_job_id = mj.jids[0])
 
     print("got: ", repr(res))
 
