@@ -36,7 +36,7 @@ class time_grid:
 
 
     def key(self, fancy=0):
-        res = ['<div class="ui raised padded container segment" style="height: %sem">' % (7 if fancy else 5)]
+        res = ['<div class="ui raised padded container segment" style="height: %sem">' % (11 if fancy else 5)]
         list = ["new", "Idle", "Held", "Running", "Completed", "Located"]
         if fancy:
             list += ["running: user code",
@@ -47,9 +47,9 @@ class time_grid:
                      "running: user code failed"]
 
         for s in list:
-            res.append("""<div style='float:left; width:8em; background-color: %s;'>
+            res.append("""<div style='float:left; margin: 2px; width:16em; background-color: %s;'>
                             <!-- <span style='min-width:4em; background: %%s;'>&nbsp;&nbsp;&nbsp;&nbsp;</span> -->
-                            <span style='float:left; background-color: #FFF;'>%s:</span>
+                            <span style='padding:0 ; float:left; width:13.5em; background-color: #FFF;'>%s:</span>
                             <span style='float:right; background-color: #FFF; font-family:monospace;'>&nbsp;&nbsp;&nbsp;</span>
                           </div>"""
                        % (self.status_color(s), s))
@@ -79,8 +79,6 @@ class time_grid:
         if line.find("Held") >= 0:
             return "#ee2211"
         if line.find("running") >= 0:
-            if line.find("user code") >= 0:
-                return "#118811"
             if line.find("copying files in") >= 0:
                 return "#80f080"
             if line.find("copying files out") >= 0:
@@ -88,9 +86,11 @@ class time_grid:
             if line.find("user code completed") >= 0:
                 return "#208010"
             if line.find("user code succeeded") >= 0:
-                return "#20e010"
+                return "#208010"
             if line.find("user code failed") >= 0:
-                return "#e01010"
+                return "#901010"
+            if line.find("user code") >= 0:
+                return "#118811"
             return "#11ff11"
         if line.find("Running") >= 0:
             return "#11ff11"

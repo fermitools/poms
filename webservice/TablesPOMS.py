@@ -134,8 +134,8 @@ class TablesPOMS(object):
         import poms.webservice.poms_model as poms_model
         self.admin_map = {}
         self.pk_map = {}
-        for k in list(poms_model.__dict__.keys()):
-            if hasattr(poms_model.__dict__[k], '__module__') and poms_model.__dict__[k].__module__ == 'poms_model':
+        for k in dir(poms_model):
+            if hasattr(poms_model.__dict__[k], '__module__') and poms_model.__dict__[k].__module__ == 'poms.webservice.poms_model':
                 self.admin_map[k] = poms_model.__dict__[k]
                 found = self.admin_map[k]()
                 columns = found._sa_instance_state.class_.__table__.columns
