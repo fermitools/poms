@@ -115,3 +115,11 @@ def tearDownPoms(proc):
     #     proc = subprocess.Popen("kill " + pid, shell=True)
     # except OSError as e:
     #     print >>sys.stderr, "Excecution failed:", e
+
+def setup_ifdhc():
+    import sys
+    import os
+    sys.path.insert(0,os.environ["SETUPS_DIR"])
+    import setups
+    ups = setups.setups()
+    ups.setup('ifdhc')
