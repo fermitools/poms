@@ -98,7 +98,8 @@ def setUpPoms():
     try:
         # proc = subprocess.Popen("cd ../ && source /fnal/ups/etc/setups.sh && setup -. poms && cd webservice/ && python service.py --no-wsgi",
         #                         shell=True)
-        proc = subprocess.Popen("python ../webservice/service.py --no-wsgi -c ../webservice/poms.ini > webservice.out 2>&1", shell=True)
+        f = open("webservice.out","w")
+        proc = subprocess.Popen(["python", "../webservice/service.py", "--no-wsgi", "-c", "../webservice/poms.ini"], stdout = f, stderr = f )
         print("PID =", proc.pid)
     except OSError as e:
         print("Execution failed:", e)
@@ -109,7 +110,13 @@ def setUpPoms():
 def tearDownPoms(proc):
     print("************* TEARING DOWN POMS *************")
     print("PID =", proc.pid)
-    proc.kill()
+    for i in range(5):
+        try:
+            proc.kill()
+            time.sleep(1)
+        except:
+            break
+
     # pid = get_pid(p)
     # try:
     #     proc = subprocess.Popen("kill " + pid, shell=True)
