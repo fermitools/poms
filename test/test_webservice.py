@@ -147,7 +147,7 @@ def test_json_job_counts(client):
 
 
 def test_json_pending_for_campaigns(client):
-    client.get('json_pending_for_cmapaigns?cl=1&tmin={}&tmax={}'.format(
+    client.get('json_pending_for_campaigns?cl=1&tmin={}&tmax={}'.format(
             (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'),
             datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
        ))
@@ -155,7 +155,7 @@ def test_json_pending_for_campaigns(client):
     assert '{' in client.text
 
 def test_json_efficiency_for_campaigns(client):
-    client.get('json_pending_for_cmapaigns?cl=1&tmin={}&tmax={}'.format(
+    client.get('json_pending_for_campaigns?cl=1&tmin={}&tmax={}'.format(
             (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'),
             datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
        ))
@@ -178,9 +178,10 @@ def test_delete_campaigns_tags(client):
     assert '{' in client.text
 
 def test_calendar_json(client):
-    client.get('calendar_json?start={}&end={}'.format(
+    client.get('calendar_json?_=x&start={}&end={}&timezone=CST'.format(
             (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'),
             datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+          
        ))
     assert client.code == 200
     assert '{' in client.text
