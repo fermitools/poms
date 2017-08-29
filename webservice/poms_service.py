@@ -143,7 +143,7 @@ class PomsService(object):
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def calendar_json(self, start, end, timezone, _):
-        return self.calendarPOMS.calendar_json(cherrypy.request.db, start, end, timezone, _)
+        return list(self.calendarPOMS.calendar_json(cherrypy.request.db, start, end, timezone, _))
 
 
     @cherrypy.expose
@@ -564,7 +564,7 @@ class PomsService(object):
     @logit.logstartstop
     def active_jobs(self):
         res = self.jobsPOMS.active_jobs(cherrypy.request.db)
-        return res
+        return list(res)
 
 
     @cherrypy.expose
@@ -579,7 +579,7 @@ class PomsService(object):
     @logit.logstartstop
     def output_pending_jobs(self):
         res = self.jobsPOMS.output_pending_jobs(cherrypy.request.db)
-        return res
+        return list(res)
 
     @cherrypy.expose
     @logit.logstartstop
