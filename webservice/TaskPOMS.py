@@ -615,6 +615,12 @@ class TaskPOMS:
             output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
             return lcmd, output, c, campaign_id, outdir, outfile    # FIXME: this returns more elements than in other places
 
+        if not lt.launch_host.find(c.experiment) >= 0 and c.experiment != 'samdev':
+            logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, c.experiment))
+            err_res = "404 Permission Denied."
+            output = "Not Authorized: {} is not a {} experiment node".format(tl.launch_host, c.experiment)
+            return lcmd, output, c, campaign_id, outdir, outfile    # FIXME: this returns more elements than in other places
+
         experimenter_login = e.username
         lt.launch_account = lt.launch_account % {"experimenter": experimenter_login}
 

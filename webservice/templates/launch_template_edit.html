@@ -164,11 +164,16 @@ Launch Templates {{ show_hint('', 'Help page') }}
 
 $('#template_add_edit_form')
   .form({
+    inline: true,
     fields: {
-      ae_launch_name      : 'empty',
-      ae_launch_host      : 'empty',
-      ae_launch_account   : 'empty',
-      ae_launch_setup     : 'empty'
+      ae_launch_name      : {rules: [{type: 'empty',prompt: 'field cannot be blank'}]},
+      ae_launch_host      : {rules: [{type: 'regExp', 
+                                      value: /{{session_experiment}}/i, 
+                                      prompt: 'Please enter a hostname with {{session_experiment}} in it' 
+                                      }, 
+                                     {type: 'empty', prompt: 'field cannot be blank'}]},
+      ae_launch_account   : {rules: [{type: 'empty', prompt: 'field cannot be blank'}]},
+      ae_launch_setup     : {rules: [{type: 'empty', prompt: 'field cannot be blank'}]}
     }
   })
 ;
