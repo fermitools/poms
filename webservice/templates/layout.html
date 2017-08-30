@@ -107,7 +107,7 @@
               <br>
 	      <select class="ui dropdown" name="session_experiment_id" id="session_experiment_id" style="margin-left: 1em;">
 		<option value="">Choose Experiment</option>
-		{% for exp in allowed_experiments %}
+		{% for exp in allowed_experiments|sort %}
 		{% if exp != 'root' %}
 		<option value="{{exp}}" {{ 'selected="selected"' if (session_experiment == exp) }}>{{exp}}</option>
 		{% endif %}
