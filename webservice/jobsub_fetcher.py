@@ -31,12 +31,13 @@ class jobsub_fetcher():
         if retries == -1:
             return res
 
-        if group == "samdev": group = "fermilab"
-
-        if role == "Production":
-            user = "%spro" % group
+        if group == "samdev": 
+            group = "fermilab" 
+            user = "mengel"  # kluge alert
         else:
-            user = 'mengel'     # XXX
+            # XXX this will be wrong when we have real Analysis jobs...
+            user = "%spro" % group
+
 
         fifebatch = jobsubjobid[jobsubjobid.find("@")+1:]
 
