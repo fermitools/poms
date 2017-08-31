@@ -276,12 +276,24 @@ class SessionTool(cherrypy.Tool):
                                                             experimenter.last_name if experimenter else 'none'))
 
 
+#
+# non ORM class to cache an experiment
+#
+class SessionExperiment():
+     def __init__(self, exp):
+        self.experiment  = exp.experiment
+        self.name  = exp.name
+        self.logbook  = exp.logbook
+        self.snow_url  = exp.snow_url
+        self.restricted  = exp.restricted
+
+  
 def augment_params():
     experiment = cherrypy.session.get('experimenter').session_experiment
     exp_obj = cherrypy.request.db.query(Experiment).filter(Experiment.experiment == experiment).first()
     current_experimenter = cherrypy.session.get('experimenter')
     root = cherrypy.request.app.root
-    root.jinja_env.globals.update(dict(exp_obj=exp_obj,
+    root.jinja_env.globals.update(dict(exp_obj=SessionExperiment(exp_obj),
                                        current_experimenter=current_experimenter,
                                        allowed_experiments=current_experimenter.all_experiments(),
                                        session_experiment=current_experimenter.session_experiment,
