@@ -68,6 +68,8 @@ class Experiment(Base):
 
     experiment = Column(String(10), primary_key=True)
     name = Column(Text, nullable=False)
+    logbook = Column(Text, nullable=True)
+    snow_url = Column(Text, nullable=True)
     restricted = Column(Boolean, nullable=False, server_default=text("false"))
 
 

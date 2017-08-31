@@ -164,11 +164,16 @@ Launch Templates {{ show_hint('', 'Help page') }}
 
 $('#template_add_edit_form')
   .form({
+    inline: true,
     fields: {
-      ae_launch_name      : 'empty',
-      ae_launch_host      : 'empty',
-      ae_launch_account   : 'empty',
-      ae_launch_setup     : 'empty'
+      ae_launch_name      : {rules: [{type: 'empty',prompt: 'field cannot be blank'}]},
+      ae_launch_host      : {rules: [{type: 'regExp', 
+                                      value: /{{session_experiment|replace('samdev','.*')}}/i, 
+                                      prompt: 'Please enter a hostname with {{session_experiment}} in it' 
+                                      }, 
+                                     {type: 'empty', prompt: 'field cannot be blank'}]},
+      ae_launch_account   : {rules: [{type: 'empty', prompt: 'field cannot be blank'}]},
+      ae_launch_setup     : {rules: [{type: 'empty', prompt: 'field cannot be blank'}]}
     }
   })
 ;
@@ -179,14 +184,13 @@ $("#experiment").change(function() {
   });
 */
 
-  function delete_template(name) {
-    var template = name;
-    $("#confirm_modal_message").text("Delete the launch template named " +name+" ?")
+  function delete_template(template) {
+    $("#confirm_modal_message").text("Delete the launch template named " +template+" ?")
     mod_form = $("#confirm_modal").modal({
     closable  : false,
     onApprove : function(){
       $("#action").val('delete');
-      $("<input>").attr({'type':'hidden','name': 'name', 'value': template}).appendTo("#launch_template_form");
+      $("<input>").attr({'type':'hidden','name': 'ae_launch_name', 'value': template}).appendTo("#launch_template_form");
       $("#launch_template_form").submit();
     },
     }).modal('show');

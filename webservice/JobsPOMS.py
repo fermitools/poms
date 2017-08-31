@@ -6,12 +6,13 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify
 version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
+from collections import deque
 import re
 from .poms_model import Job, Task, Campaign, CampaignDefinitionSnapshot, CampaignSnapshot, JobFile, JobHistory
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import OperationalError
-from sqlalchemy import func, not_, and_, or_
+from sqlalchemy import func, not_, and_, or_, desc
 from .utc import utc
 import json
 import os
@@ -25,16 +26,13 @@ class JobsPOMS(object):
     def __init__(self, poms_service):
         self.poms_service = poms_service
 
-###########
-###JOBS
     def active_jobs(self, dbhandle):
-        res = []
-        for job in dbhandle.query(Job).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").execution_options(stream_results=True).all():
-            if job.jobsub_job_id == "unknown":
+        res = deque()
+        for jobsub_job_id, task_id in dbhandle.query(Job.jobsub_job_id, Job.task_id).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").execution_options(stream_results=True).all():
+            if jobsub_job_id == "unknown":
                 continue
-            res.append(job.jobsub_job_id)
+            res.append((jobsub_job_id, task_id))
         logit.log("active_jobs: returning %s" % res)
-        #gc.collect(2)
         return res
 
 
@@ -74,11 +72,12 @@ class JobsPOMS(object):
                 res[e] = {}
             if prevj != jobsub_job_id:
                 prevj = jobsub_job_id
-                res[e][jobsub_job_id] = []
+                res[e][jobsub_job_id] = deque()
             res[e][jobsub_job_id].append(fname)
         return res
 
     def update_SAM_project(self, samhandle, j, projname):
+        logit.log("Entering update_SAM_project(%s)" % projname)
         tid = j.task_obj.task_id
         exp = j.task_obj.campaign_snap_obj.experiment
         cid = j.task_obj.campaign_snap_obj.campaign_id
@@ -91,100 +90,274 @@ class JobsPOMS(object):
         ldata = json.loads(json_data)
         del json_data
 
-        # make one merged entry per job_id
-        data = {}
-        for d in ldata:
-            data["%s" % d['jobsub_job_id']] = {}
+        #
+        # build maps[field][value] = [list-of-ids] for tasks, jobs
+        # from the data passed in 
+        #
+        task_updates = {}
+        job_updates = {}
+        new_files = deque()
 
-        for d in ldata:
-            data[d['jobsub_job_id']].update(d)
+        # check for task_ids we have present in the database versus ones
+        # wanted by data.
+        
+        tids_wanted = set()
+        tids_present = set()
+        for r in ldata:   # make field level dictionaries
+            for field, value in r.items():
+                if field == 'task_id' and value:
+                   tids_wanted.add(int(value))
 
-        # figure out what tasks are involved
-        foundtasks = {}
-        for jid, d in list(data.items()):
-            if d['task_id']:
-                foundtasks[int(d['task_id'])] = 1
+        # build upt tids_present in loop below while getting regexes to
+        # match output files, etc.
+        # - tids_present.update([x[0] for x in dbhandle.query(Task.task_id).filter(Task.task_id.in_(tids_wanted))])
 
-        logit.log("found task ids for %s" % ",".join(map(str, list(foundtasks.keys()))))
+        #
+        # using ORM, get affected tasks and campaign definition snap objs. 
+        # Build up:
+        #   * set of task_id's we have in database
+        #   * output file regexes for each task
+        #
+        tq = ( dbhandle.query(Task)
+                .filter(Task.task_id.in_(tids_wanted))
+                .options(joinedload(Task.campaign_definition_snap_obj)) )
+        tl = tq.all()
 
-        # get the tasks we have that are mentioned -- do it *before* we take
-        # for update locks
-        if len(foundtasks) > 0:
-            tasks = dbhandle.query(Task).filter(Task.task_id.in_(list(foundtasks.keys()))).all()
-        else:
-            tasks = []
-
-        fulltasks = {}
-        for t in tasks:
-            fulltasks[int(t.task_id)] = t
-
-        logit.log("found full tasks for %s" % ",".join(map(str, list(fulltasks.keys()))))
-        # trying just locking the whole table, 'cause we're waiting around
-        # for row locks...
-        # -- mengel 
-        #dbhandle.execute("lock table jobs in share mode")
-        # -- sigh. Seems to do worse..
-
-        # lookup what job-id's we already have database entries for
-        jobs = dbhandle.query(Job).filter(Job.jobsub_job_id.in_(list(data.keys()))).execution_options(stream_results=True).all()
-
-        # make a list of jobs we can update
-        jlist = []
-        foundjobs = {}
-        for j in jobs:
-            foundjobs["%s"%j.jobsub_job_id] = j
-            jlist.append(j)
-            # mengel -- do we need:
-            #if not fulltasks.get(j.task_id, None):
-            #    fulltasks[int(j.task_id)] = j.task_obj
-
-
-        # now look for jobs for which  we don't have Job ORM entries, but
-        # whose Tasks we do have entries for, and make new Job entries for
-        # them.
-        for jid in list(data.keys()):
-            if not foundjobs.get(jid, None) and 'task_id' in data[jid] and data[jid]['task_id'] and fulltasks.get(int(data[jid]['task_id']), None):
-                logit.log("need new Job for %s" % jid)
-                j = Job(jobsub_job_id=jid,
-                        task_obj=fulltasks[int(data[jid]['task_id'])],
-                        output_files_declared=False,
-                        node_name='unknown', cpu_type='unknown', host_site='unknown', status='Idle')
-                j.created = datetime.now(utc)
-                j.updated = datetime.now(utc)
-                jlist.append(j)
-                dbhandle.add(j)
-                logit.log("Adding new Job for %s, task %s" % (jid, data[jid]['task_id']))
-            elif not foundjobs.get(jid, 0):
-                logit.log("need new Job for %s, but no task %s" % (jid, data[jid]['task_id']))
+        of_res = {}
+        for t in tl:
+            tids_present.add(t.task_id)
+            if t.campaign_definition_snap_obj.output_file_patterns:
+               ofp = t.campaign_definition_snap_obj.output_file_patterns
             else:
-                pass
+               ofp = '%'
 
-        # move the locked portion as small as possible
-        # lock each job, in ascending order before doing the update_job work
+            of_res[t.task_id] = ofp.replace(',','|').replace('.','\\.').replace('%','.*')
 
-        jlist.sort(key=lambda x:x.jobsub_job_id)
+        jjid2tid = {}
+        logit.log("bulk_update_job == tids_present =%s" % repr(tids_present))
 
-        for i in range(3):
-            if i > 0:
-                dbhandle.rollback()
-                dbhandle.begin()
-            retrylist = []
-            for j in jlist:
+        tasks_job_completed = set()
 
-                #dbhandle.begin_nested()
-                
-                try:
-                    dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == j.jobsub_job_id).first()
-                    self.update_job_common(dbhandle, rpstatus, samhandle, j, data[j.jobsub_job_id])
-                    #dbhandle.commit()
-                except OperationalError as e:
-                    retrylist.append(j)
-                    #dbhandle.rollback()
-            if len(retrylist) == 0:
-                break
+        for r in ldata:   # make field level dictionaries
+            if r['task_id'] and not (int(r['task_id']) in tids_present):
+                continue
+            for field, value in r.items():
+                if value == '' or value == None or value == 'None':
+                    pass
+                elif field == 'task_id':
+                    jjid2tid[r['jobsub_job_id']] = value
+                elif field in ("input_file_names","output_file_names"):
+                    pass
+                if field.startswith("task_"):
+                    task_updates[field[5:]] = {}
+                else:
+                    job_updates[field] = {}
+            if 'status' in r and 'task_id' in r and r['status'] == 'Completed':
+               tasks_job_completed.add(r['task_id'])               
 
+        job_file_jobs = set()
+
+        newfiles = set()
+        fnames = set()
+        logit.log(" bulk_update_job: ldata1")
+        for r in ldata: # make lists for [field][value] pairs
+            if r['task_id'] and not (int(r['task_id']) in tids_present):
+                continue
+            for field, value in r.items():
+                if value == '' or value == None or value == 'None':
+                    pass
+                elif field == 'task_id':
+                    pass
+                elif field in ("input_file_names","output_file_names"):
+                    ftype = field.replace("_file_names","")
+                    for v in value.split(' '):
+                        if len(v) < 2 or v[0] == '-':
+                           continue
+                        if ftype == 'output' and not re.match(of_res.get(r['task_id'],''),v) or v.find('.log') > 0:
+                            thisftype = 'log'
+                        else:
+                            thisftype = ftype
+                        newfiles.add(( r['jobsub_job_id'], thisftype, v))
+                        fnames.add(v)
+                    job_file_jobs.add(r['jobsub_job_id'])
+                elif field.startswith("task_"):
+                    task_updates[field[5:]][value] = deque()
+                else:
+                    job_updates[field][value] = deque()
+
+        logit.log(" bulk_update_job: ldata2")
+
+        for r in ldata: # put jobids in lists
+            if r['task_id'] and not (int(r['task_id']) in tids_present):
+                continue
+            for field, value in r.items():
+                if value == '' or value == None or value == 'None':
+                    pass
+                elif field == 'task_id':
+                    pass
+                elif field in ("input_file_names","output_file_names"):
+                    pass
+                elif field.startswith("task_"):
+                    task_updates[field[5:]][value].append(jjid2tid[r['jobsub_job_id']])
+                else:
+                    job_updates[field][value].append(r['jobsub_job_id'])
+ 
+        #
+        # done with regrouping the json data, drop it.
+        #
+        del ldata
+ 
+        logit.log(" bulk_update_job: ldata3")
+        logit.log(" bulk_update_job: job_updates %s" % repr(job_updates))
+        logit.log(" bulk_update_job: task_updates %s" % repr(task_updates))
+         
+        #
+        # figure out what jobs we need to add/update
+        #
+        update_jobsub_job_ids = set()
+        task_jobsub_job_ids = set()
+        have_jobids = set()  
+        task_jobsub_job_ids.update(jjid2tid.keys())
+        update_jobsub_job_ids.update(job_updates.get('jobsub_job_id',{}).keys())
+
+        if 0 == len(update_jobsub_job_ids) and 0 == len(task_updates) and 0 == len(newfiles):
+            logit.log(" bulk_update_job: no actionable items, returning")
+            return
+
+        # we get passed some things we dont update, jobsub_job_id
+        # 'cause we use that to look it up, 
+        # filter out ones we don't have...
+        job_fields = set([x for x in dir(Job) if x[0] != '_'])
+        job_fields = job_fields - set(('metadata','jobsub_job_id'))
+
+        kl = [k for k in job_updates.keys()]
+
+        for cleanup in kl:
+            if cleanup not in job_fields:
+                del job_updates[cleanup]
+
+        task_fields = set([x for x in dir(Task) if x[0] != '_'])
+
+        kl = [k for k in task_updates.keys()]
+        for cleanup in kl:
+            if cleanup not in task_fields:
+                del task_updates[cleanup]
+        
+        # now figure out what jobs we have already, and what ones we need
+        # to insert...
+        # lock the tasks the jobs are associated with briefly 
+        # so the answer is correct. 
+
+
+        tl2 = ( dbhandle.query(Task.task_id)
+                .filter(Task.task_id.in_(tids_wanted))
+                .with_for_update(of=Task, read=True)
+                .all())
+ 
+        have_jobids.update( [x[0] for x in
+            dbhandle.query(Job.jobsub_job_id)
+                .filter(Job.jobsub_job_id.in_(update_jobsub_job_ids))
+                .all()])
+        
+
+        add_jobsub_job_ids = task_jobsub_job_ids - have_jobids
+
+        logit.log(" bulk_update_job: ldata4")
+        # now insert initial rows
+       
+        dbhandle.bulk_insert_mappings(Job, [
+              dict( jobsub_job_id = jobsub_job_id,
+                    task_id = jjid2tid[jobsub_job_id],
+                    node_name = 'unknown',
+                    cpu_type = 'unknown',
+                    host_site = 'unknown',
+                    updated = datetime.now(utc),
+                    created = datetime.now(utc),
+                    status = 'Idle',
+                    output_files_declared = False
+               )
+               for jobsub_job_id in add_jobsub_job_ids if jjid2tid.get(jobsub_job_id,None)]
+           )
+        
+
+        logit.log(" bulk_update_job: ldata5")
+
+        # now update fields            
+        
+        for field in job_updates.keys():
+            for value in job_updates[field].keys():
+                if not value: # don't clear things cause we didn't get data
+                   continue
+                if len(job_updates[field][value]) > 0:
+                    (dbhandle.query(Job)
+                       .filter(Job.jobsub_job_id.in_(job_updates[field][value]))
+                       .update( {field: value}, synchronize_session = False ))
+        
+        task_ids = set()
+        task_ids.update([int(x) for x in jjid2tid.values()])
+
+        #
+        # make a list of tasks which don't have projects set yet
+        # to update after we do the batch below
+        #
+        fix_task_ids = (dbhandle.query(Task.task_id)
+                .filter(Task.task_id.in_(task_ids))
+                .filter(Task.project == None)
+                .all())
+
+        logit.log(" bulk_update_job: ldata6")
+
+        for field in task_updates.keys():
+            for value in task_updates[field].keys():
+                if not value: # don't clear things cause we didn't get data
+                   continue
+                if len(task_updates[field][value]) > 0:
+                    (dbhandle.query(Task)
+                       .filter(Task.task_id.in_(task_updates[field][value]))
+                       .update( { field: value } , synchronize_session = False ))
+        
+        #
+        # now for job files, we need the job_ids for the jobsub_job_ids
+        #
+        logit.log(" bulk_update_job: ldata7")
+
+        jidmap = dict( dbhandle.query(Job.jobsub_job_id, Job.job_id).filter(Job.jobsub_job_id.in_(job_file_jobs)))
+        jidmap_r = dict([ (v,k) for k, v in jidmap.items()])
+
+        # check for files already present...
+        # build a query that will find a superset of the 
+        # items we want, if they were there already --i.e.
+        # they have one of the file names and one of the jobids
+        # use it to build a python set of tuples
+
+        fl = (dbhandle.query(JobFile.job_id, JobFile.file_type, JobFile.file_name)
+                  .filter(JobFile.file_name.in_(fnames), 
+                          JobFile.job_id.in_(jidmap.values())
+                      )
+                  .all())
+        #
+        fset = set([(jidmap_r[r[0]],r[1],r[2]) for r in fl])
+
+        logit.log("existing set: %s" % repr(fset))
+
+        newfiles = newfiles - fset
+
+        logit.log("newfiles now: %s" % repr(newfiles))
+
+        if len(newfiles) > 0:
+            dbhandle.bulk_insert_mappings(JobFile, [
+               dict( job_id = jidmap[r[0]],
+                    file_type = r[1],
+                    file_name = r[2],
+                    created = datetime.now(utc))
+               for r in newfiles ]
+             )
+     
+        logit.log(" bulk_update_job: ldata8")
+        #
         # update any related tasks status if changed
-        for t in list(fulltasks.values()):
+        #
+        for t in tl:
             newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, t)
             if newstatus != t.status:
                 logit.log("update_job: task %d status now %s" % (t.task_id, newstatus))
@@ -193,8 +366,30 @@ class JobsPOMS(object):
                 # jobs make inactive campaigns active again...
                 if t.campaign_obj.active is not True:
                     t.campaign_obj.active = True
-
         dbhandle.commit()
+
+        #
+        # refetch to update task projects
+        # try to update projects when we first see them
+        #  (for folks who start projects before launch)
+        # and when we see a job completed
+        #  (for folks who start projects in a DAG)
+        #
+        need_updates = set(fix_task_ids)
+        need_updates = need_updates.union(tasks_job_completed)
+        tq = ( dbhandle.query(Task)
+                .filter(Task.task_id.in_(need_updates))
+                .options(joinedload(Task.campaign_definition_snap_obj)) )
+        tl = tq.all()
+
+        for t in tl:
+            if t.project:
+                tid = t.task_id
+                exp = t.campaign_definition_snap_obj.experiment
+                cid = t.campaign_id
+                logit.log("Trying to update project description %d" % tid)
+                samhandle.update_project_description(exp, t.project, "POMS Campaign %s Task %s" % (cid, tid))
+
         logit.log("Exiting bulk_update_job()")
         return "Ok."
 
@@ -211,7 +406,7 @@ class JobsPOMS(object):
 
         # host_site = "%s_on_%s" % (jobsub_job_id, kwargs.get('slot','unknown'))
 
-        jl = (dbhandle.query(Job).with_for_update(of=Job)
+        jl = (dbhandle.query(Job).with_for_update(of=Job, read=True)
               .options(joinedload(Job.task_obj)).filter(Job.jobsub_job_id == jobsub_job_id).order_by(Job.job_id).execution_options(stream_results=True).all())
         first = True
         j = None
@@ -310,10 +505,6 @@ class JobsPOMS(object):
             # next fields we set in our Task
             for field in ['project', 'recovery_tasks_parent']:
 
-                if field == 'project' and j.task_obj.project is None:
-                    # make a note to update project description after commit
-                    do_SAM_project = True
-
                 if kwargs.get("task_%s" % field, None) and kwargs.get("task_%s" % field) != "None" and j.task_obj:
                     setattr(j.task_obj, field, str(kwargs["task_%s" % field]).rstrip("\n"))
                     logit.log("setting task %d %s to %s" % (j.task_obj.task_id, field, getattr(j.task_obj, field, kwargs["task_%s" % field])))
@@ -326,15 +517,16 @@ class JobsPOMS(object):
                     if (isinstance(kwargs[field], float)):
                         setattr(j, field, kwargs[field])
 
-            # filenames need dumping in JobFiles table and attaching
+            # filenames need dumping in JobFile table and attaching
             if kwargs.get('output_file_names', None):
                 logit.log("saw output_file_names: %s" % kwargs['output_file_names'])
                 if j.job_files:
                     files = [x.file_name for x in j.job_files]
                 else:
-                    files = []
+                    files = deque()
 
                 newfiles = kwargs['output_file_names'].split(' ')
+
                 # don't include metadata files
 
                 if j.task_obj.campaign_definition_snap_obj.output_file_patterns:
@@ -364,7 +556,7 @@ class JobsPOMS(object):
                 if j.job_files:
                     files = [x.file_name for x in j.job_files if x.file_type == 'input']
                 else:
-                    files = []
+                    files = deque()
                 newfiles = kwargs['input_file_names'].split(' ')
                 for f in newfiles:
                     if len(f) < 2 or f[0] == '-':  # ignore '0', '-D', etc...
@@ -386,7 +578,7 @@ class JobsPOMS(object):
         return repr(res) + self.poms_service.format_job_counts(task_id, campaign_id)
 
     def kill_jobs(self, dbhandle, campaign_id=None, task_id=None, job_id=None, confirm=None):
-        jjil = []
+        jjil = deque()
         jql = None
         t = None
         if campaign_id is not None or task_id is not None:
@@ -430,6 +622,136 @@ class JobsPOMS(object):
 
             return output, c, campaign_id, task_id, job_id
 
+    def jobs_time_histo(self, dbhandle, campaign_id, timetype, binsize = None, tmax=None, tmin=None, tdays=1, submit=None):
+        """  histogram based on cpu_time/wall_time/aggregate copy times
+         """
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink,
+         time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'jobs_time_histo?timetype=%s&campaign_id=%s&' % (timetype, campaign_id))
+
+        c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+       
+        #
+        # use max of wall clock time to pick bin size..
+        # also, find min jobid while we're there to see if we
+        # can use it to speed up queries on job_histories(?)
+        #
+        res = (dbhandle.query(func.max(Job.wall_time),func.min(Job.job_id))
+                 .join(Task, Job.task_id == Task.task_id)
+                 .filter(Task.campaign_id == campaign_id)
+                 .filter(Task.created < tmax, Task.created >= tmin)
+                 .first())
+        logit.log("max wall time %s, min job_id %s" % (res[0],res[1]))
+        maxwall = res[0]
+        minjobid = res[1]  
+
+        if maxwall == None:
+            return c, 0.01, 0, 0, {'unk.': 0}, 0, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
+
+        if timetype == "wall_time" or timetype == "cpu_time":
+           if timetype == "wall_time":
+               fname = Job.wall_time 
+           else:
+               fname = Job.cpu_time
+ 
+           if binsize == None:
+               binsize = maxwall/10
+
+           binsize = float(binsize)
+
+           qf = func.floor(fname/binsize)
+
+           q = (dbhandle.query(func.count(Job.job_id),qf )
+                .join(Task, Job.task_id == Task.task_id)
+                .filter(Job.job_id >= minjobid)   # see if this speeds up
+                .filter(Task.campaign_id == campaign_id)
+                .filter(Task.created < tmax, Task.created >= tmin)
+                .filter(Job.wall_time > 0) 
+                .group_by(qf)
+                .order_by(qf)
+               )
+           qz = (dbhandle.query(func.count(Job.job_id))
+                .join(Task, Job.task_id == Task.task_id)
+                .filter(Job.job_id >= minjobid)   # see if this speeds up
+                .filter(Task.campaign_id == campaign_id)
+                .filter(Task.created < tmax, Task.created >= tmin)
+                .filter(fname == None)
+               )
+                   
+        elif timetype == "copy_in_time" or timetype == "copy_out_time":
+           if timetype == "copy_in_time":
+               copy_start_status = 'running: copying files in'
+           else:
+               copy_start_status = 'running: copying files out'
+
+           if binsize == None:
+               binsize = maxwall / 200
+               if binsize > 900:
+                  binsize = 900
+           binsize = float(binsize)
+
+           sq1 = (dbhandle.query(JobHistory.job_id.label('job_id'), 
+                                 JobHistory.created.label('start_t'), 
+                                 JobHistory.status.label('status'), 
+                                 func.max(JobHistory.created).over(partition_by = JobHistory.job_id, 
+                                                                   order_by=desc(JobHistory.created),
+                                                                   rows=(-1,0)
+                                                                   ).label('end_t'))
+                        .join(Job)
+                        .join(Task)
+                        .filter(JobHistory.status.in_([copy_start_status,'running','Running']))
+                        .filter(JobHistory.job_id == Job.job_id)
+                        .filter(JobHistory.job_id >= minjobid)   # see if this speeds up
+                        .filter(Job.task_id == Task.task_id)
+                        .filter(Task.campaign_id == campaign_id)
+                        .filter(Task.created < tmax, Task.created >= tmin)
+                   ).subquery()
+           sq2 = (dbhandle.query(sq1.c.job_id.label('job_id'), 
+                                 func.sum(sq1.c.end_t - sq1.c.start_t).label('copy_time'))
+                     .filter(sq1.c.status == copy_start_status)
+                     .group_by(sq1.c.job_id)
+                   ).subquery()
+           qf = func.floor( func.extract('epoch',sq2.c.copy_time)/ binsize)
+           q = (dbhandle.query(func.count(sq2.c.job_id), qf)
+                .group_by(qf)
+                .order_by(qf)
+                ) # subquery -- count of copy start entries in JobHistory
+           # for this Job.job_id
+           sqz = (dbhandle.query(func.count(JobHistory.created))
+                   .filter(JobHistory.job_id == Job.job_id)
+                   .filter(JobHistory.status == copy_start_status)
+                 ).subquery()
+           qz = (dbhandle.query(func.count(Job.job_id))
+                        .join(Task, Job.task_id == Task.task_id)
+                        .filter(Task.campaign_id == campaign_id)
+                        .filter(Task.created < tmax, Task.created >= tmin)
+                        .filter(0 == sqz)
+                 )
+        else:
+            raise KeyError("invalid timetype value, should be copy_in_time, copy_out_time, wall_time, cpu_time")
+
+        nodata = qz.first()
+        total = 0
+        vals = {-1: nodata[0]}
+        maxv = 0.01
+        maxbucket = 0.01
+        if nodata[0] > maxv:
+            maxv = nodata[0]
+
+        # raise our timeout for this one...
+        dbhandle.execute("SET SESSION statement_timeout = '600s';")
+        for row in q.all():
+            vals[row[1]] = row[0]
+            if row[0] > maxv:
+                maxv = row[0]
+            if row[1] > maxbucket:
+                maxbucket = row[1]
+            total += row[0]
+
+
+        # return "total %d ; vals %s" % (total, vals)
+        # return "Not yet implemented"
+        return c, maxv, maxbucket, total, vals, binsize, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
+
     def jobs_eff_histo(self, dbhandle, campaign_id, tmax=None, tmin=None, tdays=1):
         """  use
                   select count(job_id), floor(cpu_time * 10 / wall_time) as de
@@ -460,8 +782,9 @@ class JobsPOMS(object):
         q = q.order_by((func.floor(Job.cpu_time * 10 / Job.wall_time)))
 
         qz = dbhandle.query(func.count(Job.job_id))
-        qz = qz.join(Job.task_obj)
-        qz = qz.filter(Job.task_id == Task.task_id, Task.campaign_id == campaign_id)
+        qz = qz.join(Task,Job.task_id == Task.task_id) 
+        qz = qz.filter(Task.campaign_id == campaign_id)
+        qz = qz.filter(Task.created < tmax, Task.created >= tmin)
         qz = qz.filter(not_(and_(Job.cpu_time > 0, Job.wall_time > 0, Job.cpu_time < Job.wall_time * 10)))
         nodata = qz.first()
 
@@ -516,7 +839,7 @@ class JobsPOMS(object):
             id_list = [int(cid) for cid in id_list.split(',') if cid]
 
         mapem = self.get_efficiency_map(dbhandle, id_list, tmin, tmax)
-        efflist = []
+        efflist = deque()
         for cid in id_list:
             efflist.append(mapem.get(cid, -2))
 

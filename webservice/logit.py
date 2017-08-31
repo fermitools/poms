@@ -23,6 +23,7 @@ def logstartstop(function):
 # examples of calling:
 # log("your message here")
 # log(ERROR, "your message here")
+
 def log(*args):
     if len(args) == 1:
         __logmess(INFO,args[0])
@@ -44,7 +45,7 @@ def __logmess(level=INFO, message="message not supplied to logit.__logmess",da_f
     source = calframe[da_frame][1]
     source = source[source.rfind('/')+1:]
     source = "%s.%s" % (source[:source.rfind('.')],calframe[1][3])
-    logger.log(__getlevel(level), "%s: %s" % (source, message) )
+    logger.log(__getlevel(level), ("%s: %s" % (source, message))[:4095] )
 
 
 def __getlevel(level):

@@ -6,6 +6,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
+from collections import deque
 from datetime import datetime
 from datetime import timedelta
 import json
@@ -47,7 +48,7 @@ def popen_read_with_timeout(cmd, totaltime=30):
     pp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     f = pp.stdout
 
-    outlist = []
+    outlist = deque()
     block = " "
 
     # read the file, with select timeout of total time remaining
@@ -120,7 +121,7 @@ class TaskPOMS:
         #
         dbhandle.commit()
 
-        need_joblogs = []
+        need_joblogs = deque()
         #
         # check active tasks to see if they're completed/located
         for task in dbhandle.query(Task).options(subqueryload(Task.jobs)).filter(Task.status != "Completed", Task.status != "Located").all():
@@ -140,9 +141,9 @@ class TaskPOMS:
 
         # mark them all completed, so we can look them over..
         dbhandle.commit()
-        lookup_task_list = []
-        lookup_dims_list = []
-        lookup_exp_list = []
+        lookup_task_list = deque()
+        lookup_dims_list = deque()
+        lookup_exp_list = deque()
         #
         # move launch stuff etc, to one place, so we can keep the table rows
         # so we need a list...
@@ -153,7 +154,7 @@ class TaskPOMS:
         n_project = 0
         n_located = 0
         # try with joinedload()...
-        for task in (dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot)
+        for task in (dbhandle.query(Task).with_for_update(of=Task, read=True).join(CampaignSnapshot)
                      .options(joinedload(Task.jobs))
                      .options(joinedload(Task.campaign_snap_obj))
                      .options(joinedload(Task.campaign_definition_snap_obj))
@@ -182,7 +183,7 @@ class TaskPOMS:
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
 
-        for task in (dbhandle.query(Task).with_for_update(of=Task).join(CampaignSnapshot)
+        for task in (dbhandle.query(Task).with_for_update(of=Task,read=True).join(CampaignSnapshot)
                      .options(joinedload(Task.jobs))
                      .options(contains_eager(Task.campaign_snap_obj))
                      .options(joinedload(Task.campaign_definition_snap_obj))
@@ -249,7 +250,7 @@ class TaskPOMS:
 
         summary_list = samhandle.fetch_info_list(lookup_task_list, dbhandle=dbhandle)
         count_list = samhandle.count_files_list(lookup_exp_list, lookup_dims_list)
-        thresholds = []
+        thresholds = deque()
         logit.log("wrapup_tasks: summary_list: %s" % repr(summary_list))    # Check if that is working
 
         for i in range(len(summary_list)):
@@ -314,7 +315,7 @@ class TaskPOMS:
         class fakerow:
             def __init__(self, **kwargs):
                 self.__dict__.update(kwargs)
-        items = []
+        items = deque()
         extramap = {}
         laststatus = None
         lastjjid = None
@@ -380,10 +381,10 @@ class TaskPOMS:
         # also will be nickname for the task...
         if task_id in self.task_min_job_cache:
             return self.task_min_job_cache.get(task_id)
-        j = dbhandle.query(Job).filter(Job.task_id == task_id).order_by(Job.jobsub_job_id).first()
-        if j:
-            self.task_min_job_cache[task_id] = j.jobsub_job_id
-            return j.jobsub_job_id
+        jt = dbhandle.query(func.min(Job.jobsub_job_id)).filter(Job.task_id == task_id).first()
+        if len(jt):
+            self.task_min_job_cache[task_id] = jt[0]
+            return jt[0]
         return None
 
 
@@ -612,6 +613,12 @@ class TaskPOMS:
             logit.log("launch_jobs -- experimenter not authorized")
             err_res = "404 Permission Denied."
             output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
+            return lcmd, output, c, campaign_id, outdir, outfile    # FIXME: this returns more elements than in other places
+
+        if not lt.launch_host.find(c.experiment) >= 0 and c.experiment != 'samdev':
+            logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, c.experiment))
+            err_res = "404 Permission Denied."
+            output = "Not Authorized: {} is not a {} experiment node".format(tl.launch_host, c.experiment)
             return lcmd, output, c, campaign_id, outdir, outfile    # FIXME: this returns more elements than in other places
 
         experimenter_login = e.username

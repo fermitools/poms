@@ -42,6 +42,8 @@ class WebClient(object):
                 duration = time.time() - t0
             
             logging.info("url: " + self.url + "  data: " + str(data) + "  method: " + method + "  status: " +str(self.code) + "  response_time: " + str(duration) )
+            if self.code != 200:
+                logging.info("error text: " + self.text)
                 
         except urllib.error.HTTPError as error:
             duration = time.time() - t0

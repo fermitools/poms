@@ -8,6 +8,9 @@ import os.path
 import socket
 import subprocess
 import sys
+from utils import setup_ifdhc
+
+setup_ifdhc()
 
 import logging
 logger = logging.getLogger('cherrypy.error')

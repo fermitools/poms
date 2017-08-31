@@ -1,0 +1,88 @@
+{%extends "layout.html"%}
+
+{%block title%}
+POMS:Job efficiency in Campaign Stage {{campaign_id}}
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+     Campagin {{c.name}} Job {{timetype}} {%include 'help_button.html'%}
+</h1>
+{%endblock%}
+
+
+
+{%block subheader%}
+<a href="{{prev}}">&lt;previous {{tdays}} days</a> |
+<a href="{{next}}">next {{tdays}} days &gt;</a>
+
+<div class="ui basic label">
+  <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
+</div>
+
+
+{%endblock%}
+
+
+{%block content%}
+    <form method="GET" action="{{cur}}" style="margin-bottom: 2em">
+    Bin Size (sec):
+    <input type="hidden" name="timetype" value="{{timetype}}">
+    <input type="hidden" name="tdays" value="{{tdays}}">
+    <input type="hidden" name="tmax" value="{{tmaxs}}">
+    <input type="hidden" name="campaign_id" value="{{c.campaign_id}}">
+    <input name="binsize" value="{{binsize}}">
+    <input type="submit" name="submit" value="Rebin"> <br>
+    </form>
+
+   <div class="ui grid">
+
+     <!-- values: {{vals}} -->
+     <!-- binsize: {{binsize}} -->
+     <!-- maxv: {{maxv}} -->
+     <!-- maxbucket: {{maxbucket}} -->
+
+     <div class="ui table" style="border: 1px sold black;">
+        <div class="row" style="width: 100%; height: 2em; position: relative;">
+           <div "postion: absolute; top: 0; left: 0; width:11em; text-align: right;">{{timetype}}</div>
+           <div style="position: absolute; top:0; left: 11em;">Count</div>
+       </div>
+     {% for row in range(-1,vals|length) %}
+        <!-- row {{row}} -->
+        <div class="row" style="width: 100%; height: 2em; position: relative;">
+           {% if row == -1 %}
+           <div "postion: absolute; top: 0; left: 0; width:11em; text-align: right;">Unk.</div>
+           {%else%}
+           <div "postion: absolute; top: 0; left: 0; width:11em; text-align: right;">{{(row*binsize*10)|int/10.0}}-{{((row+0.999)* binsize * 10)|int/10.0}}</div>
+           {%endif%}
+           <a href="job_table?{{timetype}}={{row}}&binsize={{binsize}}&campaign_id={{campaign_id}}&tmax={{tmaxs}}&tdays={{tdays}}"><div style="position: absolute; top:0; left: 11em;  background: #808080; width:{{0.6+vals.get(row,0) * 60 / maxv}}em;color: #ffffff;">{{vals.get(row,0)}}</div></a>
+       </div>
+     {% endfor %}
+     </div>
+     Note: jobs without cpu time/wallclock time in Condor stats are listed as "Unk."
+ </div>
+
+
+
+
+
+    <script>
+var tmin_local_time = moment.utc('{{tmin}}').toDate();
+tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmin" ).html( tmin_local_time );
+
+var tmax_local_time = moment.utc('{{tmax}}').toDate();
+tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmax" ).html( tmax_local_time );
+</script>
+
+
+
+
+<script>
+$(function() {
+    $('#global_datepicker_container').show();
+});
+</script>
+
+{%endblock%}

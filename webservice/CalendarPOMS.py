@@ -6,6 +6,7 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Marc Mengel. September, 2016.
 
 from . import logit
+from collections import deque
 
 # CalendarPOMS.calendar_json(cherrypy.request.db,start, end, timezone)
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -26,7 +27,7 @@ class CalendarPOMS(object):
                 .filter(Service.name != "Enstore")
                 .filter(Service.name != "SAM")
                 .filter(~Service.name.endswith("sam")).all())
-        alist = []
+        alist = deque()
         for row in rows:
             if row.ServiceDowntime.downtime_type == 'scheduled':
                     editable = 'true'
@@ -179,7 +180,7 @@ class CalendarPOMS(object):
 
     def service_status(self, dbhandle, under='All'):
         p = dbhandle.query(Service).filter(Service.name == under).first()
-        alist = []
+        alist = deque()
         for s in dbhandle.query(Service).filter(Service.parent_service_id == p.service_id).all():
             if s.host_site:
                 url = s.host_site

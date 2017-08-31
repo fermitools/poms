@@ -105,7 +105,7 @@ def parse_condor_log(dbhandle, lines, batchhost, task_id):
             continue
         if line[:3] == "..." and in_termination:
             log("DEBUG", "term record end %s" % line )
-            job = dbhandle.query(Job).with_for_update().filter(Job.jobsub_job_id == jobsub_job_id).first()
+            job = dbhandle.query(Job).with_for_update(read = True).filter(Job.jobsub_job_id == jobsub_job_id).first()
             if job:
                 job.cpu_time = remote_cpu
                 job.wall_time = (finish_time - stimes[jobsub_job_id]).total_seconds()

@@ -28,13 +28,11 @@
   <div data-ecl class="item">
     <div class="header">Logbook</div>
     <div class="menu">
-      {% if session_experiment == 'dune' %}
-        <a class="item" href="http://dbweb0.fnal.gov/ECL/{{session_experiment ~ 'pro'}}/E/index">
-      {% else %}
-        <a class="item" href="http://dbweb0.fnal.gov/ECL/{{session_experiment}}/E/index">
-      {% endif %}
-        {{session_experiment|capitalize}}
-      </a>
+        <a class="item" href="{{exp_obj.logbook if exp_obj else '#'}}">{{session_experiment|capitalize}}</a>
+    </div>
+    <div class="header">Service Now</div>
+    <div class="menu">
+        <a class="item" href="{{exp_obj.snow_url if exp_obj else '#'}}">POMS Service Page</a>
     </div>
   </div>
 
@@ -62,11 +60,13 @@
         Tagged Campaigns
       </a>
       <a class="item" href="{{pomspath}}/show_campaigns">
-        Active Campaign Stages
+        Campaign Stages
       </a>
+<!--
       <a class="item" href="{{pomspath}}/show_campaigns?active=False">
         InActive Campaign Stages
       </a>
+-->
     </div>
   </div>
 

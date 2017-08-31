@@ -1,4 +1,5 @@
 from webclient import WebClient
+import datetime
 import utils
 import pytest
 
@@ -117,6 +118,83 @@ def test_failed_jobs_by_whatever_1d_3(client):
     assert 'Jobs by user_exe_exit_code,cpu_type,experiment' in client.text
 
 
+#
+# JSON method tests
+#
+
+def test_active_jobs(client):
+    client.get('active_jobs')
+    assert client.code == 200
+    assert '[' in client.text
+
+def test_output_pending_jobs(client):
+    client.get('output_pending_jobs')
+    assert client.code == 200
+    assert '[' in client.text
+
+def test_output_pending_jobs(client):
+    client.get('output_pending_jobs')
+    assert client.code == 200
+    assert '[' in client.text
+
+def test_json_job_counts(client):
+    client.get('json_job_counts?campaign_id=1&tmin={}&tmax={}'.format(
+            (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'),
+            datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+       ))
+    assert client.code == 200
+    assert '{' in client.text
+
+
+def test_json_pending_for_campaigns(client):
+    client.get('json_pending_for_campaigns?cl=1&tmin={}&tmax={}'.format(
+            (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'),
+            datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+       ))
+    assert client.code == 200
+    assert '{' in client.text
+
+def test_json_efficiency_for_campaigns(client):
+    client.get('json_pending_for_campaigns?cl=1&tmin={}&tmax={}'.format(
+            (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'),
+            datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+       ))
+    assert client.code == 200
+    assert '{' in client.text
+
+def test_json_project_summary_for_task(client):
+    client.get('json_project_summary_for_task?task_id=221')
+    assert client.code == 200
+    assert '{' in client.text
+
+def test_link_tags(client):
+    client.get('link_tags?campaign_id=1&tag_name=foobieblatch&experiment=samdev')
+    assert client.code == 200
+    assert '{' in client.text
+
+def test_delete_campaigns_tags(client):
+    client.get('delete_campaigns_tags?campaign_id=1&tag_id=99&experiment=samdev')
+    assert client.code == 200
+    assert '{' in client.text
+
+def test_calendar_json(client):
+    client.get('calendar_json?_=x&start={}&end={}&timezone=CST'.format(
+            (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'),
+            datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+          
+       ))
+    assert client.code == 200
+    assert '{' in client.text
+
+def test_experiment_members(client):
+    client.get('experiment_members?experiment=samdev')
+    assert '"' in client.text
+    assert client.code == 200
+
+def test_campaign_list_json(client):
+    client.get('campaign_list_json')
+    assert client.code == 200
+    assert '[' in client.text
 #
 # Next layer calls
 #
