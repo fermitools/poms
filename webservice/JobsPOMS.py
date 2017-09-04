@@ -258,6 +258,8 @@ class JobsPOMS(object):
         have_jobids.update( [x[0] for x in
             dbhandle.query(Job.jobsub_job_id)
                 .filter(Job.jobsub_job_id.in_(update_jobsub_job_ids))
+                .with_for_update(of=Job, read=True)
+                .order_by(job.jobsub_job_id)
                 .all()])
         
 
