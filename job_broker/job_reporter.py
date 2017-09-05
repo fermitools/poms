@@ -32,7 +32,7 @@ class job_reporter:
         self.wthreads = []
         self.nthreads = nthreads
         # for bulk updates, do batches of 256 or every 10 seconds
-        self.batchsize = 1024
+        self.batchsize = 256
         self.timemax = 10
         if self.bulk:
             self.work = []
