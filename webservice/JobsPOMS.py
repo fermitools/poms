@@ -16,6 +16,7 @@ from sqlalchemy import func, not_, and_, or_, desc
 from .utc import utc
 import json
 import os
+import gcwrap
 
 from . import logit
 from .pomscache import pomscache, pomscache_10
@@ -85,6 +86,7 @@ class JobsPOMS(object):
         pass
 
 
+    @gcwrap.gc_after
     def bulk_update_job(self, dbhandle, rpstatus, samhandle, json_data='{}'):
         logit.log("Entering bulk_update_job(%s)" % json_data)
         ldata = json.loads(json_data)
@@ -394,6 +396,7 @@ class JobsPOMS(object):
                 samhandle.update_project_description(exp, t.project, "POMS Campaign %s Task %s" % (cid, tid))
 
         logit.log("Exiting bulk_update_job()")
+
         return "Ok."
 
     def update_job(self, dbhandle, rpstatus, samhandle, task_id=None, jobsub_job_id='unknown', **kwargs):
