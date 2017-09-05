@@ -251,12 +251,15 @@ class JobsPOMS(object):
 
         tl2 = ( dbhandle.query(Task.task_id)
                 .filter(Task.task_id.in_(tids_wanted))
-                .with_for_update(of=Task, read=True)
+                .with_for_update(of=Task)
+                .order_by(Task.task_id)
                 .all())
  
         have_jobids.update( [x[0] for x in
             dbhandle.query(Job.jobsub_job_id)
                 .filter(Job.jobsub_job_id.in_(update_jobsub_job_ids))
+                .with_for_update(of=Job)
+                .order_by(Job.jobsub_job_id)
                 .all()])
         
 
