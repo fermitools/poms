@@ -127,7 +127,7 @@ class TaskPOMS:
         q = (dbhandle.query(Task.task_id, Task.created, func.count(Job.job_id), func.sum(case([
                                                                           (Job.status=="Completed",0),
                                                                           (Job.status=="Located",0),
-                                                                          ], else= 1)))
+                                                                          ], else_= 1)))
                .filter(Job.task_id == Task.task_id)
                .filter(Task.status != "Completed", Task.status != "Located")
                .group_by(Task.task_id)
@@ -164,9 +164,9 @@ class TaskPOMS:
         q = (dbhandle.query(Task.task_id, CampaignSnapshot.completion.pct, func.count(Job.job_id), func.sum(case([
                                                                           (Job.status=="Completed",1),
                                                                           (Job.status=="Located",1),
-                                                                          ], else= 0)))
-                     .join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id),
-                     .filter(Task.status.in_(["Completed","Running"])),
+                                                                          ], else_= 0)))
+                     .join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
+                     .filter(Task.status.in_(["Completed","Running"]))
                      .filter(CampaignSnapshot.completion_type == "complete"))
 
         for tid, cfrac, totcount, compcount in q.all():
@@ -190,9 +190,9 @@ class TaskPOMS:
 
         q = (dbhandle.query(Task.task_id, CampaignSnapshot.completion.pct, func.count(Job.job_id), func.sum(case([
                                                                           (Job.status=="Located",1),
-                                                                          ], else= 0)))
-                     .join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id),
-                     .filter(Task.status.in_(["Completed","Running"])),
+                                                                          ], else_= 0)))
+                     .join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
+                     .filter(Task.status.in_(["Completed","Running"]))
                      .filter(CampaignSnapshot.completion_type == "located"))
 
         for tid, cfrac, totcount, compcount in q.all():
@@ -213,7 +213,7 @@ class TaskPOMS:
         q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)})
         dbhandle.commit()
 
-        for task in dbhandle.query(Task).with_for_update(Task).join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id).filter(Task.status == "Completed").filter(CampaignSnapshot.completion_type == "located".order_by(Task.task_id).all():
+        for task in (dbhandle.query(Task).with_for_update(Task).join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id).filter(Task.status == "Completed").filter(CampaignSnapshot.completion_type == "located").order_by(Task.task_id).all()):
 
             if now - task.updated > timedelta(days=2):
                 n_located = n_located + 1
@@ -293,7 +293,7 @@ class TaskPOMS:
                                           task.campaign_snap_obj.vo_role)
         logit.log("Starting finish_up_tasks loops, len %d" % len(finish_up_tasks))
 
-        for task in dbhandle.query(Task).filter(Task.task_id.in(finish_up_task)).all():
+        for task in (dbhandle.query(Task).filter(Task.task_id.in_(finish_up_task)).all()):
             # get logs for job for final cpu values, etc.
             logit.log("Starting finish_up_tasks items for task %s" % task.task_id)
 
