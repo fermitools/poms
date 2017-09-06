@@ -16,7 +16,6 @@ from sqlalchemy import func, not_, and_, or_, desc
 from .utc import utc
 import json
 import os
-import gc
 
 from . import logit
 from .pomscache import pomscache, pomscache_10
@@ -90,7 +89,6 @@ class JobsPOMS(object):
         logit.log("Entering bulk_update_job(%s)" % json_data)
         ldata = json.loads(json_data)
         del json_data
-        gc.collect(2)
 
         #
         # build maps[field][value] = [list-of-ids] for tasks, jobs
@@ -206,7 +204,6 @@ class JobsPOMS(object):
         # done with regrouping the json data, drop it.
         #
         del ldata
-        gc.collect(2)
  
         logit.log(" bulk_update_job: ldata3")
         logit.log(" bulk_update_job: job_updates %s" % repr(job_updates))
