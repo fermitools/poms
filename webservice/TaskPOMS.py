@@ -16,7 +16,7 @@ import time
 import select
 import os
 from sqlalchemy.orm import subqueryload, joinedload, contains_eager
-from sqlalchemy import func, text
+from sqlalchemy import func, text, case
 from . import time_grid
 from .utc import utc
 from . import condor_log_parser
@@ -135,14 +135,14 @@ class TaskPOMS:
         for tid, tcreated, total, running in q.all():
             res.append("Task %d total %d running %d " % (tid, total, running))
             if (total > 0 and running == 0) or (total == 0 and now - tcreated > timedelta(days=2)):
-                need_joblogs.append(task)
+                need_joblogs.append(tid)
 
         #
         # lock tasks in order so we can update them all
         #
-        q = dbhandle.query(func.sum(Tasks.task_id)).filter(Task.task_id.in_(need_joblogs)).with_for_update().order_by(Task.task_id);
-        q.first();
-        dbhandle.query(Tasks).filter(Task.task_id.in_(need_joblogs)).update({'status':'Completed', 'updated':datetime.now(utc)},synchronize_session=False)
+        q = dbhandle.query(Task.task_id).filter(Task.task_id.in_(need_joblogs)).with_for_update().order_by(Task.task_id);
+        q.all();
+        dbhandle.query(Task).filter(Task.task_id.in_(need_joblogs)).update({'status':'Completed', 'updated':datetime.now(utc)},synchronize_session=False)
         dbhandle.commit()
 
 
@@ -161,13 +161,16 @@ class TaskPOMS:
         n_located = 0
         # try with joinedload()...
 
-        q = (dbhandle.query(Task.task_id, CampaignSnapshot.completion.pct, func.count(Job.job_id), func.sum(case([
+        q = (dbhandle.query(Task.task_id, func.max(CampaignSnapshot.completion_pct), func.count(Job.job_id), func.sum(case([
                                                                           (Job.status=="Completed",1),
                                                                           (Job.status=="Located",1),
                                                                           ], else_= 0)))
-                     .join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
+                     .filter(Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
+                     .filter(Job.task_id == Task.task_id)
                      .filter(Task.status.in_(["Completed","Running"]))
-                     .filter(CampaignSnapshot.completion_type == "complete"))
+                     .filter(CampaignSnapshot.completion_type == "complete")
+                     .group_by(Task.task_id)
+                    )
 
         for tid, cfrac, totcount, compcount in q.all():
 
@@ -181,19 +184,21 @@ class TaskPOMS:
                 finish_up_tasks.append(tid)
 
         # lock tasks, jobs in order so we can update them
-        q = dbhandle.query(func.sum(Tasks.task_id)).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id);
-        q = dbhandle.query(func.sum(Job.job_id)).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id);
+        dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all();
+        dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all();
         q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True})
         q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)})
         dbhandle.commit()
 
 
-        q = (dbhandle.query(Task.task_id, CampaignSnapshot.completion.pct, func.count(Job.job_id), func.sum(case([
+        q = (dbhandle.query(Task.task_id, func.max(CampaignSnapshot.completion_pct), func.count(Job.job_id), func.sum(case([
                                                                           (Job.status=="Located",1),
                                                                           ], else_= 0)))
                      .join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
                      .filter(Task.status.in_(["Completed","Running"]))
-                     .filter(CampaignSnapshot.completion_type == "located"))
+                     .filter(CampaignSnapshot.completion_type == "located")
+                     .group_by(Task.task_id)
+                   )
 
         for tid, cfrac, totcount, compcount in q.all():
 
@@ -207,8 +212,8 @@ class TaskPOMS:
                 finish_up_tasks.append(tid)
 
         # lock tasks, jobs in order so we can update them
-        q = dbhandle.query(func.sum(Tasks.task_id)).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id);
-        q = dbhandle.query(func.sum(Job.job_id)).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id);
+        dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all();
+        q = dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all()
         q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True})
         q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)})
         dbhandle.commit()
@@ -265,7 +270,7 @@ class TaskPOMS:
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
 
-        q = dbhandle.query(func.sum(Job.job_id)).filter(Job.task_id.in_(finish_up_tasks)).with_for_update().order_by(Job.jobsub_job_id);
+        dbhandle.query(Job.job_id).filter(Job.task_id.in_(finish_up_tasks)).with_for_update().order_by(Job.jobsub_job_id).all();
         q = dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).update({'status':'Located', 'updated':datetime.now(utc)})
         dbhandle.commit()
 
@@ -284,9 +289,9 @@ class TaskPOMS:
         # this way we don't keep the rows locked all day
         #
         logit.log("Starting need_joblogs loops, len %d" % len(finish_up_tasks))
-        for task in need_joblogs:
+        for tid in need_joblogs:
             condor_log_parser.get_joblogs(dbhandle,
-                                          self.task_min_job(dbhandle, task.task_id),
+                                          self.task_min_job(dbhandle, tid),
                                           getconfig('elasticsearch_cert'),
                                           getconfig('elasticsearch_key'),
                                           task.campaign_snap_obj.experiment,
