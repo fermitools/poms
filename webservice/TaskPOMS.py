@@ -212,10 +212,10 @@ class TaskPOMS:
                 finish_up_tasks.append(tid)
 
         # lock tasks, jobs in order so we can update them
-        dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all();
-        q = dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all()
-        q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True})
-        q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)})
+        dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all()
+        dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all()
+        dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located', 'output_files_declared':True}, synchronize_session = False)
+        dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session = False)
         dbhandle.commit()
 
         for task in (dbhandle.query(Task).with_for_update(Task).join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id).filter(Task.status == "Completed").filter(CampaignSnapshot.completion_type == "located").order_by(Task.task_id).all()):
@@ -271,7 +271,7 @@ class TaskPOMS:
                 dbhandle.add(task)
 
         dbhandle.query(Job.job_id).filter(Job.task_id.in_(finish_up_tasks)).with_for_update().order_by(Job.jobsub_job_id).all();
-        q = dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).update({'status':'Located', 'updated':datetime.now(utc)})
+        q = dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session = False)
         dbhandle.commit()
 
         res.append("Counts: completed: %d stale: %d project %d: located %d" %
@@ -298,7 +298,7 @@ class TaskPOMS:
                                           task.campaign_snap_obj.vo_role)
         logit.log("Starting finish_up_tasks loops, len %d" % len(finish_up_tasks))
 
-        for task in (dbhandle.query(Task).filter(Task.task_id.in_(finish_up_task)).all()):
+        for task in (dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).all()):
             # get logs for job for final cpu values, etc.
             logit.log("Starting finish_up_tasks items for task %s" % task.task_id)
 
