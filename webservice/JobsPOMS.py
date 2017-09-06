@@ -16,7 +16,7 @@ from sqlalchemy import func, not_, and_, or_, desc
 from .utc import utc
 import json
 import os
-import gcwrap
+import gc
 
 from . import logit
 from .pomscache import pomscache, pomscache_10
@@ -86,11 +86,11 @@ class JobsPOMS(object):
         pass
 
 
-    @gcwrap.gc_after
     def bulk_update_job(self, dbhandle, rpstatus, samhandle, json_data='{}'):
         logit.log("Entering bulk_update_job(%s)" % json_data)
         ldata = json.loads(json_data)
         del json_data
+        gc.collect(2)
 
         #
         # build maps[field][value] = [list-of-ids] for tasks, jobs
@@ -120,20 +120,18 @@ class JobsPOMS(object):
         #   * set of task_id's we have in database
         #   * output file regexes for each task
         #
-        tq = ( dbhandle.query(Task)
-                .filter(Task.task_id.in_(tids_wanted))
-                .options(joinedload(Task.campaign_definition_snap_obj)) )
-        tl = tq.all()
+        tq = ( dbhandle.query(Task.task_id,CampaignDefinitionSnapshot.output_file_patterns)
+                .filter(Task.campaign_definition_snap_id == CampaignDefinitionSnapshot.campaign_definition_snap_id)
+                .filter(Task.task_id.in_(tids_wanted)))
+
+        tpl = tq.all()
 
         of_res = {}
-        for t in tl:
-            tids_present.add(t.task_id)
-            if t.campaign_definition_snap_obj.output_file_patterns:
-               ofp = t.campaign_definition_snap_obj.output_file_patterns
-            else:
+        for tid, ofp in tpl:
+            tids_present.add(tid)
+            if not ofp:
                ofp = '%'
-
-            of_res[t.task_id] = ofp.replace(',','|').replace('.','\\.').replace('%','.*')
+            of_res[tid] = ofp.replace(',','|').replace('.','\\.').replace('%','.*')
 
         jjid2tid = {}
         logit.log("bulk_update_job == tids_present =%s" % repr(tids_present))
@@ -208,6 +206,7 @@ class JobsPOMS(object):
         # done with regrouping the json data, drop it.
         #
         del ldata
+        gc.collect(2)
  
         logit.log(" bulk_update_job: ldata3")
         logit.log(" bulk_update_job: job_updates %s" % repr(job_updates))
@@ -251,7 +250,7 @@ class JobsPOMS(object):
         # so the answer is correct. 
 
 
-        tl2 = ( dbhandle.query(Task.task_id)
+        tl2 = ( dbhandle.query(Task)
                 .filter(Task.task_id.in_(tids_wanted))
                 .with_for_update(of=Task)
                 .order_by(Task.task_id)
@@ -362,7 +361,7 @@ class JobsPOMS(object):
         #
         # update any related tasks status if changed
         #
-        for t in tl:
+        for t in tl2:
             newstatus = self.poms_service.taskPOMS.compute_status(dbhandle, t)
             if newstatus != t.status:
                 logit.log("update_job: task %d status now %s" % (t.task_id, newstatus))

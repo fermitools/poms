@@ -310,10 +310,14 @@ if __name__ == '__main__':
 
     server = "http://localhost:8080/poms"
     nthreads = 8
-    if len(sys.argv) > 1 and sys.argv[1] == "-t":
+
+    if len(sys.argv) > 1 and sys.argv[1] in ["-t", "-o"]:
         testing = 1
-        nthreads = 1
-        server = "http://127.0.0.1:8888/poms"
+
+        if sys.argv[1]  == "-t":
+            nthreads = 1
+            server = "http://127.0.0.1:8888/poms"
+
         sys.argv = [sys.argv[0]] + sys.argv[2:]
 
     ns = "profiling.apps.poms.probes.%s.jobsub_q_scraper" % os.uname()[1].split(".")[0]

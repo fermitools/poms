@@ -14,10 +14,12 @@ parser.add_option('--test',  help="dataset name for job", default = None)
 
 (options, args ) = parser.parse_args()
 
-get_task_id_for(campaign = options.campaign, 
+res = get_task_id_for(campaign = options.campaign, 
 	user = options.user,
 	experiment = options.experiment,
 	command_executed = options.command_executed,
 	input_dataset = options.input_dataset,
 	parent_task_id = options.parent_task_id,
 	test = options.test)
+
+print(res)
