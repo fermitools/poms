@@ -174,11 +174,12 @@ class TaskPOMS:
 
         for tid, cfrac, totcount, compcount in q.all():
 
-            totcount += 0.1 # prevent division by zero...
+            if totcount == 0:
+                totcount = 0.1
 
-            res.append("completion_type: complete Task %d cfrac %d pct %f " % (tid, cfrac,(compcount * 100)/totcount))
+            res.append("completion_type: complete Task %d cfrac %d pct %f " % (tid, cfrac,(compcount * 100)/totcount + 0.1))
 
-            if (compcount * 100.0) / totcount >= cfrac:
+            if (compcount * 100.0) / totcount + 0.1 >= cfrac:
                 n_located = n_located + 1
                 mark_located.append(tid)
                 finish_up_tasks.append(tid)
@@ -186,8 +187,8 @@ class TaskPOMS:
         # lock tasks, jobs in order so we can update them
         dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all();
         dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all();
-        q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True})
-        q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)})
+        q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True}, synchronize_session=False)
+        q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
         dbhandle.commit()
 
 
@@ -202,11 +203,12 @@ class TaskPOMS:
 
         for tid, cfrac, totcount, compcount in q.all():
 
-            totcount += 0.1 # prevent division by zero...
+            if totcount == 0:
+                totcount = 0.1
 
-            res.append("completion_type: complete Task %d cfrac %d pct %f " % (tid, cfrac,(compcount * 100)/totcount))
+            res.append("completion_type: complete Task %d cfrac %d pct %f " % (tid, cfrac,(compcount * 100)/totcount + 0.1))
 
-            if (compcount * 100.0) / totcount >= cfrac:
+            if (compcount * 100.0) / totcount + 0.1 >= cfrac:
                 n_located = n_located + 1
                 mark_located.append(tid)
                 finish_up_tasks.append(tid)
