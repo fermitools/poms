@@ -29,8 +29,6 @@ sleep 10
 
 ps -o pid,pcpu,vsz,rss,command
 
-# bail for now, so we can use the Dowser gui on it before we kill it..
-exit
 
 kill -SIGINT $pid1
 sleep 1
