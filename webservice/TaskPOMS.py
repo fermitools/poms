@@ -183,8 +183,10 @@ class TaskPOMS:
 
         for tid, cfrac, totcount, compcount in q.all():
 
+           
             if totcount == 0:
-                totcount = 0.1
+                # cannot be done with no jobs...
+                continue
 
             res.append("completion_type: complete Task %d cfrac %d pct %f " % (tid, cfrac,(compcount * 100)/totcount + 0.1))
 
@@ -217,21 +219,23 @@ class TaskPOMS:
         for tid, cfrac, totcount, compcount in q.all():
 
             if totcount == 0:
-                totcount = 0.1
+                # cannot be done with no jobs...
+                continue
 
             res.append("completion_type: complete Task %d cfrac %d pct %f " % (tid, cfrac,(compcount * 100)/totcount + 0.1))
 
-            if (compcount * 100.0) / totcount + 0.1 >= cfrac:
+            if (compcount * 100.0) / totcount + 0.01 >= cfrac:
                 n_located = n_located + 1
                 mark_located.append(tid)
                 finish_up_tasks.append(tid)
 
         # lock tasks, jobs in order so we can update them
-        dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all()
+        if len(mark_located) > 0:
+            dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all()
         # why mark the jobs? just fix the tasks!
         #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all()
         #dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located', 'output_files_declared':True}, synchronize_session = False)
-        dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session = False)
+            dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session = False)
         dbhandle.commit()
 
         for task in (dbhandle.query(Task).with_for_update(Task).join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id).filter(Task.status == "Completed").filter(CampaignSnapshot.completion_type == "located").order_by(Task.task_id).all()):
@@ -241,11 +245,6 @@ class TaskPOMS:
                 n_stale = n_stale + 1
                 task.status = "Located"
                 finish_up_tasks.append(task.task_id)
-                #
-                # don't update jobs, just the task.
-                #for j in task.jobs:
-                #    j.status = "Located"
-                #    j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
 
@@ -265,10 +264,6 @@ class TaskPOMS:
                 lookup_dims_list.append(allkiddims)
 
 
-            if task.status == "Located":
-                finish_up_tasks.append(task.task_id)
-                dbhandle.add(task)
-
         summary_list = samhandle.fetch_info_list(lookup_task_list, dbhandle=dbhandle)
         count_list = samhandle.count_files_list(lookup_exp_list, lookup_dims_list)
         thresholds = deque()
@@ -283,10 +278,7 @@ class TaskPOMS:
             if val >= threshold and threshold > 0:
                 n_located = n_located + 1
                 if task.status == "Completed":
-                    task.status = "Located"
                     finish_up_tasks.append(task.task_id)
-                task.updated = datetime.now(utc)
-                dbhandle.add(task)
 
         dbhandle.query(Job.job_id).filter(Job.task_id.in_(finish_up_tasks)).with_for_update().order_by(Job.jobsub_job_id).all();
         q = dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session = False)
