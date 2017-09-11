@@ -5,6 +5,7 @@
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of
 ### functions in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
+from collections import deque
 import urllib.request, urllib.parse, urllib.error
 from . import logit
 
@@ -25,8 +26,9 @@ class TriagePOMS(object):
     @pomscache.cache_on_arguments()
     def job_counts(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=None):
 
-        (tmin, tmax, tmins, tmaxs,
-         nextlink, prevlink, time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'job_counts')
+        (
+         tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays
+        ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'job_counts')
         q = dbhandle.query(func.count(Job.status), Job.status).group_by(Job.status)
         if tmax is not None:
             q = q.filter(Job.updated <= tmax, Job.updated >= tmin)
@@ -61,7 +63,7 @@ class TriagePOMS(object):
         (tmin, tmax, tmins, tmaxs,
          nextlink, prevlink, time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
         job_file_list = self.poms_service.filesPOMS.job_file_list(dbhandle, jobsub_fetcher, job_id, force_reload)
-        output_file_names_list = []
+        output_file_names_list = deque()
         job_info = (dbhandle.query(Job, Task, CampaignDefinition, Campaign)
                     .filter(Job.job_id == job_id)
                     .filter(Job.task_id == Task.task_id)
@@ -227,6 +229,65 @@ class TriagePOMS(object):
             filtered_fields['project'] = project
 
         #
+        # links from jobs_time_histo, one of four time values w/binsize.
+        #
+        binsize = kwargs.get('binsize')
+        if binsize:
+            b = float(binsize)
+            if kwargs.get('wall_time'):
+                n = float(kwargs.get('wall_time'))
+                del kwargs['wall_time']
+                if n == -1:
+                    q = q.filter(Job.wall_time == None)
+                else:
+                    q = q.filter(Job.wall_time >= n * b, Job.wall_time < (n+1)*b)
+            elif kwargs.get('cpu_time'):
+                n = float(kwargs.get('cpu_time'))
+                del kwargs['cpu_time']
+                if n == -1:
+                    q = q.filter(Job.cpu_time == None)
+                else:
+                    q = q.filter(Job.cpu_time >= n * b, Job.cpu_time < (n+1)*b)
+            elif kwargs.get('copy_in_time') or kwargs.get('copy_out_time'):
+                if kwargs.get('copy_in_time'):
+                    n = float(kwargs.get('copy_in_time'))
+                    copy_start_status = 'running: copying files in'
+                else:
+                    n = float(kwargs.get('copy_out_time'))
+                    copy_start_status = 'running: copying files out'
+
+                logit.log("doing copy in/out time.. in jobs_table...")
+                if n == -1:
+                    sqz = (dbhandle.query(func.count(JobHistory.created))
+                       .filter(JobHistory.job_id == Job.job_id)
+                       .filter(JobHistory.status == copy_start_status)
+                     ).subquery()
+                    q = q.filter(0 == sqz)
+                else:
+                    sq1 = (dbhandle.query(JobHistory.job_id.label('job_id'),
+                                     JobHistory.created.label('start_t'),
+                                     JobHistory.status.label('status'),
+                                     func.max(JobHistory.created).over(partition_by = JobHistory.job_id,
+                                                                       order_by=desc(JobHistory.created),
+                                                                       rows=(-1,0)
+                                                                       ).label('end_t'))
+                            .join(Job)
+                            .join(Task)
+                            .filter(JobHistory.status.in_([copy_start_status,'running','Running']))
+                            .filter(JobHistory.job_id == Job.job_id)
+                            .filter(Job.task_id == Task.task_id)
+                            .filter(Task.campaign_id == campaign_id)
+                            .filter(Task.created < tmax, Task.created >= tmin)
+                       ).subquery()
+                    sq2 = (dbhandle.query(sq1.c.job_id.label('job_id'), 
+                                     func.extract('epoch',func.sum(sq1.c.end_t - sq1.c.start_t)).label('copy_time'))
+                         .filter(sq1.c.status == copy_start_status)
+                         .group_by(sq1.c.job_id)
+                       ).subquery()
+                    sq3 = (dbhandle.query(sq2.c.job_id).filter(sq2.c.copy_time >= n * b, sq2.c.copy_time < (n+1)*b)).subquery()
+                    q = q.filter(Job.job_id.in_(sq3))
+
+        #
         # this one for our effeciency percentage decile...
         # i.e. if you want jobs in the 80..90% eficiency range
         # you ask for eff_d == 8...
@@ -271,7 +332,11 @@ class TriagePOMS(object):
 
         user_exe_exit_code = kwargs.get('user_exe_exit_code')
         if user_exe_exit_code:
-            q = q.filter(Job.user_exe_exit_code == int(user_exe_exit_code))
+            if kwargs.get('user_exe_exit_code','') == 'None':
+                searchval = None
+            else:
+                searchval = int(user_exe_exit_code)
+            q = q.filter(Job.user_exe_exit_code == searchval )
             extra = extra + "with exit code %s" % user_exe_exit_code
             filtered_fields['user_exe_exit_code'] = user_exe_exit_code
 
@@ -289,9 +354,9 @@ class TriagePOMS(object):
             taskcolumns = list(jl[0][1]._sa_instance_state.class_.__table__.columns.keys())
             campcolumns = list(jl[0][2]._sa_instance_state.class_.__table__.columns.keys())
         else:
-            jobcolumns = []
-            taskcolumns = []
-            campcolumns = []
+            jobcolumns = deque()
+            taskcolumns = deque()
+            campcolumns = deque()
 
         sift = kwargs.get('sift')
         if sift:  # it was bool(sift)
@@ -300,15 +365,15 @@ class TriagePOMS(object):
             if kwargs.get('campaign_checkbox') == "on":
                 campaign_box = "checked"
             else:
-                campcolumns = []
+                campcolumns = deque()
             if kwargs.get('task_checkbox') == "on":
                 task_box = "checked"
             else:
-                taskcolumns = []
+                taskcolumns = deque()
             if kwargs.get('job_checkbox') == "on":
                 job_box = "checked"
             else:
-                jobcolumns = []
+                jobcolumns = deque()
 
             filtered_fields_checkboxes = {"campaign_checkbox": campaign_box, "task_checkbox": task_box, "job_checkbox": job_box}
             filtered_fields.update(filtered_fields_checkboxes)
@@ -347,9 +412,9 @@ class TriagePOMS(object):
         # * a query-args-list (quargs)
         # * a columns list
         #
-        gbl = []
-        qargs = []
-        columns = []
+        gbl = deque()
+        qargs = deque()
+        columns = deque()
 
 
         for field in f:
@@ -387,4 +452,4 @@ class TriagePOMS(object):
             #logit.log( "got jobtable %s " % repr( jl[0].__dict__) )
             logit.log("got jobtable %s " % repr(jl[0]))
 
-        return jl, possible_columns, columns, tmins, tmaxs, tdays, prevlink, nextlink, time_range_string, tdays
+        return jl, possible_columns, list(columns), tmins, tmaxs, tdays, prevlink, nextlink, time_range_string, tdays

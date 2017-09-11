@@ -7,6 +7,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 Date: September 30, 2016.
 '''
 
+from collections import deque
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from . import logit
 from .poms_model import Experimenter, Experiment, ExperimentsExperimenters
@@ -107,7 +108,7 @@ class DBadminPOMS:
                 )
 
 # (Experiment, experimenter_id, experiment, active, username, first_name, last_name)
-        trows = []
+        trows = deque()
         for (experiment, experimenter_id, exp, active, username, first_name, last_name) in query:
             #~ trow = "{}\t{}\t{}\t{}\t{}\n".format(experiment.experiment, first_name, last_name, username, 'Active' if active else 'No')
             trows.append((experiment.experiment, first_name, last_name, username, active and 'Active'))

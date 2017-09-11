@@ -30,42 +30,42 @@ POMS:Campaign {{name}}
    <!--<h2 class="ui row dividing header">{{name}} Submissions </h2>-->
 
    <div class="ui grid">
-   <div class="ui row">
-     {{job_counts}}
-   </div>
+     <div class="ui row">
+       {{job_counts}}
+     </div>
    </div>
 
 
    <div class="ui grid">
-      <div class='ui row'>
+     <div class='ui row'>
        <div class="left floated left aligned six wide column tmin"></div>
        <div class="right floated right aligned six wide column tmax"></div>
      </div>
 
-         {% for id,plist in blob.pmap|dictsort %}
-             {% if plist|length > 0 %}
+     {% for id,plist in blob.pmap|dictsort %}
+         {% if plist|length > 0 %}
 
-              <div class='row' style='margin:0px 0px; padding:0px 0px;'>
-                 <div class='mwm_label' style='text-align: right; width: 14%; float:left; padding: 5px 5px; border-right: 1px solid black; '>
-                    {{id}}{{blob.extramap[id]}}
-                  </div>
-                  <div clas='mwm_rowdata'  style='position: relative; width: 85%; float:left; clear: right; border-right: 1px solid black; border-left: 1px solid black; padding: 5px 0px'>
+               <div class='row' style='margin:0px 0px; padding:0px 0px;'>
+                   <div class='mwm_label' style='text-align: right; width: 14%; float:left; padding: 5px 5px; border-right: 1px solid black; '>
+                     {{id}}{{blob.extramap[id]}}
+                   </div>
+                   <div clas='mwm_rowdata'  style='position: relative; width: 85%; float:left; clear: right; border-right: 1px solid black; border-left: 1px solid black; padding: 5px 0px'>
 
-                    {%for p in plist %}
+                      {% for p in plist %}
 
-                       <a href='{{p.url}}'>
-                         <div class='tbox' data-content='{{p.txt}}' data-variation="very wide" style='width: {{p.width}}%; background-color: {{p.color}} !important; float:left; '>
-                           &nbsp;
-                         </div>
-                       </a>
+                        <a href='{{p.url}}'>
+                          <div class='tbox' data-content='{{p.txt}}' data-variation="very wide" style='width: {{p.width}}%; background-color: {{p.color}} !important; float:left; '>
+                            &nbsp;
+                          </div>
+                        </a>
 
-                    {%endfor%}
+                      {% endfor %}
 
-                  </div>
-                  &nbsp;
+                   </div>
+                   &nbsp;
                </div>
-              {% endif %}
-            {% endfor %}
+         {% endif %}
+     {% endfor %}
 
 
 
@@ -77,29 +77,29 @@ POMS:Campaign {{name}}
 
    <h2>Key:</h2>
    <div class="ui grid">
-   <div class="ui row">
-     {{key}}
-   </div>
+     <div class="ui row">
+       {{key}}
+     </div>
    </div>
 
 
 <script>
-var tmin_local_time = moment.utc('{{tmin}}').toDate();
-tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
-$( ".tmin" ).html( tmin_local_time );
+     var tmin_local_time = moment.utc('{{tmin}}').toDate();
+     tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
+     $( ".tmin" ).html( tmin_local_time );
 
-var tmax_local_time = moment.utc('{{tmax}}').toDate();
-tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
-$( ".tmax" ).html( tmax_local_time );
+     var tmax_local_time = moment.utc('{{tmax}}').toDate();
+     tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
+     $( ".tmax" ).html( tmax_local_time );
 </script>
 
 
 
 
 <script>
-$(function() {
-    $('#global_datepicker_container').show();
-});
+     $(function() {
+         $('#global_datepicker_container').show();
+     });
 </script>
 
 {%endblock%}

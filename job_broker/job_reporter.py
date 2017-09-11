@@ -20,7 +20,7 @@ class job_reporter:
        class to report job status -- now runs several threads to asynchronously report queued items
        given to us, so we don't drop messages from syslog piping to us, etc.
     """
-    def __init__(self, report_url, debug = 0, nthreads = 3, namespace = "", bulk= True):
+    def __init__(self, report_url, debug = 0, nthreads = 8, namespace = "", bulk= True):
         self.namespace = namespace
         self.rs = requests.Session()
         if namespace != "":
@@ -29,17 +29,20 @@ class job_reporter:
         self.bulk = bulk
         self.report_url = report_url
         self.debug = debug
-        self.work = queue.Queue()
         self.wthreads = []
         self.nthreads = nthreads
         # for bulk updates, do batches of 256 or every 10 seconds
-        self.batchsize = 1024
+        self.batchsize = 256
         self.timemax = 10
         if self.bulk:
+            self.work = []
             for i in range(nthreads):
+                self.work.append(queue.Queue())
+                   
                 self.wthreads.append(threading.Thread(target=self.runqueue_bulk,args=[i]))
                 self.wthreads[i].start()
         else:
+            self.work = queue.Queue()
             for i in range(nthreads):
                 self.wthreads.append(threading.Thread(target=self.runqueue))
                 #self.wthreads[i].daemon = True
@@ -76,9 +79,16 @@ class job_reporter:
         
     def check(self):
         # make sure we still have nthreads reporting threads
-        if self.work.qsize() > 100 * self.batchsize:
-            sys.stderr.write("Seriously Backlogged: qsize %d exiting!\n" % self.work.qsize())
-            os._exit(1)
+        if self.bulk:
+            for i in range(self.nthreads):
+                if self.work[i].qsize() > 100 * self.batchsize:
+                    sys.stderr.write("Seriously Backlogged: qsize %d exiting!\n" % self.work.qsize())
+                    os._exit(1)
+                   
+        else:
+             if self.work.qsize() > 100 * self.batchsize:
+                sys.stderr.write("Seriously Backlogged: qsize %d exiting!\n" % self.work.qsize())
+                os._exit(1)
            
         if self.bulk:
             for i in range(self.nthreads):
@@ -101,14 +111,14 @@ class job_reporter:
         lastsent = time.time()
         bail = False
         while not bail:
-            if self.work.qsize() > self.batchsize * which or (which == 0 and time.time() - lastsent > self.timemax):
+            if self.work[which].qsize() > self.batchsize or time.time() - lastsent > self.timemax:
 
-                if self.debug: sys.stderr.write("runqueue_bulk: %d before:qsize is %d\n" % (which,self.work.qsize())); sys.stderr.flush()
+                if self.debug: sys.stderr.write("runqueue_bulk: %d before:qsize is %d\n" % (which,self.work[which].qsize())); sys.stderr.flush()
 
                 batch = []
                 for i in range(self.batchsize):
                     try:
-                        d = self.work.get(block = False)
+                        d = self.work[which].get(block = False)
                     except queue.Empty:
                         break
 
@@ -128,12 +138,12 @@ class job_reporter:
 
                     batch.append(a)
 
-                self.bulk_update(batch)
                 lastsent = time.time()
+                self.bulk_update(batch)
 
-                if self.debug: sys.stderr.write("\nrunqueue_bulk: %d after: qsize is %d\n" % (which ,self.work.qsize()))
+                if self.debug: sys.stderr.write("\nrunqueue_bulk: %d after: qsize is %d\n" % (which ,self.work[which].qsize()))
             else:
-                time.sleep(0.1 * which)
+                time.sleep(1 * which)
 
 
     def runqueue(self):
@@ -150,17 +160,30 @@ class job_reporter:
   
     def cleanup(self):
         # first tell threads to exit
-        for wth in self.wthreads:
-            self.work.put({'f': job_reporter.bail, 'args': [self], 'kwargs':{}})
+        if self.bulk:
+            for i in range(self.nthreads):
+                self.work[i].put({'f': job_reporter.bail, 'args': [self], 'kwargs':{}})
+        else:
+            for wth in self.wthreads:
+                self.work.put({'f': job_reporter.bail, 'args': [self], 'kwargs':{}})
 
         # then wait for them
         for wth in self.wthreads:
             wth.join()
 
-    def report_status(self,  jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
+    def report_status(self,  jobsub_job_id = '', task_id = '', status = '' , cpu_type = '', slot='', **kwargs ):
         self.check()
-        self.work.put({'f':job_reporter.actually_report_status, 'args': [ self, jobsub_job_id, taskid, status, cpu_type, slot], 'kwargs': kwargs})
+        if self.bulk:
+           if task_id:
+               which_q = int(task_id) % self.nthreads
+           else:
+               which_q = 0
+           q = self.work[which_q]
+        else:
+           q = self.work
 
+        q.put({'f':job_reporter.actually_report_status, 'args': [ self, jobsub_job_id, task_id, status, cpu_type, slot], 'kwargs': kwargs})
+ 
     def bulk_update(self, batch):
 
         if self.debug: sys.stderr.write("bulk_update: %d\n\n" % len(batch))
@@ -214,9 +237,9 @@ class job_reporter:
         return res
 
 
-    def actually_report_status(self, jobsub_job_id = '', taskid = '', status = '' , cpu_type = '', slot='', **kwargs ):
+    def actually_report_status(self, jobsub_job_id = '', task_id = '', status = '' , cpu_type = '', slot='', **kwargs ):
         data = {}
-        data['task_id'] = taskid
+        data['task_id'] = task_id
         data['jobsub_job_id'] = jobsub_job_id
         data['cpu_type'] = cpu_type
         data['slot'] = slot

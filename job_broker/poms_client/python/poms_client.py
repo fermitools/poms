@@ -1,8 +1,14 @@
 #!/usr/bin/env python
 
+import sys
 import requests
 import os
 import json
+try:
+    import configparser as ConfigParser
+except:
+    import ConfigParser
+
 
 rs = requests.Session()
 
@@ -15,7 +21,8 @@ def register_poms_campaign(campaign_name, user = None, experiment = None, versio
                     version = version,
                     dataset = dataset,
                     campaign_definition = campaign_definition,
-                    test = test).replace('Campaign=','')
+                    test = test)
+    data=data.replace('Campaign=','')
     return int(data)
 
 def get_task_id_for(campaign, user = None, command_executed = None, input_dataset = None, parent_task_id = None, test = None, experiment = None):
@@ -27,29 +34,38 @@ def get_task_id_for(campaign, user = None, command_executed = None, input_datase
                     command_executed = command_executed,
                     input_dataset = input_dataset,
                     parent_task_id = parent_task_id,
-                    test = test).replace('Task=','')
+                    test = test)
+    data = data.replace('Task=','')
     return int(data)
 
 
-def launch_template_edit(action = None, name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_username = None, test_client=False):
+def launch_template_edit(action = None, launch_name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_username = None, test_client=False):
 
 
     method = 'launch_template_edit'
     action = action
-    ae_launch_name = name
+    ae_launch_name = launch_name
     ae_launch_host  = launch_host
     ae_launch_account = user_account
-    ae_launch_setup = launch_setup
     experiment = experiment
+    #ae_launch_setup = launch_setup
+    if launch_setup != None:
+        ae_launch_setup=""
+        for arg_setup in launch_setup:
+                ae_launch_setup= ae_launch_setup+str(arg_setup)+" "
+        print("The ae_launch_setup is: " +  str(ae_launch_setup))
+    else:
+        ae_launch_setup = launch_setup
+
     #pc_email = pc_email #no useing pc_username
 
     if experiment == None or pc_username == None:
-        print " You should provide an experiment name and email"
+        print(" You should provide an experiment name and email")
     else:
 
         if action == 'delete':
             if ae_launch_name == None:
-                print "For deleting you need to provide the name of the launch teamplate as name = name_of_your_launch_template"
+                print("For deleting you need to provide the name of the launch template as name = name_of_your_launch_template")
             else:
                 data, status_code = make_poms_call(
                     pcl_call=1,
@@ -59,19 +75,19 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
                     ae_launch_name = ae_launch_name,
                     experiment = experiment,
                     test_client=test_client)
-                return "status_code", status_code
+                return "status_code: ", status_code
 
         if action == 'add':
             if ae_launch_name == None or ae_launch_host == None or ae_launch_account == None or ae_launch_setup == None:
-                print "Your should provide the launch_name in order to add name, launch_host, user_account, launch_setup. \n\
-                        Curently you provide name ="+str(ae_launch_name)+",launch_host="+str(ae_launch_host)+", user_account="+str(ae_launch_account)+", launch_setup="+str(ae_launch_setup)+"."
+                print("Your should provide the launch_name in order to add name, launch_host, user_account, launch_setup. \n\
+                        Curently you provide launch_name="+str(ae_launch_name)+",launch_host="+str(ae_launch_host)+", user_account="+str(ae_launch_account)+", setup="+str(ae_launch_setup)+".")
             else:
                 data, status_code  = make_poms_call(
                     pcl_call=1,
                     pc_username=pc_username,
                     method = method,
                     action = action,
-                    name = ae_launch_name,
+                    ae_launch_name = ae_launch_name,
                     experiment = experiment,
 
                     ae_launch_host = ae_launch_host,
@@ -86,8 +102,8 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
 
         elif action == 'edit':
             if ae_launch_name == None:
-                print "Your should provide the launch_name in order to edit\n\
-                    Curently you provide name = "+ae_launch_name
+                print("Your should provide the launch_name in order to edit\n\
+                    Curently you provide name = "+str(ae_launch_name))
             else:
                 data, status_code = make_poms_call(
                     pcl_call=1,
@@ -106,9 +122,9 @@ def launch_template_edit(action = None, name = None, launch_host = None, user_ac
                 #return data['message']
 
         else:
-            print "You should define an action on your launch_template, there are just \
+            print("You should define an action on your launch_template, there are just \
             three posibilities: action = add, action = edit or action = delete. You choose action = "+action+"\n \
-            You did not change anything in your template"
+            You did not change anything in your template")
 
 
 def campaign_definition_edit(output_file_patterns, launch_script,
@@ -123,8 +139,16 @@ def campaign_definition_edit(output_file_patterns, launch_script,
 
     ae_output_file_patterns = output_file_patterns
     ae_launch_script = launch_script
+    if launch_script != None:
+        ae_launch_script=""
+        for arg_setup in launch_script:
+                ae_launch_script= ae_launch_script+str(arg_setup)+" "
+        print("The ae_launch_setup is: "+ str(ae_launch_setup))
+    else:
+        ae_launch_script = launch_script
+
     ae_definition_parameters= json.dumps(def_parameter)
-    data, status_code = make_poms_call(  pcl_call=1,
+    data, status_code = make_poms_call(pcl_call=1,
                             method = method,
                             pc_username = pc_username,
 
@@ -147,7 +171,25 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
                     ae_completion_type, ae_completion_pct, ae_param_overrides,
                     ae_depends, ae_launch_name, ae_campaign_definition, test_client):
     method="campaign_edit"
-    data, status_code = make_poms_call( pcl_call=1,
+    print("#"*10)
+    print(ae_param_overrides)
+    if ae_param_overrides:
+        param_temp=""
+        for arg_param in ae_param_overrides:
+                param_temp= param_temp+str(arg_param)+" "
+        ae_param_overrides=str(param_temp)
+        try:
+            json.dumps(ae_param_overrides)
+        except:
+            print("please use the right json format for the parameters")
+        '''
+        print("#"*10)
+        print("type" + type(ae_param_overrides))
+        print("The ae_param_overrides is: " +  ae_param_overrides)
+        '''
+    else:
+        print("conserving params, not override anything.")
+    data, status_code = make_poms_call(pcl_call=1,
                             method=method,
                             action=action,
                             ae_campaign_name=ae_campaign_name,
@@ -169,38 +211,62 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
     #return data['message']
 
 
-def make_poms_call(**kwargs):
+def auth_cert():
+        #rs.cert = '/tmp/x509up_u`id -u`'
+        cert=os.environ.get('X509_USER_PROXY')
+        '''
+        if not cert:
+            cert=os.environ.get('X509_USER_CERT')
+            key=os.environ.get('X509_USER_KEY')
+            if cert and key: cert =(cert,key)
+        '''
+        if not cert:
+            proxypath = '/tmp/x509up_u%d' % os.getuid()
+            #proxypath = "/tmp/x509up_u50765"
+            if os.path.exists(proxypath):
+                cert=proxypath
+        if not cert:
+            print("You should generate a proxy for use the client, you can use kx509 to generate your proxy. If you have a proxy please provide the location at the enviroment variable X509_USER_PROXY")
+        return cert
 
+def make_poms_call(**kwargs):
+    #config = configparser.ConfigParser()
+    config = ConfigParser.ConfigParser()
+    config.read(os.path.dirname(sys.argv[0])+'/client.cfg')
     method = kwargs.get("method")
     del kwargs["method"]
     test_client=kwargs.get("test_client")
 
-
     if kwargs.get("test"):
-        base='http://fermicloud045.fnal.gov:8080/poms/'
+        #base= ['url']['base_dev']
+        base=config.get('url','base_dev')
         del kwargs["test"]
     elif test_client:
-        #base='http://pomsgpvm01.fnal.gov:8080/poms/'
-	#base='http://localhost:8888/poms/'
-        base='http://fermicloud045.fnal.gov:8080/poms/'
+        #base=config['url']['base_dev_ssl']
+        base=config.get('url','base_dev_ssl')
+        print("base = " + base)
     else:
-        base='http://pomsgpvm01.fnal.gov:8080/poms/'
+        #base=config['url']['base_prod']
+        base=config.get('url','base_prod')
 
 
-    for k in kwargs.keys():
+    for k in list(kwargs.keys()):
         if kwargs[k] == None:
             del kwargs[k]
-
     if os.environ.get("POMS_CLIENT_DEBUG", None):
-        print "poms_client: making call %s( %s ) at %s" % (method, kwargs, base)
-
-    c = rs.post("%s/%s" % (base,method), data=kwargs);
+        sys.stderr.write("poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert))
+    cert=auth_cert()
+    rs.cert=cert
+    rs.key=cert
+    sys.stderr.write("poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert))
+    c = rs.post("%s/%s" % (base,method), data=kwargs, verify=False);
     res = c.text
     status_code = c.status_code
     c.close()
-    print "\n\nres =", res
-    print "status_code", status_code
+    #print("\n\nres =" + str(res))
+    sys.stderr.write("status_code: "+ str(status_code))
     return res, status_code
+    #return status_code
 
 
 if __name__ == '__main__':
@@ -208,5 +274,5 @@ if __name__ == '__main__':
     res = make_poms_call(test=True, method="active_jobs")
     tid = get_task_id_for(test = True, campaign=14, command_executed="fake test job")
     cid = register_poms_campaign("mwm_client_test",  user = "mengel", experiment = "samdev", version = "v0_0", dataset = "mwm_test_data", test = True)
-    print "got task id ", tid
-    print "got campaign id ", cid
+    print("got task id " +  str(tid))
+    print("got campaign id "+ str(cid))

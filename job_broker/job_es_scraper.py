@@ -138,7 +138,7 @@ class jobsub_es_scraper:
                 "cpu_time" : int(record.get('_source').get('run_remote_sys_time')) + int(record.get('_source').get('run_remote_user_time')),
                 "host_site" : record.get('_source').get('MachineAttrGLIDEIN_Site0'),
                 "status" : "Completed",
-                "taskid" : record.get('_source').get('POMS_TASK_ID'),
+                "task_id" : record.get('_source').get('POMS_TASK_ID'),
                 "jobsub_job_id" : jid
             }
 

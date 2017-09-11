@@ -326,7 +326,7 @@ POMS Job Triage
                     <tbody>  <!-- root tbody-->
 
                     {% if es_response %}
-                    {% for record in es_response['hits']['hits'] %}
+                    {% for record in es_response.get('hits',{}).get('hits',[]) %}
                     {% set record_meat = record.get('_source') %}
                         <!--item-->
                         <tr>

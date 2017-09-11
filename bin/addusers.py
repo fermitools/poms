@@ -9,7 +9,7 @@ def debug(message):
     global dbg
     global log
     if dbg:
-        print(message)
+        print message
     if log:
         log.write(message+'\n')
 
@@ -40,7 +40,7 @@ def verify_exp(cursor,exp):
         retval = False
     return retval
 
-def add_user(cursor,username,commonname,exp):
+def add_user(cursor,username,commonname,session_experiment):
     sql = "select experimenter_id from experimenters where username='%s'" % username
     cursor.execute(sql)
     (experimenterid,) = cursor.fetchone() or (None,)
@@ -51,7 +51,7 @@ def add_user(cursor,username,commonname,exp):
         names = commonname.split(" ")
         if len(names) == 2:
             (first_name, last_name) = commonname.split(" ")
-        sql = "insert into experimenters (last_name,first_name,username,session_experiment) values ('%s','%s','%s','%s') returning experimenter_id" % (last_name,first_name,username,exp)
+        sql = "insert into experimenters (last_name,first_name,username,session_experiment) values ('%s','%s','%s','%s') returning experimenter_id" % (last_name,first_name,username,session_experiment)
         cursor.execute(sql)
         experimenterid = cursor.fetchone()[0]
         debug("add_user: inserted new experimenter id=%s" % experimenterid)
@@ -76,7 +76,7 @@ def main():
         log = open(logfile,'w')
     if os.path.isfile(args.file) == False:
         debug("main: missing file: %s" % args.file)
-        print("addusers.py -- main: missing file: %s" % args.file)
+        print "addusers.py -- main: missing file: %s" % args.file
         raise SystemExit
     else:
         json_data = open(args.file)
@@ -88,13 +88,13 @@ def main():
             password="password=%s" % args.password
         conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s %s" % (args.dbname, args.host, args.port, args.user, password))
         cursor = conn.cursor()
-        for exp in list(expdict.keys()):
+        for exp in expdict.keys():
             if verify_exp(cursor,exp) == False:
                 debug('experiment: %s does not exist in poms' % exp)
             else:
                 for user in expdict[exp]:
                     debug("main: processing <%s> <%s> <%s>" % (exp, user['username'], user['commonname']))
-                    experimenterid = add_user(cursor, user['username'], user['commonname'],exp)
+                    experimenterid = add_user(cursor, user['username'], user['commonname'], exp)
                     add_relationship(cursor, experimenterid, exp)
         conn.commit()
         conn.close()
@@ -104,3 +104,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

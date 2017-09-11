@@ -136,9 +136,9 @@ class joblog_scraper:
 
         return ' '.join(file_map.keys())
 
-    def report_item(self, taskid, jobsub_job_id, hostname, message, experiment = "none"):
+    def report_item(self, task_id, jobsub_job_id, hostname, message, experiment = "none"):
         data = { 
-           "taskid": taskid,
+           "task_id": task_id,
            "jobsub_job_id": jobsub_job_id,
            "node_name": hostname,
         }
@@ -244,7 +244,7 @@ if __name__ == '__main__':
         sys.argv = sys.argv[1:]
 
    ns = "profiling.apps.poms.probes.%s.joblog_scraper" % os.uname()[1].split(".")[0]
-   js = joblog_scraper( job_reporter(server, debug=debug, namespace = ns), debug)
+   js = joblog_scraper( job_reporter(server, debug=debug, namespace = ns ), debug)
    while 1:
       if debug:
            print("Starting...")
