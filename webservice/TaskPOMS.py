@@ -140,8 +140,17 @@ class TaskPOMS:
         #
         # lock tasks in order so we can update them all
         #
-        q = dbhandle.query(Task.task_id).filter(Task.task_id.in_(need_joblogs)).with_for_update().order_by(Task.task_id);
-        q.all();
+        # try a couple of times...
+        #
+        for i in range(4):
+            try:
+                q = dbhandle.query(Task.task_id).filter(Task.task_id.in_(need_joblogs)).with_for_update().order_by(Task.task_id);
+                q.all();
+                break
+            except QueryCanceledError:
+                dbhandle.rollback()
+                continue
+            
         dbhandle.query(Task).filter(Task.task_id.in_(need_joblogs)).update({'status':'Completed', 'updated':datetime.now(utc)},synchronize_session=False)
         dbhandle.commit()
 
@@ -186,8 +195,10 @@ class TaskPOMS:
 
         # lock tasks, jobs in order so we can update them
         dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all();
-        dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all();
-        q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True}, synchronize_session=False)
+        #
+        # why mark the jobs? just fix the tasks!
+        #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all();
+        #q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True}, synchronize_session=False)
         q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
         dbhandle.commit()
 
@@ -196,11 +207,13 @@ class TaskPOMS:
                                                                           (Job.status=="Located",1),
                                                                           ], else_= 0)))
                      .join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
+                     .filter(Job.task_id == Task.task_id)
                      .filter(Task.status.in_(["Completed","Running"]))
                      .filter(CampaignSnapshot.completion_type == "located")
                      .group_by(Task.task_id)
                    )
 
+        mark_located = deque()
         for tid, cfrac, totcount, compcount in q.all():
 
             if totcount == 0:
@@ -215,8 +228,9 @@ class TaskPOMS:
 
         # lock tasks, jobs in order so we can update them
         dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all()
-        dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all()
-        dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located', 'output_files_declared':True}, synchronize_session = False)
+        # why mark the jobs? just fix the tasks!
+        #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all()
+        #dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located', 'output_files_declared':True}, synchronize_session = False)
         dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session = False)
         dbhandle.commit()
 
@@ -227,9 +241,11 @@ class TaskPOMS:
                 n_stale = n_stale + 1
                 task.status = "Located"
                 finish_up_tasks.append(task.task_id)
-                for j in task.jobs:
-                    j.status = "Located"
-                    j.output_files_declared = True
+                #
+                # don't update jobs, just the task.
+                #for j in task.jobs:
+                #    j.status = "Located"
+                #    j.output_files_declared = True
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
 
