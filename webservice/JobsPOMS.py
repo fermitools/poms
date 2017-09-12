@@ -179,7 +179,7 @@ class JobsPOMS(object):
                         fnames.add(v)
                     job_file_jobs.add(r['jobsub_job_id'])
                 elif field.startswith("task_"):
-                    task_updates[field[5:]][value] = deque()
+                    task_updates[field[5:]][value] = set()
                 else:
                     job_updates[field][value] = deque()
 
@@ -196,7 +196,7 @@ class JobsPOMS(object):
                 elif field in ("input_file_names","output_file_names"):
                     pass
                 elif field.startswith("task_"):
-                    task_updates[field[5:]][value].append(jjid2tid[r['jobsub_job_id']])
+                    task_updates[field[5:]][value].add(jjid2tid[r['jobsub_job_id']])
                 else:
                     job_updates[field][value].append(r['jobsub_job_id'])
  
