@@ -106,23 +106,6 @@ class jobsub_q_scraper:
             if conn:
                conn.close()
 
-    def call_wrapup_tasks(self):
-        conn = None
-        try:
-            conn = self.rs.get(self.job_reporter.report_url + '/wrapup_tasks') 
-            text = conn.text
-
-            if self.debug: print("got: ", text)
-        except KeyboardInterrupt:
-            raise
-        except Exception as e:
-            sys.stderr.write("Ouch! while calling wrapup_tasks\n")
-            traceback.print_exc(file=sys.stderr)
-            del e
-        finally:
-            if conn:
-               conn.close()
-
     def scan(self):
         # roll our previous/current status
         del self.prev_report
@@ -246,8 +229,6 @@ class jobsub_q_scraper:
                         status = "Completed")
         else:
             print("error code: %s from condor_q" % res)
-
-        self.call_wrapup_tasks()
 
 
     def poll(self):
