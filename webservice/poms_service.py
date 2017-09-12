@@ -579,7 +579,7 @@ class PomsService(object):
     @logit.logstartstop
     def output_pending_jobs(self):
         res = self.jobsPOMS.output_pending_jobs(cherrypy.request.db)
-        return list(res)
+        return res
 
     @cherrypy.expose
     @logit.logstartstop

@@ -104,7 +104,7 @@ class declared_files_watcher:
             found = self.samweb.list_files(experiment, dims)
             print( "got: ", found)
             sys.stdout.flush()
-            res = res + found
+            res = res + list(found)
         print("found %d located files for %s" % (len(res), experiment))
         return res
 

@@ -50,9 +50,10 @@ class JobsPOMS(object):
                                  Job.jobsub_job_id,
                                  JobFile.file_name,
                                  CampaignDefinitionSnapshot.output_file_patterns)
-                  .join(Task).join(CampaignDefinitionSnapshot)
+                  .join(Task).join(CampaignDefinitionSnapshot).join(Job)
                   .filter(Task.campaign_definition_snap_id == CampaignDefinitionSnapshot.campaign_definition_snap_id,
                           Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
+                          Task.status == "Completed",
                           Job.jobsub_job_id != "unknown",
                           Job.task_id == Task.task_id,
                           Job.job_id == JobFile.job_id,
@@ -66,13 +67,15 @@ class JobsPOMS(object):
             fpattern = fpattern.replace('%', '.*')
             fpattern = fpattern.replace(',', '|')
             if not re.match(fpattern, fname):
+                logit.log("skipping non-output fname %s" % fname)
                 continue
             if preve != e:
                 preve = e
                 res[e] = {}
             if prevj != jobsub_job_id:
                 prevj = jobsub_job_id
-                res[e][jobsub_job_id] = deque()
+                res[e][jobsub_job_id] = []
+            logit.log("adding %s to exp %s jjid %s" % (fname, e, jobsub_job_id))
             res[e][jobsub_job_id].append(fname)
         return res
 
