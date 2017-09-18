@@ -987,7 +987,7 @@ class CampaignsPOMS():
 
             # make job for new -- use current link for product
             pdir = os.environ.get('POMS_DIR', '/etc/poms')
-            if (not pdir.contains('/current/')):
+            if (not pdir.find('/current/')>0):
                 # try to find a current symlink path that points here
                 tpdir = pdir[:pdir.rfind('poms', 0, len(pdir) - 1) + 4] + '/current'
                 if os.path.exists(tpdir):
