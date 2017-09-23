@@ -299,7 +299,11 @@ class TaskPOMS:
         # this way we don't keep the rows locked all day
         #
         logit.log("Starting need_joblogs loops, len %d" % len(finish_up_tasks))
-        for tid in need_joblogs:
+        for task in dbhandle.query(Task).filter(Task.task_id.in_(need_joblogs)).all()
+            tid = task.task_id
+            cid = task.campaign_id
+            exp = task.campaign_snap_obj.experiment
+            samhandle.update_project_description(exp, t.project, "POMS Campaign %s Task %s" % (cid, tid))
             condor_log_parser.get_joblogs(dbhandle,
                                           self.task_min_job(dbhandle, tid),
                                           getconfig('elasticsearch_cert'),

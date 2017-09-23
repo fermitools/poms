@@ -45,7 +45,8 @@ class jobsub_q_scraper:
         self.jobCount = prom.Gauge("jobs_in_queue","Jobs in the queue this run")
         self.threadCount = prom.Gauge("Thread_count","Number of probe threads")
 
-        self.jobsub_q_cmd = "for n in 1 2; do m=$((n+2)); condor_q -pool fifebatchhead$m.fnal.gov -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID && break; done"
+        #self.jobsub_q_cmd = "for n in 1 2; do m=$((n+2)); condor_q -pool fifebatchhead$m.fnal.gov -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID && break; done"
+        self.jobsub_q_cmd = "condor_q -pool gpcollector03.fnal.gov -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID"
 
         self.map = {
            "0": sys.intern("Unexplained"),
@@ -100,6 +101,24 @@ class jobsub_q_scraper:
 
         except Exception as e:
             sys.stderr.write("Ouch! when getting active jobs\n")
+            traceback.print_exc(file=sys.stderr)
+            del e
+        finally:
+            if conn:
+               conn.close()
+
+    def call_wrapup_tasks(self):
+        return
+        conn = None
+        try:
+            conn = self.rs.get(self.job_reporter.report_url + '/wrapup_tasks') 
+            text = conn.text
+
+            if self.debug: print("got: ", text)
+        except KeyboardInterrupt:
+            raise
+        except Exception as e:
+            sys.stderr.write("Ouch! while calling wrapup_tasks\n")
             traceback.print_exc(file=sys.stderr)
             del e
         finally:
@@ -229,6 +248,8 @@ class jobsub_q_scraper:
                         status = "Completed")
         else:
             print("error code: %s from condor_q" % res)
+
+        self.call_wrapup_tasks()
 
 
     def poll(self):
