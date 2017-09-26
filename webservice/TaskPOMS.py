@@ -594,14 +594,14 @@ class TaskPOMS:
 
         if test_launch_template:
             lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_template_id == test_launch_template).first()
-            exp = sesshandle['experimenter'].session_experiment
+            cdid = "-"
             cid = "-"
             c = None
-            launch_script = "echo \"launch_template successful\\!\""
-            dataset = "-"
-            cdid = "-"
-            definition_parameters = []
             c_param_overrides = []
+            dataset = "-"
+            definition_parameters = []
+            exp = sesshandle['experimenter'].session_experiment
+            launch_script = "echo \"launch_template successful\\!\""
         else:
             ds = time.strftime("%Y%m%d_%H%M%S")
             outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_id)
@@ -640,6 +640,7 @@ class TaskPOMS:
             exp = c.experiment
             vers = c.software_version
             launch_script = cd.launch_script 
+            cid = c.campaign_id
             cdid = c.campaign_definition_id
             definition_parameters = cd.definition_parameters
             c_param_overrides = c.param_overrides
