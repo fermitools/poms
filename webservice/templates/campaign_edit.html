@@ -298,6 +298,10 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         <input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
       </div>
 
+      {% if extra_edit_flag|default(False) %}
+         <input type="hidden" name="{{extra_edit_flag}}" value="1">
+      {% endif %}
+
       <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
       <input type="hidden" name="action" id="ae_definition_action" value="add">
       <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id}}">
@@ -714,6 +718,12 @@ $(document).ready(function(){
   $('#double-scroll').doubleScroll();
 });
 
+{% if jump_to_campaign|default(False) %}
+// jump directly to a particular campaign
+$(document).ready(function(){
+ edit_campaign({{jump_to_campaign}});
+});
+{% endif %}
 </script>
 
 
