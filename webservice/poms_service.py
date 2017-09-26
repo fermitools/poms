@@ -322,6 +322,12 @@ class PomsService(object):
         template = self.jinja_env.get_template('campaign_definition_edit.html')
         return template.render(data=data, help_page="CampaignDefinitionEditHelp")
 
+    @cherrypy.expose
+    @logit.logstartstop
+    def make_test_campaign_for(self,  campaign_def_id, campaign_def_name):
+         cid = make_test_campaign_for(self, cherrypy.request.db, cherrypy.session, campaign_def_id, campaign_def_name)
+         raise cherrypy.HTTPRedirect("%s/campaign_edit?campaign_id=%d&extra_edit_flag=launch_test_job" % (self.path, cid))
+         
 
     @cherrypy.expose
     @logit.logstartstop

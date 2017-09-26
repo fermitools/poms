@@ -307,6 +307,21 @@ class CampaignsPOMS():
         data['message'] = message
         return data
 
+    def make_test_campaign_for(self, dbhandle, sesshandle, campaign_def_id, campaign_def_name):
+        c = dbhandle.query(Campaign).filter(Campaign.campaign_definition_id == campaign_def_id, Campaign.name == "_test_%s" % campaign_def_name).first()
+        if not c:
+            c = Campaign()
+            c.campaign_definition_id = campaign_def_id
+            c.name = "_test_%s" % campaign_def_name
+            c.experiment = sesshandle.get('experimenter').session_experiment
+            c.creator = sesshandle.get('experimenter').experimenter_id
+            c.created = DateTime.now(utc)
+            c.updated = DateTime.now(utc)
+            c.vo_role = "Production"
+            dbhandle.add(c)
+            dbhandle.commit()
+        return c.campaign_id
+
     def campaign_edit(self, dbhandle, sesshandle, *args, **kwargs):
         data = {}
         message = None
