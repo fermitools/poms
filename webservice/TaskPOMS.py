@@ -596,10 +596,12 @@ class TaskPOMS:
         e = seshandle_get('experimenter')
         if test_launch_template:
             lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id == test_launch_template).first()
+            dataset_override = "fake_test_dataset"
             cdid = "-"
             cid = "-"
             c = None
             c_param_overrides = []
+            vers = 'v0_0'
             dataset = "-"
             definition_parameters = []
             exp = e.session_experiment
