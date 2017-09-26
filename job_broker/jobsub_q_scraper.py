@@ -249,7 +249,7 @@ class jobsub_q_scraper:
         else:
             print("error code: %s from condor_q" % res)
 
-        self.call_wrapup_tasks()
+        #self.call_wrapup_tasks()
 
 
     def poll(self):

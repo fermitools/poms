@@ -299,7 +299,7 @@ class TaskPOMS:
         # this way we don't keep the rows locked all day
         #
         logit.log("Starting need_joblogs loops, len %d" % len(finish_up_tasks))
-        for task in dbhandle.query(Task).filter(Task.task_id.in_(need_joblogs)).all()
+        for task in dbhandle.query(Task).filter(Task.task_id.in_(need_joblogs)).all():
             tid = task.task_id
             cid = task.campaign_id
             exp = task.campaign_snap_obj.experiment

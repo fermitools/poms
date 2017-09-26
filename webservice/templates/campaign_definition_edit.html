@@ -180,6 +180,7 @@ Job Types {%include 'help_button.html'%}
           <textarea id="ae_definition_recovery_text" disabled>[]</textarea>
         </div>
       </div>
+      
       <div class="actions">
 	<div class="ui button deny red">Cancel</div>
 	<input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
@@ -190,6 +191,9 @@ Job Types {%include 'help_button.html'%}
       <input type="hidden" id="ae_campaign_definition_id" name="ae_campaign_definition_id" value="0">
       <input type="hidden" id="ae_definition_parameters" name="ae_definition_parameters" value="[]">
       <input type="hidden" id="ae_definition_recovery" name="ae_definition_recovery" value="[]">
+      {% if extra_edit_flag|default(False) %}
+         <input type="hidden" name="{{extra_edit_flag}}" value="1">
+      {% endif %}
     </form>
   </div>
   <div class="ui hidden divider"></div>
@@ -789,6 +793,12 @@ $(document).ready(function(){
   $('#double-scroll').doubleScroll();
 });
 
+{% if jump_to_campaign|default(False) %}
+// jump directly to a particular campaign
+$(document).ready(function(){
+  campaign_edit({{jump_to_campaign}});
+});
+{% endif %}
 </script>
 
 

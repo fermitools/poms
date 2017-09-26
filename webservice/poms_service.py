@@ -333,6 +333,10 @@ class PomsService(object):
             if data['message']:
                 raise cherrypy.HTTPError(400, data['message'])
 
+        if kwargs.get('launch_test_job', None) and kwargs.get('campaign_id', None):
+           raise cherrypy.HTTPRedirect("%s/launch_job?campaign_id=%s" % (self.path, kwargs.get('campaign_id'))
+           pass
+
         return template.render(data=data, help_page="CampaignEditHelp")
 
     @cherrypy.expose

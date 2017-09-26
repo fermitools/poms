@@ -75,15 +75,22 @@
     </div>
   </div> <!-- Ends display_message_modal  -->
 
+  {% if not popup|default(False) %}
 
   {% include 'mobil_menu.html' %}
+
+  {% endif %}
 
   <!--big screen -->
   <div class="pusher" >  <!--  This is a requirment of semantic-ui when using a sidebar.  For all purposes it is the "body" -->
 
     <div class="full height">
 
+      {% if not popup|default(False) %}
+
       {% include 'standard_menu.html' %}
+  
+      {% endif %}
 
       <div class="article" style="padding-left: 1em; padding-top: 1em">  <!--header of page-->
 	<br/>
