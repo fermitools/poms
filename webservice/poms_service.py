@@ -307,7 +307,7 @@ class PomsService(object):
 
         if kwargs.get('test_template'):
             
-             raise cherrypy.HTTPRedirect("%s/launch_jobs?campaign_id=None&test_launch_template=%s"  % (self.path, kwargs.get('ae_launch_template_id'))
+             raise cherrypy.HTTPRedirect("%s/launch_jobs?campaign_id=None&test_launch_template=%s"  % (self.path, kwargs.get('ae_launch_template_id')))
 
         template = self.jinja_env.get_template('launch_template_edit.html')
         return template.render(data=data, help_page="LaunchTemplateEditHelp")
@@ -723,7 +723,7 @@ class PomsService(object):
                                          cherrypy.request.headers.get,
                                          cherrypy.session.get,
                                          cherrypy.request.samweb_lite,
-                                         cherrypy.response.status, campaign_id, dataset_override, parent_task_id, test_launch_template)
+                                         cherrypy.response.status, campaign_id, dataset_override = dataset_override, parent_task_id = parent_task_id, test_launch_template = test_launch_template)
         logit.log("Got vals: %s" % repr(vals))
         lcmd, c, campaign_id, outdir, outfile = vals
         if (lcmd == "") :

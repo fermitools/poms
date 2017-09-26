@@ -593,15 +593,16 @@ class TaskPOMS:
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
 
         ds = time.strftime("%Y%m%d_%H%M%S")
+        e = seshandle_get('experimenter')
         if test_launch_template:
-            lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_template_id == test_launch_template).first()
+            lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id == test_launch_template).first()
             cdid = "-"
             cid = "-"
             c = None
             c_param_overrides = []
             dataset = "-"
             definition_parameters = []
-            exp = sesshandle['experimenter'].session_experiment
+            exp = e.session_experiment
             launch_script = "echo \"launch_template successful\\!\""
             outdir = "%s/private/logs/poms/launches/template_tests_%d" % (os.environ["HOME"], int(test_launch_template))
             outfile = "%s/%s" % (outdir, ds)
@@ -637,7 +638,6 @@ class TaskPOMS:
 
                 return lcmd, c, campaign_id, outdir, outfile
 
-            e = seshandle_get('experimenter')
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
             exp = c.experiment
