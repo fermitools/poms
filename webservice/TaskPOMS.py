@@ -588,54 +588,72 @@ class TaskPOMS:
             return "None."
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
-                    err_res, campaign_id, dataset_override=None, parent_task_id=None, param_overrides=None):
+                    err_res, campaign_id, dataset_override=None, parent_task_id=None, param_overrides=None, test_launch_template = None):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
 
-        ds = time.strftime("%Y%m%d_%H%M%S")
-        outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_id)
-        outfile = "%s/%s" % (outdir, ds)
-        logit.log("trying to record launch in %s" % outfile)
+        if test_launch_template:
+            lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_template_id == test_launch_template).first()
+            exp = sesshandle['experimenter'].session_experiment
+            cid = "-"
+            c = None
+            launch_script = "echo \"launch_template successful\\!\""
+            dataset = "-"
+            cdid = "-"
+            definition_parameters = []
+            c_param_overrides = []
+        else:
+            ds = time.strftime("%Y%m%d_%H%M%S")
+            outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_id)
+            outfile = "%s/%s" % (outdir, ds)
+            logit.log("trying to record launch in %s" % outfile)
 
-        c = (dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id)
-             .options(joinedload(Campaign.launch_template_obj), joinedload(Campaign.campaign_definition_obj)).first())
+            c = (dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id)
+                 .options(joinedload(Campaign.launch_template_obj), joinedload(Campaign.campaign_definition_obj)).first())
 
-        if not c:
-            err_res = 404
-            raise KeyError
+            if not c:
+                err_res = 404
+                raise KeyError
 
-        cd = c.campaign_definition_obj
-        lt = c.launch_template_obj
+            cd = c.campaign_definition_obj
+            lt = c.launch_template_obj
 
-        if self.get_job_launches(dbhandle) == "hold":
-            # fix me!!
-            output = "Job launches currently held.... queuing this request"
-            logit.log("launch_jobs -- holding launch")
-            hl = HeldLaunch()
-            hl.campaign_id = campaign_id
-            hl.created = datetime.now(utc)
-            hl.dataset = dataset_override
-            hl.parent_task_id = parent_task_id
-            hl.param_overrides = param_overrides
-            dbhandle.add(hl)
-            dbhandle.commit()
-            lcmd = ""
+            if self.get_job_launches(dbhandle) == "hold":
+                # fix me!!
+                output = "Job launches currently held.... queuing this request"
+                logit.log("launch_jobs -- holding launch")
+                hl = HeldLaunch()
+                hl.campaign_id = campaign_id
+                hl.created = datetime.now(utc)
+                hl.dataset = dataset_override
+                hl.parent_task_id = parent_task_id
+                hl.param_overrides = param_overrides
+                dbhandle.add(hl)
+                dbhandle.commit()
+                lcmd = ""
 
-            return lcmd, c, campaign_id, outdir, outfile
+                return lcmd, c, campaign_id, outdir, outfile
 
-        e = seshandle_get('experimenter')
-        xff = gethead('X-Forwarded-For', None)
-        ra = gethead('Remote-Addr', None)
-        if not e.is_authorized(c.experiment) and not (ra == '127.0.0.1' and xff is None):
+            e = seshandle_get('experimenter')
+            xff = gethead('X-Forwarded-For', None)
+            ra = gethead('Remote-Addr', None)
+            exp = c.experiment
+            vers = c.software_version
+            launch_script = cd.launch_script 
+            cdid = c.campaign_definition_id
+            definition_parameters = cd.definition_parameters
+            c_param_overrides = c.param_overrides
+
+        if not e.is_authorized(exp) and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
             err_res = "404 Permission Denied."
             output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
             return lcmd, output, c, campaign_id, outdir, outfile    # FIXME: this returns more elements than in other places
 
-        if not lt.launch_host.find(c.experiment) >= 0 and c.experiment != 'samdev':
-            logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, c.experiment))
+        if not lt.launch_host.find(exp) >= 0 and exp != 'samdev':
+            logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
             err_res = "404 Permission Denied."
-            output = "Not Authorized: {} is not a {} experiment node".format(tl.launch_host, c.experiment)
+            output = "Not Authorized: {} is not a {} experiment node".format(tl.launch_host, exp)
             return lcmd, output, c, campaign_id, outdir, outfile    # FIXME: this returns more elements than in other places
 
         experimenter_login = e.username
@@ -646,7 +664,7 @@ class TaskPOMS:
         else:
             dataset = self.poms_service.campaignsPOMS.get_dataset_for(dbhandle, samhandle, err_res, c)
 
-        group = c.experiment
+        group = exp
         if group == 'samdev':
             group = 'fermilab'
 
@@ -659,30 +677,30 @@ class TaskPOMS:
             "ssh -tx %s@%s <<'EOF' &" % (lt.launch_account, lt.launch_host),
             lt.launch_setup % {
                 "dataset": dataset,
-                "version": c.software_version,
+                "version": vers,
                 "group": group,
                 "experimenter": experimenter_login,
             },
             "setup poms_jobsub_wrapper v0_4 -z /grid/fermiapp/products/common/db",
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "export POMS_TEST=%s" % ("" if "poms" in self.poms_service.hostname else "1"),
-            "export POMS_CAMPAIGN_ID=%s" % c.campaign_id,
-            "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id,
+            "export POMS_CAMPAIGN_ID=%s" % cid,
+            "export POMS_TASK_DEFINITION_ID=%s" % cdid,
             "export JOBSUB_GROUP=%s" % group,
         ]
-        if cd.definition_parameters:
-            if isinstance(cd.definition_parameters, str):
-                params = OrderedDict(json.loads(cd.definition_parameters))
+        if definition_parameters:
+            if isinstance(definition_parameters, str):
+                params = OrderedDict(json.loads(definition_parameters))
             else:
-                params = OrderedDict(cd.definition_parameters)
+                params = OrderedDict(definition_parameters)
         else:
             params = OrderedDict([])
 
-        if c.param_overrides is not None and c.param_overrides != "":
-            if isinstance(c.param_overrides, str):
-                params.update(json.loads(c.param_overrides))
+        if c_param_overrides is not None and c_param_overrides != "":
+            if isinstance(c_param_overrides, str):
+                params.update(json.loads(c_param_overrides))
             else:
-                params.update(c.param_overrides)
+                params.update(c_param_overrides)
 
         if param_overrides is not None and param_overrides != "":
             if isinstance(param_overrides, str):
@@ -690,10 +708,10 @@ class TaskPOMS:
             else:
                 params.update(param_overrides)
 
-        lcmd = cd.launch_script + " " + ' '.join((x[0] + x[1]) for x in list(params.items()))
+        lcmd = launch_script + " " + ' '.join((x[0] + x[1]) for x in list(params.items()))
         lcmd = lcmd % {
             "dataset": dataset,
-            "version": c.software_version,
+            "version": vers,
             "group": group,
             "experimenter": experimenter_login,
         }
