@@ -592,6 +592,7 @@ class TaskPOMS:
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
 
+        ds = time.strftime("%Y%m%d_%H%M%S")
         if test_launch_template:
             lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_template_id == test_launch_template).first()
             cdid = "-"
@@ -602,8 +603,10 @@ class TaskPOMS:
             definition_parameters = []
             exp = sesshandle['experimenter'].session_experiment
             launch_script = "echo \"launch_template successful\\!\""
+            outdir = "%s/private/logs/poms/launches/template_tests_%d" % (os.environ["HOME"], int(test_launch_template))
+            outfile = "%s/%s" % (outdir, ds)
+            logit.log("trying to record launch in %s" % outfile)
         else:
-            ds = time.strftime("%Y%m%d_%H%M%S")
             outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_id)
             outfile = "%s/%s" % (outdir, ds)
             logit.log("trying to record launch in %s" % outfile)

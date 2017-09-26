@@ -927,8 +927,11 @@ class CampaignsPOMS():
 
         return res
 
-    def list_launch_file(self, campaign_id, fname):
-        dirname = '{}/private/logs/poms/launches/campaign_{}'.format(os.environ['HOME'], campaign_id)
+    def list_launch_file(self, campaign_id, fname, launch_template_id = None):
+        if launch_template_id:
+           dirname = '{}/private/logs/poms/launches/template_{}'.format(os.environ['HOME'], launch_template_id)
+        else:
+            dirname = '{}/private/logs/poms/launches/campaign_{}'.format(os.environ['HOME'], campaign_id)
         lf = open('{}/{}'.format(dirname, fname), 'r')
         sb = os.fstat(lf.fileno())
         lines = lf.readlines()

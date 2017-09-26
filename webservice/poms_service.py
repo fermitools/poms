@@ -304,6 +304,11 @@ class PomsService(object):
     @logit.logstartstop
     def launch_template_edit(self, *args, **kwargs):
         data = self.campaignsPOMS.launch_template_edit(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+
+        if kwargs.get('test_template'):
+            
+             raise cherrypy.HTTPRedirect("%s/launch_jobs?campaign_id=None&test_launch_template=%s"  % (self.path, kwargs.get('ae_launch_template_id'))
+
         template = self.jinja_env.get_template('launch_template_edit.html')
         return template.render(data=data, help_page="LaunchTemplateEditHelp")
 
@@ -474,8 +479,8 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def list_launch_file(self, campaign_id, fname):
-        lines, refresh = self.campaignsPOMS.list_launch_file(campaign_id, fname)
+    def list_launch_file(self, campaign_id = None, fname = None, launch_template_id = None):
+        lines, refresh = self.campaignsPOMS.list_launch_file(campaign_id, fname, launch_template_id)
         output = "".join(lines)
         template = self.jinja_env.get_template('launch_jobs.html')
         res = template.render(command='', output=output, do_refresh=refresh,
@@ -712,19 +717,22 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None):     # XXXX needs to be analize in detail.
+    def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None, test_launch_template = None):     # XXXX needs to be analize in detail.
         vals = self.taskPOMS.launch_jobs(cherrypy.request.db,
                                          cherrypy.config.get,
                                          cherrypy.request.headers.get,
                                          cherrypy.session.get,
                                          cherrypy.request.samweb_lite,
-                                         cherrypy.response.status, campaign_id, dataset_override, parent_task_id)
+                                         cherrypy.response.status, campaign_id, dataset_override, parent_task_id, test_launch_template)
         logit.log("Got vals: %s" % repr(vals))
         lcmd, c, campaign_id, outdir, outfile = vals
         if (lcmd == "") :
             return "Launches held, job queued..."
         else:
-            raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_id=%s&fname=%s" % (self.path, campaign_id, os.path.basename(outfile)))
+            if test_launch_template:
+                raise cherrypy.HTTPRedirect("%s/list_launch_file?launch_template_id=%s&fname=%s" % (self.path, test_launch_template, os.path.basename(outfile)))
+            else:
+                raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_id=%s&fname=%s" % (self.path, campaign_id, os.path.basename(outfile)))
 
 #----------------------
 ########################
