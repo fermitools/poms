@@ -150,6 +150,7 @@ Launch Templates {{ show_hint('', 'Help page') }}
     <div class="actions">
       <div class="ui button deny red">Cancel</div>
       <input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
+      <input type="submit" value="Test" name="test_template" class="ui button orange" {{ 'disabled' if (data.authorized==False) }}/>
     </div>
     <input type="hidden" name="experiment" id="ae_experiment" value="{{data.curr_experiment}}">
     <input type="hidden" name="action" id="ae_launch_action" value="add">
