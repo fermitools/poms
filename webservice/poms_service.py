@@ -324,6 +324,11 @@ class PomsService(object):
     @logit.logstartstop
     def campaign_definition_edit(self, *args, **kwargs):
         data = self.campaignsPOMS.campaign_definition_edit(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+
+        if kwargs.get('test_template'):
+             test_campaign = self.campaignsPOMS.make_test_campaign_for(cherrypy.request.db, cherrypy.session, kwargs.get("ae_campaign_definition_id"), kwargs.get("ae_definition_name"))
+             raise cherrypy.HTTPRedirect("%s/campaign_edit?jump_to_campaign=%d&extra_edit_flag=launch_test_job"  % (self.path, test_campaign))
+
         template = self.jinja_env.get_template('campaign_definition_edit.html')
         return template.render(data=data, help_page="CampaignDefinitionEditHelp")
 

@@ -92,6 +92,14 @@ Campaign Stages {{ show_hint('', 'Help page') }}
           {% endif %}
         </td>
         <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.campaign_id}}</td>
+      {% if row.campaign_id|int == jump_to_campaign|default(-1)|int %} 
+      <script type="text/javascript">
+       // jump directly to a particular campaign
+       $(document).ready(function(){
+          edit_campaign({{loop.index}});
+       });
+     </script>
+     {% endif %}
         <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.campaign_definition_id}}</td>
         <td id="c_launch_id_{{loop.index}}" style="display:none">{{row.launch_id}}</td>
         <td id="c_name_{{loop.index}}">{{row.name}}</td>
@@ -714,17 +722,11 @@ $('.ui.dropdown')
   .dropdown()
 ;
 
+
 $(document).ready(function(){
   $('#double-scroll').doubleScroll();
 });
 
-{% if jump_to_campaign|default(False) %}
-// jump directly to a particular campaign
-$(document).ready(function(){
- edit_campaign({{jump_to_campaign}});
-});
-{% endif %}
 </script>
-
 
 {%endblock%}

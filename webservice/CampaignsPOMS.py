@@ -310,16 +310,21 @@ class CampaignsPOMS():
     def make_test_campaign_for(self, dbhandle, sesshandle, campaign_def_id, campaign_def_name):
         c = dbhandle.query(Campaign).filter(Campaign.campaign_definition_id == campaign_def_id, Campaign.name == "_test_%s" % campaign_def_name).first()
         if not c:
+            lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment == sesshandle.get('experimenter').session_experiment).first()
             c = Campaign()
             c.campaign_definition_id = campaign_def_id
             c.name = "_test_%s" % campaign_def_name
             c.experiment = sesshandle.get('experimenter').session_experiment
             c.creator = sesshandle.get('experimenter').experimenter_id
-            c.created = DateTime.now(utc)
-            c.updated = DateTime.now(utc)
+            c.created = datetime.now(utc)
+            c.updated = datetime.now(utc)
             c.vo_role = "Production"
+            c.dataset = ""
+            c.launch_id = lt.launch_id
+            c.software_version = ""
             dbhandle.add(c)
             dbhandle.commit()
+            c = dbhandle.query(Campaign).filter(Campaign.campaign_definition_id == campaign_def_id, Campaign.name == "_test_%s" % campaign_def_name).first()
         return c.campaign_id
 
     def campaign_edit(self, dbhandle, sesshandle, *args, **kwargs):
