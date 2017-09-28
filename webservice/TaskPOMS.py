@@ -605,7 +605,7 @@ class TaskPOMS:
             dataset = "-"
             definition_parameters = []
             exp = e.session_experiment
-            launch_script = "echo \"launch_template successful\\!\""
+            launch_script = """echo "Environment"; printenv; echo "jobsub is`which jobsub`;  echo "launch_template successful!"""
             outdir = "%s/private/logs/poms/launches/template_tests_%d" % (os.environ["HOME"], int(test_launch_template))
             outfile = "%s/%s" % (outdir, ds)
             logit.log("trying to record launch in %s" % outfile)
