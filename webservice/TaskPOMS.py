@@ -303,7 +303,7 @@ class TaskPOMS:
             tid = task.task_id
             cid = task.campaign_id
             exp = task.campaign_snap_obj.experiment
-            samhandle.update_project_description(exp, t.project, "POMS Campaign %s Task %s" % (cid, tid))
+            samhandle.update_project_description(exp, task.project, "POMS Campaign %s Task %s" % (cid, tid))
             condor_log_parser.get_joblogs(dbhandle,
                                           self.task_min_job(dbhandle, tid),
                                           getconfig('elasticsearch_cert'),
