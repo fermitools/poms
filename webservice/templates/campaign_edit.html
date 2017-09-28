@@ -304,11 +304,11 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       <div class="actions">
         <div class="ui button deny red">Cancel</div>
         <input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
+      {% if extra_edit_flag|default(False) %}
+         <input type="submit" name="{{extra_edit_flag}}" class="ui buttion orange" value="Launch Test">
+      {% endif %}
       </div>
 
-      {% if extra_edit_flag|default(False) %}
-         <input type="hidden" name="{{extra_edit_flag}}" value="1">
-      {% endif %}
 
       <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
       <input type="hidden" name="action" id="ae_definition_action" value="add">
