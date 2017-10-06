@@ -314,9 +314,9 @@ class PomsService(object):
 
 
     @cherrypy.expose
-    def campaign_deps(self, tag):
+    def campaign_deps(self, tag = None, camp_id = None):
         template = self.jinja_env.get_template('campaign_deps.html')
-        svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config, tag)
+        svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config.get, tag, camp_id)
         return template.render(tag=tag, svgdata=svgdata, help_page="CampaignDepsHelp")
 
 
@@ -440,7 +440,7 @@ class PomsService(object):
          launched_campaigns, dimlist, campaign,
          counts_keys, counts,
          launch_flist,
-         kibana_link) = self.campaignsPOMS.campaign_info(cherrypy.request.db,
+         kibana_link, dep_svg) = self.campaignsPOMS.campaign_info(cherrypy.request.db,
                                                          cherrypy.request.samweb_lite,
                                                          cherrypy.HTTPError,
                                                          cherrypy.config.get,
@@ -451,7 +451,7 @@ class PomsService(object):
                                tags=tags, launched_campaigns=launched_campaigns, dimlist=dimlist,
                                Campaign=campaign, counts_keys=counts_keys, counts=counts, launch_flist=launch_flist,
                                do_refresh=0, help_page="CampaignInfoHelp",
-                               kibana_link=kibana_link)
+                               kibana_link=kibana_link, dep_svg = dep_svg)
 
 
     @cherrypy.expose

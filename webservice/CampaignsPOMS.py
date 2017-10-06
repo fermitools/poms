@@ -539,16 +539,25 @@ class CampaignsPOMS():
         dbhandle.commit()
         return "Task=%d" % t.task_id
 
-    def campaign_deps_svg(self, dbhandle, config, tag):
-        cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
+    def campaign_deps_svg(self, dbhandle, config_get, tag = None, camp_id = None):
+        if tag != None:
+            cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
                                                                       CampaignsTags.tag_id == Tag.tag_id,
                                                                       CampaignsTags.campaign_id == Campaign.campaign_id).all()
+        if camp_id != None:
+            cidl1 = dbhandle.query(CampaignDependency.needs_camp_id).filter(CampaignDependency.uses_camp_id == camp_id).all()
+            cidl2 = dbhandle.query(CampaignDependency.uses_camp_id).filter(CampaignDependency.needs_camp_id == camp_id).all()
+            s = set([camp_id])
+            s.update(cidl1)
+            s.update(cidl2)
+            cl = dbhandle.query(Campaign).filter(Campaign.campaign_id.in_(s)).all()
+
         c_ids = deque()
         pdot = subprocess.Popen("tee /tmp/dotstuff | dot -Tsvg", shell=True, stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE, universal_newlines=True)
         pdot.stdin.write('digraph {}Dependencies {{\n'.format(tag))
         pdot.stdin.write('node [shape=box, style=rounded, color=lightgrey, fontcolor=black]\nrankdir = "LR";\n')
-        baseurl = "{}/campaign_info?campaign_id=".format(config.get("pomspath"))
+        baseurl = "{}/campaign_info?campaign_id=".format(config_get("pomspath"))
 
         for c in cl:
             tcl = dbhandle.query(func.count(Task.status), Task.status).group_by(Task.status).filter(
@@ -675,12 +684,15 @@ class CampaignsPOMS():
         logit.log("got format {}".format(campaign_kibana_link_format))
         kibana_link = campaign_kibana_link_format.format(campaign_id)
 
+        dep_svg = self.campaign_deps_svg(dbhandle, config_get, camp_id = campaign_id)
         return (campaign_info,
                 time_range_string,
                 tmins, tmaxs, tdays,
                 campaign_definition_info, launch_template_info,
                 tags, launched_campaigns, None,
-                campaign, counts_keys, counts, launch_flist, kibana_link)
+                campaign, counts_keys, counts, launch_flist, kibana_link,
+                dep_svg
+                )
 
     @pomscache_10.cache_on_arguments()
     def campaign_time_bars(self, dbhandle, campaign_id=None, tag=None, tmin=None, tmax=None, tdays=1):
