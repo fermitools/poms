@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 #from test_pipe import campaign_definition_edit_test
 from poms_client import campaign_definition_edit
+import os
 import argparse
+import logging
+logging.basicConfig(level=logging.INFO)
 #Creating the arguments
 parser = argparse.ArgumentParser(description='Optional Arguments')
 groupArg = parser.add_argument_group('Require Arguments')
 
+groupArg.add_argument('--verbose', '-v', action='count')
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
 groupArg.add_argument('--name', metavar='Name of your template', type=str, help='the name of the campaign definition', required = True, default = None)
 groupArg.add_argument('--user', metavar='your user name', type=str, help='your user_name register at POMS', default=os.environ.get('GRID_USER',os.environ.get('USER','unknown')))
@@ -16,21 +20,23 @@ parser.add_argument('--launch_script', metavar='the setup you do at your interac
 parser.add_argument('--def_parameter', metavar='parameters pass to the launch_script', type=str, nargs='*', help='The arguments your script (included in Launch script) use for the submission')
 parser.add_argument('--test_client', metavar='want to test the client URL query', type=str, help='use to test the client URL query', default = False)
 args = parser.parse_args()
-print args
-print 'The arguments you pass are:'
-print 'action =',args.action
-print 'name =', args.name
-print 'user=',args.user
-print 'experiment=',args.experiment
-print 'output_file_patterns=', args.output_file_patterns
-print 'launch_script=', args.launch_script
-print 'def_parameter=', args.def_parameter
-print 'test_client=', args.test_client
+if args.verbose:
+    logging.getLogger().setLevel(logging.DEBUG)
+logging.debug( args)
+logging.debug( 'The arguments you pass are:')
+logging.debug( 'action ='+str(args.action))
+logging.debug( 'name ='+ str(args.name))
+logging.debug( 'user='+str(args.user))
+logging.debug( 'experiment='+str(args.experiment))
+logging.debug( 'output_file_patterns='+ str(args.output_file_patterns))
+logging.debug( 'launch_script='+ str(args.launch_script))
+logging.debug( 'def_parameter='+ str(args.def_parameter))
+logging.debug( 'test_client='+ str(args.test_client))
 
 
 #Calling the poms_client.campaign_definition_edit'
 if args.action in ['add','delete','edit']:
-    campaign_definition_edit(pc_username=args.user,
+    res = campaign_definition_edit(pc_username=args.user,
                         action = args.action,
                         name=args.name,
                         experiment=args.experiment,
@@ -38,6 +44,12 @@ if args.action in ['add','delete','edit']:
                         launch_script=args.launch_script,
                         def_parameter=args.def_parameter,
                         test_client=args.test_client)
+    if res[0] == 'status_code' and  res[1] == 200:
+         logging.info("Succeeded.")
+         exit(0)
+    else:
+         logging.error("Failed: "+ repr(res))
+         exit(1)
 else:
     msg = "\n ERROR: the action you choose was [action="+args.action+"] you must use add-edit-delete as option"
-    print msg
+    logging.error(msg)

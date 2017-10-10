@@ -2,6 +2,7 @@
 
 from poms_client import get_task_id_for
 import optparse
+import os
 
 parser = optparse.OptionParser(usage="usage: %prog [options] \n get a task id")
 parser.add_option('--campaign', help="campaign name or id", default = None)

@@ -1,20 +1,27 @@
 #!/usr/bin/env python
 #from test_pipe import launch_template_edit_test
+import os
 from poms_client import launch_template_edit
 import argparse
+
+import logging
+logging.basicConfig(level=logging.INFO)
+
 #action = None, name = None, launch_host = None, user_account = None, lauch_setup = None, experiment = None, pc_email
 parser = argparse.ArgumentParser(description='edit_launch_template.')
 groupArg = parser.add_argument_group('Require Arguments')
 
-groupArg.add_argument('--user', metavar='user', type=str, help='Please provide your user name at POMS', default=os.environ.get('GRID_USER',os.environ.get('USER','unknown')))
+groupArg.add_argument('--verbose', '-v', action='count')
+groupArg.add_argument('--launch_account', metavar='launch_account', type=str, 
+help='Please provide the user account for the submission (e.g. your user, or production user e.g. novapro, minospro, dunepro)',default=os.environ.get('GRID_USER',os.environ.get('USER','unknown')))
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
 groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True)
 
 
 parser.add_argument('--launch_name', metavar='Name of your template', type=str, help='the name of the launch template', default = None)
 parser.add_argument('--host', metavar='your experiment machine', type=str, help='You should provide your interactive machine (e.g. dunegpvm01)', default = None)
-parser.add_argument('--user', metavar='username at submission node', type=str, help='Please provide the user account for the submission (e.g. your user, or production user e.g. novapro, minospro, dunepro)',
- default=os.environ.get('GRID_USER',os.environ.get('USER','unknown')))
+parser.add_argument('--user', metavar='username at submission node', type=str, 
+help='Please provide your user name', default=os.environ.get('GRID_USER',os.environ.get('USER','unknown')))
 parser.add_argument('--setup', metavar='the setup you do at your interactive node', type=str, nargs='*', help='provide the necessary comands for your submission node e.g. setup_nova', default = None)
 parser.add_argument('--test_client', metavar='want to test the client URL query', type=str, help='use to test the client URL query', default = False)
 
@@ -22,23 +29,34 @@ parser.add_argument('--test_client', metavar='want to test the client URL query'
 
 
 args = parser.parse_args()
-print args
-print 'The arguments you pass are:'
-print 'action =',args.action
-print 'launch_name =', args.launch_name
-print 'launch_host=',args.host
-print 'user=',args.user
-print "launch_setup =", args.setup
-print "experiment=", args.experiment
-print "user=", args.user
-print "test_client", args.test_client
+
+print "verbose:" , args.verbose
+if args.verbose:
+    logging.getLogger().setLevel(logging.DEBUG)
+
+logging.debug( args )
+logging.debug( 'The arguments you passed are:' )
+logging.debug( 'action ='+str(args.action ))
+logging.debug( 'launch_name ='+ str(args.launch_name ))
+logging.debug( 'launch_host='+str(args.host ))
+logging.debug( 'launch_account='+str(args.launch_account ))
+logging.debug( "launch_setup ="+ str(args.setup ))
+logging.debug( "experiment="+ str(args.experiment ))
+logging.debug( "user="+ str(args.user ))
+logging.debug( "test_client"+ str(args.test_client ))
 
 
-launch_template_edit(action = args.action,
-                    launch_name = args.launch_name,
-                    launch_host = args.host,
-                    user_account = args.user,
-                    launch_setup = args.setup,
-                    experiment = args.experiment,
-                    pc_username = args.user,
-                    test_client=args.test_client)
+res = launch_template_edit(action = args.action,
+                            launch_name = args.launch_name,
+                            launch_host = args.host,
+                            user_account = args.launch_account,
+                            launch_setup = args.setup,
+                            experiment = args.experiment,
+                            pc_username = args.user,
+                            test_client=args.test_client)
+if res[0] == 'status_code' and  res[1] == 200:
+     logging.info("Succeeded.")
+     exit(0)
+else:
+     logging.error("Failed: " + repr(res))
+     exit(1)
