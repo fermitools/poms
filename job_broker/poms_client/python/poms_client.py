@@ -151,7 +151,7 @@ def campaign_definition_edit(output_file_patterns, launch_script,
         ae_launch_script=""
         for arg_setup in launch_script:
                 ae_launch_script= ae_launch_script+str(arg_setup)+" "
-        logging.info("The ae_launch_setup is: "+ str(ae_launch_setup))
+        logging.info("The ae_launch_setup is: "+ str(ae_launch_script))
     else:
         ae_launch_script = launch_script
 
@@ -271,6 +271,14 @@ def make_poms_call(**kwargs):
     c.close()
     #logging.debug("\n\nres =" + str(res))
     logging.debug("status_code: "+ str(status_code))
+    if status_code != 200:
+        if res.find("Traceback"):
+            res = res[res.find("Traceback"):]
+            res = res.replace("<br/>","\n")
+            res = res[:res.find("</label>")]
+            logging.debug("Server: " + res)
+        else:
+            logging.debug("Error text" + res)
     return res, status_code
     #return status_code
 
