@@ -8,7 +8,7 @@ groupArg = parser.add_argument_group('Require Arguments')
 
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
 groupArg.add_argument('--name', metavar='Name of your template', type=str, help='the name of the campaign definition', required = True, default = None)
-groupArg.add_argument('--user_name', metavar='your user_name', type=str, help='your user_name register at POMS', required = True, default = None)
+groupArg.add_argument('--user', metavar='your user name', type=str, help='your user_name register at POMS', default=os.environ.get('GRID_USER',os.environ.get('USER','unknown')))
 groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True, default = None)
 
 parser.add_argument('--output_file_patterns', metavar='string with output file pattern', type=str, help='The output pattern you are interested in your campaign (eg. \%\.root)', default = None)
@@ -20,7 +20,7 @@ print args
 print 'The arguments you pass are:'
 print 'action =',args.action
 print 'name =', args.name
-print 'user_name=',args.user_name
+print 'user=',args.user
 print 'experiment=',args.experiment
 print 'output_file_patterns=', args.output_file_patterns
 print 'launch_script=', args.launch_script
@@ -30,7 +30,7 @@ print 'test_client=', args.test_client
 
 #Calling the poms_client.campaign_definition_edit'
 if args.action in ['add','delete','edit']:
-    campaign_definition_edit(pc_username=args.user_name,
+    campaign_definition_edit(pc_username=args.user,
                         action = args.action,
                         name=args.name,
                         experiment=args.experiment,

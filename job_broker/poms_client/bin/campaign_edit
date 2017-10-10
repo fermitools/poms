@@ -9,7 +9,7 @@ groupArg = parser.add_argument_group('Require Arguments')
 #parser.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', default = None)
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
 groupArg.add_argument('--campaign_name', metavar='Name of your campaign', type=str, help='campaign_name', required = True)
-groupArg.add_argument('--user_name', metavar='your user name', type=str, help='Please provide your user name', required = True)
+groupArg.add_argument('--user', metavar='your user name', type=str, help='Please provide your user name', default=os.environ.get('GRID_USER',os.environ.get('USER','unknown')))
 groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True)
 groupArg.add_argument('--vo_role', metavar='Analysis-Production', type=str, help='Define your role Analysis or Production', required = True)
 groupArg.add_argument('--dataset', metavar='campaign dataset', type=str, help='provide the dataset that will be use in the campaign', required=True)
@@ -32,7 +32,7 @@ print args
 print 'The arguments you pass are:'
 print 'action =',args.action
 print 'campaign_name =', args.campaign_name
-print 'user_name=',args.user_name
+print 'user=',args.user
 print 'experiment=',args.experiment
 print 'vo_role=', args.vo_role
 print 'dataset=', args.dataset
@@ -55,7 +55,7 @@ if args.action in ['add','delete','edit']:
         if args.vo_role in ["Analysis", "Production"]:
             campaign_edit(action=args.action,
                                     ae_campaign_name=args.campaign_name,
-                                    pc_username=args.user_name,
+                                    pc_username=args.user,
                                     experiment=args.experiment,
                                     vo_role=args.vo_role,
                                     dataset=args.dataset,
