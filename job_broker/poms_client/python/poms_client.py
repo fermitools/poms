@@ -18,7 +18,7 @@ except:
 
 rs = requests.Session()
 
-def register_poms_campaign(campaign_name, user = None, experiment = None, version = None, dataset = None, campaign_definition = None, test = None):
+def register_poms_campaign(campaign_name, user = None, experiment = None, version = None, dataset = None, campaign_definition = None, test = None, configfile = None):
     data, status = make_poms_call(
                     method = 'register_poms_campaign',
                     campaign_name = campaign_name,
@@ -27,11 +27,12 @@ def register_poms_campaign(campaign_name, user = None, experiment = None, versio
                     version = version,
                     dataset = dataset,
                     campaign_definition = campaign_definition,
-                    test = test)
+                    test = test
+                    configfile = configfile)
     data=data.replace('Campaign=','')
     return int(data)
 
-def get_task_id_for(campaign, user = None, command_executed = None, input_dataset = None, parent_task_id = None, test = None, experiment = None):
+def get_task_id_for(campaign, user = None, command_executed = None, input_dataset = None, parent_task_id = None, test = None, experiment = None, configfile = None):
 
     data, status = make_poms_call(
                     method = 'get_task_id_for',
@@ -40,19 +41,21 @@ def get_task_id_for(campaign, user = None, command_executed = None, input_datase
                     command_executed = command_executed,
                     input_dataset = input_dataset,
                     parent_task_id = parent_task_id,
-                    test = test)
+                    test = test,
+                    configfile = configfile)
     data = data.replace('Task=','')
     return int(data)
 
-def launch_jobs(campaign, test = None):
+def launch_jobs(campaign, test = None, configfile = None):
 
     data, status = make_poms_call(
                     method = 'launch_jobs',
                     campaign = campaign,
-                    test = test)
+                    test = test,
+                    configfile = configfile)
     return data, status
 
-def launch_template_edit(action = None, launch_name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_username = None, test_client=False):
+def launch_template_edit(action = None, launch_name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_username = None, test_client=False, configfile = None):
 
 
     method = 'launch_template_edit'
@@ -87,7 +90,8 @@ def launch_template_edit(action = None, launch_name = None, launch_host = None, 
                     action = action,
                     ae_launch_name = ae_launch_name,
                     experiment = experiment,
-                    test_client=test_client)
+                    test_client=test_client,
+                    configfile = configfile)
                 return "status_code", status_code
 
         if action == 'add':
@@ -106,7 +110,8 @@ def launch_template_edit(action = None, launch_name = None, launch_host = None, 
                     ae_launch_host = ae_launch_host,
                     ae_launch_account = ae_launch_account,
                     ae_launch_setup = ae_launch_setup,
-                    test_client=test_client)
+                    test_client=test_client,
+                    configfile = configfile)
                     ###The variables below are query in the CampaignsPOMS module
                     #ae_launch_id = ae_launch_id,
                     #experimenter_id = experimenter_id)
@@ -129,7 +134,8 @@ def launch_template_edit(action = None, launch_name = None, launch_host = None, 
                     ae_launch_host = launch_host,
                     ae_launch_account = user_account,
                     ae_launch_setup = launch_setup,
-                    test_client=test_client)
+                    test_client=test_client,
+                    configfile = configfile)
                 return "status_code", status_code
                     ###The other var are query in the CampaignsPOMS module ae_launch_id, experimenter_id.
                 #return data['message']
@@ -143,7 +149,7 @@ def launch_template_edit(action = None, launch_name = None, launch_host = None, 
 
 
 def campaign_definition_edit(output_file_patterns, launch_script,
-                            def_parameter, pc_username=None, action = None, name = None, experiment = None, test_client=False):
+                            def_parameter, pc_username=None, action = None, name = None, experiment = None, test_client=False, configfile = None):
     # You can not modify the recovery_type from the poms_client (future feauture)
     test_client = test_client
     method = "campaign_definition_edit"
@@ -174,8 +180,8 @@ def campaign_definition_edit(output_file_patterns, launch_script,
                             ae_output_file_patterns = ae_output_file_patterns,
                             ae_launch_script = ae_launch_script,
                             ae_definition_parameters= ae_definition_parameters,
-                            test_client=test_client
-                            )
+                            test_client=test_client ,
+                            configfile = configfile)
     return "status_code", status_code
 
     #return data['message']
@@ -184,7 +190,7 @@ def campaign_definition_edit(output_file_patterns, launch_script,
 def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
                     dataset, ae_active, ae_split_type, ae_software_version,
                     ae_completion_type, ae_completion_pct, ae_param_overrides,
-                    ae_depends, ae_launch_name, ae_campaign_definition, test_client):
+                    ae_depends, ae_launch_name, ae_campaign_definition, test_client, configfile = None):
     method="campaign_edit"
     logging.debug("#"*10)
     logging.debug(ae_param_overrides)
@@ -219,7 +225,8 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
                             ae_depends=ae_depends,
                             ae_launch_name=ae_launch_name,
                             ae_campaign_definition=ae_campaign_definition,
-                            test_client=test_client)
+                            test_client=test_client,
+                            configfile = configfile)
     return "status_code", status_code
     #return data['message']
 
@@ -247,9 +254,11 @@ def make_poms_call(**kwargs):
     config = ConfigParser.ConfigParser()
     if kwargs.get('configfile', None):
         cfgfile = kwargs['configfile']
-        del kwargs['configfile']
     else:
         cfgfile = os.path.dirname(sys.argv[0])+'/client.cfg'
+    if kwargs.get('configfile', 'xx') != 'xx':
+        del kwargs['configfile']
+
     config.read(cfgfile)
     method = kwargs.get("method")
     del kwargs["method"]
