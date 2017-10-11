@@ -44,6 +44,13 @@ def get_task_id_for(campaign, user = None, command_executed = None, input_datase
     data = data.replace('Task=','')
     return int(data)
 
+def launch_jobs(campaign, test = None):
+
+    data, status = make_poms_call(
+                    method = 'launch_jobs',
+                    campaign = campaign,
+                    test = test)
+    return data, status
 
 def launch_template_edit(action = None, launch_name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_username = None, test_client=False):
 
@@ -238,7 +245,12 @@ def auth_cert():
 def make_poms_call(**kwargs):
     #config = configparser.ConfigParser()
     config = ConfigParser.ConfigParser()
-    config.read(os.path.dirname(sys.argv[0])+'/client.cfg')
+    if kwargs.get('configfile', None):
+        cfgfile = kwargs['configfile']
+        del kwargs['configfile']
+    else:
+        cfgfile = os.path.dirname(sys.argv[0])+'/client.cfg'
+    config.read(cfgfile)
     method = kwargs.get("method")
     del kwargs["method"]
     test_client=kwargs.get("test_client")
