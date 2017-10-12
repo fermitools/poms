@@ -27,7 +27,7 @@ def register_poms_campaign(campaign_name, user = None, experiment = None, versio
                     version = version,
                     dataset = dataset,
                     campaign_definition = campaign_definition,
-                    test = test
+                    test = test,
                     configfile = configfile)
     data=data.replace('Campaign=','')
     return int(data)
@@ -50,7 +50,7 @@ def launch_jobs(campaign, test = None, configfile = None):
 
     data, status = make_poms_call(
                     method = 'launch_jobs',
-                    campaign = campaign,
+                    campaign_id = campaign,
                     test = test,
                     configfile = configfile)
     return data, status
@@ -286,13 +286,16 @@ def make_poms_call(**kwargs):
     rs.cert=cert
     rs.key=cert
     logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert))
-    c = rs.post("%s/%s" % (base,method), data=kwargs, verify=False);
+    c = rs.post("%s/%s" % (base,method), data=kwargs, verify=False, allow_redirects = False);
     res = c.text
     status_code = c.status_code
     c.close()
     #logging.debug("\n\nres =" + str(res))
     logging.debug("status_code: "+ str(status_code))
-    if status_code != 200:
+    if status_code == 303:
+        res = c.headers['Location']
+        # res = base + res[res.find('/poms/'):]
+    elif status_code != 200:
         if res.find("Traceback"):
             res = res[res.find("Traceback"):]
             res = res.replace("<br/>","\n")
