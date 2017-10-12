@@ -588,7 +588,7 @@ class TaskPOMS:
             return "None."
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
-                    err_res, campaign_id, dataset_override=None, parent_task_id=None, param_overrides=None, test_launch_template = None):
+                    err_res, campaign_id, dataset_override=None, parent_task_id=None, param_overrides=None, test_launch_template = None, experiment = None):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
 
@@ -614,8 +614,12 @@ class TaskPOMS:
             outfile = "%s/%s" % (outdir, ds)
             logit.log("trying to record launch in %s" % outfile)
 
-            c = (dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id)
-                 .options(joinedload(Campaign.launch_template_obj), joinedload(Campaign.campaign_definition_obj)).first())
+            if campaign_id[0] in "0123456789":
+                cq = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id)
+            else:
+                cq = dbhandle.query(Campaign).filter(Campaign.name == campaign_id, Campaign.experiment == experiment)
+
+             c = cq.options(joinedload(Campaign.launch_template_obj), joinedload(Campaign.campaign_definition_obj)).first()
 
             if not c:
                 err_res = 404

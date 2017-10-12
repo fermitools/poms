@@ -722,13 +722,13 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None, test_launch_template = None):     # XXXX needs to be analize in detail.
+    def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None, test_launch_template = None, experiment = None):
         vals = self.taskPOMS.launch_jobs(cherrypy.request.db,
                                          cherrypy.config.get,
                                          cherrypy.request.headers.get,
                                          cherrypy.session.get,
                                          cherrypy.request.samweb_lite,
-                                         cherrypy.response.status, campaign_id, dataset_override = dataset_override, parent_task_id = parent_task_id, test_launch_template = test_launch_template)
+                                         cherrypy.response.status, campaign_id, dataset_override = dataset_override, parent_task_id = parent_task_id, test_launch_template = test_launch_template, experiment = experiment)
         logit.log("Got vals: %s" % repr(vals))
         lcmd, c, campaign_id, outdir, outfile = vals
         if (lcmd == "") :
