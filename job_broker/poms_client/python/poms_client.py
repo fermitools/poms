@@ -233,20 +233,20 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
 
 def auth_cert():
         #rs.cert = '/tmp/x509up_u`id -u`'
-        cert=os.environ.get('X509_USER_PROXY')
-        '''
-        if not cert:
-            cert=os.environ.get('X509_USER_CERT')
-            key=os.environ.get('X509_USER_KEY')
-            if cert and key: cert =(cert,key)
-        '''
+        cert=os.environ.get('X509_USER_PROXY', None)
         if not cert:
             proxypath = '/tmp/x509up_u%d' % os.getuid()
             #proxypath = "/tmp/x509up_u50765"
             if os.path.exists(proxypath):
                 cert=proxypath
         if not cert:
-            logging.error("You should generate a proxy for use the client, you can use kx509 to generate your proxy. If you have a proxy please provide the location at the enviroment variable X509_USER_PROXY")
+            os.system('kx509')
+            proxypath = '/tmp/x509up_u%d' % os.getuid()
+            #proxypath = "/tmp/x509up_u50765"
+            if os.path.exists(proxypath):
+                cert=proxypath
+            if not cert:
+                logging.error("Unable to find a client certificate, or to generate one with kx509.  You should generate a proxy for use the client, you can use kx509 to generate your proxy. If you have a proxy please provide the location at the enviroment variable X509_USER_PROXY")
         return cert
 
 def make_poms_call(**kwargs):
@@ -283,9 +283,12 @@ def make_poms_call(**kwargs):
     if os.environ.get("POMS_CLIENT_DEBUG", None):
         logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert))
     cert=auth_cert()
+    if cert == None and base[:6] == "https:":
+         return ("No client certificate", 500)
     rs.cert=cert
     rs.key=cert
     logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert))
+
     c = rs.post("%s/%s" % (base,method), data=kwargs, verify=False, allow_redirects = False);
     res = c.text
     status_code = c.status_code
@@ -304,8 +307,6 @@ def make_poms_call(**kwargs):
         else:
             logging.debug("Error text" + res)
     return res, status_code
-    #return status_code
-
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
