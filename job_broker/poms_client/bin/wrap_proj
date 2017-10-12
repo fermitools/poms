@@ -68,7 +68,7 @@ for line in inf:
        field = plist[-1]
        plist = plist[:-1]
        cmatch = True
-       if debug: print "checking for:" , plist, " in:" , intags
+       if debug: print( "checking for:" , plist, " in:" , intags)
        for p in plist:
            if not p in intags:
                cmatch = False
@@ -76,7 +76,7 @@ for line in inf:
            continue
        reg = '<%s>.*</%s>' % (field, field)
        sub = '<%s>%s</%s>' % (field, val, field)
-       if debug: print "trying re.sub('%s', '%s', '%s')" % (reg, sub, line)
+       if debug: print( "trying re.sub('%s', '%s', '%s')" % (reg, sub, line))
        line = re.sub(reg, sub, line)
 
    for etag in re.findall("</\w+", line):

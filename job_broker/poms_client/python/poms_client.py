@@ -46,13 +46,14 @@ def get_task_id_for(campaign, user = None, command_executed = None, input_datase
     data = data.replace('Task=','')
     return int(data)
 
-def launch_jobs(campaign, test = None, configfile = None):
+def launch_jobs(campaign, test = None, experiment = None, configfile = None):
 
     data, status = make_poms_call(
                     method = 'launch_jobs',
                     campaign_id = campaign,
                     test = test,
-                    configfile = configfile)
+                    configfile = configfile
+                    experiment = experiment)
     return data, status
 
 def launch_template_edit(action = None, launch_name = None, launch_host = None, user_account = None, launch_setup = None, experiment = None, pc_username = None, test_client=False, configfile = None):
