@@ -306,7 +306,7 @@ class PomsService(object):
         data = self.campaignsPOMS.launch_template_edit(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
 
         if kwargs.get('test_template'):
-            
+
              raise cherrypy.HTTPRedirect("%s/launch_jobs?campaign_id=None&test_launch_template=%s"  % (self.path, kwargs.get('ae_launch_id')))
 
         template = self.jinja_env.get_template('launch_template_edit.html')
@@ -337,7 +337,7 @@ class PomsService(object):
     def make_test_campaign_for(self,  campaign_def_id, campaign_def_name):
          cid = make_test_campaign_for(self, cherrypy.request.db, cherrypy.session, campaign_def_id, campaign_def_name)
          raise cherrypy.HTTPRedirect("%s/campaign_edit?campaign_id=%d&extra_edit_flag=launch_test_job" % (self.path, cid))
-         
+
 
     @cherrypy.expose
     @logit.logstartstop
@@ -352,7 +352,7 @@ class PomsService(object):
         if kwargs.get('launch_test_job', None) and kwargs.get('ae_campaign_id', None):
            raise cherrypy.HTTPRedirect("%s/launch_jobs?campaign_id=%s" % (self.path, kwargs.get('ae_campaign_id')))
 
-        return template.render(data=data, help_page="CampaignEditHelp", 
+        return template.render(data=data, help_page="CampaignEditHelp",
                                extra_edit_flag = kwargs.get("extra_edit_flag",None),
                                jump_to_campaign = kwargs.get("jump_to_campaign",None)
                         )
@@ -1017,6 +1017,7 @@ class PomsService(object):
 
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     @logit.logstartstop
     def auto_complete_tags_search(self, experiment, q):
         cherrypy.response.headers['Content-Type'] = 'application/json'
