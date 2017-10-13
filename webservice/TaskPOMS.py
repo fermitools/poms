@@ -110,7 +110,7 @@ class TaskPOMS:
 
         #
         # make jobs which completed with no *undeclared* output files have status "Located".
-        # 
+        #
         t = text("update jobs set status = 'Located' where status = 'Completed' and (select count(file_name) from job_files where job_files.job_id = jobs.job_id and job_files.file_type = 'output' and job_files.declared is null) = 0")
         dbhandle.execute(t)
 
@@ -150,7 +150,7 @@ class TaskPOMS:
             except QueryCanceledError:
                 dbhandle.rollback()
                 continue
-            
+
         dbhandle.query(Task).filter(Task.task_id.in_(need_joblogs)).update({'status':'Completed', 'updated':datetime.now(utc)},synchronize_session=False)
         dbhandle.commit()
 
@@ -183,7 +183,7 @@ class TaskPOMS:
 
         for tid, cfrac, totcount, compcount in q.all():
 
-           
+
             if totcount == 0:
                 # cannot be done with no jobs...
                 continue
@@ -619,7 +619,7 @@ class TaskPOMS:
             else:
                 cq = dbhandle.query(Campaign).filter(Campaign.name == campaign_id, Campaign.experiment == experiment)
 
-             c = cq.options(joinedload(Campaign.launch_template_obj), joinedload(Campaign.campaign_definition_obj)).first()
+            c = cq.options(joinedload(Campaign.launch_template_obj), joinedload(Campaign.campaign_definition_obj)).first()
 
             if not c:
                 err_res = 404
@@ -648,7 +648,7 @@ class TaskPOMS:
             ra = gethead('Remote-Addr', None)
             exp = c.experiment
             vers = c.software_version
-            launch_script = cd.launch_script 
+            launch_script = cd.launch_script
             cid = c.campaign_id
             cdid = c.campaign_definition_id
             definition_parameters = cd.definition_parameters
