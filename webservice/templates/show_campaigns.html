@@ -16,6 +16,18 @@ POMS: Campaign Stages
         $("#campaign_ids").val(csv.join(','))
     }
 
+    function pop_tag_untag_modal() {
+        mod_form = $("#tag_untag_modal").modal('show');
+        var csv = [];
+        // find only visible rows; we're ignoring filtered/hidden rows
+        $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
+            csv.push($(this).text());
+        });
+        mod_form.find('span').html("Tag " + csv.length + " selected campaigns...");
+        console.log("csv="+csv);
+        $("#tag_campaign_ids").val(csv.join(','))
+    }
+
     function show_stats() {
         var csv = [];
         // find only visible rows; we're ignoring filtered/hidden rows
@@ -56,7 +68,8 @@ Campaign Stages{%include 'help_button.html'%}
     pomspath: {{pomspath}}
 -->
 
-<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_mark_inactive_modal();">Mark Campaign Active/Inactive</div>
+<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
+<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
 <div class="ui teal button" onclick="show_stats();">Show Campaigns Statistics</div>
 
 {% if campaigns|length == 0 %}
@@ -125,7 +138,24 @@ Campaign Stages{%include 'help_button.html'%}
   </form>
 </div> <!-- Ends Modal -->
 
-<script>
+<div class="ui modal small" id="tag_untag_modal" style="padding: 0px 20px;">
+    <i class="close icon"></i>
+
+    <div class="header">
+      Campaigns:
+    </div>
+    <form class="ui form" action="tag_untag_campaigns" method="GET">
+      <div class="field">
+          <input type="text" id="tag_campaign_ids" name="cl" readonly>
+          <span style="font-size: 1.3em;">Tag/untag selected campaigns...</span>
+          <input type="submit" class="ui teal button" name="is_active" value="Active">
+          <input type="submit" class="ui teal button" name="is_active" value="Inactive">
+      </div>
+      <div class="ui hidden divider"></div>
+    </form>
+  </div> <!-- Ends Modal -->
+
+  <script>
     var tmin_local_time = moment.utc('{{tmin}}').toDate();
     tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
     $( ".tmin" ).html( tmin_local_time );
