@@ -441,10 +441,10 @@ class PomsService(object):
          counts_keys, counts,
          launch_flist,
          kibana_link, dep_svg) = self.campaignsPOMS.campaign_info(cherrypy.request.db,
-                                                         cherrypy.request.samweb_lite,
-                                                         cherrypy.HTTPError,
-                                                         cherrypy.config.get,
-                                                         campaign_id, tmin, tmax, tdays)
+                                                                  cherrypy.request.samweb_lite,
+                                                                  cherrypy.HTTPError,
+                                                                  cherrypy.config.get,
+                                                                  campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_info.html')
         return template.render(Campaign_info=campaign_info, time_range_string=time_range_string, tmins=tmins, tmaxs=tmaxs,
                                Campaign_definition_info=campaign_definition_info, Launch_template_info=launch_template_info,
