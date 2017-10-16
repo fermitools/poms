@@ -222,14 +222,14 @@ Campaign Stages{%include 'help_button.html'%}
             }
 
             tag = $('#tag_field').val()
-            $.post('link_tags', { tag_name: tag, campaign_id: {{Campaign.campaign_id }}, experiment: '{{Campaign.experiment}}'}, function (data) {
+            $.post('link_tags', { tag_name: tag, campaign_id: "{{Campaign.campaign_id}}", experiment: "{{session_experiment}}"}, function (data) {
 
                 if (data.msg == "OK") {
                     var campaigns_tags_composite_key = data.campaign_id.toString() + "_" + data.tag_id.toString();
                     $('#response').html(data.msg);
 
-                    var new_tag = "<a href=\'{{pomspath}}/search_tags?q=" + data.tag_name + "\' class=\'ui blue tag label\'id=" + campaigns_tags_composite_key + "_>" + data.tag_name + "</a>";
-                    var new_trash_can = "<i class=\'trash outline icon link poms_tag\' id=" + campaigns_tags_composite_key + "></i>";
+                    var new_tag = "<a href='{{pomspath}}/search_tags?q=" + data.tag_name + "' class='ui blue tag label'id=" + campaigns_tags_composite_key + "_>" + data.tag_name + "</a>";
+                    var new_trash_can = "<i class='trash outline icon link poms_tag' id=" + campaigns_tags_composite_key + "></i>";
                     $('#tag_container').append(new_trash_can);
                     $('#tag_container').append(new_tag);
                     $('#tag_field').val("");
