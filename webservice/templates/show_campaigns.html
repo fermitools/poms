@@ -183,7 +183,7 @@ Campaign Stages{%include 'help_button.html'%}
             var c_id = item.id.split("_")[0];
             var t_id = item.id.split("_")[1];
             var clicked_id = "#" + item.id;
-            var experiment = "{{Campaign.experiment}}";
+            var experiment = "{{session_experiment}}";
 
             $.post('delete_campaigns_tags', { campaign_id: c_id, tag_id: t_id, experiment: experiment }, function (data) {
                 if (data.msg == "OK") {
