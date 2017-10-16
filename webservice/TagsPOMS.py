@@ -36,16 +36,20 @@ class TagsPOMS(object):
                 dbhandle.commit()
             # we have a tag in the db for this experiment so go ahead and do the linking
             try:
-                ct = CampaignsTags()
-                ct.campaign_id = campaign_id
-                ct.tag_id = tag.tag_id
-                dbhandle.add(ct)
-                dbhandle.commit()
-                response = {"campaign_id": ct.campaign_id, "tag_id": ct.tag_id, "tag_name": tag.tag_name, "msg": "OK"}
-                return response
+                campaign_ids = campaign_id.split(',')
+                for cid in campaign_ids:
+                    ct = CampaignsTags()
+                    ct.campaign_id = cid
+                    ct.tag_id = tag.tag_id
+                    dbhandle.add(ct)
+                    dbhandle.commit()
             except IntegrityError:
-                response = {"msg": "This tag already exists."}
-                return response
+                # response = {"msg": "This tag already exists."}
+                # return response
+                pass
+            finally:
+                response = {"campaign_id": campaign_id, "tag_id": ct.tag_id, "tag_name": tag.tag_name, "msg": "OK"}
+            return response
         else:
             response = {"msg": "You are not authorized to add tags."}
             return response
