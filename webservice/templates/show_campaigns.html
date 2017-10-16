@@ -258,6 +258,27 @@ Campaign Stages{%include 'help_button.html'%}
   </script>
 
   <script>
+    var protocol = window.location.protocol;
+    var hostname = window.location.hostname;
+    var appname = window.location.pathname.split("/")[1];
+    var querypath = protocol + "//" + hostname + "/" + appname + "/auto_complete_tags_search";
+
+
+    var experiment = "{{session_experiment}}";
+    $('.ui.search')
+    .search({
+    apiSettings: {
+        url: querypath + "?q={query}&experiment=" + experiment
+    },
+    fields: {
+        title: 'tag_name'
+    },
+    //minCharacters : 3
+    });
+
+  </script>
+
+  <script>
     var tmin_local_time = moment.utc('{{tmin}}').toDate();
     tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
     $( ".tmin" ).html( tmin_local_time );
