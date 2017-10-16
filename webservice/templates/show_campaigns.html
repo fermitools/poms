@@ -125,11 +125,10 @@ Campaign Stages{%include 'help_button.html'%}
   <i class="close icon"></i>
 
   <div class="header">
-    Campaigns:
   </div>
   <form class="ui form" action="mark_campaign_active" method="GET">
     <div class="field">
-        <input type="text" id="campaign_ids" name="cl" readonly>
+        <input type="hidden" id="campaign_ids" name="cl" readonly>
         <span style="font-size: 1.3em;">Mark selected campaigns as </span>
         <input type="submit" class="ui teal button" name="is_active" value="Active">
         <input type="submit" class="ui teal button" name="is_active" value="Inactive">
@@ -142,15 +141,37 @@ Campaign Stages{%include 'help_button.html'%}
     <i class="close icon"></i>
 
     <div class="header">
-      Campaigns:
     </div>
     <form class="ui form" action="tag_untag_campaigns" method="GET">
-      <div class="field">
-          <input type="text" id="tag_campaign_ids" name="cl" readonly>
-          <span style="font-size: 1.3em;">Tag/untag selected campaigns...</span>
-          <input type="submit" class="ui teal button" name="is_active" value="Active">
-          <input type="submit" class="ui teal button" name="is_active" value="Inactive">
-      </div>
+        <div class="field">
+            <input type="hidden" id="tag_campaign_ids" name="cl" readonly>
+            <span style="font-size: 1.3em;">Tag/untag selected campaigns...</span>
+
+            <div class="ui segment raised ">
+                <h3>Tags</h3>
+
+                <div class="ui search">
+                    <div class="ui left icon input">
+                        <input type="text" id="tag_field" name="tag" placeholder="Enter tag" class="prompt">
+                        <i class="tag icon"></i>
+                    </div>
+
+                    <button class="ui icon small blue button" id="add_button">
+                        <i class="plus icon"></i>
+                    </button>
+                    <div id="response" style="display:inline; vertical-align: bottom; font-style: italic;"></div>
+
+                    <div class="results"></div>
+                </div>
+
+                <div id="tag_container">
+                    {% for tag in tags %}
+                        <i class="trash outline icon link poms_tag" id="{{Campaign.campaign_id}}_{{tag.tag_id}}"></i>
+                        <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label" id="{{Campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
       <div class="ui hidden divider"></div>
     </form>
   </div> <!-- Ends Modal -->
