@@ -232,9 +232,7 @@ Campaign Stages{%include 'help_button.html'%}
                     var campaigns_tags_composite_key = data.campaign_id.toString() + "_" + data.tag_id.toString();
                     $('#response').html(data.msg);
 
-                    // var new_tag = "<a href='{{pomspath}}/search_tags?q=" + data.tag_name + "' class='ui blue tag label' id=" + campaigns_tags_composite_key + "_>" + data.tag_name + "</a>";
                     var new_tag = `<a href="{{pomspath}}/search_tags?q=${data.tag_name}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
-                    // var new_trash_can = "<i class='trash outline icon link poms_tag' id=" + campaigns_tags_composite_key + "></i>";
                     var new_trash_can = `<i class="trash outline icon link poms_tag" id="${campaigns_tags_composite_key}"></i>`;
                     $('#tag_container').append(new_trash_can);
                     $('#tag_container').append(new_tag);

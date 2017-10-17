@@ -78,6 +78,14 @@ class TagsPOMS(object):
         return results, q_list
 
 
+    def search_all_tags(self, dbhandle, cl):
+
+        cids = cl.split(',')        # Campaign IDs list
+        result = dbhandle.query(CampaignsTags.tag_obj.tag_name).filter(CampaignsTags.campaign_id.in_(cids)).distinct()
+        response = {"result": result, "msg": "OK"}
+        return response
+
+
     def auto_complete_tags_search(self, dbhandle, experiment, q):
         response = {}
         results = deque()
