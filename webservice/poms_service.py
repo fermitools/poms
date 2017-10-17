@@ -1019,7 +1019,7 @@ class PomsService(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def search_all_tags(self, dbhandle, cl):
+    def search_all_tags(self, cl):
         return self.tagsPOMS.search_all_tags(cherrypy.request.db, cl)
 
 
