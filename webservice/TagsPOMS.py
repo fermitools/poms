@@ -82,7 +82,7 @@ class TagsPOMS(object):
 
         cids = cl.split(',')        # Campaign IDs list
         # result = dbhandle.query(CampaignsTags.tag_obj.tag_name).filter(CampaignsTags.campaign_id.in_(cids)).distinct()
-        result = dbhandle.query(CampaignsTags.tag_obj).filter(CampaignsTags.campaign_id.in_(cids)).all()
+        result = dbhandle.query(CampaignsTags).filter(CampaignsTags.campaign_id.in_(cids)).all()
         response = {"result": result, "msg": "OK"}
         return response
 
