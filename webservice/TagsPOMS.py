@@ -90,7 +90,8 @@ class TagsPOMS(object):
         result = (dbhandle.query(Tag.tag_name)
                   .join(CampaignsTags)
                   .filter(Tag.tag_id == CampaignsTags.tag_id)
-                  .filter(CampaignsTags.campaign_id.in_(cids)).distinct())
+                  .filter(CampaignsTags.campaign_id.in_(cids))
+                  .distinct().all())
                   #.options(joinedload(CampaignsTags.task_obj))
         response = {"result": result, "msg": "OK"}
         return str(response)
