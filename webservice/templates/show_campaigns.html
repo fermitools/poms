@@ -223,6 +223,7 @@ Campaign Stages{%include 'help_button.html'%}
   </script>
 
   <script>
+    $(document).ready(function () {
         function pop_mark_inactive_modal() {
             mod_form = $("#mark_inactive_modal").modal('show');
             var csv = [];
@@ -272,6 +273,7 @@ Campaign Stages{%include 'help_button.html'%}
             console.log("csv="+csv);
             location.href = "./show_campaigns?cl=" + csv.join(',');
         }
+    });
 </script>
 
   <script>
