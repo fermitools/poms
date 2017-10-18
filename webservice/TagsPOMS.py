@@ -94,7 +94,7 @@ class TagsPOMS(object):
                   .distinct().all())
                   #.options(joinedload(CampaignsTags.task_obj))
         response = {"result": result, "msg": "OK"}
-        return str(response)
+        return response
 
 
     def auto_complete_tags_search(self, dbhandle, experiment, q):
