@@ -92,7 +92,7 @@ class TagsPOMS(object):
                   .filter(Tag.tag_id == CampaignsTags.tag_id)
                   .filter(CampaignsTags.campaign_id.in_(cids))
                   .distinct().all())
-                  #.options(joinedload(CampaignsTags.task_obj))
+        result = [r["tag_name"] for r in result]
         response = {"result": result, "msg": "OK"}
         return response
 
