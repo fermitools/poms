@@ -87,7 +87,7 @@ class TagsPOMS(object):
         # FROM campaigns_tags JOIN tags ON tags.tag_id=campaigns_tags.tag_id
         # WHERE campaigns_tags.campaign_id in (513,514);
         #
-        result = (dbhandle.query(Tag)
+        result = (dbhandle.query(Tag.tag_name, Tag.tag_id)
                   .join(CampaignsTags)
                   .filter(Tag.tag_id == CampaignsTags.tag_id)
                   .filter(CampaignsTags.campaign_id.in_(cids))
