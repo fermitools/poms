@@ -90,10 +90,10 @@ class TagsPOMS(object):
         result = (dbhandle.query(Tag.tag_name)
                   .join(CampaignsTags)
                   .filter(Tag.tag_id == CampaignsTags.tag_id)
-                  .filter(CampaignsTags.campaign_id.in_(cids)).all())
+                  .filter(CampaignsTags.campaign_id.in_(cids)).distinct())
                   #.options(joinedload(CampaignsTags.task_obj))
         response = {"result": result, "msg": "OK"}
-        return str(response)
+        return response
 
 
     def auto_complete_tags_search(self, dbhandle, experiment, q):
