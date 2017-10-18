@@ -26,6 +26,15 @@ POMS: Campaign Stages
         mod_form.find('span').html("Tag " + csv.length + " selected campaigns...");
         console.log("csv="+csv);
         $("#tag_campaign_ids").val(csv.join(','))
+
+        $.getJSON('search_all_tags?cl='+csv.join(','), function (data) {
+            if (data.msg == "OK") {
+                $('#response').html(data.result);
+            }
+            else {
+                $('#response').html(data.msg);
+            }
+        });
     }
 
     function show_stats() {
