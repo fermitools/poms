@@ -223,6 +223,25 @@ Campaign Stages{%include 'help_button.html'%}
   </script>
 
   <script>
+    function do_delete(item) {
+        var c_id = item.id.split("_")[0];
+        var t_id = item.id.split("_")[1];
+        var clicked_id = "#" + item.id;
+        var experiment = "{{session_experiment}}";
+
+        $.post('delete_campaigns_tags', { campaign_id: c_id, tag_id: t_id, experiment: experiment }, function (data) {
+            if (data.msg == "OK") {
+                $('#response').html(data.msg);
+                $(clicked_id).remove();  //removes the trash can
+                $(clicked_id + "_").remove();  //removes the tag
+
+            }
+            else {
+                $('#response').html(data.msg);
+            }
+        });
+    }
+
     function add_click_handler() {
         $(".poms_tag").off("click").on("click", function () {
             if (confirm("Are you sure you want to delete this item?") == true) {
