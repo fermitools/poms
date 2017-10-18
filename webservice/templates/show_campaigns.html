@@ -142,110 +142,108 @@ Campaign Stages{%include 'help_button.html'%}
   </div> <!-- Ends Modal -->
 
   <script>
-    $(document).ready(function () {
+    function do_delete(item) {
+        var c_id = item.id.split("_")[0];
+        var t_id = item.id.split("_")[1];
+        var clicked_id = "#" + item.id;
+        var experiment = "{{session_experiment}}";
 
-        function do_delete(item) {
-            var c_id = item.id.split("_")[0];
-            var t_id = item.id.split("_")[1];
-            var clicked_id = "#" + item.id;
-            var experiment = "{{session_experiment}}";
+        $.post('delete_campaigns_tags', { campaign_id: c_id, tag_id: t_id, experiment: experiment }, function (data) {
+            if (data.msg == "OK") {
+                $('#response').html(data.msg);
+                $(clicked_id).remove();  //removes the trash can
+                $(clicked_id + "_").remove();  //removes the tag
+            }
+            else {
+                $('#response').html(data.msg);
+            }
+        });
+    }
 
-            $.post('delete_campaigns_tags', { campaign_id: c_id, tag_id: t_id, experiment: experiment }, function (data) {
-                if (data.msg == "OK") {
-                    $('#response').html(data.msg);
-                    $(clicked_id).remove();  //removes the trash can
-                    $(clicked_id + "_").remove();  //removes the tag
-                }
-                else {
-                    $('#response').html(data.msg);
-                }
-            });
-        }
-
-        function add_click_handler() {
-            $(".poms_tag").off("click").on("click", function () {
-                if (confirm("Are you sure you want to delete this item?") == true) {
-                    do_delete(this);
-                }
-                else {
-                    return;
-                }
-            });
-        }
-
-        add_click_handler();
-
-
-        $('#add_button').on('click', function (e) {
-            e.preventDefault();
-            $('#response').html("");
-
-            if (!$('#tag_field').val()) {
-                $('#response').html("Please enter a tag.");
+    function add_click_handler() {
+        $(".poms_tag").off("click").on("click", function () {
+            if (confirm("Are you sure you want to delete this item?") == true) {
+                do_delete(this);
+            }
+            else {
                 return;
             }
-
-            tag = $('#tag_field').val()
-            $.post('link_tags', {
-                        tag_name: tag,
-                        campaign_id: $("#tag_campaign_ids").val(),
-                        experiment: "{{session_experiment}}"
-                    }, function (data) {
-
-                if (data.msg == "OK") {
-                    var campaigns_tags_composite_key = data.campaign_id.toString() + "_" + data.tag_id.toString();
-                    $('#response').html(data.msg);
-
-                    var new_tag = `<a href="{{pomspath}}/search_tags?q=${data.tag_name}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
-                    var new_trash_can = `<i class="trash outline icon link poms_tag" id="${campaigns_tags_composite_key}"></i>`;
-                    $('#tag_container').append(new_trash_can);
-                    $('#tag_container').append(new_tag);
-                    $('#tag_field').val("");
-                    add_click_handler();
-                }
-                else {
-                    $('#response').html(data.msg);
-                }
-
-            });
         });
+    }
 
+    $(document).ready(function () {
+        add_click_handler();
+    });
 
-        $('#tag_field').keypress(function (event) {
-            if (event.keyCode == 13) {
-                $('#add_button').click();
+    $('#add_button').on('click', function (e) {
+        e.preventDefault();
+        $('#response').html("");
+
+        if (!$('#tag_field').val()) {
+            $('#response').html("Please enter a tag.");
+            return;
+        }
+
+        tag = $('#tag_field').val()
+        $.post('link_tags', {
+                    tag_name: tag,
+                    campaign_id: $("#tag_campaign_ids").val(),
+                    experiment: "{{session_experiment}}"
+                }, function (data) {
+
+            if (data.msg == "OK") {
+                var campaigns_tags_composite_key = data.campaign_id.toString() + "_" + data.tag_id.toString();
+                $('#response').html(data.msg);
+
+                var new_tag = `<a href="{{pomspath}}/search_tags?q=${data.tag_name}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
+                var new_trash_can = `<i class="trash outline icon link poms_tag" id="${campaigns_tags_composite_key}"></i>`;
+                $('#tag_container').append(new_trash_can);
+                $('#tag_container').append(new_tag);
                 $('#tag_field').val("");
+                add_click_handler();
             }
+            else {
+                $('#response').html(data.msg);
+            }
+
         });
+    });
 
-        function pop_tag_untag_modal() {
-            mod_form = $("#tag_untag_modal").modal('show');
-            var csv = [];
-            // find only visible rows; we're ignoring filtered/hidden rows
-            $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
-                csv.push($(this).text());
-            });
-            mod_form.find('span').html("Tag " + csv.length + " selected campaigns...");
-            console.log("csv="+csv);
-            $("#tag_campaign_ids").val(csv.join(','))
 
-            $.getJSON('search_all_tags?cl='+csv.join(','), function (data) {
-                if (data.msg == "OK") {
-                    // $('#response').html(data.result);
-                    for (const tag_name of data.result) {
-                        var new_tag = `<a href="{{pomspath}}/search_tags?q=${tag_name}" class="ui blue tag label" id="${tag_name}_">${tag_name}</a>`;
-                        var new_trash_can = `<i class="trash outline icon link poms_tag" id="${tag_name}"></i>`;
-                        $('#tag_container').append(new_trash_can);
-                        $('#tag_container').append(new_tag);
-                        add_click_handler();
-                    }
-                }
-                else {
-                    $('#response').html(data.msg);
-                }
-            });
+    $('#tag_field').keypress(function (event) {
+        if (event.keyCode == 13) {
+            $('#add_button').click();
+            $('#tag_field').val("");
         }
     });
+
+    function pop_tag_untag_modal() {
+        mod_form = $("#tag_untag_modal").modal('show');
+        var csv = [];
+        // find only visible rows; we are ignoring filtered/hidden rows
+        $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
+            csv.push($(this).text());
+        });
+        mod_form.find('span').html("Tag " + csv.length + " selected campaigns...");
+        console.log("csv="+csv);
+        $("#tag_campaign_ids").val(csv.join(','))
+
+        $.getJSON('search_all_tags?cl='+csv.join(','), function (data) {
+            if (data.msg == "OK") {
+                // $('#response').html(data.result);
+                for (const tag_name of data.result) {
+                    var new_tag = `<a href="{{pomspath}}/search_tags?q=${tag_name}" class="ui blue tag label" id="${tag_name}_">${tag_name}</a>`;
+                    var new_trash_can = `<i class="trash outline icon link poms_tag" id="${tag_name}"></i>`;
+                    $('#tag_container').append(new_trash_can);
+                    $('#tag_container').append(new_tag);
+                    add_click_handler();
+                }
+            }
+            else {
+                $('#response').html(data.msg);
+            }
+        });
+    }
   </script>
 
   <script>
