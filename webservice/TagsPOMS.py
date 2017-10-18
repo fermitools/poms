@@ -92,9 +92,9 @@ class TagsPOMS(object):
                   .filter(Tag.tag_id == CampaignsTags.tag_id)
                   .filter(CampaignsTags.campaign_id.in_(cids))
                   .distinct().all())
-        result = [r[1] for r in result]
+        # result = [r[1] for r in result]
         response = {"result": result, "msg": "OK"}
-        return response
+        return str(response)
 
 
     def auto_complete_tags_search(self, dbhandle, experiment, q):
