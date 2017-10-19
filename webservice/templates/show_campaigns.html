@@ -139,7 +139,10 @@ Campaign Stages{%include 'help_button.html'%}
         </div>
       <div class="ui hidden divider"></div>
     </form>
-  </div> <!-- Ends Modal -->
+    <div class="actions">
+        <div class="ui button">OK</div>
+    </div>
+</div> <!-- Ends Modal -->
 
   <script>
     function do_delete(item) {
@@ -219,7 +222,7 @@ Campaign Stages{%include 'help_button.html'%}
     });
 
     function pop_tag_untag_modal() {
-        mod_form = $("#tag_untag_modal").modal('show');
+        mod_form = $("#tag_untag_modal").modal('setting', 'closable', false).modal('show');
         var csv = [];
         // find only visible rows; we are ignoring filtered/hidden rows
         $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
