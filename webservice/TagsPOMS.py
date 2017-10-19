@@ -58,13 +58,24 @@ class TagsPOMS(object):
 
     def delete_campaigns_tags(self, dbhandle, ses_get, campaign_id, tag_id, experiment):
 
-        if ses_get('experimenter').is_authorized(experiment):
-            dbhandle.query(CampaignsTags).filter(CampaignsTags.campaign_id == campaign_id, CampaignsTags.tag_id == tag_id).delete()
-            dbhandle.commit()
-            response = {"msg": "OK"}
+        if ',' not in campaign_id:
+            if ses_get('experimenter').is_authorized(experiment):
+                dbhandle.query(CampaignsTags).filter(CampaignsTags.campaign_id == campaign_id, CampaignsTags.tag_id == tag_id).delete()
+                dbhandle.commit()
+                response = {"msg": "OK"}
+            else:
+                response = {"msg": "You are not authorized to delete tags."}
+            return response
         else:
-            response = {"msg": "You are not authorized to delete tags."}
-        return response
+            if ses_get('experimenter').is_authorized(experiment):
+                campaign_ids = campaign_id.split(',')
+                for cid in campaign_ids:
+                    dbhandle.query(CampaignsTags).filter(CampaignsTags.campaign_id == cid, CampaignsTags.tag_id == tag_id).delete()
+                    dbhandle.commit()
+                response = {"msg": "OK"}
+            else:
+                response = {"msg": "You are not authorized to delete tags."}
+            return response
 
 
     def search_tags(self, dbhandle, q):
