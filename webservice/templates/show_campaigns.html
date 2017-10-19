@@ -233,8 +233,9 @@ Campaign Stages{%include 'help_button.html'%}
                 // $('#response').html(data.result);
                 for (const tag of data.result) {
                     const [tag_id, tag_name] = tag
-                    var new_tag = `<a href="{{pomspath}}/search_tags?q=${tag_name}" class="ui blue tag label" id="tag_${tag_id}_">${tag_name}</a>`;
-                    var new_trash_can = `<i class="trash outline icon link poms_tag" id="tag_${tag_id}"></i>`;
+                    const cids = csv.join(',')
+                    var new_tag = `<a href="{{pomspath}}/search_tags?q=${tag_name}" class="ui blue tag label" id="${cids}_${tag_id}_">${tag_name}</a>`;
+                    var new_trash_can = `<i class="trash outline icon link poms_tag" id="${cids}_${tag_id}"></i>`;
                     $('#tag_container').append(new_trash_can);
                     $('#tag_container').append(new_tag);
                     add_click_handler();
