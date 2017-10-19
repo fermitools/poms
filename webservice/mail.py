@@ -38,4 +38,4 @@ class Mail:
 if __name__ == '__main__':
     #from mail import Mail
     mail = Mail()
-    mail.send(subj="my subject", msg="my message", to="mgheith@fnal.gov")
+    mail.send(subj="my subject", msg="my message", to="podstvkv@fnal.gov")

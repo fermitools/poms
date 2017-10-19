@@ -159,7 +159,7 @@ Campaign Stages{%include 'help_button.html'%}
         var t_id = item.id.split("_")[1];
         var clicked_id = "#" + item.id;
         var experiment = "{{session_experiment}}";
-        c_id = c_id.replace('c', ',')
+        c_id = c_id.replace(/c/g, ',')
 
         $.post('delete_campaigns_tags', { campaign_id: c_id, tag_id: t_id, experiment: experiment }, function (data) {
             if (data.msg == "OK") {
@@ -205,7 +205,7 @@ Campaign Stages{%include 'help_button.html'%}
                 }, function (data) {
 
             if (data.msg == "OK") {
-                var campaigns_tags_composite_key = data.campaign_id.toString().replace(',', 'c') + "_" + data.tag_id.toString();
+                var campaigns_tags_composite_key = data.campaign_id.toString().replace(/,/g, 'c') + "_" + data.tag_id.toString();
                 $('#response').html(data.msg);
 
                 var new_tag = `<a href="{{pomspath}}/search_tags?q=${data.tag_name}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
