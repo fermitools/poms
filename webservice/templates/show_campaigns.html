@@ -241,6 +241,7 @@ Campaign Stages{%include 'help_button.html'%}
         console.log("csv="+csv);
         $("#tag_campaign_ids").val(csv.join(','))
 
+        $('#tag_container').html('');
         $.getJSON('search_all_tags?cl='+csv.join(','), function (data) {
             if (data.msg == "OK") {
                 // $('#response').html(data.result);
