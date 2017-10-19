@@ -193,7 +193,7 @@ Campaign Stages{%include 'help_button.html'%}
                 }, function (data) {
 
             if (data.msg == "OK") {
-                var campaigns_tags_composite_key = data.campaign_id.toString() + "_" + data.tag_id.toString();
+                var campaigns_tags_composite_key = data.campaign_id.toString().replace(',', 'c') + "_" + data.tag_id.toString();
                 $('#response').html(data.msg);
 
                 var new_tag = `<a href="{{pomspath}}/search_tags?q=${data.tag_name}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
