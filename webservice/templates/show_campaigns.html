@@ -147,6 +147,7 @@ Campaign Stages{%include 'help_button.html'%}
         var t_id = item.id.split("_")[1];
         var clicked_id = "#" + item.id;
         var experiment = "{{session_experiment}}";
+        c_id = c_id.replace('c', ',')
 
         $.post('delete_campaigns_tags', { campaign_id: c_id, tag_id: t_id, experiment: experiment }, function (data) {
             if (data.msg == "OK") {
@@ -233,7 +234,7 @@ Campaign Stages{%include 'help_button.html'%}
                 // $('#response').html(data.result);
                 for (const tag of data.result) {
                     const [tag_id, tag_name] = tag
-                    const cids = csv.join(',')
+                    const cids = csv.join('c')
                     var new_tag = `<a href="{{pomspath}}/search_tags?q=${tag_name}" class="ui blue tag label" id="${cids}_${tag_id}_">${tag_name}</a>`;
                     var new_trash_can = `<i class="trash outline icon link poms_tag" id="${cids}_${tag_id}"></i>`;
                     $('#tag_container').append(new_trash_can);
