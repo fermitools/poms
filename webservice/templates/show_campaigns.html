@@ -107,7 +107,8 @@ Campaign Stages{%include 'help_button.html'%}
 
     <div class="header">
     </div>
-    <form class="ui form" action="tag_untag_campaigns" method="GET">
+    <!-- <form class="ui form" action="tag_untag_campaigns" method="GET"> -->
+    <form class="ui form" action="#" method="GET">
         <div class="field">
             <input type="hidden" id="tag_campaign_ids" name="cl" readonly>
             <span style="font-size: 1.3em;">Tag/untag selected campaigns...</span>
@@ -140,7 +141,8 @@ Campaign Stages{%include 'help_button.html'%}
       <div class="ui hidden divider"></div>
     </form>
     <div class="actions">
-        <div class="ui button close">Close</div>
+        <!-- <div class="ui button">Close</div> -->
+        <input type="submit" class="ui teal button" value="Close">
     </div>
 </div> <!-- Ends Modal -->
 
