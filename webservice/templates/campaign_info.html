@@ -86,7 +86,7 @@ $( document ).ready(function() {
                 $('#response').html(data.msg);
 
                 var new_tag = "<span><a href='{{pomspath}}/search_tags?q=" + data.tag_name + "' class='ui blue tag label' id=" + campaigns_tags_composite_key + "_>" + data.tag_name + "</a>";
-                var new_trash_can = "<i class='trash outline bordered inverted blue icon link poms_tag' id=" + campaigns_tags_composite_key + "></i></span>";
+                var new_trash_can = "<i class='trash outline bordered inverted blue icon link poms_tag' id=" + campaigns_tags_composite_key + " style='border-radius: 5px;'></i></span>";
                 $('#tag_container').append(new_tag + new_trash_can);
                 //$('#tag_container').append(new_tag);
                 $('#tag_field').val("");
@@ -358,7 +358,7 @@ $( document ).ready(function() {
     {% for tag in tags %}
         <span>
             <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label" id="{{Campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
-            <i class="trash outline bordered inverted blue icon link poms_tag" id="{{Campaign.campaign_id}}_{{tag.tag_id}}"></i>
+            <i class="trash outline bordered inverted blue icon link poms_tag" id="{{Campaign.campaign_id}}_{{tag.tag_id}}" style="border-radius: 5px;"></i>
         </span>
         <!--    <br/></br>   -->
     {% endfor %}
