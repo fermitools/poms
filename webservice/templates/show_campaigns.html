@@ -241,9 +241,10 @@ Campaign Stages{%include 'help_button.html'%}
         console.log("csv="+csv);
         $("#tag_campaign_ids").val(csv.join(','))
 
-        $('#tag_container').html('');
+        $('#tag_container').html('<i class="spinner loading blue icon"></i>');
         $.getJSON('search_all_tags?cl='+csv.join(','), function (data) {
             if (data.msg == "OK") {
+                $('#tag_container').html('');
                 // $('#response').html(data.result);
                 for (const tag of data.result) {
                     const [tag_id, tag_name] = tag
