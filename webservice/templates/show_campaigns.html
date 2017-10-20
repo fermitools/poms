@@ -288,24 +288,22 @@ Campaign Stages{%include 'help_button.html'%}
 </script>
 
   <script>
-    var protocol = window.location.protocol;
-    var hostname = window.location.hostname;
-    var appname = window.location.pathname.split("/")[1];
-    var querypath = protocol + "//" + hostname + "/" + appname + "/auto_complete_tags_search";
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    const appname = window.location.pathname.split("/")[1];
+    const querypath = `${protocol}//${hostname}/${appname}/auto_complete_tags_search`;
 
-
-    var experiment = "{{session_experiment}}";
+    const experiment = "{{session_experiment}}";
     $('.ui.search')
-    .search({
-    apiSettings: {
-        url: querypath + "?q={query}&experiment=" + experiment
-    },
-    fields: {
-        title: 'tag_name'
-    },
-    //minCharacters : 3
-    });
-
+        .search({
+            apiSettings: {
+                url: querypath + "?q={query}&experiment=" + experiment
+            },
+            fields: {
+                title: 'tag_name'
+            },
+            //minCharacters : 3
+        });
   </script>
 
   <script>

@@ -78,15 +78,15 @@ $( document ).ready(function() {
         }
 
         tag = $('#tag_field').val()
-        $.post('link_tags', {tag_name: tag, campaign_id: {{Campaign.campaign_id}}, experiment: '{{Campaign.experiment}}'}, function(data) {
+        $.post('link_tags', {tag_name: tag, campaign_id: '{{Campaign.campaign_id}}', experiment: '{{Campaign.experiment}}'}, function(data) {
 
             if(data.msg == "OK")
             {
-                var campaigns_tags_composite_key = data.campaign_id.toString() + "_" + data.tag_id.toString();
+                const campaigns_tags_composite_key = data.campaign_id.toString() + "_" + data.tag_id.toString();
                 $('#response').html(data.msg);
 
-                var new_tag = "<span><a href='{{pomspath}}/search_tags?q=" + data.tag_name + "' class='ui blue tag label' id=" + campaigns_tags_composite_key + "_>" + data.tag_name + "</a>";
-                var new_trash_can = "<i class='trash outline bordered inverted blue icon link poms_tag' id=" + campaigns_tags_composite_key + " style='border-radius: 5px;'></i></span>";
+                const new_tag = "<span><a href='{{pomspath}}/search_tags?q=" + data.tag_name + "' class='ui blue tag label' id=" + campaigns_tags_composite_key + "_>" + data.tag_name + "</a>";
+                const new_trash_can = "<i class='trash outline bordered inverted blue icon link poms_tag' id=" + campaigns_tags_composite_key + " style='border-radius: 5px;'></i></span>";
                 $('#tag_container').append(new_tag + new_trash_can);
                 //$('#tag_container').append(new_tag);
                 $('#tag_field').val("");
