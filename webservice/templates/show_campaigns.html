@@ -249,7 +249,7 @@ Campaign Stages{%include 'help_button.html'%}
                     const [tag_id, tag_name] = tag
                     const cids = csv.join('c')
                     const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${tag_name}" class="ui blue tag label" id="${cids}_${tag_id}_">${tag_name}</a>`;
-                    const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${cids}_${tag_id}"></i></span>`;
+                    const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${cids}_${tag_id}" style="border-radius: 5px"></i></span>`;
                     $('#tag_container').append(new_tag + new_trash_can);
                     //$('#tag_container').append(new_tag);
                     add_click_handler();
