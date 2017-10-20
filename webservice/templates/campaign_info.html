@@ -85,10 +85,10 @@ $( document ).ready(function() {
                 var campaigns_tags_composite_key = data.campaign_id.toString() + "_" + data.tag_id.toString();
                 $('#response').html(data.msg);
 
-                var new_tag = "<a href=\'{{pomspath}}/search_tags?q=" + data.tag_name + "\' class=\'ui blue tag label\'id=" + campaigns_tags_composite_key + "_>" + data.tag_name + "</a>";
-                var new_trash_can = "<i class=\'trash outline icon link poms_tag\' id=" + campaigns_tags_composite_key + "></i>";
-                $('#tag_container').append(new_trash_can);
-                $('#tag_container').append(new_tag);
+                var new_tag = "<span><a href='{{pomspath}}/search_tags?q=" + data.tag_name + "' class='ui blue tag label' id=" + campaigns_tags_composite_key + "_>" + data.tag_name + "</a>";
+                var new_trash_can = "<i class='trash outline bordered inverted blue icon link poms_tag' id=" + campaigns_tags_composite_key + "></i></span>";
+                $('#tag_container').append(new_tag + new_trash_can);
+                //$('#tag_container').append(new_tag);
                 $('#tag_field').val("");
                 add_click_handler();
             }
