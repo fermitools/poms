@@ -230,7 +230,7 @@ class SessionTool(cherrypy.Tool):
                             .filter(ExperimentsExperimenters.active == True)
                             .filter(Experimenter.username == username)
                             .first()
-                            )
+                           )
 
         elif cherrypy.config.get('standalone_test_user', None):
             logit.log("standalone_test_user case")
@@ -239,7 +239,7 @@ class SessionTool(cherrypy.Tool):
                             .filter(ExperimentsExperimenters.active == True)
                             .filter(Experimenter.username == username)
                             .first()
-                            )
+                           )
 
         if not experimenter:
             raise cherrypy.HTTPError(401, 'POMS account does not exist.  To be added you must registered in VOMS.')
@@ -280,14 +280,14 @@ class SessionTool(cherrypy.Tool):
 # non ORM class to cache an experiment
 #
 class SessionExperiment():
-     def __init__(self, exp):
+    def __init__(self, exp):
         self.experiment  = exp.experiment
         self.name  = exp.name
         self.logbook  = exp.logbook
         self.snow_url  = exp.snow_url
         self.restricted  = exp.restricted
 
-  
+
 def augment_params():
     experiment = cherrypy.session.get('experimenter').session_experiment
     exp_obj = cherrypy.request.db.query(Experiment).filter(Experiment.experiment == experiment).first()
