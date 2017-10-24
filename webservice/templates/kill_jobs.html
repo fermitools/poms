@@ -1,7 +1,7 @@
 {%extends "layout.html" %}
 
 {%block title%}
-Kill Jobs Results
+{{act}} Jobs Results
 {%endblock%}
 
 {%block header%}
@@ -9,7 +9,7 @@ Kill Jobs Results
          Results {%include 'help_button.html'%}
 
           <div class="sub header">
-              Output of jobsub_rm
+              Output of jobsub_{{act}}
           </div>
 </h1>
 {%endblock%}

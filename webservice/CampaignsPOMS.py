@@ -750,8 +750,8 @@ class CampaignsPOMS():
             else:
                 jjid = jjid.replace('fifebatch', '').replace('.fnal.gov', '')
             if th.status != "Completed" and th.status != "Located":
-                extramap[jjid] = '<a href="{}/kill_jobs?task_id={:d}"><i class="ui trash icon"></i></a>'.format(
-                    self.poms_service.path, th.task_id)
+                extramap[jjid] = '<a href="{}/kill_jobs?task_id={:d}&act=hold"><i class="ui pause icon"></i></a><a href="{}/kill_jobs?task_id={:d}&act=release"><i class="ui play icon"></i></a><a href="{}/kill_jobs?task_id={:d}&act=kill"><i class="ui trash icon"></i></a>'.format(
+                    self.poms_service.path, th.task_id, self.poms_service.path, th.task_id, self.poms_service.path, th.task_id)
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
 

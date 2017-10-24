@@ -251,7 +251,13 @@ $( document ).ready(function() {
                 <a href="{{pomspath}}/launch_jobs?campaign_id={{Campaign.campaign_id}}"><i class="external rocket icon" data-content="Immediately Launch Submissions for Campaign" data-variation="basic"></i>Launch Campaign Jobs Now</a>
               </div>
               <div class=item>
-                <a href="{{pomspath}}/kill_jobs?campaign_id={{Campaign.campaign_id}}"><i class="external trash icon" data-content="Kill jobs in Campaign" data-variation="basic"></i>Kill Jobs for Campaign</a>
+                <a href="{{pomspath}}/kill_jobs?campaign_id={{Campaign.campaign_id}}&act=kill"><i class="external trash icon" data-content="Kill running/idle jobs in Campaign" data-variation="basic"></i>Kill running/idle Jobs for Campaign</a>
+               </div>
+              <div class=item>
+                <a href="{{pomspath}}/kill_jobs?campaign_id={{Campaign.campaign_id}}&act=hold"><i class="external pause icon" data-content="Hold running/idle jobs in Campaign" data-variation="basic"></i>Hold running/idle Jobs for Campaign</a>
+               </div>
+              <div class=item>
+                <a href="{{pomspath}}/kill_jobs?campaign_id={{Campaign.campaign_id}}"><i class="external play icon" data-content="Release held jobs in Campaign" data-variation="basic"></i>Release held  Jobs for Campaign</a>
                </div>
               <div class=item>
               <a href="{{pomspath}}/schedule_launch?campaign_id={{Campaign.campaign_id}}">

@@ -655,20 +655,20 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def kill_jobs(self, campaign_id=None, task_id=None, job_id=None, confirm=None):
+    def kill_jobs(self, campaign_id=None, task_id=None, job_id=None, confirm=None, act = 'kill' ):
         if confirm is None:
-            jjil, t, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, campaign_id, task_id, job_id, confirm)
+            jjil, t, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, campaign_id, task_id, job_id, confirm, act)
             template = self.jinja_env.get_template('kill_jobs_confirm.html')
             return template.render(jjil=jjil, task=t, campaign_id=campaign_id,
-                                   task_id=task_id, job_id=job_id,
-                                   help_page="KilledJobsHelp")
+                                   task_id=task_id, job_id=job_id,act = act,
+                                   help_page="KilledJobsHelp" )
 
         else:
-            output, c, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, campaign_id, task_id, job_id, confirm)
+            output, c, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, campaign_id, task_id, job_id, confirm, act)
             template = self.jinja_env.get_template('kill_jobs.html')
             return template.render(output=output,
                                    c=c, campaign_id=campaign_id, task_id=task_id,
-                                   job_id=job_id,
+                                   job_id=job_id, act = act,
                                    help_page="KilledJobsHelp")
 
 
