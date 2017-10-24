@@ -285,7 +285,7 @@ Campaign Stages{%include 'help_button.html'%}
         console.log("csv="+csv);
         location.href = "./show_campaigns?cl=" + csv.join(',');
     }
-</script>
+  </script>
 
   <script>
     const protocol = window.location.protocol;
@@ -365,18 +365,16 @@ Campaign Stages{%include 'help_button.html'%}
 
 <script>
     $('.external')
-      .popup({
-        inline   : true,
-        hoverable: true,
-        delay: {
-          show: 300,
-          hide: 80
-        }
-      })
-    ;
-    $('.ui.dropdown')
-      .dropdown()
-    ;
+        .popup({
+            inline: true,
+            hoverable: true,
+            delay: {
+                show: 300,
+                hide: 80
+            }
+        });
+
+    $('.ui.dropdown').dropdown();
 </script>
 
 

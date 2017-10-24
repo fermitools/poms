@@ -109,7 +109,6 @@ $( document ).ready(function() {
         }
     });
 
-
 });
 
 
@@ -387,16 +386,15 @@ $( document ).ready(function() {
 
     var experiment = "{{Campaign.experiment}}";
     $('.ui.search')
-    .search({
-    apiSettings: {
-      url: querypath + "?q={query}&experiment=" + experiment
-    },
-    fields: {
-      title: 'tag_name'
-    },
-    //minCharacters : 3
-    });
-
+        .search({
+            apiSettings: {
+                url: querypath + "?q={query}&experiment=" + experiment
+            },
+            fields: {
+                title: 'tag_name'
+            },
+            //minCharacters : 3
+        });
 </script>
 
 <script>
