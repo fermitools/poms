@@ -4,7 +4,6 @@ import socket
 
 import cherrypy
 from jinja2 import Environment, PackageLoader
-from collections import deque
 from . import CalendarPOMS
 from . import CampaignsPOMS
 from . import DBadminPOMS
@@ -128,6 +127,7 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def jump_to_job(self, jobsub_job_id, **kwargs):
+        # FIXME: There is no jump_to_job method in UtilsPOMS!
         self.utilsPOMS.jump_to_job(cherrypy.request.db, cherrypy.HTTPRedirect, jobsub_job_id, **kwargs)
 
 
@@ -158,12 +158,14 @@ class PomsService(object):
     @logit.logstartstop
     def add_event(self, title, start, end):
         #title should be something like minos_sam:27 DCache:12 All:11 ...
+        # FIXME: add_event is a method of CalendarPOMS. It does not have .calendar member!
         return self.calendarPOMS.add_event.calendar(cherrypy.request.db, title, start, end)
 
     @cherrypy.expose
     @logit.logstartstop
     def edit_event(self, title, start, new_start, end, s_id):
         # even though we pass in the s_id we should not rely on it because they can and will change the service name
+        # FIXME: There is no edit_event method in CalendarPOMS!
         return self.calendarPOMS.edit_event(cherrypy.request.db, title, start, new_start, end, s_id)
 
 
@@ -335,7 +337,7 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def make_test_campaign_for(self,  campaign_def_id, campaign_def_name):
-        cid = make_test_campaign_for(self, cherrypy.request.db, cherrypy.session, campaign_def_id, campaign_def_name)
+        cid = self.campaignsPOMS.make_test_campaign_for(cherrypy.request.db, cherrypy.session, campaign_def_id, campaign_def_name)
         raise cherrypy.HTTPRedirect("%s/campaign_edit?campaign_id=%d&extra_edit_flag=launch_test_job" % (self.path, cid))
 
 
@@ -633,8 +635,8 @@ class PomsService(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def json_job_counts(self, task_id=None, campaign_id=None, tmin=None, tmax=None, uuid = None):
-        return  self.triagePOMS.job_counts(cherrypy.request.db, task_id, campaign_id, tmin=tmin, tmax=tmax, tdays=None)
+    def json_job_counts(self, task_id=None, campaign_id=None, tmin=None, tmax=None, uuid=None):
+        return self.triagePOMS.job_counts(cherrypy.request.db, task_id, campaign_id, tmin=tmin, tmax=tmax, tdays=None)
 
 
     @cherrypy.expose
