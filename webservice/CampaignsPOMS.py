@@ -539,12 +539,12 @@ class CampaignsPOMS():
         dbhandle.commit()
         return "Task=%d" % t.task_id
 
-    def campaign_deps_svg(self, dbhandle, config_get, tag = None, camp_id = None):
-        if tag != None:
+    def campaign_deps_svg(self, dbhandle, config_get, tag=None, camp_id=None):
+        if tag is not None:
             cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
                                                                       CampaignsTags.tag_id == Tag.tag_id,
                                                                       CampaignsTags.campaign_id == Campaign.campaign_id).all()
-        if camp_id != None:
+        if camp_id is not None:
             cidl1 = dbhandle.query(CampaignDependency.needs_camp_id).filter(CampaignDependency.uses_camp_id == camp_id).all()
             cidl2 = dbhandle.query(CampaignDependency.uses_camp_id).filter(CampaignDependency.needs_camp_id == camp_id).all()
             s = set([camp_id])
