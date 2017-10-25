@@ -628,7 +628,7 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def test_job_conts(self, task_id=None, campaign_id=None):
+    def test_job_counts(self, task_id=None, campaign_id=None):
         res = self.triagePOMS.job_counts(cherrypy.request.db, task_id, campaign_id)
         return repr(res) + self.filesPOMS.format_job_counts(task_id, campaign_id)
 
