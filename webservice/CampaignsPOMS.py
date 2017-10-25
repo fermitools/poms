@@ -823,124 +823,34 @@ class CampaignsPOMS():
         return c.campaign_id
 
     def get_dataset_for(self, dbhandle, samhandle, err_res, camp):
-        res = None
 
-        if camp.cs_split_type == None or camp.cs_split_type in ['', 'draining', 'None']:
-            # no split to do, it is a draining dataset, etc.
-            res = camp.dataset
+        if not camp.cs_split_type or camp.cs_split_type == 'None':
+            return camp.dataset
 
-        elif camp.cs_split_type == 'list':
-            # we were given a list of datasets..
-            l = camp.dataset.split(',')
-            if camp.cs_last_split == '' or camp.cs_last_split is None:
-                camp.cs_last_split = -1
-            camp.cs_last_split += 1
+        #
+        # the module name is the first part of the string, i.e.
+        # fred_by_whatever(xxx) -> 'fred'
+        # new_localtime -> 'new'
+        #
+        p1 = camp.cs_split_type.find('_')
+        if p1 < 0:
+           p1 = camp.cs_split_type.find('(')
+        if p1 < 0:
+            p1 = len(camp.cs_split_type) 
 
-            if camp.cs_last_split >= len(l):
-                raise err_res(404, 'No more splits in this campaign')
+        modname = camp.cs_split_type[0:p1]
 
-            res = l[camp.cs_last_split]
+        mod = __import__('poms.webservice.split_types.'+modname)
+        split_class = getattr(mod,modname)
 
-            dbhandle.add(camp)
-            dbhandle.commit()
+        splitter = split_class(camp, samhandle, dbhandle)
 
-        elif camp.cs_split_type.startswith('mod_') or camp.cs_split_type.startswith('mod('):
-            m = int(camp.cs_split_type[4:].strip(')'))
-            if camp.cs_last_split == '' or camp.cs_last_split == None:
-                camp.cs_last_split = -1
-            camp.cs_last_split += 1
-
-            if camp.cs_last_split >= m:
-                raise err_res(404, 'No more splits in this campaign')
-            new = camp.dataset + "_slice%d" % camp.cs_last_split
-            samhandle.create_definition(camp.campaign_definition_obj.experiment, new,
-                                        "defname: %s with stride %d offset %d" % (camp.dataset, m, camp.cs_last_split))
-
-            res = new
-
-            dbhandle.add(camp)
-            dbhandle.commit()
-
-        elif (camp.cs_split_type.startswith('new(') or
-              camp.cs_split_type == 'new' or
-              camp.cs_split_type == 'new_local'):
-
-            # default parameters
-            tfts = 1800.0  # half an hour
-            twindow = 604800.0  # one week
-            tround = 1  # one second
-            tlocaltime = 0  # assume GMT
-            tfirsttime = None  # override start time
-
-            if camp.cs_split_type[3:] == '_local':
-                tlocaltime = 1
-
-            # if they specified any, grab them ...
-            if camp.cs_split_type[3] == '(':
-                parms = camp.cs_split_type[4:].split(',')
-                for p in parms:
-                    pmult = 1
-                    if p.endswith(')'): p = p[:-1]
-                    if p.endswith('w'): pmult = 604800; p = p[:-1]
-                    if p.endswith('d'): pmult = 86400; p = p[:-1]
-                    if p.endswith('h'): pmult = 3600; p = p[:-1]
-                    if p.endswith('m'): pmult = 60; p = p[:-1]
-                    if p.endswith('s'): pmult = 1; p = p[:-1]
-                    if p.startswith('window='): twindow = float(p[7:]) * pmult
-                    if p.startswith('round='): tround = float(p[6:]) * pmult
-                    if p.startswith('fts='): tfts = float(p[4:]) * pmult
-                    if p.startswith('localtime='): tlocaltime = float(p[10:]) * pmult
-                    if p.startswith('firsttime='): tfirsttime = float(p[10:]) * pmult
-
-            # make sure time-window is a multiple of rounding factor
-            twindow = int(twindow) - (int(twindow) % int(tround))
-
-            # pick a boundary time, which will be our default start time
-            # if we've not been run before, and also as a boundary to
-            # say we have nothing to do yet if our last run isnt that far
-            # back...
-            #   go back one time window (plus fts delay) and then
-            # round down to nearest tround to get a start time...
-            # then later ones should come out even.
-
-            bound_time = time.time() - tfts - twindow
-            bound_time = int(bound_time) - (int(bound_time) % int(tround))
-
-            if camp.cs_last_split == '' or camp.cs_last_split is None:
-                if tfirsttime:
-                    stime = tfirsttime
-                else:
-                    stime = bound_time
-                etime = stime + twindow
-            else:
-                if camp.cs_last_split >= bound_time:
-                    raise err_res(404, 'Not enough new data yet')
-
-                stime = camp.cs_last_split
-                etime = stime + twindow
-
-            if tlocaltime:
-                sstime = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(stime))
-                setime = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(etime))
-            else:
-                sstime = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(stime))
-                setime = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(etime))
-
-            new = camp.dataset + "_since_%s" % int(stime)
-
-            samhandle.create_definition(
-                camp.campaign_definition_obj.experiment,
-                new,
-                "defname: {} and end_time > '{}' and end_time <= '{}'".format(camp.dataset, sstime, setime)
-            )
-
-            # mark end time for start of next run
-            camp.cs_last_split = etime
-            res = new
-
-            dbhandle.add(camp)
-            dbhandle.commit()
-
+        try:
+            res = splitter.next()
+        except StopIteration:
+            raise err_res(404, 'No more splits in this campaign')
+ 
+        dbhandle.commit()
         return res
 
     def list_launch_file(self, campaign_id, fname, launch_template_id = None):
