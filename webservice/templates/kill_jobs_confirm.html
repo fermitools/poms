@@ -1,11 +1,11 @@
 {%extends "layout.html" %}
 
 {%block title%}
-Confirm Kill Jobs
+Confirm {{act}} jobs
 {%endblock%}
 
 {%block header%}
-Confirm request {%include 'help_button.html'%}
+Confirm {{act}} request {%include 'help_button.html'%}
 {%endblock%}
 
 
@@ -20,7 +20,7 @@ Confirm request {%include 'help_button.html'%}
 
 <div class="ui raised padded text container segment">
 
-   Are you sure you want to kill the jobs for
+   Are you sure you want to {{act}} the jobs for
      {% if campaign_id is not none %}
         Campaign Stage {{c.name if c}}, Submission(s) {{jjil|join(', ')}}
      {% elif task_id is not none %}
@@ -32,11 +32,11 @@ Confirm request {%include 'help_button.html'%}
 
    <button class="ui button">
      {% if campaign_id is not none %}
-       <a href="{{pomspath}}/kill_jobs?confirm=y&campaign_id={{campaign_id}}">Yes, Kill Them</a>
+       <a href="{{pomspath}}/kill_jobs?confirm=y&campaign_id={{campaign_id}}&act={{act}}">Yes, {{act}} them</a>
      {% elif task_id is not none %}
-       <a href="{{pomspath}}/kill_jobs?confirm=y&task_id={{task_id}}">Yes, Kill Them</a>
+       <a href="{{pomspath}}/kill_jobs?confirm=y&task_id={{task_id}}&act={{act}}">Yes, {{act}} them</a>
      {% elif job_id is not none %}
-       <a href="{{pomspath}}/kill_jobs?confirm=y&job_id={{job_id}}">Yes, Kill Them</a>
+       <a href="{{pomspath}}/kill_jobs?confirm=y&job_id={{job_id}}&act={{act}}">Yes, {{act}} them</a>
      {% endif %}
    </button>
 

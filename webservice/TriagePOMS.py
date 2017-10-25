@@ -72,11 +72,12 @@ class TriagePOMS(object):
         job_history = dbhandle.query(JobHistory).filter(JobHistory.job_id == job_id).order_by(JobHistory.created).all()
         output_file_names_list = [x.file_name for x in job_info[0].job_files if x.file_type == "output"]
 
-        #begins service downtimes
-        first = job_history[0].created
-        last = job_history[-1].created
+        if job_history and len(job_history):
+            #begins service downtimes
+            first = job_history[0].created
+            last = job_history[-1].created
 
-        downtimes1 = (dbhandle.query(ServiceDowntime, Service)
+            downtimes1 = (dbhandle.query(ServiceDowntime, Service)
                       .filter(ServiceDowntime.service_id == Service.service_id)
                       .filter(Service.name != "All").filter(Service.name != "DCache")
                       .filter(Service.name != "Enstore")

@@ -41,6 +41,11 @@ class jobsub_fetcher():
 
         fifebatch = jobsubjobid[jobsubjobid.find("@")+1:]
 
+
+        if fifebatch == "fakebatch1.fnal.gov":
+            # don't get confused by test suite...
+            return
+
         url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/" % ( fifebatch, group, user, jobsubjobid)
 
         log( "trying url:" +  url)
@@ -85,6 +90,10 @@ class jobsub_fetcher():
             user = 'mengel'    # XXX
 
         fifebatch = jobsubjobid[jobsubjobid.find("@")+1:]
+
+        if fifebatch == "fakebatch1.fnal.gov":
+            # don't get confused by test suite...
+            return
 
         url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/%s/" % (fifebatch, group, user, jobsubjobid, filename)
 

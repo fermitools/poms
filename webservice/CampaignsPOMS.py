@@ -9,24 +9,25 @@ Date: April 28th, 2017. (changes for the POMS_client)
 '''
 
 from collections import deque
-from . import logit
+from datetime import datetime, tzinfo, timedelta
+import time
+import json
+import os
+import glob
+import subprocess
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, desc, not_, and_, or_, distinct
+from sqlalchemy.orm import subqueryload, joinedload, contains_eager
+
+from crontab import CronTab
 from .poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
                          LaunchTemplate, CampaignDefinition, CampaignRecovery,
                          CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
-                         )
-from sqlalchemy.orm import subqueryload, joinedload, contains_eager
-from crontab import CronTab
-from datetime import datetime, tzinfo, timedelta
-import time
+                        )
 from . import time_grid
-import json
 from .utc import utc
-import os
-import glob
 from .pomscache import pomscache, pomscache_10
-import subprocess
+from . import logit
 
 
 class CampaignsPOMS():
@@ -278,7 +279,7 @@ class CampaignsPOMS():
                                    .join(Experiment)
                                    .filter(CampaignDefinition.experiment == exp)
                                    .order_by(CampaignDefinition.name)
-                                   )
+                                  )
 
             # Build the recoveries for each campaign.
             cids = [row[0].campaign_definition_id for row in data['definitions'].all()]
@@ -301,8 +302,7 @@ class CampaignsPOMS():
                 recs_dict[cid] = json.dumps(list(rec_list))
 
             data['recoveries'] = recs_dict
-            data['rtypes'] = (
-            dbhandle.query(RecoveryType.name, RecoveryType.description).order_by(RecoveryType.name).all())
+            data['rtypes'] = (dbhandle.query(RecoveryType.name, RecoveryType.description).order_by(RecoveryType.name).all())
 
         data['message'] = message
         return data
@@ -373,7 +373,8 @@ class CampaignsPOMS():
             completion_pct = kwargs.pop('ae_completion_pct')
             depends = kwargs.pop('ae_depends', "[]")
             param_overrides = kwargs.pop('ae_param_overrides', "[]")
-            if param_overrides: param_overrides = json.loads(param_overrides)
+            if param_overrides:
+                param_overrides = json.loads(param_overrides)
 
             if pcl_call == 1:
                 launch_name = kwargs.pop('ae_launch_name')
@@ -516,7 +517,7 @@ class CampaignsPOMS():
             data['definition'] = definition
         return json.dumps(data)
 
-    def new_task_for_campaign(dbhandle, campaign_name, command_executed, experimenter_name, dataset_name=None):
+    def new_task_for_campaign(self, dbhandle, campaign_name, command_executed, experimenter_name, dataset_name=None):
         if isinstance(campaign_name, str):
             campaign_name = campaign_name.strip()
         c = dbhandle.query(Campaign).filter(Campaign.name == campaign_name).first()
@@ -539,16 +540,25 @@ class CampaignsPOMS():
         dbhandle.commit()
         return "Task=%d" % t.task_id
 
-    def campaign_deps_svg(self, dbhandle, config, tag):
-        cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
-                                                                      CampaignsTags.tag_id == Tag.tag_id,
-                                                                      CampaignsTags.campaign_id == Campaign.campaign_id).all()
+    def campaign_deps_svg(self, dbhandle, config_get, tag=None, camp_id=None):
+        if tag is not None:
+            cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
+                                                                          CampaignsTags.tag_id == Tag.tag_id,
+                                                                          CampaignsTags.campaign_id == Campaign.campaign_id).all()
+        if camp_id is not None:
+            cidl1 = dbhandle.query(CampaignDependency.needs_camp_id).filter(CampaignDependency.uses_camp_id == camp_id).all()
+            cidl2 = dbhandle.query(CampaignDependency.uses_camp_id).filter(CampaignDependency.needs_camp_id == camp_id).all()
+            s = set([camp_id])
+            s.update(cidl1)
+            s.update(cidl2)
+            cl = dbhandle.query(Campaign).filter(Campaign.campaign_id.in_(s)).all()
+
         c_ids = deque()
         pdot = subprocess.Popen("tee /tmp/dotstuff | dot -Tsvg", shell=True, stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE, universal_newlines=True)
         pdot.stdin.write('digraph {}Dependencies {{\n'.format(tag))
         pdot.stdin.write('node [shape=box, style=rounded, color=lightgrey, fontcolor=black]\nrankdir = "LR";\n')
-        baseurl = "{}/campaign_info?campaign_id=".format(config.get("pomspath"))
+        baseurl = "{}/campaign_info?campaign_id=".format(config_get("pomspath"))
 
         for c in cl:
             tcl = dbhandle.query(func.count(Task.status), Task.status).group_by(Task.status).filter(
@@ -567,8 +577,7 @@ class CampaignsPOMS():
                                                                                                      c.name,
                                                                                                      tot,
                                                                                                      ltot,
-                                                                                                     (
-                                                                                                     "darkgreen" if ltot == tot else "black")))
+                                                                                                     ("darkgreen" if ltot == tot else "black")))
 
         cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id.in_(c_ids)).all()
 
@@ -598,7 +607,7 @@ class CampaignsPOMS():
               .options(joinedload('experiment_obj'))
               .order_by(Campaign.experiment)
               .options(joinedload(Campaign.experimenter_creator_obj))
-              )
+             )
 
         if experiment:
             cq = cq.filter(Campaign.experiment == experiment)
@@ -636,9 +645,8 @@ class CampaignsPOMS():
             tmin, tmax, tdays, 'campaign_info?')
 
         campaign_definition_info = (dbhandle.query(CampaignDefinition, Experimenter)
-                                    .filter(
-            CampaignDefinition.campaign_definition_id == campaign_info.Campaign.campaign_definition_id,
-            CampaignDefinition.creator == Experimenter.experimenter_id)
+                                    .filter(CampaignDefinition.campaign_definition_id == campaign_info.Campaign.campaign_definition_id,
+                                            CampaignDefinition.creator == Experimenter.experimenter_id)
                                     .first())
         launch_template_info = (dbhandle.query(LaunchTemplate, Experimenter)
                                 .filter(LaunchTemplate.launch_id == campaign_info.Campaign.launch_id,
@@ -675,12 +683,15 @@ class CampaignsPOMS():
         logit.log("got format {}".format(campaign_kibana_link_format))
         kibana_link = campaign_kibana_link_format.format(campaign_id)
 
+        dep_svg = self.campaign_deps_svg(dbhandle, config_get, camp_id = campaign_id)
         return (campaign_info,
                 time_range_string,
                 tmins, tmaxs, tdays,
                 campaign_definition_info, launch_template_info,
                 tags, launched_campaigns, None,
-                campaign, counts_keys, counts, launch_flist, kibana_link)
+                campaign, counts_keys, counts, launch_flist, kibana_link,
+                dep_svg
+               )
 
     @pomscache_10.cache_on_arguments()
     def campaign_time_bars(self, dbhandle, campaign_id=None, tag=None, tmin=None, tmax=None, tdays=1):
@@ -739,8 +750,8 @@ class CampaignsPOMS():
             else:
                 jjid = jjid.replace('fifebatch', '').replace('.fnal.gov', '')
             if th.status != "Completed" and th.status != "Located":
-                extramap[jjid] = '<a href="{}/kill_jobs?task_id={:d}"><i class="ui trash icon"></i></a>'.format(
-                    self.poms_service.path, th.task_id)
+                extramap[jjid] = '<a href="{}/kill_jobs?task_id={:d}&act=hold"><i class="ui pause icon"></i></a><a href="{}/kill_jobs?task_id={:d}&act=release"><i class="ui play icon"></i></a><a href="{}/kill_jobs?task_id={:d}&act=kill"><i class="ui trash icon"></i></a>'.format(
+                    self.poms_service.path, th.task_id, self.poms_service.path, th.task_id, self.poms_service.path, th.task_id)
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
 
@@ -812,129 +823,39 @@ class CampaignsPOMS():
         return c.campaign_id
 
     def get_dataset_for(self, dbhandle, samhandle, err_res, camp):
-        res = None
 
-        if camp.cs_split_type == None or camp.cs_split_type in ['', 'draining', 'None']:
-            # no split to do, it is a draining dataset, etc.
-            res = camp.dataset
+        if not camp.cs_split_type or camp.cs_split_type == 'None':
+            return camp.dataset
 
-        elif camp.cs_split_type == 'list':
-            # we were given a list of datasets..
-            l = camp.dataset.split(',')
-            if camp.cs_last_split == '' or camp.cs_last_split is None:
-                camp.cs_last_split = -1
-            camp.cs_last_split += 1
+        #
+        # the module name is the first part of the string, i.e.
+        # fred_by_whatever(xxx) -> 'fred'
+        # new_localtime -> 'new'
+        #
+        p1 = camp.cs_split_type.find('_')
+        if p1 < 0:
+           p1 = camp.cs_split_type.find('(')
+        if p1 < 0:
+            p1 = len(camp.cs_split_type) 
 
-            if camp.cs_last_split >= len(l):
-                raise err_res(404, 'No more splits in this campaign')
+        modname = camp.cs_split_type[0:p1]
 
-            res = l[camp.cs_last_split]
+        mod = __import__('poms.webservice.split_types.'+modname)
+        split_class = getattr(mod,modname)
 
-            dbhandle.add(camp)
-            dbhandle.commit()
+        splitter = split_class(camp, samhandle, dbhandle)
 
-        elif camp.cs_split_type.startswith('mod_') or camp.cs_split_type.startswith('mod('):
-            m = int(camp.cs_split_type[4:].strip(')'))
-            if camp.cs_last_split == '' or camp.cs_last_split == None:
-                camp.cs_last_split = -1
-            camp.cs_last_split += 1
-
-            if camp.cs_last_split >= m:
-                raise err_res(404, 'No more splits in this campaign')
-            new = camp.dataset + "_slice%d" % camp.cs_last_split
-            samhandle.create_definition(camp.campaign_definition_obj.experiment, new,
-                                        "defname: %s with stride %d offset %d" % (camp.dataset, m, camp.cs_last_split))
-
-            res = new
-
-            dbhandle.add(camp)
-            dbhandle.commit()
-
-        elif (camp.cs_split_type.startswith('new(') or
-                      camp.cs_split_type == 'new' or
-                      camp.cs_split_type == 'new_local'):
-
-            # default parameters
-            tfts = 1800.0  # half an hour
-            twindow = 604800.0  # one week
-            tround = 1  # one second
-            tlocaltime = 0  # assume GMT
-            tfirsttime = None  # override start time
-
-            if camp.cs_split_type[3:] == '_local':
-                tlocaltime = 1
-
-            # if they specified any, grab them ...
-            if camp.cs_split_type[3] == '(':
-                parms = camp.cs_split_type[4:].split(',')
-                for p in parms:
-                    pmult = 1
-                    if p.endswith(')'): p = p[:-1]
-                    if p.endswith('w'): pmult = 604800; p = p[:-1]
-                    if p.endswith('d'): pmult = 86400; p = p[:-1]
-                    if p.endswith('h'): pmult = 3600; p = p[:-1]
-                    if p.endswith('m'): pmult = 60; p = p[:-1]
-                    if p.endswith('s'): pmult = 1; p = p[:-1]
-                    if p.startswith('window='): twindow = float(p[7:]) * pmult
-                    if p.startswith('round='): tround = float(p[6:]) * pmult
-                    if p.startswith('fts='): tfts = float(p[4:]) * pmult
-                    if p.startswith('localtime='): tlocaltime = float(p[10:]) * pmult
-                    if p.startswith('firsttime='): tfirsttime = float(p[10:]) * pmult
-
-            # make sure time-window is a multiple of rounding factor
-            twindow = int(twindow) - (int(twindow) % int(tround))
-
-            # pick a boundary time, which will be our default start time
-            # if we've not been run before, and also as a boundary to
-            # say we have nothing to do yet if our last run isnt that far
-            # back...
-            #   go back one time window (plus fts delay) and then
-            # round down to nearest tround to get a start time...
-            # then later ones should come out even.
-
-            bound_time = time.time() - tfts - twindow
-            bound_time = int(bound_time) - (int(bound_time) % int(tround))
-
-            if camp.cs_last_split == '' or camp.cs_last_split is None:
-                if tfirsttime:
-                    stime = tfirsttime
-                else:
-                    stime = bound_time
-                etime = stime + twindow
-            else:
-                if camp.cs_last_split >= bound_time:
-                    raise err_res(404, 'Not enough new data yet')
-
-                stime = camp.cs_last_split
-                etime = stime + twindow
-
-            if tlocaltime:
-                sstime = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(stime))
-                setime = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(etime))
-            else:
-                sstime = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(stime))
-                setime = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(etime))
-
-            new = camp.dataset + "_since_%s" % int(stime)
-
-            samhandle.create_definition(
-                camp.campaign_definition_obj.experiment,
-                new,
-                "defname: {} and end_time > '{}' and end_time <= '{}'".format(camp.dataset, sstime, setime)
-            )
-
-            # mark end time for start of next run
-            camp.cs_last_split = etime
-            res = new
-
-            dbhandle.add(camp)
-            dbhandle.commit()
-
+        try:
+            res = splitter.next()
+        except StopIteration:
+            raise err_res(404, 'No more splits in this campaign')
+ 
+        dbhandle.commit()
         return res
 
     def list_launch_file(self, campaign_id, fname, launch_template_id = None):
         if launch_template_id:
-           dirname = '{}/private/logs/poms/launches/template_tests_{}'.format(os.environ['HOME'], launch_template_id)
+            dirname = '{}/private/logs/poms/launches/template_tests_{}'.format(os.environ['HOME'], launch_template_id)
         else:
             dirname = '{}/private/logs/poms/launches/campaign_{}'.format(os.environ['HOME'], campaign_id)
         lf = open('{}/{}'.format(dirname, fname), 'r')
@@ -1010,11 +931,11 @@ class CampaignsPOMS():
 
             # make job for new -- use current link for product
             pdir = os.environ.get('POMS_DIR', '/etc/poms')
-            if (not pdir.find('/current/')>0):
+            if not pdir.find('/current/') > 0:
                 # try to find a current symlink path that points here
                 tpdir = pdir[:pdir.rfind('poms', 0, len(pdir) - 1) + 4] + '/current'
                 if os.path.exists(tpdir):
-                   pdir = tpdir
+                    pdir = tpdir
 
             job = my_crontab.new(command='{}/cron/launcher --campaign_id={}'.format(pdir, campaign_id),
                                  comment='POMS_CAMPAIGN_ID={}'.format(campaign_id))
@@ -1037,9 +958,10 @@ class CampaignsPOMS():
         my_crontab.write()
 
     def get_recovery_list_for_campaign_def(self, dbhandle, campaign_def):
-        rlist = dbhandle.query(CampaignRecovery).options(joinedload(CampaignRecovery.recovery_type)).filter(
-            CampaignRecovery.campaign_definition_id == campaign_def.campaign_definition_id).order_by(
-            CampaignRecovery.recovery_order)
+        rlist = (dbhandle.query(CampaignRecovery)
+                 .options(joinedload(CampaignRecovery.recovery_type))
+                 .filter(CampaignRecovery.campaign_definition_id == campaign_def.campaign_definition_id)
+                 .order_by(CampaignRecovery.recovery_order))
 
         # convert to a real list...
         l = deque()
@@ -1053,7 +975,9 @@ class CampaignsPOMS():
         lastweek = datetime.now(utc) - timedelta(days=7)
         recent_sq = dbhandle.query(distinct(Task.campaign_id)).filter(Task.created > lastweek)
 
-        stale = dbhandle.query(Campaign).filter(Campaign.created < lastweek, Campaign.campaign_id.notin_(recent_sq),Campaign.active == True).update({"active":False},synchronize_session=False)
+        stale = (dbhandle.query(Campaign)
+                 .filter(Campaign.created < lastweek, Campaign.campaign_id.notin_(recent_sq), Campaign.active == True)
+                 .update({"active": False}, synchronize_session=False))
 
         dbhandle.commit()
 

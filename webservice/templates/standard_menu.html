@@ -26,13 +26,12 @@
   </a>
 
   <div data-ecl class="item">
-    <div class="header">Logbook</div>
+    <div class="header">External Links</div>
     <div class="menu">
-        <a class="item" href="{{exp_obj.logbook if exp_obj else '#'}}" target="_blank">{{session_experiment|capitalize}}</a>
+        <a class="item" href="{{exp_obj.logbook if exp_obj else '#'}}" target="_blank">{{session_experiment|capitalize}} Logbook</a>
     </div>
-    <div class="header">Service Now</div>
     <div class="menu">
-        <a class="item" href="{{exp_obj.snow_url if exp_obj else '#'}}" target="_blank">POMS Service Page</a>
+        <a class="item" href="{{exp_obj.snow_url if exp_obj else '#'}}" target="_blank">POMS ServiceNow Page</a>
     </div>
   </div>
 

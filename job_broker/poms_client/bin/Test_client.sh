@@ -1,6 +1,6 @@
 #!usr/bin/env bash
 echo "launch template edit"
-python launch_template_edit --name my_test_may17 --host novagpvm02 --user_account ahandres --email ahandres@fnal.gov --action add --experiment samdev --test_client True --setup echo
+python launch_template_edit --name my_test_may17 --host novagpvm02 --user ahandres --email ahandres@fnal.gov --action add --experiment samdev --test_client True --setup echo
 
 sleep 1000
 echo "job type"

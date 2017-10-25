@@ -2,10 +2,11 @@
 
 from poms_client import get_task_id_for
 import optparse
+import os
 
 parser = optparse.OptionParser(usage="usage: %prog [options] \n get a task id")
 parser.add_option('--campaign', help="campaign name or id", default = None)
-parser.add_option('--user',     help="username", default = None )
+parser.add_option('--user',     help="username", default = os.environ.get('GRID_USER',os.environ.get('USER',None)))
 parser.add_option('--experiment', help="experiment name", default = None)
 parser.add_option('--command_executed',  help="command name for job", default = None)
 parser.add_option('--input_dataset',  help="dataset name for job", default = None)
