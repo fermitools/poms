@@ -1,6 +1,10 @@
 #!/bin/env python
 
-import os, argparse, psycopg2, json, time
+import os
+import argparse
+import time
+import requests
+import psycopg2
 
 dbg = False
 log = None
@@ -9,7 +13,7 @@ def debug(message):
     global dbg
     global log
     if dbg:
-        print message
+        print(message)
     if log:
         log.write(message+'\n')
 
@@ -19,7 +23,6 @@ def parse_command_line():
     parser.add_argument('port', type=int, help="Database Port number.")
     parser.add_argument('dbname', help="Database to connect to.")
     parser.add_argument('user', help="User to connect as")
-    parser.add_argument('file', help="File of users to read in.")
     parser.add_argument('-p', '--password', help="Password for the database user account. For testing only, for production use .pgpass .")
     parser.add_argument('-d', '--debug', action="store_true", help="Send debug data to screen")
     parser.add_argument('-l', '--log', help="Directory/filename for logging debug data.")
@@ -31,14 +34,26 @@ def parse_command_line():
     return args
 
 
-def verify_exp(cursor,exp):
-    retval = True
-    sql = "select 1 from experiments where experiment='%s'" % exp
-    cursor.execute(sql)
-    row = cursor.fetchone()
-    if row is None:
-        retval = False
-    return retval
+def get_experiments(cursor):
+    exp_list = []
+    cursor.execute("select experiment from experiments where experiment != 'samdev'")
+    for row in cursor.fetchall():
+        exp_list.append(row[0])
+    return exp_list
+
+def get_voms_data(exp):
+    debug("get_voms_data for: %s" % exp)
+    payload = {"accountName": "%spro" % exp}
+    r = requests.get("https://gums2.fnal.gov:8443/gums/map_account.jsp", params=payload, verify=False, cert=('/home/poms/private/gsi/pomscert.pem','/home/poms/private/gsi/pomskey.pem'))
+    users = {}
+    for line in r.iter_lines():
+        if line.find("CN=UID:") != -1:
+            username=line.split("/CN=")[-1][4:]
+            commonname=line.split("/CN=")[-2]
+            # build a dictionary to get rid of duplicates
+            users[username]=commonname
+    return users
+
 
 def add_user(cursor,username,commonname,session_experiment):
     sql = "select experimenter_id from experimenters where username='%s'" % username
@@ -74,34 +89,29 @@ def main():
     if args.log:
         logfile = "%s-%s.log" % (args.log,time.strftime('%Y%m%d%H%M%S'))
         log = open(logfile,'w')
-    if os.path.isfile(args.file) == False:
-        debug("main: missing file: %s" % args.file)
-        print "addusers.py -- main: missing file: %s" % args.file
-        raise SystemExit
-    else:
-        json_data = open(args.file)
-        adict = json.load(json_data)
-        debug("main:json parsed file %s"% args.file)
-        expdict = adict['prousers']
-        password=""
-        if args.password:
-            password="password=%s" % args.password
-        conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s %s" % (args.dbname, args.host, args.port, args.user, password))
-        cursor = conn.cursor()
-        for exp in expdict.keys():
-            if verify_exp(cursor,exp) == False:
-                debug('experiment: %s does not exist in poms' % exp)
-            else:
-                for user in expdict[exp]:
-                    debug("main: processing <%s> <%s> <%s>" % (exp, user['username'], user['commonname']))
-                    experimenterid = add_user(cursor, user['username'], user['commonname'], exp)
-                    add_relationship(cursor, experimenterid, exp)
+    password=""
+    if args.password:
+        password="password=%s" % args.password
+    conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s %s" % (args.dbname, args.host, args.port, args.user, password))
+    cursor = conn.cursor()
+
+    exp_list = get_experiments(cursor)
+    debug("main:Experiments in experiment table: %s" % exp_list)
+
+    for exp in exp_list:
+        voms_data = get_voms_data(exp)
+        debug("main: Experiment: %s" % exp)
+
+        for username in voms_data.keys():
+            commonname = voms_data[username]
+            debug("main: user <%s> <%s>" % (username, commonname))
+            experimenterid = add_user(cursor, username, commonname, exp)
+            add_relationship(cursor, experimenterid, exp)
         conn.commit()
-        conn.close()
-        json_data.close()
-        os.rename(args.file,args.file+".loaded")
+
+    cursor.close()
+    conn.close()
 
 
 if __name__ == "__main__":
     main()
-
