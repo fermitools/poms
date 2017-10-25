@@ -648,7 +648,7 @@ class TaskPOMS:
 
             if not c:
                 err_res = 404
-                raise KeyError
+                raise KeyError("Campaign not found: " + str(campaign_id))
 
             cd = c.campaign_definition_obj
             lt = c.launch_template_obj
@@ -710,14 +710,15 @@ class TaskPOMS:
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.poms_service.hostname,
             "ssh -tx %s@%s <<'EOF' &" % (lt.launch_account, lt.launch_host),
+            "source /grid/fermiapp/products/common/etc/setups",
+            "setup poms_client v2_0_0 -z /grid/fermiapp/products/common/db",
             lt.launch_setup % {
                 "dataset": dataset,
                 "version": vers,
                 "group": group,
                 "experimenter": experimenter_login,
             },
-            "setup poms_jobsub_wrapper v0_4 -z /grid/fermiapp/products/common/db",
-            "setup poms_client v2_0_0 -z /grid/fermiapp/products/common/db",
+            "setup -j poms_jobsub_wrapper v0_4 -z /grid/fermiapp/products/common/db",
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "export POMS_TEST=%s" % ("" if "poms" in self.poms_service.hostname else "1"),
             "export POMS_CAMPAIGN_ID=%s" % cid,
