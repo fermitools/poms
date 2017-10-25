@@ -6,7 +6,18 @@ import json
 requests.packages.urllib3.disable_warnings()
 data = {}
 data["prousers"] = {}
-experiments = ["lariat","nova","uboone"]
+experiments = [
+	"coupp",
+	"darkside",
+	"ds50",
+        "dune",
+	"gm2",
+	"lariat",
+	"mu2e",
+	"nova",
+	"numix"
+	"uboone",
+]
 for exp in experiments:
     data["prousers"][exp] = []
     payload = {"accountName": "%spro" % exp}
@@ -25,5 +36,5 @@ for exp in experiments:
         userdict["commonname"] = users[user]
         data["prousers"][exp].append(userdict)
 
-print(json.dumps(data))
+print json.dumps(data)
 
