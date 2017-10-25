@@ -639,7 +639,7 @@ class TaskPOMS:
             outfile = "%s/%s" % (outdir, ds)
             logit.log("trying to record launch in %s" % outfile)
 
-            if campaign_id[0] in "0123456789":
+            if str(campaign_id)[0] in "0123456789":
                 cq = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id)
             else:
                 cq = dbhandle.query(Campaign).filter(Campaign.name == campaign_id, Campaign.experiment == experiment)
