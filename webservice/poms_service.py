@@ -1017,6 +1017,7 @@ class PomsService(object):
 
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     @logit.logstartstop
     def auto_complete_tags_search(self, experiment, q):
         cherrypy.response.headers['Content-Type'] = 'application/json'
