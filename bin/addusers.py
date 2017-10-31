@@ -9,7 +9,9 @@ import psycopg2
 
 if sys.version_info > (3, 0):
     import urllib3
-    urllib3.disable_warnings()
+else:
+    import requests.packages.urllib3 as urllib3
+urllib3.disable_warnings()
 
 dbg = False
 log = None
