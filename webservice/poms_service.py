@@ -19,9 +19,7 @@ from . import logit
 from . import version
 from .elasticsearch import Elasticsearch
 from .poms_model import Service, Task, Campaign
-
-
-#import gcwrap
+from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment
 
 
 def error_response():
@@ -29,7 +27,6 @@ def error_response():
     if cherrypy.config.get("dump", True):
         dump = cherrypy._cperror.format_exc()
     message = dump.replace('\n', '<br/>')
-
     jinja_env = Environment(loader=PackageLoader('poms.webservice', 'templates'))
     template = jinja_env.get_template('error_response.html')
     path = cherrypy.config.get("pomspath", "/poms")
@@ -40,10 +37,7 @@ def error_response():
     logit.log(dump)
 
 
-
 class PomsService(object):
-
-
     _cp_config = {'request.error_response': error_response,
                   'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), '/templates/page_not_found.html')
                  }
@@ -68,7 +62,7 @@ class PomsService(object):
         self.filesPOMS = FilesPOMS.Files_status(self)
         self.triagePOMS = TriagePOMS.TriagePOMS(self)
         self.tablesPOMS = None
-
+        
     def post_initialize(self):
         # Anything that needs to log data must be called here -- after loggers are configured.
         self.tablesPOMS = TablesPOMS.TablesPOMS(self)
@@ -382,27 +376,23 @@ class PomsService(object):
     @logit.logstartstop
     def show_tags(self):
         experiment = cherrypy.session.get('experimenter').session_experiment
-
         tl = self.tagsPOMS.show_tags(cherrypy.request.db, experiment)
-
         current_experimenter = cherrypy.session.get('experimenter')
-
-        experiments = self.dbadminPOMS.member_experiments(cherrypy.request.db, current_experimenter.username)
-
-
         template = self.jinja_env.get_template('show_tags.html')
-        return template.render(tl=tl, help_page="ShowCampaignTagsHelp", experiments=experiments)
+
+        return template.render(tl=tl, help_page="ShowCampaignTagsHelp")
+
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaigns(self, tmin=None, tmax=None, tdays=7, active=True, tag=None, cl=None, **kwargs):
+    def show_campaigns(self, tmin=None, tmax=None, tdays=7, active=True, tag=None, holder=None, cl=None, **kwargs):
         experiment = cherrypy.session.get('experimenter').session_experiment
         (
-         campaigns, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
+            campaigns, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
         ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db,
                                               cherrypy.request.samweb_lite, experiment=experiment,
                                               tmin=tmin, tmax=tmax, tdays=tdays, active=active, tag=tag,
-                                              campaign_ids=cl)
+                                              holder=holder, campaign_ids=cl)
 
         current_experimenter = cherrypy.session.get('experimenter')
         #~ logit.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
@@ -415,8 +405,6 @@ class PomsService(object):
             #~ logit.log("current_experimenter.extra update... ")                               # DEBUG
         #~ logit.log("current_experimenter.extra after: "+str(current_experimenter.extra))      # DEBUG
 
-        experiments = self.dbadminPOMS.member_experiments(cherrypy.request.db, current_experimenter.username)
-
         if cl is None:
             template = self.jinja_env.get_template('show_campaigns.html')
         else:
@@ -426,9 +414,7 @@ class PomsService(object):
                                campaigns=campaigns, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
                                do_refresh=1200,
                                next=nextlink, prev=prevlink, tdays=tdays, time_range_string=time_range_string,
-                               key='', help_page="ShowCampaignsHelp",
-                               experiments=experiments,
-                               dbg=kwargs)
+                               key='', help_page="ShowCampaignsHelp", dbg=kwargs)
 
     @cherrypy.expose
     @logit.logstartstop
@@ -529,6 +515,32 @@ class PomsService(object):
             raise cherrypy.HTTPRedirect("campaign_info?campaign_id=%s" % campaign_id)
         elif cl:
             raise cherrypy.HTTPRedirect("show_campaigns")
+
+
+    @cherrypy.expose
+    @logit.logstartstop
+    def mark_campaign_hold(self, ids2HR=None, is_hold=''):
+        logit.log("********YG** campaign_id={}; is_hold='{}'".format(ids2HR, is_hold))
+        campaign_ids = ids2HR.split(",")
+        ex = cherrypy.session.get('experimenter')  
+        for cid  in campaign_ids:
+            campaign = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == cid).first()
+            holder = cherrypy.request.db.query(Experimenter)\
+             .filter(Experimenter.experimenter_id == campaign.hold_experimenter_id).first()
+            if campaign and (holder is None or ex.is_authorized(campaign.experiment, holder.username)):
+                if is_hold == 'Hold':
+                    campaign.hold_experimenter_id = ex.experimenter_id
+                elif is_hold == 'Release':
+                    campaign.hold_experimenter_id = None
+                cherrypy.request.db.add(campaign)
+                cherrypy.request.db.commit()
+            else:
+               raise cherrypy.HTTPError(401, 'You are not authorized to hold or release this campaigns. ')
+        if ids2HR:
+            raise cherrypy.HTTPRedirect("show_campaigns")
+ 
+                     
+             
 
 
     @cherrypy.expose

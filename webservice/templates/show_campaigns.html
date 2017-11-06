@@ -11,10 +11,24 @@ POMS: Campaign Stages
         $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
             csv.push($(this).text());
         });
-        mod_form.find('span').html("Mark " + csv.length + " selected campaigns as ");
+        $("tempid1, span").html("Mark " + csv.length + " selected campaigns as ");
         console.log("csv="+csv);
         $("#campaign_ids").val(csv.join(','))
     }
+
+
+    function pop_launch_holder_modal() {
+        mod_form = $("#launch_holder_modal").modal('show');
+        var csv = [];
+        // find only visible rows; we're ignoring filtered/hidden rows
+        $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
+            csv.push($(this).text());
+        });
+        $("#tempid2, span").html("Mark " + csv.length + " selected campaigns as ");
+        console.log("csv="+csv);
+        $("#campaign_ids2HR").val(csv.join(','))
+    }
+
 
     function show_stats() {
         var csv = [];
@@ -48,25 +62,16 @@ Campaign Stages{%include 'help_button.html'%}
         display: none;
     }
 </style>
-<!--
-    exp_obj: {{exp_obj}}
-    logbook: {{exp_obj.logbook}}
-    snow_url: {{exp_obj.snow_url}}
-    version: {{version}}
-    pomspath: {{pomspath}}
--->
 
 <div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_mark_inactive_modal();">Mark Campaign Active/Inactive</div>
 <div class="ui teal button" onclick="show_stats();">Show Campaigns Statistics</div>
+<div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Campaign Submission</div>
 
 {% if campaigns|length == 0 %}
 <br>
 [No Campaigns Available]
 {% else %}
 <div id="double-scroll" class="ui _scrollable">
-    <!-- campaigns.0.experiment_obj.restricted: {{campaigns.0.experiment_obj.restricted}} -->
-    <!-- current_experimenter.is_authorized(campaigns.0.experiment): {{current_experimenter.is_authorized(campaigns.0.experiment)}} -->
-    <!-- campaigns.0.experiment in current_experimenter.extra.selected {{campaigns.0.experiment in current_experimenter.extra.selected}} -->
     <table id="campaigns" class="ui celled _table unstackable tablesorter tablesorter-ice">
         <thead>
             <tr>
@@ -74,10 +79,7 @@ Campaign Stages{%include 'help_button.html'%}
                 <th>Name</th>
                 <th>Active</th>
                 <th>Tags</th>
-<!--
-                <th>S/W Version</th>
-                <th>VO Role</th>
--->
+                <th>Hold By</th>
                 <th>Creator</th>
                 <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
             </tr>
@@ -85,16 +87,12 @@ Campaign Stages{%include 'help_button.html'%}
 
         <tbody>
             {% for campaign in campaigns if current_experimenter.extra and campaign.experiment in current_experimenter.extra.selected %}
-                <!-- campaign: {{campaign}} -->
                 <tr>
                     <td class="hideit">{{campaign.campaign_id}}</td>
                     <td><a href="{{pomspath}}/campaign_info?campaign_id={{campaign.campaign_id}}">{{campaign.name}}</a></td>
                     <td>{{ 'Yes' if campaign.active else 'No' }}</td>
                     <td>{{ campaign.campaigns_tags | join('<br>', attribute='tag_obj.tag_name') }}</td>
-<!--
-                    <td>{{campaign.software_version}}</td>
-                    <td>{{campaign.vo_role}}</td>
--->
+                    <td>{{campaign.experimenter_holder_obj.username}}</td>
                     <td>{{campaign.experimenter_creator_obj.username}}</td>
                     <td>{{campaign.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>
                 </tr>
@@ -117,9 +115,26 @@ Campaign Stages{%include 'help_button.html'%}
   <form class="ui form" action="mark_campaign_active" method="GET">
     <div class="field">
         <input type="text" id="campaign_ids" name="cl" readonly>
-        <span style="font-size: 1.3em;">Mark selected campaigns as </span>
+        <span id="tempid1" style="font-size: 1.3em;">Mark selected campaigns as </span>
         <input type="submit" class="ui teal button" name="is_active" value="Active">
         <input type="submit" class="ui teal button" name="is_active" value="Inactive">
+    </div>
+    <div class="ui hidden divider"></div>
+  </form>
+</div> <!-- Ends Modal -->
+
+<div class="ui modal small" id="launch_holder_modal" style="padding: 0px 20px;">
+  <i class="close icon"></i>
+
+  <div class="header">
+    Campaigns to Hold/Release:
+  </div>
+  <form class="ui form" action="mark_campaign_hold" method="GET">
+    <div class="field">
+        <input type="text" id="campaign_ids2HR" name="ids2HR" readonly>
+        <span id="tempid2" style="font-size: 1.3em;">Mark selected campaigns as </span>
+        <input type="submit" class="ui teal button" name="is_hold" value="Hold">
+        <input type="submit" class="ui teal button" name="is_hold" value="Release">
     </div>
     <div class="ui hidden divider"></div>
   </form>
@@ -136,51 +151,6 @@ Campaign Stages{%include 'help_button.html'%}
 
 </script>
 
-<!-- now some JSON callbacks to get our
-      * job counts for each campaign,
-      * efficiency for all the campaigns
-      * pending counts for all the campaigns
--->
-
-<script>
-    /*
-    $(function() {
-
-        var now = new Date()
-        var nows = now.getTime()
-        nows = nows - (nows % 300000)
-        nows = nows.toString()
-
-        {% for campaign in campaigns %}
-        $.getJSON("/poms/json_job_counts?tmin={{tmins}}&tmax={{tmaxs}}&campaign_id={{campaign.campaign_id}}&uuid="+nows,function(data){
-            for( var k in data ) {
-               id = "data_{{campaign.campaign_id}}_" + k.replace(" ","_")
-               console.log("trying to update a with id " + id )
-               $("a#"+id).html(data[k])
-            }
-        })
-        {% endfor %}
-        $.getJSON("/poms/json_efficiency_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{ campaigns | join(',', attribute='campaign_id') }}&uuid="+nows, function(data) {
-            for (var k in data) {
-               id = "data_"+k+"_efficiency"
-               console.log("trying to update a with id " + id )
-               $("a#"+id).html(data[k])
-            }
-        })
-        $.getJSON("/poms/json_pending_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{ campaigns | join(',', attribute='campaign_id') }}&uuid="+nows, function(data) {
-            for (var k in data) {
-               id = "data_"+k+"_pending"
-               console.log("trying to update a with id " + id )
-               if (data[k] == -1) {
-                   $("a#"+id).html('N/A')
-               } else {
-                   $("a#"+id).html(data[k])
-               }
-            }
-        })
-    });
-    */
-</script>
 
 <script>
     $('.external')

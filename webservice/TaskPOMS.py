@@ -619,7 +619,7 @@ class TaskPOMS:
             else:
                 cq = dbhandle.query(Campaign).filter(Campaign.name == campaign_id, Campaign.experiment == experiment)
 
-             c = cq.options(joinedload(Campaign.launch_template_obj), joinedload(Campaign.campaign_definition_obj)).first()
+            c = cq.options(joinedload(Campaign.launch_template_obj), joinedload(Campaign.campaign_definition_obj)).first()
 
             if not c:
                 err_res = 404
