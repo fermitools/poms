@@ -7,18 +7,18 @@
 # in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
 
-from collections import deque
+from collections import deque, defaultdict
 import os
 import shelve
-from collections import defaultdict
-from . import logit
+from datetime import datetime, timedelta
 
+from sqlalchemy.orm import subqueryload, joinedload
+from sqlalchemy import distinct, func
+
+from . import logit
 from .poms_model import Job, Task, Campaign, JobFile
-from sqlalchemy.orm import subqueryload, joinedload, aliased
-from sqlalchemy import desc, distinct, func
 from .utc import utc
-from datetime import datetime,timedelta
-from .pomscache import pomscache, pomscache_10
+from .pomscache import pomscache
 
 
 
@@ -41,14 +41,14 @@ class Files_status(object):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
-         time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
-                                                                       'campaign_task_files?campaign_id=%s&' % campaign_id)
+         time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
+                                                                              'campaign_task_files?campaign_id=%s&' % campaign_id)
         # inhale all the campaign related task info for the time window
         # in one fell swoop
         tl = (dbhandle.query(Task)
               .options(joinedload(Task.campaign_snap_obj))
               .filter(Task.campaign_id == campaign_id,
-                     Task.created >= tmin, Task.created < tmax)
+                      Task.created >= tmin, Task.created < tmax)
               .all())
         #
         # either get the campaign obj from above, or if we didn't
@@ -108,20 +108,20 @@ class Files_status(object):
         # get input/output file counts
         #
         tjifl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
-                  .filter(Job.task_id.in_(tids))
-                  .filter(JobFile.job_id == Job.job_id)
-                  .filter(JobFile.file_type == "input")
-                  .group_by(Job.task_id)
-                  .all())
+                 .filter(Job.task_id.in_(tids))
+                 .filter(JobFile.job_id == Job.job_id)
+                 .filter(JobFile.file_type == "input")
+                 .group_by(Job.task_id)
+                 .all())
 
         tjifh = dict(tjifl)
-         
+
         tjofl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
-                  .filter(Job.task_id.in_(tids))
-                  .filter(JobFile.job_id == Job.job_id)
-                  .filter(JobFile.file_type == "output")
-                  .group_by(Job.task_id)
-                  .all())
+                 .filter(Job.task_id.in_(tids))
+                 .filter(JobFile.job_id == Job.job_id)
+                 .filter(JobFile.file_type == "output")
+                 .group_by(Job.task_id)
+                 .all())
 
         tjofh = dict(tjofl)
 
@@ -299,7 +299,7 @@ class Files_status(object):
               options(joinedload(Task.campaign_obj)).
               options(joinedload(Task.jobs).joinedload(Job.job_files)).
               filter(Task.campaign_id == campaign_id,
-                  Task.created >= tmin, Task.created < tmax).
+                     Task.created >= tmin, Task.created < tmax).
               all())
 
         explist, dimlist = self.get_pending_dims_for_task_lists(dbhandle, samhandle, [tl])
@@ -312,7 +312,7 @@ class Files_status(object):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
-         time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s&' % campaign_id)
+         time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s&' % campaign_id)
 
         el = dbhandle.query(distinct(Job.user_exe_exit_code)).filter(Job.updated >= tmin, Job.updated <= tmax).all()
         exitcodes = [e[0] for e in el]
@@ -323,10 +323,10 @@ class Files_status(object):
         # get list of tasks
         #
         tl = (dbhandle.query(Task)
-               .filter(Task.campaign_id == campaign_id, Task.created > tmin, Task.created < tmax)
-               .order_by(Task.created)
-               .all())
-             
+              .filter(Task.campaign_id == campaign_id, Task.created > tmin, Task.created < tmax)
+              .order_by(Task.created)
+              .all())
+
         #
         # extract list of task ids
         #
@@ -336,8 +336,8 @@ class Files_status(object):
         # get job counts for each task, put in dict
         #
         tjcl = (dbhandle.query(Job.task_id, func.count(Job.job_id))
-               .filter(Job.task_id.in_(tids))
-               .group_by(Job.task_id))
+                .filter(Job.task_id.in_(tids))
+                .group_by(Job.task_id))
 
         tjch = dict(tjcl)
         logit.log("job counts:"+repr(tjch))
@@ -346,48 +346,48 @@ class Files_status(object):
         # get job efficiency for tasks
         #
         tjel = (dbhandle.query(Job.task_id, func.sum(Job.wall_time), func.sum(Job.cpu_time))
-               .filter(Job.task_id.in_(tids))
-               .filter(Job.cpu_time > 0.0, Job.wall_time > 0 , Job.cpu_time < Job.wall_time * 10)
-               .group_by(Job.task_id)
-               .all())
+                .filter(Job.task_id.in_(tids))
+                .filter(Job.cpu_time > 0.0, Job.wall_time > 0, Job.cpu_time < Job.wall_time * 10)
+                .group_by(Job.task_id)
+                .all())
 
         tjcpuh = {}
         tjwallh = {}
         for row in tjel:
             tjcpuh[row[0]] = row[1]
             tjwallh[row[0]] = row[2]
- 
+
         #
         # get input/output file counts
         #
         tjifl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
-                  .filter(Job.task_id.in_(tids))
-                  .filter(JobFile.job_id == Job.job_id)
-                  .filter(JobFile.file_type == "input")
-                  .group_by(Job.task_id)
-                  .all())
+                 .filter(Job.task_id.in_(tids))
+                 .filter(JobFile.job_id == Job.job_id)
+                 .filter(JobFile.file_type == "input")
+                 .group_by(Job.task_id)
+                 .all())
 
         tjifh = dict(tjifl)
-         
+
         tjofl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
-                  .filter(Job.task_id.in_(tids))
-                  .filter(JobFile.job_id == Job.job_id)
-                  .filter(JobFile.file_type == "output")
-                  .group_by(Job.task_id)
-                  .all())
+                 .filter(Job.task_id.in_(tids))
+                 .filter(JobFile.job_id == Job.job_id)
+                 .filter(JobFile.file_type == "output")
+                 .group_by(Job.task_id)
+                 .all())
 
         tjofh = dict(tjofl)
 
         #
-        # get exit code counts 
+        # get exit code counts
         #
         ecc = {}
         for e in exitcodes:
             tjel = (dbhandle.query(Job.task_id, func.count(Job.job_id))
-               .filter(Job.task_id.in_(tids))
-               .filter(Job.user_exe_exit_code == e)
-               .group_by(Job.task_id)
-               .all())
+                    .filter(Job.task_id.in_(tids))
+                    .filter(Job.user_exe_exit_code == e)
+                    .group_by(Job.task_id)
+                    .all())
             ecc[e] = dict(tjel)
 
         psl = self.poms_service.project_summary_for_tasks(tl)        # Get project summary list for a given task list in one parallel batch
@@ -396,8 +396,8 @@ class Files_status(object):
         day = -1
         date = None
         first = 1
-        columns = ['day', 'date', 'requested files', 'delivered files', 'input<br>files','jobs', 'output<br>files', 'pending', 'efficiency%']
-        exitcodes.sort(key=(lambda x:  x if x else -1))
+        columns = ['day', 'date', 'requested files', 'delivered files', 'input<br>files', 'jobs', 'output<br>files', 'pending', 'efficiency%']
+        exitcodes.sort(key=(lambda x: x if x else -1))
         for e in exitcodes:
             if e is not None:
                 columns.append('exit(%d)' % (e))
@@ -430,10 +430,10 @@ class Files_status(object):
                     outrow.append(str(totjobs))
                     outrow.append(str(outfiles))
                     outrow.append("...")  # we will get pending counts in a minute
-                    if totwall == 0.0 or totcpu == 0.0:     # totcpu undefined
+                    if totwall == 0.0 or totcpu == 0.0:     # FIXME: totcpu undefined
                         outrow.append(-1)
                     else:
-                        outrow.append(int(totcpu * 100.0 / totwall))   # totcpu undefined
+                        outrow.append(int(totcpu * 100.0 / totwall))   # FIXME: totcpu undefined
                     for e in exitcodes:
                         outrow.append(exitcounts[e])
 
@@ -460,21 +460,21 @@ class Files_status(object):
                 totdfiles += ps.get('tot_consumed', 0) + ps.get('tot_failed', 0)
                 totfiles += ps.get('files_in_snapshot', 0)
 
-            if tjch.get(task.task_id,None):
+            if tjch.get(task.task_id, None):
                 totjobs += tjch[task.task_id]
 
-            if tjcpuh.get(task.task_id,None) and tjwallh.get(task.task_id,None):
+            if tjcpuh.get(task.task_id, None) and tjwallh.get(task.task_id, None):
                 totwall += tjwallh[task.task_id]
                 totcpu += tjcpuh[task.task_id]
 
-            if tjofh.get(task.task_id,None):
-                outfiles +=tjofh[task.task_id]
+            if tjofh.get(task.task_id, None):
+                outfiles += tjofh[task.task_id]
 
-            if tjifh.get(task.task_id,None):
+            if tjifh.get(task.task_id, None):
                 infiles += tjifh[task.task_id]
 
             for i, e in enumerate(exitcodes):
-                if ecc.get(e,None) and ecc[e].get(task.task_id,None):
+                if ecc.get(e, None) and ecc[e].get(task.task_id, None):
                     exitcounts[e] += ecc[e][task.task_id]
 
         # we *should* add another row here for the last set of totals, but
@@ -546,7 +546,7 @@ class Files_status(object):
                      all())
         # logit.log("get_pending_for_campaigns: task_list (%d): %s" % (len(task_list), task_list))
 
-        tll = defaultdict(lambda : [])                              # To prepare the list of task lists
+        tll = defaultdict(lambda: [])                               # To prepare the list of task lists
         for task in task_list:                                      # Group tasks by campaign ids
             tll[task.campaign_id].append(task)
         task_list_list = [tll[int(ci)] for ci in campaign_id_list]  # Build the list of task lists in original campaign order

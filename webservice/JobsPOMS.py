@@ -582,7 +582,7 @@ class JobsPOMS(object):
         res = self.poms_service.job_counts(task_id, campaign_id)
         return repr(res) + self.poms_service.format_job_counts(task_id, campaign_id)
 
-    def kill_jobs(self, dbhandle, campaign_id=None, task_id=None, job_id=None, confirm=None):
+    def kill_jobs(self, dbhandle, campaign_id=None, task_id=None, job_id=None, confirm=None , act = 'kill'):
         jjil = deque()
         jql = None
         t = None
@@ -617,9 +617,16 @@ class JobsPOMS(object):
             group = c.experiment
             if group == 'samdev':
                 group = 'fermilab'
+          
+            subcmd = 'rm'
+            if act == 'kill':
+                subcmd = 'rm'
+            if act in ('hold','release'):
+                subcmd = act
+
             '''
             if test == true:
-                os.open("echo jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
+                os.open("echo jobsub_%s -G %s --role %s --jobid %s 2>&1" % (subcmd, group, c.vo_role, ','.join(jjil)), "r")
             '''
             f = os.popen("export PATH=$HOME/bin:$PATH; /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
             output = f.read()

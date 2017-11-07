@@ -52,7 +52,7 @@ def launch_jobs(campaign, test = None, experiment = None, configfile = None):
                     method = 'launch_jobs',
                     campaign_id = campaign,
                     test = test,
-                    configfile = configfile
+                    configfile = configfile,
                     experiment = experiment)
     return data, status
 
@@ -286,8 +286,8 @@ def make_poms_call(**kwargs):
     cert=auth_cert()
     if cert == None and base[:6] == "https:":
          return ("No client certificate", 500)
-    rs.cert=cert
-    rs.key=cert
+    rs.cert=(cert,cert)
+    rs.verify=False
     logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert))
 
     c = rs.post("%s/%s" % (base,method), data=kwargs, verify=False, allow_redirects = False);

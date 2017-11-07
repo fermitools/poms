@@ -30,7 +30,7 @@ class CalendarPOMS(object):
         alist = deque()
         for row in rows:
             if row.ServiceDowntime.downtime_type == 'scheduled':
-                    editable = 'true'
+                editable = 'true'
             else:
                 editable = 'false'
 
