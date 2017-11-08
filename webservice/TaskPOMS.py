@@ -538,7 +538,7 @@ class TaskPOMS:
             # uncomment when we get db fields:
             param_overrides = rlist[t.recovery_position].param_overrides
             if rtype.name == 'consumed_status':
-                recovery_dims = "for_project_name %s and consumed_status != 'consumed'" % t.project
+                recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
             elif rtype.name == 'proj_status':
                 recovery_dims = "project_name %s and process_status != 'ok'" % t.project
             elif rtype.name == 'pending_files':
