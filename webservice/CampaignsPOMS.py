@@ -87,7 +87,7 @@ class CampaignsPOMS():
             else:
                 ae_launch_name = kwargs.pop('ae_launch_name')
                 if isinstance(ae_launch_name, str):
-                    ae_launch_name =ae_launch_name.strip()
+                    ae_launch_name = ae_launch_name.strip()
                 ae_launch_id = kwargs.pop('ae_launch_id')
                 experimenter_id = kwargs.pop('experimenter_id')
                 ae_launch_host = kwargs.pop('ae_launch_host')
@@ -302,15 +302,18 @@ class CampaignsPOMS():
                 recs_dict[cid] = json.dumps(list(rec_list))
 
             data['recoveries'] = recs_dict
-            data['rtypes'] = (dbhandle.query(RecoveryType.name, RecoveryType.description).order_by(RecoveryType.name).all())
+            data['rtypes'] = (
+                dbhandle.query(RecoveryType.name, RecoveryType.description).order_by(RecoveryType.name).all())
 
         data['message'] = message
         return data
 
     def make_test_campaign_for(self, dbhandle, sesshandle, campaign_def_id, campaign_def_name):
-        c = dbhandle.query(Campaign).filter(Campaign.campaign_definition_id == campaign_def_id, Campaign.name == "_test_%s" % campaign_def_name).first()
+        c = dbhandle.query(Campaign).filter(Campaign.campaign_definition_id == campaign_def_id,
+                                            Campaign.name == "_test_%s" % campaign_def_name).first()
         if not c:
-            lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment == sesshandle.get('experimenter').session_experiment).first()
+            lt = dbhandle.query(LaunchTemplate).filter(
+                LaunchTemplate.experiment == sesshandle.get('experimenter').session_experiment).first()
             c = Campaign()
             c.campaign_definition_id = campaign_def_id
             c.name = "_test_%s" % campaign_def_name
@@ -324,7 +327,8 @@ class CampaignsPOMS():
             c.software_version = ""
             dbhandle.add(c)
             dbhandle.commit()
-            c = dbhandle.query(Campaign).filter(Campaign.campaign_definition_id == campaign_def_id, Campaign.name == "_test_%s" % campaign_def_name).first()
+            c = dbhandle.query(Campaign).filter(Campaign.campaign_definition_id == campaign_def_id,
+                                                Campaign.name == "_test_%s" % campaign_def_name).first()
         return c.campaign_id
 
     def campaign_edit(self, dbhandle, sesshandle, *args, **kwargs):
@@ -361,7 +365,7 @@ class CampaignsPOMS():
         if action == 'add' or action == 'edit':
             name = kwargs.pop('ae_campaign_name')
             if isinstance(name, str):
-                name =name.strip()
+                name = name.strip()
             active = kwargs.pop('ae_active')
             split_type = kwargs.pop('ae_split_type', None)
             vo_role = kwargs.pop('ae_vo_role')
@@ -378,7 +382,7 @@ class CampaignsPOMS():
 
             if pcl_call == 1:
                 launch_name = kwargs.pop('ae_launch_name')
-                if isinstance(launch_name,str):
+                if isinstance(launch_name, str):
                     launch_name = launch_name.strip()
                 campaign_definition_name = kwargs.pop('ae_campaign_definition')
                 if isinstance(campaign_definition_name, str):
@@ -591,20 +595,19 @@ class CampaignsPOMS():
         return bytes(text, encoding="utf-8")
 
     def show_campaigns(self, dbhandle, samhandle, campaign_ids=None, experiment=None, tmin=None, tmax=None, tdays=7,
-                       active=True, tag=None):
+                       active=True, tag=None, holder=None):
 
-        (tmin, tmax, tmins, tmaxs,
-         nextlink, prevlink,
-         time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
+        """
 
-        # cq = dbhandle.query(Campaign).filter(Campaign.active==active).order_by(Campaign.experiment)
-
-        #logit.log(logit.DEBUG, "show_campaigns: querying {}".format('active' if active else 'inactive'))
-        # cq = dbhandle.query(Campaign).options(joinedload('experiment_obj')).filter(Campaign.active==active).order_by(Campaign.experiment)
+        :rtype: object
+        """
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = \
+            self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
         cq = (dbhandle.query(Campaign)
               .outerjoin(CampaignsTags)
               .options(joinedload('campaigns_tags'))
               .options(joinedload('experiment_obj'))
+              .options(joinedload(Campaign.experimenter_holder_obj))
               .order_by(Campaign.experiment)
               .options(joinedload(Campaign.experimenter_creator_obj))
              )
@@ -619,11 +622,10 @@ class CampaignsPOMS():
         if tag:
             cq = cq.join(Tag).filter(Tag.tag_name == tag)
 
+        if holder:
+            cq = cq.filter(Campaingn.hold_experimenters_id == holder)
         campaigns = cq.all()
         logit.log(logit.DEBUG, "show_campaigns: back from query")
-
-        # counts = {}
-        # counts_keys = {}
 
         return campaigns, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
 
@@ -683,7 +685,7 @@ class CampaignsPOMS():
         logit.log("got format {}".format(campaign_kibana_link_format))
         kibana_link = campaign_kibana_link_format.format(campaign_id)
 
-        dep_svg = self.campaign_deps_svg(dbhandle, config_get, camp_id = campaign_id)
+        dep_svg = self.campaign_deps_svg(dbhandle, config_get, camp_id=campaign_id)
         return (campaign_info,
                 time_range_string,
                 tmins, tmaxs, tdays,
@@ -853,7 +855,7 @@ class CampaignsPOMS():
         dbhandle.commit()
         return res
 
-    def list_launch_file(self, campaign_id, fname, launch_template_id = None):
+    def list_launch_file(self, campaign_id, fname, launch_template_id=None):
         if launch_template_id:
             dirname = '{}/private/logs/poms/launches/template_tests_{}'.format(os.environ['HOME'], launch_template_id)
         else:
