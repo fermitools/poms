@@ -487,7 +487,7 @@ class JobsPOMS(object):
                 # we went from Completed or Removed back to some Running/Idle state...
                 # so clean out any old (wrong) Completed statuses from
                 # the JobHistory... (Bug #15322)
-                dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status.in_('Completed','Removed').delete()
+                dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status.in_('Completed','Removed')).delete()
 
             # first, Job string fields the db requres be not null:
             for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
