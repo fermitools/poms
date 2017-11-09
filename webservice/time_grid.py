@@ -37,7 +37,7 @@ class time_grid:
 
     def key(self, fancy=0):
         res = ['<div class="ui raised padded container segment" style="height: %sem">' % (11 if fancy else 5)]
-        list = ["new", "Idle", "Held", "Running", "Completed", "Located"]
+        list = ["new", "Idle", "Held", "Running", "Completed", "Removed", "Located"]
         if fancy:
             list += ["running: user code",
                      "running: copying files in",

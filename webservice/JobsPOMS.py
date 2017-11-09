@@ -57,7 +57,7 @@ class JobsPOMS(object):
                           Job.jobsub_job_id != "unknown",
                           Job.task_id == Task.task_id,
                           Job.job_id == JobFile.job_id,
-                          Job.status == "Completed",
+                          Job.status.in_("Completed","Removd"),
                           or_(Job.output_files_declared == False, JobFile.declared == None), JobFile.file_type == 'output')
                   .order_by(CampaignSnapshot.experiment, Job.jobsub_job_id).all()):
             # convert fpattern "%.root,%.dat" to regexp ".*\.root|.*\.dat"
@@ -153,7 +153,7 @@ class JobsPOMS(object):
                     task_updates[field[5:]] = {}
                 else:
                     job_updates[field] = {}
-            if 'status' in r and 'task_id' in r and r['status'] == 'Completed':
+            if 'status' in r and 'task_id' in r and r['status'] in ('Completed','Removed'):
                tasks_job_completed.add(r['task_id'])               
 
         job_file_jobs = set()
@@ -483,11 +483,11 @@ class JobsPOMS(object):
             oldstatus = j.status
             logit.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
 
-            if kwargs.get('status', None) and oldstatus != kwargs.get('status') and oldstatus == 'Completed' and kwargs.get('status') != 'Located':
-                # we went from Completed back to some Running/Idle state...
+            if kwargs.get('status', None) and oldstatus != kwargs.get('status') and oldstatus in ('Completed','Removed') and kwargs.get('status') != 'Located':
+                # we went from Completed or Removed back to some Running/Idle state...
                 # so clean out any old (wrong) Completed statuses from
                 # the JobHistory... (Bug #15322)
-                dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status == 'Completed').delete()
+                dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status.in_('Completed','Removed').delete()
 
             # first, Job string fields the db requres be not null:
             for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
@@ -604,7 +604,7 @@ class JobsPOMS(object):
                 if tjid:
                     jjil.append(tjid.replace('.0', ''))
         else:
-            jql = dbhandle.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Located').execution_options(stream_results=True).all()
+            jql = dbhandle.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Removed', Job.status != 'Located').execution_options(stream_results=True).all()
             c = jql[0].task_obj.campaign_snap_obj
             for j in jql:
                 jjil.append(j.jobsub_job_id)

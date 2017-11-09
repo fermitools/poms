@@ -113,7 +113,7 @@ class TaskPOMS:
         # make jobs which completed with no *undeclared* output files have status "Located".
         #
         t = text("""update jobs set status = 'Located'
-            where status = 'Completed' and (select count(file_name) from job_files
+            where (status = 'Completed' or status == 'Removed') and (select count(file_name) from job_files
                                             where job_files.job_id = jobs.job_id
                                                 and job_files.file_type = 'output'
                                                 and job_files.declared is null) = 0""")
@@ -122,7 +122,7 @@ class TaskPOMS:
         #
         # tried to do as below, but no such luck
         # subq = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
-        # dbhandle.query(Job).filter(Job.status == "Completed", subq == 0).update({'status':'Located'}, synchronize_session='fetch')
+        # dbhandle.query(Job).filter(Job.status.in_("Completed","Removed"), subq == 0).update({'status':'Located'}, synchronize_session='fetch')
         #
         dbhandle.commit()
 
@@ -132,6 +132,7 @@ class TaskPOMS:
         q = (dbhandle.query(Task.task_id, Task.created, func.count(Job.job_id),
                             func.sum(case([
                                 (Job.status == "Completed", 0),
+                                (Job.status == "Removed", 0),
                                 (Job.status == "Located", 0),
                             ], else_=1)))
              .filter(Job.task_id == Task.task_id)
@@ -354,7 +355,7 @@ class TaskPOMS:
             else:
                 jjid = 'j' + str(jh.job_id)
 
-            if j.status != "Completed" and j.status != "Located":
+            if j.status != "Completed" and j.status != "Located" and j.status != "Removed":
                 extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d&act=hold"><i class="ui pause icon"></i></a><a href="%s/kill_jobs?job_id=%d&act=release"><i class="ui play icon"></i></a><a href="%s/kill_jobs?job_id=%d&act=kill"><i class="ui trash icon"></i></a>' % (self.poms_service.path, jh.job_id,self.poms_service.path, jh.job_id,self.poms_service.path, jh.job_id)
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
@@ -399,6 +400,8 @@ class TaskPOMS:
         if st['Running'] > 0:
             res = "Running"
         if st['Completed'] > 0 and  res == "New":
+            res = "Completed"
+        if st['Removed'] > 0 and  res == "New":
             res = "Completed"
         if st['Located'] > 0 and  res == "New":
             res = "Located"
