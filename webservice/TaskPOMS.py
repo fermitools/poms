@@ -411,7 +411,7 @@ class TaskPOMS:
         if task_id in self.task_min_job_cache:
             return self.task_min_job_cache.get(task_id)
         jt = dbhandle.query(func.min(Job.jobsub_job_id)).filter(Job.task_id == task_id).first()
-        if len(jt):
+        if len(jt) and jt[0]: 
             self.task_min_job_cache[task_id] = jt[0]
             return jt[0]
         return None

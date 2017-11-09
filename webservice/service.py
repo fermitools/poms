@@ -337,6 +337,11 @@ class SessionTool(cherrypy.Tool):
         logit.log("extra")
         logit.log(extra)
         logit.log("*******************************YG")
+
+        if "" ==  e[0].session_experiment:
+             # don't choke on blank session_experiment, just pick one...
+             e[0].sesssion_experiment = e2e[0].experiment
+
         cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
                                                                e[0].first_name, e[0].last_name, e[0].username, exps, e[0].session_experiment, **extra)
 
