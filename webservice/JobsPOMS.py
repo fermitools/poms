@@ -490,15 +490,16 @@ class JobsPOMS(object):
                 dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status.in_('Completed','Removed')).delete()
 
             # first, Job string fields the db requres be not null:
-            for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
+            for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code', 'reason_held']:
                 if field == 'status' and j.status == "Located":
                     # stick at Located, don't roll back to Completed,etc.
                     continue
 
                 if kwargs.get(field, None):
                     setattr(j, field, str(kwargs[field]).rstrip("\n"))
+
                 if not getattr(j, field, None):
-                    if field != 'user_exe_exit_code':
+                    if not field in ['user_exe_exit_code','reason_held']:
                         setattr(j, field, 'unknown')
 
             # first, next, output_files_declared, which also changes status

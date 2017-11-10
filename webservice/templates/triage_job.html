@@ -60,6 +60,9 @@ POMS Job Triage
   </tbody>
 </table>
 
+{% if job_info.Job.status == "Held" %}
+Held because: {{job_info.Job.reason_held}}
+{% endif %}
 
 
 {% if job_info.Task.project is not none %}
