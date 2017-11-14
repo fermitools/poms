@@ -156,9 +156,11 @@ class samweb_lite:
              info["tot_jobs"] = info.get("process_counts",{}).get("completed",0)
              info["tot_consumed"] = info.get("file_counts",{}).get("consumed",0)
              info["tot_failed"] = info.get("file_counts",{}).get("failed",0)
+             info["tot_delivered"] = info.get("file_counts",{}).get("delivered",0)
              return
         tot_consumed = 0
         tot_skipped = 0
+        tot_delivered = 0
         tot_failed = 0
         tot_jobs = 0
         tot_jobfails = 0
@@ -166,6 +168,7 @@ class samweb_lite:
             tot_consumed += proc["counts"]["consumed"]
             tot_failed += proc["counts"]["failed"]
             tot_skipped += proc["counts"].get("skipped", 0)
+            tot_delivered += proc["counts"].get("delivered", 0)
             tot_jobs += 1
             if proc["status"] != "completed":
                 tot_jobfails += 1
@@ -175,6 +178,7 @@ class samweb_lite:
         info["tot_skipped"] = tot_skipped
         info["tot_jobs"] = tot_jobs
         info["tot_jobfails"] = tot_jobfails
+        info["tot_delivered"] = tot_delivered
         # we don't need the individual process info, just the totals..
         if "processes" in info:
             del info["processes"]
