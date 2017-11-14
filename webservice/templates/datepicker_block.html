@@ -76,6 +76,7 @@ $( "#from_datepicker, #to_datepicker" ).change(function() {
 
 
 <script>
+
 function addVarsToDatepickerComponentForm()
 {
     var query = window.location.search.substring(1);
@@ -108,7 +109,6 @@ function addVarsToDatepickerComponentForm()
 $( "#form_submit_button" ).click(function(event) {
   event.preventDefault();
 
-  addVarsToDatepickerComponentForm();
 
   var from_local_time = $('#from_datepicker').val();
   var m_from_local_time_utc = moment(from_local_time).utc().format('YYYY-MM-DD HH:mm:ss');
@@ -130,6 +130,7 @@ $( "#form_submit_button" ).click(function(event) {
   }
   $("#to_datepicker_to_send").val(m_to_local_time_utc);
 
+  addVarsToDatepickerComponentForm();
 
   $( "#datepicker_form" ).submit();
 
