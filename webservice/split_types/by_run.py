@@ -7,17 +7,26 @@ class mod:
     def __init__(self, c, samhandle, dbhandle):
         self.c = c
         self.ds = c.dataset
-        self.m = int(c.cs_split_type[4:].strip(')'))
+        self.low = 1
+        self.high = 999999
+        parms = c.cs_split_type[4:].split(',')
+            low = 1
+            for p in parms:
+                if p.endswith(')'): p = p[:-1]
+                if p.startswith('low='): self.low = int(p[4:])
+                if p.startswith('high='): self.high = int(p[5:])
+
         self.samhandle = samhandle
+        return c.dataset
 
     def peek(self):
         if not self.c.cs_last_split:
-            self.c.cs_last_split = 0
-        if self.c.cs_last_split >= self.m
+            self.c.cs_last_split = self.low
+        if self.c.cs_last_split >= self.high
             raise StopIteration
 
-        new = self.ds + "_slice%d_of_%d" % (self.c.cs_last_split, self.m)
-        self.samhandle.create_definition(self.c.campaign_definition_obj.experiment, new,  "defname: %s with stride %d offset %d" % (self.c.dataset, self.m, self.c.cs_last_split))
+        new = camp.dataset + "_run_%d" % (c.cs_last_split)
+        self.samhandle.create_definition(c.campaign_definition_obj.experiment, new,  "defname: %s and run_number %d" % (self.ds,  camp.cs_last_split))
         return new
 
     def next(self):
@@ -30,6 +39,5 @@ class mod:
         res = self.peek()
         return res
 
-
     def len(self):
-        return self.m
+        return self.high - self.low + 1

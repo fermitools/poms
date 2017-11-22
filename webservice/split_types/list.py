@@ -19,6 +19,12 @@ class list:
     def next(self):
         res = self.peek()
         self.c.cs_last_split = self.c.cs_last_split+1
+        return res
+
+    def prev(self):
+        self.c.cs_last_split = self.c.cs_last_split-1
+        res = self.peek()
+        return res
 
     def len(self):
         return len(self.list)
