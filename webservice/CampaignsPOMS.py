@@ -629,6 +629,15 @@ class CampaignsPOMS():
 
         return campaigns, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
 
+    def reset_campaign_split(self, dbhandle, samhandle, campaign_id):
+        campaign_id = int(campaign_id)
+
+        c = (dbhandle.query(Campaign)
+                         .filter(Campaign.campaign_id == campaign_id)
+                         .first())
+        c.cs_last_split = None
+        dbhandle.commit()
+
     # @pomscache.cache_on_arguments()
     def campaign_info(self, dbhandle, samhandle, err_res, config_get, campaign_id, tmin=None, tmax=None, tdays=None):
 

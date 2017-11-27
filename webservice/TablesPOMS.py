@@ -9,9 +9,10 @@
 from collections import deque
 from . import logit
 from datetime import datetime
-from sqlalchemy import Integer, DateTime, ForeignKey, text
+from sqlalchemy import Integer, DateTime, ForeignKey, text, JSON
 
 from .utc import utc
+import json
 
 
 class TablesPOMS(object):
@@ -58,8 +59,12 @@ class TablesPOMS(object):
         for fieldname in list(columns.keys()):
             if not kwargs.get(fieldname, None):
                 continue
+            if kwargs.get(fieldname, None) == 'None':
+                continue
             if columns[fieldname].type == Integer:
                 setattr(found, fieldname, int(kwargs.get(fieldname, '')))
+            if columns[fieldname].type == JSON:
+                setattr(found, fieldname, json.loads(kwargs.get(fieldname, '')))
             elif columns[fieldname].type == DateTime:
                 # special case created, updated fields; set created
                 # if its null, and always set updated if we're updating
@@ -109,10 +114,11 @@ class TablesPOMS(object):
         fieldnames = list(columns.keys())
         screendata = deque()
         for fn in fieldnames:
+            logit.log("found field %s %s" % (fn, getattr(found,fn,'')))
             screendata.append({
                 'name': fn,
                 'primary': columns[fn].primary_key,
-                'value': getattr(found, fn, ''),
+                'value':  (json.dumps(getattr(found,fn,'[]')) if columns[fn].type == JSON else str(getattr(found, fn, ''))),
                 'values': valmap.get(fn, None)
             })
         return screendata

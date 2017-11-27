@@ -77,32 +77,6 @@ class TaskPOMS:
         self.poms_service = ps
         self.task_min_job_cache = {}
 
-    def create_task(self, dbhandle, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor=None):
-        first, last, username = creator.split(' ')
-        creator = self.poms_service.get_or_add_experimenter(first, last, username)
-        exp = self.poms_service.get_or_add_experiment(experiment)
-        td = self.poms_service.get_or_add_taskdef(taskdef, creator, exp)
-        camp = self.poms_service.get_or_add_campaign(exp, td, creator)
-        t = Task()
-        t.campaign_id = camp.campaign_id
-        #t.campaign_definition_id = td.campaign_definition_id
-        t.task_order = 0
-        t.input_dataset = input_dataset
-        t.output_dataset = output_dataset
-        t.waitingfor = waitingfor
-        t.order = 0
-        t.creator = creator.experimenter_id
-        t.created = datetime.now(utc)
-        t.status = "created"
-        t.task_parameters = params
-        t.waiting_threshold = 5
-        t.updater = creator.experimenter_id
-        t.updated = datetime.now(utc)
-
-        dbhandle.add(t)
-        dbhandle.commit()
-        return str(t.task_id)
-
 
     def wrapup_tasks(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res):
         # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.

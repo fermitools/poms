@@ -69,7 +69,29 @@ class CalendarPOMS(object):
         return rows
 
 
-    #CalendarPOMS.edit_event(cherrypy.request.db, title, start, new_start, end, s_id)
+    def edit_event(self, dbhandle, title, start, new_start, end, s_id):
+
+        start_dt = datetime.fromtimestamp(float(start), tz=utc)
+        new_start_dt = datetime.fromtimestamp(float(new_start), tz=utc)
+        end_dt = datetime.fromtimestamp(float(end), tz=utc)
+        s = dbhandle.query(Service).filter(Service.name == title).first()
+
+        if s:
+            d = (dbhandle.query(ServiceDowntime)
+                .filter(ServiceDowntime.start == start, 
+                        ServiceDowntime.service_di = s.service_id)
+                .first())
+            d.downtime_started = new_start_dt
+            d.downtime_ended = end_dt
+            d.downtime_type = 'scheduled'
+            dbhandle.add(d)
+            dbhandle.commit()
+            return "Ok."
+
+        else:
+            #no service id
+            return "Oops."
+
     def add_event(self, dbhandle, title, start, end):
 
         start_dt = datetime.fromtimestamp(float(start), tz=utc)
