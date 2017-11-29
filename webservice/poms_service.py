@@ -1,3 +1,6 @@
+#
+# pylint: disable=line-too-long,invalid-name,missing-docstring
+#
 import os
 import pprint
 import socket
@@ -18,9 +21,7 @@ from . import logit
 from . import version
 from .elasticsearch import Elasticsearch
 from .poms_model import Service, Task, Campaign
-
-
-#import gcwrap
+from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment
 
 
 def error_response():
@@ -28,7 +29,6 @@ def error_response():
     if cherrypy.config.get("dump", True):
         dump = cherrypy._cperror.format_exc()
     message = dump.replace('\n', '<br/>')
-
     jinja_env = Environment(loader=PackageLoader('poms.webservice', 'templates'))
     template = jinja_env.get_template('error_response.html')
     path = cherrypy.config.get("pomspath", "/poms")
@@ -39,10 +39,7 @@ def error_response():
     logit.log(dump)
 
 
-
 class PomsService(object):
-
-
     _cp_config = {'request.error_response': error_response,
                   'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), '/templates/page_not_found.html')
                  }
@@ -126,13 +123,6 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def jump_to_job(self, jobsub_job_id, **kwargs):
-        # FIXME: There is no jump_to_job method in UtilsPOMS!
-        self.utilsPOMS.jump_to_job(cherrypy.request.db, cherrypy.HTTPRedirect, jobsub_job_id, **kwargs)
-
-
-    @cherrypy.expose
-    @logit.logstartstop
     def update_session_experiment(self, *args, **kwargs):
         self.utilsPOMS.update_session_experiment(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
 
@@ -158,14 +148,12 @@ class PomsService(object):
     @logit.logstartstop
     def add_event(self, title, start, end):
         #title should be something like minos_sam:27 DCache:12 All:11 ...
-        # FIXME: add_event is a method of CalendarPOMS. It does not have .calendar member!
-        return self.calendarPOMS.add_event.calendar(cherrypy.request.db, title, start, end)
+        return self.calendarPOMS.add_event(cherrypy.request.db, title, start, end)
 
     @cherrypy.expose
     @logit.logstartstop
     def edit_event(self, title, start, new_start, end, s_id):
         # even though we pass in the s_id we should not rely on it because they can and will change the service name
-        # FIXME: There is no edit_event method in CalendarPOMS!
         return self.calendarPOMS.edit_event(cherrypy.request.db, title, start, new_start, end, s_id)
 
 
@@ -336,7 +324,7 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def make_test_campaign_for(self,  campaign_def_id, campaign_def_name):
+    def make_test_campaign_for(self, campaign_def_id, campaign_def_name):
         cid = self.campaignsPOMS.make_test_campaign_for(cherrypy.request.db, cherrypy.session, campaign_def_id, campaign_def_name)
         raise cherrypy.HTTPRedirect("%s/campaign_edit?campaign_id=%d&extra_edit_flag=launch_test_job" % (self.path, cid))
 
@@ -384,27 +372,23 @@ class PomsService(object):
     @logit.logstartstop
     def show_tags(self):
         experiment = cherrypy.session.get('experimenter').session_experiment
-
         tl = self.tagsPOMS.show_tags(cherrypy.request.db, experiment)
-
         current_experimenter = cherrypy.session.get('experimenter')
-
-        experiments = self.dbadminPOMS.member_experiments(cherrypy.request.db, current_experimenter.username)
-
-
         template = self.jinja_env.get_template('show_tags.html')
-        return template.render(tl=tl, help_page="ShowCampaignTagsHelp", experiments=experiments)
+
+        return template.render(tl=tl, help_page="ShowCampaignTagsHelp")
+
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaigns(self, tmin=None, tmax=None, tdays=7, active=True, tag=None, cl=None, **kwargs):
+    def show_campaigns(self, tmin=None, tmax=None, tdays=7, active=True, tag=None, holder=None, cl=None, **kwargs):
         experiment = cherrypy.session.get('experimenter').session_experiment
         (
             campaigns, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
         ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db,
                                               cherrypy.request.samweb_lite, experiment=experiment,
                                               tmin=tmin, tmax=tmax, tdays=tdays, active=active, tag=tag,
-                                              campaign_ids=cl)
+                                              holder=holder, campaign_ids=cl)
 
         current_experimenter = cherrypy.session.get('experimenter')
         #~ logit.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
@@ -417,8 +401,6 @@ class PomsService(object):
             #~ logit.log("current_experimenter.extra update... ")                               # DEBUG
         #~ logit.log("current_experimenter.extra after: "+str(current_experimenter.extra))      # DEBUG
 
-        experiments = self.dbadminPOMS.member_experiments(cherrypy.request.db, current_experimenter.username)
-
         if cl is None:
             template = self.jinja_env.get_template('show_campaigns.html')
         else:
@@ -428,9 +410,20 @@ class PomsService(object):
                                campaigns=campaigns, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
                                do_refresh=1200,
                                next=nextlink, prev=prevlink, tdays=tdays, time_range_string=time_range_string,
-                               key='', help_page="ShowCampaignsHelp",
-                               experiments=experiments,
-                               dbg=kwargs)
+                               key='', help_page="ShowCampaignsHelp", dbg=kwargs)
+
+    @cherrypy.expose
+    @logit.logstartstop
+    def reset_campaign_split(self, campaign_id):
+        campaign = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        if campaign and cherrypy.session.get('experimenter').is_authorized(campaign.experiment):
+            return self.campaignsPOMS.reset_campaign_split(
+                cherrypy.request.db,
+                cherrypy.request.samweb_lite,
+                cherrypy.config.get,
+                campaign_id)
+        else:
+            raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
 
     @cherrypy.expose
     @logit.logstartstop
@@ -448,12 +441,24 @@ class PomsService(object):
                                                                   cherrypy.config.get,
                                                                   campaign_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_info.html')
-        return template.render(Campaign_info=campaign_info, time_range_string=time_range_string, tmins=tmins, tmaxs=tmaxs,
-                               Campaign_definition_info=campaign_definition_info, Launch_template_info=launch_template_info,
-                               tags=tags, launched_campaigns=launched_campaigns, dimlist=dimlist,
-                               Campaign=campaign, counts_keys=counts_keys, counts=counts, launch_flist=launch_flist,
-                               do_refresh=0, help_page="CampaignInfoHelp",
-                               kibana_link=kibana_link, dep_svg = dep_svg)
+        return template.render(
+            Campaign_info=campaign_info,
+            time_range_string=time_range_string,
+            tmins=tmins,
+            tmaxs=tmaxs,
+            Campaign_definition_info=campaign_definition_info,
+            Launch_template_info=launch_template_info,
+            tags=tags,
+            launched_campaigns=launched_campaigns,
+            dimlist=dimlist,
+            Campaign=campaign,
+            counts_keys=counts_keys,
+            counts=counts,
+            launch_flist=launch_flist,
+            do_refresh=0,
+            help_page="CampaignInfoHelp",
+            kibana_link=kibana_link,
+            dep_svg=dep_svg)
 
 
     @cherrypy.expose
@@ -486,7 +491,7 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def list_launch_file(self, campaign_id = None, fname = None, launch_template_id = None):
+    def list_launch_file(self, campaign_id=None, fname=None, launch_template_id=None):
         lines, refresh = self.campaignsPOMS.list_launch_file(campaign_id, fname, launch_template_id)
         output = "".join(lines)
         template = self.jinja_env.get_template('launch_jobs.html')
@@ -535,16 +540,34 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
+    def mark_campaign_hold(self, ids2HR=None, is_hold=''):
+        logit.log("********YG** campaign_id={}; is_hold='{}'".format(ids2HR, is_hold))
+        campaign_ids = ids2HR.split(",")
+        ex = cherrypy.session.get('experimenter')
+        for cid  in campaign_ids:
+            campaign = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == cid).first()
+            holder = cherrypy.request.db.query(Experimenter)\
+             .filter(Experimenter.experimenter_id == campaign.hold_experimenter_id).first()
+            if campaign and (holder is None or ex.is_authorized(campaign.experiment, holder.username)):
+                if is_hold == 'Hold':
+                    campaign.hold_experimenter_id = ex.experimenter_id
+                elif is_hold == 'Release':
+                    campaign.hold_experimenter_id = None
+                cherrypy.request.db.add(campaign)
+                cherrypy.request.db.commit()
+            else:
+                raise cherrypy.HTTPError(401, 'You are not authorized to hold or release this campaigns. ')
+        if ids2HR:
+            raise cherrypy.HTTPRedirect("show_campaigns")
+
+    @cherrypy.expose
+    @logit.logstartstop
     def make_stale_campaigns_inactive(self):
-        # TODO: not finished yet!
-        # XXXX 'c' below does not exist!
-        #if not cherrypy.session.get('experimenter').is_authorized(c.experiment):
-        #    raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
+        if not cherrypy.session.get('experimenter').is_root():
+            raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         res = self.campaignsPOMS.make_stale_campaigns_inactive(cherrypy.request.db, cherrypy.HTTPError)
         return "Marked inactive stale: " + ",".join(res)
-#--------------------------------------
-###############
-### Tables
+
 
     @cherrypy.expose
     @logit.logstartstop
@@ -570,7 +593,9 @@ class PomsService(object):
         return self.tablesPOMS.update_generic(cherrypy.request.db, cherrypy.request.headers.get, cherrypy.session, classname, *args, **kwargs)
 
 
-    def edit_screen_for(self, classname, eclass, update_call, primkey, primval, valmap):    # XXXX Why this function is not expose
+    @cherrypy.expose
+    @logit.logstartstop
+    def edit_screen_for(self, classname, eclass, update_call, primkey, primval, valmap):   
         screendata = self.tablesPOMS.edit_screen_for(cherrypy.request.db,
                                                      cherrypy.request.headers.get,
                                                      cherrypy.session, classname, eclass,
@@ -655,7 +680,7 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def kill_jobs(self, campaign_id=None, task_id=None, job_id=None, confirm=None, act = 'kill' ):
+    def kill_jobs(self, campaign_id=None, task_id=None, job_id=None, confirm=None, act='kill' ):
         if confirm is None:
             jjil, t, campaign_id, task_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, campaign_id, task_id, job_id, confirm, act)
             template = self.jinja_env.get_template('kill_jobs_confirm.html')
@@ -747,16 +772,6 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def create_task(self, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor):
-        # FIXME: can_create_task() does not exist!
-        if not can_create_task():
-            return "Not Allowed"
-        return (self.taskPOMS.create_task(cherrypy.request.db,
-                                          experiment, taskdef, params,
-                                          input_dataset, output_dataset, creator, waitingfor))
-
-    @cherrypy.expose
-    @logit.logstartstop
     def wrapup_tasks(self):
         cherrypy.response.headers['Content-Type'] = "text/plain"
         return "\n".join(self.taskPOMS.wrapup_tasks(cherrypy.request.db,
@@ -768,7 +783,7 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_task_jobs(self, task_id, tmax=None, tmin=None, tdays=1):   # XXXX Need to be tested HERE
+    def show_task_jobs(self, task_id, tmax=None, tmin=None, tdays=1): 
         (blob, job_counts,
          task_id, tmin, tmax,
          extramap, key, task_jobsub_id,
@@ -788,9 +803,6 @@ class PomsService(object):
         task_id = self.taskPOMS.get_task_id_for(cherrypy.request.db, campaign, user,
                                                 experiment, command_executed, input_dataset, parent_task_id)
         return "Task=%d" % task_id
-#------------------------
-#########################
-### FilesPOMS
 
     @cherrypy.expose
     @logit.logstartstop
@@ -818,7 +830,7 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def job_file_list(self, job_id, force_reload=False):    # XXXX Ask Marc to check this in the module
+    def job_file_list(self, job_id, force_reload=False):    
         return self.filesPOMS.job_file_list(cherrypy.request.db, cherrypy.request.jobsub_fetcher, job_id, force_reload)
 
 

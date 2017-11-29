@@ -89,9 +89,14 @@ class new:
 
         return new
 
+
+    def prev(self):
+        self.c.cs_last_split = self.etime - self.twindow
+        res = self.peek()
+
     def next(self):
         res = self.peek()
         self.c.cs_last_split = self.etime
 
     def len(self):
-        return len(self.list)
+        return int((time.time() - self.firsttime)/self.twindow)

@@ -77,32 +77,6 @@ class TaskPOMS:
         self.poms_service = ps
         self.task_min_job_cache = {}
 
-    def create_task(self, dbhandle, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor=None):
-        first, last, username = creator.split(' ')
-        creator = self.poms_service.get_or_add_experimenter(first, last, username)
-        exp = self.poms_service.get_or_add_experiment(experiment)
-        td = self.poms_service.get_or_add_taskdef(taskdef, creator, exp)
-        camp = self.poms_service.get_or_add_campaign(exp, td, creator)
-        t = Task()
-        t.campaign_id = camp.campaign_id
-        #t.campaign_definition_id = td.campaign_definition_id
-        t.task_order = 0
-        t.input_dataset = input_dataset
-        t.output_dataset = output_dataset
-        t.waitingfor = waitingfor
-        t.order = 0
-        t.creator = creator.experimenter_id
-        t.created = datetime.now(utc)
-        t.status = "created"
-        t.task_parameters = params
-        t.waiting_threshold = 5
-        t.updater = creator.experimenter_id
-        t.updated = datetime.now(utc)
-
-        dbhandle.add(t)
-        dbhandle.commit()
-        return str(t.task_id)
-
 
     def wrapup_tasks(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res):
         # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
@@ -113,7 +87,7 @@ class TaskPOMS:
         # make jobs which completed with no *undeclared* output files have status "Located".
         #
         t = text("""update jobs set status = 'Located'
-            where status = 'Completed' and (select count(file_name) from job_files
+            where (status = 'Completed' or status == 'Removed') and (select count(file_name) from job_files
                                             where job_files.job_id = jobs.job_id
                                                 and job_files.file_type = 'output'
                                                 and job_files.declared is null) = 0""")
@@ -122,7 +96,7 @@ class TaskPOMS:
         #
         # tried to do as below, but no such luck
         # subq = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
-        # dbhandle.query(Job).filter(Job.status == "Completed", subq == 0).update({'status':'Located'}, synchronize_session='fetch')
+        # dbhandle.query(Job).filter(Job.status.in_("Completed","Removed"), subq == 0).update({'status':'Located'}, synchronize_session='fetch')
         #
         dbhandle.commit()
 
@@ -132,6 +106,7 @@ class TaskPOMS:
         q = (dbhandle.query(Task.task_id, Task.created, func.count(Job.job_id),
                             func.sum(case([
                                 (Job.status == "Completed", 0),
+                                (Job.status == "Removed", 0),
                                 (Job.status == "Located", 0),
                             ], else_=1)))
              .filter(Job.task_id == Task.task_id)
@@ -354,7 +329,7 @@ class TaskPOMS:
             else:
                 jjid = 'j' + str(jh.job_id)
 
-            if j.status != "Completed" and j.status != "Located":
+            if j.status != "Completed" and j.status != "Located" and j.status != "Removed":
                 extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d&act=hold"><i class="ui pause icon"></i></a><a href="%s/kill_jobs?job_id=%d&act=release"><i class="ui play icon"></i></a><a href="%s/kill_jobs?job_id=%d&act=kill"><i class="ui trash icon"></i></a>' % (self.poms_service.path, jh.job_id,self.poms_service.path, jh.job_id,self.poms_service.path, jh.job_id)
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
@@ -400,6 +375,8 @@ class TaskPOMS:
             res = "Running"
         if st['Completed'] > 0 and  res == "New":
             res = "Completed"
+        if st['Removed'] > 0 and  res == "New":
+            res = "Completed"
         if st['Located'] > 0 and  res == "New":
             res = "Located"
         return res
@@ -411,7 +388,7 @@ class TaskPOMS:
         if task_id in self.task_min_job_cache:
             return self.task_min_job_cache.get(task_id)
         jt = dbhandle.query(func.min(Job.jobsub_job_id)).filter(Job.task_id == task_id).first()
-        if len(jt):
+        if len(jt) and jt[0]: 
             self.task_min_job_cache[task_id] = jt[0]
             return jt[0]
         return None
@@ -538,7 +515,7 @@ class TaskPOMS:
             # uncomment when we get db fields:
             param_overrides = rlist[t.recovery_position].param_overrides
             if rtype.name == 'consumed_status':
-                recovery_dims = "for_project_name %s and consumed_status != 'consumed'" % t.project
+                recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
             elif rtype.name == 'proj_status':
                 recovery_dims = "project_name %s and process_status != 'ok'" % t.project
             elif rtype.name == 'pending_files':

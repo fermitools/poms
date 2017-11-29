@@ -9,7 +9,6 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 metadata = Base.metadata
 
-
 class Campaign(Base):
     __tablename__ = 'campaigns'
 
@@ -33,9 +32,11 @@ class Campaign(Base):
     param_overrides = Column(JSON)
     completion_type = Column(Text, nullable=False, server_default=text("located"))
     completion_pct = Column(Text, nullable=False, server_default="95")
+    hold_experimenter_id = Column(ForeignKey('experimenters.experimenter_id'), nullable=True)
 
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship('Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')
+    experimenter_holder_obj = relationship('Experimenter', primaryjoin='Campaign.hold_experimenter_id == Experimenter.experimenter_id')
     experiment_obj = relationship('Experiment')
     campaign_definition_obj = relationship('CampaignDefinition')
     launch_template_obj = relationship('LaunchTemplate')
@@ -58,6 +59,7 @@ class ExperimentsExperimenters(Base):
     experimenter_id = Column(Integer, ForeignKey('experimenters.experimenter_id'), primary_key=True)
     experiment = Column(Text, ForeignKey('experiments.experiment'), primary_key=True)
     active = Column(Boolean, nullable=False, server_default=text("true"))
+    role = Column(Text, nullable=False, server_default=text("analysis"))
 
     experimenter_obj = relationship(Experimenter, backref="exp_expers")
     experiment_obj = relationship("Experiment", backref="exp_expers")

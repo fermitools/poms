@@ -82,7 +82,7 @@ class job_reporter:
         if self.bulk:
             for i in range(self.nthreads):
                 if self.work[i].qsize() > 100 * self.batchsize:
-                    sys.stderr.write("Seriously Backlogged: qsize %d exiting!\n" % self.work.qsize())
+                    sys.stderr.write("Seriously Backlogged: qsize %d exiting!\n" % self.work[i].qsize())
                     os._exit(1)
                    
         else:

@@ -15,5 +15,9 @@ class draining:
         res = self.peek()
         return res
 
+    def prev(self):
+        res = self.peek()
+        return res
+
     def len(self):
         return -1

@@ -148,11 +148,39 @@ class SessionExperimenter(object):
                 return True
         return False
 
-    def is_authorized(self, experiment):
-        # Root is authorized for all experiments
-        if self.is_root():
-            return True
 
+    def is_authorized(self, experiment=None,  username=None):
+        # username is only needed when you want to compare the roles between this.username and username
+        # The order of roles: root, coordinator, production, analysis.
+         
+        logit.log("**YG** username = %s" %username)
+        if experiment not in self.authorized_for.keys():
+           return False 
+        else:
+            if username is None:  
+                return self.authorized_for.get(experiment)['active']
+            else:
+                if self.username == username and self.authorized_for.get(experiment)['active']:
+                    return True
+                myRole = self.authorized_for.get(experiment)['role']
+                ee = (cherrypy.request.db.query(ExperimentsExperimenters)
+                      .filter(ExperimentsExperimenters.active == True)
+                      .join(Experimenter)
+                      .filter(Experimenter.username == username)
+                      .join(Experiment)
+                      .filter(Experiment.experiment == experiment)
+                    ).first()
+                if ee is None:
+                    if self.authorized_for.get(experiment)['active']:
+                        return True 
+                    else:
+                        return False 
+                myRoleIndex = ['analysis', 'production', 'coordinator', 'root'].index(myRole) 
+                roleIndex = ['analysis', 'production', 'coordinator', 'root'].index(ee.role)
+                logit.log("**YG** myRole, myRoleIndex = %s %s" %(myRole, myRoleIndex))
+                logit.log("**YG** role, roleIndex = %s %s" %(ee.role, roleIndex))
+                return myRoleIndex > roleIndex
+                
         ra  = cherrypy.session['Remote-Addr']
         xff = cherrypy.session['X-Forwarded-For']
         if self._is_valid_ip(ra, self.valid_ip_list):
@@ -169,13 +197,62 @@ class SessionExperimenter(object):
             # case for local agents
             return 1
 
-        return self.authorized_for.get(experiment, False)
 
     def is_root(self):
         if cherrypy.session['Remote-Addr'] in ['127.0.0.1', '131.225.80.97'] and cherrypy.session['X-Forwarded-For'] is None:
             # case for local agents
             return True
-        return self.authorized_for.get('root', False)
+        if self.session_experiment in self.authorized_for.keys():
+            if self.authorized_for[self.session_experiment]['role'] == "root" \
+              and self.authorized_for[self.session_experiment]['active']:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+
+    def is_coordinator(self):
+        if self.is_root():
+            return True
+        else:  
+            if self.session_experiment in self.authorized_for.keys():
+                if (self.authorized_for[self.session_experiment]['role'] == "coordinator" \
+                  and self.authorized_for[self.session_experiment]['active']):
+                    return True
+                else:
+                    return False
+            else:
+                return False
+
+
+    def is_production(self):
+        if self.is_coordinator():
+            return True
+        else:
+            if self.session_experiment in self.authorized_for.keys():
+                if self.authorized_for[self.session_experiment]['role'] == "production" \
+                  and self.authorized_for[self.session_experiment]['active']:
+                    return True
+                else:
+                    return False
+            else:
+                return False
+
+
+    def is_analysis(self):
+        if self.is_production():
+            return True
+        else:
+            if self.session_experiment in self.authorized_for.keys():
+                if self.authorized_for[self.session_experiment]['role'] == "analysis" \
+                  and self.authorized_for[self.session_experiment]['active']:
+                    return True
+                else:
+                    return False
+            else:
+                return False
+
 
     def all_experiments(self):
         return self.authorized_for.keys()
@@ -245,23 +322,26 @@ class SessionTool(cherrypy.Tool):
             raise cherrypy.HTTPError(401, 'POMS account does not exist.  To be added you must registered in VOMS.')
 
         e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == username).all()
+        logit.log("*******************************YG")
+        logit.log("***YG" + "Experimenter.username: " + username)
+        logit.log("***YG" + " e username" +e[0].username)
 
-        # Now determine what experiments a user has access too.  If they have 'root' then all them to all experiments.
+        # Now determine what experiments a user has access and the level of access right to the experiments.
         exps = {}
-
-        root = (cherrypy.request.db.query(ExperimentsExperimenters)
-                .filter(ExperimentsExperimenters.experimenter_id == e[0].experimenter_id)
-                .filter(ExperimentsExperimenters.experiment == 'root')).all()
-        if len(root):
-            all_exps = cherrypy.request.db.query(Experiment)
-            for row in all_exps:
-                exps[row.experiment] = True
-        else:
-            e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id == e[0].experimenter_id)
-            for row in e2e:
-                exps[row.experiment] = row.active
-
+        e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id == e[0].experimenter_id)
+        for row in e2e:
+            exps[row.experiment] = {'active': row.active, 'role':row.role}
+            logit.log("***YG: " + "row.experiment " + row.experiment + " role: " + row.role)
+                
         extra = {'selected': list(exps.keys())}
+        logit.log("extra")
+        logit.log(extra)
+        logit.log("*******************************YG")
+
+        if "" ==  e[0].session_experiment:
+             # don't choke on blank session_experiment, just pick one...
+             e[0].sesssion_experiment = e2e[0].experiment
+
         cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
                                                                e[0].first_name, e[0].last_name, e[0].username, exps, e[0].session_experiment, **extra)
 
