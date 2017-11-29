@@ -87,7 +87,7 @@ class TaskPOMS:
         # make jobs which completed with no *undeclared* output files have status "Located".
         #
         t = text("""update jobs set status = 'Located'
-            where (status = 'Completed' or status == 'Removed') and (select count(file_name) from job_files
+            where (status = 'Completed' or status = 'Removed') and (select count(file_name) from job_files
                                             where job_files.job_id = jobs.job_id
                                                 and job_files.file_type = 'output'
                                                 and job_files.declared is null) = 0""")
