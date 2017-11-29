@@ -21,6 +21,9 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
         task_id = 14
     else:
         task_id = task.task_id
+    
+    if files == None:
+        return
 
     for row in files:
         if row[5].endswith(".log") and not row[5].endswith(".dagman.log"):
