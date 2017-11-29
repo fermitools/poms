@@ -87,6 +87,8 @@ class TriagePOMS(object):
                       .filter(ServiceDowntime.downtime_started < last)
                       .filter(ServiceDowntime.downtime_ended >= first)
                       .filter(ServiceDowntime.downtime_ended < last).all())
+        else:
+            downtimes1 = []
 
         # downtimes2 ?!?
         #downtimes = downtimes1 + downtimes2

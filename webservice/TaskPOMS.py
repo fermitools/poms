@@ -710,6 +710,17 @@ class TaskPOMS:
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.poms_service.hostname,
             "ssh -tx %s@%s <<'EOF' &" % (lt.launch_account, lt.launch_host),
+            #
+            # This bit is a little tricky.  We want to do as little of our
+            # own setup as possible after the users' launch_setup text,
+            # so we don't undo stuff they may put on the front of the path
+            # etc -- *except* that we need jobsub_wrapper setup.
+            # so we 
+            # 1. do our setup except jobsub_wrapper
+            # 2. do their setup stuff from the launch template
+            # 3. setup *just* poms_jobsub_wrapper, so it gets on the
+            #    front of the path and can intercept calls to "jobsub_submit"
+            #
             "source /grid/fermiapp/products/common/etc/setups",
             "setup poms_client v2_0_0 -z /grid/fermiapp/products/common/db",
             lt.launch_setup % {

@@ -15,6 +15,7 @@ import json
 import os
 import glob
 import subprocess
+import importlib
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, desc, not_, and_, or_, distinct
 from sqlalchemy.orm import subqueryload, joinedload, contains_eager
@@ -762,6 +763,8 @@ class CampaignsPOMS():
                                  status=th.status,
                                  jobsub_job_id=jjid))
 
+        logit.log("campaign_time_bars: items: " + repr(items))
+
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id',
                                     url_template=self.poms_service.path + '/show_task_jobs?task_id=%(task_id)s&tmin=%(tmin)19.19s&tdays=1',
                                     extramap=extramap)
@@ -840,7 +843,7 @@ class CampaignsPOMS():
 
         modname = camp.cs_split_type[0:p1]
 
-        mod = __import__('poms.webservice.split_types.'+modname)
+        mod = importlib.import_module('poms.webservice.split_types.'+modname)
         split_class = getattr(mod,modname)
 
         splitter = split_class(camp, samhandle, dbhandle)

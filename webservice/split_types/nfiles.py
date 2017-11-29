@@ -10,7 +10,6 @@ class nfiles:
         self.dbhandle = dbhandle
         self.ds = c.dataset
         self.n = int(camp.cs_split_type[7:].strip(')'))
-        return c.dataset
 
     def peek(self):
         if not self.c.cs_last_split:
