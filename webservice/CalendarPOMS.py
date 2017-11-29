@@ -79,7 +79,7 @@ class CalendarPOMS(object):
         if s:
             d = (dbhandle.query(ServiceDowntime)
                 .filter(ServiceDowntime.start == start, 
-                        ServiceDowntime.service_di = s.service_id)
+                        ServiceDowntime.service_id == s.service_id)
                 .first())
             d.downtime_started = new_start_dt
             d.downtime_ended = end_dt
