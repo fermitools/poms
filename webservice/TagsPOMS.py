@@ -34,6 +34,7 @@ class TagsPOMS(object):
                 t.experiment = experiment
                 dbhandle.add(t)
                 dbhandle.commit()
+                tag = t
             # we have a tag in the db for this experiment so go ahead and do the linking
             campaign_ids = str(campaign_id).split(',')
             msg = "OK"
@@ -58,7 +59,7 @@ class TagsPOMS(object):
 
     def delete_campaigns_tags(self, dbhandle, ses_get, campaign_id, tag_id, experiment):
 
-        if ',' not in campaign_id:
+        if ',' not in str(campaign_id):
             if ses_get('experimenter').is_authorized(experiment):
                 dbhandle.query(CampaignsTags).filter(CampaignsTags.campaign_id == campaign_id, CampaignsTags.tag_id == tag_id).delete()
                 dbhandle.commit()
@@ -68,7 +69,7 @@ class TagsPOMS(object):
             return response
         else:
             if ses_get('experimenter').is_authorized(experiment):
-                campaign_ids = campaign_id.split(',')
+                campaign_ids = str(campaign_id).split(',')
                 for cid in campaign_ids:
                     dbhandle.query(CampaignsTags).filter(CampaignsTags.campaign_id == cid, CampaignsTags.tag_id == tag_id).delete()
                     dbhandle.commit()
