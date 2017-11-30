@@ -10,8 +10,8 @@ rs = requests.Session()
 def testMockWebservice1():
      try:
          mw = MockWebservice()
-         ts = time.strftime("%d/%b/%Y %H:%M:%S")
          r = rs.get("http://127.0.0.1:8888/foo/bar")
+         ts = time.strftime("%d/%b/%Y %H:%M:%S")
          txt = r.text
          r.close()
          assert(txt == "Ok.\n")

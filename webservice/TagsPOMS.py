@@ -35,7 +35,7 @@ class TagsPOMS(object):
                 dbhandle.add(t)
                 dbhandle.commit()
             # we have a tag in the db for this experiment so go ahead and do the linking
-            campaign_ids = campaign_id.split(',')
+            campaign_ids = str(campaign_id).split(',')
             msg = "OK"
             for cid in campaign_ids:
                 try:
