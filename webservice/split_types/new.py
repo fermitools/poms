@@ -1,4 +1,6 @@
 
+import time
+
 class new:
     """
        This is invoked as:
@@ -50,25 +52,25 @@ class new:
                 if p.startswith('firsttime='): self.tfirsttime = float(p[10:]) * pmult
 
         # make sure time-window is a multiple of rounding factor
-        self.twindow = int(twindow) - (int(twindow) % int(tround))
+        self.twindow = int(self.twindow) - (int(self.twindow) % int(self.tround))
 
     def peek(self):
         bound_time = time.time() - self.tfts - self.twindow
         bound_time = int(bound_time) - (int(bound_time) % int(self.tround))
 
-        if not self.c.cs_last_split 
+        if not self.c.cs_last_split:
             if self.tfirsttime:
-                stime = tfirsttime
+                stime = self.tfirsttime
             else:
                 stime = bound_time
         else:
-            if camp.cs_last_split > bound_time:
-                raise LogicError
-            stime = camp.cs_last_split
+            if self.c.cs_last_split > bound_time:
+                raise RuntimeError
+            stime = self.c.cs_last_split
 
-        etime = stime + twindow
+        etime = stime + self.twindow
 
-        if tlocaltime:
+        if self.tlocaltime:
             sstime = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(stime))
             setime = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(etime))
         else:
@@ -77,13 +79,13 @@ class new:
 
         self.etime = etime
 
-        new = camp.dataset + "_time_%s__%s" % (int(stime), int(etime))
+        new = self.c.dataset + "_time_%s__%s" % (int(stime), int(etime))
 
         self.samhandle.create_definition(
                 self.c.campaign_definition_obj.experiment,
                 new,
                 "defname: %s and end_time > '%s' and end_time <= '%s'" % (
-                      camp.dataset, sstime, setime
+                      self.c.dataset, sstime, setime
                 )
             )
 
@@ -93,10 +95,12 @@ class new:
     def prev(self):
         self.c.cs_last_split = self.etime - self.twindow
         res = self.peek()
+        return res
 
     def next(self):
         res = self.peek()
         self.c.cs_last_split = self.etime
+        return res
 
     def len(self):
         return int((time.time() - self.firsttime)/self.twindow)

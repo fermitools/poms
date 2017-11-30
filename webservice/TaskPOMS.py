@@ -96,7 +96,7 @@ class TaskPOMS:
         #
         # tried to do as below, but no such luck
         # subq = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
-        # dbhandle.query(Job).filter(Job.status.in_("Completed","Removed"), subq == 0).update({'status':'Located'}, synchronize_session='fetch')
+        # dbhandle.query(Job).filter(Job.status.in_(["Completed","Removed"]), subq == 0).update({'status':'Located'}, synchronize_session='fetch')
         #
         dbhandle.commit()
 

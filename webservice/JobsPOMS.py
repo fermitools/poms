@@ -57,7 +57,7 @@ class JobsPOMS(object):
                           Job.jobsub_job_id != "unknown",
                           Job.task_id == Task.task_id,
                           Job.job_id == JobFile.job_id,
-                          Job.status.in_("Completed","Removd"),
+                          Job.status.in_(["Completed","Removed"]),
                           or_(Job.output_files_declared == False, JobFile.declared == None), JobFile.file_type == 'output')
                   .order_by(CampaignSnapshot.experiment, Job.jobsub_job_id).all()):
             # convert fpattern "%.root,%.dat" to regexp ".*\.root|.*\.dat"

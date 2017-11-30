@@ -33,6 +33,7 @@ class Campaign(Base):
     completion_type = Column(Text, nullable=False, server_default=text("located"))
     completion_pct = Column(Text, nullable=False, server_default="95")
     hold_experimenter_id = Column(ForeignKey('experimenters.experimenter_id'), nullable=True)
+    creator_role = Column(Text, nullable=False)
 
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship('Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')

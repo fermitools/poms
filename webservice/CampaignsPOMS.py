@@ -100,7 +100,7 @@ class CampaignsPOMS():
                     template = LaunchTemplate(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host,
                                               launch_account=ae_launch_account,
                                               launch_setup=ae_launch_setup, creator=experimenter_id,
-                                              created=datetime.now(utc))
+                                              created=datetime.now(utc),creator_role='Production')
                     dbhandle.add(template)
                 else:
                     columns = {
@@ -323,6 +323,7 @@ class CampaignsPOMS():
             c.created = datetime.now(utc)
             c.updated = datetime.now(utc)
             c.vo_role = "Production"
+            c.creator_role = "Production"
             c.dataset = ""
             c.launch_id = lt.launch_id
             c.software_version = ""
@@ -418,7 +419,8 @@ class CampaignsPOMS():
                                  param_overrides=param_overrides, launch_id=launch_id,
                                  campaign_definition_id=campaign_definition_id,
                                  completion_type=completion_type, completion_pct=completion_pct,
-                                 creator=experimenter_id, created=datetime.now(utc))
+                                 creator=experimenter_id, created=datetime.now(utc),
+                                 creator_role='Production')
                     dbhandle.add(c)
                     dbhandle.commit()  ##### Is this flush() necessary or better a commit ?
                     campaign_id = c.campaign_id
@@ -812,7 +814,7 @@ class CampaignsPOMS():
         else:
             c = Campaign(experiment=experiment, name=campaign_name, creator=user, created=datetime.now(utc),
                          software_version=version, campaign_definition_id=cd.campaign_definition_id,
-                         launch_id=ld.launch_id, vo_role=role, dataset='')
+                         launch_id=ld.launch_id, vo_role=role, dataset='', creator_role="Production")
 
         if version:
             c.software_verison = version

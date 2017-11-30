@@ -10,10 +10,10 @@ from requests.packages.urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 import traceback
 import os
-import cherrypy
 from poms.webservice.utc import utc
 from poms.webservice.poms_model import FaultyRequest
 import sys
+import poms.webservice.logit as logit
 
 
 def safe_get(sess, url, *args, **kwargs):
@@ -28,6 +28,7 @@ def safe_get(sess, url, *args, **kwargs):
             sess.mount('http://', HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2)))
             reply = sess.get(url, timeout=5.0, *args, **kwargs)    # Timeout may need adjustment!
             if reply.status_code != 200:
+                logit.log("ERROR","Error: got status %d for url %s" % (reply.status_code,url))
                 return None     # No need to return the response
         except:
             # Severe errors like network or DNS problems.
@@ -53,6 +54,7 @@ def safe_get(sess, url, *args, **kwargs):
         sess.mount('http://', HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2)))
         reply = sess.get(url, timeout=5.0, *args, **kwargs)    # Timeout may need adjustment!
         if reply.status_code != 200 and reply.status_code != 404:
+            logit.log("ERROR","Error: got status %d for url %s" % (reply.status_code,url))
             # Process error, store faulty query in DB
             fault = FaultyRequest(url=url, status=reply.status_code, message=reply.reason)
             dbh.add(fault)
@@ -231,13 +233,18 @@ class samweb_lite:
         return flist
 
     def count_files(self, experiment, dims, dbhandle=None):
+        logit.log("INFO","count_files(experiment=%s, dims=%s)" % (experiment, dims))
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/files/count" % (base, experiment)
-        count = 0
         dims = self.cleanup_dims(dims)
+        count = -1
+        #print("count_files(experiment=%s, dims=%s, url=%s)" % (experiment, dims,url))
         with requests.Session() as sess:
             res = safe_get(sess, url, params={"dims": dims}, dbhandle=dbhandle)
         if res:
+            #print("Got status: %d" % res.status_code)
+            if res.status_code != 200:
+                logit.log("ERROR","Error in samweb_lite.count_files, got status %d" % res.status_code)
             text = res.content
             try:
                 count = int(text)
@@ -283,14 +290,14 @@ class samweb_lite:
         return infos
 
     def create_definition(self, experiment, name, dims):
-        cherrypy.log.error("create_definition( %s, %s, %s )" % (experiment, name, dims))
+        logit.log("INFO","create_definition( %s, %s, %s )" % (experiment, name, dims))
         base = "https://samweb.fnal.gov:8483"
         path = "/sam/%s/api/definitions/create" % experiment
         url = "%s%s" % (base, path)
         res = None
 
         pdict = {"defname": name, "dims": dims, "user": "sam", "group": experiment}
-        cherrypy.log.error("create_definition: calling: %s with %s " % (url, pdict))
+        logit.log("INFO","create_definition: calling: %s with %s " % (url, pdict))
         try:
             res = requests.post(url,
                                 data=pdict,
@@ -299,9 +306,9 @@ class samweb_lite:
                                       "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]))
                   )
             text = res.content
-            cherrypy.log.error("definitions/create returns: %s" % text)
+            logit.log("INFO","definitions/create returns: %s" % text)
         except Exception as e:
-            cherrypy.log.error("Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
+            logit.log("ERROR","Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
             return "Fail."
         finally:
             if res:
