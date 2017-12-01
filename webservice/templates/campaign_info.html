@@ -210,42 +210,42 @@ $( document ).ready(function() {
          <h3>Actions</h3>
          <div class=menu>
               <div class=item>
-               <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{Campaign.campaign_id}}&tmax={{tmaxs}}&tdays=30">
+               <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{Campaign.campaign_id}}&tmax={{last_activity}}&tdays=30">
                    <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job Efficiency Histogram (1 month)
                </a>
               </div>
               <div class=item>
-               <a href="{{pomspath}}/jobs_time_histo?timetype=wall_time&campaign_id={{Campaign.campaign_id}}&tmax={{tmaxs}}&tdays=30">
+               <a href="{{pomspath}}/jobs_time_histo?timetype=wall_time&campaign_id={{Campaign.campaign_id}}&tmax={{last_activity}}&tdays=30">
                    <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job Wall Clock Time Histogram (1 month)
                </a>
               </div>
               <div class=item>
-               <a href="{{pomspath}}/jobs_time_histo?timetype=cpu_time&campaign_id={{Campaign.campaign_id}}&tmax={{tmaxs}}&tdays=30">
+               <a href="{{pomspath}}/jobs_time_histo?timetype=cpu_time&campaign_id={{Campaign.campaign_id}}&tmax={{last_activity}}&tdays=30">
                    <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job CPU Time Histogram (1 month)
                </a>
               </div>
               <div class=item>
-               <a href="{{pomspath}}/jobs_time_histo?timetype=copy_in_time&campaign_id={{Campaign.campaign_id}}&tmax={{tmaxs}}&tdays=30">
+               <a href="{{pomspath}}/jobs_time_histo?timetype=copy_in_time&campaign_id={{Campaign.campaign_id}}&tmax={{last_activity}}&tdays=30">
                    <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Copy In Time Histogram (1 month)
                </a>
               </div>
               <div class=item>
-               <a href="{{pomspath}}/jobs_time_histo?timetype=copy_out_time&campaign_id={{Campaign.campaign_id}}&tmax={{tmaxs}}&tdays=30">
+               <a href="{{pomspath}}/jobs_time_histo?timetype=copy_out_time&campaign_id={{Campaign.campaign_id}}&tmax={{last_activity}}&tdays=30">
                    <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job Copy Out Time Histogram
                </a>
               </div>
               <div class=item>
-               <a href="{{pomspath}}/campaign_sheet?campaign_id={{Campaign.campaign_id}}&tdays=7">
+               <a href="{{pomspath}}/campaign_sheet?campaign_id={{Campaign.campaign_id}}&tdays=7&tmax={{last_activity}}">
                 <i class="external table icon" data-content="Campaign Spreadsheet" data-variation="basic"></i>Day by Day Spreadsheet (1wk)
                </a>
               </div>
               <div class=item>
-              <a href="{{pomspath}}/campaign_time_bars?campaign_id={{Campaign.campaign_id}}&tdays=7">
+              <a href="{{pomspath}}/campaign_time_bars?campaign_id={{Campaign.campaign_id}}&tdays=7&tmax={{last_activity}}">
                 <i class="external tasks icon" data-content="Submissions for Campaign Time Bars (1wk)" data-variation="basic"></i>Submission Time Bars (1wk)
               </a>
               </div>
               <div class=item>
-                <a href="{{pomspath}}/campaign_task_files?campaign_id={{Campaign.campaign_id}}"><i class="external file icon" data-content="List file statistics for Submissions for Campaign" data-variation="basic"></i>Campaign Submission Files</a>
+                <a href="{{pomspath}}/campaign_task_files?campaign_id={{Campaign.campaign_id}}&tmax={{last_activity}}"><i class="external file icon" data-content="List file statistics for Submissions for Campaign" data-variation="basic"></i>Campaign Submission Files</a>
               </div>
               <div class=item>
                 <a href="{{pomspath}}/launch_jobs?campaign_id={{Campaign.campaign_id}}"><i class="external rocket icon" data-content="Immediately Launch Submissions for Campaign" data-variation="basic"></i>Launch Campaign Jobs Now</a>

@@ -435,7 +435,7 @@ class PomsService(object):
          launched_campaigns, dimlist, campaign,
          counts_keys, counts,
          launch_flist,
-         kibana_link, dep_svg) = self.campaignsPOMS.campaign_info(cherrypy.request.db,
+         kibana_link, dep_svg, last_activity) = self.campaignsPOMS.campaign_info(cherrypy.request.db,
                                                                   cherrypy.request.samweb_lite,
                                                                   cherrypy.HTTPError,
                                                                   cherrypy.config.get,
@@ -458,7 +458,7 @@ class PomsService(object):
             do_refresh=0,
             help_page="CampaignInfoHelp",
             kibana_link=kibana_link,
-            dep_svg=dep_svg)
+            dep_svg=dep_svg, last_activity = last_activity)
 
 
     @cherrypy.expose

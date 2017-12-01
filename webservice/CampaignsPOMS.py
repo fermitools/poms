@@ -561,40 +561,43 @@ class CampaignsPOMS():
             cl = dbhandle.query(Campaign).filter(Campaign.campaign_id.in_(s)).all()
 
         c_ids = deque()
-        pdot = subprocess.Popen("tee /tmp/dotstuff | dot -Tsvg", shell=True, stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE, universal_newlines=True)
-        pdot.stdin.write('digraph {}Dependencies {{\n'.format(tag))
-        pdot.stdin.write('node [shape=box, style=rounded, color=lightgrey, fontcolor=black]\nrankdir = "LR";\n')
-        baseurl = "{}/campaign_info?campaign_id=".format(config_get("pomspath"))
+        try:
+            pdot = subprocess.Popen("tee /tmp/dotstuff | dot -Tsvg", shell=True, stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE, universal_newlines=True)
+            pdot.stdin.write('digraph {}Dependencies {{\n'.format(tag))
+            pdot.stdin.write('node [shape=box, style=rounded, color=lightgrey, fontcolor=black]\nrankdir = "LR";\n')
+            baseurl = "{}/campaign_info?campaign_id=".format(config_get("pomspath"))
 
-        for c in cl:
-            tcl = dbhandle.query(func.count(Task.status), Task.status).group_by(Task.status).filter(
-                Task.campaign_id == c.campaign_id).all()
-            tot = 0
-            ltot = 0
-            for (count, status) in tcl:
-                tot = tot + count
-                if status == 'Located':
-                    ltot = count
-            c_ids.append(c.campaign_id)
-            pdot.stdin.write(
-                'c{:d} [URL="{}{:d}",label="{}\\nSubmissions {:d} Located {:d}",color={}];\n'.format(c.campaign_id,
-                                                                                                     baseurl,
-                                                                                                     c.campaign_id,
-                                                                                                     c.name,
-                                                                                                     tot,
-                                                                                                     ltot,
-                                                                                                     ("darkgreen" if ltot == tot else "black")))
+            for c in cl:
+                tcl = dbhandle.query(func.count(Task.status), Task.status).group_by(Task.status).filter(
+                    Task.campaign_id == c.campaign_id).all()
+                tot = 0
+                ltot = 0
+                for (count, status) in tcl:
+                    tot = tot + count
+                    if status == 'Located':
+                        ltot = count
+                c_ids.append(c.campaign_id)
+                pdot.stdin.write(
+                    'c{:d} [URL="{}{:d}",label="{}\\nSubmissions {:d} Located {:d}",color={}];\n'.format(c.campaign_id,
+                                                                                                         baseurl,
+                                                                                                         c.campaign_id,
+                                                                                                         c.name,
+                                                                                                         tot,
+                                                                                                         ltot,
+                                                                                                         ("darkgreen" if ltot == tot else "black")))
 
-        cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id.in_(c_ids)).all()
+            cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id.in_(c_ids)).all()
 
-        for cd in cdl:
-            pdot.stdin.write('c{:d} -> c{:d};\n'.format(cd.needs_camp_id, cd.uses_camp_id))
+            for cd in cdl:
+                pdot.stdin.write('c{:d} -> c{:d};\n'.format(cd.needs_camp_id, cd.uses_camp_id))
 
-        pdot.stdin.write('}\n')
-        pdot.stdin.close()
-        text = pdot.stdout.read()
-        pdot.wait()
+            pdot.stdin.write('}\n')
+            pdot.stdin.close()
+            text = pdot.stdout.read()
+            pdot.wait()
+        except:
+            text = ""
         return bytes(text, encoding="utf-8")
 
     def show_campaigns(self, dbhandle, samhandle, campaign_ids=None, experiment=None, tmin=None, tmax=None, tdays=7,
@@ -658,6 +661,12 @@ class CampaignsPOMS():
         tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(
             tmin, tmax, tdays, 'campaign_info?')
 
+        last_activity = dbhandle.query(func.max(Task.updated)).filter(Task.campaign_id == campaign_id).first()
+        logit.log("got last_activity %s" % repr(last_activity))
+        if last_activity:
+            last_activity = last_activity[0].strftime("%Y-%m-%d %H:%M:%S")
+        logit.log("after: last_activity %s" % repr(last_activity))
+
         campaign_definition_info = (dbhandle.query(CampaignDefinition, Experimenter)
                                     .filter(CampaignDefinition.campaign_definition_id == campaign_info.Campaign.campaign_definition_id,
                                             CampaignDefinition.creator == Experimenter.experimenter_id)
@@ -704,7 +713,7 @@ class CampaignsPOMS():
                 campaign_definition_info, launch_template_info,
                 tags, launched_campaigns, None,
                 campaign, counts_keys, counts, launch_flist, kibana_link,
-                dep_svg
+                dep_svg, last_activity
                )
 
     @pomscache_10.cache_on_arguments()
