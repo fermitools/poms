@@ -78,6 +78,7 @@ class jobsub_q_scraper:
         self.tidmap = {}
         self.debug = debug
         self.passcount = 0
+        self.last_known_status = {}
         sys.stdout.flush()
 
     def get_open_jobs(self):
@@ -208,6 +209,7 @@ class jobsub_q_scraper:
 
                 prev = self.prev_report.get(jobsub_job_id, None)
                 self.cur_report[jobsub_job_id] = args
+                self.last_known_status[jobsub_job_id] = args['status']
 
                 #
                 # only report status if its different
@@ -242,12 +244,20 @@ class jobsub_q_scraper:
                     # we could get a false alarm here if condor_q fails...
                     # thats why we only do this if our p.wait() returned 0/None.
                     # and we make sure we didn't see it two runs in a row...
-                    print("reporting %s as completed \n" % jobsub_job_id, file=sys.stderr)
+                    if self.last_known_status.get(jobsub_job_id,"") == 'Held':
+                         report_as = "Removed"
+                    else:
+                         report_as = "Completed"
+                    print("reporting %s as %s \n" % (jobsub_job_id,report_as), file=sys.stderr)
 
                     self.job_reporter.report_status(
                         jobsub_job_id = jobsub_job_id,
                         task_id = self.tidmap[jobsub_job_id],
-                        status = "Completed")
+                        status = report_as)
+
+                    if self.last_known_status.get(jobsub_job_id,""):
+                        del self.last_known_status[jobsub_job_id]
+
         else:
             print("error code: %s from condor_q" % res)
 
