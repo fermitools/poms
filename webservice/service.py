@@ -202,6 +202,8 @@ class SessionExperimenter(object):
         if cherrypy.session['Remote-Addr'] in ['127.0.0.1', '131.225.80.97'] and cherrypy.session['X-Forwarded-For'] is None:
             # case for local agents
             return True
+        if hasattr(self, "root"):
+            return self.root
         if self.session_experiment in self.authorized_for.keys():
             if self.authorized_for[self.session_experiment]['role'] == "root" \
               and self.authorized_for[self.session_experiment]['active']:

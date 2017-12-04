@@ -110,11 +110,11 @@ class TablesPOMS(object):
             logit.log("found %s" % found)
         if not found:
             found = sample
-        columns = sample._sa_instance_state.class_.__table__.columns
+        columns = found._sa_instance_state.class_.__table__.columns
         fieldnames = list(columns.keys())
         screendata = deque()
         for fn in fieldnames:
-            logit.log("found field %s %s" % (fn, getattr(found,fn,'')))
+            logit.log("found field %s type %s val %s" % (fn, columns[fn].type, getattr(found,fn,'')))
             screendata.append({
                 'name': fn,
                 'primary': columns[fn].primary_key,
