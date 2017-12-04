@@ -368,6 +368,7 @@ class SessionExperiment():
         self.logbook  = exp.logbook
         self.snow_url  = exp.snow_url
         self.restricted  = exp.restricted
+        self.root = exp.root
 
 
 def augment_params():
