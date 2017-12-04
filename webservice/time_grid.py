@@ -20,7 +20,7 @@ class time_grid:
 
 
     def group_time_data(self, rows, group_key, url_template=""):
-        result = {}
+        result = collections.OrderedDict()
         lastkey = None
         for row in rows:
             key = getattr(row, group_key)

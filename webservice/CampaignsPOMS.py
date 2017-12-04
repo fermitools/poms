@@ -8,7 +8,7 @@ poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
 Date: April 28th, 2017. (changes for the POMS_client)
 '''
 
-from collections import deque
+from collections import deque, OrderedDict
 from datetime import datetime, tzinfo, timedelta
 import time
 import json
@@ -752,13 +752,12 @@ class CampaignsPOMS():
         job_counts_list = deque()
         cidl = deque()
         for cp in cpl:
-            job_counts_list.append(cp.name)
             job_counts_list.append(
                 self.poms_service.filesPOMS.format_job_counts(dbhandle, campaign_id=cp.campaign_id, tmin=tmin,
-                                                              tmax=tmax, tdays=tdays, range_string=time_range_string))
+                                                              tmax=tmax, tdays=tdays, range_string=time_range_string, title_bits = "Campaign %s" % cp.name))
             cidl.append(cp.campaign_id)
 
-        job_counts = "\n".join(job_counts_list)
+        job_counts = "<p></p>\n".join(job_counts_list)
 
         qr = dbhandle.query(TaskHistory).join(Task).filter(Task.campaign_id.in_(cidl),
                                                            TaskHistory.task_id == Task.task_id,
@@ -767,13 +766,17 @@ class CampaignsPOMS():
                                                                     Task.updated < tmax))).order_by(TaskHistory.task_id,
                                                                                                     TaskHistory.created).all()
         items = deque()
-        extramap = {}
+        extramap = OrderedDict()
         for th in qr:
             jjid = self.poms_service.taskPOMS.task_min_job(dbhandle, th.task_id)
             if not jjid:
                 jjid = 't' + str(th.task_id)
             else:
                 jjid = jjid.replace('fifebatch', '').replace('.fnal.gov', '')
+
+            if tag != None:
+                jjid = jjid + "<br>" + th.task_obj.campaign_obj.name
+
             if th.status != "Completed" and th.status != "Located":
                 extramap[jjid] = '<a href="{}/kill_jobs?task_id={:d}&act=hold"><i class="ui pause icon"></i></a><a href="{}/kill_jobs?task_id={:d}&act=release"><i class="ui play icon"></i></a><a href="{}/kill_jobs?task_id={:d}&act=kill"><i class="ui trash icon"></i></a>'.format(
                     self.poms_service.path, th.task_id, self.poms_service.path, th.task_id, self.poms_service.path, th.task_id)

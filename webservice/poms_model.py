@@ -52,7 +52,7 @@ class Experimenter(Base):
     username = Column(Text, nullable=False)
     last_login = Column(DateTime(True), nullable=False, default="now()")
     session_experiment = Column(Text, nullable=False)
-    root = Column(Boolean, server_default = False)
+    root = Column(Boolean, server_default = text("false"))
 
 
 class ExperimentsExperimenters(Base):

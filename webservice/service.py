@@ -132,7 +132,7 @@ class SATool(cherrypy.Tool):
 class SessionExperimenter(object):
 
     def __init__(self, experimenter_id=None, first_name=None, last_name=None,
-                 username=None, authorized_for=None, session_experiment=None, **kwargs):
+                 username=None, authorized_for=None, session_experiment=None, root = False, **kwargs):
         self.experimenter_id = experimenter_id
         self.first_name = first_name
         self.last_name = last_name
@@ -141,6 +141,7 @@ class SessionExperimenter(object):
         self.session_experiment = session_experiment
         self.extra = kwargs
         self.valid_ip_list = deque()     # FIXME
+        self.root = root
 
     def _is_valid_ip(self, ip, iplist):
         for x in iplist:
@@ -345,7 +346,7 @@ class SessionTool(cherrypy.Tool):
              e[0].sesssion_experiment = e2e[0].experiment
 
         cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
-                                                               e[0].first_name, e[0].last_name, e[0].username, exps, e[0].session_experiment, **extra)
+                                                               e[0].first_name, e[0].last_name, e[0].username, exps, e[0].session_experiment, e[0].root, **extra)
 
         cherrypy.session.save()
 
@@ -368,7 +369,6 @@ class SessionExperiment():
         self.logbook  = exp.logbook
         self.snow_url  = exp.snow_url
         self.restricted  = exp.restricted
-        self.root = exp.root
 
 
 def augment_params():

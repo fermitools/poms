@@ -20,7 +20,7 @@ Campaign Tags
 Campaign Tags:
 <ul>
 {% for t in tl|sort(attribute='tag_name') %}
-<li> <a href="{{pomspath}}/campaign_deps?tag={{t.tag_name}}">{{t.tag_name}}</a>
+<li> {{t.tag_name}}  <a href="{{pomspath}}/campaign_deps?tag={{t.tag_name}}">Dependencies</a>, <a href="{{pomspath}}/campaign_time_bars?tag={{t.tag_name}}">Recent Submissions</a>
 {% endfor %}
 </ul>
 

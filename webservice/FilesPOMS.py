@@ -208,11 +208,11 @@ class Files_status(object):
         #DELETE return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version)
 
 
-    def format_job_counts(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=7, range_string=None): ##This method was deleted from the main script
+    def format_job_counts(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=7, range_string=None, title_bits = ''): 
         counts = self.poms_service.triagePOMS.job_counts(dbhandle, task_id=task_id, campaign_id=campaign_id,
                                                          tmin=tmin, tmax=tmax, tdays=tdays)
         ck = list(counts.keys())
-        res = ['<div><b>Job States</b><br>',
+        res = ['<div><b>%s Job States</b><br>' % title_bits,
                '<table class="ui celled table unstackable">',
                '<tr><th>Total</th><th colspan=3>Active</th><th colspan=3>Completed In %s</th></tr>' % range_string,
                '<tr>']
