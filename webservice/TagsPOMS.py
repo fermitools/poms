@@ -56,6 +56,15 @@ class TagsPOMS(object):
             response = {"msg": "You are not authorized to add tags."}
             return response
 
+    def delete_tag_entirely(self, dbhandle, ses_get, tag_id):
+        tag = dbhandle.query(Tag).filter(Tag.tag_id == tag_id).first()
+        if ses_get('experimenter').is_authorized(tag.experiment):
+            dbhandle.query(CampaignsTags).filter(CampaignsTags.tag_id == tag_id).delete()
+            dbhandle.query(Tag).filter(Tag.tag_id == tag_id).delete()
+            response = {"msg": "OK"} 
+        else:
+            response = {"msg": "You are not authorized to delete tags."}
+        return response
 
     def delete_campaigns_tags(self, dbhandle, ses_get, campaign_id, tag_id, experiment):
 

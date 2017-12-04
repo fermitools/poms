@@ -1014,6 +1014,11 @@ class PomsService(object):
     def link_tags(self, campaign_id, tag_name, experiment):
         return self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session, campaign_id, tag_name, experiment)
 
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def delete_tag_entirely(self, tag_id):
+        return self.tagsPOMS.delete_tag_entirely(cherrypy.request.db, cherrypy.session.get, tag_id)
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
