@@ -61,6 +61,7 @@ class TagsPOMS(object):
         if ses_get('experimenter').is_authorized(tag.experiment):
             dbhandle.query(CampaignsTags).filter(CampaignsTags.tag_id == tag_id).delete()
             dbhandle.query(Tag).filter(Tag.tag_id == tag_id).delete()
+            dbhandle.commit()
             response = {"msg": "OK"} 
         else:
             response = {"msg": "You are not authorized to delete tags."}

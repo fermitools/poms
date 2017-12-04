@@ -50,7 +50,7 @@ function do_delete(item) {
     $.post("delete_tag_entirely", {tag_id: t_id}, function(data) {
             if(data.msg == "OK") {
                 $('#response').html(data.msg);
-                $('li_tag_'+t_id).remove();  //removes the line associated
+                $('#li_tag_'+t_id).remove();  //removes the line associated
             } else {
                 $('#response').html(data.msg);
             }
