@@ -417,11 +417,11 @@ class PomsService(object):
     def reset_campaign_split(self, campaign_id):
         campaign = cherrypy.request.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
         if campaign and cherrypy.session.get('experimenter').is_authorized(campaign.experiment):
-            return self.campaignsPOMS.reset_campaign_split(
+            res = self.campaignsPOMS.reset_campaign_split(
                 cherrypy.request.db,
                 cherrypy.request.samweb_lite,
-                cherrypy.config.get,
                 campaign_id)
+            raise cherrypy.HTTPRedirect("campaign_info?campaign_id=%s" % campaign_id)
         else:
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
 

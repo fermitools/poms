@@ -663,7 +663,7 @@ class CampaignsPOMS():
 
         last_activity = dbhandle.query(func.max(Task.updated)).filter(Task.campaign_id == campaign_id).first()
         logit.log("got last_activity %s" % repr(last_activity))
-        if last_activity and datetime.now(utc) - last_activity[0] > timedelta(days=1):
+        if last_activity and datetime.now(utc) - last_activity[0] > timedelta(days=7):
             last_activity = last_activity[0].strftime("%Y-%m-%d %H:%M:%S")
         else:
             last_activity = ""
