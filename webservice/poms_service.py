@@ -372,11 +372,11 @@ class PomsService(object):
     @logit.logstartstop
     def show_tags(self):
         experiment = cherrypy.session.get('experimenter').session_experiment
-        tl = self.tagsPOMS.show_tags(cherrypy.request.db, experiment)
+        tl, last_activity = self.tagsPOMS.show_tags(cherrypy.request.db, experiment)
         current_experimenter = cherrypy.session.get('experimenter')
         template = self.jinja_env.get_template('show_tags.html')
 
-        return template.render(tl=tl, help_page="ShowCampaignTagsHelp")
+        return template.render(tl=tl, last_activity = last_activity, help_page="ShowCampaignTagsHelp")
 
 
     @cherrypy.expose

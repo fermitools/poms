@@ -661,10 +661,10 @@ class CampaignsPOMS():
         tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(
             tmin, tmax, tdays, 'campaign_info?')
 
-        last_activity = dbhandle.query(func.max(Task.updated)).filter(Task.campaign_id == campaign_id).first()
-        logit.log("got last_activity %s" % repr(last_activity))
-        if last_activity and datetime.now(utc) - last_activity[0] > timedelta(days=7):
-            last_activity = last_activity[0].strftime("%Y-%m-%d %H:%M:%S")
+        last_activity_l = dbhandle.query(func.max(Task.updated)).filter(Task.campaign_id == campaign_id).first()
+        logit.log("got last_activity_l %s" % repr(last_activity_l))
+        if last_activity_l and datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
+            last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         else:
             last_activity = ""
         logit.log("after: last_activity %s" % repr(last_activity))

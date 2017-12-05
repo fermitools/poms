@@ -11,7 +11,10 @@ from collections import deque
 import json
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func, desc
-from .poms_model import Campaign, CampaignsTags, Tag
+from .poms_model import Campaign, CampaignsTags, Tag, Task
+from . import logit
+from datetime import datetime, tzinfo, timedelta
+from .utc import utc
 
 
 class TagsPOMS(object):
@@ -22,7 +25,14 @@ class TagsPOMS(object):
 
     def show_tags(self, dbhandle, experiment):
         tl = dbhandle.query(Tag).filter(Tag.experiment == experiment)
-        return tl
+        last_activity_l = dbhandle.query(func.max(Task.updated)).join(CampaignsTags,Task.campaign_id == CampaignsTags.campaign_id).join(Tag,CampaignsTags.tag_id == Tag.tag_id).filter(Tag.experiment == experiment).first()
+        logit.log("got last_activity_l %s" % repr(last_activity_l))
+        if last_activity_l and datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
+            last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            last_activity = ""
+        logit.log("after: last_activity %s" % repr(last_activity))
+        return tl, last_activity
 
 
     def link_tags(self, dbhandle, ses_get, campaign_id, tag_name, experiment):
