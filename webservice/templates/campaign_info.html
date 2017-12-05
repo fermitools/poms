@@ -290,66 +290,8 @@ $( document ).ready(function() {
               </div>
           </div> <!-- class=menu -->
    </div>  <!-- class=ui segment raised -->
-   <div class="ui segment raised">
-    <h3>Campaign</h3>
-    <b>Name</b>: {{Campaign.name}}<br>
-    <b>Experiment</b>: {{Campaign.experiment}}<br>
-    <b>Dataset</b>: {{Campaign.dataset}}<br>
-    <b>Software Version</b>: {{Campaign.software_version}}<br>
-    <b>VO Role</b>: {{Campaign.vo_role}}<br>
-    <b>Param Overrides</b>: {{Campaign.param_overrides}}<br>
-    <b>cs_split_type</b>: {{Campaign.cs_split_type}}<br>
-    <b>cs_split_dimensions</b>: {{Campaign.cs_split_dimensions}}<br>
-    <b>cs_last_split</b>: {{Campaign.cs_last_split}} <a href="{{pomspath}}/reset_campaign_split?campaign_id={{Campaign.campaign_id}}"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br>
-    <b>Active</b>: {{Campaign.active}} <br>
-    <b>Created</b>: {{Campaign.created}}<br>
-    <b>Creator</b>: {{Campaign_info.Experimenter.username}}</br>
-    <b>Updated</b>: {{Campaign.updated}}<br>
-    <b>Updater</b>: {{Campaign_info.Experimenter.username}}</br>
-    </div>
 
-  </div>
-
-     <div class="ui segment raised ">
-    <h3>Job Type</h3>
-
-    <b>Name</b>: {{Campaign_definition_info.CampaignDefinition.name}}<br>
-    <!--<b>experiment</b>: {{Campaign_definition_info.CampaignDefinition.experiment}}<br>-->
-    <b>Launch Script</b>: {{Campaign_definition_info.CampaignDefinition.launch_script}}<br>
-    <b>Definition Parameters</b>: {{Campaign_definition_info.CampaignDefinition.definition_parameters}}<br>
-    <b>Input Files Per Job</b>: {{Campaign_definition_info.CampaignDefinition.input_files_per_job}}<br>
-    <b>Output Files Per Job</b>: {{Campaign_definition_info.CampaignDefinition.output_files_per_job}}<br>
-    <b>Output File Patterns</b>: {{Campaign_definition_info.CampaignDefinition.output_file_patterns}}<br>
-    <b>Creator</b>: {{Campaign_definition_info.Experimenter.username}}<br>
-    <b>Created</b>: {{Campaign_definition_info.CampaignDefinition.created}}<br>
-    <b>Updater</b>: {{Campaign_definition_info.Experimenter.username}}<br>
-    <b>Updated</b>: {{Campaign_definition_info.CampaignDefinition.updated}}<br>
-    <b>
-    </div>
-   <div class="ui segment raised">
-    Immediate Dependencies
-    <div style="width:100%; height: 20em; border: 1px solid grey; padding: 1em; overflow-x:scroll; overflow-y: scroll">
-      <svg style="width:200%; height: 300em ">
-      {{dep_svg}}
-      </svg>
-    </div>
-  </div>
-  </div>
-    <div class="ui segment raised">
-    <h3>Launch Template</h3>
-    <b>Name</b>: {{Launch_template_info.LaunchTemplate.name}}<br>
-    <b>Experiment</b>: {{Campaign.experiment}}<br>
-    <b>Launch Host</b>: {{Launch_template_info.LaunchTemplate.launch_host}}<br>
-    <b>Launch Account</b>: {{Launch_template_info.LaunchTemplate.launch_account}}<br>
-    <b>Launch Setup</b>: {{Launch_template_info.LaunchTemplate.launch_setup}}<br>
-    <b>Creator</b>: {{Launch_template_info.Experimenter.username}}<br>
-    <b>Created</b>: {{Launch_template_info.LaunchTemplate.created}}<br>
-    <b>Updater</b>: {{Launch_template_info.Experimenter.username}}<br>
-    <b>Updated</b>: {{Launch_template_info.LaunchTemplate.updated}}<br>
-    </div>
-
-
-    <div class="ui segment raised ">
+   <div class="ui segment raised ">
         <h3>Tags</h3>
 
         <div class="ui search">
@@ -373,11 +315,72 @@ $( document ).ready(function() {
             <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label" id="{{Campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
             <i class="trash outline bordered inverted blue icon link poms_tag" id="{{Campaign.campaign_id}}_{{tag.tag_id}}" style="border-radius: 5px;"></i>
         </span>
-        <!--    <br/></br>   -->
+        <br/>
     {% endfor %}
         </div>
 
     </div>
+  </div>
+  <div class="ui horizontal segments">
+
+   <div class="ui segment raised">
+    <h3>Campaign</h3>
+    <b>Name</b>: {{Campaign.name}}<br>
+    <b>Experiment</b>: {{Campaign.experiment}}<br>
+    <b>Dataset</b>: {{Campaign.dataset}}<br>
+    <b>Software Version</b>: {{Campaign.software_version}}<br>
+    <b>VO Role</b>: {{Campaign.vo_role}}<br>
+    <b>Param Overrides</b>: [{% for pair in Campaign.param_overrides %} <br>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
+    <b>cs_split_type</b>: {{Campaign.cs_split_type}}<br>
+    <b>cs_split_dimensions</b>: {{Campaign.cs_split_dimensions}}<br>
+    <b>cs_last_split</b>: {{Campaign.cs_last_split}} <a href="{{pomspath}}/reset_campaign_split?campaign_id={{Campaign.campaign_id}}"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br>
+    <b>Active</b>: {{Campaign.active}} <br>
+    <b>Created</b>: {{Campaign.created}}<br>
+    <b>Creator</b>: {{Campaign_info.Experimenter.username}}</br>
+    <b>Updated</b>: {{Campaign.updated}}<br>
+    <b>Updater</b>: {{Campaign_info.Experimenter.username}}</br>
+    </div>
+
+
+  <div class="ui segment raised ">
+    <h3>Job Type</h3>
+
+    <b>Name</b>: {{Campaign_definition_info.CampaignDefinition.name}}<br>
+    <!--<b>experiment</b>: {{Campaign_definition_info.CampaignDefinition.experiment}}<br>-->
+    <b>Launch Script</b>: {{Campaign_definition_info.CampaignDefinition.launch_script}}<br>
+    <b>Definition Parameters</b>: [{% for pair in Campaign_definition_info.CampaignDefinition.definition_parameters %} <br>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
+    <b>Input Files Per Job</b>: {{Campaign_definition_info.CampaignDefinition.input_files_per_job}}<br>
+    <b>Output Files Per Job</b>: {{Campaign_definition_info.CampaignDefinition.output_files_per_job}}<br>
+    <b>Output File Patterns</b>: {{Campaign_definition_info.CampaignDefinition.output_file_patterns}}<br>
+    <b>Creator</b>: {{Campaign_definition_info.Experimenter.username}}<br>
+    <b>Created</b>: {{Campaign_definition_info.CampaignDefinition.created}}<br>
+    <b>Updater</b>: {{Campaign_definition_info.Experimenter.username}}<br>
+    <b>Updated</b>: {{Campaign_definition_info.CampaignDefinition.updated}}<br>
+    <b>
+    </div>
+  </div>
+    <div class="ui segment raised">
+    <h3>Launch Template</h3>
+    <b>Name</b>: {{Launch_template_info.LaunchTemplate.name}}<br>
+    <b>Experiment</b>: {{Campaign.experiment}}<br>
+    <b>Launch Host</b>: {{Launch_template_info.LaunchTemplate.launch_host}}<br>
+    <b>Launch Account</b>: {{Launch_template_info.LaunchTemplate.launch_account}}<br>
+    <b>Launch Setup</b>: {{Launch_template_info.LaunchTemplate.launch_setup}}<br>
+    <b>Creator</b>: {{Launch_template_info.Experimenter.username}}<br>
+    <b>Created</b>: {{Launch_template_info.LaunchTemplate.created}}<br>
+    <b>Updater</b>: {{Launch_template_info.Experimenter.username}}<br>
+    <b>Updated</b>: {{Launch_template_info.LaunchTemplate.updated}}<br>
+    </div>
+
+   <div class="ui segment raised">
+    Immediate Dependencies
+    <div style="width:95%; height: 20em; border: 1px solid grey; padding: 1em; overflow-x:scroll; overflow-y: scroll">
+      <svg style="width:200%; height: 300em ">
+      {{dep_svg}}
+      </svg>
+    </div>
+  </div>
+
 
  <div class="ui segment raised">
    <h3>Recent Launch Outputs </h3>
