@@ -35,9 +35,9 @@
     </div>
   </div>
 
-  {% if current_experimenter is defined and  (current_experimenter.is_root()) %}
+  {% if current_experimenter.is_root() %}
   <div class="item">
-    <div class="header">DB Admin</div>
+    <div class="header">Administration</div>
     <div class="menu">
       <a class="item" href="{{pomspath}}/experiment_edit">
         Experiments

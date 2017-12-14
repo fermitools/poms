@@ -132,12 +132,14 @@ class SATool(cherrypy.Tool):
 class SessionExperimenter(object):
 
     def __init__(self, experimenter_id=None, first_name=None, last_name=None,
-                 username=None, authorized_for=None, session_experiment=None, **kwargs):
+                 username=None, authorization=None, session_experiment=None,
+                 session_role=None, **kwargs):
         self.experimenter_id = experimenter_id
         self.first_name = first_name
         self.last_name = last_name
         self.username = username
-        self.authorized_for = authorized_for
+        self.authorization = authorization
+        self.session_role = session_role
         self.session_experiment = session_experiment
         self.extra = kwargs
         self.valid_ip_list = deque()     # FIXME
@@ -149,20 +151,26 @@ class SessionExperimenter(object):
         return False
 
 
+    def get_allowed_roles(self):
+        """
+        Returns the list of allowed roles for the user/experiment in the session
+        """
+        exp = self.authorization.get(self.session_experiment)
+        return exp.get('roles')
+
     def is_authorized(self, experiment=None,  username=None):
         # username is only needed when you want to compare the roles between this.username and username
         # The order of roles: root, coordinator, production, analysis.
-         
-        logit.log("**YG** username = %s" %username)
-        if experiment not in self.authorized_for.keys():
-           return False 
+
+        if experiment not in self.authorization.keys():
+           return False
         else:
-            if username is None:  
-                return self.authorized_for.get(experiment)['active']
+            if username is None:
+                return self.authorization.get(experiment)['active']
             else:
-                if self.username == username and self.authorized_for.get(experiment)['active']:
+                if self.username == username and self.authorization.get(experiment)['active']:
                     return True
-                myRole = self.authorized_for.get(experiment)['role']
+                myRole = self.authorization.get(experiment)['role']
                 ee = (cherrypy.request.db.query(ExperimentsExperimenters)
                       .filter(ExperimentsExperimenters.active == True)
                       .join(Experimenter)
@@ -171,16 +179,14 @@ class SessionExperimenter(object):
                       .filter(Experiment.experiment == experiment)
                     ).first()
                 if ee is None:
-                    if self.authorized_for.get(experiment)['active']:
-                        return True 
+                    if self.authorization.get(experiment)['active']:
+                        return True
                     else:
-                        return False 
-                myRoleIndex = ['analysis', 'production', 'coordinator', 'root'].index(myRole) 
+                        return False
+                myRoleIndex = ['analysis', 'production', 'coordinator', 'root'].index(myRole)
                 roleIndex = ['analysis', 'production', 'coordinator', 'root'].index(ee.role)
-                logit.log("**YG** myRole, myRoleIndex = %s %s" %(myRole, myRoleIndex))
-                logit.log("**YG** role, roleIndex = %s %s" %(ee.role, roleIndex))
                 return myRoleIndex > roleIndex
-                
+
         ra  = cherrypy.session['Remote-Addr']
         xff = cherrypy.session['X-Forwarded-For']
         if self._is_valid_ip(ra, self.valid_ip_list):
@@ -199,63 +205,46 @@ class SessionExperimenter(object):
 
 
     def is_root(self):
-        if cherrypy.session['Remote-Addr'] in ['127.0.0.1', '131.225.80.97'] and cherrypy.session['X-Forwarded-For'] is None:
-            # case for local agents
+        if self.session_role == "root":
             return True
-        if self.session_experiment in self.authorized_for.keys():
-            if self.authorized_for[self.session_experiment]['role'] == "root" \
-              and self.authorized_for[self.session_experiment]['active']:
-                return True
-            else:
-                return False
-        else:
-            return False
-
+        return False
 
     def is_coordinator(self):
         if self.is_root():
             return True
-        else:  
-            if self.session_experiment in self.authorized_for.keys():
-                if (self.authorized_for[self.session_experiment]['role'] == "coordinator" \
-                  and self.authorized_for[self.session_experiment]['active']):
-                    return True
-                else:
-                    return False
-            else:
-                return False
-
+        elif self.session_role == 'coordinator':
+            return True
+        return False
 
     def is_production(self):
         if self.is_coordinator():
             return True
-        else:
-            if self.session_experiment in self.authorized_for.keys():
-                if self.authorized_for[self.session_experiment]['role'] == "production" \
-                  and self.authorized_for[self.session_experiment]['active']:
-                    return True
-                else:
-                    return False
-            else:
-                return False
-
+        elif self.session_role == "production":
+            return True
+        return False
 
     def is_analysis(self):
         if self.is_production():
             return True
-        else:
-            if self.session_experiment in self.authorized_for.keys():
-                if self.authorized_for[self.session_experiment]['role'] == "analysis" \
-                  and self.authorized_for[self.session_experiment]['active']:
-                    return True
-                else:
-                    return False
-            else:
-                return False
+        elif self.session_role == "analysis":
+            return True
+        return False
 
+    def user_authorization(self):
+        """
+        Returns a dictionary of dictionaries.  Where:
+          {'experiment':
+            {'roles': [analysis,production,coordinator,root]   # Ordered list of roles the user plays in the experiment
+            },
+          }
+        """
+        return self.authorization
 
-    def all_experiments(self):
-        return self.authorized_for.keys()
+    def roles(self):
+        """
+        Returns a list of roles for this user/experiment
+        """
+        return self.authorization.get(self.session_experiment).get('role')
 
     def __str__(self):
         return "%s %s %s" % (self.first_name, self.last_name, self.username)
@@ -322,31 +311,36 @@ class SessionTool(cherrypy.Tool):
             raise cherrypy.HTTPError(401, 'POMS account does not exist.  To be added you must registered in VOMS.')
 
         e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == username).all()
-        logit.log("*******************************YG")
-        logit.log("***YG" + "Experimenter.username: " + username)
-        logit.log("***YG" + " e username" +e[0].username)
 
-        # Now determine what experiments a user has access and the level of access right to the experiments.
+        # Retrieve what experiments a user is ACTIVE in and the level of access right to each experiment.
+        # and construct security role data on each active experiment
         exps = {}
-        e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id == e[0].experimenter_id)
+        e2e = (cherrypy.request.db.query(ExperimentsExperimenters)
+            .filter(ExperimentsExperimenters.experimenter_id == e[0].experimenter_id)
+            .filter(ExperimentsExperimenters.active == True))
+        roles = ['analysis', 'production', 'coordinator', 'root']  #Ordered by how they will appear in the form dropdown.
         for row in e2e:
-            exps[row.experiment] = {'active': row.active, 'role':row.role}
-            logit.log("***YG: " + "row.experiment " + row.experiment + " role: " + row.role)
-                
+            position = 0
+            if e[0].root is True:
+                position = 4
+            elif row.role == 'coordinator':
+                position = 3
+            elif row.role == 'production':
+                position = 2
+            else: #analysis
+                position = 1
+            exps[row.experiment] = {'roles':roles[:position]}
         extra = {'selected': list(exps.keys())}
-        logit.log("extra")
-        logit.log(extra)
-        logit.log("*******************************YG")
 
         if "" ==  e[0].session_experiment:
-             # don't choke on blank session_experiment, just pick one...
-             e[0].sesssion_experiment = e2e[0].experiment
+            # don't choke on blank session_experiment, just pick one...
+            e[0].session_experiment = next(iter(exps.keys()))
 
         cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
-                                                               e[0].first_name, e[0].last_name, e[0].username, exps, e[0].session_experiment, **extra)
+                                                               e[0].first_name, e[0].last_name, e[0].username, exps,
+                                                               e[0].session_experiment, e[0].session_role, **extra)
 
         cherrypy.session.save()
-
         cherrypy.request.db.query(Experimenter).filter(Experimenter.username == username).update({'last_login': datetime.now(utc)})
         cherrypy.request.db.commit()
         cherrypy.log.error("New Session: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For', 'Unknown'),
@@ -375,8 +369,10 @@ def augment_params():
     root = cherrypy.request.app.root
     root.jinja_env.globals.update(dict(exp_obj=SessionExperiment(exp_obj),
                                        current_experimenter=current_experimenter,
-                                       allowed_experiments=current_experimenter.all_experiments(),
+                                       user_authorization=current_experimenter.user_authorization(),
                                        session_experiment=current_experimenter.session_experiment,
+                                       session_role=current_experimenter.session_role,
+                                       allowed_roles=current_experimenter.get_allowed_roles(),
                                        version=root.version,
                                        pomspath=root.path)
     )
