@@ -52,12 +52,8 @@ class Experimenter(Base):
     username = Column(Text, nullable=False)
     last_login = Column(DateTime(True), nullable=False, default="now()")
     session_experiment = Column(Text, nullable=False)
-<<<<<<< HEAD
-    root = Column(Boolean, server_default = text("false"))
-=======
     session_role = Column(Text, nullable=False)
     root = Column(Boolean, nullable=False)
->>>>>>> feature/role-dropdown
 
 
 class ExperimentsExperimenters(Base):

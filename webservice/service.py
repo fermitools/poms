@@ -142,7 +142,6 @@ class SessionExperimenter(object):
         self.session_experiment = session_experiment
         self.extra = kwargs
         self.valid_ip_list = deque()     # FIXME
-        self.root = root
 
     def _is_valid_ip(self, ip, iplist):
         for x in iplist:
@@ -205,8 +204,8 @@ class SessionExperimenter(object):
 
 
     def is_root(self):
-        if hasattr(self, "root"):
-            return self.root
+        if self.session_role == 'root':
+            return True
         else:
             return False
 
