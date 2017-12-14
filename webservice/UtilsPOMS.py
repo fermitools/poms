@@ -88,8 +88,17 @@ class UtilsPOMS():
             raise redirect("%s/search_tags?%s" % (self.poms_service.path, query))
 
     def update_session_experiment(self, db, seshandle, *args, **kwargs):
-        session_experiment = kwargs.pop('session_experiment',None)
-        id = seshandle('experimenter').experimenter_id
-        sql = db.query(Experimenter).filter(Experimenter.experimenter_id==id).update({'session_experiment':session_experiment})
+        sess = seshandle('experimenter')
+        sess.session_experiment = kwargs.pop('session_experiment', None)
+        sess.session_role = 'analysis'
+        fields = {'session_experiment':sess.session_experiment,
+                  'session_role': sess.session_role
+                 }
+        db.query(Experimenter).filter(Experimenter.experimenter_id == sess.experimenter_id).update(fields)
         db.commit()
-        seshandle('experimenter').session_experiment = session_experiment
+
+    def update_session_role(self, db, seshandle, *args, **kwargs):
+        sess = seshandle('experimenter')
+        sess.session_role = kwargs.pop('session_role', None)
+        db.query(Experimenter).filter(Experimenter.experimenter_id == sess.experimenter_id).update({'session_role': sess.session_role})
+        db.commit()

@@ -120,11 +120,16 @@ class PomsService(object):
     def quick_search(self, search_term):
         self.utilsPOMS.quick_search(cherrypy.request.db, cherrypy.HTTPRedirect, search_term)
 
-
     @cherrypy.expose
     @logit.logstartstop
     def update_session_experiment(self, *args, **kwargs):
         self.utilsPOMS.update_session_experiment(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+
+    @cherrypy.expose
+    @logit.logstartstop
+    def update_session_role(self, *args, **kwargs):
+        return self.utilsPOMS.update_session_role(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+
 
 ##############################
 ### CALENDAR
@@ -240,11 +245,6 @@ class PomsService(object):
         if not cherrypy.session.get('experimenter').is_root():
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
-        #print("*" * 80)
-        #print("*" * 80)
-        #print("%s" % str(list(self.tablesPOMS.admin_map.keys())))
-        #print("*" * 80)
-        #print("*" * 80)
         return template.render(tlist=list(self.tablesPOMS.admin_map.keys()), help_page="RawTablesHelp")
 
 
@@ -541,7 +541,6 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def mark_campaign_hold(self, ids2HR=None, is_hold=''):
-        logit.log("********YG** campaign_id={}; is_hold='{}'".format(ids2HR, is_hold))
         campaign_ids = ids2HR.split(",")
         ex = cherrypy.session.get('experimenter')
         for cid  in campaign_ids:
@@ -595,7 +594,7 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def edit_screen_for(self, classname, eclass, update_call, primkey, primval, valmap):   
+    def edit_screen_for(self, classname, eclass, update_call, primkey, primval, valmap):
         screendata = self.tablesPOMS.edit_screen_for(cherrypy.request.db,
                                                      cherrypy.request.headers.get,
                                                      cherrypy.session, classname, eclass,
@@ -783,7 +782,7 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_task_jobs(self, task_id, tmax=None, tmin=None, tdays=1): 
+    def show_task_jobs(self, task_id, tmax=None, tmin=None, tdays=1):
         (blob, job_counts,
          task_id, tmin, tmax,
          extramap, key, task_jobsub_id,
@@ -830,7 +829,7 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def job_file_list(self, job_id, force_reload=False):    
+    def job_file_list(self, job_id, force_reload=False):
         return self.filesPOMS.job_file_list(cherrypy.request.db, cherrypy.request.jobsub_fetcher, job_id, force_reload)
 
 
