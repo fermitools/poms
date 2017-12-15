@@ -162,12 +162,12 @@ class PomsService(object):
         return self.calendarPOMS.edit_event(cherrypy.request.db, title, start, new_start, end, s_id)
 
 
-    @cherrypy.expose
-    @logit.logstartstop
-    def service_downtimes(self):
-        template = self.jinja_env.get_template('service_downtimes.html')
-        rows = self.calendarPOMS.service_downtimes(cherrypy.request.db)
-        return template.render(rows=rows, help_page="ServiceDowntimesHelp")
+#    @cherrypy.expose
+#    @logit.logstartstop
+#    def service_downtimes(self):
+#        template = self.jinja_env.get_template('service_downtimes.html')
+#        rows = self.calendarPOMS.service_downtimes(cherrypy.request.db)
+#        return template.render(rows=rows, help_page="ServiceDowntimesHelp")
 
 
     @cherrypy.expose
