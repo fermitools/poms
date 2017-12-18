@@ -63,8 +63,8 @@ Campaign Stages{%include 'help_button.html'%}
     }
 </style>
 
-<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
-<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
+<div class="ui {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }} teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
+<div class="ui {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }} teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
 <div class="ui teal button" onclick="show_stats();">Show Campaigns Statistics</div>
 <div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Campaign Submission</div>
 

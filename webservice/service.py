@@ -165,7 +165,7 @@ class SessionExperimenter(object):
            return False
         else:
             if username is None:
-                return self.authorization.get(experiment)['active']
+                return self.authorization.get(experiment).get('active',False)
             else:
                 if self.username == username and self.authorization.get(experiment)['active']:
                     return True

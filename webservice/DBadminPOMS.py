@@ -152,7 +152,7 @@ class DBadminPOMS:
         try:
             experiment = None
             for experiment in kwargs:
-                dbhandle.query(Experiment).filter(Experiment.experiment==experiment).delete()
+                dbhandle.query(Experiment).filter(Experiment.experiment==experiment).delete(synchronize_session=False)
             dbhandle.commit()
         except IntegrityError as e:
             message = "The experiment, %s, is used and may not be deleted." % experiment

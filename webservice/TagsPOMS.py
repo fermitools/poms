@@ -69,8 +69,8 @@ class TagsPOMS(object):
     def delete_tag_entirely(self, dbhandle, ses_get, tag_id):
         tag = dbhandle.query(Tag).filter(Tag.tag_id == tag_id).first()
         if ses_get('experimenter').is_authorized(tag.experiment):
-            dbhandle.query(CampaignsTags).filter(CampaignsTags.tag_id == tag_id).delete()
-            dbhandle.query(Tag).filter(Tag.tag_id == tag_id).delete()
+            dbhandle.query(CampaignsTags).filter(CampaignsTags.tag_id == tag_id).delete(synchronize_session=False)
+            dbhandle.query(Tag).filter(Tag.tag_id == tag_id).delete(synchronize_session=False)
             dbhandle.commit()
             response = {"msg": "OK"} 
         else:
@@ -81,7 +81,7 @@ class TagsPOMS(object):
 
         if ',' not in str(campaign_id):
             if ses_get('experimenter').is_authorized(experiment):
-                dbhandle.query(CampaignsTags).filter(CampaignsTags.campaign_id == campaign_id, CampaignsTags.tag_id == tag_id).delete()
+                dbhandle.query(CampaignsTags).filter(CampaignsTags.campaign_id == campaign_id, CampaignsTags.tag_id == tag_id).delete(synchronize_session=False)
                 dbhandle.commit()
                 response = {"msg": "OK"}
             else:
@@ -91,7 +91,7 @@ class TagsPOMS(object):
             if ses_get('experimenter').is_authorized(experiment):
                 campaign_ids = str(campaign_id).split(',')
                 for cid in campaign_ids:
-                    dbhandle.query(CampaignsTags).filter(CampaignsTags.campaign_id == cid, CampaignsTags.tag_id == tag_id).delete()
+                    dbhandle.query(CampaignsTags).filter(CampaignsTags.campaign_id == cid, CampaignsTags.tag_id == tag_id).delete(synchronize_session=False)
                     dbhandle.commit()
                 response = {"msg": "OK"}
             else:

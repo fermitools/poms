@@ -61,7 +61,7 @@ class CampaignsPOMS():
             name = ae_launch_name
             try:
                 dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment == exp).filter(
-                    LaunchTemplate.name == name).delete()
+                    LaunchTemplate.name == name).delete(synchronize_session=False)
                 dbhandle.commit()
             except Exception as e:
                 message = "The launch template, %s, has been used and may not be deleted." % name
@@ -177,8 +177,8 @@ class CampaignsPOMS():
             else:
                 cid = kwargs.pop('campaign_definition_id')
             try:
-                dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == cid).delete()
-                dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id == cid).delete()
+                dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == cid).delete(synchronize_session=False)
+                dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id == cid).delete(synchronize_session=False)
                 dbhandle.commit()
             except Exception as e:
                 message = 'The campaign definition, %s, has been used and may not be deleted.' % name
@@ -262,7 +262,7 @@ class CampaignsPOMS():
                 # add listed ones.
                 if pcl_call == 0:
                     dbhandle.query(CampaignRecovery).filter(
-                        CampaignRecovery.campaign_definition_id == campaign_definition_id).delete()
+                        CampaignRecovery.campaign_definition_id == campaign_definition_id).delete(synchronize_session=False)
                     i = 0
                     for rtn in json.loads(recoveries):
                         rect = rtn[0]
@@ -378,8 +378,8 @@ class CampaignsPOMS():
                 campaign_id = kwargs.pop('campaign_id')
             try:
                 dbhandle.query(CampaignDependency).filter(or_(CampaignDependency.needs_camp_id == campaign_id,
-                                                              CampaignDependency.uses_camp_id == campaign_id)).delete()
-                dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete()
+                                                              CampaignDependency.uses_camp_id == campaign_id)).delete(synchronize_session=False)
+                dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete(synchronize_session=False)
                 dbhandle.commit()
             except Exception as e:
                 message = "The campaign, {}, has been used and may not be deleted.".format(name)
@@ -465,7 +465,7 @@ class CampaignsPOMS():
                     }
                     cd = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).update(columns)
                     # now redo dependencies
-                dbhandle.query(CampaignDependency).filter(CampaignDependency.uses_camp_id == campaign_id).delete()
+                dbhandle.query(CampaignDependency).filter(CampaignDependency.uses_camp_id == campaign_id).delete(synchronize_session=False)
                 logit.log("depends for %s are: %s" % (campaign_id, depends))
                 depcamps = dbhandle.query(Campaign).filter(Campaign.name.in_(depends['campaigns'])).all()
                 for i in range(len(depcamps)):
