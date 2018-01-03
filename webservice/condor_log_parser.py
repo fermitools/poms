@@ -133,6 +133,7 @@ def parse_condor_log(dbhandle, lines, batchhost, task_id):
                 job.host_site = job_sites[jobsub_job_id]
                 job.status = 'Running'
                 job.updated = stimes[jobsub_job_id]
+                job.created = stimes[jobsub_job_id]
                 job.output_files_declared = True
                 job.user_exe_exit_code = job_exit
                 dbhandle.add(job)
