@@ -169,6 +169,13 @@ def campaign_definition_edit(output_file_patterns, launch_script,
     else:
         ae_launch_script = launch_script
 
+    if isinstance(def_paramater, basestring):
+        try:
+            def_parameter = json.loads(def_parameter)
+        except:
+            logging.error("please use JSON format for the parameter overrides")
+            raise
+
     ae_definition_parameters= json.dumps(def_parameter)
     data, status_code = make_poms_call(pcl_call=1,
                             method = method,
@@ -197,7 +204,7 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
     logging.debug(ae_param_overrides)
 
     # if already packed as a string, unpack it so we can repack it...
-    if isinstance(base_str,ae_param_overrides):
+    if isinstance(ae_param_overrides,basestring):
         try:
             ae_param_overrides = json.loads(ae_param_overrides)
         except:

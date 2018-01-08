@@ -16,6 +16,7 @@ import os
 import glob
 import subprocess
 import importlib
+import traceback
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, desc, not_, and_, or_, distinct
 from sqlalchemy.orm import subqueryload, joinedload, contains_eager
@@ -132,7 +133,7 @@ class CampaignsPOMS():
                 logit.log(' '.join(e.args))
                 dbhandle.rollback()
             except:
-                message = 'unexpected error ! '
+                message = 'unexpected error ! \n' + traceback.format_exc(4)
                 logit.log(' '.join(message))
                 dbhandle.rollback()
 
@@ -576,6 +577,80 @@ class CampaignsPOMS():
         dbhandle.add(t)
         dbhandle.commit()
         return "Task=%d" % t.task_id
+
+    def campaign_deps_ini( self, dbhandle, config_get, tag=None, camp_id=None):
+        if tag is not None:
+            cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
+                                                                          CampaignsTags.tag_id == Tag.tag_id,
+                                                                          CampaignsTags.campaign_id == Campaign.campaign_id).all()
+        if camp_id is not None:
+            cidl1 = dbhandle.query(CampaignDependency.needs_camp_id).filter(CampaignDependency.uses_camp_id == camp_id).all()
+            cidl2 = dbhandle.query(CampaignDependency.uses_camp_id).filter(CampaignDependency.needs_camp_id == camp_id).all()
+            s = set([camp_id])
+            s.update(cidl1)
+            s.update(cidl2)
+            cl = dbhandle.query(Campaign).filter(Campaign.campaign_id.in_(s)).all()
+        
+        res = deque()
+
+        res.append("[campaign]")
+        res.append("experiment=%s" % cl[0].experiment)
+        if tag == None:
+            res.append("layer_id: %s" % camp_id)
+        else:
+            res.append("tag: %s" % tag)
+
+        jts = set()
+        lts = set()
+        
+        cnames = {}
+        for c in cl:
+            cnames[c.id] = c.name
+
+        res.append("campaign_layer_list=%s" % " ".join(cnames.values()))
+        res.append("")
+
+        for c in cl:
+            res.append("[campaign_layer %s]" % c.name)       
+            res.append("dataset=%s" % c.dataset)
+            res.append("software_version=%s" % c.software_version)
+            res.append("vo_role=%s" % c.vo_role)
+            res.append("cs_split_type=%s" % c.s_split_type)
+            res.append("job_type=%s" % c.campaign_definition_obj.name)
+            res.append("launch_template=%s" % c.launch_template_obj.name)
+            res.append("param_overrides=%s" % json.dumps(c.param_overrides))
+            res.append("completion_type=%s" % c.completion_type)
+            res.append("completion_pct=%s" % c.completion_pct)
+            jts.add(c.campaign_definition_obj)
+            lts.add(c.launch_template_obj)
+            res.append("")
+
+        for lt in lts:
+            res.append("[launch_template %s]" % lt.name)       
+            res.append("host=%s" % lt.launch_host)
+            res.append("account=%s" % lt.launch_account)
+            res.append("setup=%s" % lt.launch_setup)
+            res.append("")
+
+        for jt in jts:
+            res.append("[job_type %s]" % lt.name)       
+            res.append("launch_script=%s" % jt.launch_script
+            res.append("parameters=%s" % json.dumps(jt.definition_parameters))
+            res.append("output_file_patterns=%s" % jt.output_file_patterns
+            res.append("")
+            # still need: recovery launches
+
+        res.append("[dependencies]")
+        # still need dependencies
+        for cid in cnames.keys():
+            cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id==cid)).all()
+            deps = deque()
+            for cd in cdl:
+                deps.append(cnames[cd.uses_camp_id])
+            res.append("%s: %s" (cid, " ".join(deps))
+            res.append("")
+
+        return "\n".join(res)
 
     def campaign_deps_svg(self, dbhandle, config_get, tag=None, camp_id=None):
         '''
