@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''
-This module contain the methods that allow to modify the data.
+This module contain the methods that allow to modify the raw database
 List of methods: user_edit, experiment_members, experiment edit, experiment_authorize.
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Stephen White.
 Date: September 30, 2016.
