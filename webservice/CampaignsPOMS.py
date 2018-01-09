@@ -16,6 +16,7 @@ import os
 import glob
 import subprocess
 import importlib
+import traceback
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, desc, not_, and_, or_, distinct
 from sqlalchemy.orm import subqueryload, joinedload, contains_eager
@@ -123,7 +124,7 @@ class CampaignsPOMS():
                 logit.log(' '.join(e.args))
                 dbhandle.rollback()
             except:
-                message = 'unexpected error ! '
+                message = 'unexpected error ! ' + traceback.format_exc(4)
                 logit.log(' '.join(message))
                 dbhandle.rollback()
 
