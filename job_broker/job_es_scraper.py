@@ -124,7 +124,7 @@ class jobsub_es_scraper:
             }
         }
 
-        response = self.es.search(index='fifebatch-logs-*', query=query)
+        response = self.es.search(index='fifebatch-event-*', query=query)
 
         print(("%s POMS jobs ended this run: %d" % (time.asctime(),response['hits']['total'])))
 
