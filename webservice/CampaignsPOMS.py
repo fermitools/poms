@@ -109,7 +109,7 @@ class CampaignsPOMS():
                     template = LaunchTemplate(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host,
                                               launch_account=ae_launch_account,
                                               launch_setup=ae_launch_setup, creator=experimenter_id,
-                                              created=datetime.now(utc),creator_role='Production')
+                                              created=datetime.now(utc),creator_role='production')
                     dbhandle.add(template)
                 else:
                     columns = {
@@ -147,7 +147,7 @@ class CampaignsPOMS():
 
     def campaign_list(self, dbhandle):
         '''
-            Return list of all campaign_id s and names. -- 
+            Return list of all campaign_id s and names. --
             This is actually for Landscape to use.
         '''
         data = dbhandle.query(Campaign.campaign_id, Campaign.name).all()
@@ -155,7 +155,7 @@ class CampaignsPOMS():
 
     def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
         '''
-            callback from edit screen/client. 
+            callback from edit screen/client.
         '''
         data = {}
         message = None
@@ -342,7 +342,7 @@ class CampaignsPOMS():
             c.created = datetime.now(utc)
             c.updated = datetime.now(utc)
             c.vo_role = "Production"
-            c.creator_role = "Production"
+            c.creator_role = "production"
             c.dataset = ""
             c.launch_id = lt.launch_id
             c.software_version = ""
@@ -443,7 +443,7 @@ class CampaignsPOMS():
                                  campaign_definition_id=campaign_definition_id,
                                  completion_type=completion_type, completion_pct=completion_pct,
                                  creator=experimenter_id, created=datetime.now(utc),
-                                 creator_role='Production')
+                                 creator_role='production')
                     dbhandle.add(c)
                     dbhandle.commit()  ##### Is this flush() necessary or better a commit ?
                     campaign_id = c.campaign_id
@@ -527,7 +527,7 @@ class CampaignsPOMS():
         '''
             return info needed by campaign edit page
         '''
-        
+
         data = {}
         ae_launch_id = kwargs.pop('ae_launch_id', None)
         ae_campaign_definition_id = kwargs.pop('ae_campaign_definition_id', None)
@@ -877,7 +877,7 @@ class CampaignsPOMS():
         else:
             c = Campaign(experiment=experiment, name=campaign_name, creator=user, created=datetime.now(utc),
                          software_version=version, campaign_definition_id=cd.campaign_definition_id,
-                         launch_id=ld.launch_id, vo_role=role, dataset='', creator_role="Production")
+                         launch_id=ld.launch_id, vo_role=role, dataset='', creator_role="production")
 
         if version:
             c.software_verison = version
@@ -919,7 +919,7 @@ class CampaignsPOMS():
         if p1 < 0:
            p1 = camp.cs_split_type.find('(')
         if p1 < 0:
-            p1 = len(camp.cs_split_type) 
+            p1 = len(camp.cs_split_type)
 
         modname = camp.cs_split_type[0:p1]
 
@@ -932,7 +932,7 @@ class CampaignsPOMS():
             res = splitter.next()
         except StopIteration:
             raise err_res(404, 'No more splits in this campaign')
- 
+
         dbhandle.commit()
         return res
 
