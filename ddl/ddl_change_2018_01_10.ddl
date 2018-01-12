@@ -28,3 +28,14 @@ ALTER TABLE experiments_experimenters ADD CONSTRAINT
   ck_role CHECK (role = 'coordinator'::text or role = 'production'::text or role = 'analysis'::text);
 
 ALTER TABLE experimenters ADD active_role text DEFAULT 'analysis' NOT NULL;
+
+
+
+ALTER TABLE campaigns ADD campaign_type text NOT NULL default 'regular';
+alter table campaigns alter column campaign_type drop default;
+
+ALTER TABLE campaigns ADD CONSTRAINT ck_campaign_type CHECK ( (campaign_type = 'test'::text)
+  or (campaign_type = 'data transfer'::text) or (campaign_type = 'keep up'::text) or (campaign_type = 'regular'::text) );
+
+ALTER TABLE campaigns ADD CONSTRAINT ck_creator_role CHECK ( (creator_role = 'analysis'::text)
+  or (creator_role = 'production'::text) );

@@ -35,6 +35,7 @@ class Campaign(Base):
     hold_experimenter_id = Column(ForeignKey('experimenters.experimenter_id'), nullable=True)
     creator_role = Column(Text, nullable=False)
     role_held_with = Column(Text, nullable=True)
+    campaign_type = Column(Text, nullable=False)
 
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship('Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')

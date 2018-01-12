@@ -153,12 +153,12 @@ class PomsService(object):
         # even though we pass in the s_id we should not rely on it because they can and will change the service name
         return self.calendarPOMS.edit_event(cherrypy.request.db, title, start, new_start, end, s_id)
 
-    @cherrypy.expose
-    @logit.logstartstop
-    def service_downtimes(self):
-        template = self.jinja_env.get_template('service_downtimes.html')
-        rows = self.calendarPOMS.service_downtimes(cherrypy.request.db)
-        return template.render(rows=rows, help_page="ServiceDowntimesHelp")
+#    @cherrypy.expose
+#    @logit.logstartstop
+#    def service_downtimes(self):
+#        template = self.jinja_env.get_template('service_downtimes.html')
+#        rows = self.calendarPOMS.service_downtimes(cherrypy.request.db)
+#        return template.render(rows=rows, help_page="ServiceDowntimesHelp")
 
     @cherrypy.expose
     @logit.logstartstop

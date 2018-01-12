@@ -9,7 +9,9 @@ from .poms_model import Job
 import time
 
 def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
-    print("entering joblogs, why doesn't this log?")
+    '''
+        get the condor joblog for a given job
+    '''
     log("INFO", "entering get_joblogs" )
     if jobsub_job_id == None:
         return
@@ -74,6 +76,7 @@ def parse_date(date_time_str):
     return datetime.strptime(date_time_str, "%Y/%m/%d %H:%M:%S")
 
 def parse_condor_log(dbhandle, lines, batchhost, task_id):
+    ''' read a condor log looking for start/end info '''
     in_termination = 0
     stimes = {}
     job_sites = {}

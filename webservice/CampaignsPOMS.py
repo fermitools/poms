@@ -33,10 +33,19 @@ from . import logit
 
 
 class CampaignsPOMS():
+    '''
+       Business logic for Campaign related items
+    '''
     def __init__(self, ps):
+        '''
+            initialize ourself with a reference back to the overall poms_service
+        '''
         self.poms_service = ps
 
     def launch_template_edit(self, dbhandle, seshandle, *args, **kwargs):
+        '''
+            callback to actually change launch templates from edit screen
+        '''
         data = {}
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(
@@ -148,10 +157,17 @@ class CampaignsPOMS():
         return data
 
     def campaign_list(self, dbhandle):
+        '''
+            Return list of all campaign_id s and names. --
+            This is actually for Landscape to use.
+        '''
         data = dbhandle.query(Campaign.campaign_id, Campaign.name).all()
         return data
 
     def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
+        '''
+            callback from edit screen/client.
+        '''
         data = {}
         message = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(
@@ -335,6 +351,9 @@ class CampaignsPOMS():
         return data
 
     def make_test_campaign_for(self, dbhandle, sesshandle, campaign_def_id, campaign_def_name):
+        '''
+            Build a test_campaign for a given campaign definition
+        '''
         c = dbhandle.query(Campaign).filter(Campaign.campaign_definition_id == campaign_def_id,
                                             Campaign.name == "_test_%s" % campaign_def_name).first()
         if not c:
@@ -359,6 +378,10 @@ class CampaignsPOMS():
         return c.campaign_id
 
     def campaign_edit(self, dbhandle, sesshandle, *args, **kwargs):
+        '''
+            callback for campaign edit screens to update campaign record
+            takes action = 'edit'/'add'/ etc.
+        '''
         data = {}
         message = None
         exp = sesshandle.get('experimenter').session_experiment
@@ -538,6 +561,10 @@ class CampaignsPOMS():
         return data
 
     def campaign_edit_query(self, dbhandle, *args, **kwargs):
+        '''
+            return info needed by campaign edit page
+        '''
+
         data = {}
         ae_launch_id = kwargs.pop('ae_launch_id', None)
         ae_campaign_definition_id = kwargs.pop('ae_campaign_definition_id', None)
@@ -562,6 +589,9 @@ class CampaignsPOMS():
         return json.dumps(data)
 
     def new_task_for_campaign(self, dbhandle, campaign_name, command_executed, experimenter_name, dataset_name=None):
+        '''
+            Get a new task-id for a given campaign
+        '''
         if isinstance(campaign_name, str):
             campaign_name = campaign_name.strip()
         c = dbhandle.query(Campaign).filter(Campaign.name == campaign_name).first()
@@ -585,6 +615,10 @@ class CampaignsPOMS():
         return "Task=%d" % t.task_id
 
     def campaign_deps_svg(self, dbhandle, config_get, tag=None, camp_id=None):
+        '''
+            return campaign dependencies as an SVG graph
+            uses "dot" to generate the drawing
+        '''
         if tag is not None:
             cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
                                                                           CampaignsTags.tag_id == Tag.tag_id,
@@ -644,7 +678,8 @@ class CampaignsPOMS():
                        active=True, tag=None, holder=None):
 
         """
-
+            give campaign information about campaigns with activity in the
+            time window for a given experiment
         :rtype: object
         """
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = \
@@ -676,6 +711,10 @@ class CampaignsPOMS():
         return campaigns, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
 
     def reset_campaign_split(self, dbhandle, samhandle, campaign_id):
+        '''
+            reset a campaigns cs_last_split field so the sequence
+            starts over
+        '''
         campaign_id = int(campaign_id)
 
         c = (dbhandle.query(Campaign)
@@ -686,6 +725,9 @@ class CampaignsPOMS():
 
     # @pomscache.cache_on_arguments()
     def campaign_info(self, dbhandle, samhandle, err_res, config_get, campaign_id, tmin=None, tmax=None, tdays=None):
+        '''
+           Give information related to a campaign for the campaign_info page
+        '''
 
         campaign_id = int(campaign_id)
 
@@ -761,6 +803,10 @@ class CampaignsPOMS():
 
     @pomscache_10.cache_on_arguments()
     def campaign_time_bars(self, dbhandle, campaign_id=None, tag=None, tmin=None, tmax=None, tdays=1):
+        '''
+            Give time-bars for Tasks for this campaign in a time window
+            using the time_grid code
+        '''
         (
             tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays
         ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
@@ -844,6 +890,9 @@ class CampaignsPOMS():
 
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
                                dataset="", role="Analysis", params=[]):
+        '''
+            update or add a campaign by experiment and name...
+        '''
         changed = False
         if dataset is None:
             dataset = ''
@@ -872,7 +921,7 @@ class CampaignsPOMS():
         else:
             c = Campaign(experiment=experiment, name=campaign_name, creator=user, created=datetime.now(utc),
                          software_version=version, campaign_definition_id=cd.campaign_definition_id,
-                         launch_id=ld.launch_id, vo_role=role, dataset='', creator_role="Production")
+                         launch_id=ld.launch_id, vo_role=role, dataset='', creator_role="production")
 
         if version:
             c.software_verison = version
@@ -897,6 +946,10 @@ class CampaignsPOMS():
         return c.campaign_id
 
     def get_dataset_for(self, dbhandle, samhandle, err_res, camp):
+        '''
+            use the split_type modules to get the next dataset for
+            launch for a given campaign
+        '''
 
         if not camp.cs_split_type or camp.cs_split_type == 'None':
             return camp.dataset
@@ -928,6 +981,9 @@ class CampaignsPOMS():
         return res
 
     def list_launch_file(self, campaign_id, fname, launch_template_id=None):
+        '''
+            get launch output file and return the lines as a list
+        '''
         if launch_template_id:
             dirname = '{}/private/logs/poms/launches/template_tests_{}'.format(os.environ['HOME'], launch_template_id)
         else:
@@ -946,6 +1002,9 @@ class CampaignsPOMS():
         return lines, refresh
 
     def schedule_launch(self, dbhandle, campaign_id):
+        '''
+            return crontab info for cron launches for campaign
+        '''
         c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
         my_crontab = CronTab(user=True)
         citer = my_crontab.find_comment('POMS_CAMPAIGN_ID={}'.format(campaign_id))
@@ -963,6 +1022,9 @@ class CampaignsPOMS():
 
     def update_launch_schedule(self, campaign_id, dowlist='', domlist='', monthly='', month='', hourlist='', submit='',
                                minlist='', delete=''):
+        '''
+            callback for changing the launch schedule
+        '''
 
         # deal with single item list silliness
         if isinstance(minlist, str):
@@ -1032,6 +1094,9 @@ class CampaignsPOMS():
         my_crontab.write()
 
     def get_recovery_list_for_campaign_def(self, dbhandle, campaign_def):
+        '''
+            return the recovery list for a given campaign_def
+        '''
         rlist = (dbhandle.query(CampaignRecovery)
                  .options(joinedload(CampaignRecovery.recovery_type))
                  .filter(CampaignRecovery.campaign_definition_id == campaign_def.campaign_definition_id)
@@ -1046,6 +1111,9 @@ class CampaignsPOMS():
         return rlist
 
     def make_stale_campaigns_inactive(self, dbhandle, err_res):
+        '''
+            turn off active flag on campaigns without recent activity
+        '''
         lastweek = datetime.now(utc) - timedelta(days=7)
         recent_sq = dbhandle.query(distinct(Task.campaign_id)).filter(Task.created > lastweek)
 
