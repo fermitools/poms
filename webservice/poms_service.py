@@ -368,14 +368,15 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaigns(self, tmin=None, tmax=None, tdays=7, active=True, tag=None, holder=None, cl=None, **kwargs):
+    def show_campaigns(self, tmin=None, tmax=None, tdays=7, active=True, tag=None, holder=None, role_held_with=None,
+                       creator_role=None, cl=None, **kwargs):
         experiment = cherrypy.session.get('experimenter').session_experiment
         (
             campaigns, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
         ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db,
                                               cherrypy.request.samweb_lite, experiment=experiment,
                                               tmin=tmin, tmax=tmax, tdays=tdays, active=active, tag=tag,
-                                              holder=holder, campaign_ids=cl)
+                                              holder=holder, role_held_with=role_held_with, creator_role=creator_role, campaign_ids=cl)
 
         current_experimenter = cherrypy.session.get('experimenter')
         # ~ logit.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG

@@ -81,7 +81,9 @@ Campaign Stages{%include 'help_button.html'%}
                 <th>Active</th>
                 <th>Tags</th>
                 <th>Hold By</th>
+                <th>Role Held With</th>
                 <th>Creator</th>
+                <th>Creator Role</th>
                 <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
             </tr>
         </thead>
@@ -94,7 +96,9 @@ Campaign Stages{%include 'help_button.html'%}
                     <td>{{ 'Yes' if campaign.active else 'No' }}</td>
                     <td>{{ campaign.campaigns_tags | join('<br>', attribute='tag_obj.tag_name') }}</td>
                     <td>{{campaign.experimenter_holder_obj.username}}</td>
+                    <td>{{campaign.role_held_with}}</td>
                     <td>{{campaign.experimenter_creator_obj.username}}</td>
+                    <td>{{campaign.creator_role}}</td>
                     <td>{{campaign.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>
                 </tr>
             {% endfor %}

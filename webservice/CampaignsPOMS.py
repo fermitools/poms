@@ -675,7 +675,7 @@ class CampaignsPOMS():
         return bytes(text, encoding="utf-8")
 
     def show_campaigns(self, dbhandle, samhandle, campaign_ids=None, experiment=None, tmin=None, tmax=None, tdays=7,
-                       active=True, tag=None, holder=None):
+                       active=True, tag=None, holder=None, role_held_with=None, creator_role=None):
 
         """
             give campaign information about campaigns with activity in the
@@ -703,8 +703,14 @@ class CampaignsPOMS():
         if tag:
             cq = cq.join(Tag).filter(Tag.tag_name == tag)
 
-        if holder:
-            cq = cq.filter(Campaingn.hold_experimenters_id == holder)
+        # for now we comment out it. When we have a lot of data, we may need to use these filters.
+        # We will let the client filter it in show_campaigns.html with tablesorter for now.
+        # if holder:
+            # cq = cq.filter(Campaingn.hold_experimenters_id == holder)
+
+        # if creator_role:
+            # cq = cq.filter(Campaingn.creator_role == creator_role)
+
         campaigns = cq.all()
         logit.log(logit.DEBUG, "show_campaigns: back from query")
 
@@ -889,7 +895,7 @@ class CampaignsPOMS():
         return job_counts, blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
-                               dataset="", role="Analysis", params=[]):
+                               dataset="", role="analysis", params=[]):
         '''
             update or add a campaign by experiment and name...
         '''
@@ -921,7 +927,7 @@ class CampaignsPOMS():
         else:
             c = Campaign(experiment=experiment, name=campaign_name, creator=user, created=datetime.now(utc),
                          software_version=version, campaign_definition_id=cd.campaign_definition_id,
-                         launch_id=ld.launch_id, vo_role=role, dataset='', creator_role="production")
+                         launch_id=ld.launch_id, vo_role=role, dataset='', creator_role="production")   #FIXME: why creator_role=production?
 
         if version:
             c.software_verison = version
