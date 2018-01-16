@@ -1119,7 +1119,7 @@ class CampaignsPOMS():
         return c, job, launch_flist
 
     def update_launch_schedule(self, campaign_id, dowlist='', domlist='', monthly='', month='', hourlist='', submit='',
-                               minlist='', delete=''):
+                               minlist='', delete='',user=''):
         '''
             callback for changing the launch schedule
         '''
@@ -1171,7 +1171,7 @@ class CampaignsPOMS():
                 if os.path.exists(tpdir):
                     pdir = tpdir
 
-            job = my_crontab.new(command='{}/cron/launcher --campaign_id={}'.format(pdir, campaign_id),
+            job = my_crontab.new(command='{}/cron/launcher --campaign_id={} --launcher={}'.format(pdir, campaign_id, user),
                                  comment='POMS_CAMPAIGN_ID={}'.format(campaign_id))
 
             # set timing...
