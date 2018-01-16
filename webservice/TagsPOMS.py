@@ -36,7 +36,9 @@ class TagsPOMS(object):
 
 
     def link_tags(self, dbhandle, ses_get, campaign_id, tag_name, experiment):
-        if ses_get.get('experimenter').is_authorized(experiment):
+        # if ses_get.get('experimenter').is_authorized(experiment): #FIXME
+        # Fake it for now, we need to discuss who can manipulate tags.
+        if ses_get.get('experimenter').session_experiment == experiment:
             tag = dbhandle.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()
             if not tag:  # we do not have a tag in the db for this experiment so create the tag and then do the linking
                 t = Tag()
@@ -88,7 +90,8 @@ class TagsPOMS(object):
                 response = {"msg": "You are not authorized to delete tags."}
             return response
         else:
-            if ses_get('experimenter').is_authorized(experiment):
+            # if ses_get('experimenter').is_authorized(experiment): FIXME
+            if ses_get('experimenter').session_experiment == experiment:
                 campaign_ids = str(campaign_id).split(',')
                 for cid in campaign_ids:
                     dbhandle.query(CampaignsTags).filter(CampaignsTags.campaign_id == cid, CampaignsTags.tag_id == tag_id).delete(synchronize_session=False)

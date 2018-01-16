@@ -34,6 +34,8 @@ class Campaign(Base):
     completion_pct = Column(Text, nullable=False, server_default="95")
     hold_experimenter_id = Column(ForeignKey('experimenters.experimenter_id'), nullable=True)
     creator_role = Column(Text, nullable=False)
+    role_held_with = Column(Text, nullable=True)
+    campaign_type = Column(Text, nullable=False)
 
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship('Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')
@@ -142,6 +144,7 @@ class LaunchTemplate(Base):
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey('experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
+    creator_role = Column(Text, nullable=False)
 
     experiment_obj = relationship('Experiment')
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='LaunchTemplate.creator == Experimenter.experimenter_id')
@@ -163,6 +166,7 @@ class CampaignDefinition(Base):
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey('experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
+    creator_role = Column(Text, nullable=False)
 
 
     experiment_obj = relationship('Experiment')

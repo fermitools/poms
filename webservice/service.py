@@ -157,51 +157,40 @@ class SessionExperimenter(object):
         exp = self.authorization.get(self.session_experiment)
         return exp.get('roles')
 
-    def is_authorized(self, experiment=None,  username=None):
-        # username is only needed when you want to compare the roles between this.username and username
-        # The order of roles: root, coordinator, production, analysis.
+    '''
+    def is_active(self, experiment=None):  #FIXME
+        # To check if the self.user is an active nuser
 
         if experiment not in self.authorization.keys():
            return False
         else:
-            if username is None:
-                return self.authorization.get(experiment).get('active',False)
-            else:
-                if self.username == username and self.authorization.get(experiment)['active']:
-                    return True
-                myRole = self.authorization.get(experiment)['role']
-                ee = (cherrypy.request.db.query(ExperimentsExperimenters)
-                      .filter(ExperimentsExperimenters.active == True)
-                      .join(Experimenter)
-                      .filter(Experimenter.username == username)
-                      .join(Experiment)
-                      .filter(Experiment.experiment == experiment)
-                    ).first()
-                if ee is None:
-                    if self.authorization.get(experiment)['active']:
-                        return True
-                    else:
-                        return False
-                myRoleIndex = ['analysis', 'production', 'coordinator', 'root'].index(myRole)
-                roleIndex = ['analysis', 'production', 'coordinator', 'root'].index(ee.role)
-                return myRoleIndex > roleIndex
+            return self.authorization.get(experiment)['active']   #FIXME
+    '''
 
-        ra  = cherrypy.session['Remote-Addr']
-        xff = cherrypy.session['X-Forwarded-For']
-        if self._is_valid_ip(ra, self.valid_ip_list):
-            return 1
-        if ra.startswith('131.225.80.'):
-            return 1
-        if ra == '127.0.0.1' and xff and xff.startswith('131.225.67'):
-            # case for fifelog agent..
-            return 1
-        if ra != '127.0.0.1' and xff and xff.startswith('131.225.80'):
-            # case for jobsub_q agent (currently on bel-kwinith...)
-            return 1
-        if ra == '127.0.0.1' and xff is None:
-            # case for local agents
-            return 1
-
+    def is_authorized(self, campaign=None):
+        """
+        Who can change a campagin/any object with properties fo experiment, creator and creator_role :
+                The creator can change her/his own campaigns with the same role used to create the campaign.
+                The root can change any campaigns.
+                The coordinator can change any campaigns that in the same experiment as the coordinator.
+                Anyone with a production role can change a campaign created with a production role.
+        :param campaign: Name of the campaign.
+        :return: True or False
+        """
+        if not campaign:
+            return False
+        if self.is_root():
+            return True
+        elif self.is_coordinator() and self.session_experiment == campaign.experiment:
+            return True
+        elif self.is_production and self.session_experiment == campaign.experiment \
+                and campaign.creator_role == "production":
+            return True
+        elif campaign.creator == self.experimenter_id and campaign.experiment == self.session_experiment \
+                and campaign.creator_role == self.session_role:
+            return True
+        else:
+            return False
 
     def is_root(self):
         if self.session_role == 'root':
@@ -210,23 +199,17 @@ class SessionExperimenter(object):
             return False
 
     def is_coordinator(self):
-        if self.is_root():
-            return True
-        elif self.session_role == 'coordinator':
+        if self.session_role == 'coordinator':
             return True
         return False
 
     def is_production(self):
-        if self.is_coordinator():
-            return True
-        elif self.session_role == "production":
+        if self.session_role == "production":
             return True
         return False
 
     def is_analysis(self):
-        if self.is_production():
-            return True
-        elif self.session_role == "analysis":
+        if self.session_role == "analysis":
             return True
         return False
 
