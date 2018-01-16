@@ -20,6 +20,7 @@ import traceback
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, desc, not_, and_, or_, distinct
 from sqlalchemy.orm import subqueryload, joinedload, contains_eager
+from functools import cmp_to_key
 
 from crontab import CronTab
 from .poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
@@ -579,6 +580,7 @@ class CampaignsPOMS():
         return "Task=%d" % t.task_id
 
     def campaign_deps_ini( self, dbhandle, config_get, tag=None, camp_id=None):
+        res = []
         if tag is not None:
             cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
                                                                           CampaignsTags.tag_id == Tag.tag_id,
@@ -591,7 +593,28 @@ class CampaignsPOMS():
             s.update(cidl2)
             cl = dbhandle.query(Campaign).filter(Campaign.campaign_id.in_(s)).all()
         
-        res = deque()
+        cnames = {}
+        for c in cl:
+            cnames[c.campaign_id] = c.name
+
+        # lookup relevent dependencies
+        dmap = {}
+        for cid in cnames.keys():
+            dmap[cid] = []
+
+ 
+        for cid in cnames.keys():
+            cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id==cid).filter(CampaignDependency.uses_camp_id.in_(cnames.keys())).all()
+            for cd in cdl:
+                dmap[cid].append(cd.uses_camp_id)
+        #------------
+
+        # sort by dependencies(?)
+        cidl = list(cnames.keys())
+        for cid in cnames.keys():
+            for dcid in dmap[cid]:
+                if (cidl.index(dcid) < cidl.index(cid)):
+                    cidl[cidl.index(dcid)],cidl[cidl.index(cid)] = cidl[cidl.index(cid)],cidl[cidl.index(dcid)] 
 
         res.append("[campaign]")
         res.append("experiment=%s" % cl[0].experiment)
@@ -603,11 +626,7 @@ class CampaignsPOMS():
         jts = set()
         lts = set()
         
-        cnames = {}
-        for c in cl:
-            cnames[c.id] = c.name
-
-        res.append("campaign_layer_list=%s" % " ".join(cnames.values()))
+        res.append("campaign_layer_list=%s" % " ".join(map(cnames.get,cidl)))
         res.append("")
 
         for c in cl:
@@ -615,7 +634,7 @@ class CampaignsPOMS():
             res.append("dataset=%s" % c.dataset)
             res.append("software_version=%s" % c.software_version)
             res.append("vo_role=%s" % c.vo_role)
-            res.append("cs_split_type=%s" % c.s_split_type)
+            res.append("cs_split_type=%s" % c.cs_split_type)
             res.append("job_type=%s" % c.campaign_definition_obj.name)
             res.append("launch_template=%s" % c.launch_template_obj.name)
             res.append("param_overrides=%s" % json.dumps(c.param_overrides))
@@ -633,22 +652,20 @@ class CampaignsPOMS():
             res.append("")
 
         for jt in jts:
-            res.append("[job_type %s]" % lt.name)       
-            res.append("launch_script=%s" % jt.launch_script
+            res.append("[job_type %s]" % jt.name)       
+            res.append("launch_script=%s" % jt.launch_script)
             res.append("parameters=%s" % json.dumps(jt.definition_parameters))
-            res.append("output_file_patterns=%s" % jt.output_file_patterns
+            res.append("output_file_patterns=%s" % jt.output_file_patterns)
             res.append("")
             # still need: recovery launches
 
         res.append("[dependencies]")
         # still need dependencies
-        for cid in cnames.keys():
-            cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id==cid)).all()
-            deps = deque()
-            for cd in cdl:
-                deps.append(cnames[cd.uses_camp_id])
-            res.append("%s: %s" (cid, " ".join(deps))
-            res.append("")
+        deps = deque()
+        for cid in cidl:
+            res.append("%s=%s" % (cnames[cid], " ".join(map(cnames.get, dmap[cid]))))
+
+        res.append("")
 
         return "\n".join(res)
 

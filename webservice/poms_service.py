@@ -302,6 +302,11 @@ class PomsService(object):
         template = self.jinja_env.get_template('launch_template_edit.html')
         return template.render(data=data, help_page="LaunchTemplateEditHelp")
 
+    @cherrypy.expose
+    def campaign_deps_ini( self, tag=None, camp_id=None):
+        res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, cherrypy.config.get, tag, camp_id)
+        cherrypy.response.headers['Content-Type'] = 'text/ini'
+        return res
 
     @cherrypy.expose
     def campaign_deps(self, tag=None, camp_id=None):
