@@ -696,6 +696,9 @@ class CampaignsPOMS():
         if experiment:
             cq = cq.filter(Campaign.experiment == experiment)
 
+        if creator_role:
+            cq = cq.filter(Campaign.creator_role == creator_role)
+
         if campaign_ids:
             campaign_ids = campaign_ids.split(",")
             cq = cq.filter(Campaign.campaign_id.in_(campaign_ids))
