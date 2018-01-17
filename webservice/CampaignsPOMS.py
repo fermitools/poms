@@ -460,8 +460,9 @@ class CampaignsPOMS():
                 depends = {"campaigns": [], "file_patterns": []}
             try:
                 if action == 'add':
-                    if not completion_pct: completion_pct = 95
-                    role = seshandle('experimenter').session_role
+                    if not completion_pct:
+                        completion_pct = 95
+                    role = sesshandle('experimenter').session_role
                     if role == 'root' or role == 'coordinator':
                         raise cherrypy.HTTPError(401, 'You are not authorized to add campaign definition.')
                     else:
@@ -532,20 +533,26 @@ class CampaignsPOMS():
             elif state == 'state_inactive':
                 cquery = cquery.filter(Campaign.active == False)
                 cquery = cquery.order_by(Campaign.name)
-            for cq in cquery :
-                if cq['creator_role'] == 'production' and seshandle('experimenter').session_role == "production":
-                    data['authorized'].append(True)
-                elif cq['creator_role'] == seshandle('experimenter').session_role \
-                        and cq['creator'] == seshandle('experimenter').experimenter_id:
-                    data['authorized'].append(True)
-                else:
-                    data['authorized'].append(False)
             data['campaigns'] = cquery
             data['definitions'] = dbhandle.query(CampaignDefinition).filter(
                 CampaignDefinition.experiment == exp).order_by(CampaignDefinition.name)
             data['templates'] = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment == exp).order_by(
                 LaunchTemplate.name)
-            cids = [c.campaign_id for c in data['campaigns'].all()]
+            cq = data['campaigns'].all()
+
+            cids = []
+            for c in cq:
+                cids.append(c.campaign_id)
+                if c.creator_role == 'production' and sesshandle.get('experimenter').session_role == "production":
+                    data['authorized'].append(True)
+                elif c.creator_role == sesshandle.get('experimenter').session_role \
+                        and c.creator == sesshandle.get('experimenter').experimenter_id:
+                    data['authorized'].append(True)
+                else:
+                    data['authorized'].append(False)
+            print("*"*80)
+            print(str(data['authorized']))
+            print("*"*80)
             depends = {}
             for cid in cids:
                 sql = (dbhandle.query(CampaignDependency.uses_camp_id, Campaign.name, CampaignDependency.file_patterns)

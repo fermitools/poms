@@ -83,7 +83,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       {% for row in data.campaigns %}
       <tr>
         <td class="collapsing">
-          {% if data.authorized==True %}
+          {% if data.authorized[loop.index]==True %}
           <i class="large edit link blue icon"  onclick="edit_campaign({{loop.index}});"></i>
           <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i>
           <i class="large trash link blue icon" onclick="delete_campaign('{{row.name}}',{{row.campaign_id}});"></i>
@@ -92,7 +92,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
           {% endif %}
         </td>
         <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.campaign_id}}</td>
-      {% if row.campaign_id|int == jump_to_campaign|default(-1)|int %} 
+      {% if row.campaign_id|int == jump_to_campaign|default(-1)|int %}
       <script type="text/javascript">
        // jump directly to a particular campaign
        $(document).ready(function(){
