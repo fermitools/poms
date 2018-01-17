@@ -151,7 +151,7 @@ def parse_condor_log(dbhandle, lines, batchhost, task_id):
         if in_termination:
             log("DEBUG", "saw: ", line )
             if line.find("termination (signal ") > 0:
-                 job.exit = 128 - int(line.split()[5].strip(')'))
+                 job.exit = 128 + int(line.split()[5].strip(')'))
             if line.find("termination (return value") > 0:
                  job_exit = int(line.split()[5].strip(')'))
             if line.find("Total Remote Usage") > 0:
