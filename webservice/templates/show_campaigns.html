@@ -63,10 +63,11 @@ Campaign Stages{%include 'help_button.html'%}
     }
 </style>
 
-<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
-<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
+<!- FIXME:  need to change the buttons for mixed creator with analysis role    ->
+<div class="ui {{ 'disabled' if (current_experimenter.session_role == "analysis" and  current_experimenter.experimenter_id != campaigns.creator) }} teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
+<div class="ui {{ 'disabled' if (current_experimenter.session_role == "analysis" and  current_experimenter.experimenter_id != campaigns.creator) }} teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
 <div class="ui teal button" onclick="show_stats();">Show Campaigns Statistics</div>
-<div class="ui {{ 'disabled' if (current_experimenter.session_role == "analysis" and  current_experimenter.experimenter_id == campaigns.creator) }} teal button" onclick="pop_launch_holder_modal();">Hold/Release Campaign Submission</div>
+<div class="ui {{ 'disabled' if (current_experimenter.session_role == "analysis" and  current_experimenter.experimenter_id != campaigns.creator) }} teal button" onclick="pop_launch_holder_modal();">Hold/Release Campaign Submission</div>
 
 {% if campaigns|length == 0 %}
 <br>
@@ -80,8 +81,8 @@ Campaign Stages{%include 'help_button.html'%}
                 <th>Name</th>
                 <th>Active</th>
                 <th>Tags</th>
-                <th>Hold By/Role</th>
-                <th>Creator/Role</th>
+                <th>Hold By</th>
+                <th>Creator</th>
                 <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
             </tr>
         </thead>
@@ -93,8 +94,8 @@ Campaign Stages{%include 'help_button.html'%}
                     <td><a href="{{pomspath}}/campaign_info?campaign_id={{campaign.campaign_id}}">{{campaign.name}}</a></td>
                     <td>{{ 'Yes' if campaign.active else 'No' }}</td>
                     <td>{{ campaign.campaigns_tags | join('<br>', attribute='tag_obj.tag_name') }}</td>
-                    <td>{{campaign.experimenter_holder_obj.username}}/{{campaign.role_held_with}}</td>
-                    <td>{{campaign.experimenter_creator_obj.username}}/{{campaign.creator_role}}</td>
+                    <td>{{campaign.experimenter_holder_obj.username}}</td>
+                    <td>{{campaign.experimenter_creator_obj.username}}</td>
                     <td>{{campaign.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>
                 </tr>
             {% endfor %}

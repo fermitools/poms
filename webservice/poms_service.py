@@ -321,6 +321,14 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def campaign_edit(self, *args, **kwargs):
+        """
+
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        # Note we have to use cherrypy.session here instead of cherrypy.session.get method
+        # because later need to access cherrypy.session[''] in campaignsPOMS.campaign_edit.
         data = self.campaignsPOMS.campaign_edit(cherrypy.request.db, cherrypy.session, *args, **kwargs)
         template = self.jinja_env.get_template('campaign_edit.html')
 
@@ -369,16 +377,14 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def show_campaigns(self, tmin=None, tmax=None, tdays=7, active=True, tag=None, holder=None, role_held_with=None,
-                       creator_role=None, cl=None, **kwargs):
-        experiment = cherrypy.session.get('experimenter').session_experiment
-        se_role = cherrypy.session.get('experimenter').session_role
+                       se_role=None, cl=None, **kwargs):
         (
-            campaigns, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
+            campaigns, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
         ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db,
-                                              cherrypy.request.samweb_lite, experiment=experiment,
+                                              cherrypy.request.samweb_lite,
                                               tmin=tmin, tmax=tmax, tdays=tdays, active=active, tag=tag,
-                                              holder=holder, role_held_with=role_held_with, creator_role=se_role,
-                                              campaign_ids=cl)
+                                              holder=holder, role_held_with=role_held_with,
+                                              campaign_ids=cl, sesshandler=cherrypy.session.get)
 
         current_experimenter = cherrypy.session.get('experimenter')
         # ~ logit.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
@@ -396,9 +402,9 @@ class PomsService(object):
         else:
             template = self.jinja_env.get_template('show_campaigns_stats.html')
 
-        return template.render(limit_experiment=experiment,
+        return template.render(limit_experiment=current_experimenter.session_experiment,
                                campaigns=campaigns, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
-                               do_refresh=1200,
+                               do_refresh=1200, data=data,
                                next=nextlink, prev=prevlink, tdays=tdays, time_range_string=time_range_string,
                                key='', help_page="ShowCampaignsHelp", dbg=kwargs)
 
@@ -467,13 +473,15 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def register_poms_campaign(self, experiment, campaign_name, version, user=None,
-                               campaign_definition=None, dataset="", role="Analysis", params=[]):
+                               campaign_definition=None, dataset="", role="Analysis",
+                               params=[]):
         campaign_id = self.campaignsPOMS.register_poms_campaign(cherrypy.request.db,
                                                                 experiment,
                                                                 campaign_name,
                                                                 version, user,
                                                                 campaign_definition,
-                                                                dataset, role, params)
+                                                                dataset, role,
+                                                                cherrypy.session.get, params)
         return "Campaign=%d" % campaign_id
 
     @cherrypy.expose

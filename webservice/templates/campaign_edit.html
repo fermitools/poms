@@ -26,19 +26,9 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 {%endblock%}
 
 {%block content%}
-<!-- authorized: {{data.authorized}} -->
 <form id="campaign_form" class="ui form" action="campaign_edit" method="POST">
 
   <div class="inline fields">
-    <!--
-    <select class="ui dropdown" name="experiment" id="c_experiment">
-      <option value="">Choose Experiment</option>
-      {% for row in data.exp_selections %}
-      <option value="{{row.experiment}}" {{ 'selected="selected"' if (data.curr_experiment == row.experiment) }}>{{row.name}}</option>
-      {% endfor %}
-    </select>
-    &nbsp;&nbsp;&nbsp;
-    -->
     <div class="field">
       <div class="ui radio checkbox">
         <input type="radio" name="state" id="state_active" value="state_active" {{ 'checked="checked"' if (data.state is not defined or data.state == "state_active")  }}>

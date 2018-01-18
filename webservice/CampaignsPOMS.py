@@ -36,6 +36,7 @@ class CampaignsPOMS():
     '''
        Business logic for Campaign related items
     '''
+
     def __init__(self, ps):
         '''
             initialize ourself with a reference back to the overall poms_service
@@ -43,13 +44,15 @@ class CampaignsPOMS():
         self.poms_service = ps
 
     def launch_template_edit(self, dbhandle, seshandle, *args, **kwargs):
-        '''
+        """
             callback to actually change launch templates from edit screen
-        '''
+        """
         data = {}
         message = None
+        ae_launch_id = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(
-            ~Experiment.experiment.in_(['root', 'public'])).order_by(Experiment.experiment)
+            ~Experiment.experiment.in_(['root', 'public'])).order_by(
+            Experiment.experiment)
         action = kwargs.pop('action', None)
         exp = seshandle('experimenter').session_experiment
         pcl_call = int(kwargs.pop('pcl_call', 0))
@@ -58,7 +61,7 @@ class CampaignsPOMS():
             pc_username = pc_username.strip()
 
         if action == 'delete':
-            ae_launch_naleme = kwargs.pop('ae_launch_name')
+            ae_launch_name = kwargs.pop('ae_launch_name')
             name = ae_launch_name
             try:
                 dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment == exp).filter(
@@ -143,13 +146,23 @@ class CampaignsPOMS():
         if exp:  # cuz the default is find
             data['curr_experiment'] = exp
             data['authorized'] = []
-            data['templates'] = dbhandle.query(LaunchTemplate, Experiment).join(Experiment).filter(
-                LaunchTemplate.experiment == exp).order_by(LaunchTemplate.name)
+            se_role = seshandle('experimenter').session_role
+            if se_role == 'root' or se_role == 'coordinator':
+                # One has to execuate the query here instead of sending to jinja to do it,
+                # because we need to know the LaunchTemplate detail to figure the authorization.
+                # Otherwise, we have to figure it out in the client/html.
+                data['templates'] = dbhandle.query(LaunchTemplate, Experiment).join(Experiment).filter(
+                    LaunchTemplate.experiment == exp).order_by(LaunchTemplate.name).all()
+            else:
+                data['templates'] = dbhandle.query(LaunchTemplate, Experiment).join(Experiment).filter(
+                    LaunchTemplate.experiment == exp).filter(
+                    LaunchTemplate.creator_role == se_role).order_by(LaunchTemplate.name).all()
             for lt in data['templates']:
-                if lt['creator_role'] == 'production' and seshandle('experimenter').session_role == "production":
+                if se_role == 'root' or se_role == 'coordinator':
                     data['authorized'].append(True)
-                elif lt['creator_role'] == seshandle('experimenter').session_role \
-                        and lt['creator'] == seshandle('experimenter').experimenter_id:
+                elif se_role == 'production':
+                    data['authorized'].append(True)
+                elif se_role == 'analysis' and lt.LaunchTemplate.creator == seshandle('experimenter').experimenter_id:
                     data['authorized'].append(True)
                 else:
                     data['authorized'].append(False)
@@ -378,11 +391,14 @@ class CampaignsPOMS():
         return c.campaign_id
 
     def campaign_edit(self, dbhandle, sesshandle, *args, **kwargs):
-        '''
+        """
             callback for campaign edit screens to update campaign record
             takes action = 'edit'/'add'/ etc.
-        '''
+            sesshandle is the cherrypy.session instead of cherrypy.session.get method
+        """
         data = {}
+        role = sesshandle.get('experimenter').session_role
+        user_id = role = sesshandle.get('experimenter').experimenter_id
         message = None
         exp = sesshandle.get('experimenter').session_experiment
         data['exp_selections'] = dbhandle.query(Experiment).filter(
@@ -462,9 +478,9 @@ class CampaignsPOMS():
                 if action == 'add':
                     if not completion_pct:
                         completion_pct = 95
-                    role = sesshandle('experimenter').session_role
                     if role == 'root' or role == 'coordinator':
-                        raise cherrypy.HTTPError(401, 'You are not authorized to add campaign definition.')
+                        raise cherrypy.HTTPError(401, 'You are not authorized to add campaign '
+                                                      'definition as a supper user.')
                     else:
                         c = Campaign(name=name, experiment=exp, vo_role=vo_role,
                                      active=active, cs_split_type=split_type,
@@ -533,26 +549,26 @@ class CampaignsPOMS():
             elif state == 'state_inactive':
                 cquery = cquery.filter(Campaign.active == False)
                 cquery = cquery.order_by(Campaign.name)
+            if role in ('analysis', 'production'):
+                cquery = cquery.filter(Campaign.creator_role == role)
             data['campaigns'] = cquery
             data['definitions'] = dbhandle.query(CampaignDefinition).filter(
                 CampaignDefinition.experiment == exp).order_by(CampaignDefinition.name)
             data['templates'] = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment == exp).order_by(
                 LaunchTemplate.name)
             cq = data['campaigns'].all()
-
             cids = []
             for c in cq:
                 cids.append(c.campaign_id)
-                if c.creator_role == 'production' and sesshandle.get('experimenter').session_role == "production":
+                if role in ('root', 'coordinator'):
                     data['authorized'].append(True)
-                elif c.creator_role == sesshandle.get('experimenter').session_role \
+                elif c.creator_role == 'production' and sesshandle.get('experimenter').session_role == 'production':
+                    data['authorized'].append(True)
+                elif c.creator_role == role \
                         and c.creator == sesshandle.get('experimenter').experimenter_id:
                     data['authorized'].append(True)
                 else:
                     data['authorized'].append(False)
-            print("*"*80)
-            print(str(data['authorized']))
-            print("*"*80)
             depends = {}
             for cid in cids:
                 sql = (dbhandle.query(CampaignDependency.uses_camp_id, Campaign.name, CampaignDependency.file_patterns)
@@ -568,9 +584,9 @@ class CampaignsPOMS():
         return data
 
     def campaign_edit_query(self, dbhandle, *args, **kwargs):
-        '''
+        """
             return info needed by campaign edit page
-        '''
+        """
 
         data = {}
         ae_launch_id = kwargs.pop('ae_launch_id', None)
@@ -666,7 +682,7 @@ class CampaignsPOMS():
                                                                                                          tot,
                                                                                                          ltot,
                                                                                                          (
-                                                                                                         "darkgreen" if ltot == tot else "black")))
+                                                                                                             "darkgreen" if ltot == tot else "black")))
 
             cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id.in_(c_ids)).all()
 
@@ -681,8 +697,8 @@ class CampaignsPOMS():
             text = ""
         return bytes(text, encoding="utf-8")
 
-    def show_campaigns(self, dbhandle, samhandle, campaign_ids=None, experiment=None, tmin=None, tmax=None, tdays=7,
-                       active=True, tag=None, holder=None, role_held_with=None, creator_role=None):
+    def show_campaigns(self, dbhandle, samhandle, campaign_ids=None, tmin=None, tmax=None, tdays=7,
+                       active=True, tag=None, holder=None, role_held_with=None, sesshandler=None):
 
         """
             give campaign information about campaigns with activity in the
@@ -691,6 +707,10 @@ class CampaignsPOMS():
         """
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = \
             self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
+
+        experiment = sesshandler('experimenter').session_experiment
+        se_role = sesshandler('experimenter').session_role
+
         cq = (dbhandle.query(Campaign)
               .outerjoin(CampaignsTags)
               .options(joinedload('campaigns_tags'))
@@ -703,8 +723,8 @@ class CampaignsPOMS():
         if experiment:
             cq = cq.filter(Campaign.experiment == experiment)
 
-        if creator_role:
-            cq = cq.filter(Campaign.creator_role == creator_role)
+        if se_role in ('production', 'analysis'):
+            cq = cq.filter(Campaign.creator_role == se_role)
 
         if campaign_ids:
             campaign_ids = campaign_ids.split(",")
@@ -713,24 +733,34 @@ class CampaignsPOMS():
         if tag:
             cq = cq.join(Tag).filter(Tag.tag_name == tag)
 
-        # for now we comment out it. When we have a lot of data, we may need to use these filters.
-        # We will let the client filter it in show_campaigns.html with tablesorter for now.
-        # if holder:
+            # for now we comment out it. When we have a lot of data, we may need to use these filters.
+            # We will let the client filter it in show_campaigns.html with tablesorter for now.
+            # if holder:
             # cq = cq.filter(Campaingn.hold_experimenters_id == holder)
 
-        # if creator_role:
+            # if creator_role:
             # cq = cq.filter(Campaingn.creator_role == creator_role)
 
         campaigns = cq.all()
         logit.log(logit.DEBUG, "show_campaigns: back from query")
+        # check for authorization
+        data = {}
+        data['authorized'] = []
+        for c in campaigns:
+            if se_role != 'analysis':
+                data['authorized'].append(True)
+            elif c.creator == sesshandler('experimenter').experimenter_id:
+                data['authorized'].append(True)
+            else:
+                data['authorized'].append(False)
 
-        return campaigns, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string
+        return campaigns, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
 
     def reset_campaign_split(self, dbhandle, samhandle, campaign_id):
-        '''
+        """
             reset a campaigns cs_last_split field so the sequence
             starts over
-        '''
+        """
         campaign_id = int(campaign_id)
 
         c = (dbhandle.query(Campaign)
@@ -752,7 +782,7 @@ class CampaignsPOMS():
                          .first())
 
         # default to time window of campaign
-        if tmin is None and tdays is None and tdays is None:  # FIXME: tdays appeared twice!
+        if tmin is None and tdays is None:
             tmin = campaign_info.Campaign.created
             tmax = datetime.now(utc)
 
@@ -819,10 +849,10 @@ class CampaignsPOMS():
 
     @pomscache_10.cache_on_arguments()
     def campaign_time_bars(self, dbhandle, campaign_id=None, tag=None, tmin=None, tmax=None, tdays=1):
-        '''
+        """
             Give time-bars for Tasks for this campaign in a time window
             using the time_grid code
-        '''
+        """
         (
             tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays
         ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
@@ -878,7 +908,7 @@ class CampaignsPOMS():
             else:
                 jjid = jjid.replace('fifebatch', '').replace('.fnal.gov', '')
 
-            if tag != None:
+            if tag is not None:
                 jjid = jjid + "<br>" + th.task_obj.campaign_obj.name
 
             if th.status != "Completed" and th.status != "Located":
@@ -905,10 +935,10 @@ class CampaignsPOMS():
         return job_counts, blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
-                               dataset="", role="analysis", params=[]):
-        '''
+                               dataset="", role="analysis", sesshandler=None, params=[]):
+        """
             update or add a campaign by experiment and name...
-        '''
+        """
         changed = False
         if dataset is None:
             dataset = ''
@@ -937,7 +967,8 @@ class CampaignsPOMS():
         else:
             c = Campaign(experiment=experiment, name=campaign_name, creator=user, created=datetime.now(utc),
                          software_version=version, campaign_definition_id=cd.campaign_definition_id,
-                         launch_id=ld.launch_id, vo_role=role, dataset='', creator_role="production")   #FIXME: why creator_role=production?
+                         launch_id=ld.launch_id, vo_role=role, dataset='',
+                         creator_role=sesshandler('experimenter').session_role)
 
         if version:
             c.software_verison = version
