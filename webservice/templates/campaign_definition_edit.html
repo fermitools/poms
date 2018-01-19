@@ -29,17 +29,8 @@ Job Types {%include 'help_button.html'%}
 
 <form id="campaign_definition_form" class="ui form" action="campaign_definition_edit" method="POST">
 
-  <!--
-  <select class="ui dropdown" name="experiment" id="cdf_experiment">
-    <option value="">Choose Experiment</option>
-    {% for row in data.exp_selections %}
-    <option value="{{row.experiment}}" {{ 'selected="selected"' if (data.curr_experiment == row.experiment) }}>{{row.name}}</option>
-    {% endfor %}
-  </select>
-  -->
-
   {% if data.curr_experiment is defined %}
-<div id="double-scroll" class="scrollable">
+<div id="double-scroll" class="ui scrollable">
 
   <table class="ui sortable single line celled table" style="margin-top: 3em;">
     <thead>
@@ -58,13 +49,14 @@ Job Types {%include 'help_button.html'%}
       {% for row in data.definitions %}
       <tr>
 	<td class="collapsing">
-          {% if data.authorized==True %}
+          {% if data.authorized[loop.index-1]==True %}
 	  <i class="large edit link blue icon"  onclick="edit_definition({{loop.index}});"></i>
 	  <i class="large copy icon link blue icon" onclick="edit_definition({{loop.index}},'CLONE');"></i>
 	  <i class="large trash link blue icon" onclick="delete_definition('{{row.CampaignDefinition.name}}','{{row.CampaignDefinition.campaign_definition_id}}');"></i>
 	  {% else %}
-	  <i class="disabled large edit link blue icon">
-	  <i class="disabled large trash link blue icon">
+	  <i class="disabled large edit link blue icon"></i>
+          <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
+	  <i class="disabled large trash link blue icon"></i>
 	  {% endif %}
 	</td>
 	<td id="cdf_id_{{loop.index}}" style="display:none;">{{row.CampaignDefinition.campaign_definition_id}}</td>

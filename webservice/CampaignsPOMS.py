@@ -187,6 +187,7 @@ class CampaignsPOMS():
             ~Experiment.experiment.in_(["root", "public"])).order_by(Experiment.experiment)
         action = kwargs.pop('action', None)
         exp = seshandle('experimenter').session_experiment
+        r = seshandle('experimenter').session_role
         # added for poms_client
         pcl_call = int(kwargs.pop('pcl_call', 0))  # pcl_call == 1 means the method was access through the poms_client.
         pc_username = kwargs.pop('pc_username', None)  # email is the info we know about the user in POMS DB.
@@ -322,22 +323,34 @@ class CampaignsPOMS():
             data['authorized'] = []
             # for testing ui...
             # data['authorized'] = True
-            data['definitions'] = (dbhandle.query(CampaignDefinition, Experiment)
-                                   .join(Experiment)
-                                   .filter(CampaignDefinition.experiment == exp)
-                                   .order_by(CampaignDefinition.name)
-                                   )
+            if r in ['root','coordinator']:
+                data['definitions'] = (dbhandle.query(CampaignDefinition, Experiment)
+                                       .join(Experiment)
+                                       .filter(CampaignDefinition.experiment == exp)
+                                       .order_by(CampaignDefinition.name)
+                                       ).all()
+            else:
+                data['definitions'] = (dbhandle.query(CampaignDefinition, Experiment)
+                                       .join(Experiment)
+                                       .filter(CampaignDefinition.experiment == exp)
+                                       .filter(CampaignDefinition.creator_role == r)
+                                       .order_by(CampaignDefinition.name)
+                                       ).all()
+            cids = []
             for df in data['definitions']:
-                if df['creator_role'] == 'production' and seshandle('experimenter').session_role == "production":
+                cids.append(df.CampaignDefinition.campaign_definition_id)
+                if r in ['root', 'coordinator']:
                     data['authorized'].append(True)
-                elif df['creator_role'] == seshandle('experimenter').session_role \
-                        and df['creator'] == seshandle('experimenter').experimenter_id:
+                elif df.CampaignDefinition.creator_role == 'production' and r == "production":
+                    data['authorized'].append(True)
+                elif df.CampaignDefinition.creator_role == r \
+                        and df.CampaignDefinition.creator == seshandle('experimenter').experimenter_id:
                     data['authorized'].append(True)
                 else:
                     data['authorized'].append(False)
 
             # Build the recoveries for each campaign.
-            cids = [row[0].campaign_definition_id for row in data['definitions'].all()]
+            cids = [ ]
             recs_dict = {}
             for cid in cids:
                 recs = (dbhandle.query(CampaignRecovery).join(CampaignDefinition).options(
@@ -771,9 +784,9 @@ class CampaignsPOMS():
 
     # @pomscache.cache_on_arguments()
     def campaign_info(self, dbhandle, samhandle, err_res, config_get, campaign_id, tmin=None, tmax=None, tdays=None):
-        '''
+        """
            Give information related to a campaign for the campaign_info page
-        '''
+        """
 
         campaign_id = int(campaign_id)
 
@@ -791,7 +804,7 @@ class CampaignsPOMS():
 
         last_activity_l = dbhandle.query(func.max(Task.updated)).filter(Task.campaign_id == campaign_id).first()
         logit.log("got last_activity_l %s" % repr(last_activity_l))
-        if last_activity_l and datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
+        if last_activity_l[0] and datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
             last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         else:
             last_activity = ""
