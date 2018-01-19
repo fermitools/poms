@@ -60,13 +60,15 @@ Launch Templates {{ show_hint('', 'Help page') }}
       {% for row in data.templates %}
       <tr>
         <td class="collapsing">
-          {% if data.authorized==True %}
+          {% if data.authorized[loop.index-1]==True %}
           <i class="large edit link blue icon"  onclick="edit_template({{loop.index}});"></i>
           <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
           <i class="large trash link blue icon" onclick="delete_template('{{row.LaunchTemplate.name}}'); "></i>
           {% else %}
-          <i class="disabled large edit link blue icon">
-          <i class="disabled large trash link blue icon">
+          <i class="disabled large edit link blue icon"></i>
+          <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
+          <i class="disabled large trash link blue icon"></i>
+         
           {% endif %}
         </td>
         <td id="ldf_launch_id_{{loop.index}}" style="display:none;">{{row.LaunchTemplate.launch_id}}</td>

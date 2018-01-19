@@ -670,7 +670,7 @@ class TaskPOMS:
             definition_parameters = cd.definition_parameters
             c_param_overrides = c.param_overrides
 
-        if not e.is_authorized(exp) and not (ra == '127.0.0.1' and xff is None):
+        if not e and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
             err_res = "404 Permission Denied."
             output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
