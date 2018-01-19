@@ -386,6 +386,7 @@ class CampaignsPOMS():
             c.dataset = ""
             c.launch_id = lt.launch_id
             c.software_version = ""
+            c.campaign_typ = 'regular'
             dbhandle.add(c)
             dbhandle.commit()
             c = dbhandle.query(Campaign).filter(Campaign.campaign_definition_id == campaign_def_id,
@@ -400,6 +401,8 @@ class CampaignsPOMS():
         """
         data = {}
         role = sesshandle.get('experimenter').session_role
+        if role == None:
+            role = 'production'
         user_id = role = sesshandle.get('experimenter').experimenter_id
         message = None
         exp = sesshandle.get('experimenter').session_experiment
@@ -491,7 +494,7 @@ class CampaignsPOMS():
                                      campaign_definition_id=campaign_definition_id,
                                      completion_type=completion_type, completion_pct=completion_pct,
                                      creator=experimenter_id, created=datetime.now(utc),
-                                     creator_role=role)
+                                     creator_role=role, campaign_type='regular')
                     dbhandle.add(c)
                     dbhandle.commit()  ##### Is this flush() necessary or better a commit ?
                     campaign_id = c.campaign_id
@@ -1027,7 +1030,7 @@ class CampaignsPOMS():
         return job_counts, blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
-                               dataset="", role="analysis", sesshandler=None, params=[]):
+                               dataset="", role="Production", cr_role="production",  sesshandler=None, params=[]):
         """
             update or add a campaign by experiment and name...
         """
@@ -1060,7 +1063,7 @@ class CampaignsPOMS():
             c = Campaign(experiment=experiment, name=campaign_name, creator=user, created=datetime.now(utc),
                          software_version=version, campaign_definition_id=cd.campaign_definition_id,
                          launch_id=ld.launch_id, vo_role=role, dataset='',
-                         creator_role=sesshandler('experimenter').session_role)
+                         creator_role=cr_role, campaign_type='regular')
 
         if version:
             c.software_verison = version

@@ -658,7 +658,7 @@ class TaskPOMS:
 
             
             # allocate task to set ownership
-            tid =  self.get_task_id_for( dbhandle, campaign, user=launcher_experimenter.username, experiment=experiment, parent_task_id=parent_task_id):
+            tid =  self.get_task_id_for( dbhandle, campaign, user=launcher_experimenter.username, experiment=experiment, parent_task_id=parent_task_id)
 
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
