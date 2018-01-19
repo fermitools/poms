@@ -32,7 +32,8 @@ def safe_get(sess, url, *args, **kwargs):
                 return None     # No need to return the response
         except:
             # Severe errors like network or DNS problems.
-            traceback.print_exc()
+            logit.log(logit.ERROR,"Died in safe_get:" + url )
+            logit.log(logit.ERROR,traceback.format_exc())
             return None         # No need to return the response
         finally:
             if reply:
@@ -63,7 +64,8 @@ def safe_get(sess, url, *args, **kwargs):
     except:
         # Process error!
         # Severe errors like network or DNS problems.
-        traceback.print_exc()
+        logit.log(ERROR,"Died in safe_get:" + url )
+        logit.log(ERROR,traceback.format_exc())
         # Do the same?
         fault = FaultyRequest(url=reply.url, status=reply.status_code, message=reply.reason)
         dbh.add(fault)
@@ -147,7 +149,8 @@ class samweb_lite:
                     infos.append(info)
                 except:
                     # Error in JSON parsing
-                    traceback.print_exc()
+                    logit.log(logit.ERROR,"Died in fetch_info_list:")
+                    logit.log(logit.ERROR,traceback.format_exc())
                     infos.append({})
             else:
                 infos.append({})
@@ -207,7 +210,8 @@ class samweb_lite:
                 r1 = res.text
                 pass
         except:
-            traceback.print_exc()
+            logit.log(logit.ERROR,"Died in update_project_description :" + url )
+            logit.log(logit.ERROR,traceback.format_exc())
         finally:
             if res:
                 res.close()

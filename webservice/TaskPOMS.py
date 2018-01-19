@@ -394,7 +394,7 @@ class TaskPOMS:
         return None
 
 
-    def get_task_id_for(self, dbhandle, campaign, user=None, experiment=None, command_executed="", input_dataset="", parent_task_id=None):
+    def get_task_id_for(self, dbhandle, campaign, user=None, experiment=None, command_executed="", input_dataset="", parent_task_id=None, task_id = None):
         if user is None:
             user = 4
         else:
@@ -412,7 +412,12 @@ class TaskPOMS:
 
         c = q.first()
         tim = datetime.now(utc)
-        t = Task(campaign_id=c.campaign_id,
+        if task_id:
+            t = dbhandle.query(Task).filter(Task.task_id == task_id)
+            t.command_executed = command_executed
+            t.updated = tim
+        else:
+            t = Task(campaign_id=c.campaign_id,
                  task_order=0,
                  input_dataset=input_dataset,
                  output_dataset="",
@@ -479,14 +484,14 @@ class TaskPOMS:
         for cd in cdlist:
             if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
                 # self-reference, just do a normal launch
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id)
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator)
             else:
                 i = i + 1
                 dims = "ischildof: (snapshot_for_project_name %s) and version %s and file_name like '%s' " % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
                 dname = "poms_depends_%d_%d" % (t.task_id, i)
 
                 samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, dataset_override=dname)
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override=dname )
         return 1
 
 
@@ -552,7 +557,7 @@ class TaskPOMS:
 
 
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
-                                 err_res, t.campaign_snap_obj.campaign_id, dataset_override=rname,
+                                 err_res, t.campaign_snap_obj.campaign_id, t.creator,  dataset_override=rname,
                                  parent_task_id=t.task_id, param_overrides=param_overrides)
                 return 1
 
@@ -575,6 +580,7 @@ class TaskPOMS:
             return "Held."
 
         hl = dbhandle.query(HeldLaunch).with_for_update().order_by(HeldLaunch.created).first()
+        launch_user=dbhandle.query(Experimenter).filter(Expermenter.experimenter_id == hl.launcher).first()
         if hl:
             dbhandle.delete(hl)
             dbhandle.commit()
@@ -582,6 +588,7 @@ class TaskPOMS:
                              getconfig, gethead,
                              seshandle_get, samhandle,
                              err_res, hl.campaign_id,
+                             launch_user.username,
                              dataset_override=hl.dataset,
                              parent_task_id=hl.parent_task_id,
                              param_overrides=hl.param_overrides)
@@ -590,12 +597,14 @@ class TaskPOMS:
             return "None."
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
-                    err_res, campaign_id, dataset_override=None, parent_task_id=None, param_overrides=None, test_launch_template = None, experiment = None):
+                    err_res, campaign_id, launcher, dataset_override=None, parent_task_id=None, param_overrides=None, test_launch_template = None, experiment = None):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
 
         ds = time.strftime("%Y%m%d_%H%M%S")
         e = seshandle_get('experimenter')
+        launcher_experimenter = dbhandle.query(Experimenter).filter(Expermineter.experimenter_id == launcher).first()
+
         if test_launch_template:
             lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id == test_launch_template).first()
             dataset_override = "fake_test_dataset"
@@ -609,11 +618,11 @@ class TaskPOMS:
             exp = e.session_experiment
             launch_script = """echo "Environment"; printenv; echo "jobsub is`which jobsub`;  echo "launch_template successful!"""
             outdir = "%s/private/logs/poms/launches/template_tests_%d" % (os.environ["HOME"], int(test_launch_template))
-            outfile = "%s/%s" % (outdir, ds)
+            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
             logit.log("trying to record launch in %s" % outfile)
         else:
             outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_id)
-            outfile = "%s/%s" % (outdir, ds)
+            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
             logit.log("trying to record launch in %s" % outfile)
 
             if str(campaign_id)[0] in "0123456789":
@@ -640,11 +649,16 @@ class TaskPOMS:
                 hl.dataset = dataset_override
                 hl.parent_task_id = parent_task_id
                 hl.param_overrides = param_overrides
+                hl.launcher = launcher
                 dbhandle.add(hl)
                 dbhandle.commit()
                 lcmd = ""
 
                 return lcmd, c, campaign_id, outdir, outfile
+
+            
+            # allocate task to set ownership
+            tid =  self.get_task_id_for( dbhandle, campaign, user=launcher_experimenter.username, experiment=experiment, parent_task_id=parent_task_id)
 
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
@@ -656,7 +670,7 @@ class TaskPOMS:
             definition_parameters = cd.definition_parameters
             c_param_overrides = c.param_overrides
 
-        if not e.is_authorized(exp) and not (ra == '127.0.0.1' and xff is None):
+        if not e and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
             err_res = "404 Permission Denied."
             output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
@@ -684,7 +698,6 @@ class TaskPOMS:
             "exec 2>&1",
             "set -x",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
-            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.poms_service.hostname,
             "ssh -tx %s@%s <<'EOF' &" % (lt.launch_account, lt.launch_host),
             #
@@ -706,10 +719,12 @@ class TaskPOMS:
                 "group": group,
                 "experimenter": experimenter_login,
             },
-            "setup -j poms_jobsub_wrapper v0_4 -z /grid/fermiapp/products/common/db",
-            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
-            "export POMS_TEST=%s" % ("" if "poms" in self.poms_service.hostname else "1"),
+            "setup -j poms_jobsub_wrapper v1_0 -z /grid/fermiapp/products/common/db",
             "export POMS_CAMPAIGN_ID=%s" % cid,
+            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
+            "export POMS_TASK_ID=%s" % tid, 
+            "export POMS_LAUNCHER=%s" % launcher_experimenter.username, 
+            "export POMS_TEST=%s" % ("" if "poms" in self.poms_service.hostname else "1"),
             "export POMS_TASK_DEFINITION_ID=%s" % cdid,
             "export JOBSUB_GROUP=%s" % group,
         ]

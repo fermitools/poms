@@ -89,7 +89,7 @@
       {% if not popup|default(False) %}
 
       {% include 'standard_menu.html' %}
-  
+
       {% endif %}
 
       <div class="article" style="padding-left: 1em; padding-top: 1em">  <!--header of page-->
@@ -98,30 +98,32 @@
 	  <div class="row">
 	    <div class="ten wide column">
 	      <h1 class="ui header" style="margin: 0px 10px 0px 10px;">
-		{%block header%} {%endblock%}
+		      {%block header%} {%endblock%}
 	      </h1>
 	      {%block header_desc%}{%endblock%}
 	      <h2 class="ui header" style="margin: 0px 10px 0px 10px;">
-		{%block subheader%} {%endblock%}
+		      {%block subheader%} {%endblock%}
 	      </h2>
 	    </div>
 	    <div class="column">
-              <br>
-              {% if current_experimenter is defined %}
+        <br>
+        {% if current_experimenter is defined %}
 	      <i class="user icon" style="margin-left: 1em"></i>{{current_experimenter.first_name}} {{current_experimenter.last_name}}
-              {% endif %}
-              <br>
-              <br>
+        {% endif %}
+        <br>
+        <br>
 	      <select class="ui dropdown" name="session_experiment_id" id="session_experiment_id" style="margin-left: 1em;">
-		<option value="">Choose Experiment</option>
-		{% for exp in allowed_experiments|sort %}
-		{% if exp != 'root' %}
-		<option value="{{exp}}" {{ 'selected="selected"' if (session_experiment == exp) }}>{{exp}}</option>
-		{% endif %}
-		{% endfor %}
+		      {% for exp in user_authorization|sort %}
+		      <option value="{{exp}}" {{ 'selected="selected"' if (session_experiment == exp) }}>{{exp}}</option>
+		      {% endfor %}
 	      </select>
-              <br>
-              &nbsp;
+	      <select class="ui dropdown" name="current_role" id="current_role" style="margin-left: 1em;">
+		      {% for role in allowed_roles %}
+		      <option value="{{role}}" {{ 'selected="selected"' if (session_role == role) }}>{{role}}</option>
+		      {% endfor %}
+	      </select>
+         <br>
+        &nbsp;
 	    </div>
 	  </div>
 	</div>
@@ -151,12 +153,22 @@
       type: 'GET',
       data: formdata,
       success: function(data){
-      location.reload(true);
+        location.reload(true);
       }
     });
   });
 
-
+  $("#current_role").change(function() {
+    var formdata = {'session_role': $("#current_role").val()};
+    $.ajax({
+      url: "{{pomspath}}/update_session_role",
+      type: 'GET',
+      data: formdata,
+      success: function(data){
+          location.reload(true);
+        }
+    });
+  });
 
   $('.tbox').popup({
     position : 'top left',
@@ -166,8 +178,6 @@
     }
   });
 
-
-
   $('.tbox_delayed').popup({
     position : 'top left',
     delay: {
@@ -175,8 +185,6 @@
       hide: 2
     }
   });
-
-  $( document ).ready(function() { $('#auth_info').dimmer({on: 'hover'}); });
 
 </script>
 

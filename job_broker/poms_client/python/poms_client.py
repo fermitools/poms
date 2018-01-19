@@ -169,6 +169,13 @@ def campaign_definition_edit(output_file_patterns, launch_script,
     else:
         ae_launch_script = launch_script
 
+    if isinstance(def_paramater, basestring):
+        try:
+            def_parameter = json.loads(def_parameter)
+        except:
+            logging.error("please use JSON format for the parameter overrides")
+            raise
+
     ae_definition_parameters= json.dumps(def_parameter)
     data, status_code = make_poms_call(pcl_call=1,
                             method = method,
@@ -195,17 +202,23 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
     method="campaign_edit"
     logging.debug("#"*10)
     logging.debug(ae_param_overrides)
-    if ae_param_overrides:
-        param_temp=""
-        for arg_param in ae_param_overrides:
-                param_temp= param_temp+str(arg_param)+" "
-        ae_param_overrides=str(param_temp)
+
+    # if already packed as a string, unpack it so we can repack it...
+    if isinstance(ae_param_overrides,basestring):
         try:
-            json.dumps(ae_param_overrides)
+            ae_param_overrides = json.loads(ae_param_overrides)
         except:
-            logging.error("please use the right json format for the parameters")
+            logging.error("please use JSON format for the parameter overrides")
+            raise
+
+    if ae_param_overrides:
+        try:
+            ae_param_overrides = json.dumps(ae_param_overrides)
+        except:
+            logging.error("please use data dumpable as JSON for the parameter overrides")
+            raise
         logging.debug("#"*10)
-        logging.debug("type" + type(ae_param_overrides))
+        logging.debug("type" + str(type(ae_param_overrides)))
         logging.debug("The ae_param_overrides is: " +  ae_param_overrides)
     else:
         logging.debug("conserving params, not override anything.")
@@ -281,9 +294,9 @@ def make_poms_call(**kwargs):
     for k in list(kwargs.keys()):
         if kwargs[k] == None:
             del kwargs[k]
+    cert=auth_cert()
     if os.environ.get("POMS_CLIENT_DEBUG", None):
         logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert))
-    cert=auth_cert()
     if cert == None and base[:6] == "https:":
          return ("No client certificate", 500)
     rs.cert=(cert,cert)

@@ -34,6 +34,8 @@ class Campaign(Base):
     completion_pct = Column(Text, nullable=False, server_default="95")
     hold_experimenter_id = Column(ForeignKey('experimenters.experimenter_id'), nullable=True)
     creator_role = Column(Text, nullable=False)
+    role_held_with = Column(Text, nullable=True)
+    campaign_type = Column(Text, nullable=False)
 
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship('Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')
@@ -52,7 +54,8 @@ class Experimenter(Base):
     username = Column(Text, nullable=False)
     last_login = Column(DateTime(True), nullable=False, default="now()")
     session_experiment = Column(Text, nullable=False)
-    root = Column(Boolean, server_default = text("false"))
+    session_role = Column(Text, nullable=False)
+    root = Column(Boolean, nullable=False)
 
 
 class ExperimentsExperimenters(Base):
@@ -141,6 +144,7 @@ class LaunchTemplate(Base):
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey('experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
+    creator_role = Column(Text, nullable=False)
 
     experiment_obj = relationship('Experiment')
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='LaunchTemplate.creator == Experimenter.experimenter_id')
@@ -162,6 +166,7 @@ class CampaignDefinition(Base):
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey('experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
+    creator_role = Column(Text, nullable=False)
 
 
     experiment_obj = relationship('Experiment')
@@ -354,12 +359,12 @@ class CampaignDependency(Base):
 
 class HeldLaunch(Base):
     __tablename__ = 'held_launches'
-    campaign_id = Column(Integer, nullable=False, primary_key=True)
+    campaign_id = Column(ForeignKey('campaigns.campaign_id'), primary_key=True, nullable=False, index=True)
     created = Column(DateTime(True), nullable=False, primary_key=True)
     parent_task_id = Column(Integer, nullable=False)
     dataset = Column(Text)
     param_overrides = Column(JSON)
-
+    launcher = Column(Integer, ForeignKey('experimenters.experimenter_id'))
 
 class FaultyRequest(Base):
     __tablename__ = 'faulty_requests'

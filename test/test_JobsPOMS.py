@@ -164,7 +164,7 @@ def test_kill_jobs():
     task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a task_id for the fake campaign
     task_id2 = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a task_id for the second task
 
-    jid_n = time.time()
+    jid_n = time.time() * 10
     #Create jobs in the same campaign, 2 in one task_id, one in another task_id but same campaign, and on job in the same task_id, campaign but market as completed.
     jid1 = "%d.0@fakebatch1.fnal.gov" % jid_n  #1 Job in the first task_id
     mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid1, host_site = "fake_host", status = 'running')
