@@ -35,7 +35,7 @@
     </div>
   </div>
 
-  {% if current_experimenter.is_root() %}
+  {% if current_experimenter and current_experimenter.is_root() %}
   <div class="item">
     <div class="header">Administration</div>
     <div class="menu">

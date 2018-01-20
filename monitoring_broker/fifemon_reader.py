@@ -12,7 +12,7 @@ import time
 import http.cookiejar
 import json
 
-import pycurl
+#import pycurl
 from io import StringIO
 
 # don't whine about certificates
@@ -186,13 +186,13 @@ class status_scraper:
                     if whigh and data[0]["datapoints"][0][0] > float(whigh):
                         print("degraded because ", data[0]["datapoints"][0][0], "above", warnhigh)
                         self.status[s] = 'degraded'
-                    if wlow and data[0]["datapoints"][0][0] < float(wlow):
+                    if wlow and data[0]["datapoints"][0][0] and data[0]["datapoints"][0][0] < float(wlow):
                         print("degraded because ", data[0]["datapoints"][0][0], "below", warnlow)
                         self.status[s] = 'degraded'
-                    if high and data[0]["datapoints"][0][0] > float(high):
+                    if high and data[0]["datapoints"][0][0] and data[0]["datapoints"][0][0] > float(high):
                         print("bad because ", data[0]["datapoints"][0][0], "above", high)
                         self.status[s] = 'bad'
-                    if low and data[0]["datapoints"][0][0] < float(low):
+                    if low and data[0]["datapoints"][0][0] and  data[0]["datapoints"][0][0] < float(low):
                         print("bad because ", data[0]["datapoints"][0][0], "below", low)
                         self.status[s] = 'bad'
                 else:
@@ -243,6 +243,7 @@ class status_scraper:
             report_url =self.poms_url + "/update_service?name=%s&status=%s&parent=%s&host_site=%s&total=%d&failed=%d&description=%s" % (name, self.status[s], parent, self.source_urls.get(s,''), self.totals.get(s,0), self.failed.get(s,0), urllib.parse.quote_plus(description))
             print("trying: " , report_url)
             retries = 0
+            c=None
             while retries < 3:
                 try:
                     c = self.session.get(report_url) 
@@ -250,8 +251,8 @@ class status_scraper:
                 except:
                     retries = retries + 1
                     traceback.print_exc()
-            print(c.text)
-            c.close()
+            if c:
+                print(c.text)
 
 if __name__ == '__main__':
     ss = status_scraper("fifemon_reader.cfg", "http://localhost:8080/poms")

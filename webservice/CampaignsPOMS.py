@@ -17,9 +17,11 @@ import os
 import glob
 import subprocess
 import importlib
+import traceback
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, desc, not_, and_, or_, distinct
 from sqlalchemy.orm import subqueryload, joinedload, contains_eager
+from functools import cmp_to_key
 
 from crontab import CronTab
 from .poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
@@ -65,7 +67,7 @@ class CampaignsPOMS():
             name = ae_launch_name
             try:
                 dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment == exp).filter(
-                    LaunchTemplate.name == name).delete()
+                    LaunchTemplate.name == name).delete(synchronize_session=False)
                 dbhandle.commit()
             except Exception as e:
                 message = "The launch template, %s, has been used and may not be deleted." % name
@@ -138,7 +140,7 @@ class CampaignsPOMS():
                 logit.log(' '.join(e.args))
                 dbhandle.rollback()
             except:
-                message = 'unexpected error ! '
+                message = 'unexpected error ! \n' + traceback.format_exc(4)
                 logit.log(' '.join(message))
                 dbhandle.rollback()
 
@@ -202,8 +204,8 @@ class CampaignsPOMS():
             else:
                 cid = kwargs.pop('campaign_definition_id')
             try:
-                dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == cid).delete()
-                dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id == cid).delete()
+                dbhandle.query(CampaignRecovery).filter(CampaignRecovery.campaign_definition_id == cid).delete(synchronize_session=False)
+                dbhandle.query(CampaignDefinition).filter(CampaignDefinition.campaign_definition_id == cid).delete(synchronize_session=False)
                 dbhandle.commit()
             except Exception as e:
                 message = 'The campaign definition, %s, has been used and may not be deleted.' % name
@@ -293,7 +295,7 @@ class CampaignsPOMS():
                 # add listed ones.
                 if pcl_call == 0:
                     dbhandle.query(CampaignRecovery).filter(
-                        CampaignRecovery.campaign_definition_id == campaign_definition_id).delete()
+                        CampaignRecovery.campaign_definition_id == campaign_definition_id).delete(synchronize_session=False)
                     i = 0
                     for rtn in json.loads(recoveries):
                         rect = rtn[0]
@@ -397,6 +399,7 @@ class CampaignsPOMS():
             c.dataset = ""
             c.launch_id = lt.launch_id
             c.software_version = ""
+            c.campaign_typ = 'regular'
             dbhandle.add(c)
             dbhandle.commit()
             c = dbhandle.query(Campaign).filter(Campaign.campaign_definition_id == campaign_def_id,
@@ -411,6 +414,8 @@ class CampaignsPOMS():
         """
         data = {}
         role = sesshandle.get('experimenter').session_role
+        if role == None:
+            role = 'production'
         user_id = role = sesshandle.get('experimenter').experimenter_id
         message = None
         exp = sesshandle.get('experimenter').session_experiment
@@ -432,8 +437,8 @@ class CampaignsPOMS():
                 campaign_id = kwargs.pop('campaign_id')
             try:
                 dbhandle.query(CampaignDependency).filter(or_(CampaignDependency.needs_camp_id == campaign_id,
-                                                              CampaignDependency.uses_camp_id == campaign_id)).delete()
-                dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete()
+                                                              CampaignDependency.uses_camp_id == campaign_id)).delete(synchronize_session=False)
+                dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete(synchronize_session=False)
                 dbhandle.commit()
             except Exception as e:
                 message = "The campaign, {}, has been used and may not be deleted.".format(name)
@@ -502,7 +507,7 @@ class CampaignsPOMS():
                                      campaign_definition_id=campaign_definition_id,
                                      completion_type=completion_type, completion_pct=completion_pct,
                                      creator=experimenter_id, created=datetime.now(utc),
-                                     creator_role=role)
+                                     creator_role=role, campaign_type='regular')
                     dbhandle.add(c)
                     dbhandle.commit()  ##### Is this flush() necessary or better a commit ?
                     campaign_id = c.campaign_id
@@ -524,7 +529,7 @@ class CampaignsPOMS():
                     }
                     cd = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).update(columns)
                     # now redo dependencies
-                dbhandle.query(CampaignDependency).filter(CampaignDependency.uses_camp_id == campaign_id).delete()
+                dbhandle.query(CampaignDependency).filter(CampaignDependency.uses_camp_id == campaign_id).delete(synchronize_session=False)
                 logit.log("depends for %s are: %s" % (campaign_id, depends))
                 depcamps = dbhandle.query(Campaign).filter(Campaign.name.in_(depends['campaigns'])).all()
                 for i in range(len(depcamps)):
@@ -649,6 +654,96 @@ class CampaignsPOMS():
         dbhandle.add(t)
         dbhandle.commit()
         return "Task=%d" % t.task_id
+
+    def campaign_deps_ini( self, dbhandle, config_get, tag=None, camp_id=None):
+        res = []
+        if tag is not None:
+            cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
+                                                                          CampaignsTags.tag_id == Tag.tag_id,
+                                                                          CampaignsTags.campaign_id == Campaign.campaign_id).all()
+        if camp_id is not None:
+            cidl1 = dbhandle.query(CampaignDependency.needs_camp_id).filter(CampaignDependency.uses_camp_id == camp_id).all()
+            cidl2 = dbhandle.query(CampaignDependency.uses_camp_id).filter(CampaignDependency.needs_camp_id == camp_id).all()
+            s = set([camp_id])
+            s.update(cidl1)
+            s.update(cidl2)
+            cl = dbhandle.query(Campaign).filter(Campaign.campaign_id.in_(s)).all()
+        
+        cnames = {}
+        for c in cl:
+            cnames[c.campaign_id] = c.name
+
+        # lookup relevent dependencies
+        dmap = {}
+        for cid in cnames.keys():
+            dmap[cid] = []
+
+ 
+        for cid in cnames.keys():
+            cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id==cid).filter(CampaignDependency.uses_camp_id.in_(cnames.keys())).all()
+            for cd in cdl:
+                dmap[cid].append(cd.uses_camp_id)
+        #------------
+
+        # sort by dependencies(?)
+        cidl = list(cnames.keys())
+        for cid in cnames.keys():
+            for dcid in dmap[cid]:
+                if (cidl.index(dcid) < cidl.index(cid)):
+                    cidl[cidl.index(dcid)],cidl[cidl.index(cid)] = cidl[cidl.index(cid)],cidl[cidl.index(dcid)] 
+
+        res.append("[campaign]")
+        res.append("experiment=%s" % cl[0].experiment)
+        if tag == None:
+            res.append("layer_id: %s" % camp_id)
+        else:
+            res.append("tag: %s" % tag)
+
+        jts = set()
+        lts = set()
+        
+        res.append("campaign_layer_list=%s" % " ".join(map(cnames.get,cidl)))
+        res.append("")
+
+        for c in cl:
+            res.append("[campaign_layer %s]" % c.name)       
+            res.append("dataset=%s" % c.dataset)
+            res.append("software_version=%s" % c.software_version)
+            res.append("vo_role=%s" % c.vo_role)
+            res.append("cs_split_type=%s" % c.cs_split_type)
+            res.append("job_type=%s" % c.campaign_definition_obj.name)
+            res.append("launch_template=%s" % c.launch_template_obj.name)
+            res.append("param_overrides=%s" % json.dumps(c.param_overrides))
+            res.append("completion_type=%s" % c.completion_type)
+            res.append("completion_pct=%s" % c.completion_pct)
+            jts.add(c.campaign_definition_obj)
+            lts.add(c.launch_template_obj)
+            res.append("")
+
+        for lt in lts:
+            res.append("[launch_template %s]" % lt.name)       
+            res.append("host=%s" % lt.launch_host)
+            res.append("account=%s" % lt.launch_account)
+            res.append("setup=%s" % lt.launch_setup)
+            res.append("")
+
+        for jt in jts:
+            res.append("[job_type %s]" % jt.name)       
+            res.append("launch_script=%s" % jt.launch_script)
+            res.append("parameters=%s" % json.dumps(jt.definition_parameters))
+            res.append("output_file_patterns=%s" % jt.output_file_patterns)
+            res.append("")
+            # still need: recovery launches
+
+        res.append("[dependencies]")
+        # still need dependencies
+        deps = deque()
+        for cid in cidl:
+            res.append("%s=%s" % (cnames[cid], " ".join(map(cnames.get, dmap[cid]))))
+
+        res.append("")
+
+        return "\n".join(res)
 
     def campaign_deps_svg(self, dbhandle, config_get, tag=None, camp_id=None):
         '''
@@ -948,7 +1043,7 @@ class CampaignsPOMS():
         return job_counts, blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
-                               dataset="", role="analysis", sesshandler=None, params=[]):
+                               dataset="", role="Production", cr_role="production",  sesshandler=None, params=[]):
         """
             update or add a campaign by experiment and name...
         """
@@ -981,7 +1076,7 @@ class CampaignsPOMS():
             c = Campaign(experiment=experiment, name=campaign_name, creator=user, created=datetime.now(utc),
                          software_version=version, campaign_definition_id=cd.campaign_definition_id,
                          launch_id=ld.launch_id, vo_role=role, dataset='',
-                         creator_role=sesshandler('experimenter').session_role)
+                         creator_role=cr_role, campaign_type='regular')
 
         if version:
             c.software_verison = version
@@ -1081,7 +1176,7 @@ class CampaignsPOMS():
         return c, job, launch_flist
 
     def update_launch_schedule(self, campaign_id, dowlist='', domlist='', monthly='', month='', hourlist='', submit='',
-                               minlist='', delete=''):
+                               minlist='', delete='',user=''):
         '''
             callback for changing the launch schedule
         '''
@@ -1133,7 +1228,7 @@ class CampaignsPOMS():
                 if os.path.exists(tpdir):
                     pdir = tpdir
 
-            job = my_crontab.new(command='{}/cron/launcher --campaign_id={}'.format(pdir, campaign_id),
+            job = my_crontab.new(command='{}/cron/launcher --campaign_id={} --launcher={}'.format(pdir, campaign_id, user),
                                  comment='POMS_CAMPAIGN_ID={}'.format(campaign_id))
 
             # set timing...

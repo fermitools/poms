@@ -55,7 +55,7 @@ function pop_experiment_users_modal(experiment) {
 
 </script>
 
-<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_add_experiment_modal()" >Add Experiment</div>
+<div class="ui {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }} teal button" onclick="pop_add_experiment_modal()" >Add Experiment</div>
 <div class="ui hidden divider"></div>
 <form id="exp_form" class="ui form" action="experiment_authorize" method="POST">
   <table class="ui sortable celled table">
@@ -85,7 +85,7 @@ function pop_experiment_users_modal(experiment) {
     <tfoot>
       <tr>
 	<th colspan="4">
-	  <input id="exp_btn_submit" type="button" class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" value="Submit"
+	  <input id="exp_btn_submit" type="button" class="ui {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }} teal button" value="Submit"
                  onclick="pop_confirm_modal()">
 	</th>
       </tr>
