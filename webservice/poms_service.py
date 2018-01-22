@@ -290,6 +290,12 @@ class PomsService(object):
         return template.render(data=data, help_page="LaunchTemplateEditHelp")
 
     @cherrypy.expose
+    def campaign_deps_ini( self, tag=None, camp_id=None):
+        res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, cherrypy.config.get, tag, camp_id)
+        cherrypy.response.headers['Content-Type'] = 'text/ini'
+        return res
+
+    @cherrypy.expose
     def campaign_deps(self, tag=None, camp_id=None):
         template = self.jinja_env.get_template('campaign_deps.html')
         svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config.get, tag, camp_id)
@@ -509,7 +515,7 @@ class PomsService(object):
     def update_launch_schedule(self, campaign_id, dowlist=None, domlist=None,
                                monthly=None, month=None, hourlist=None, submit=None, minlist=None, delete=None):
         self.campaignsPOMS.update_launch_schedule(campaign_id, dowlist, domlist, monthly, month, hourlist, submit,
-                                                  minlist, delete)
+                                                  minlist, delete, user=cherrypy.session.get('experimenter').experimenter_id)
         raise cherrypy.HTTPRedirect("schedule_launch?campaign_id=%s" % campaign_id)
 
     @cherrypy.expose
@@ -781,13 +787,21 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None, test_launch_template=None,
-                    experiment=None):
+                    experiment=None, launcher=None):
+
+        if cherrypy.session.get('experimenter').username and 'poms' != cherrypy.session.get('experimenter').username :
+            launch_user = cherrypy.session.get('experimenter').experimenter_id 
+        else:
+            launch_user = launcher
+
         vals = self.taskPOMS.launch_jobs(cherrypy.request.db,
                                          cherrypy.config.get,
                                          cherrypy.request.headers.get,
                                          cherrypy.session.get,
                                          cherrypy.request.samweb_lite,
-                                         cherrypy.response.status, campaign_id, dataset_override=dataset_override,
+                                         cherrypy.response.status, campaign_id, 
+                                         launch_user,
+                                         dataset_override=dataset_override,
                                          parent_task_id=parent_task_id, test_launch_template=test_launch_template,
                                          experiment=experiment)
         logit.log("Got vals: %s" % repr(vals))

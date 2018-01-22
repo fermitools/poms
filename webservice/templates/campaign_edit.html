@@ -305,7 +305,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
       <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
       <input type="hidden" name="action" id="ae_definition_action" value="add">
-      <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id}}">
+      <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id|default('unknown')}}">
       <input type="hidden" id="ae_campaign_id" name="ae_campaign_id" value="0">
       <input type="hidden" id="ae_param_overrides" name="ae_param_overrides" value="[]">
       <input type="hidden" id="ae_depends" name="ae_depends" value="[]">

@@ -1,10 +1,16 @@
 #!/bin/sh
 
 campaign_id=
+launcher=
 
+while :
+do
 case x$1 in
 x--campaign_id=*) campaign_id=`echo $1 | sed -e 's/.*=//'`; shift;;
+x--launcher=*) launcher= `echo $1 | sed -e 's/.*=//'`; shift;;
+*) break;;
 esac
+done
 
 ds=`date +%Y%m%d_%H%M%S`
 outdir="$HOME/private/logs/poms/launches/campaign_$campaign_id"
