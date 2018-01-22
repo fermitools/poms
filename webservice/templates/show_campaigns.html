@@ -63,10 +63,12 @@ Campaign Stages{%include 'help_button.html'%}
     }
 </style>
 
-<div class="ui {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }} teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
-<div class="ui {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }} teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
+<!- FIXME:  need to change the buttons for mixed creator with analysis role. We don't know before we go throught the list which is authorized.
+    we need to make a check button by the name so we can choice one by on    ->
+<div class="ui {{ 'disabled' if (current_experimenter.session_role == "analysis" and  current_experimenter.experimenter_id != campaigns[0].creator) }} teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
+<div class="ui {{ 'disabled' if (current_experimenter.session_role == "analysis" and  current_experimenter.experimenter_id != campaigns[2].creator) }} teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
 <div class="ui teal button" onclick="show_stats();">Show Campaigns Statistics</div>
-<div class="ui {{ 'disabled' if (current_experimenter.session_role == "analysis" and  current_experimenter.experimenter_id != campaigns.creator) }} teal button" onclick="pop_launch_holder_modal();">Hold/Release Campaign Submission</div>
+<div class="ui {{ 'disabled' if (current_experimenter.session_role == "analysis" and  current_experimenter.experimenter_id != campaigns[0].creator) }} teal button" onclick="pop_launch_holder_modal();">Hold/Release Campaign Submission</div>
 
 {% if campaigns|length == 0 %}
 <br>
