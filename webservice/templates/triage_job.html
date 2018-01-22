@@ -94,6 +94,7 @@ Held because: {{job_info.Job.reason_held}}
 
 <span style="display:inline-block; min-width: 6em; text-align: right">Size</span> &nbsp; Name <br/>
 
+{% if job_file_list %}
 {% for item in job_file_list %}
 
 <span style="display:inline-block; min-width: 6em; text-align: right">{{item[2]}}</span> &nbsp;
@@ -107,6 +108,7 @@ Held because: {{job_info.Job.reason_held}}
 <br/>
 
 {% endfor %}
+{% endif %}
 
 
 
