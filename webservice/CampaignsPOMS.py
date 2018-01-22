@@ -398,7 +398,7 @@ class CampaignsPOMS():
         """
         data = {}
         role = sesshandle.get('experimenter').session_role
-        user_id = role = sesshandle.get('experimenter').experimenter_id
+        user_id = sesshandle.get('experimenter').experimenter_id
         message = None
         exp = sesshandle.get('experimenter').session_experiment
         data['exp_selections'] = dbhandle.query(Experiment).filter(
@@ -437,7 +437,7 @@ class CampaignsPOMS():
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
             dataset = kwargs.pop('ae_dataset')
-            ###Mark
+            campaign_type = kwargs.pop('ae_campaign_type','test')
 
             completion_type = kwargs.pop('ae_completion_type')
             completion_pct = kwargs.pop('ae_completion_pct')
@@ -476,12 +476,14 @@ class CampaignsPOMS():
                 depends = {"campaigns": [], "file_patterns": []}
             try:
                 if action == 'add':
+                    logit.log("*"*80)
+                    logit.log("spwspw role: %s" % role)
                     if not completion_pct:
                         completion_pct = 95
-                    if role == 'root' or role == 'coordinator':
-                        raise cherrypy.HTTPError(401, 'You are not authorized to add campaign '
-                                                      'definition as a supper user.')
+                    if role != 'analysis' and role != 'production':
+                        message = 'Your active role must be analysis or production to add a campaign.'
                     else:
+                        logit.log("*"*80)
                         c = Campaign(name=name, experiment=exp, vo_role=vo_role,
                                      active=active, cs_split_type=split_type,
                                      software_version=software_version, dataset=dataset,
@@ -489,9 +491,9 @@ class CampaignsPOMS():
                                      campaign_definition_id=campaign_definition_id,
                                      completion_type=completion_type, completion_pct=completion_pct,
                                      creator=experimenter_id, created=datetime.now(utc),
-                                     creator_role=role)
+                                     creator_role=role, campaign_type=campaign_type)
                     dbhandle.add(c)
-                    dbhandle.commit()  ##### Is this flush() necessary or better a commit ?
+                    dbhandle.commit()
                     campaign_id = c.campaign_id
                 else:
                     columns = {
