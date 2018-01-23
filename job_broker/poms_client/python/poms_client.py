@@ -32,7 +32,7 @@ def register_poms_campaign(campaign_name, user = None, experiment = None, versio
     data=data.replace('Campaign=','')
     return int(data)
 
-def get_task_id_for(campaign, user = None, command_executed = None, input_dataset = None, parent_task_id = None, test = None, experiment = None, configfile = None):
+def get_task_id_for(campaign, user = None, command_executed = None, input_dataset = None, parent_task_id = None, task_id = None, test = None, experiment = None, configfile = None):
 
     data, status = make_poms_call(
                     method = 'get_task_id_for',
@@ -41,6 +41,7 @@ def get_task_id_for(campaign, user = None, command_executed = None, input_datase
                     command_executed = command_executed,
                     input_dataset = input_dataset,
                     parent_task_id = parent_task_id,
+                    task_id = task_id,
                     test = test,
                     configfile = configfile)
     data = data.replace('Task=','')
