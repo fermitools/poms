@@ -724,6 +724,7 @@ class TaskPOMS:
                 "experimenter": experimenter_login,
             },
             "setup -j poms_jobsub_wrapper v2_0_1 -z /grid/fermiapp/products/common/db",
+            "setup -j poms_client v2_0_1 -z /grid/fermiapp/products/common/db",
             "export POMS_CAMPAIGN_ID=%s" % cid,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "export POMS_TASK_ID=%s" % tid, 
