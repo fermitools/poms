@@ -402,7 +402,7 @@ class TaskPOMS:
             if u:
                 user = u.experimenter_id
         q = dbhandle.query(Campaign)
-        if campaign[0] in "0123456789":
+        if str(campaign)[0] in "0123456789":
             q = q.filter(Campaign.campaign_id == int(campaign))
         else:
             q = q.filter(Campaign.name.like("%%%s%%" % campaign))
