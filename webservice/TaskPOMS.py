@@ -395,6 +395,9 @@ class TaskPOMS:
 
 
     def get_task_id_for(self, dbhandle, campaign, user=None, experiment=None, command_executed="", input_dataset="", parent_task_id=None, task_id = None):
+        logit.log("get_task_id_for(user='%s',experiment='%s',command_executed='%s',input_dataset='%s',parent_task_id='%s',task_id='%s'" % (
+             user, experiment, command_executed, input_dataset, parent_task_id, task_id
+            ))
         if user is None:
             user = 4
         else:
@@ -436,6 +439,7 @@ class TaskPOMS:
 
         dbhandle.add(t)
         dbhandle.commit()
+        logit.log("get_task_id_for: returning %s" % t.task_id)
         return t.task_id
 
 
