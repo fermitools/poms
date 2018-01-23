@@ -849,9 +849,9 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def get_task_id_for(self, campaign, user=None, experiment=None, command_executed="", input_dataset="",
-                        parent_task_id=None):
+                        parent_task_id=None, task_id=None):
         task_id = self.taskPOMS.get_task_id_for(cherrypy.request.db, campaign, user,
-                                                experiment, command_executed, input_dataset, parent_task_id)
+                                                experiment, command_executed, input_dataset, parent_task_id, task_id)
         return "Task=%d" % task_id
 
     @cherrypy.expose
