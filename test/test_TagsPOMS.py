@@ -23,15 +23,16 @@ def test_tags_create():
     # test tagging a campaign, and then looking up campaigns with that tag...
     tag_name = 'test_tag_%d' % time.time()
     tag_name = 'mvi_%d' %time.time()
-    cname = 'mwm_test_1'
-    #print ' testing for campaign %s' %cname
-    c = dbhandle.query(Campaign).filter(Campaign.name == 'mwm_test_1').first()
+    cname = 'mwm_test_splits'
+    c = dbhandle.query(Campaign).filter(Campaign.name == 'mwm_test_splits').first()
 
     mps.tagsPOMS.link_tags(dbhandle, sesshandle, c.campaign_id, tag_name, c.experiment)
 
     clist = mps.tagsPOMS.search_tags(dbhandle, tag_name)
-    #print ' campaign %s, ntags= %s' %(cname,len(clist)) 
-    #for aval in clist: print ' v=%s' %aval
+
+    print(' testing for campaign %s' %cname)
+    print(' campaign %s, ntags= %s' %(cname,len(clist)) )
+    for aval in clist: print(' v=%s' %aval)
     cs = clist[0][0]
 
     assert(cs.campaign_id == c.campaign_id)
@@ -43,8 +44,8 @@ def test_tags_delete():
 
     # test tagging a campaign, and then looking up campaigns with that tag...
     tag_name = 'mvi_tag_for_delete'
-    cname = 'mwm_test_1'
-    c = dbhandle.query(Campaign).filter(Campaign.name == 'mwm_test_1').first()
+    cname = 'mwm_test_splits'
+    c = dbhandle.query(Campaign).filter(Campaign.name == 'mwm_test_splits').first()
     exp = c.experiment
     #print ' testing for campaign %s, experiemnt = %s ' %(cname,exp)
     
@@ -85,7 +86,7 @@ def test_tags_create_multi():
 
     print(' Testings : create a tag to multiple campaigns')
     tag_name = 'mvi_tag_%d' %time.time()
-    #cname = 'mwm_test_1'
+    #cname = 'mwm_test_splits'
     campaigns = dbhandle.query(Campaign).filter(Campaign.name.like('%mwm%')).all()
     print(' found %s campaigns ' %len(campaigns))
     for ac in campaigns:
