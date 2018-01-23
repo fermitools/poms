@@ -416,7 +416,7 @@ class TaskPOMS:
         c = q.first()
         tim = datetime.now(utc)
         if task_id:
-            t = dbhandle.query(Task).filter(Task.task_id == task_id)
+            t = dbhandle.query(Task).filter(Task.task_id == task_id).one()
             t.command_executed = command_executed
             t.updated = tim
         else:
