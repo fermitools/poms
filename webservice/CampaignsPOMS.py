@@ -413,10 +413,8 @@ class CampaignsPOMS():
             sesshandle is the cherrypy.session instead of cherrypy.session.get method
         """
         data = {}
-        role = sesshandle.get('experimenter').session_role
-        if role == None:
-            role = 'production'
-        user_id = role = sesshandle.get('experimenter').experimenter_id
+        role = sesshandle.get('experimenter').session_role or 'production'
+        user_id = sesshandle.get('experimenter').experimenter_id
         message = None
         exp = sesshandle.get('experimenter').session_experiment
         data['exp_selections'] = dbhandle.query(Experiment).filter(
@@ -455,7 +453,7 @@ class CampaignsPOMS():
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
             dataset = kwargs.pop('ae_dataset')
-            ###Mark
+            campaign_type = kwargs.pop('ae_campaign_type','test')
 
             completion_type = kwargs.pop('ae_completion_type')
             completion_pct = kwargs.pop('ae_completion_pct')
@@ -494,12 +492,14 @@ class CampaignsPOMS():
                 depends = {"campaigns": [], "file_patterns": []}
             try:
                 if action == 'add':
+                    logit.log("*"*80)
+                    logit.log("spwspw role: %s" % role)
                     if not completion_pct:
                         completion_pct = 95
-                    if role == 'root' or role == 'coordinator':
-                        raise cherrypy.HTTPError(401, 'You are not authorized to add campaign '
-                                                      'definition as a supper user.')
+                    if role != 'analysis' and role != 'production':
+                        message = 'Your active role must be analysis or production to add a campaign.'
                     else:
+                        logit.log("*"*80)
                         c = Campaign(name=name, experiment=exp, vo_role=vo_role,
                                      active=active, cs_split_type=split_type,
                                      software_version=software_version, dataset=dataset,
@@ -507,9 +507,9 @@ class CampaignsPOMS():
                                      campaign_definition_id=campaign_definition_id,
                                      completion_type=completion_type, completion_pct=completion_pct,
                                      creator=experimenter_id, created=datetime.now(utc),
-                                     creator_role=role, campaign_type='regular')
+                                     creator_role=role, campaign_type=campaign_type)
                     dbhandle.add(c)
-                    dbhandle.commit()  ##### Is this flush() necessary or better a commit ?
+                    dbhandle.commit()
                     campaign_id = c.campaign_id
                 else:
                     columns = {
@@ -668,7 +668,7 @@ class CampaignsPOMS():
             s.update(cidl1)
             s.update(cidl2)
             cl = dbhandle.query(Campaign).filter(Campaign.campaign_id.in_(s)).all()
-        
+
         cnames = {}
         for c in cl:
             cnames[c.campaign_id] = c.name
@@ -678,7 +678,7 @@ class CampaignsPOMS():
         for cid in cnames.keys():
             dmap[cid] = []
 
- 
+
         for cid in cnames.keys():
             cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id==cid).filter(CampaignDependency.uses_camp_id.in_(cnames.keys())).all()
             for cd in cdl:
@@ -690,7 +690,7 @@ class CampaignsPOMS():
         for cid in cnames.keys():
             for dcid in dmap[cid]:
                 if (cidl.index(dcid) < cidl.index(cid)):
-                    cidl[cidl.index(dcid)],cidl[cidl.index(cid)] = cidl[cidl.index(cid)],cidl[cidl.index(dcid)] 
+                    cidl[cidl.index(dcid)],cidl[cidl.index(cid)] = cidl[cidl.index(cid)],cidl[cidl.index(dcid)]
 
         res.append("[campaign]")
         res.append("experiment=%s" % cl[0].experiment)
@@ -701,12 +701,12 @@ class CampaignsPOMS():
 
         jts = set()
         lts = set()
-        
+
         res.append("campaign_layer_list=%s" % " ".join(map(cnames.get,cidl)))
         res.append("")
 
         for c in cl:
-            res.append("[campaign_layer %s]" % c.name)       
+            res.append("[campaign_layer %s]" % c.name)
             res.append("dataset=%s" % c.dataset)
             res.append("software_version=%s" % c.software_version)
             res.append("vo_role=%s" % c.vo_role)
@@ -721,14 +721,14 @@ class CampaignsPOMS():
             res.append("")
 
         for lt in lts:
-            res.append("[launch_template %s]" % lt.name)       
+            res.append("[launch_template %s]" % lt.name)
             res.append("host=%s" % lt.launch_host)
             res.append("account=%s" % lt.launch_account)
             res.append("setup=%s" % lt.launch_setup)
             res.append("")
 
         for jt in jts:
-            res.append("[job_type %s]" % jt.name)       
+            res.append("[job_type %s]" % jt.name)
             res.append("launch_script=%s" % jt.launch_script)
             res.append("parameters=%s" % json.dumps(jt.definition_parameters))
             res.append("output_file_patterns=%s" % jt.output_file_patterns)
