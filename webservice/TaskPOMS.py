@@ -603,7 +603,7 @@ class TaskPOMS:
 
         ds = time.strftime("%Y%m%d_%H%M%S")
         e = seshandle_get('experimenter')
-        launcher_experimenter = dbhandle.query(Experimenter).filter(Expermineter.experimenter_id == launcher).first()
+        launcher_experimenter = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == launcher).first()
 
         if test_launch_template:
             lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id == test_launch_template).first()
