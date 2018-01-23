@@ -132,7 +132,7 @@ class SATool(cherrypy.Tool):
 class SessionExperimenter(object):
 
     def __init__(self, experimenter_id=None, first_name=None, last_name=None,
-                 username=None, authorization=None, session_experiment=None, session_role=None, **kwargs):
+                 username=None, authorization=None, session_experiment=None, session_role=None, root=None):
         self.experimenter_id = experimenter_id
         self.first_name = first_name
         self.last_name = last_name
@@ -140,15 +140,7 @@ class SessionExperimenter(object):
         self.authorization = authorization
         self.session_role = session_role
         self.session_experiment = session_experiment
-        self.extra = kwargs
-        self.valid_ip_list = deque()     # FIXME
-
-    def _is_valid_ip(self, ip, iplist):
-        for x in iplist:
-            if ip.startswith(x):
-                return True
-        return False
-
+        self.root = root or False
 
     def get_allowed_roles(self):
         """
@@ -156,16 +148,6 @@ class SessionExperimenter(object):
         """
         exp = self.authorization.get(self.session_experiment)
         return exp.get('roles')
-
-    '''
-    def is_active(self, experiment=None):  #FIXME
-        # To check if the self.user is an active nuser
-
-        if experiment not in self.authorization.keys():
-           return False
-        else:
-            return self.authorization.get(experiment)['active']   #FIXME
-    '''
 
     def is_authorized(self, campaign=None):
         """
@@ -193,10 +175,7 @@ class SessionExperimenter(object):
             return False
 
     def is_root(self):
-        if self.session_role == 'root':
-            return True
-        else:
-            return False
+        return self.root
 
     def is_coordinator(self):
         if self.session_role == 'coordinator':
@@ -293,19 +272,20 @@ class SessionTool(cherrypy.Tool):
         if not experimenter:
             raise cherrypy.HTTPError(401, 'POMS account does not exist.  To be added you must registered in VOMS.')
 
-        e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == username).all()
+        e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == username).one()
 
         # Retrieve what experiments a user is ACTIVE in and the level of access right to each experiment.
         # and construct security role data on each active experiment
         exps = {}
         e2e = (cherrypy.request.db.query(ExperimentsExperimenters)
-            .filter(ExperimentsExperimenters.experimenter_id == e[0].experimenter_id)
-            .filter(ExperimentsExperimenters.active == True))
-        roles = ['analysis', 'production', 'coordinator', 'root']  #Ordered by how they will appear in the form dropdown.
+               .filter(ExperimentsExperimenters.experimenter_id == e.experimenter_id)
+               .filter(ExperimentsExperimenters.active == True))
+        # Not that root is a FLAG not a ROLE.  For the dropdown, it simply provides all roles.
+        roles = ['analysis', 'production', 'coordinator']  #Ordered by how they will appear in the form dropdown.
         for row in e2e:
             position = 0
-            if e[0].root is True:
-                position = 4
+            if e.root is True:
+                position = 3
             elif row.role == 'coordinator':
                 position = 3
             elif row.role == 'production':
@@ -313,15 +293,14 @@ class SessionTool(cherrypy.Tool):
             else: #analysis
                 position = 1
             exps[row.experiment] = {'roles':roles[:position]}
-        extra = {'selected': list(exps.keys())}
 
-        if "" ==  e[0].session_experiment:
+        if e.session_experiment == "":
             # don't choke on blank session_experiment, just pick one...
-            e[0].session_experiment = next(iter(exps.keys()))
+            e.session_experiment = next(iter(exps.keys()))
 
-        cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
-                                                               e[0].first_name, e[0].last_name, e[0].username, exps,
-                                                               e[0].session_experiment, e[0].session_role, **extra)
+        cherrypy.session['experimenter'] = SessionExperimenter(e.experimenter_id,
+                                                               e.first_name, e.last_name, e.username, exps,
+                                                               e.session_experiment, e.session_role, e.root)
 
         cherrypy.session.save()
         cherrypy.request.db.query(Experimenter).filter(Experimenter.username == username).update({'last_login': datetime.now(utc)})
@@ -338,11 +317,11 @@ class SessionTool(cherrypy.Tool):
 #
 class SessionExperiment():
     def __init__(self, exp):
-        self.experiment  = exp.experiment
-        self.name  = exp.name
-        self.logbook  = exp.logbook
-        self.snow_url  = exp.snow_url
-        self.restricted  = exp.restricted
+        self.experiment = exp.experiment
+        self.name = exp.name
+        self.logbook = exp.logbook
+        self.snow_url = exp.snow_url
+        self.restricted = exp.restricted
 
 
 def augment_params():
@@ -357,8 +336,7 @@ def augment_params():
                                        session_role=current_experimenter.session_role,
                                        allowed_roles=current_experimenter.get_allowed_roles(),
                                        version=root.version,
-                                       pomspath=root.path)
-    )
+                                       pomspath=root.path))
     # logit.log("jinja_env.globals: {}".format(str(root.jinja_env.globals)))   # DEBUG
 
 
