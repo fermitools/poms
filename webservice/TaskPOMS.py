@@ -603,7 +603,7 @@ class TaskPOMS:
 
         ds = time.strftime("%Y%m%d_%H%M%S")
         e = seshandle_get('experimenter')
-        launcher_experimenter = dbhandle.query(Experimenter).filter(Expermineter.experimenter_id == launcher).first()
+        launcher_experimenter = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == launcher).first()
 
         if test_launch_template:
             lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id == test_launch_template).first()
@@ -658,7 +658,7 @@ class TaskPOMS:
 
             
             # allocate task to set ownership
-            tid =  self.get_task_id_for( dbhandle, campaign, user=launcher_experimenter.username, experiment=experiment, parent_task_id=parent_task_id)
+            tid =  self.get_task_id_for( dbhandle, campaign_id, user=launcher_experimenter.username, experiment=experiment, parent_task_id=parent_task_id)
 
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
@@ -712,14 +712,14 @@ class TaskPOMS:
             #    front of the path and can intercept calls to "jobsub_submit"
             #
             "source /grid/fermiapp/products/common/etc/setups",
-            "setup poms_client v2_0_0 -z /grid/fermiapp/products/common/db",
+            "setup poms_client v2_0_1 -z /grid/fermiapp/products/common/db",
             lt.launch_setup % {
                 "dataset": dataset,
                 "version": vers,
                 "group": group,
                 "experimenter": experimenter_login,
             },
-            "setup -j poms_jobsub_wrapper v1_0 -z /grid/fermiapp/products/common/db",
+            "setup -j poms_jobsub_wrapper v2_0_1 -z /grid/fermiapp/products/common/db",
             "export POMS_CAMPAIGN_ID=%s" % cid,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "export POMS_TASK_ID=%s" % tid, 
