@@ -492,14 +492,11 @@ class CampaignsPOMS():
                 depends = {"campaigns": [], "file_patterns": []}
             try:
                 if action == 'add':
-                    logit.log("*"*80)
-                    logit.log("spwspw role: %s" % role)
                     if not completion_pct:
                         completion_pct = 95
                     if role != 'analysis' and role != 'production':
                         message = 'Your active role must be analysis or production to add a campaign.'
                     else:
-                        logit.log("*"*80)
                         c = Campaign(name=name, experiment=exp, vo_role=vo_role,
                                      active=active, cs_split_type=split_type,
                                      software_version=software_version, dataset=dataset,
@@ -861,7 +858,6 @@ class CampaignsPOMS():
                 data['authorized'].append(True)
             else:
                 data['authorized'].append(False)
-
         return campaigns, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
 
     def reset_campaign_split(self, dbhandle, samhandle, campaign_id):
