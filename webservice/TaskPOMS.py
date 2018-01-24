@@ -395,6 +395,9 @@ class TaskPOMS:
 
 
     def get_task_id_for(self, dbhandle, campaign, user=None, experiment=None, command_executed="", input_dataset="", parent_task_id=None, task_id = None):
+        logit.log("get_task_id_for(user='%s',experiment='%s',command_executed='%s',input_dataset='%s',parent_task_id='%s',task_id='%s'" % (
+             user, experiment, command_executed, input_dataset, parent_task_id, task_id
+            ))
         if user is None:
             user = 4
         else:
@@ -402,7 +405,7 @@ class TaskPOMS:
             if u:
                 user = u.experimenter_id
         q = dbhandle.query(Campaign)
-        if campaign[0] in "0123456789":
+        if str(campaign)[0] in "0123456789":
             q = q.filter(Campaign.campaign_id == int(campaign))
         else:
             q = q.filter(Campaign.name.like("%%%s%%" % campaign))
@@ -413,7 +416,7 @@ class TaskPOMS:
         c = q.first()
         tim = datetime.now(utc)
         if task_id:
-            t = dbhandle.query(Task).filter(Task.task_id == task_id)
+            t = dbhandle.query(Task).filter(Task.task_id == task_id).one()
             t.command_executed = command_executed
             t.updated = tim
         else:
@@ -436,6 +439,7 @@ class TaskPOMS:
 
         dbhandle.add(t)
         dbhandle.commit()
+        logit.log("get_task_id_for: returning %s" % t.task_id)
         return t.task_id
 
 
@@ -720,6 +724,7 @@ class TaskPOMS:
                 "experimenter": experimenter_login,
             },
             "setup -j poms_jobsub_wrapper v2_0_1 -z /grid/fermiapp/products/common/db",
+            "setup -j poms_client v2_0_1 -z /grid/fermiapp/products/common/db",
             "export POMS_CAMPAIGN_ID=%s" % cid,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "export POMS_TASK_ID=%s" % tid, 
