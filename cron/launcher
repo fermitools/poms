@@ -16,6 +16,6 @@ ds=`date +%Y%m%d_%H%M%S`
 outdir="$HOME/private/logs/poms/launches/campaign_$campaign_id"
 outfile="$outdir/$ds"
 mkdir -p $outdir
-url="http://127.0.0.1:8080/poms/launch_jobs?campaign_id=$campaign_id&launcher=$1auncher"
+url="http://127.0.0.1:8080/poms/launch_jobs?campaign_id=${campaign_id}&launcher=${launcher}"
 
 wget --tries=1 --timeout=0 -o outfile.log -O /dev/null "$url"
