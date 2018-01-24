@@ -6,8 +6,8 @@ launcher=
 while :
 do
 case x$1 in
-x--campaign_id=*) campaign_id=`echo $1 | sed -e 's/.*=//'`; shift;;
-x--launcher=*) launcher= `echo $1 | sed -e 's/.*=//'`; shift;;
+x--campaign_id=*) campaign_id=`echo "$1" | sed -e 's/.*=//'`; shift;;
+x--launcher=*) launcher=`echo "$1" | sed -e 's/.*=//'`; shift;;
 *) break;;
 esac
 done
