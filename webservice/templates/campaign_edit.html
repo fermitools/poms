@@ -73,7 +73,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       {% for row in data.campaigns %}
       <tr>
         <td class="collapsing">
-          {% if data.authorized[loop.index]==True %}
+          {% if data.authorized[loop.index-1]==True %}
           <i class="large edit link blue icon"  onclick="edit_campaign({{loop.index}});"></i>
           <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i>
           <i class="large trash link blue icon" onclick="delete_campaign('{{row.name}}',{{row.campaign_id}});"></i>

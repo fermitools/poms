@@ -89,7 +89,7 @@ Campaign Stages{%include 'help_button.html'%}
         </thead>
 
         <tbody>
-            {% for campaign in campaigns if current_experimenter.extra and campaign.experiment in current_experimenter.extra.selected %}
+            {% for campaign in campaigns %}
                 <tr>
                     <td class="hideit">{{campaign.campaign_id}}</td>
                     <td><a href="{{pomspath}}/campaign_info?campaign_id={{campaign.campaign_id}}">{{campaign.name}}</a></td>
