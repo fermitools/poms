@@ -17,7 +17,7 @@ logger = logging.getLogger('cherrypy.error')
 class authorized:
     is_authorized = MagicMock(return_value = True)
 
-sesshandle = MagicMock(return_value = authorized)
+#sesshandle = MagicMock(return_value = authorized)
 
 def test_tags_create():
     # test tagging a campaign, and then looking up campaigns with that tag...
@@ -26,9 +26,11 @@ def test_tags_create():
     cname = 'mwm_test_splits'
     c = dbhandle.query(Campaign).filter(Campaign.name == 'mwm_test_splits').first()
 
-    mps.tagsPOMS.link_tags(dbhandle, sesshandle, c.campaign_id, tag_name, c.experiment)
+    res = mps.tagsPOMS.link_tags(dbhandle, camp_seshandle, c.campaign_id, tag_name, c.experiment)
+    print("link_tags returns: %s" % res)
 
     clist = mps.tagsPOMS.search_tags(dbhandle, tag_name)
+    print("search_tags returns: %s" % repr(clist))
 
     print(' testing for campaign %s' %cname)
     print(' campaign %s, ntags= %s' %(cname,len(clist)) )
@@ -50,7 +52,7 @@ def test_tags_delete():
     #print ' testing for campaign %s, experiemnt = %s ' %(cname,exp)
     
     #This creates the tag
-    mps.tagsPOMS.link_tags(dbhandle, sesshandle, c.campaign_id, tag_name, c.experiment)
+    mps.tagsPOMS.link_tags(dbhandle, camp_seshandle, c.campaign_id, tag_name, c.experiment)
 
     clist = mps.tagsPOMS.search_tags(dbhandle, tag_name)
     
@@ -74,7 +76,7 @@ def test_tags_delete():
             #print ' tag = %s, id = %s' %(atag.tag_name,atag.tag_id) 
             for cid in cids:
               #print ' deleting tag %s id =%s for campaign %s' %(atag.tag_name,atag.tag_id,cid)
-              mps.tagsPOMS.delete_campaigns_tags(dbhandle, sesshandle, cid, atag.tag_id, c.experiment)
+              mps.tagsPOMS.delete_campaigns_tags(dbhandle, camp_seshandle, cid, atag.tag_id, c.experiment)
     
     clist = mps.tagsPOMS.search_tags(dbhandle, tag_name)
     results=clist[0]
@@ -91,7 +93,7 @@ def test_tags_create_multi():
     print(' found %s campaigns ' %len(campaigns))
     for ac in campaigns:
         print(' %s %s %s' %(ac.campaign_id,ac.name, ac.experiment))
-        mps.tagsPOMS.link_tags(dbhandle, sesshandle, ac.campaign_id, tag_name, ac.experiment)
+        mps.tagsPOMS.link_tags(dbhandle, camp_seshandle, ac.campaign_id, tag_name, ac.experiment)
 
     # now verify
     clist = mps.tagsPOMS.search_tags(dbhandle, tag_name)

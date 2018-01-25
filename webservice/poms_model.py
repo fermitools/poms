@@ -235,6 +235,8 @@ class Tag(Base):
     tag_id = Column(Integer, primary_key=True, server_default=text("nextval('tags_tag_id_seq'::regclass)"))
     experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
     tag_name = Column(Text, nullable=False)
+    creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
+    creator_role = Column(Text, nullable=False)
 
 
 class CampaignsTags(Base):

@@ -44,6 +44,8 @@ class TagsPOMS(object):
                 t = Tag()
                 t.tag_name = tag_name
                 t.experiment = experiment
+                t.creator = ses_get('experimenter').experimenter_id
+                t.creator_role = ses_get('experimenter').session_role
                 dbhandle.add(t)
                 dbhandle.commit()
                 tag = t
