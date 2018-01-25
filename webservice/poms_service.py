@@ -1054,7 +1054,7 @@ class PomsService(object):
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def link_tags(self, campaign_id, tag_name, experiment):
-        return self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session, campaign_id, tag_name, experiment)
+        return self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session.get, campaign_id, tag_name, experiment)
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
