@@ -25,6 +25,9 @@ class TriagePOMS(object):
 
     @pomscache.cache_on_arguments()
     def job_counts(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=None):
+        return self.job_counts_uncached(dbhandle, task_id, campaign_id, tmin, tmax, tdays)
+
+    def job_counts_uncached(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=None):
 
         (
          tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays

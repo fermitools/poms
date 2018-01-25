@@ -197,6 +197,8 @@ class samweb_lite:
         url = "%s/sam/%s/api/projects/%s/%s/description" % (base, experiment, experiment, projname)
         res = None
         r1 = None
+        if projname == None or projname == "None":
+            return
         try:
             res = requests.post(url, data={"description": desc},
                                 verify=False,

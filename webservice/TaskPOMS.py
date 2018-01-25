@@ -123,16 +123,18 @@ class TaskPOMS:
         #
         # try a couple of times...
         #
-        for i in range(4):
-            try:
-                q = dbhandle.query(Task.task_id).filter(Task.task_id.in_(need_joblogs)).with_for_update().order_by(Task.task_id)
-                q.all()
-                break
-            except QueryCanceledError:
-                dbhandle.rollback()
-                continue
+        if len(need_joblogs) > 0:
+            for i in range(4):
+                try:
+                    q = dbhandle.query(Task.task_id).filter(Task.task_id.in_(need_joblogs)).with_for_update().order_by(Task.task_id)
+                    q.all()
+                    break
+                except QueryCanceledError:
+                    dbhandle.rollback()
+                    continue
 
-        dbhandle.query(Task).filter(Task.task_id.in_(need_joblogs)).update({'status': 'Completed', 'updated': datetime.now(utc)}, synchronize_session=False)
+            dbhandle.query(Task).filter(Task.task_id.in_(need_joblogs)).update({'status': 'Completed', 'updated': datetime.now(utc)}, synchronize_session=False)
+
         dbhandle.commit()
 
 
@@ -176,13 +178,14 @@ class TaskPOMS:
                 mark_located.append(tid)
                 finish_up_tasks.append(tid)
 
-        # lock tasks, jobs in order so we can update them
-        dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all()
-        #
-        # why mark the jobs? just fix the tasks!
-        #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all();
-        #q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True}, synchronize_session=False)
-        q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
+        if len(mark_located) > 0:
+            # lock tasks, jobs in order so we can update them
+            dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all()
+            #
+            # why mark the jobs? just fix the tasks!
+            #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all();
+            #q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True}, synchronize_session=False)
+            q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
         dbhandle.commit()
 
 
@@ -218,6 +221,7 @@ class TaskPOMS:
             #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all()
             #dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located', 'output_files_declared':True}, synchronize_session=False)
             dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
+
         dbhandle.commit()
 
         for task in (dbhandle.query(Task).with_for_update(Task)
@@ -265,8 +269,9 @@ class TaskPOMS:
                 if task.status == "Completed":
                     finish_up_tasks.append(task.task_id)
 
-        dbhandle.query(Job.job_id).filter(Job.task_id.in_(finish_up_tasks)).with_for_update().order_by(Job.jobsub_job_id).all()
-        q = dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
+        if len(finish_up_tasks) > 0:
+            dbhandle.query(Job.job_id).filter(Job.task_id.in_(finish_up_tasks)).with_for_update().order_by(Job.jobsub_job_id).all()
+            q = dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
         dbhandle.commit()
 
         res.append("Counts: completed: %d stale: %d project %d: located %d" %
@@ -284,7 +289,12 @@ class TaskPOMS:
         # this way we don't keep the rows locked all day
         #
         logit.log("Starting need_joblogs loops, len %d" % len(finish_up_tasks))
-        for task in dbhandle.query(Task).filter(Task.task_id.in_(need_joblogs)).all():
+        if len(need_joblogs) == 0:
+            njtl = []
+        else:
+            njtl = dbhandle.query(Task).filter(Task.task_id.in_(need_joblogs)).all()
+
+        for task in njtl:
             tid = task.task_id
             cid = task.campaign_id
             exp = task.campaign_snap_obj.experiment
@@ -297,7 +307,11 @@ class TaskPOMS:
                                           task.campaign_snap_obj.vo_role)
         logit.log("Starting finish_up_tasks loops, len %d" % len(finish_up_tasks))
 
-        for task in (dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).all()):
+        if len(finish_up_tasks) == 0:
+            futl = []
+        else:
+            futl = dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).all()
+        for task in futl:
             # get logs for job for final cpu values, etc.
             logit.log("Starting finish_up_tasks items for task %s" % task.task_id)
 

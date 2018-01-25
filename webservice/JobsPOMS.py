@@ -121,11 +121,15 @@ class JobsPOMS(object):
         #   * set of task_id's we have in database
         #   * output file regexes for each task
         #
-        tq = ( dbhandle.query(Task.task_id,CampaignDefinitionSnapshot.output_file_patterns)
+        if len(tids_wanted) ==  0:
+            tpl = []
+        else:
+            tq = ( dbhandle.query(Task.task_id,CampaignDefinitionSnapshot.output_file_patterns)
                 .filter(Task.campaign_definition_snap_id == CampaignDefinitionSnapshot.campaign_definition_snap_id)
                 .filter(Task.task_id.in_(tids_wanted)))
 
-        tpl = tq.all()
+            tpl = tq.all()
+        
 
         of_res = {}
         for tid, ofp in tpl:
@@ -250,18 +254,22 @@ class JobsPOMS(object):
         # so the answer is correct. 
 
 
-        tl2 = ( dbhandle.query(Task)
+        if len(tids_wanted) == 0:
+            tl2 = []
+        else:
+            tl2 = ( dbhandle.query(Task)
                 .filter(Task.task_id.in_(tids_wanted))
                 .with_for_update(of=Task)
                 .order_by(Task.task_id)
                 .all())
  
-        have_jobids.update( [x[0] for x in
-            dbhandle.query(Job.jobsub_job_id)
-                .filter(Job.jobsub_job_id.in_(update_jobsub_job_ids))
-                .with_for_update(of=Job)
-                .order_by(Job.jobsub_job_id)
-                .all()])
+        if len(update_jobsub_job_ids > 0):
+            have_jobids.update( [x[0] for x in
+                dbhandle.query(Job.jobsub_job_id)
+                    .filter(Job.jobsub_job_id.in_(update_jobsub_job_ids))
+                    .with_for_update(of=Job)
+                    .order_by(Job.jobsub_job_id)
+                    .all()])
         
 
         add_jobsub_job_ids = task_jobsub_job_ids - have_jobids
@@ -304,7 +312,10 @@ class JobsPOMS(object):
         # make a list of tasks which don't have projects set yet
         # to update after we do the batch below
         #
-        fix_task_ids = (dbhandle.query(Task.task_id)
+        if len(task_ids) == 0:
+            fix_task_ids = []
+        else:
+            fix_task_ids = (dbhandle.query(Task.task_id)
                 .filter(Task.task_id.in_(task_ids))
                 .filter(Task.project == None)
                 .all())
@@ -381,10 +392,13 @@ class JobsPOMS(object):
         #
         need_updates = set(fix_task_ids)
         need_updates = need_updates.union(tasks_job_completed)
-        tq = ( dbhandle.query(Task)
+        if len(need_updates) == 0:
+            tl =[]
+        else:
+            tq = ( dbhandle.query(Task)
                 .filter(Task.task_id.in_(need_updates))
                 .options(joinedload(Task.campaign_definition_snap_obj)) )
-        tl = tq.all()
+            tl = tq.all()
 
         for t in tl:
             if t.project:
