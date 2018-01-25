@@ -263,7 +263,7 @@ class JobsPOMS(object):
                 .order_by(Task.task_id)
                 .all())
  
-        if len(update_jobsub_job_ids > 0):
+        if len(update_jobsub_job_ids) > 0:
             have_jobids.update( [x[0] for x in
                 dbhandle.query(Job.jobsub_job_id)
                     .filter(Job.jobsub_job_id.in_(update_jobsub_job_ids))
