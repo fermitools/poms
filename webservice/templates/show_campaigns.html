@@ -2,45 +2,6 @@
 
 {%block title%}
 POMS: Campaign Stages
-
-<script>
-    function pop_mark_inactive_modal() {
-        mod_form = $("#mark_inactive_modal").modal('show');
-        var csv = [];
-        // find only visible rows; we're ignoring filtered/hidden rows
-        $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
-            csv.push($(this).text());
-        });
-        $("tempid1, span").html("Mark " + csv.length + " selected campaigns as ");
-        console.log("csv="+csv);
-        $("#campaign_ids").val(csv.join(','))
-    }
-
-
-    function pop_launch_holder_modal() {
-        mod_form = $("#launch_holder_modal").modal('show');
-        var csv = [];
-        // find only visible rows; we're ignoring filtered/hidden rows
-        $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
-            csv.push($(this).text());
-        });
-        $("#tempid2, span").html("Mark " + csv.length + " selected campaigns as ");
-        console.log("csv="+csv);
-        $("#campaign_ids2HR").val(csv.join(','))
-    }
-
-
-    function show_stats() {
-        var csv = [];
-        // find only visible rows; we're ignoring filtered/hidden rows
-        $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
-            csv.push($(this).text());
-        });
-        console.log("csv="+csv);
-        location.href = "./show_campaigns?cl=" + csv.join(',');
-    }
-</script>
-
 {%endblock%}
 
 {%block header%}
@@ -62,23 +23,32 @@ Campaign Stages{%include 'help_button.html'%}
         display: none;
     }
 </style>
-
-<!- FIXME:  need to change the buttons for mixed creator with analysis role. We don't know before we go throught the list which is authorized.
-    we need to make a check button by the name so we can choice one by on    ->
-<div class="ui {{ 'disabled' if (current_experimenter.session_role == "analysis" and  current_experimenter.experimenter_id != campaigns[0].creator) }} teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
-<div class="ui {{ 'disabled' if (current_experimenter.session_role == "analysis" and  current_experimenter.experimenter_id != campaigns[2].creator) }} teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
-<div class="ui teal button" onclick="show_stats();">Show Campaigns Statistics</div>
-<div class="ui {{ 'disabled' if (current_experimenter.session_role == "analysis" and  current_experimenter.experimenter_id != campaigns[0].creator) }} teal button" onclick="pop_launch_holder_modal();">Hold/Release Campaign Submission</div>
-
+    <div class="ui horizontal large label">Select All</div>
+    <input type="checkbox">
+    <div class="ui toggle checkbox">
+        <input type="checkbox" id="c_cbox_all">
+    </div>
+    <div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
+    <div class="ui teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
+    <div class="ui teal button" onclick="show_stats();">Show Campaigns Statistics</div>
+    <div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Campaign Submission</div>
 {% if campaigns|length == 0 %}
 <br>
 [No Campaigns Available]
 {% else %}
 <div id="double-scroll" class="ui _scrollable">
+    <!--
+    <table class="ui celled table sortable">
+    -->
     <table id="campaigns" class="ui celled _table unstackable tablesorter tablesorter-ice">
         <thead>
             <tr>
-                <th class="hideit">Id</th>
+                <th>Why does this not show in the table?</th>
+                <!--
+                <th><input type="checkbox" id="c_cbox_all"> Select</th>
+                -->
+                <th>Select</th>
+                <th>Id</th>
                 <th>Name</th>
                 <th>Active</th>
                 <th>Tags</th>
@@ -90,9 +60,15 @@ Campaign Stages{%include 'help_button.html'%}
 
         <tbody>
             {% for campaign in campaigns %}
-                <tr>
-                    <td class="hideit">{{campaign.campaign_id}}</td>
-                    <td><a href="{{pomspath}}/campaign_info?campaign_id={{campaign.campaign_id}}">{{campaign.name}}</a></td>
+                <tr id="c_tr_{{loop.index}}">
+                    <td>Same with this?</td>
+                    {% if data.authorized[loop.index-1]==True %}
+                    <td><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
+                    {% else %}
+                    <td><input type="checkbox" id="c_cbox_{{loop.index}}" disabled="disabled"></td>
+                    {% endif %}
+                    <td><input id="c_id_{{loop.index}}" value="{{campaign.campaign_id}}" readonly></td>
+                    <td><a href="{{pomspath}}/campaign_info?campaign_id={{campaign.campaign_id}}"><input id="c_name_{{loop.index}}" value="{{campaign.name}}" readonly></a></td>
                     <td>{{ 'Yes' if campaign.active else 'No' }}</td>
                     <td>{{ campaign.campaigns_tags | join('<br>', attribute='tag_obj.tag_name') }}</td>
                     <td>{{campaign.experimenter_holder_obj.username}}</td>
@@ -102,6 +78,7 @@ Campaign Stages{%include 'help_button.html'%}
             {% endfor %}
         </tbody>
     </table>
+    <input type="hidden" id="c_table_max_rows" value="{{campaigns|length}}">
     <script>
         $("#campaigns th").attr("style", "padding: 0.3em; border-left: 1;");
         //$('.hideit').hide();
@@ -110,39 +87,43 @@ Campaign Stages{%include 'help_button.html'%}
 {% endif %}
 
 <div class="ui modal small" id="mark_inactive_modal" style="padding: 0px 20px;">
-  <i class="close icon"></i>
-
-  <div class="header">
-  </div>
-  <form class="ui form" action="mark_campaign_active" method="GET">
-    <div class="field">
-        <input type="text" id="campaign_ids" name="cl" readonly>
-        <span id="tempid1" style="font-size: 1.3em;">Mark selected campaigns as </span>
-        <input type="submit" class="ui teal button" name="is_active" value="Active">
-        <input type="submit" class="ui teal button" name="is_active" value="Inactive">
+    <i class="close icon"></i>
+    <div class="header">
+        Campaigns to mark Active/Inactive
     </div>
-    <div class="ui hidden divider"></div>
-  </form>
+    <form class="ui form" action="mark_campaign_active" method="GET">
+        <div class="field">
+            <textarea id="campaign_names" readonly></textarea>
+            <input type="hidden" id="campaign_ids" name="cl">
+        </div>
+        <div class="field">
+            <div class="ui horizontal large label">Mark selected campaigns as</div>
+            <input type="submit" class="ui teal button" name="is_active" value="Active">
+            <input type="submit" class="ui teal button" name="is_active" value="Inactive">
+        </div>
+        <div class="ui hidden divider"></div>
+    </form>
 </div> <!-- Ends Modal -->
 
 <div class="ui modal small" id="launch_holder_modal" style="padding: 0px 20px;">
-  <i class="close icon"></i>
-
-  <div class="header">
-    Campaigns to Hold/Release:
-  </div>
-  <form class="ui form" action="mark_campaign_hold" method="GET">
-    <div class="field">
-        <input type="text" id="campaign_ids2HR" name="ids2HR" readonly>
-        <span id="tempid2" style="font-size: 1.3em;">Mark selected campaigns as </span>
-        <input type="submit" class="ui teal button" name="is_hold" value="Hold">
-        <input type="submit" class="ui teal button" name="is_hold" value="Release">
+    <i class="close icon"></i>
+    <div class="header">
+        Campaigns to Hold/Release:
     </div>
-    <div class="ui hidden divider"></div>
-  </form>
+    <form class="ui form" action="mark_campaign_hold" method="GET">
+        <div class="field">
+            <textarea id="campaign_names_hold" readonly></textarea>
+            <input type="hidden" id="campaign_ids2HR" name="ids2HR">
+        </div>
+        <div class="field">
+            <div class="ui horizontal large label">Mark selected campaigns as</div>
+            <input type="submit" class="ui teal button" name="is_hold" value="Hold">
+            <input type="submit" class="ui teal button" name="is_hold" value="Release">
+        </div>
+        <div class="ui hidden divider"></div>
+    </form>
 </div> <!-- Ends Modal -->
 
-<script>
 <div class="ui modal small" id="tag_untag_modal" style="padding: 0px 20px;">
     <i class="close icon"></i>
 
@@ -274,10 +255,12 @@ Campaign Stages{%include 'help_button.html'%}
     function pop_tag_untag_modal() {
         mod_form = $("#tag_untag_modal").modal('setting', 'closable', false).modal('show');
         var csv = [];
-        // find only visible rows; we are ignoring filtered/hidden rows
-        $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
-            csv.push($(this).text());
-        });
+        var max_rows = $("#c_table_max_rows").val();
+        for (var i = 1; i <= max_rows; i++) {
+            if ( $("#c_tr_"+i).is(":visible") ) {
+                csv.push($("#c_id_"+i).val());
+            }
+        }
         mod_form.find('span').html("Tag " + csv.length + " selected campaigns...");
         console.log("csv="+csv);
         $("#tag_campaign_ids").val(csv.join(','))
@@ -304,26 +287,68 @@ Campaign Stages{%include 'help_button.html'%}
     }
   </script>
 
-  <script>
+<script>
+    $('#c_cbox_all').change(function() {
+        var checked = false;
+        if ( $("#c_cbox_all").is(":checked") ) {
+            checked = true;
+        }
+        var max_rows = $("#c_table_max_rows").val();
+        for (var i = 1; i <= max_rows; i++) {
+            $("#c_cbox_"+i).prop('checked', checked);
+        }
+    });
+
     function pop_mark_inactive_modal() {
-        mod_form = $("#mark_inactive_modal").modal('show');
-        var csv = [];
-        // find only visible rows; we're ignoring filtered/hidden rows
-        $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
-            csv.push($(this).text());
-        });
-        mod_form.find('span').html("Mark " + csv.length + " selected campaigns as ");
-        console.log("csv="+csv);
-        $("#campaign_ids").val(csv.join(','))
+        var max_rows = $("#c_table_max_rows").val();
+        var names = [];
+        var ids = [];
+        for (var i = 1; i <= max_rows; i++) {
+            if ( $("#c_cbox_"+i).is(":checked") ) {
+                names.push($("#c_name_"+i).val());
+                ids.push($("#c_id_"+i).val());
+            }
+        }
+        if (names.length == 0) {
+            mod_form= $("#display_message_modal").modal('show');
+            $("#poms_message_data").text("Please select one or more campaigns by using the appropriate check boxes.")
+        }
+        else {
+            mod_form = $("#mark_inactive_modal").modal('show');
+            $("#campaign_names").val( names.join('\n') );
+            $("#campaign_ids").val(ids.join(','))
+        }
+    }
+
+    function pop_launch_holder_modal() {
+        var max_rows = $("#c_table_max_rows").val();
+        var names = [];
+        var ids = [];
+        for (var i = 1; i <= max_rows; i++) {
+            if ( $("#c_cbox_"+i).is(":checked") ) {
+                names.push($("#c_name_"+i).val());
+                ids.push($("#c_id_"+i).val());
+            }
+        }
+        if (names.length == 0) {
+            mod_form= $("#display_message_modal").modal('show');
+            $("#poms_message_data").text("Please select one or more campaigns by using the appropriate check boxes.")
+        }
+        else {
+            mod_form = $("#launch_holder_modal").modal('show');
+            $("#campaign_names_hold").val( names.join('\n') );
+            $("#campaign_ids2HR").val(ids.join(','))
+        }
     }
 
     function show_stats() {
+        var max_rows = $("#c_table_max_rows").val();
         var csv = [];
-        // find only visible rows; we're ignoring filtered/hidden rows
-        $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
-            csv.push($(this).text());
-        });
-        console.log("csv="+csv);
+        for (var i = 1; i <= max_rows; i++) {
+            if ( $("#c_tr_"+i).is(":visible") ) {
+                csv.push($("#c_id_"+i).val());
+            }
+        }
         location.href = "./show_campaigns?cl=" + csv.join(',');
     }
   </script>
