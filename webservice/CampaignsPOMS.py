@@ -845,7 +845,6 @@ class CampaignsPOMS():
 
             # if creator_role:
             # cq = cq.filter(Campaingn.creator_role == creator_role)
-
         campaigns = cq.all()
         logit.log(logit.DEBUG, "show_campaigns: back from query")
         # check for authorization
