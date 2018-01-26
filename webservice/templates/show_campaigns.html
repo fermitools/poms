@@ -23,15 +23,10 @@ Campaign Stages{%include 'help_button.html'%}
         display: none;
     }
 </style>
-    <div class="ui horizontal large label">Select All</div>
-    <input type="checkbox">
-    <div class="ui toggle checkbox">
-        <input type="checkbox" id="c_cbox_all">
-    </div>
-    <div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
-    <div class="ui teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
-    <div class="ui teal button" onclick="show_stats();">Show Campaigns Statistics</div>
-    <div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Campaign Submission</div>
+<div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
+<div class="ui teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
+<div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Campaign Submission</div>
+<div class="ui teal button" onclick="show_stats();">Show ALL Campaigns Statistics</div>
 {% if campaigns|length == 0 %}
 <br>
 [No Campaigns Available]
@@ -44,9 +39,6 @@ Campaign Stages{%include 'help_button.html'%}
         <thead>
             <tr>
                 <th>Why does this not show in the table?</th>
-                <!--
-                <th><input type="checkbox" id="c_cbox_all"> Select</th>
-                -->
                 <th>Select</th>
                 <th>Id</th>
                 <th>Name</th>
@@ -253,14 +245,19 @@ Campaign Stages{%include 'help_button.html'%}
     });
 
     function pop_tag_untag_modal() {
-        mod_form = $("#tag_untag_modal").modal('setting', 'closable', false).modal('show');
         var csv = [];
         var max_rows = $("#c_table_max_rows").val();
         for (var i = 1; i <= max_rows; i++) {
-            if ( $("#c_tr_"+i).is(":visible") ) {
+            if ( $("#c_cbox_"+i).is(":checked") ) {
                 csv.push($("#c_id_"+i).val());
             }
         }
+        if (csv.length == 0) {
+            mod_form= $("#display_message_modal").modal('show');
+            $("#poms_message_data").text("Please select one or more campaigns by using the appropriate check boxes.");
+            return;
+        }
+        mod_form = $("#tag_untag_modal").modal('setting', 'closable', false).modal('show');
         mod_form.find('span').html("Tag " + csv.length + " selected campaigns...");
         console.log("csv="+csv);
         $("#tag_campaign_ids").val(csv.join(','))
@@ -288,17 +285,6 @@ Campaign Stages{%include 'help_button.html'%}
   </script>
 
 <script>
-    $('#c_cbox_all').change(function() {
-        var checked = false;
-        if ( $("#c_cbox_all").is(":checked") ) {
-            checked = true;
-        }
-        var max_rows = $("#c_table_max_rows").val();
-        for (var i = 1; i <= max_rows; i++) {
-            $("#c_cbox_"+i).prop('checked', checked);
-        }
-    });
-
     function pop_mark_inactive_modal() {
         var max_rows = $("#c_table_max_rows").val();
         var names = [];
