@@ -83,15 +83,15 @@ Campaign Stages {{ show_hint('', 'Help page') }}
           {% endif %}
         </td>
         <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.campaign_id}}</td>
-      {% if row.campaign_id|int == jump_to_campaign|default(-1)|int %}
-      <script type="text/javascript">
-       // jump directly to a particular campaign
-       $(document).ready(function(){
-          edit_campaign({{loop.index}});
-       });
-     </script>
-     {% endif %}
-        <td id="c_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index]}}</td>
+        {% if row.campaign_id|int == jump_to_campaign|default(-1)|int %}
+        <script type="text/javascript">
+         // jump directly to a particular campaign
+         $(document).ready(function(){
+            edit_campaign({{loop.index}});
+         });
+        </script>
+        {% endif %}
+        <td id="c_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
         <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.campaign_definition_id}}</td>
         <td id="c_launch_id_{{loop.index}}" style="display:none">{{row.launch_id}}</td>
         <td id="c_name_{{loop.index}}">{{row.name}}</td>
@@ -111,8 +111,8 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         {% for key, value in data.depends.items() %}
             {% if key == row.campaign_id %}
             {{ value }}
-        {% endif %}
-            {% endfor %}
+            {% endif %}
+        {% endfor %}
         </td>
       </tr>
       {% endfor %}
@@ -120,7 +120,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
     <tfoot>
         <tr>
             <th colspan="9">
-                <button class="ui labled teal icon button" onclick="add_campaign();return false;">
+                <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (session_role=='coordinator') }}>
                     <i class="icon add square"></i>
                     Add
                 </button>
@@ -698,12 +698,12 @@ function edit_campaign(index,clone) {
   console.log("clone = : " + clone)
   if ( typeof clone === 'undefined' )
   {
-    console.log("I'm in")
     if ( ($("#c_authorized_"+index).val() == false) ) {
       $("#ae_submit").prop("disabled",true);
     }
+  } else {
+    $("#ae_submit").prop("value","Clone");
   }
-
 }
 
 function add_campaign() {

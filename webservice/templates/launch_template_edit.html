@@ -59,9 +59,10 @@ Launch Templates {{ show_hint('', 'Help page') }}
           <i class="disabled large edit link blue icon"></i>
           <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
           <i class="disabled large trash link blue icon"></i>
-         
+
           {% endif %}
         </td>
+        <td id="ldf_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
         <td id="ldf_launch_id_{{loop.index}}" style="display:none;">{{row.LaunchTemplate.launch_id}}</td>
         <td id="ldf_name_{{loop.index}}">{{row.LaunchTemplate.name}}</td>
         <td id="ldf_launch_host_{{loop.index}}">{{row.LaunchTemplate.launch_host}}</td>
@@ -73,7 +74,7 @@ Launch Templates {{ show_hint('', 'Help page') }}
     <tfoot>
       <tr>
         <th colspan="5">
-          <button class="ui labled teal icon button" onclick="add_template();return false;") {{ 'disabled' if (data.authorized==False) }}>
+          <button class="ui labled teal icon button" onclick="add_template();return false;") {{ 'disabled' if (session_role=='coordinator') }}>
             <i class="icon add square"></i>
             Add
           </button>
@@ -142,8 +143,8 @@ Launch Templates {{ show_hint('', 'Help page') }}
     </div>
     <div class="actions">
       <div class="ui button deny red">Cancel</div>
-      <input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
-      <input type="submit" value="Test" name="test_template" class="ui button orange" {{ 'disabled' if (data.authorized==False) }}/>
+      <input type="submit" value="Submit" id="ae_submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
+      <input type="submit" value="Test" name="test_template" id="ae_test" class="ui button orange" {{ 'disabled' if (data.authorized==False) }}/>
     </div>
     <input type="hidden" name="experiment" id="ae_experiment" value="{{data.curr_experiment}}">
     <input type="hidden" name="action" id="ae_launch_action" value="add">
@@ -161,10 +162,10 @@ $('#template_add_edit_form')
     inline: true,
     fields: {
       ae_launch_name      : {rules: [{type: 'empty',prompt: 'field cannot be blank'}]},
-      ae_launch_host      : {rules: [{type: 'regExp', 
-                                      value: /{{session_experiment|replace('samdev','.*')}}/i, 
-                                      prompt: 'Please enter a hostname with {{session_experiment}} in it' 
-                                      }, 
+      ae_launch_host      : {rules: [{type: 'regExp',
+                                      value: /{{session_experiment|replace('samdev','.*')}}/i,
+                                      prompt: 'Please enter a hostname with {{session_experiment}} in it'
+                                      },
                                      {type: 'empty', prompt: 'field cannot be blank'}]},
       ae_launch_account   : {rules: [{type: 'empty', prompt: 'field cannot be blank'}]},
       ae_launch_setup     : {rules: [{type: 'empty', prompt: 'field cannot be blank'}]}
@@ -208,8 +209,17 @@ $("#experiment").change(function() {
     $("#ae_launch_host").val(launch_host);
     $("#ae_launch_account").val(launch_account);
     $("#ae_launch_setup").val(launch_setup);
-    $("#template_add_edit_modal").modal({
-    }).modal('show');
+    $("#template_add_edit_modal").modal({}).modal('show');
+    if ( typeof clone === 'undefined' )
+    {
+      if ( ($("#ldf_authorized_"+index).val() == false) ) {
+        $("#ae_submit").prop("disabled",true);
+        $("#ae_test").prop("disabled",true);
+      }
+    } else {
+      $("#ae_submit").prop('value', 'Clone');
+      $("#ae_test").hide();
+    }
   }
 
   function add_template() {

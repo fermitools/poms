@@ -46,50 +46,49 @@ Job Types {%include 'help_button.html'%}
       </tr>
     </thead>
     <tbody>
-      {% for row in data.definitions %}
+    {% for row in data.definitions %}
       <tr>
-	<td class="collapsing">
-          {% if data.authorized[loop.index-1]==True %}
-	  <i class="large edit link blue icon"  onclick="edit_definition({{loop.index}});"></i>
-	  <i class="large copy icon link blue icon" onclick="edit_definition({{loop.index}},'CLONE');"></i>
-	  <i class="large trash link blue icon" onclick="delete_definition('{{row.CampaignDefinition.name}}','{{row.CampaignDefinition.campaign_definition_id}}');"></i>
-	  {% else %}
-	  <i class="disabled large edit link blue icon"></i>
-          <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
-	  <i class="disabled large trash link blue icon"></i>
-	  {% endif %}
-	</td>
-	<td id="cdf_id_{{loop.index}}" style="display:none;">{{row.CampaignDefinition.campaign_definition_id}}</td>
-	<td id="cdf_name_{{loop.index}}">{{row.CampaignDefinition.name}}</td>
-	<td id="cdf_input_{{loop.index}}">{{row.CampaignDefinition.input_files_per_job}}</td>
-	<td id="cdf_output_{{loop.index}}">{{row.CampaignDefinition.output_files_per_job}}</td>
-	<td id="cdf_outputpat_{{loop.index}}">{{row.CampaignDefinition.output_file_patterns|replace("None","%")}}</td>
-	<td id="cdf_script_{{loop.index}}">{{row.CampaignDefinition.launch_script|replace("None","")}}</td>
-
-       {% if row.CampaignDefinition.definition_parameters is string %}
-	<td id="cdf_definition_{{loop.index}}">{{row.CampaignDefinition.definition_parameters|replace("None","")}}</td>
-       {% else %}
-	<td id="cdf_definition_{{loop.index}}">{{row.CampaignDefinition.definition_parameters|tojson}}</td>
-       {% endif %}
-
-	<td id="cdf_recovery_{{loop.index}}">
-	  {% if data.recoveries[row.CampaignDefinition.campaign_definition_id] is defined %}
-	    {{data.recoveries[row.CampaignDefinition.campaign_definition_id]}}
-	  {% else %}
-	    []
-	  {% endif %}
-       </td>
+	    <td class="collapsing">
+      {% if data.authorized[loop.index-1]==True %}
+	      <i class="large edit link blue icon"  onclick="edit_definition({{loop.index}});"></i>
+	      <i class="large copy icon link blue icon" onclick="edit_definition({{loop.index}},'CLONE');"></i>
+	      <i class="large trash link blue icon" onclick="delete_definition('{{row.CampaignDefinition.name}}','{{row.CampaignDefinition.campaign_definition_id}}');"></i>
+	    {% else %}
+	      <i class="disabled large edit link blue icon"></i>
+        <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
+	      <i class="disabled large trash link blue icon"></i>
+	    {% endif %}
+	    </td>
+      <td id="cdf_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
+	    <td id="cdf_id_{{loop.index}}" style="display:none;">{{row.CampaignDefinition.campaign_definition_id}}</td>
+	    <td id="cdf_name_{{loop.index}}">{{row.CampaignDefinition.name}}</td>
+	    <td id="cdf_input_{{loop.index}}">{{row.CampaignDefinition.input_files_per_job}}</td>
+	    <td id="cdf_output_{{loop.index}}">{{row.CampaignDefinition.output_files_per_job}}</td>
+	    <td id="cdf_outputpat_{{loop.index}}">{{row.CampaignDefinition.output_file_patterns|replace("None","%")}}</td>
+	    <td id="cdf_script_{{loop.index}}">{{row.CampaignDefinition.launch_script|replace("None","")}}</td>
+      {% if row.CampaignDefinition.definition_parameters is string %}
+	      <td id="cdf_definition_{{loop.index}}">{{row.CampaignDefinition.definition_parameters|replace("None","")}}</td>
+      {% else %}
+	      <td id="cdf_definition_{{loop.index}}">{{row.CampaignDefinition.definition_parameters|tojson}}</td>
+      {% endif %}
+	    <td id="cdf_recovery_{{loop.index}}">
+	    {% if data.recoveries[row.CampaignDefinition.campaign_definition_id] is defined %}
+	      {{data.recoveries[row.CampaignDefinition.campaign_definition_id]}}
+	    {% else %}
+	      []
+	    {% endif %}
+      </td>
       </tr>
-      {% endfor %}
+    {% endfor %}
     </tbody>
     <tfoot>
       <tr>
-	<th colspan="8">
-	  <button class="ui labled teal icon button" onclick="add_definition();return false;" {{ 'disabled' if (data.authorized==False) }}>
-	    <i class="icon add square"></i>
-	    Add
-	  </button>
-	</th>
+	      <th colspan="8">
+	        <button class="ui labled teal icon button" onclick="add_definition();return false;" {{ 'disabled' if (session_role=='coordinator') }}>
+	        <i class="icon add square"></i>
+	          Add
+	        </button>
+	      </th>
       </tr>
     </tfoot>
   </table>
@@ -114,11 +113,11 @@ Job Types {%include 'help_button.html'%}
   <div class="actions">
     <div class="two fluid ui buttons">
       <button class="ui red deny button">
-	No
+	      No
       </button>
       <button id="approved_btn" class="ui teal approve button">
-	<i class="checkmark icon"></i>
-	Yes
+	      <i class="checkmark icon"></i>
+	      Yes
       </button>
     </div>
   </div>
@@ -172,11 +171,11 @@ Job Types {%include 'help_button.html'%}
           <textarea id="ae_definition_recovery_text" disabled>[]</textarea>
         </div>
       </div>
-      
+
       <div class="actions">
 	<div class="ui button deny red">Cancel</div>
-	<input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
-	<input type="submit" name="test_template" value="Test" class="ui button orange" {{ 'disabled' if (data.authorized==False) }}/>
+	<input type="submit" value="Submit" id="ae_submit" class="ui button teal" />
+	<input type="submit" name="test_template" value="Test" id="ae_test"class="ui button orange" />
       </div>
       <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
       <input type="hidden" name="action" id="ae_definition_action" value="add">
@@ -210,8 +209,8 @@ Job Types {%include 'help_button.html'%}
 	  <tr>
 	    <th colspan="3">
 	      <div class="actions">
-		<button class="ui button deny red">Cancel</button>
-		<button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
+		      <button class="ui button deny red">Cancel</button>
+		      <button class="ui button approve teal">Accept</button>
 	      </div>
 	    </th>
 	  </tr>
@@ -243,14 +242,14 @@ Job Types {%include 'help_button.html'%}
 	  <tr>
 	    <th colspan="3">
 	      <div class="actions">
-		<button class="ui button deny red">Cancel</button>
-		<button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
+		      <button class="ui button deny red">Cancel</button>
+		      <button class="ui button approve teal" >Accept</button>
 	      </div>
 	    </th>
 	  </tr>
 	</tfoot>
-      </table>
-    </div>
+  </table>
+  </div>
   </div>
   <div class="ui hidden divider"></div>
 
@@ -261,18 +260,17 @@ Job Types {%include 'help_button.html'%}
   <div class="header">
     Definition Recovery Editor
   </div>
-<div class="ui text _container">
+  <div class="ui text _container">
     <div class="_scrollable">
-
       <table class="ui celled table" id="er_table">
-	<thead>
-	  <tr>
-	    <th>Type</th>
-	    <th>Param Overrides</th>
-	    <th></th>
-	  </tr>
-	</thead>
-	<tbody id="er_tbody">
+	      <thead>
+	        <tr>
+	          <th>Type</th>
+	          <th>Param Overrides</th>
+	          <th></th>
+	        </tr>
+	      </thead>
+	      <tbody id="er_tbody">
          {% for i in range(5) %}
             <tr>
                 <td> <select id="re_recover_{{i}}" onchange="updateRepo({{i}})">
@@ -286,38 +284,18 @@ Job Types {%include 'help_button.html'%}
                 <td><i id="re_recover_p_icon_{{i}}" class="large edit link blue icon"  onclick="edit_recovery_params_o({{i}});"></i>
             </tr>
          {% endfor %}
-	</tbody>
-	<tfoot>
-	  <tr>
-	    <th colspan="3">
-	      <div class="actions">
-		<button class="ui button deny red">Cancel</button>
-		<button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
-	      </div>
-	    </th>
-	  </tr>
-	</tfoot>
+	      </tbody>
+	      <tfoot>
+	        <tr>
+	          <th colspan="3">
+	            <div class="actions">
+		            <button class="ui button deny red">Cancel</button>
+		            <button class="ui button approve teal">Accept</button>
+	            </div>
+	          </th>
+	        </tr>
+	      </tfoot>
       </table>
-<!--
-       <ol>
-         {% for i in range(5) %}
-         <li>
-           <select id="re_recover_{{i}}">
-             <option value="">-</option>
-             {% for rtype in data.rtypes %}
-             <option value="{{rtype[0]}}">{{rtype[0]}} -: {{rtype[1]}}</option>
-             {% endfor %}
-           </select>
-           {%endfor%}
-	 </li>
-       </ol>
-
-
-      <div class="actions">
-       <button class="ui button deny red">Cancel</button>
-       <button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
-       </div>
--->
     </div>
   </div>  <!-- container -->
  <div class="ui hidden divider"></div>
@@ -337,12 +315,6 @@ $('#definition_add_edit_form')
       ae_definition_recovery_text   : 'empty'
     }
   })
-
-/*
-$("#cdf_experiment").change(function() {
-    $("#campaign_definition_form").submit();
-  });
-*/
 
 function create_row(index, key, value) {
     return row;
@@ -759,6 +731,16 @@ function ep_down_button(current_row) {
     $("#ae_definition_recovery_text").val( $.trim( $("#cdf_recovery_"+index).text() ) );
     $("#ae_definition_recovery").val( $("#cdf_recovery_"+index).text() );
     $("#definition_add_edit_modal").modal('show');
+    if ( typeof clone === 'undefined' )
+    {
+      if ( ($("#cdf_authorized_"+index).val() == false) ) {
+        $("#ae_submit").prop("disabled",true);
+        $("#ae_test").prop("disabled",true);
+      }
+    } else {
+      $("#ae_submit").prop('value', 'Clone');
+      $("#ae_test").hide();
+    }
   }
 
   function add_definition() {
