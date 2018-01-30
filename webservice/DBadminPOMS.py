@@ -50,6 +50,7 @@ class DBadminPOMS:
                 experimenter.last_name = kwargs.get('last_name')
                 experimenter.username = username
                 experimenter.session_experiment = ''
+                experimenter.session_role = 'analysis'
                 dbhandle.add( experimenter)
                 dbhandle.commit()
 
