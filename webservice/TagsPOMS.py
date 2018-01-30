@@ -27,8 +27,9 @@ class TagsPOMS(object):
         tl = dbhandle.query(Tag).filter(Tag.experiment == experiment)
         last_activity_l = dbhandle.query(func.max(Task.updated)).join(CampaignsTags,Task.campaign_id == CampaignsTags.campaign_id).join(Tag,CampaignsTags.tag_id == Tag.tag_id).filter(Tag.experiment == experiment).first()
         logit.log("got last_activity_l %s" % repr(last_activity_l))
-        if last_activity_l and datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
-            last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
+        if last_activity_l and len(last_activity_l) and last_activity_l[0] :
+            if datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
+                last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         else:
             last_activity = ""
         logit.log("after: last_activity %s" % repr(last_activity))
