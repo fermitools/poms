@@ -24,14 +24,15 @@ class TagsPOMS(object):
 
 
     def show_tags(self, dbhandle, experiment):
-        tl = dbhandle.query(Tag).filter(Tag.experiment == experiment)
+        tl = dbhandle.query(Tag).filter(Tag.experiment == experiment).all()
+        if len(tl) == 0:
+            return tl,""
         last_activity_l = dbhandle.query(func.max(Task.updated)).join(CampaignsTags,Task.campaign_id == CampaignsTags.campaign_id).join(Tag,CampaignsTags.tag_id == Tag.tag_id).filter(Tag.experiment == experiment).first()
         logit.log("got last_activity_l %s" % repr(last_activity_l))
+        last_activity = ""
         if last_activity_l and len(last_activity_l) and last_activity_l[0] :
             if datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
                 last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
-        else:
-            last_activity = ""
         logit.log("after: last_activity %s" % repr(last_activity))
         return tl, last_activity
 

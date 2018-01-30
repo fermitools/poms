@@ -86,19 +86,29 @@ function addVarsToDatepickerComponentForm()
     for(var i=0; i<vars.length; i++)
     {
         var kv = vars[i].split("=");
-        vars_dict[kv[0]] = kv[1]
+        vars_dict[kv[0]] = []
+    }
+
+    for(var i=0; i<vars.length; i++)
+    {
+        var kv = vars[i].split("=");
+        vars_dict[kv[0]].push(kv[1])
     }
 
     delete vars_dict["tmax"];
     delete vars_dict["tmin"];
+    delete vars_dict["tdays"];
 
     for(var key in vars_dict)
     {
-      $('<input>').attr({
-      type: 'hidden',
-      name: key,
-      value: vars_dict[key]
-      }).appendTo('#datepicker_form');
+      for (i in vars_dict[key]) 
+      {
+          $('<input>').attr({
+          type: 'hidden',
+          name: key,
+          value: vars_dict[key][i]
+          }).appendTo('#datepicker_form');
+      }
     }
 }
 </script>
