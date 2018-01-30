@@ -375,6 +375,92 @@ class Files_status(object):
                 tjcpuh[row[0]] = row[1]
                 tjwallh[row[0]] = row[2]
 
+            #
+            # get input/output file counts
+            #
+            tjifl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
+                      .filter(Job.task_id.in_(tids))
+                      .filter(JobFile.job_id == Job.job_id)
+                      .filter(JobFile.file_type == "input")
+                      .group_by(Job.task_id)
+                      .all())
+
+            tjifh = dict(tjifl)
+
+            tjofl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
+                      .filter(Job.task_id.in_(tids))
+                      .filter(JobFile.job_id == Job.job_id)
+                      .filter(JobFile.file_type == "output")
+                      .group_by(Job.task_id)
+                      .all())
+
+            tjofh = dict(tjofl)
+
+
+        #
+        # get exit code counts
+        #
+        ecc = {}
+        for e in exitcodes:
+            tjel = (dbhandle.query(Job.task_id, func.count(Job.job_id))
+               .filter(Job.task_id.in_(tids))
+               .filter(Job.user_exe_exit_code == e)
+               .group_by(Job.task_id)
+               .all())
+            ecc[e] = dict(tjel)
+
+        psl = self.poms_service.project_summary_for_tasks(tl)        # Get project summary list for a given task list in one parallel batch
+
+        logit.log("got exitcodes: " + repr(exitcodes))
+        day = -1
+        date = None
+        first = 1
+        columns = ['day', 'date', 'requested files', 'delivered files', 'input<br>files','jobs', 'output<br>files', 'pending', 'efficiency%']
+        exitcodes.sort(key=(lambda x:  x if x else -1))
+        for e in exitcodes:
+            if e is not None:
+                columns.append('exit(%d)' % (e))
+            else:
+                columns.append('No exitcode')
+
+        outrows = deque()
+        exitcounts = {e: 0 for e in exitcodes}
+        totfiles = 0
+        totdfiles = 0
+        totjobs = 0
+        outfiles = 0
+        infiles = 0
+        # pendfiles = 0
+        tasklist = deque()
+        totwall = 0.0
+
+        daytasks = deque()
+        for tno, task in enumerate(tl):
+            if day != task.created.weekday():
+
+
+
+                if not first:
+                    # add a row to the table on the day boundary
+                    daytasks.append(tasklist)
+                    outrow = deque()
+                    outrow.append(daynames[day])
+                    outrow.append(date.isoformat()[:10])
+                    outrow.append(str(totfiles if totfiles > 0 else infiles))
+                    outrow.append(str(totdfiles))
+                    outrow.append(str(infiles))
+                    outrow.append(str(totjobs))
+                    outrow.append(str(outfiles))
+                    outrow.append("...")  # we will get pending counts in a minute
+                    if totwall == 0.0 or totcpu == 0.0:     # totcpu undefined
+                        outrow.append(-1)
+                    else:
+                        outrow.append(int(totcpu * 100.0 / totwall))   # totcpu undefined
+                    for e in exitcodes:
+                        outrow.append(exitcounts[e])
+
+                    outrows.append(outrow)
+                # clear counters for next days worth
                 first = 0
                 totfiles = 0
                 totdfiles = 0
