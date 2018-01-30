@@ -733,12 +733,17 @@ function ep_down_button(current_row) {
     $("#definition_add_edit_modal").modal('show');
     if ( typeof clone === 'undefined' )
     {
-      if ( ($("#cdf_authorized_"+index).val() == false) ) {
+      $("#ae_submit").prop('value', 'Submit');
+      if ( ($("#cdf_authorized_"+index).text() == "False") ) {
         $("#ae_submit").prop("disabled",true);
         $("#ae_test").prop("disabled",true);
+      } else {
+        $("#ae_submit").prop("disabled",false);
+        $("#ae_test").prop("disabled",false);
       }
     } else {
       $("#ae_submit").prop('value', 'Clone');
+        $("#ae_submit").prop("disabled",false);
       $("#ae_test").hide();
     }
   }
