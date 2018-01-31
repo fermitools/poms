@@ -1,12 +1,12 @@
 {%extends "layout.html"%}
 
 {%block title%}
-POMS:Job efficiency in Campaign Stage {{campaign_id}}
+POMS:Job {{timetype}} Time Histogram for Campaign Stage {{c.name}}
 {%endblock%}
 
 {%block header%}
 <h1 class="ui header">
-     Campagin {{c.name}} Job {{timetype}} {%include 'help_button.html'%}
+     Campaign {{c.name}} Job {{timetype}} Time Histogram {%include 'help_button.html'%}
 </h1>
 {%endblock%}
 

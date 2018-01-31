@@ -752,7 +752,7 @@ class PomsService(object):
                                campaign_id=campaign_id,
                                tdays=tdays, tmin=tmin, tmax=tmax,
                                do_refresh=1200, next=nextlink, prev=prevlink,
-                               help_page="JobEfficiencyHistoHelp")
+                               help_page="JobTimeHistoHelp",anchor="#"+timetype)
 
     @cherrypy.expose
     @logit.logstartstop

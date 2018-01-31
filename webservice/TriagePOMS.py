@@ -264,11 +264,12 @@ class TriagePOMS(object):
 
                 logit.log("doing copy in/out time.. in jobs_table...")
                 if n == -1:
-                    sqz = (dbhandle.query(func.count(JobHistory.created))
+                    q = q.filter(0 == 
+                     (dbhandle.query(func.count(JobHistory.created))
                        .filter(JobHistory.job_id == Job.job_id)
                        .filter(JobHistory.status == copy_start_status)
-                     ).subquery()
-                    q = q.filter(0 == sqz)
+                     ).as_scalar()
+                   )
                 else:
                     sq1 = (dbhandle.query(JobHistory.job_id.label('job_id'),
                                      JobHistory.created.label('start_t'),

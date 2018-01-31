@@ -692,7 +692,6 @@ class JobsPOMS(object):
                 .filter(Job.job_id >= minjobid)   # see if this speeds up
                 .filter(Task.campaign_id == campaign_id)
                 .filter(Task.created <= tmax, Task.created >= tmin)
-                .filter(Job.wall_time > 0) 
                 .group_by(qf)
                 .order_by(qf)
                )
