@@ -665,7 +665,7 @@ class JobsPOMS(object):
         res = (dbhandle.query(func.max(Job.wall_time),func.min(Job.job_id))
                  .join(Task, Job.task_id == Task.task_id)
                  .filter(Task.campaign_id == campaign_id)
-                 .filter(Task.created < tmax, Task.created >= tmin)
+                 .filter(Task.created <= tmax, Task.created >= tmin)
                  .first())
         logit.log("max wall time %s, min job_id %s" % (res[0],res[1]))
         maxwall = res[0]
@@ -691,7 +691,7 @@ class JobsPOMS(object):
                 .join(Task, Job.task_id == Task.task_id)
                 .filter(Job.job_id >= minjobid)   # see if this speeds up
                 .filter(Task.campaign_id == campaign_id)
-                .filter(Task.created < tmax, Task.created >= tmin)
+                .filter(Task.created <= tmax, Task.created >= tmin)
                 .filter(Job.wall_time > 0) 
                 .group_by(qf)
                 .order_by(qf)
@@ -700,7 +700,7 @@ class JobsPOMS(object):
                 .join(Task, Job.task_id == Task.task_id)
                 .filter(Job.job_id >= minjobid)   # see if this speeds up
                 .filter(Task.campaign_id == campaign_id)
-                .filter(Task.created < tmax, Task.created >= tmin)
+                .filter(Task.created <= tmax, Task.created >= tmin)
                 .filter(fname == None)
                )
                    
@@ -730,7 +730,7 @@ class JobsPOMS(object):
                         .filter(JobHistory.job_id >= minjobid)   # see if this speeds up
                         .filter(Job.task_id == Task.task_id)
                         .filter(Task.campaign_id == campaign_id)
-                        .filter(Task.created < tmax, Task.created >= tmin)
+                        .filter(Task.created <= tmax, Task.created >= tmin)
                    ).subquery()
            sq2 = (dbhandle.query(sq1.c.job_id.label('job_id'), 
                                  func.sum(sq1.c.end_t - sq1.c.start_t).label('copy_time'))
@@ -741,7 +741,8 @@ class JobsPOMS(object):
            q = (dbhandle.query(func.count(sq2.c.job_id), qf)
                 .group_by(qf)
                 .order_by(qf)
-                ) # subquery -- count of copy start entries in JobHistory
+                ) 
+           # subquery -- count of copy start entries in JobHistory
            # for this Job.job_id
            sqz = (dbhandle.query(func.count(JobHistory.created))
                    .filter(JobHistory.job_id == Job.job_id)
@@ -750,7 +751,7 @@ class JobsPOMS(object):
            qz = (dbhandle.query(func.count(Job.job_id))
                         .join(Task, Job.task_id == Task.task_id)
                         .filter(Task.campaign_id == campaign_id)
-                        .filter(Task.created < tmax, Task.created >= tmin)
+                        .filter(Task.created <= tmax, Task.created >= tmin)
                         .filter(0 == sqz)
                  )
         else:
@@ -777,7 +778,7 @@ class JobsPOMS(object):
 
         # return "total %d ; vals %s" % (total, vals)
         # return "Not yet implemented"
-        return c, maxv, maxbucket, total, vals, binsize, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
+        return c, maxv, maxbucket+1, total, vals, binsize, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
 
     def jobs_eff_histo(self, dbhandle, campaign_id, tmax=None, tmin=None, tdays=1):
         """  use
@@ -812,7 +813,7 @@ class JobsPOMS(object):
         qz = qz.join(Task,Job.task_id == Task.task_id) 
         qz = qz.filter(Task.campaign_id == campaign_id)
         qz = qz.filter(Task.created < tmax, Task.created >= tmin)
-        qz = qz.filter(not_(and_(Job.cpu_time > 0, Job.wall_time > 0, Job.cpu_time < Job.wall_time * 10)))
+        qz = qz.filter(or_(not_(and_(Job.cpu_time > 0, Job.wall_time > 0, Job.cpu_time < Job.wall_time * 10)),Job.cpu_time == None,Job.wall_time==None))
         nodata = qz.first()
 
         total = 0
