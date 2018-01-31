@@ -744,15 +744,15 @@ class JobsPOMS(object):
                 ) 
            # subquery -- count of copy start entries in JobHistory
            # for this Job.job_id
-           sqz = (dbhandle.query(func.count(JobHistory.created))
-                   .filter(JobHistory.job_id == Job.job_id)
-                   .filter(JobHistory.status == copy_start_status)
-                 ).subquery()
            qz = (dbhandle.query(func.count(Job.job_id))
                         .join(Task, Job.task_id == Task.task_id)
                         .filter(Task.campaign_id == campaign_id)
                         .filter(Task.created <= tmax, Task.created >= tmin)
-                        .filter(0 == sqz)
+                        .filter(0 == (dbhandle.query(func.count(JobHistory.created))
+                                      .filter(JobHistory.job_id == Job.job_id)
+                                      .filter(JobHistory.status == copy_start_status)
+                                    ).as_scalar()
+                 )
                  )
         else:
             raise KeyError("invalid timetype value, should be copy_in_time, copy_out_time, wall_time, cpu_time")
