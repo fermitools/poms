@@ -46,13 +46,14 @@ Selected Campaign Stages{%include 'help_button.html'%}
 
      {# for c in campaigns if not c.experiment_obj.restricted or current_experimenter.is_authorized(c.experiment) #}
      {# for c in campaigns if not c.experiment_obj.restricted or c.experiment in current_experimenter.extra.selected #}
-     {% for c in campaigns if current_experimenter.extra and c.experiment in current_experimenter.extra.selected %}
+     {# for c in campaigns if current_experimenter.extra and c.experiment in current_experimenter.extra.selected #}
+     {% for c in campaigns %}
      {% set outer_loop = loop %}
             <tr>
             <!-- <td>{{c.experiment}}</td> -->
             <!-- c.experiment_obj.restricted: {{c.experiment_obj.restricted}} -->
             <!-- current_experimenter.is_authorized(c.experiment): {{current_experimenter}} -->
-            <!-- c.experiment in current_experimenter.extra.selected {{c.experiment in current_experimenter.extra.selected}}-->
+            {#<!-- c.experiment in current_experimenter.extra.selected {{c.experiment in current_experimenter.extra.selected}}-->#}
             <td> <a href="{{pomspath}}/campaign_info?campaign_id={{c.campaign_id}}">{{c.name}}</a></td>
             {% for k in column_heads  %}
 

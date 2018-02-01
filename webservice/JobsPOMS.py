@@ -768,9 +768,9 @@ class JobsPOMS(object):
         dbhandle.execute("SET SESSION statement_timeout = '600s';")
         for row in q.all():
             vals[row[1]] = row[0]
-            if row[0] > maxv:
+            if row[0] != None and row[0] > maxv:
                 maxv = row[0]
-            if row[1] > maxbucket:
+            if row[1] != None and row[1] > maxbucket:
                 maxbucket = row[1]
             total += row[0]
 

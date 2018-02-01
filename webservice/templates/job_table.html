@@ -278,7 +278,7 @@ $( "#search_button" ).click(function() {
       <!-- span2 {{span2}} -->
       {%if filtered_fields.get("task_checkbox") == 'checked'%}  <th class="" colspan="{{span2|length}}">Submission fields</th>  {%endif%}
       {%set span3 = campcolumns|length %}
-      {%if filtered_fields.get("campaign_checkbox") == 'checked'%}  <th class="" colspan="{{span3}}">Campaign layer fields</th>  {%endif%}
+      {%if filtered_fields.get("campaign_checkbox") == 'checked'%}  <th class="" colspan="{{span3}}">Campaign Stage Fields</th>  {%endif%}
     </tr>
     <tr>
     {%for col in jobcolumns%}

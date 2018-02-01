@@ -147,7 +147,10 @@ class SessionExperimenter(object):
         Returns the list of allowed roles for the user/experiment in the session
         """
         exp = self.authorization.get(self.session_experiment)
-        return exp.get('roles')
+        if exp:
+            return exp.get('roles')
+        else:
+            return []
 
     def is_authorized(self, campaign=None):
         """
