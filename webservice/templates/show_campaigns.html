@@ -2,31 +2,6 @@
 
 {%block title%}
 POMS: Campaign Stages
-
-<script>
-    function pop_mark_inactive_modal() {
-        mod_form = $("#mark_inactive_modal").modal('show');
-        var csv = [];
-        // find only visible rows; we're ignoring filtered/hidden rows
-        $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
-            csv.push($(this).text());
-        });
-        mod_form.find('span').html("Mark " + csv.length + " selected campaigns as ");
-        console.log("csv="+csv);
-        $("#campaign_ids").val(csv.join(','))
-    }
-
-    function show_stats() {
-        var csv = [];
-        // find only visible rows; we're ignoring filtered/hidden rows
-        $("#campaigns").find('tbody tr:visible').find('td:nth-child(1)').each(function() {
-            csv.push($(this).text());
-        });
-        console.log("csv="+csv);
-        location.href = "./show_campaigns?cl=" + csv.join(',');
-    }
-</script>
-
 {%endblock%}
 
 {%block header%}
@@ -48,59 +23,55 @@ Campaign Stages{%include 'help_button.html'%}
         display: none;
     }
 </style>
-<!--
-    exp_obj: {{exp_obj}}
-    logbook: {{exp_obj.logbook}}
-    snow_url: {{exp_obj.snow_url}}
-    version: {{version}}
-    pomspath: {{pomspath}}
--->
-
-<div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="pop_mark_inactive_modal();">Mark Campaign Active/Inactive</div>
-<div class="ui teal button" onclick="show_stats();">Show Campaigns Statistics</div>
-
+<div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
+<div class="ui teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
+<div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Campaign Submission</div>
+<div class="ui teal button" onclick="show_stats();">Show ALL Campaigns Statistics</div>
 {% if campaigns|length == 0 %}
 <br>
 [No Campaigns Available]
 {% else %}
 <div id="double-scroll" class="ui _scrollable">
-    <!-- campaigns.0.experiment_obj.restricted: {{campaigns.0.experiment_obj.restricted}} -->
-    <!-- current_experimenter.is_authorized(campaigns.0.experiment): {{current_experimenter.is_authorized(campaigns.0.experiment)}} -->
-    <!-- campaigns.0.experiment in current_experimenter.extra.selected {{campaigns.0.experiment in current_experimenter.extra.selected}} -->
+    <!--
+    <table class="ui celled table sortable">
+    -->
     <table id="campaigns" class="ui celled _table unstackable tablesorter tablesorter-ice">
         <thead>
             <tr>
-                <th class="hideit">Id</th>
+                <th>Why does this not show in the table?</th>
+                <th>Select</th>
+                <th>Id</th>
                 <th>Name</th>
                 <th>Active</th>
                 <th>Tags</th>
-<!--
-                <th>S/W Version</th>
-                <th>VO Role</th>
--->
+                <th>Hold By</th>
                 <th>Creator</th>
                 <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
             </tr>
         </thead>
 
         <tbody>
-            {% for campaign in campaigns if current_experimenter.extra and campaign.experiment in current_experimenter.extra.selected %}
-                <!-- campaign: {{campaign}} -->
-                <tr>
-                    <td class="hideit">{{campaign.campaign_id}}</td>
+            {% for campaign in campaigns %}
+                <tr id="c_tr_{{loop.index}}">
+                    <td>Same with this?</td>
+                    {% if data.authorized[loop.index-1]==True %}
+                    <td><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
+                    {% else %}
+                    <td><input type="checkbox" id="c_cbox_{{loop.index}}" disabled="disabled"></td>
+                    {% endif %}
+                    <td id="c_name_{{loop.index}}" style="display:none">{{campaign.name}}</td>
+                    <td id="c_id_{{loop.index}}">{{campaign.campaign_id}}</td>
                     <td><a href="{{pomspath}}/campaign_info?campaign_id={{campaign.campaign_id}}">{{campaign.name}}</a></td>
                     <td>{{ 'Yes' if campaign.active else 'No' }}</td>
                     <td>{{ campaign.campaigns_tags | join('<br>', attribute='tag_obj.tag_name') }}</td>
-<!--
-                    <td>{{campaign.software_version}}</td>
-                    <td>{{campaign.vo_role}}</td>
--->
+                    <td>{{campaign.experimenter_holder_obj.username}}</td>
                     <td>{{campaign.experimenter_creator_obj.username}}</td>
                     <td>{{campaign.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
+    <input type="hidden" id="c_table_max_rows" value="{{campaigns|length}}">
     <script>
         $("#campaigns th").attr("style", "padding: 0.3em; border-left: 1;");
         //$('.hideit').hide();
@@ -109,23 +80,286 @@ Campaign Stages{%include 'help_button.html'%}
 {% endif %}
 
 <div class="ui modal small" id="mark_inactive_modal" style="padding: 0px 20px;">
-  <i class="close icon"></i>
-
-  <div class="header">
-    Campaigns:
-  </div>
-  <form class="ui form" action="mark_campaign_active" method="GET">
-    <div class="field">
-        <input type="text" id="campaign_ids" name="cl" readonly>
-        <span style="font-size: 1.3em;">Mark selected campaigns as </span>
-        <input type="submit" class="ui teal button" name="is_active" value="Active">
-        <input type="submit" class="ui teal button" name="is_active" value="Inactive">
+    <i class="close icon"></i>
+    <div class="header">
+        Campaigns to mark Active/Inactive
     </div>
-    <div class="ui hidden divider"></div>
-  </form>
+    <form class="ui form" action="mark_campaign_active" method="GET">
+        <div class="field">
+            <textarea id="campaign_names" readonly></textarea>
+            <input type="hidden" id="campaign_ids" name="cl">
+        </div>
+        <div class="field">
+            <div class="ui horizontal large label">Mark selected campaigns as</div>
+            <input type="submit" class="ui teal button" name="is_active" value="Active">
+            <input type="submit" class="ui teal button" name="is_active" value="Inactive">
+        </div>
+        <div class="ui hidden divider"></div>
+    </form>
 </div> <!-- Ends Modal -->
 
+<div class="ui modal small" id="launch_holder_modal" style="padding: 0px 20px;">
+    <i class="close icon"></i>
+    <div class="header">
+        Campaigns to Hold/Release:
+    </div>
+    <form class="ui form" action="mark_campaign_hold" method="GET">
+        <div class="field">
+            <textarea id="campaign_names_hold" readonly></textarea>
+            <input type="hidden" id="campaign_ids2HR" name="ids2HR">
+        </div>
+        <div class="field">
+            <div class="ui horizontal large label">Mark selected campaigns as</div>
+            <input type="submit" class="ui teal button" name="is_hold" value="Hold">
+            <input type="submit" class="ui teal button" name="is_hold" value="Release">
+        </div>
+        <div class="ui hidden divider"></div>
+    </form>
+</div> <!-- Ends Modal -->
+
+<div class="ui modal small" id="tag_untag_modal" style="padding: 0px 20px;">
+    <i class="close icon"></i>
+
+    <div class="header">
+    </div>
+    <!-- <form class="ui form" action="tag_untag_campaigns" method="GET"> -->
+    <form class="ui form" action="" method="GET">
+        <div class="field">
+            <input type="hidden" id="tag_campaign_ids" name="cl" readonly>
+            <span style="font-size: 1.3em;">Tag/untag selected campaigns...</span>
+
+            <div class="ui segment raised ">
+                <h3>Tags</h3>
+
+                <div class="ui search">
+                    <div class="ui left icon input">
+                        <input type="text" id="tag_field" name="tag" placeholder="Enter tag" class="prompt">
+                        <i class="tag icon"></i>
+                    </div>
+
+                    <button class="ui icon small blue button" id="add_button">
+                        <i class="plus icon"></i>
+                    </button>
+                    <div id="response" style="display:inline; vertical-align: bottom; font-style: italic;"></div>
+
+                    <div class="results"></div>
+                </div>
+
+                <div id="tag_container">
+                    {% for tag in tags %}
+                        <i class="trash outline icon link poms_tag" id="{{Campaign.campaign_id}}_{{tag.tag_id}}"></i>
+                        <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label" id="{{Campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+      <div class="ui hidden divider"></div>
+    </form>
+    <div class="actions">
+        <!-- <div class="ui button">Close</div> -->
+        <input type="submit" class="ui teal button approve" value="Done" onclick="return location.reload();">
+    </div>
+    <!--
+    <div class="actions">
+        <div class="ui approve button">Approve</div>
+        <div class="ui button">Neutral</div>
+        <div class="ui cancel button">Cancel</div>
+    </div>
+    -->
+</div> <!-- Ends Modal -->
+
+  <script>
+    function do_delete(item) {
+        var c_id = item.id.split("_")[0];
+        var t_id = item.id.split("_")[1];
+        var clicked_id = "#" + item.id;
+        var experiment = "{{session_experiment}}";
+        c_id = c_id.replace(/c/g, ',')
+
+        $.post('delete_campaigns_tags', { campaign_id: c_id, tag_id: t_id, experiment: experiment }, function (data) {
+            if (data.msg == "OK") {
+                $('#response').html(data.msg);
+                $(clicked_id).remove();  //removes the trash can
+                $(clicked_id + "_").remove();  //removes the tag
+            }
+            else {
+                $('#response').html(data.msg);
+            }
+        });
+    }
+
+    function add_click_handler() {
+        $(".poms_tag").off("click").on("click", function () {
+            if (confirm("Are you sure you want to delete this item?") == true) {
+                do_delete(this);
+            }
+            else {
+                return;
+            }
+        });
+    }
+
+    $(document).ready(function () {
+        add_click_handler();
+    });
+
+    $('#add_button').on('click', function (e) {
+        e.preventDefault();
+        $('#response').html("");
+
+        if (!$('#tag_field').val()) {
+            $('#response').html("Please enter a tag.");
+            return;
+        }
+
+        tag = $('#tag_field').val()
+        $.post('link_tags', {
+                    tag_name: tag,
+                    campaign_id: $("#tag_campaign_ids").val(),
+                    experiment: "{{session_experiment}}"
+                }, function (data) {
+
+            if (data.msg == "OK") {
+                const campaigns_tags_composite_key = data.campaign_id.toString().replace(/,/g, 'c') + "_" + data.tag_id.toString();
+                $('#response').html(data.msg);
+
+                const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${data.tag_name}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
+                const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${campaigns_tags_composite_key}" style="border-radius: 5px;"></i></span>`;
+                $('#tag_container').append(new_tag + new_trash_can);
+                //$('#tag_container').append(new_tag);
+                $('#tag_field').val("");
+                add_click_handler();
+            }
+            else {
+                $('#response').html(data.msg);
+            }
+
+        });
+    });
+
+
+    $('#tag_field').keypress(function (event) {
+        if (event.keyCode == 13) {
+            $('#add_button').click();
+            $('#tag_field').val("");
+        }
+    });
+
+    function pop_tag_untag_modal() {
+        var csv = [];
+        var max_rows = $("#c_table_max_rows").val();
+        for (var i = 1; i <= max_rows; i++) {
+            if ( $("#c_cbox_"+i).is(":checked") ) {
+                csv.push($("#c_id_"+i).html());
+            }
+        }
+        if (csv.length == 0) {
+            mod_form= $("#display_message_modal").modal('show');
+            $("#poms_message_data").text("Please select one or more campaigns by using the appropriate check boxes.");
+            return;
+        }
+        mod_form = $("#tag_untag_modal").modal('setting', 'closable', false).modal('show');
+        mod_form.find('span').html("Tag " + csv.length + " selected campaigns...");
+        console.log("csv="+csv);
+        $("#tag_campaign_ids").val(csv.join(','))
+
+        $('#tag_container').html('<i class="big spinner loading blue icon"></i>');
+        $.getJSON('search_all_tags?cl='+csv.join(','), function (data) {
+            if (data.msg == "OK") {
+                $('#tag_container').html('');
+                // $('#response').html(data.result);
+                for (const tag of data.result) {
+                    const [tag_id, tag_name] = tag
+                    const cids = csv.join('c')
+                    const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${tag_name}" class="ui blue tag label" id="${cids}_${tag_id}_">${tag_name}</a>`;
+                    const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${cids}_${tag_id}" style="border-radius: 5px;"></i></span>`;
+                    $('#tag_container').append(new_tag + new_trash_can);
+                    //$('#tag_container').append(new_tag);
+                    add_click_handler();
+                }
+            }
+            else {
+                $('#response').html(data.msg);
+            }
+        });
+    }
+  </script>
+
 <script>
+    function pop_mark_inactive_modal() {
+        var max_rows = $("#c_table_max_rows").val();
+        var names = [];
+        var ids = [];
+        for (var i = 1; i <= max_rows; i++) {
+            if ( $("#c_cbox_"+i).is(":checked") ) {
+                names.push($("#c_name_"+i).html());
+                ids.push($("#c_id_"+i).html());
+            }
+        }
+        if (names.length == 0) {
+            mod_form= $("#display_message_modal").modal('show');
+            $("#poms_message_data").text("Please select one or more campaigns by using the appropriate check boxes.")
+        }
+        else {
+            mod_form = $("#mark_inactive_modal").modal('show');
+            $("#campaign_names").val( names.join('\n') );
+            $("#campaign_ids").val(ids.join(','))
+        }
+    }
+
+    function pop_launch_holder_modal() {
+        var max_rows = $("#c_table_max_rows").val();
+        var names = [];
+        var ids = [];
+        for (var i = 1; i <= max_rows; i++) {
+            if ( $("#c_cbox_"+i).is(":checked") ) {
+                names.push($("#c_name_"+i).html());
+                ids.push($("#c_id_"+i).html());
+            }
+        }
+        if (names.length == 0) {
+            mod_form= $("#display_message_modal").modal('show');
+            $("#poms_message_data").text("Please select one or more campaigns by using the appropriate check boxes.")
+        }
+        else {
+            mod_form = $("#launch_holder_modal").modal('show');
+            $("#campaign_names_hold").val( names.join('\n') );
+            $("#campaign_ids2HR").val(ids.join(','))
+        }
+    }
+
+    function show_stats() {
+        var max_rows = $("#c_table_max_rows").val();
+        var csv = [];
+        for (var i = 1; i <= max_rows; i++) {
+            if ( $("#c_tr_"+i).is(":visible") ) {
+                csv.push($("#c_id_"+i).html());
+            }
+        }
+        location.href = "./show_campaigns?cl=" + csv.join(',');
+    }
+  </script>
+
+  <script>
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    const appname = window.location.pathname.split("/")[1];
+    const querypath = `${protocol}//${hostname}/${appname}/auto_complete_tags_search`;
+
+    const experiment = "{{session_experiment}}";
+    $('.ui.search')
+        .search({
+            apiSettings: {
+                url: querypath + "?q={query}&experiment=" + experiment
+            },
+            fields: {
+                title: 'tag_name'
+            },
+            //minCharacters : 3
+        });
+  </script>
+
+  <script>
     var tmin_local_time = moment.utc('{{tmin}}').toDate();
     tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
     $( ".tmin" ).html( tmin_local_time );
@@ -136,66 +370,19 @@ Campaign Stages{%include 'help_button.html'%}
 
 </script>
 
-<!-- now some JSON callbacks to get our
-      * job counts for each campaign,
-      * efficiency for all the campaigns
-      * pending counts for all the campaigns
--->
-
-<script>
-    /*
-    $(function() {
-
-        var now = new Date()
-        var nows = now.getTime()
-        nows = nows - (nows % 300000)
-        nows = nows.toString()
-
-        {% for campaign in campaigns %}
-        $.getJSON("/poms/json_job_counts?tmin={{tmins}}&tmax={{tmaxs}}&campaign_id={{campaign.campaign_id}}&uuid="+nows,function(data){
-            for( var k in data ) {
-               id = "data_{{campaign.campaign_id}}_" + k.replace(" ","_")
-               console.log("trying to update a with id " + id )
-               $("a#"+id).html(data[k])
-            }
-        })
-        {% endfor %}
-        $.getJSON("/poms/json_efficiency_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{ campaigns | join(',', attribute='campaign_id') }}&uuid="+nows, function(data) {
-            for (var k in data) {
-               id = "data_"+k+"_efficiency"
-               console.log("trying to update a with id " + id )
-               $("a#"+id).html(data[k])
-            }
-        })
-        $.getJSON("/poms/json_pending_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{ campaigns | join(',', attribute='campaign_id') }}&uuid="+nows, function(data) {
-            for (var k in data) {
-               id = "data_"+k+"_pending"
-               console.log("trying to update a with id " + id )
-               if (data[k] == -1) {
-                   $("a#"+id).html('N/A')
-               } else {
-                   $("a#"+id).html(data[k])
-               }
-            }
-        })
-    });
-    */
-</script>
 
 <script>
     $('.external')
-      .popup({
-        inline   : true,
-        hoverable: true,
-        delay: {
-          show: 300,
-          hide: 80
-        }
-      })
-    ;
-    $('.ui.dropdown')
-      .dropdown()
-    ;
+        .popup({
+            inline: true,
+            hoverable: true,
+            delay: {
+                show: 300,
+                hide: 80
+            }
+        });
+
+    $('.ui.dropdown').dropdown();
 </script>
 
 

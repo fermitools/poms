@@ -154,7 +154,11 @@ class declared_files_watcher:
 
          print("Looked through files..")
 
-         self.call_wrapup_tasks()
+         #
+         # we should just call this from cron, because it triggers
+         # job launches that we want to run on the main host...
+         #
+         #self.call_wrapup_tasks()
 
     def poll(self):
         while(1):

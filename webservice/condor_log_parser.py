@@ -9,7 +9,9 @@ from .poms_model import Job
 import time
 
 def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
-    print("entering joblogs, why doesn't this log?")
+    '''
+        get the condor joblog for a given job
+    '''
     log("INFO", "entering get_joblogs" )
     if jobsub_job_id == None:
         return
@@ -21,6 +23,9 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
         task_id = 14
     else:
         task_id = task.task_id
+    
+    if files == None:
+        return
 
     for row in files:
         if row[5].endswith(".log") and not row[5].endswith(".dagman.log"):
@@ -71,6 +76,7 @@ def parse_date(date_time_str):
     return datetime.strptime(date_time_str, "%Y/%m/%d %H:%M:%S")
 
 def parse_condor_log(dbhandle, lines, batchhost, task_id):
+    ''' read a condor log looking for start/end info '''
     in_termination = 0
     stimes = {}
     job_sites = {}
@@ -127,6 +133,7 @@ def parse_condor_log(dbhandle, lines, batchhost, task_id):
                 job.host_site = job_sites[jobsub_job_id]
                 job.status = 'Running'
                 job.updated = stimes[jobsub_job_id]
+                job.created = stimes[jobsub_job_id]
                 job.output_files_declared = True
                 job.user_exe_exit_code = job_exit
                 dbhandle.add(job)
@@ -143,7 +150,9 @@ def parse_condor_log(dbhandle, lines, batchhost, task_id):
             continue
         if in_termination:
             log("DEBUG", "saw: ", line )
-            if line.find("(return value") > 0:
+            if line.find("termination (signal ") > 0:
+                 job.exit = 128 + int(line.split()[5].strip(')'))
+            if line.find("termination (return value") > 0:
                  job_exit = int(line.split()[5].strip(')'))
             if line.find("Total Remote Usage") > 0:
                  remote_cpu = compute_secs(line.split()[2])

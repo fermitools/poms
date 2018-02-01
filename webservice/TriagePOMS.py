@@ -25,6 +25,9 @@ class TriagePOMS(object):
 
     @pomscache.cache_on_arguments()
     def job_counts(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=None):
+        return self.job_counts_uncached(dbhandle, task_id, campaign_id, tmin, tmax, tdays)
+
+    def job_counts_uncached(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=None):
 
         (
          tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays
@@ -72,11 +75,12 @@ class TriagePOMS(object):
         job_history = dbhandle.query(JobHistory).filter(JobHistory.job_id == job_id).order_by(JobHistory.created).all()
         output_file_names_list = [x.file_name for x in job_info[0].job_files if x.file_type == "output"]
 
-        #begins service downtimes
-        first = job_history[0].created
-        last = job_history[-1].created
+        if job_history and len(job_history):
+            #begins service downtimes
+            first = job_history[0].created
+            last = job_history[-1].created
 
-        downtimes1 = (dbhandle.query(ServiceDowntime, Service)
+            downtimes1 = (dbhandle.query(ServiceDowntime, Service)
                       .filter(ServiceDowntime.service_id == Service.service_id)
                       .filter(Service.name != "All").filter(Service.name != "DCache")
                       .filter(Service.name != "Enstore")
@@ -86,6 +90,8 @@ class TriagePOMS(object):
                       .filter(ServiceDowntime.downtime_started < last)
                       .filter(ServiceDowntime.downtime_ended >= first)
                       .filter(ServiceDowntime.downtime_ended < last).all())
+        else:
+            downtimes1 = []
 
         # downtimes2 ?!?
         #downtimes = downtimes1 + downtimes2
@@ -258,11 +264,12 @@ class TriagePOMS(object):
 
                 logit.log("doing copy in/out time.. in jobs_table...")
                 if n == -1:
-                    sqz = (dbhandle.query(func.count(JobHistory.created))
+                    q = q.filter(0 == 
+                     (dbhandle.query(func.count(JobHistory.created))
                        .filter(JobHistory.job_id == Job.job_id)
                        .filter(JobHistory.status == copy_start_status)
-                     ).subquery()
-                    q = q.filter(0 == sqz)
+                     ).as_scalar()
+                   )
                 else:
                     sq1 = (dbhandle.query(JobHistory.job_id.label('job_id'),
                                      JobHistory.created.label('start_t'),
@@ -296,7 +303,7 @@ class TriagePOMS(object):
         eff_d = kwargs.get('eff_d')
         if eff_d:
             if eff_d == "-1":
-                q = q.filter(not_(and_(Job.cpu_time > 0.0, Job.wall_time > 0 , Job.cpu_time < Job.wall_time * 10)))
+                q = q.filter(or_(not_(and_(Job.cpu_time > 0.0, Job.wall_time > 0 , Job.cpu_time < Job.wall_time * 10)),Job.cpu_time == None, Job.wall_time == None))
             else:
                 q = q.filter(Job.wall_time > 0.0, Job.cpu_time > 0.0, Job.cpu_time < Job.wall_time*10,  func.floor(Job.cpu_time * 10 / Job.wall_time) == eff_d)
             filtered_fields['eff_d'] = eff_d

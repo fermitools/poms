@@ -28,25 +28,24 @@ class joblog_scraper:
         self.read_lines = 0
 
         gc.enable()
-
         # lots of names for parts of regexps to make it readable(?)
-        timestamp_pat ="[-0-9T:]*"
+        timestamp_pat ="[-0-9TZ:+]*"
         hostname_pat="[-A-Za-z0-9.]*"
-        idpart_pat="[^[/:]*"
+        idpart_pat="[^[/:-]*"
         user_pat=idpart_pat
         jobsub_job_id_pat=idpart_pat
         taskid_pat=idpart_pat
         exp_pat=idpart_pat
         ifdh_vers_pat = idpart_pat
         pid_pat = "[0-9]*"
-
-        ifdhline_pat = "(%s) (%s) (%s)/(%s):? ?(%s)/(%s)/(%s)/(%s)\[(%s)\]:.ifdh:(.*)" % (
+        ifdhline_pat = "(%s) (%s) (%s)/(%s):? ?(%s)/(%s)/(%s)/(%s)\[(%s)\]:.ifdh(.*)" % (
                 timestamp_pat, hostname_pat, user_pat, exp_pat,taskid_pat,
                 jobsub_job_id_pat, ifdh_vers_pat,exp_pat, pid_pat )
-
+ 
         oldifdhline_pat ="(%s) (%s) (%s)/(%s)/(%s)\[(%s)\]:.ifdh:(.*)" % (
              timestamp_pat, hostname_pat, exp_pat, ifdh_vers_pat, exp_pat, 
              pid_pat)
+
 
         self.ifdhline_re = re.compile(ifdhline_pat)
         self.oldifdhline_re = re.compile(oldifdhline_pat)
@@ -58,6 +57,8 @@ class joblog_scraper:
         
 
     def parse_line(self, line):
+
+        if self.debug > 1: print("parse_line: "+line)
         timestamp = ""
         hostname = ""
         user = ""
@@ -70,11 +71,13 @@ class joblog_scraper:
         message  = ""
         m1 = self.oldifdhline_re.match(line)
         m2 = self.ifdhline_re.match(line)
-        if m1:
-            timestamp, hostname, experiment,  ifdh_vers, experiment, pid, message = m1.groups()
-            user = experiment
-        elif m2:
+        if m2:
+            if self.debug > 1: print("new ifdh match: %s" % repr(m2.groups()))
             timestamp, hostname, user, experiment, task, jobsub_job_id, ifdh_vers, experiment, pid, message = m2.groups()
+        elif m1:
+            if self.debug > 1: print("old ifdh match: %s" % repr(m1.groups()))
+            timestamp, hostname, experiment, user, experiment, ifdh_vers, experiment, pid, message = m1.groups()
+            user = experiment
         else:
             message = line
 
@@ -119,7 +122,7 @@ class joblog_scraper:
         }
 
     def find_files(self, message):
-        if self.debug:
+        if self.debug > 1:
             print("looking for input/output files in: " , message)
         file_map = {}
         message = message[message.find("ifdh::cp(")+9:]
@@ -131,7 +134,7 @@ class joblog_scraper:
             if item != "":
                 file_map[item] = 1
 
-        if self.debug:
+        if self.debug > 1:
             print("found files: " , file_map)
 
         return ' '.join(file_map.keys())
@@ -210,12 +213,15 @@ class joblog_scraper:
 
 
     def scan(self, filehandle):
+        if self.debug:
+            print("entering scan()")
         self.read_lines = 0
         self.filehandle = filehandle
         last_update = time.time()
         for line in self.filehandle:
             
-             #print "got: ", line
+             if self.debug:
+                 print("got: "+ line)
              if (time.time() - last_update) > 60:
                  last_update = time.time()
                  self.itemCount.set(self.read_lines)
@@ -231,8 +237,8 @@ class joblog_scraper:
 
 if __name__ == '__main__':
    debug = 0
-   if len(sys.argv) > 1 and sys.argv[1] == "-d":
-        debug=1
+   while len(sys.argv) > 1 and sys.argv[1] == "-d":
+        debug = debug+1
         sys.argv = sys.argv[1:]
 
    server = "http://localhost:8080/poms"

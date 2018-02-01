@@ -8,7 +8,9 @@ class fake_e:
     def __init__(self):
         self.email = 'mengel@fnal.gov'
         self.username = 'mengel'
+        self.experimenter_id = 4
         self.session_experiment = 'samdev'
+        self.session_role = 'production'
 
     def is_authorized_for(self,exp):
         return True

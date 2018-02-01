@@ -45,7 +45,8 @@ class jobsub_q_scraper:
         self.jobCount = prom.Gauge("jobs_in_queue","Jobs in the queue this run")
         self.threadCount = prom.Gauge("Thread_count","Number of probe threads")
 
-        self.jobsub_q_cmd = "for n in 1 2; do m=$((n+2)); condor_q -pool fifebatchhead$m.fnal.gov -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID && break; done"
+        #self.jobsub_q_cmd = "for n in 1 2; do m=$((n+2)); condor_q -pool fifebatchhead$m.fnal.gov -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID && break; done"
+        self.jobsub_q_cmd = "condor_q -pool gpcollector03.fnal.gov -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID"
 
         self.map = {
            "0": sys.intern("Unexplained"),
@@ -65,6 +66,7 @@ class jobsub_q_scraper:
         self.k_host_site = sys.intern('host_site')
         self.k_task_project = sys.intern('task_project')
         self.k_cpu_time = sys.intern('cpu_time')
+        self.k_reason_held = sys.intern('reason_held')
         self.k_wall_time = sys.intern('wall_time')
         self.k_task_recovery_tasks_parent = sys.intern('task_recovery_tasks_parent')
         self.k_JOBSUBJOBID = sys.intern('JOBSUBJOBID')
@@ -76,6 +78,7 @@ class jobsub_q_scraper:
         self.tidmap = {}
         self.debug = debug
         self.passcount = 0
+        self.last_known_status = {}
         sys.stdout.flush()
 
     def get_open_jobs(self):
@@ -107,6 +110,7 @@ class jobsub_q_scraper:
                conn.close()
 
     def call_wrapup_tasks(self):
+        return
         conn = None
         try:
             conn = self.rs.get(self.job_reporter.report_url + '/wrapup_tasks') 
@@ -198,12 +202,14 @@ class jobsub_q_scraper:
                     self.k_host_site : jobenv.get('GLIDEIN_SITE', ''),
                     self.k_task_project : jobenv.get('SAM_PROJECT_NAME',jobenv.get('SAM_PROJECT',None)),
                     self.k_cpu_time : jobenv.get('RemoteUserCpu'),
+                    self.k_reason_held : jobenv.get('HoldReason'),
                     self.k_wall_time : wall_time,
                     self.k_task_recovery_tasks_parent: jobenv.get('POMS_PARENT_TASK_ID',None),
                 }
 
                 prev = self.prev_report.get(jobsub_job_id, None)
                 self.cur_report[jobsub_job_id] = args
+                self.last_known_status[jobsub_job_id] = args['status']
 
                 #
                 # only report status if its different
@@ -238,16 +244,24 @@ class jobsub_q_scraper:
                     # we could get a false alarm here if condor_q fails...
                     # thats why we only do this if our p.wait() returned 0/None.
                     # and we make sure we didn't see it two runs in a row...
-                    print("reporting %s as completed \n" % jobsub_job_id, file=sys.stderr)
+                    if self.last_known_status.get(jobsub_job_id,"") == 'Held':
+                         report_as = "Removed"
+                    else:
+                         report_as = "Completed"
+                    print("reporting %s as %s \n" % (jobsub_job_id,report_as), file=sys.stderr)
 
                     self.job_reporter.report_status(
                         jobsub_job_id = jobsub_job_id,
                         task_id = self.tidmap[jobsub_job_id],
-                        status = "Completed")
+                        status = report_as)
+
+                    if self.last_known_status.get(jobsub_job_id,""):
+                        del self.last_known_status[jobsub_job_id]
+
         else:
             print("error code: %s from condor_q" % res)
 
-        self.call_wrapup_tasks()
+        #self.call_wrapup_tasks()
 
 
     def poll(self):

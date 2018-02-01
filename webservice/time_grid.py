@@ -20,7 +20,7 @@ class time_grid:
 
 
     def group_time_data(self, rows, group_key, url_template=""):
-        result = {}
+        result = collections.OrderedDict()
         lastkey = None
         for row in rows:
             key = getattr(row, group_key)
@@ -37,7 +37,7 @@ class time_grid:
 
     def key(self, fancy=0):
         res = ['<div class="ui raised padded container segment" style="height: %sem">' % (11 if fancy else 5)]
-        list = ["new", "Idle", "Held", "Running", "Completed", "Located"]
+        list = ["new", "Idle", "Held", "Running", "Completed", "Removed", "Located"]
         if fancy:
             list += ["running: user code",
                      "running: copying files in",
@@ -49,8 +49,8 @@ class time_grid:
         for s in list:
             res.append("""<div style='float:left; margin: 2px; width:16em; background-color: %s;'>
                             <!-- <span style='min-width:4em; background: %%s;'>&nbsp;&nbsp;&nbsp;&nbsp;</span> -->
-                            <span style='padding:0 ; float:left; width:13.5em; background-color: #FFF;'>%s:</span>
-                            <span style='float:right; background-color: #FFF; font-family:monospace;'>&nbsp;&nbsp;&nbsp;</span>
+                            <span style='padding:0 ; float:left; width:13.5em; background-color: #ffffff;'>%s:</span>
+                            <span style='float:right; background-color: #ffffff; font-family:monospace;'>&nbsp;&nbsp;&nbsp;</span>
                           </div>"""
                        % (self.status_color(s), s))
         res.append('</div>')

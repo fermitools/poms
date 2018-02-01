@@ -26,19 +26,9 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 {%endblock%}
 
 {%block content%}
-<!-- authorized: {{data.authorized}} -->
 <form id="campaign_form" class="ui form" action="campaign_edit" method="POST">
 
   <div class="inline fields">
-    <!--
-    <select class="ui dropdown" name="experiment" id="c_experiment">
-      <option value="">Choose Experiment</option>
-      {% for row in data.exp_selections %}
-      <option value="{{row.experiment}}" {{ 'selected="selected"' if (data.curr_experiment == row.experiment) }}>{{row.name}}</option>
-      {% endfor %}
-    </select>
-    &nbsp;&nbsp;&nbsp;
-    -->
     <div class="field">
       <div class="ui radio checkbox">
         <input type="radio" name="state" id="state_active" value="state_active" {{ 'checked="checked"' if (data.state is not defined or data.state == "state_active")  }}>
@@ -83,15 +73,25 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       {% for row in data.campaigns %}
       <tr>
         <td class="collapsing">
-          {% if data.authorized==True %}
+          {% if data.authorized[loop.index-1]==True %}
           <i class="large edit link blue icon"  onclick="edit_campaign({{loop.index}});"></i>
           <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i>
           <i class="large trash link blue icon" onclick="delete_campaign('{{row.name}}',{{row.campaign_id}});"></i>
           {% else %}
-          <i class="large unhide link blue icon" onclick="edit_campaign({{loop.index}});">
+          <i class="large unhide link blue icon" onclick="edit_campaign({{loop.index}});"></i>
+          <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i>
           {% endif %}
         </td>
         <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.campaign_id}}</td>
+        {% if row.campaign_id|int == jump_to_campaign|default(-1)|int %}
+        <script type="text/javascript">
+         // jump directly to a particular campaign
+         $(document).ready(function(){
+            edit_campaign({{loop.index}});
+         });
+        </script>
+        {% endif %}
+        <td id="c_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
         <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.campaign_definition_id}}</td>
         <td id="c_launch_id_{{loop.index}}" style="display:none">{{row.launch_id}}</td>
         <td id="c_name_{{loop.index}}">{{row.name}}</td>
@@ -111,8 +111,8 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         {% for key, value in data.depends.items() %}
             {% if key == row.campaign_id %}
             {{ value }}
-        {% endif %}
-            {% endfor %}
+            {% endif %}
+        {% endfor %}
         </td>
       </tr>
       {% endfor %}
@@ -120,7 +120,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
     <tfoot>
         <tr>
             <th colspan="9">
-                <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (data.authorized==False) }}>
+                <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (session_role=='coordinator') }}>
                     <i class="icon add square"></i>
                     Add
                 </button>
@@ -295,12 +295,17 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
       <div class="actions">
         <div class="ui button deny red">Cancel</div>
-        <input type="submit" value="Submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
+        <!-- ae_submit can be disabled in edit_campaign function -->
+        <input id="ae_submit" name="ae_submit" type="submit" value="Submit" class="ui button teal" >
+      {% if extra_edit_flag|default(False) %}
+         <input type="submit" name="{{extra_edit_flag}}" class="ui button orange" value="Launch Test">
+      {% endif %}
       </div>
+
 
       <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
       <input type="hidden" name="action" id="ae_definition_action" value="add">
-      <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id}}">
+      <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id|default('unknown')}}">
       <input type="hidden" id="ae_campaign_id" name="ae_campaign_id" value="0">
       <input type="hidden" id="ae_param_overrides" name="ae_param_overrides" value="[]">
       <input type="hidden" id="ae_depends" name="ae_depends" value="[]">
@@ -331,7 +336,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
             <th colspan="3">
               <div class="actions">
                 <button class="ui button deny red">Cancel</button>
-                <button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
+                <button id="ep_submit" class="ui button approve teal">Accept</button>
               </div>
             </th>
           </tr>
@@ -379,7 +384,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
             <th colspan="2">
               <div class="actions">
                 <button class="ui button deny red">Cancel</button>
-                <button class="ui button approve teal" {{ 'disabled' if (data.authorized==False) }}>Accept</button>
+                <button id="ed_submit" class="ui button approve teal">Accept</button>
               </div>
             </th>
           </tr>
@@ -689,6 +694,20 @@ function edit_campaign(index,clone) {
   $("#ae_completion_pct").val( $("#c_completion_pct_"+index).text() );
 
   $("#campaign_add_edit_modal").modal('show');
+
+  console.log("clone = : " + clone)
+  if ( typeof clone === 'undefined' )
+  {
+    $("#ae_submit").prop("value","Submit");
+    if ( ($("#c_authorized_"+index).text() == "False") ) {
+      $("#ae_submit").prop("disabled",true);
+    } else {
+      $("#ae_submit").prop("disabled",false);
+    }
+  } else {
+    $("#ae_submit").prop("value","Clone");
+    $("#ae_submit").prop("disabled",false);
+  }
 }
 
 function add_campaign() {
@@ -710,11 +729,11 @@ $('.ui.dropdown')
   .dropdown()
 ;
 
+
 $(document).ready(function(){
   $('#double-scroll').doubleScroll();
 });
 
 </script>
-
 
 {%endblock%}

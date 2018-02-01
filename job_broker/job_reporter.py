@@ -82,7 +82,7 @@ class job_reporter:
         if self.bulk:
             for i in range(self.nthreads):
                 if self.work[i].qsize() > 100 * self.batchsize:
-                    sys.stderr.write("Seriously Backlogged: qsize %d exiting!\n" % self.work.qsize())
+                    sys.stderr.write("Seriously Backlogged: qsize %d exiting!\n" % self.work[i].qsize())
                     os._exit(1)
                    
         else:
@@ -213,7 +213,7 @@ class job_reporter:
                 # so we bail after 3 seconds.  The request actually continues, 
                 # and probablly enters the data, but we go on..
                 #
-                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=10)
+                uh = self.rs.post(self.report_url + "/bulk_update_job", data = data, timeout=35)
                 res = uh.text
 
                 if self.debug: sys.stderr.write("response: %s\n" % res)
@@ -257,7 +257,7 @@ class job_reporter:
         while retries > 0:
             uh = None
             try:
-                uh = self.rs.post(self.report_url + "/update_job", data = data, timeout=5)
+                uh = self.rs.post(self.report_url + "/update_job", data = data, timeout=35)
                 res = uh.text
 
                 if self.debug: sys.stderr.write("response: %s\n" % res)

@@ -17,8 +17,15 @@ from datetime import datetime
 
 
 class CalendarPOMS(object):
+    '''
+       Downtime calendar related code
+    '''
 
     def calendar_json(self, dbhandle, start, end, timezone, _):
+        '''
+           Return downtimes in a given time window, excluding top
+           level services.  
+        '''
         rows = (dbhandle.query(ServiceDowntime, Service)
                 .filter(ServiceDowntime.service_id == Service.service_id)
                 .filter(ServiceDowntime.downtime_started.between(start, end))
@@ -30,7 +37,7 @@ class CalendarPOMS(object):
         alist = deque()
         for row in rows:
             if row.ServiceDowntime.downtime_type == 'scheduled':
-                    editable = 'true'
+                editable = 'true'
             else:
                 editable = 'false'
 
@@ -59,6 +66,9 @@ class CalendarPOMS(object):
 
     #CalendarPOMS.calendar(cherrypy.request.db)
     def calendar(self, dbhandle):
+        '''
+           Returns list of all services
+        '''
         rows = (dbhandle.query(Service)
                 .filter(Service.name != "All")
                 .filter(Service.name != "DCache")
@@ -69,8 +79,36 @@ class CalendarPOMS(object):
         return rows
 
 
-    #CalendarPOMS.edit_event(cherrypy.request.db, title, start, new_start, end, s_id)
+    def edit_event(self, dbhandle, title, start, new_start, end, s_id):
+        '''
+            Callback to edit an downtime event (i.e scheduled downtime)
+        '''
+
+        start_dt = datetime.fromtimestamp(float(start), tz=utc)
+        new_start_dt = datetime.fromtimestamp(float(new_start), tz=utc)
+        end_dt = datetime.fromtimestamp(float(end), tz=utc)
+        s = dbhandle.query(Service).filter(Service.name == title).first()
+
+        if s:
+            d = (dbhandle.query(ServiceDowntime)
+                .filter(ServiceDowntime.start == start, 
+                        ServiceDowntime.service_id == s.service_id)
+                .first())
+            d.downtime_started = new_start_dt
+            d.downtime_ended = end_dt
+            d.downtime_type = 'scheduled'
+            dbhandle.add(d)
+            dbhandle.commit()
+            return "Ok."
+
+        else:
+            #no service id
+            return "Oops."
+
     def add_event(self, dbhandle, title, start, end):
+        '''
+           add a new downtime 
+        '''
 
         start_dt = datetime.fromtimestamp(float(start), tz=utc)
         end_dt = datetime.fromtimestamp(float(end), tz=utc)
@@ -97,14 +135,20 @@ class CalendarPOMS(object):
     ##################
     #Services related
 
-    #CalendarPOMS.service_downtimes(cherrypy.request.db)
-    def service_downtimes(self, dbhandle):
-        rows = dbhandle.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).all()
-        return rows
+#    #CalendarPOMS.service_downtimes(cherrypy.request.db)
+#    def service_downtimes(self, dbhandle):
+#        '''
+#           returns *all* downtimes -- do we use this???
+#        '''
+#        rows = dbhandle.query(ServiceDowntime, Service).filter(ServiceDowntime.service_id == Service.service_id).all()
+#        return rows
 
 
     #CalendarPOMS.update_service(cherrypy.request.db, dbhandle, name, parent, status, host_site, total, failed, description)
     def update_service(self, dbhandle, name, parent, status, host_site, total, failed, description):
+        '''
+           Amend a service that we could have downtimes for
+        '''
         s = dbhandle.query(Service).filter(Service.name == name).first()
         if parent:
             p = dbhandle.query(Service).filter(Service.name == parent).first()
@@ -179,6 +223,10 @@ class CalendarPOMS(object):
 
 
     def service_status(self, dbhandle, under='All'):
+        '''
+            return services that are children of a given service and their
+            statuses.
+        '''
         p = dbhandle.query(Service).filter(Service.name == under).first()
         alist = deque()
         for s in dbhandle.query(Service).filter(Service.parent_service_id == p.service_id).all():

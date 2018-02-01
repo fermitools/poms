@@ -77,8 +77,8 @@ function user_action(action) {
   </div>
   <div class="ui three fields">
     <input type="submit" value="Find" class="ui teal button" />
-    <div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="user_action('add_user')" >Add</div>
-    <div class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" onclick="user_action('edit_user')" >Edit</div>
+    <div class="ui {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }} teal button" onclick="user_action('add_user')" >Add</div>
+    <div class="ui {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }} teal button" onclick="user_action('edit_user')" >Edit</div>
   </div>
   <input type="hidden" name="action" value="find">
  {% if data.experimenter is defined %}
@@ -104,7 +104,7 @@ function user_action(action) {
 	<td>{{row.experiment}}</td>
 	<td class="collapsing">
 	  <div class="ui toggle checkbox">
-	    <input type="checkbox" name="{{row.experiment}}_active:{{row.experiment}}" value="{{row.experiment}}" {{ 'checked' if (row.active) }} {{ 'disabled' if (not current_experimenter.is_root()) }}>
+	    <input type="checkbox" name="{{row.experiment}}_active:{{row.experiment}}" value="{{row.experiment}}" {{ 'checked' if (row.active) }} {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }}>
 	    <label></label>
 	  </div>
 	</td>
@@ -115,7 +115,7 @@ function user_action(action) {
 	<td>{{row.experiment}}</td>
 	<td class="collapsing">
 	  <div class="ui toggle checkbox">
-	    <input type="checkbox" name="{{row.experiment}}_active:{{row.experiment}}" value="{{row.experiment}}" {{ 'disabled' if (not current_experimenter.is_root()) }}>
+	    <input type="checkbox" name="{{row.experiment}}_active:{{row.experiment}}" value="{{row.experiment}}" {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }}>
 	    <label></label>
 	  </div>
 	</td>
@@ -125,7 +125,7 @@ function user_action(action) {
     <tfoot>
       <tr>
 	<th colspan="2">
-	  <input type="submit" class="ui {{ 'disabled' if (not current_experimenter.is_root()) }} teal button" value="Submit">
+	  <input type="submit" class="ui {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }} teal button" value="Submit">
 	</th>
       </tr>
     </tfoot>

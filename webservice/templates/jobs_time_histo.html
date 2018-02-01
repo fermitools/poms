@@ -1,12 +1,12 @@
 {%extends "layout.html"%}
 
 {%block title%}
-POMS:Job efficiency in Campaign Stage {{campaign_id}}
+POMS:Job {{timetype}} Time Histogram for Campaign Stage {{c.name}}
 {%endblock%}
 
 {%block header%}
 <h1 class="ui header">
-     Campagin {{c.name}} Job {{timetype}} {%include 'help_button.html'%}
+     Campaign {{c.name}} Job {{timetype}} Time Histogram {%include 'help_button.html'%}
 </h1>
 {%endblock%}
 
@@ -47,7 +47,7 @@ POMS:Job efficiency in Campaign Stage {{campaign_id}}
            <div "postion: absolute; top: 0; left: 0; width:11em; text-align: right;">{{timetype}}</div>
            <div style="position: absolute; top:0; left: 11em;">Count</div>
        </div>
-     {% for row in range(-1,vals|length) %}
+     {% for row in range(-1,maxbucket|int) %}
         <!-- row {{row}} -->
         <div class="row" style="width: 100%; height: 2em; position: relative;">
            {% if row == -1 %}

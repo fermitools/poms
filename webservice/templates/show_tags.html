@@ -20,8 +20,45 @@ Campaign Tags
 Campaign Tags:
 <ul>
 {% for t in tl|sort(attribute='tag_name') %}
-<li> <a href="{{pomspath}}/campaign_deps?tag={{t.tag_name}}">{{t.tag_name}}</a>
+<li style="margin-top: 0.5em;" id="li_tag_{{t.tag_id}}"> <span class="ui blue tag label">{{t.tag_name}}</span>
+    <button>
+    <i class="trash blue icon poms_tag" id="tag_{{t.tag_id}}" style="border-radius: 5px;"></i>
+    </button>
+  
+   <button>
+   <a href="{{pomspath}}/campaign_deps?tag={{t.tag_name}}"><i class="sitemap icon"></i>Dependencies</a>, 
+    </button>
+    <button>
+   <a href="{{pomspath}}/campaign_time_bars?tag={{t.tag_name}}&tdays=7&tmax={{last_activity}}"><i class="tasks icon"></i>Submissions</a>
+    </button>
 {% endfor %}
 </ul>
+
+<script>
+function add_click_handler() {
+   $(".poms_tag").off("click").on("click", function(){
+            if (confirm("Are you sure you want to completely delete this tag?") == true) {
+               do_delete(this);
+            } else {
+              return;
+            }
+        });
+}
+
+function do_delete(item) {
+    var t_id = item.id.split("_")[1];
+    $.post("delete_tag_entirely", {tag_id: t_id}, function(data) {
+            if(data.msg == "OK") {
+                $('#response').html(data.msg);
+                $('#li_tag_'+t_id).remove();  //removes the line associated
+            } else {
+                $('#response').html(data.msg);
+            }
+        },'json');
+}
+$( document ).ready(function() {
+   add_click_handler();
+});
+</script>
 
 {%endblock%}

@@ -6,17 +6,18 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 '''
 
-from collections import deque
+from collections import deque, OrderedDict
 from datetime import datetime
 from datetime import timedelta
 import json
-from collections import OrderedDict
 import subprocess
 import time
 import select
 import os
-from sqlalchemy.orm import subqueryload, joinedload, contains_eager
+from sqlalchemy.orm import joinedload
 from sqlalchemy import func, text, case
+from psycopg2.extensions import QueryCanceledError
+
 from . import time_grid
 from .utc import utc
 from . import condor_log_parser
@@ -76,32 +77,6 @@ class TaskPOMS:
         self.poms_service = ps
         self.task_min_job_cache = {}
 
-    def create_task(self, dbhandle, experiment, taskdef, params, input_dataset, output_dataset, creator, waitingfor=None):
-        first, last, username = creator.split(' ')
-        creator = self.poms_service.get_or_add_experimenter(first, last, username)
-        exp = self.poms_service.get_or_add_experiment(experiment)
-        td = self.poms_service.get_or_add_taskdef(taskdef, creator, exp)
-        camp = self.poms_service.get_or_add_campaign(exp, td, creator)
-        t = Task()
-        t.campaign_id = camp.campaign_id
-        #t.campaign_definition_id = td.campaign_definition_id
-        t.task_order = 0
-        t.input_dataset = input_dataset
-        t.output_dataset = output_dataset
-        t.waitingfor = waitingfor
-        t.order = 0
-        t.creator = creator.experimenter_id
-        t.created = datetime.now(utc)
-        t.status = "created"
-        t.task_parameters = params
-        t.waiting_threshold = 5
-        t.updater = creator.experimenter_id
-        t.updated = datetime.now(utc)
-
-        dbhandle.add(t)
-        dbhandle.commit()
-        return str(t.task_id)
-
 
     def wrapup_tasks(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res):
         # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
@@ -110,27 +85,33 @@ class TaskPOMS:
 
         #
         # make jobs which completed with no *undeclared* output files have status "Located".
-        # 
-        t = text("update jobs set status = 'Located' where status = 'Completed' and (select count(file_name) from job_files where job_files.job_id = jobs.job_id and job_files.file_type = 'output' and job_files.declared is null) = 0")
+        #
+        t = text("""update jobs set status = 'Located'
+            where (status = 'Completed' or status = 'Removed') and (select count(file_name) from job_files
+                                            where job_files.job_id = jobs.job_id
+                                                and job_files.file_type = 'output'
+                                                and job_files.declared is null) = 0""")
         dbhandle.execute(t)
 
         #
         # tried to do as below, but no such luck
         # subq = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
-        # dbhandle.query(Job).filter(Job.status == "Completed", subq == 0).update({'status':'Located'}, synchronize_session='fetch')
+        # dbhandle.query(Job).filter(Job.status.in_(["Completed","Removed"]), subq == 0).update({'status':'Located'}, synchronize_session='fetch')
         #
         dbhandle.commit()
 
         need_joblogs = deque()
         #
         # check active tasks to see if they're completed/located
-        q = (dbhandle.query(Task.task_id, Task.created, func.count(Job.job_id), func.sum(case([
-                                                                          (Job.status=="Completed",0),
-                                                                          (Job.status=="Located",0),
-                                                                          ], else_= 1)))
-               .filter(Job.task_id == Task.task_id)
-               .filter(Task.status != "Completed", Task.status != "Located")
-               .group_by(Task.task_id)
+        q = (dbhandle.query(Task.task_id, Task.created, func.count(Job.job_id),
+                            func.sum(case([
+                                (Job.status == "Completed", 0),
+                                (Job.status == "Removed", 0),
+                                (Job.status == "Located", 0),
+                            ], else_=1)))
+             .filter(Job.task_id == Task.task_id)
+             .filter(Task.status != "Completed", Task.status != "Located")
+             .group_by(Task.task_id)
             )
         for tid, tcreated, total, running in q.all():
             res.append("Task %d total %d running %d " % (tid, total, running))
@@ -142,16 +123,18 @@ class TaskPOMS:
         #
         # try a couple of times...
         #
-        for i in range(4):
-            try:
-                q = dbhandle.query(Task.task_id).filter(Task.task_id.in_(need_joblogs)).with_for_update().order_by(Task.task_id);
-                q.all();
-                break
-            except QueryCanceledError:
-                dbhandle.rollback()
-                continue
-            
-        dbhandle.query(Task).filter(Task.task_id.in_(need_joblogs)).update({'status':'Completed', 'updated':datetime.now(utc)},synchronize_session=False)
+        if len(need_joblogs) > 0:
+            for i in range(4):
+                try:
+                    q = dbhandle.query(Task.task_id).filter(Task.task_id.in_(need_joblogs)).with_for_update().order_by(Task.task_id)
+                    q.all()
+                    break
+                except QueryCanceledError:
+                    dbhandle.rollback()
+                    continue
+
+            dbhandle.query(Task).filter(Task.task_id.in_(need_joblogs)).update({'status': 'Completed', 'updated': datetime.now(utc)}, synchronize_session=False)
+
         dbhandle.commit()
 
 
@@ -170,50 +153,52 @@ class TaskPOMS:
         n_located = 0
         # try with joinedload()...
 
-        q = (dbhandle.query(Task.task_id, func.max(CampaignSnapshot.completion_pct), func.count(Job.job_id), func.sum(case([
-                                                                          (Job.status=="Completed",1),
-                                                                          (Job.status=="Located",1),
-                                                                          ], else_= 0)))
-                     .filter(Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
-                     .filter(Job.task_id == Task.task_id)
-                     .filter(Task.status.in_(["Completed","Running"]))
-                     .filter(CampaignSnapshot.completion_type == "complete")
-                     .group_by(Task.task_id)
-                    )
+        q = (dbhandle.query(Task.task_id, func.max(CampaignSnapshot.completion_pct), func.count(Job.job_id),
+                            func.sum(case([
+                                (Job.status == "Completed", 1),
+                                (Job.status == "Located", 1),
+                            ], else_=0)))
+             .filter(Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
+             .filter(Job.task_id == Task.task_id)
+             .filter(Task.status.in_(["Completed", "Running"]))
+             .filter(CampaignSnapshot.completion_type == "complete")
+             .group_by(Task.task_id)
+            )
 
         for tid, cfrac, totcount, compcount in q.all():
 
-           
             if totcount == 0:
                 # cannot be done with no jobs...
                 continue
 
-            res.append("completion_type: complete Task %d cfrac %d pct %f " % (tid, cfrac,(compcount * 100)/totcount + 0.1))
+            res.append("completion_type: complete Task %d cfrac %d pct %f " % (tid, cfrac, (compcount * 100) / totcount + 0.1))
 
             if (compcount * 100.0) / totcount + 0.1 >= cfrac:
                 n_located = n_located + 1
                 mark_located.append(tid)
                 finish_up_tasks.append(tid)
 
-        # lock tasks, jobs in order so we can update them
-        dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all();
-        #
-        # why mark the jobs? just fix the tasks!
-        #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all();
-        #q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True}, synchronize_session=False)
-        q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
+        if len(mark_located) > 0:
+            # lock tasks, jobs in order so we can update them
+            dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all()
+            #
+            # why mark the jobs? just fix the tasks!
+            #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all();
+            #q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True}, synchronize_session=False)
+            q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
         dbhandle.commit()
 
 
-        q = (dbhandle.query(Task.task_id, func.max(CampaignSnapshot.completion_pct), func.count(Job.job_id), func.sum(case([
-                                                                          (Job.status=="Located",1),
-                                                                          ], else_= 0)))
-                     .join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
-                     .filter(Job.task_id == Task.task_id)
-                     .filter(Task.status.in_(["Completed","Running"]))
-                     .filter(CampaignSnapshot.completion_type == "located")
-                     .group_by(Task.task_id)
-                   )
+        q = (dbhandle.query(Task.task_id, func.max(CampaignSnapshot.completion_pct), func.count(Job.job_id),
+                            func.sum(case([
+                                (Job.status == "Located", 1),
+                            ], else_=0)))
+             .join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
+             .filter(Job.task_id == Task.task_id)
+             .filter(Task.status.in_(["Completed", "Running"]))
+             .filter(CampaignSnapshot.completion_type == "located")
+             .group_by(Task.task_id)
+            )
 
         mark_located = deque()
         for tid, cfrac, totcount, compcount in q.all():
@@ -222,7 +207,7 @@ class TaskPOMS:
                 # cannot be done with no jobs...
                 continue
 
-            res.append("completion_type: complete Task %d cfrac %d pct %f " % (tid, cfrac,(compcount * 100)/totcount + 0.1))
+            res.append("completion_type: complete Task %d cfrac %d pct %f " % (tid, cfrac, (compcount * 100) / totcount + 0.1))
 
             if (compcount * 100.0) / totcount + 0.01 >= cfrac:
                 n_located = n_located + 1
@@ -232,13 +217,17 @@ class TaskPOMS:
         # lock tasks, jobs in order so we can update them
         if len(mark_located) > 0:
             dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all()
-        # why mark the jobs? just fix the tasks!
-        #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all()
-        #dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located', 'output_files_declared':True}, synchronize_session = False)
-            dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session = False)
+            # why mark the jobs? just fix the tasks!
+            #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all()
+            #dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located', 'output_files_declared':True}, synchronize_session=False)
+            dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
+
         dbhandle.commit()
 
-        for task in (dbhandle.query(Task).with_for_update(Task).join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id).filter(Task.status == "Completed").filter(CampaignSnapshot.completion_type == "located").order_by(Task.task_id).all()):
+        for task in (dbhandle.query(Task).with_for_update(Task)
+                     .join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
+                     .filter(Task.status == "Completed")
+                     .filter(CampaignSnapshot.completion_type == "located").order_by(Task.task_id).all()):
 
             if now - task.updated > timedelta(days=2):
                 n_located = n_located + 1
@@ -280,8 +269,9 @@ class TaskPOMS:
                 if task.status == "Completed":
                     finish_up_tasks.append(task.task_id)
 
-        dbhandle.query(Job.job_id).filter(Job.task_id.in_(finish_up_tasks)).with_for_update().order_by(Job.jobsub_job_id).all();
-        q = dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session = False)
+        if len(finish_up_tasks) > 0:
+            dbhandle.query(Job.job_id).filter(Job.task_id.in_(finish_up_tasks)).with_for_update().order_by(Job.jobsub_job_id).all()
+            q = dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
         dbhandle.commit()
 
         res.append("Counts: completed: %d stale: %d project %d: located %d" %
@@ -299,7 +289,16 @@ class TaskPOMS:
         # this way we don't keep the rows locked all day
         #
         logit.log("Starting need_joblogs loops, len %d" % len(finish_up_tasks))
-        for tid in need_joblogs:
+        if len(need_joblogs) == 0:
+            njtl = []
+        else:
+            njtl = dbhandle.query(Task).filter(Task.task_id.in_(need_joblogs)).all()
+
+        for task in njtl:
+            tid = task.task_id
+            cid = task.campaign_id
+            exp = task.campaign_snap_obj.experiment
+            samhandle.update_project_description(exp, task.project, "POMS Campaign %s Task %s" % (cid, tid))
             condor_log_parser.get_joblogs(dbhandle,
                                           self.task_min_job(dbhandle, tid),
                                           getconfig('elasticsearch_cert'),
@@ -308,7 +307,11 @@ class TaskPOMS:
                                           task.campaign_snap_obj.vo_role)
         logit.log("Starting finish_up_tasks loops, len %d" % len(finish_up_tasks))
 
-        for task in (dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).all()):
+        if len(finish_up_tasks) == 0:
+            futl = []
+        else:
+            futl = dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).all()
+        for task in futl:
             # get logs for job for final cpu values, etc.
             logit.log("Starting finish_up_tasks items for task %s" % task.task_id)
 
@@ -320,9 +323,11 @@ class TaskPOMS:
 
     def show_task_jobs(self, dbhandle, task_id, tmax=None, tmin=None, tdays=1):
 
-        tmin,tmax,tmins,tmaxs,nextlink,prevlink,time_range_string,tdays = self.poms_service.utilsPOMS.handle_dates(tmin, tmax,tdays,'show_task_jobs?task_id=%s' % task_id)
+        tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(
+            tmin, tmax, tdays, 'show_task_jobs?task_id=%s' % task_id)
 
-        jl = dbhandle.query(JobHistory,Job).filter(Job.job_id == JobHistory.job_id, Job.task_id==task_id ).order_by(JobHistory.job_id,JobHistory.created).all()
+        jl = dbhandle.query(JobHistory, Job).filter(Job.job_id == JobHistory.job_id,
+                                                    Job.task_id == task_id).order_by(JobHistory.job_id, JobHistory.created).all()
         tg = time_grid.time_grid()
 
         class fakerow:
@@ -338,8 +343,8 @@ class TaskPOMS:
             else:
                 jjid = 'j' + str(jh.job_id)
 
-            if j.status != "Completed" and j.status != "Located":
-                extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d"><i class="ui trash icon"></i></a>' % (self.poms_service.path, jh.job_id)
+            if j.status != "Completed" and j.status != "Located" and j.status != "Removed":
+                extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d&act=hold"><i class="ui pause icon"></i></a><a href="%s/kill_jobs?job_id=%d&act=release"><i class="ui play icon"></i></a><a href="%s/kill_jobs?job_id=%d&act=kill"><i class="ui trash icon"></i></a>' % (self.poms_service.path, jh.job_id,self.poms_service.path, jh.job_id,self.poms_service.path, jh.job_id)
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
             if jh.status != laststatus or jjid != lastjjid:
@@ -352,8 +357,8 @@ class TaskPOMS:
 
         job_counts = self.poms_service.filesPOMS.format_job_counts(dbhandle, task_id=task_id, tmin=tmins, tmax=tmaxs, tdays=tdays, range_string=time_range_string)
         key = tg.key(fancy=1)
-        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template=self.poms_service.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)
-        #screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap = extramap)
+        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', url_template=self.poms_service.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap=extramap)
+        #screendata = screendata +  tg.render_query(tmin, tmax, items, 'jobsub_job_id', url_template=self.path + '/triage_job?job_id=%(job_id)s&tmin='+tmins, extramap=extramap)
 
         if len(jl) > 0:
             campaign_id = jl[0][1].task_obj.campaign_id
@@ -363,13 +368,13 @@ class TaskPOMS:
             cname = 'unknown'
 
         task_jobsub_id = self.task_min_job(dbhandle, task_id)
-        return_tuple=(blob, job_counts,task_id, str(tmin)[:16], str(tmax)[:16], extramap, key, task_jobsub_id, campaign_id, cname)
+        return_tuple = (blob, job_counts, task_id, str(tmin)[:16], str(tmax)[:16], extramap, key, task_jobsub_id, campaign_id, cname)
         return return_tuple
 
 ###
 #No expose methods.
     def compute_status(self, dbhandle, task):
-        st = self.poms_service.triagePOMS.job_counts(dbhandle, task_id = task.task_id)
+        st = self.poms_service.triagePOMS.job_counts(dbhandle, task_id=task.task_id)
 
         logit.log("in compute_status, counts are %s" % repr(st))
 
@@ -384,6 +389,8 @@ class TaskPOMS:
             res = "Running"
         if st['Completed'] > 0 and  res == "New":
             res = "Completed"
+        if st['Removed'] > 0 and  res == "New":
+            res = "Completed"
         if st['Located'] > 0 and  res == "New":
             res = "Located"
         return res
@@ -395,13 +402,16 @@ class TaskPOMS:
         if task_id in self.task_min_job_cache:
             return self.task_min_job_cache.get(task_id)
         jt = dbhandle.query(func.min(Job.jobsub_job_id)).filter(Job.task_id == task_id).first()
-        if len(jt):
+        if len(jt) and jt[0]: 
             self.task_min_job_cache[task_id] = jt[0]
             return jt[0]
         return None
 
 
-    def get_task_id_for(self, dbhandle, campaign, user=None, experiment=None, command_executed="", input_dataset="", parent_task_id=None):
+    def get_task_id_for(self, dbhandle, campaign, user=None, experiment=None, command_executed="", input_dataset="", parent_task_id=None, task_id = None):
+        logit.log("get_task_id_for(user='%s',experiment='%s',command_executed='%s',input_dataset='%s',parent_task_id='%s',task_id='%s'" % (
+             user, experiment, command_executed, input_dataset, parent_task_id, task_id
+            ))
         if user is None:
             user = 4
         else:
@@ -409,7 +419,7 @@ class TaskPOMS:
             if u:
                 user = u.experimenter_id
         q = dbhandle.query(Campaign)
-        if campaign[0] in "0123456789":
+        if str(campaign)[0] in "0123456789":
             q = q.filter(Campaign.campaign_id == int(campaign))
         else:
             q = q.filter(Campaign.name.like("%%%s%%" % campaign))
@@ -419,7 +429,12 @@ class TaskPOMS:
 
         c = q.first()
         tim = datetime.now(utc)
-        t = Task(campaign_id=c.campaign_id,
+        if task_id:
+            t = dbhandle.query(Task).filter(Task.task_id == task_id).one()
+            t.command_executed = command_executed
+            t.updated = tim
+        else:
+            t = Task(campaign_id=c.campaign_id,
                  task_order=0,
                  input_dataset=input_dataset,
                  output_dataset="",
@@ -438,26 +453,38 @@ class TaskPOMS:
 
         dbhandle.add(t)
         dbhandle.commit()
+        logit.log("get_task_id_for: returning %s" % t.task_id)
         return t.task_id
 
 
     def snapshot_parts(self, dbhandle, t, campaign_id): ###This function was removed from the main script
         c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
         for table, snaptable, field, sfield, tid, tfield in [
-               [Campaign,CampaignSnapshot,Campaign.campaign_id,CampaignSnapshot.campaign_id,c.campaign_id, 'campaign_snap_obj' ],
-               [CampaignDefinition, CampaignDefinitionSnapshot,CampaignDefinition.campaign_definition_id, CampaignDefinitionSnapshot.campaign_definition_id, c.campaign_definition_id, 'campaign_definition_snap_obj'],
-               [LaunchTemplate ,LaunchTemplateSnapshot,LaunchTemplate.launch_id,LaunchTemplateSnapshot.launch_id,  c.launch_id, 'launch_template_snap_obj']]:
+                [Campaign, CampaignSnapshot,
+                 Campaign.campaign_id, CampaignSnapshot.campaign_id,
+                 c.campaign_id, 'campaign_snap_obj'
+                ],
+                [CampaignDefinition, CampaignDefinitionSnapshot,
+                 CampaignDefinition.campaign_definition_id,
+                 CampaignDefinitionSnapshot.campaign_definition_id,
+                 c.campaign_definition_id, 'campaign_definition_snap_obj'
+                ],
+                [LaunchTemplate, LaunchTemplateSnapshot,
+                 LaunchTemplate.launch_id,
+                 LaunchTemplateSnapshot.launch_id,
+                 c.launch_id, 'launch_template_snap_obj'
+                ]]:
 
             i = dbhandle.query(func.max(snaptable.updated)).filter(sfield == tid).first()
             j = dbhandle.query(table).filter(field == tid).first()
-            if (i[0] is None or j is None or j.updated is None or  i[0] < j.updated):
-               newsnap = snaptable()
-               columns = j._sa_instance_state.class_.__table__.columns
-               for fieldname in list(columns.keys()):
-                    setattr(newsnap, fieldname, getattr(j,fieldname))
-               dbhandle.add(newsnap)
+            if i[0] is None or j is None or j.updated is None or i[0] < j.updated:
+                newsnap = snaptable()
+                columns = j._sa_instance_state.class_.__table__.columns
+                for fieldname in list(columns.keys()):
+                    setattr(newsnap, fieldname, getattr(j, fieldname))
+                dbhandle.add(newsnap)
             else:
-               newsnap = dbhandle.query(snaptable).filter(snaptable.updated == i[0]).first()
+                newsnap = dbhandle.query(snaptable).filter(snaptable.updated == i[0]).first()
             setattr(t, tfield, newsnap)
         dbhandle.add(t) #Felipe change HERE one tap + space to spaces indentation
         dbhandle.commit()
@@ -465,7 +492,7 @@ class TaskPOMS:
 
     def launch_dependents_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  t):
         logit.log("Entering launch_dependents_if_needed(%s)" % t.task_id)
-        if not getconfig("poms.launch_recovery_jobs",False):
+        if not getconfig("poms.launch_recovery_jobs", False):
             # XXX should queue for later?!?
             logit.log("recovery launches disabled")
             return 1
@@ -473,16 +500,16 @@ class TaskPOMS:
 
         i = 0
         for cd in cdlist:
-           if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
-              # self-reference, just do a normal launch
-              self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id)
-           else:
-              i = i + 1
-              dims = "ischildof: (snapshot_for_project_name %s) and version %s and file_name like '%s' " % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
-              dname = "poms_depends_%d_%d" % (t.task_id,i)
+            if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
+                # self-reference, just do a normal launch
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator)
+            else:
+                i = i + 1
+                dims = "ischildof: (snapshot_for_project_name %s) and version %s and file_name like '%s' " % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
+                dname = "poms_depends_%d_%d" % (t.task_id, i)
 
-              samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-              self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, dataset_override = dname)
+                samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override=dname )
         return 1
 
 
@@ -511,7 +538,7 @@ class TaskPOMS:
             # uncomment when we get db fields:
             param_overrides = rlist[t.recovery_position].param_overrides
             if rtype.name == 'consumed_status':
-                recovery_dims = "for_project_name %s and consumed_status != 'consumed'" % t.project
+                recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % t.project
             elif rtype.name == 'proj_status':
                 recovery_dims = "project_name %s and process_status != 'ok'" % t.project
             elif rtype.name == 'pending_files':
@@ -547,7 +574,9 @@ class TaskPOMS:
                 samhandle.create_definition(t.campaign_snap_obj.experiment, rname, recovery_dims)
 
 
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, t.campaign_snap_obj.campaign_id, dataset_override=rname, parent_task_id = t.task_id, param_overrides = param_overrides)
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
+                                 err_res, t.campaign_snap_obj.campaign_id, t.creator,  dataset_override=rname,
+                                 parent_task_id=t.task_id, param_overrides=param_overrides)
                 return 1
 
         return 0
@@ -568,7 +597,8 @@ class TaskPOMS:
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
-        hl = dbhandle.query(HeldLaunch).with_for_update().order_by(HeldLaunch.created).first();
+        hl = dbhandle.query(HeldLaunch).with_for_update().order_by(HeldLaunch.created).first()
+        launch_user=dbhandle.query(Experimenter).filter(Expermenter.experimenter_id == hl.launcher).first()
         if hl:
             dbhandle.delete(hl)
             dbhandle.commit()
@@ -576,6 +606,7 @@ class TaskPOMS:
                              getconfig, gethead,
                              seshandle_get, samhandle,
                              err_res, hl.campaign_id,
+                             launch_user.username,
                              dataset_override=hl.dataset,
                              parent_task_id=hl.parent_task_id,
                              param_overrides=hl.param_overrides)
@@ -584,54 +615,89 @@ class TaskPOMS:
             return "None."
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
-                    err_res, campaign_id, dataset_override=None, parent_task_id=None, param_overrides=None):
+                    err_res, campaign_id, launcher, dataset_override=None, parent_task_id=None, param_overrides=None, test_launch_template = None, experiment = None):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
 
         ds = time.strftime("%Y%m%d_%H%M%S")
-        outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_id)
-        outfile = "%s/%s" % (outdir, ds)
-        logit.log("trying to record launch in %s" % outfile)
-
-        c = (dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id)
-             .options(joinedload(Campaign.launch_template_obj), joinedload(Campaign.campaign_definition_obj)).first())
-
-        if not c:
-            err_res = 404
-            raise KeyError
-
-        cd = c.campaign_definition_obj
-        lt = c.launch_template_obj
-
-        if self.get_job_launches(dbhandle) == "hold":
-            # fix me!!
-            output = "Job launches currently held.... queuing this request"
-            logit.log("launch_jobs -- holding launch")
-            hl = HeldLaunch()
-            hl.campaign_id = campaign_id
-            hl.created = datetime.now(utc)
-            hl.dataset = dataset_override
-            hl.parent_task_id = parent_task_id
-            hl.param_overrides = param_overrides
-            dbhandle.add(hl)
-            dbhandle.commit()
-            lcmd = ""
-
-            return lcmd, c, campaign_id, outdir, outfile
-
         e = seshandle_get('experimenter')
-        xff = gethead('X-Forwarded-For', None)
-        ra = gethead('Remote-Addr', None)
-        if not e.is_authorized(c.experiment) and not (ra == '127.0.0.1' and xff is None):
+        launcher_experimenter = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == launcher).first()
+
+        if test_launch_template:
+            lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id == test_launch_template).first()
+            dataset_override = "fake_test_dataset"
+            cdid = "-"
+            cid = "-"
+            c = None
+            c_param_overrides = []
+            vers = 'v0_0'
+            dataset = "-"
+            definition_parameters = []
+            exp = e.session_experiment
+            launch_script = """echo "Environment"; printenv; echo "jobsub is`which jobsub`;  echo "launch_template successful!"""
+            outdir = "%s/private/logs/poms/launches/template_tests_%d" % (os.environ["HOME"], int(test_launch_template))
+            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
+            logit.log("trying to record launch in %s" % outfile)
+        else:
+            outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_id)
+            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
+            logit.log("trying to record launch in %s" % outfile)
+
+            if str(campaign_id)[0] in "0123456789":
+                cq = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id)
+            else:
+                cq = dbhandle.query(Campaign).filter(Campaign.name == campaign_id, Campaign.experiment == experiment)
+
+            c = cq.options(joinedload(Campaign.launch_template_obj), joinedload(Campaign.campaign_definition_obj)).first()
+
+            if not c:
+                err_res = 404
+                raise KeyError("Campaign not found: " + str(campaign_id))
+
+            cd = c.campaign_definition_obj
+            lt = c.launch_template_obj
+
+            if self.get_job_launches(dbhandle) == "hold":
+                # fix me!!
+                output = "Job launches currently held.... queuing this request"
+                logit.log("launch_jobs -- holding launch")
+                hl = HeldLaunch()
+                hl.campaign_id = campaign_id
+                hl.created = datetime.now(utc)
+                hl.dataset = dataset_override
+                hl.parent_task_id = parent_task_id
+                hl.param_overrides = param_overrides
+                hl.launcher = launcher
+                dbhandle.add(hl)
+                dbhandle.commit()
+                lcmd = ""
+
+                return lcmd, c, campaign_id, outdir, outfile
+
+            
+            # allocate task to set ownership
+            tid =  self.get_task_id_for( dbhandle, campaign_id, user=launcher_experimenter.username, experiment=experiment, parent_task_id=parent_task_id)
+
+            xff = gethead('X-Forwarded-For', None)
+            ra = gethead('Remote-Addr', None)
+            exp = c.experiment
+            vers = c.software_version
+            launch_script = cd.launch_script
+            cid = c.campaign_id
+            cdid = c.campaign_definition_id
+            definition_parameters = cd.definition_parameters
+            c_param_overrides = c.param_overrides
+
+        if not e and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
             err_res = "404 Permission Denied."
             output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
             return lcmd, output, c, campaign_id, outdir, outfile    # FIXME: this returns more elements than in other places
 
-        if not lt.launch_host.find(c.experiment) >= 0 and c.experiment != 'samdev':
-            logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, c.experiment))
+        if not lt.launch_host.find(exp) >= 0 and exp != 'samdev':
+            logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
             err_res = "404 Permission Denied."
-            output = "Not Authorized: {} is not a {} experiment node".format(tl.launch_host, c.experiment)
+            output = "Not Authorized: {} is not a {} experiment node".format(lt.launch_host, exp)
             return lcmd, output, c, campaign_id, outdir, outfile    # FIXME: this returns more elements than in other places
 
         experimenter_login = e.username
@@ -642,7 +708,7 @@ class TaskPOMS:
         else:
             dataset = self.poms_service.campaignsPOMS.get_dataset_for(dbhandle, samhandle, err_res, c)
 
-        group = c.experiment
+        group = exp
         if group == 'samdev':
             group = 'fermilab'
 
@@ -650,35 +716,50 @@ class TaskPOMS:
             "exec 2>&1",
             "set -x",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
-            "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.poms_service.hostname,
             "ssh -tx %s@%s <<'EOF' &" % (lt.launch_account, lt.launch_host),
+            #
+            # This bit is a little tricky.  We want to do as little of our
+            # own setup as possible after the users' launch_setup text,
+            # so we don't undo stuff they may put on the front of the path
+            # etc -- *except* that we need jobsub_wrapper setup.
+            # so we 
+            # 1. do our setup except jobsub_wrapper
+            # 2. do their setup stuff from the launch template
+            # 3. setup *just* poms_jobsub_wrapper, so it gets on the
+            #    front of the path and can intercept calls to "jobsub_submit"
+            #
+            "source /grid/fermiapp/products/common/etc/setups",
+            "setup poms_client v2_0_1 -z /grid/fermiapp/products/common/db",
             lt.launch_setup % {
                 "dataset": dataset,
-                "version": c.software_version,
+                "version": vers,
                 "group": group,
                 "experimenter": experimenter_login,
             },
-            "setup poms_jobsub_wrapper v0_4 -z /grid/fermiapp/products/common/db",
+            "setup -j poms_jobsub_wrapper v2_0_1 -z /grid/fermiapp/products/common/db",
+            "setup -j poms_client v2_0_1 -z /grid/fermiapp/products/common/db",
+            "export POMS_CAMPAIGN_ID=%s" % cid,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
+            "export POMS_TASK_ID=%s" % tid, 
+            "export POMS_LAUNCHER=%s" % launcher_experimenter.username, 
             "export POMS_TEST=%s" % ("" if "poms" in self.poms_service.hostname else "1"),
-            "export POMS_CAMPAIGN_ID=%s" % c.campaign_id,
-            "export POMS_TASK_DEFINITION_ID=%s" % c.campaign_definition_id,
+            "export POMS_TASK_DEFINITION_ID=%s" % cdid,
             "export JOBSUB_GROUP=%s" % group,
         ]
-        if cd.definition_parameters:
-            if isinstance(cd.definition_parameters, str):
-                params = OrderedDict(json.loads(cd.definition_parameters))
+        if definition_parameters:
+            if isinstance(definition_parameters, str):
+                params = OrderedDict(json.loads(definition_parameters))
             else:
-                params = OrderedDict(cd.definition_parameters)
+                params = OrderedDict(definition_parameters)
         else:
             params = OrderedDict([])
 
-        if c.param_overrides is not None and c.param_overrides != "":
-            if isinstance(c.param_overrides, str):
-                params.update(json.loads(c.param_overrides))
+        if c_param_overrides is not None and c_param_overrides != "":
+            if isinstance(c_param_overrides, str):
+                params.update(json.loads(c_param_overrides))
             else:
-                params.update(c.param_overrides)
+                params.update(c_param_overrides)
 
         if param_overrides is not None and param_overrides != "":
             if isinstance(param_overrides, str):
@@ -686,10 +767,10 @@ class TaskPOMS:
             else:
                 params.update(param_overrides)
 
-        lcmd = cd.launch_script + " " + ' '.join((x[0] + x[1]) for x in list(params.items()))
+        lcmd = launch_script + " " + ' '.join((x[0] + x[1]) for x in list(params.items()))
         lcmd = lcmd % {
             "dataset": dataset,
-            "version": c.software_version,
+            "version": vers,
             "group": group,
             "experimenter": experimenter_login,
         }
@@ -702,10 +783,10 @@ class TaskPOMS:
 
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
-        dn = open("/dev/null","r")
+        dn = open("/dev/null", "r")
         lf = open(outfile, "w")
         logit.log("actually starting launch ssh")
-        pp = subprocess.Popen(cmd, shell=True, stdin=dn,stdout=lf, stderr=lf, close_fds=True)
+        pp = subprocess.Popen(cmd, shell=True, stdin=dn, stdout=lf, stderr=lf, close_fds=True)
         lf.close()
         dn.close()
         pp.wait()

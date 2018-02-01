@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''
-This module contain the methods that allow to modify the data.
+This module contain the methods that allow to modify the raw database
 List of methods: user_edit, experiment_members, experiment edit, experiment_authorize.
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Stephen White.
 Date: September 30, 2016.
@@ -14,8 +14,10 @@ from .poms_model import Experimenter, Experiment, ExperimentsExperimenters
 from sqlalchemy.orm.exc import NoResultFound
 
 class DBadminPOMS:
-    #def user_edit(self, db = cherrypy.request.db,username = None, action = None, *args, **kwargs):
     def user_edit(self, dbhandle, *args, **kwargs):
+        '''
+            callback from user edit page
+        '''
         message = None
         data = {}
         username = kwargs.pop('username',None)
@@ -48,6 +50,7 @@ class DBadminPOMS:
                 experimenter.last_name = kwargs.get('last_name')
                 experimenter.username = username
                 experimenter.session_experiment = ''
+                experimenter.session_role = 'analysis'
                 dbhandle.add( experimenter)
                 dbhandle.commit()
 
@@ -76,6 +79,9 @@ class DBadminPOMS:
 
 
     def experiment_members(self, dbhandle, experiment, *args, **kwargs):
+        '''
+            return members of experiment
+        '''
         query = list(dbhandle.query(Experiment, ExperimentsExperimenters, Experimenter)
                     .join(ExperimentsExperimenters).join(Experimenter)
                     .filter(Experiment.name==experiment)
@@ -94,6 +100,9 @@ class DBadminPOMS:
 
 
     def member_experiments(self, dbhandle, username, *args, **kwargs):
+        '''
+            return experiments a given user is a member of
+        '''
 
         subq = (dbhandle.query(ExperimentsExperimenters, Experimenter.username, Experimenter.first_name, Experimenter.last_name)
                     .join(Experimenter, Experimenter.experimenter_id==ExperimentsExperimenters.experimenter_id)
@@ -113,13 +122,19 @@ class DBadminPOMS:
             #~ trow = "{}\t{}\t{}\t{}\t{}\n".format(experiment.experiment, first_name, last_name, username, 'Active' if active else 'No')
             trows.append((experiment.experiment, first_name, last_name, username, active and 'Active'))
         return trows
-        return '{}'.format('\n'.join(map(str, trows)))  # DEBUG
 
     def experiment_edit(self, dbhandle):
+        '''
+           Info for experiment_edit template page.
+           returns sorted experiment list
+        '''
         return(dbhandle.query(Experiment).order_by(Experiment.experiment))
 
 
     def experiment_authorize(self, dbhandle, *args, **kwargs):
+        '''
+            add/delete experiments
+        '''
         message = None
         # Add new experiment, if any
         try:
@@ -138,7 +153,7 @@ class DBadminPOMS:
         try:
             experiment = None
             for experiment in kwargs:
-                dbhandle.query(Experiment).filter(Experiment.experiment==experiment).delete()
+                dbhandle.query(Experiment).filter(Experiment.experiment==experiment).delete(synchronize_session=False)
             dbhandle.commit()
         except IntegrityError as e:
             message = "The experiment, %s, is used and may not be deleted." % experiment

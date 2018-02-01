@@ -57,7 +57,7 @@ class JobsPOMS(object):
                           Job.jobsub_job_id != "unknown",
                           Job.task_id == Task.task_id,
                           Job.job_id == JobFile.job_id,
-                          Job.status == "Completed",
+                          Job.status.in_(["Completed","Removed"]),
                           or_(Job.output_files_declared == False, JobFile.declared == None), JobFile.file_type == 'output')
                   .order_by(CampaignSnapshot.experiment, Job.jobsub_job_id).all()):
             # convert fpattern "%.root,%.dat" to regexp ".*\.root|.*\.dat"
@@ -121,11 +121,15 @@ class JobsPOMS(object):
         #   * set of task_id's we have in database
         #   * output file regexes for each task
         #
-        tq = ( dbhandle.query(Task.task_id,CampaignDefinitionSnapshot.output_file_patterns)
+        if len(tids_wanted) ==  0:
+            tpl = []
+        else:
+            tq = ( dbhandle.query(Task.task_id,CampaignDefinitionSnapshot.output_file_patterns)
                 .filter(Task.campaign_definition_snap_id == CampaignDefinitionSnapshot.campaign_definition_snap_id)
                 .filter(Task.task_id.in_(tids_wanted)))
 
-        tpl = tq.all()
+            tpl = tq.all()
+        
 
         of_res = {}
         for tid, ofp in tpl:
@@ -153,7 +157,7 @@ class JobsPOMS(object):
                     task_updates[field[5:]] = {}
                 else:
                     job_updates[field] = {}
-            if 'status' in r and 'task_id' in r and r['status'] == 'Completed':
+            if 'status' in r and 'task_id' in r and r['status'] in ('Completed','Removed'):
                tasks_job_completed.add(r['task_id'])               
 
         job_file_jobs = set()
@@ -250,18 +254,22 @@ class JobsPOMS(object):
         # so the answer is correct. 
 
 
-        tl2 = ( dbhandle.query(Task)
+        if len(tids_wanted) == 0:
+            tl2 = []
+        else:
+            tl2 = ( dbhandle.query(Task)
                 .filter(Task.task_id.in_(tids_wanted))
                 .with_for_update(of=Task)
                 .order_by(Task.task_id)
                 .all())
  
-        have_jobids.update( [x[0] for x in
-            dbhandle.query(Job.jobsub_job_id)
-                .filter(Job.jobsub_job_id.in_(update_jobsub_job_ids))
-                .with_for_update(of=Job)
-                .order_by(Job.jobsub_job_id)
-                .all()])
+        if len(update_jobsub_job_ids) > 0:
+            have_jobids.update( [x[0] for x in
+                dbhandle.query(Job.jobsub_job_id)
+                    .filter(Job.jobsub_job_id.in_(update_jobsub_job_ids))
+                    .with_for_update(of=Job)
+                    .order_by(Job.jobsub_job_id)
+                    .all()])
         
 
         add_jobsub_job_ids = task_jobsub_job_ids - have_jobids
@@ -304,7 +312,10 @@ class JobsPOMS(object):
         # make a list of tasks which don't have projects set yet
         # to update after we do the batch below
         #
-        fix_task_ids = (dbhandle.query(Task.task_id)
+        if len(task_ids) == 0:
+            fix_task_ids = []
+        else:
+            fix_task_ids = (dbhandle.query(Task.task_id)
                 .filter(Task.task_id.in_(task_ids))
                 .filter(Task.project == None)
                 .all())
@@ -381,10 +392,13 @@ class JobsPOMS(object):
         #
         need_updates = set(fix_task_ids)
         need_updates = need_updates.union(tasks_job_completed)
-        tq = ( dbhandle.query(Task)
+        if len(need_updates) == 0:
+            tl =[]
+        else:
+            tq = ( dbhandle.query(Task)
                 .filter(Task.task_id.in_(need_updates))
                 .options(joinedload(Task.campaign_definition_snap_obj)) )
-        tl = tq.all()
+            tl = tq.all()
 
         for t in tl:
             if t.project:
@@ -483,22 +497,23 @@ class JobsPOMS(object):
             oldstatus = j.status
             logit.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
 
-            if kwargs.get('status', None) and oldstatus != kwargs.get('status') and oldstatus == 'Completed' and kwargs.get('status') != 'Located':
-                # we went from Completed back to some Running/Idle state...
+            if kwargs.get('status', None) and oldstatus != kwargs.get('status') and oldstatus in ('Completed','Removed') and kwargs.get('status') != 'Located':
+                # we went from Completed or Removed back to some Running/Idle state...
                 # so clean out any old (wrong) Completed statuses from
                 # the JobHistory... (Bug #15322)
-                dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status == 'Completed').delete()
+                dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status.in_(['Completed','Removed'])).delete(synchronize_session=False)
 
             # first, Job string fields the db requres be not null:
-            for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code']:
+            for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code', 'reason_held']:
                 if field == 'status' and j.status == "Located":
                     # stick at Located, don't roll back to Completed,etc.
                     continue
 
                 if kwargs.get(field, None):
                     setattr(j, field, str(kwargs[field]).rstrip("\n"))
+
                 if not getattr(j, field, None):
-                    if field != 'user_exe_exit_code':
+                    if not field in ['user_exe_exit_code','reason_held']:
                         setattr(j, field, 'unknown')
 
             # first, next, output_files_declared, which also changes status
@@ -582,7 +597,7 @@ class JobsPOMS(object):
         res = self.poms_service.job_counts(task_id, campaign_id)
         return repr(res) + self.poms_service.format_job_counts(task_id, campaign_id)
 
-    def kill_jobs(self, dbhandle, campaign_id=None, task_id=None, job_id=None, confirm=None):
+    def kill_jobs(self, dbhandle, campaign_id=None, task_id=None, job_id=None, confirm=None , act = 'kill'):
         jjil = deque()
         jql = None
         t = None
@@ -604,7 +619,7 @@ class JobsPOMS(object):
                 if tjid:
                     jjil.append(tjid.replace('.0', ''))
         else:
-            jql = dbhandle.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Located').execution_options(stream_results=True).all()
+            jql = dbhandle.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Removed', Job.status != 'Located').execution_options(stream_results=True).all()
             c = jql[0].task_obj.campaign_snap_obj
             for j in jql:
                 jjil.append(j.jobsub_job_id)
@@ -617,9 +632,16 @@ class JobsPOMS(object):
             group = c.experiment
             if group == 'samdev':
                 group = 'fermilab'
+          
+            subcmd = 'rm'
+            if act == 'kill':
+                subcmd = 'rm'
+            if act in ('hold','release'):
+                subcmd = act
+
             '''
             if test == true:
-                os.open("echo jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
+                os.open("echo jobsub_%s -G %s --role %s --jobid %s 2>&1" % (subcmd, group, c.vo_role, ','.join(jjil)), "r")
             '''
             f = os.popen("export PATH=$HOME/bin:$PATH; /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
             output = f.read()
@@ -643,7 +665,7 @@ class JobsPOMS(object):
         res = (dbhandle.query(func.max(Job.wall_time),func.min(Job.job_id))
                  .join(Task, Job.task_id == Task.task_id)
                  .filter(Task.campaign_id == campaign_id)
-                 .filter(Task.created < tmax, Task.created >= tmin)
+                 .filter(Task.created <= tmax, Task.created >= tmin)
                  .first())
         logit.log("max wall time %s, min job_id %s" % (res[0],res[1]))
         maxwall = res[0]
@@ -669,8 +691,7 @@ class JobsPOMS(object):
                 .join(Task, Job.task_id == Task.task_id)
                 .filter(Job.job_id >= minjobid)   # see if this speeds up
                 .filter(Task.campaign_id == campaign_id)
-                .filter(Task.created < tmax, Task.created >= tmin)
-                .filter(Job.wall_time > 0) 
+                .filter(Task.created <= tmax, Task.created >= tmin)
                 .group_by(qf)
                 .order_by(qf)
                )
@@ -678,7 +699,7 @@ class JobsPOMS(object):
                 .join(Task, Job.task_id == Task.task_id)
                 .filter(Job.job_id >= minjobid)   # see if this speeds up
                 .filter(Task.campaign_id == campaign_id)
-                .filter(Task.created < tmax, Task.created >= tmin)
+                .filter(Task.created <= tmax, Task.created >= tmin)
                 .filter(fname == None)
                )
                    
@@ -708,7 +729,7 @@ class JobsPOMS(object):
                         .filter(JobHistory.job_id >= minjobid)   # see if this speeds up
                         .filter(Job.task_id == Task.task_id)
                         .filter(Task.campaign_id == campaign_id)
-                        .filter(Task.created < tmax, Task.created >= tmin)
+                        .filter(Task.created <= tmax, Task.created >= tmin)
                    ).subquery()
            sq2 = (dbhandle.query(sq1.c.job_id.label('job_id'), 
                                  func.sum(sq1.c.end_t - sq1.c.start_t).label('copy_time'))
@@ -719,17 +740,18 @@ class JobsPOMS(object):
            q = (dbhandle.query(func.count(sq2.c.job_id), qf)
                 .group_by(qf)
                 .order_by(qf)
-                ) # subquery -- count of copy start entries in JobHistory
+                ) 
+           # subquery -- count of copy start entries in JobHistory
            # for this Job.job_id
-           sqz = (dbhandle.query(func.count(JobHistory.created))
-                   .filter(JobHistory.job_id == Job.job_id)
-                   .filter(JobHistory.status == copy_start_status)
-                 ).subquery()
            qz = (dbhandle.query(func.count(Job.job_id))
                         .join(Task, Job.task_id == Task.task_id)
                         .filter(Task.campaign_id == campaign_id)
-                        .filter(Task.created < tmax, Task.created >= tmin)
-                        .filter(0 == sqz)
+                        .filter(Task.created <= tmax, Task.created >= tmin)
+                        .filter(0 == (dbhandle.query(func.count(JobHistory.created))
+                                      .filter(JobHistory.job_id == Job.job_id)
+                                      .filter(JobHistory.status == copy_start_status)
+                                    ).as_scalar()
+                 )
                  )
         else:
             raise KeyError("invalid timetype value, should be copy_in_time, copy_out_time, wall_time, cpu_time")
@@ -755,7 +777,7 @@ class JobsPOMS(object):
 
         # return "total %d ; vals %s" % (total, vals)
         # return "Not yet implemented"
-        return c, maxv, maxbucket, total, vals, binsize, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
+        return c, maxv, maxbucket+1, total, vals, binsize, tmaxs, campaign_id, tdays, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays
 
     def jobs_eff_histo(self, dbhandle, campaign_id, tmax=None, tmin=None, tdays=1):
         """  use
@@ -790,7 +812,7 @@ class JobsPOMS(object):
         qz = qz.join(Task,Job.task_id == Task.task_id) 
         qz = qz.filter(Task.campaign_id == campaign_id)
         qz = qz.filter(Task.created < tmax, Task.created >= tmin)
-        qz = qz.filter(not_(and_(Job.cpu_time > 0, Job.wall_time > 0, Job.cpu_time < Job.wall_time * 10)))
+        qz = qz.filter(or_(not_(and_(Job.cpu_time > 0, Job.wall_time > 0, Job.cpu_time < Job.wall_time * 10)),Job.cpu_time == None,Job.wall_time==None))
         nodata = qz.first()
 
         total = 0

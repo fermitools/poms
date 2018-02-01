@@ -9,7 +9,6 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 metadata = Base.metadata
 
-
 class Campaign(Base):
     __tablename__ = 'campaigns'
 
@@ -33,9 +32,14 @@ class Campaign(Base):
     param_overrides = Column(JSON)
     completion_type = Column(Text, nullable=False, server_default=text("located"))
     completion_pct = Column(Text, nullable=False, server_default="95")
+    hold_experimenter_id = Column(ForeignKey('experimenters.experimenter_id'), nullable=True)
+    creator_role = Column(Text, nullable=False)
+    role_held_with = Column(Text, nullable=True)
+    campaign_type = Column(Text, nullable=False)
 
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship('Experimenter', primaryjoin='Campaign.updater == Experimenter.experimenter_id')
+    experimenter_holder_obj = relationship('Experimenter', primaryjoin='Campaign.hold_experimenter_id == Experimenter.experimenter_id')
     experiment_obj = relationship('Experiment')
     campaign_definition_obj = relationship('CampaignDefinition')
     launch_template_obj = relationship('LaunchTemplate')
@@ -50,6 +54,8 @@ class Experimenter(Base):
     username = Column(Text, nullable=False)
     last_login = Column(DateTime(True), nullable=False, default="now()")
     session_experiment = Column(Text, nullable=False)
+    session_role = Column(Text, nullable=False)
+    root = Column(Boolean, nullable=False)
 
 
 class ExperimentsExperimenters(Base):
@@ -58,6 +64,7 @@ class ExperimentsExperimenters(Base):
     experimenter_id = Column(Integer, ForeignKey('experimenters.experimenter_id'), primary_key=True)
     experiment = Column(Text, ForeignKey('experiments.experiment'), primary_key=True)
     active = Column(Boolean, nullable=False, server_default=text("true"))
+    role = Column(Text, nullable=False, server_default=text("analysis"))
 
     experimenter_obj = relationship(Experimenter, backref="exp_expers")
     experiment_obj = relationship("Experiment", backref="exp_expers")
@@ -137,6 +144,7 @@ class LaunchTemplate(Base):
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey('experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
+    creator_role = Column(Text, nullable=False)
 
     experiment_obj = relationship('Experiment')
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='LaunchTemplate.creator == Experimenter.experimenter_id')
@@ -158,6 +166,7 @@ class CampaignDefinition(Base):
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey('experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
+    creator_role = Column(Text, nullable=False)
 
 
     experiment_obj = relationship('Experiment')
@@ -226,6 +235,8 @@ class Tag(Base):
     tag_id = Column(Integer, primary_key=True, server_default=text("nextval('tags_tag_id_seq'::regclass)"))
     experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
     tag_name = Column(Text, nullable=False)
+    creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
+    creator_role = Column(Text, nullable=False)
 
 
 class CampaignsTags(Base):
@@ -350,12 +361,12 @@ class CampaignDependency(Base):
 
 class HeldLaunch(Base):
     __tablename__ = 'held_launches'
-    campaign_id = Column(Integer, nullable=False, primary_key=True)
+    campaign_id = Column(ForeignKey('campaigns.campaign_id'), primary_key=True, nullable=False, index=True)
     created = Column(DateTime(True), nullable=False, primary_key=True)
     parent_task_id = Column(Integer, nullable=False)
     dataset = Column(Text)
     param_overrides = Column(JSON)
-
+    launcher = Column(Integer, ForeignKey('experimenters.experimenter_id'))
 
 class FaultyRequest(Base):
     __tablename__ = 'faulty_requests'

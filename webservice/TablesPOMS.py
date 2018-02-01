@@ -9,9 +9,10 @@
 from collections import deque
 from . import logit
 from datetime import datetime
-from sqlalchemy import Integer, DateTime, ForeignKey, text
+from sqlalchemy import Integer, DateTime, ForeignKey, text, JSON
 
 from .utc import utc
+import json
 
 
 class TablesPOMS(object):
@@ -56,11 +57,18 @@ class TablesPOMS(object):
                 setattr(found, 'created', datetime.now(utc))
         columns = found._sa_instance_state.class_.__table__.columns
         for fieldname in list(columns.keys()):
+            logit.log("column %s type %s" % (fieldname, columns[fieldname].type))
             if not kwargs.get(fieldname, None):
                 continue
-            if columns[fieldname].type == Integer:
+            if kwargs.get(fieldname, None) == 'None':
+                continue
+            if str(columns[fieldname].type) == 'Integer':
                 setattr(found, fieldname, int(kwargs.get(fieldname, '')))
-            elif columns[fieldname].type == DateTime:
+            if str(columns[fieldname].type) == 'JSON':
+                v = json.loads(kwargs.get(fieldname, ''))
+                logit.log("json load gives: %s" % repr(v))
+                setattr(found, fieldname,v)
+            elif str(columns[fieldname].type) == 'DateTime':
                 # special case created, updated fields; set created
                 # if its null, and always set updated if we're updating
                 if fieldname == "created" and getattr(found, fieldname, None) is None:
@@ -70,7 +78,7 @@ class TablesPOMS(object):
                 if kwargs.get(fieldname, None) is not None:
                     setattr(found, fieldname, datetime.strptime(kwargs.get(fieldname, '')).replace(tzinfo=utc), "%Y-%m-%dT%H:%M")
 
-            elif columns[fieldname].type == ForeignKey:
+            elif str(columns[fieldname].type) == 'ForeignKey':
                 kval = kwargs.get(fieldname, None)
                 try:
                     kval = int(kval)
@@ -105,14 +113,15 @@ class TablesPOMS(object):
             logit.log("found %s" % found)
         if not found:
             found = sample
-        columns = sample._sa_instance_state.class_.__table__.columns
+        columns = found._sa_instance_state.class_.__table__.columns
         fieldnames = list(columns.keys())
         screendata = deque()
         for fn in fieldnames:
+            logit.log("found field %s type %s val %s" % (fn, columns[fn].type, getattr(found,fn,'')))
             screendata.append({
                 'name': fn,
                 'primary': columns[fn].primary_key,
-                'value': getattr(found, fn, ''),
+                'value':  (json.dumps(getattr(found,fn,'[]')) if str(columns[fn].type) == 'JSON' else str(getattr(found, fn, ''))),
                 'values': valmap.get(fn, None)
             })
         return screendata

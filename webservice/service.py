@@ -132,53 +132,81 @@ class SATool(cherrypy.Tool):
 class SessionExperimenter(object):
 
     def __init__(self, experimenter_id=None, first_name=None, last_name=None,
-                 username=None, authorized_for=None, session_experiment=None, **kwargs):
+                 username=None, authorization=None, session_experiment=None, session_role=None, root=None):
         self.experimenter_id = experimenter_id
         self.first_name = first_name
         self.last_name = last_name
         self.username = username
-        self.authorized_for = authorized_for
+        self.authorization = authorization
+        self.session_role = session_role
         self.session_experiment = session_experiment
-        self.extra = kwargs
-        self.valid_ip_list = deque()     # FIXME
+        self.root = root or False
 
-    def _is_valid_ip(self, ip, iplist):
-        for x in iplist:
-            if ip.startswith(x):
-                return True
-        return False
+    def get_allowed_roles(self):
+        """
+        Returns the list of allowed roles for the user/experiment in the session
+        """
+        exp = self.authorization.get(self.session_experiment)
+        return exp.get('roles')
 
-    def is_authorized(self, experiment):
-        # Root is authorized for all experiments
+    def is_authorized(self, campaign=None):
+        """
+        Who can change a campagin/any object with properties fo experiment, creator and creator_role :
+                The creator can change her/his own campaigns with the same role used to create the campaign.
+                The root can change any campaigns.
+                The coordinator can change any campaigns that in the same experiment as the coordinator.
+                Anyone with a production role can change a campaign created with a production role.
+        :param campaign: Name of the campaign.
+        :return: True or False
+        """
+        if not campaign:
+            return False
         if self.is_root():
             return True
-
-        ra  = cherrypy.session['Remote-Addr']
-        xff = cherrypy.session['X-Forwarded-For']
-        if self._is_valid_ip(ra, self.valid_ip_list):
-            return 1
-        if ra.startswith('131.225.80.'):
-            return 1
-        if ra == '127.0.0.1' and xff and xff.startswith('131.225.67'):
-            # case for fifelog agent..
-            return 1
-        if ra != '127.0.0.1' and xff and xff.startswith('131.225.80'):
-            # case for jobsub_q agent (currently on bel-kwinith...)
-            return 1
-        if ra == '127.0.0.1' and xff is None:
-            # case for local agents
-            return 1
-
-        return self.authorized_for.get(experiment, False)
+        elif self.is_coordinator() and self.session_experiment == campaign.experiment:
+            return True
+        elif self.is_production and self.session_experiment == campaign.experiment \
+                and campaign.creator_role == "production":
+            return True
+        elif campaign.creator == self.experimenter_id and campaign.experiment == self.session_experiment \
+                and campaign.creator_role == self.session_role:
+            return True
+        else:
+            return False
 
     def is_root(self):
-        if cherrypy.session['Remote-Addr'] in ['127.0.0.1', '131.225.80.97'] and cherrypy.session['X-Forwarded-For'] is None:
-            # case for local agents
-            return True
-        return self.authorized_for.get('root', False)
+        return self.root
 
-    def all_experiments(self):
-        return self.authorized_for.keys()
+    def is_coordinator(self):
+        if self.session_role == 'coordinator':
+            return True
+        return False
+
+    def is_production(self):
+        if self.session_role == "production":
+            return True
+        return False
+
+    def is_analysis(self):
+        if self.session_role == "analysis":
+            return True
+        return False
+
+    def user_authorization(self):
+        """
+        Returns a dictionary of dictionaries.  Where:
+          {'experiment':
+            {'roles': [analysis,production,coordinator,root]   # Ordered list of roles the user plays in the experiment
+            },
+          }
+        """
+        return self.authorization
+
+    def roles(self):
+        """
+        Returns a list of roles for this user/experiment
+        """
+        return self.authorization.get(self.session_experiment).get('role')
 
     def __str__(self):
         return "%s %s %s" % (self.first_name, self.last_name, self.username)
@@ -230,7 +258,7 @@ class SessionTool(cherrypy.Tool):
                             .filter(ExperimentsExperimenters.active == True)
                             .filter(Experimenter.username == username)
                             .first()
-                            )
+                           )
 
         elif cherrypy.config.get('standalone_test_user', None):
             logit.log("standalone_test_user case")
@@ -239,34 +267,42 @@ class SessionTool(cherrypy.Tool):
                             .filter(ExperimentsExperimenters.active == True)
                             .filter(Experimenter.username == username)
                             .first()
-                            )
+                           )
 
         if not experimenter:
             raise cherrypy.HTTPError(401, 'POMS account does not exist.  To be added you must registered in VOMS.')
 
-        e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == username).all()
+        e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == username).one()
 
-        # Now determine what experiments a user has access too.  If they have 'root' then all them to all experiments.
+        # Retrieve what experiments a user is ACTIVE in and the level of access right to each experiment.
+        # and construct security role data on each active experiment
         exps = {}
+        e2e = (cherrypy.request.db.query(ExperimentsExperimenters)
+               .filter(ExperimentsExperimenters.experimenter_id == e.experimenter_id)
+               .filter(ExperimentsExperimenters.active == True))
+        # Not that root is a FLAG not a ROLE.  For the dropdown, it simply provides all roles.
+        roles = ['analysis', 'production', 'coordinator']  #Ordered by how they will appear in the form dropdown.
+        for row in e2e:
+            position = 0
+            if e.root is True:
+                position = 3
+            elif row.role == 'coordinator':
+                position = 3
+            elif row.role == 'production':
+                position = 2
+            else: #analysis
+                position = 1
+            exps[row.experiment] = {'roles':roles[:position]}
 
-        root = (cherrypy.request.db.query(ExperimentsExperimenters)
-                .filter(ExperimentsExperimenters.experimenter_id == e[0].experimenter_id)
-                .filter(ExperimentsExperimenters.experiment == 'root')).all()
-        if len(root):
-            all_exps = cherrypy.request.db.query(Experiment)
-            for row in all_exps:
-                exps[row.experiment] = True
-        else:
-            e2e = cherrypy.request.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id == e[0].experimenter_id)
-            for row in e2e:
-                exps[row.experiment] = row.active
+        if e.session_experiment == "":
+            # don't choke on blank session_experiment, just pick one...
+            e.session_experiment = next(iter(exps.keys()))
 
-        extra = {'selected': list(exps.keys())}
-        cherrypy.session['experimenter'] = SessionExperimenter(e[0].experimenter_id,
-                                                               e[0].first_name, e[0].last_name, e[0].username, exps, e[0].session_experiment, **extra)
+        cherrypy.session['experimenter'] = SessionExperimenter(e.experimenter_id,
+                                                               e.first_name, e.last_name, e.username, exps,
+                                                               e.session_experiment, e.session_role, e.root)
 
         cherrypy.session.save()
-
         cherrypy.request.db.query(Experimenter).filter(Experimenter.username == username).update({'last_login': datetime.now(utc)})
         cherrypy.request.db.commit()
         cherrypy.log.error("New Session: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For', 'Unknown'),
@@ -280,14 +316,14 @@ class SessionTool(cherrypy.Tool):
 # non ORM class to cache an experiment
 #
 class SessionExperiment():
-     def __init__(self, exp):
-        self.experiment  = exp.experiment
-        self.name  = exp.name
-        self.logbook  = exp.logbook
-        self.snow_url  = exp.snow_url
-        self.restricted  = exp.restricted
+    def __init__(self, exp):
+        self.experiment = exp.experiment
+        self.name = exp.name
+        self.logbook = exp.logbook
+        self.snow_url = exp.snow_url
+        self.restricted = exp.restricted
 
-  
+
 def augment_params():
     experiment = cherrypy.session.get('experimenter').session_experiment
     exp_obj = cherrypy.request.db.query(Experiment).filter(Experiment.experiment == experiment).first()
@@ -295,11 +331,12 @@ def augment_params():
     root = cherrypy.request.app.root
     root.jinja_env.globals.update(dict(exp_obj=SessionExperiment(exp_obj),
                                        current_experimenter=current_experimenter,
-                                       allowed_experiments=current_experimenter.all_experiments(),
+                                       user_authorization=current_experimenter.user_authorization(),
                                        session_experiment=current_experimenter.session_experiment,
+                                       session_role=current_experimenter.session_role,
+                                       allowed_roles=current_experimenter.get_allowed_roles(),
                                        version=root.version,
-                                       pomspath=root.path)
-    )
+                                       pomspath=root.path))
     # logit.log("jinja_env.globals: {}".format(str(root.jinja_env.globals)))   # DEBUG
 
 
