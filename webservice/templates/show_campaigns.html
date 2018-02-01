@@ -6,6 +6,19 @@ POMS: Campaign Stages
 
 {%block header%}
 Campaign Stages{%include 'help_button.html'%}
+<script>
+    function do_checkall() {
+        // console.log("In do_changeall");
+        const max_rows = $("#c_table_max_rows").val();
+        for (let i = 1; i <= max_rows; i++) {
+            let $cba = $("#c_cbox_all");
+            let $cb = $("#c_cbox_"+i);
+            if ($cb.is(":visible") && !$cb.is(":disabled")) {
+                $cb.prop("checked", $cba.prop("checked"));
+            }
+        }
+    }
+</script>
 {%endblock%}
 
 {%block content%}
@@ -16,11 +29,16 @@ Campaign Stages{%include 'help_button.html'%}
 <style scoped>
     table th {
         font-weight: bold !important;
-        padding-right: 12px !important;
+        /* padding-right: 12px !important; */
     }
 
+    /* Hide the first column with IDs */
     #campaigns th:nth-child(1), table td:nth-child(1) {
         display: none;
+    }
+
+    .tablesorter thead .disabled {
+        display:none;
     }
 </style>
 <div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
@@ -38,9 +56,10 @@ Campaign Stages{%include 'help_button.html'%}
     <table id="campaigns" class="ui celled _table unstackable tablesorter tablesorter-ice">
         <thead>
             <tr>
-                <th>Why does this not show in the table?</th>
-                <th>Select</th>
-                <th>Id</th>
+                <th data-sorter="false" data-filter="false">Id</th>
+                <th data-sorter="false" data-filter="false" align="center">
+                    Select All<br><input type="checkbox" id="c_cbox_all" onchange="do_checkall();">
+                </th>
                 <th>Name</th>
                 <th>Active</th>
                 <th>Tags</th>
@@ -53,20 +72,15 @@ Campaign Stages{%include 'help_button.html'%}
         <tbody>
             {% for campaign in campaigns %}
                 <tr id="c_tr_{{loop.index}}">
-                    <td>Same with this?</td>
-                    {% if data.authorized[loop.index-1]==True %}
-                    <td><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
-                    {% else %}
-                    <td><input type="checkbox" id="c_cbox_{{loop.index}}" disabled="disabled"></td>
-                    {% endif %}
-                    <td id="c_name_{{loop.index}}" style="display:none">{{campaign.name}}</td>
                     <td id="c_id_{{loop.index}}">{{campaign.campaign_id}}</td>
+                    <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}" {{ 'disabled' if data.authorized[loop.index-1]!=True }}></td>
                     <td><a href="{{pomspath}}/campaign_info?campaign_id={{campaign.campaign_id}}">{{campaign.name}}</a></td>
                     <td>{{ 'Yes' if campaign.active else 'No' }}</td>
                     <td>{{ campaign.campaigns_tags | join('<br>', attribute='tag_obj.tag_name') }}</td>
                     <td>{{campaign.experimenter_holder_obj.username}}</td>
                     <td>{{campaign.experimenter_creator_obj.username}}</td>
                     <td>{{campaign.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>
+                    <td id="c_name_{{loop.index}}" style="display:none">{{campaign.name}}</td>
                 </tr>
             {% endfor %}
         </tbody>
@@ -74,7 +88,6 @@ Campaign Stages{%include 'help_button.html'%}
     <input type="hidden" id="c_table_max_rows" value="{{campaigns|length}}">
     <script>
         $("#campaigns th").attr("style", "padding: 0.3em; border-left: 1;");
-        //$('.hideit').hide();
     </script>
 </div>
 {% endif %}
