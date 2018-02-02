@@ -27,7 +27,7 @@ ALTER TABLE experiments_experimenters DROP CONSTRAINT ck_role;
 ALTER TABLE experiments_experimenters ADD CONSTRAINT
   ck_role CHECK (role = 'coordinator'::text or role = 'production'::text or role = 'analysis'::text);
 
-ALTER TABLE experimenters ADD active_role text DEFAULT 'analysis' NOT NULL;
+ALTER TABLE experimenters ADD session_role text DEFAULT 'analysis' NOT NULL;
 
 ALTER TABLE campaigns ADD campaign_type text NOT NULL default 'regular';
 alter table campaigns alter column campaign_type drop default;
