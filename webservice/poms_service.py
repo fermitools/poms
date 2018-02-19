@@ -790,7 +790,7 @@ class PomsService(object):
     def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None, test_launch_template=None,
                     experiment=None, launcher=None):
 
-        if cherrypy.session.get('experimenter').username and 'poms' != cherrypy.session.get('experimenter').username :
+        if cherrypy.session.get('experimenter').username and ('poms' != cherrypy.session.get('experimenter').username or launch_user='') :
             launch_user = cherrypy.session.get('experimenter').experimenter_id 
         else:
             launch_user = launcher
