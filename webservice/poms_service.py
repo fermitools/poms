@@ -481,12 +481,13 @@ class PomsService(object):
     def register_poms_campaign(self, experiment, campaign_name, version, user=None,
                                campaign_definition=None, dataset="", role="Analysis",
                                params=[]):
+        user = cherrypy.session.get('experimenter')
         campaign_id = self.campaignsPOMS.register_poms_campaign(cherrypy.request.db,
                                                                 experiment,
                                                                 campaign_name,
                                                                 version, user,
                                                                 campaign_definition,
-                                                                dataset, role,
+                                                                dataset, role,user.session_role,
                                                                 cherrypy.session.get, params)
         return "Campaign=%d" % campaign_id
 
