@@ -680,8 +680,10 @@ class CampaignsPOMS():
         for cid in cnames.keys():
             cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id==cid).filter(CampaignDependency.uses_camp_id.in_(cnames.keys())).all()
             for cd in cdl:
-                dmap[cid].append(cd.uses_camp_id)
-                fpmap[(cid, cd.uses_camp_id)] = cd.file_patterns
+                if cd.uses_camp_id in cnames.keys():
+                    dmap[cid].append(cd.uses_camp_id)
+                    fpmap[(cid, cd.uses_camp_id)] = cd.file_patterns
+
         #------------
 
         # sort by dependencies(?)
@@ -737,6 +739,8 @@ class CampaignsPOMS():
         # still need dependencies
         deps = deque()
         for cid in dmap.keys(): 
+            if len(dmap[cid]) == 0:
+                continue
             res.append("[dependencies %s]" % cnames[cid])
             i = 0
             for dcid in dmap[cid]:
