@@ -679,7 +679,7 @@ class CampaignsPOMS():
 
         fpmap = {}
         for cid in cnames.keys():
-            cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id==cid).filter(CampaignDependency.needs_camp_id.in_(cnames.keys())).all()
+            cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.uses_camp_id==cid).filter(CampaignDependency.needs_camp_id.in_(cnames.keys())).all()
             for cd in cdl:
                 if cd.needs_camp_id in cnames.keys():
                     dmap[cid].append(cd.needs_camp_id)
