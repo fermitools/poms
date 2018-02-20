@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
 import sys
+import os
 import ConfigParser
+import poms_client
+import json
+import logging
 
 class uploader:
 
@@ -23,7 +27,7 @@ class uploader:
             return None
 
     def upload_wf(self, testflag = None):
-        cfg_stages = set(self.cfg_get('campaign','campaign_stage_list').split())
+        cfg_stages = self.cfg_get('campaign','campaign_stage_list').split()
         cfg_jobtypes = set()
         cfg_launches = set()
         print("here")
@@ -38,6 +42,14 @@ class uploader:
         for s in cfg_stages:
             self.upload_stage(s, testflag)
 
+        self.tag_em(self.cfg_get('campaign','tag'), cfg_stages, testflag)
+
+
+    def tag_em(self, tag, cfg_stages, testflag = False):
+        cname_id_map = poms_client.get_campaign_list(test_client=testflag)
+        print("got map: %s" % repr(cname_id_map))
+        cids = map((lambda x:str(cname_id_map[x])), cfg_stages)
+        poms_client.tag_campaigns(tag = tag, cids = ','.join(cids), experiment=self.cfg_get('campaign','experiment'), test_client = testflag)
 
     def upload_jobtype(self,jt, testflag = None):
         field_map = {
@@ -45,13 +57,22 @@ class uploader:
             'parameters':'def_parameter',
             'output_file_patterns':'output_file_patterns',
         }
-        d=self.cfg.items('job_type %s'%jt)
+        d=dict(self.cfg.items('job_type %s'%jt))
         print( "I should upload jt %s" % jt)
-        print( repr(d))
-        args = {'action': 'add', 'name': jt, 'pc_username': os.environ['USER']}
-        args['test'] = testflag
+        print(repr(d))
+        args = {
+            'action': 'add', 
+            'name': jt, 
+            'experiment': self.cfg_get('campaign','experiment'), 
+            'pc_username': os.environ['USER'],
+            'test_client': testflag,
+        }
         for k in d.keys():
-            args[field_map[k]] = d[k]
+            args[field_map.get(k,k)] = d[k]
+        # lauch script wants a list(?)
+        args['launch_script'] = [args['launch_script']]
+        args['def_parameter'] =  json.loads(args['def_parameter'])
+        print("args:%s" % repr(args))
         poms_client.campaign_definition_edit(**args)
 
     def upload_launch_template(self,lt, testflag = None):
@@ -63,15 +84,22 @@ class uploader:
         d = dict(self.cfg.items('launch_template %s' % lt))
         print( "I should upload lt %s" % lt)
         print( repr(d))
-        args = {'action': 'add', 'launch_name': lt, 'pc_username': os.environ['USER']}
-        args['test'] = testflag
+        args = {
+             'action': 'add', 
+             'launch_name': lt, 
+             'experiment': self.cfg_get('campaign','experiment'), 
+             'pc_username': os.environ['USER'],
+             'test_client': testflag,
+        }
         for k in d.keys():
-            args[field_map[k]] = d[k]
-        poms_client.edit_launch_template(**args)
+            args[field_map.get(k,k)] = d[k]
+        # launch_setup wants a list(?)
+        args['launch_setup'] = [ args['launch_setup'] ]
+        poms_client.launch_template_edit(**args)
         
     def upload_stage(self,st, testflag = None):
         field_map = {
-            'dataset': '',
+            'dataset': 'dataset',
             'software_version': 'ae_software_version',
             'vo_role': 'vo_role',
             'cs_split_type': 'ae_split_type',
@@ -88,20 +116,30 @@ class uploader:
                 pat = self.cfg_get('dependencies %s' % st, 'file_pattern_%d'%i)
                 deps["campaigns"].append(dst)
                 deps["file_patterns"].append(pat)
-        d=self.cfg.items('campaign_stage %s'%st)
+        d=dict(self.cfg.items('campaign_stage %s'%st))
         print( "I should upload s %s" % st)
         print( repr(d))
         print( "deps: %s" % repr(deps))
-        args = {'action': 'add', 'ae_depends', json.dumps(deps), 'pc_username' : os.environ['USER']}
-        args['test'] = testflag
+        args = {
+            'action': 'add', 
+            'ae_campaign_name': st,  
+            'experiment': self.cfg_get('campaign','experiment'), 
+            'ae_active': True, 
+            'ae_depends': json.dumps(deps),
+            'pc_username' : os.environ['USER']
+        }
+        args['test_client'] = testflag
         for k in d.keys():
-            args[field_map[k]] = d[k]
+            args[field_map.get(k,k)] = d[k]
+        print("args:%s" % repr(args))
         poms_client.campaign_edit(**args)
 
-testflag = None
-if sys.argv[1] == '-t':
-    testflag = True
-    sys.argv = sys.argv[1:]
-u=uploader(sys.argv[1])
-u.upload_wf(testflag)
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    testflag = None
+    if sys.argv[1] == '-t':
+        testflag = True
+        sys.argv.pop(1)
+    u=uploader(sys.argv[1])
+    u.upload_wf(testflag)
 

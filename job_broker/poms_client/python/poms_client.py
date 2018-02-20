@@ -146,7 +146,7 @@ def launch_template_edit(action = None, launch_name = None, launch_host = None, 
 
 
 def campaign_definition_edit(output_file_patterns, launch_script,
-                            def_parameter, pc_username=None, action = None, name = None, experiment = None, test_client=False, configfile = None):
+                            def_parameter = None, pc_username=None, action = None, name = None, experiment = None, test_client=False, configfile = None):
     # You can not modify the recovery_type from the poms_client (future feauture)
     test_client = test_client
     method = "campaign_definition_edit"
@@ -165,14 +165,14 @@ def campaign_definition_edit(output_file_patterns, launch_script,
     else:
         ae_launch_script = launch_script
 
-    if isinstance(def_paramater, basestring):
+    if isinstance(def_parameter, basestring):
         try:
             def_parameter = json.loads(def_parameter)
         except:
             logging.error("please use JSON format for the parameter overrides")
             raise
 
-    ae_definition_parameters= json.dumps(def_parameter)
+    ae_definition_parameters=json.dumps(def_parameter)
     data, status_code = make_poms_call(pcl_call=1,
                             method = method,
                             pc_username = pc_username,
@@ -240,6 +240,17 @@ def campaign_edit (action, ae_campaign_name, pc_username, experiment, vo_role,
     return "status_code", status_code
     #return data['message']
 
+def get_campaign_list(test_client = False):
+    res, sc = make_poms_call(method='campaign_list_json', test_client =test_client)
+    d = {}
+    for nid in json.loads(res):
+        d[nid['name']] = nid['campaign_id']
+    return d
+
+def tag_campaigns(tag,cids,experiment, test_client = False):
+    res,sc = make_poms_call(method='link_tags', campaign_id=cids, tag_name=tag, experiment = experiment, test_client = test_client)
+    return sc == 200
+
 
 def auth_cert():
         #rs.cert = '/tmp/x509up_u`id -u`'
@@ -282,6 +293,7 @@ def make_poms_call(**kwargs):
         #base=config['url']['base_dev_ssl']
         base=config.get('url','base_dev_ssl')
         logging.debug("base = " + base)
+        del kwargs["test_client"]
     else:
         #base=config['url']['base_prod']
         base=config.get('url','base_prod')
@@ -324,7 +336,7 @@ def make_poms_call(**kwargs):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     # simple tests...
-    res = make_poms_call(test=True, method="active_jobs")
+    res,sc = make_poms_call(test=True, method="active_jobs")
     tid = get_task_id_for(test = True, campaign=14, command_executed="fake test job")
     cid = register_poms_campaign("mwm_client_test",  user = "mengel", experiment = "samdev", version = "v0_0", dataset = "mwm_test_data", test = True)
     logging.info("got task id " +  str(tid))
