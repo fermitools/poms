@@ -31,8 +31,9 @@ def parse_command_line():
     parser.add_argument('dbname', help="Database to connect to.")
     parser.add_argument('user', help="User to connect as")
     parser.add_argument('cert', help="Location of certificates.")
+    parser.add_argument('-c', '--commit', action="store_true", help='Save changes to the database. Required to save data!')
     parser.add_argument('-f', '--ferry', help='FERRY url to use.')
-    parser.add_argument('-s', '--skip_analysis', help='Do not include analysis users.')
+    parser.add_argument('-s', '--skip_analysis', action="store_true", help='Do not include analysis users.')
     parser.add_argument('-e', '--experiment', help='Run for a specific experiment, otherwise runs for all experiments in database.')
     parser.add_argument('-p', '--password', help="Password for the database user account. For testing only, for production use .pgpass .")
     parser.add_argument('-d', '--debug', action="store_true", help="Send debug data to screen")
@@ -42,6 +43,7 @@ def parse_command_line():
     #d = vars(args)
     #if d['password'] == None:
     #    d['password'] = getpass.getpass('Password: ')
+
     return args
 
 
@@ -56,21 +58,22 @@ def get_experiments(cursor, experiment):
     return exp_list
 
 def query_ferry(cert, ferry_url, exp, role):
-    results = []
-    debug("get_ferry_experiment_users for experiment: %s  role: %s" % (exp, role))
+    results = {}
+    debug("query_ferry for experiment: %s  role: %s" % (exp, role))
     url = ferry_url + "/getAffiliationMembersRoles?experimentname=%s&rolename=/%s/Role=%s" % (exp, exp, role)
+    debug("query_ferry: requested url: %s" % url)
     r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
     if r.status_code != requests.codes.ok:
-        debug("get_ferry_experiment_users -- error status_code: %s" % r.status_code)
+        debug("get_ferry_experiment_users -- error status_code: %s  -- %s" % (r.status_code, url))
     else:
         results = r.json()
         ferry_error = results.get('ferry_error', None)
         if ferry_error is not None:
-            print("get_ferry_experiment_users -- ferry_error: %s  URL: %s" % (str(ferry_error), url))
+            debug("get_ferry_experiment_users -- ferry_error: %s  URL: %s" % (str(ferry_error), url))
             results = {}
     return results.get(exp, {})
 
-def get_ferry_data(cert, ferry_url, exp, skip_analysis=False):
+def get_ferry_data(cert, ferry_url, exp, skip_analysis):
     """
     Query Ferry for exps users by Analysis and Production.  Join them in one dictionary.
       Dict Returned:
@@ -79,6 +82,7 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis=False):
       }
     """
     users = {}
+    anal_users = {}
     if skip_analysis is False:
         anal_users = query_ferry(cert, ferry_url, exp, 'Analysis')
     prod_users = query_ferry(cert, ferry_url, exp, 'Production')
@@ -92,9 +96,9 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis=False):
 def get_voms_data(cert, exp):
     debug("get_voms_data for: %s" % exp)
     payload = {"accountName": "%spro" % exp}
-    r = requests.get("https://gums2.fnal.gov:8443/gums/map_account.jsp", params=payload, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    req = requests.get("https://gums2.fnal.gov:8443/gums/map_account.jsp", params=payload, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
     users = {}
-    for line in r.iter_lines():
+    for line in req.iter_lines():
         line = line.decode('utf-8')
         if line.find("CN=UID:") != -1:
             username = line.split("/CN=")[-1][4:]
@@ -104,7 +108,7 @@ def get_voms_data(cert, exp):
             users[username] = {'commonname': commonname, 'role': 'production'}
     return users
 
-def determine_user_additions_alterations(cursor, exp, users):
+def determine_changes(cursor, exp, users):
     sql = """
         select e.username, e2e.experimenter_id, e2e.active, e2e.role
         from experiments_experimenters e2e, experimenters e
@@ -112,7 +116,7 @@ def determine_user_additions_alterations(cursor, exp, users):
               e2e.experiment = '%s'
     """ % exp
     new_users = users.copy() # existing users will be popped off.
-    inactive_users = {}
+    active_status = {}
     role_changes = {}
 
     cursor.execute(sql)
@@ -120,11 +124,13 @@ def determine_user_additions_alterations(cursor, exp, users):
         user = new_users.pop(username, None)
         if user is None:
             if active is True:
-                inactive_users[username] = {'experimenter_id' : experimenter_id, 'username': username}
+                active_status[username] = {'experimenter_id' : experimenter_id, 'active': False, 'username': username}
         elif user['role'] != role:
             if role != 'coordinator':
                 role_changes[username] = {'experimenter_id': experimenter_id, 'role': role}
-    return new_users, inactive_users, role_changes
+        elif active is False:
+            active_status[username] = {'experimenter_id' : experimenter_id, 'active': True, 'username': username}
+    return new_users, active_status, role_changes
 
 def add_users(cursor, exp, new_users):
     for username, user in new_users.items():
@@ -157,22 +163,25 @@ def add_relationship(cursor, experimenter_id, exp, role, username):
         cursor.execute(sql)
     else:
         sql = "update experiments_experimenters set active=true, role='%s' where experiment='%s' and experimenter_id=%s" % (role, exp, experimenter_id)
-
-def set_inactive_users(cursor, inactive_users, exp):
-    for username, user in inactive_users.items():
-        sql = "update experiments_experimenters set active=false where experiment='%s' and experimenter_id=%s" % (exp, user['experimenter_id'])
+        debug("    add_relationship: updated experiment=%s  experimenter_id=%s (%s) role=%s active=true" % (exp, experimenter_id, username, role))
         cursor.execute(sql)
-        debug("set_inactive_users: experiment=%s experimenter_id=%s (%s)" % (exp, user['experimenter_id'], username))
+
+def set_active_status(cursor, active_status, exp):
+    for username, user in active_status.items():
+        sql = "update experiments_experimenters set active=%s where experiment='%s' and experimenter_id=%s" % (user['active'], exp, user['experimenter_id'])
+        cursor.execute(sql)
+        debug("set_active_status: experiment=%s experimenter_id=%s (%s) active set to: %s" % (exp, user['experimenter_id'], username, user['active']))
 
 def set_assigned_role(cursor, role_changes, exp):
     for username, user in role_changes.items():
-        sql = "update experiments_experimenters set role='%s' where experiment='%s' and experimenter_id=%s" % (user['role'], exp, user['experimenter_id'])
+        sql = "update experiments_experimenters set role='%s', active=true where experiment='%s' and experimenter_id=%s" % (user['role'], exp, user['experimenter_id'])
         cursor.execute(sql)
         debug("set_assigned_role: experiment=%s experimenter_id=%s (%s) role=%s" % (exp, user['experimenter_id'], username, user['role']))
 
 def main():
     global dbg
     global log
+    stime = time.time()
     args = parse_command_line()
 
     if args.debug:
@@ -187,27 +196,35 @@ def main():
     if args.password:
         password = "password=%s" % args.password
 
+    debug("main:POMS Database: %s Host: %s Port:%s" % (args.dbname, args.host, args.port))
     conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s %s" % (args.dbname, args.host, args.port, args.user, password))
     cursor = conn.cursor()
 
     exp_list = get_experiments(cursor, args.experiment)
-    debug("main:Experiments list: %s" % exp_list)
+    debug("main:Experiment todo list: %s" % exp_list)
     for exp in exp_list:
         debug("\nmain: Experiment: %s" % exp)
         users = {}
         if args.ferry:
-            users = get_ferry_data(args.cert, args.ferry, exp,)
+            users = get_ferry_data(args.cert, args.ferry, exp, args.skip_analysis)
         else:
             users = get_voms_data(args.cert, exp)
-        new_users, inactive_users, role_changes = determine_user_additions_alterations(cursor, exp, users)
+        new_users, active_status, role_changes = determine_changes(cursor, exp, users)
         add_users(cursor, exp, new_users)
-        set_inactive_users(cursor, inactive_users, exp)
+        set_active_status(cursor, active_status, exp)
         set_assigned_role(cursor, role_changes, exp)
 
-        conn.commit()
+        if args.commit is True:
+            conn.commit()
+            debug("\nmain: %s database changes COMMITED!!" % exp)
+        else:
+            conn.rollback()
+            debug("\nmain: %s database changes ROLLED BACK!!" % exp)
+
 
     cursor.close()
     conn.close()
+    debug("main: elapsed seconds: %s" % (time.time() - stime))
     debug("main: finito!")
 
 if __name__ == "__main__":

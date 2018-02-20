@@ -231,6 +231,8 @@ class CampaignsPOMS():
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
                 definition_parameters = kwargs.pop('ae_definition_parameters')
+                if definition_parameters:
+                    definition_parameters = json.loads(definition_parameters)
                 recoveries = kwargs.pop('ae_definition_recovery', "[]")
                 # Getting the info that was not passed by the poms_client arguments
                 if input_files_per_job in [None, ""]:
@@ -247,7 +249,7 @@ class CampaignsPOMS():
                         CampaignDefinition.campaign_definition_id == campaign_definition_id).firts().launch_script
                 if definition_parameters in [None, ""]:
                     definition_parameters = dbhandle.query(CampaignDefinition).filter(
-                        CampaignDefinition.campaign_definition_id == campaign_definition_id).firts().definition_parameters
+                        CampaignDefinition.campaign_definition_id == campaign_definition_id).first().definition_parameters
             else:
                 experimenter_id = kwargs.pop('experimenter_id')
                 campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
@@ -258,7 +260,6 @@ class CampaignsPOMS():
                 output_files_per_job = kwargs.pop('ae_output_files_per_job', 0)
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
-                definition_parameters = json.loads(kwargs.pop('ae_definition_parameters'))
                 recoveries = kwargs.pop('ae_definition_recovery')
             try:
                 if action == 'add':
