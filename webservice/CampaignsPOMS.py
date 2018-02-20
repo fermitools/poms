@@ -231,6 +231,8 @@ class CampaignsPOMS():
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
                 definition_parameters = kwargs.pop('ae_definition_parameters')
+                if definition_parameters:
+                    definition_parameters = json.loads(definition_parameters)
                 recoveries = kwargs.pop('ae_definition_recovery', "[]")
                 # Getting the info that was not passed by the poms_client arguments
                 if input_files_per_job in [None, ""]:
@@ -247,7 +249,7 @@ class CampaignsPOMS():
                         CampaignDefinition.campaign_definition_id == campaign_definition_id).firts().launch_script
                 if definition_parameters in [None, ""]:
                     definition_parameters = dbhandle.query(CampaignDefinition).filter(
-                        CampaignDefinition.campaign_definition_id == campaign_definition_id).firts().definition_parameters
+                        CampaignDefinition.campaign_definition_id == campaign_definition_id).first().definition_parameters
             else:
                 experimenter_id = kwargs.pop('experimenter_id')
                 campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
@@ -258,7 +260,6 @@ class CampaignsPOMS():
                 output_files_per_job = kwargs.pop('ae_output_files_per_job', 0)
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
-                definition_parameters = json.loads(kwargs.pop('ae_definition_parameters'))
                 recoveries = kwargs.pop('ae_definition_recovery')
             try:
                 if action == 'add':
@@ -676,10 +677,14 @@ class CampaignsPOMS():
             dmap[cid] = []
 
 
+        fpmap = {}
         for cid in cnames.keys():
             cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id==cid).filter(CampaignDependency.uses_camp_id.in_(cnames.keys())).all()
             for cd in cdl:
-                dmap[cid].append(cd.uses_camp_id)
+                if cd.uses_camp_id in cnames.keys():
+                    dmap[cid].append(cd.uses_camp_id)
+                    fpmap[(cid, cd.uses_camp_id)] = cd.file_patterns
+
         #------------
 
         # sort by dependencies(?)
@@ -692,18 +697,18 @@ class CampaignsPOMS():
         res.append("[campaign]")
         res.append("experiment=%s" % cl[0].experiment)
         if tag == None:
-            res.append("layer_id: %s" % camp_id)
+            res.append("stage_id: %s" % camp_id)
         else:
             res.append("tag: %s" % tag)
 
         jts = set()
         lts = set()
 
-        res.append("campaign_layer_list=%s" % " ".join(map(cnames.get,cidl)))
+        res.append("campaign_stage_list=%s" % " ".join(map(cnames.get,cidl)))
         res.append("")
 
         for c in cl:
-            res.append("[campaign_layer %s]" % c.name)
+            res.append("[campaign_stage %s]" % c.name)
             res.append("dataset=%s" % c.dataset)
             res.append("software_version=%s" % c.software_version)
             res.append("vo_role=%s" % c.vo_role)
@@ -732,15 +737,22 @@ class CampaignsPOMS():
             res.append("")
             # still need: recovery launches
 
-        res.append("[dependencies]")
         # still need dependencies
         deps = deque()
-        for cid in cidl:
-            res.append("%s=%s" % (cnames[cid], " ".join(map(cnames.get, dmap[cid]))))
+        for cid in dmap.keys(): 
+            if len(dmap[cid]) == 0:
+                continue
+            res.append("[dependencies %s]" % cnames[cid])
+            i = 0
+            for dcid in dmap[cid]:
+                i = i + 1
+                res.append("campaign_stage_%d = %s" % (i, cnames[dcid]))
+                res.append("file_pattern_%d = %s" % (i, fpmap[(cid,dcid)]))
+            res.append("")
 
         res.append("")
 
-        return "\n".join(res)
+        return "\n".join(res).replace("%","%%")
 
     def campaign_deps_svg(self, dbhandle, config_get, tag=None, camp_id=None):
         '''

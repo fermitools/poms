@@ -1,16 +1,16 @@
 {%extends "layout.html"%}
 
 {%block title%}
-POMS:Campaign {{Campaign.name}}
+POMS:Campaign Stage {{Campaign.name}}
 {%endblock%}
 
 
 {%block header%}
-Campaigns{%include 'help_button.html'%}
+Campaign Stage Info {%include 'help_button.html'%}
 {%endblock%}
 
 {%block subheader%}
-Campaign {{Campaign.name}}
+Campaign Stage {{Campaign.name}}
 {%endblock%}
 
 
@@ -230,7 +230,7 @@ $( document ).ready(function() {
               </div>
               <div class=item>
                <a href="{{pomspath}}/jobs_time_histo?timetype=copy_out_time&campaign_id={{Campaign.campaign_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job Copy Out Time Histogram
+                   <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Copy Out Time Histogram(1 month)
                </a>
               </div>
               <div class=item>

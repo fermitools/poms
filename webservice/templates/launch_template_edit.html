@@ -212,13 +212,15 @@ $("#experiment").change(function() {
     $("#template_add_edit_modal").modal({}).modal('show');
     if ( typeof clone === 'undefined' )
     {
-      if ( ($("#ldf_authorized_"+index).val() == false) ) {
-        $("#ae_submit").prop("disabled",true);
-        $("#ae_test").prop("disabled",true);
+      $("#ae_submit").prop("value","Submit");
+      if ( ($("#c_authorized_"+index).text() == "False") ) {
+	$("#ae_submit").prop("disabled",true);
+      } else {
+	$("#ae_submit").prop("disabled",false);
       }
     } else {
-      $("#ae_submit").prop('value', 'Clone');
-      $("#ae_test").hide();
+      $("#ae_submit").prop("value","Clone");
+      $("#ae_submit").prop("disabled",false);
     }
   }
 

@@ -5,16 +5,11 @@ import requests
 import os
 import json
 import logging
+import warnings
 try:
     import configparser as ConfigParser
 except:
     import ConfigParser
-
-try:
-    import requests.packages.urllib3 as urllib3
-    urllib3.disable_warnings()
-except:
-    pass
 
 rs = requests.Session()
 
@@ -304,7 +299,10 @@ def make_poms_call(**kwargs):
     rs.verify=False
     logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert))
 
-    c = rs.post("%s/%s" % (base,method), data=kwargs, verify=False, allow_redirects = False);
+    # ignore insecure request warnings...
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        c = rs.post("%s/%s" % (base,method), data=kwargs, verify=False, allow_redirects = False);
     res = c.text
     status_code = c.status_code
     c.close()
