@@ -174,7 +174,7 @@ def set_active_status(cursor, active_status, exp):
 
 def set_assigned_role(cursor, role_changes, exp):
     for username, user in role_changes.items():
-        sql = "update experiments_experimenters set role='%s' where experiment='%s' and experimenter_id=%s active=true" % (user['role'], exp, user['experimenter_id'])
+        sql = "update experiments_experimenters set role='%s', active=true where experiment='%s' and experimenter_id=%s" % (user['role'], exp, user['experimenter_id'])
         cursor.execute(sql)
         debug("set_assigned_role: experiment=%s experimenter_id=%s (%s) role=%s" % (exp, user['experimenter_id'], username, user['role']))
 
