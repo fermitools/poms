@@ -24,6 +24,7 @@ def register_poms_campaign(campaign_name, user = None, experiment = None, versio
                     campaign_definition = campaign_definition,
                     test = test,
                     configfile = configfile)
+    print("got data: %s" % data)
     data=data.replace('Campaign=','')
     return int(data)
 
@@ -251,7 +252,7 @@ def tag_campaigns(tag,cids,experiment, test_client = False):
     res,sc = make_poms_call(method='link_tags', campaign_id=cids, tag_name=tag, experiment = experiment, test_client = test_client)
     return sc == 200
 
-def update_session_role(role):
+def update_session_role(role, test_client = False):
     res,sc = make_poms_call(method='update_session_role', session_role='production', test_client = test_client)
     return sc == 200
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #from test_pipe import launch_template_edit_test
 import os
-from poms_client import launch_template_edit
+from poms_client import launch_template_edit,update_session_role
 import argparse
 
 import logging
@@ -45,7 +45,7 @@ logging.debug( "user="+ str(args.user ))
 logging.debug( "test_client"+ str(args.test_client ))
 
 
-poms_client.update_session_role(args.poms_role)
+update_session_role(args.poms_role)
 res = launch_template_edit(action = args.action,
                             launch_name = args.launch_name,
                             launch_host = args.host,

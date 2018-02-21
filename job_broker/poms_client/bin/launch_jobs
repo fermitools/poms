@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from poms_client import launch_jobs
+from poms_client import launch_jobs,update_session_role
 import optparse
 import os
 
@@ -18,7 +18,7 @@ parser.add_argument('--poms_role', type=str, help='use to test the client URL qu
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 
-poms_client.update_session_role(args.poms_role)
+update_session_role(args.poms_role)
 res = launch_jobs(campaign = options.campaign, 
         experiment = options.experiment,
 	test = options.test)
