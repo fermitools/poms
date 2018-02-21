@@ -216,10 +216,10 @@ def main():
 
         if args.commit is True:
             conn.commit()
-            debug("\nmain: %s database changes COMMITED!!" % exp)
+            debug("main: %s database changes COMMITED!!" % exp)
         else:
             conn.rollback()
-            debug("\nmain: %s database changes ROLLED BACK!!" % exp)
+            debug("main: %s database changes ROLLED BACK!!" % exp)
 
 
     cursor.close()
