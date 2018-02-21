@@ -6,10 +6,11 @@ import ConfigParser
 import poms_client
 import json
 import logging
+import argparse
 
 class uploader:
 
-    def __init__(self, cfgfile):
+    def __init__(self, cfgfile, args):
         self.cfg = ConfigParser.SafeConfigParser()
         self.cfg.optionxform = str
         self.cfg.read(cfgfile)
@@ -17,6 +18,12 @@ class uploader:
             self.cfg_globals = dict(self.cfg.items('global'))
         else:
             self.cfg_globals = dict()
+
+        role = args.poms_role
+        if self.cfg_get('global','poms_role'):
+            role = self.cfg_get('global','poms_role') 
+
+        poms_client.update_session_role(role)
 
     def cfg_get(self,section,item):
         try:
@@ -136,10 +143,16 @@ class uploader:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    testflag = None
-    if sys.argv[1] == '-t':
+
+    parser = argparse.ArgumentParser(description='Optional arguments edit campaign')
+    parser.add_argument('--test', type=bool, help='use to test the client URL query', default = 'False')
+    parser.add_argument('--poms_role', type=str, help='use to test the client URL query', default = 'production')
+    args = parser.parse_args()
+
+    if args.test:
         testflag = True
         sys.argv.pop(1)
-    u=uploader(sys.argv[1])
+
+    u=uploader(sys.argv[1], args)
     u.upload_wf(testflag)
 

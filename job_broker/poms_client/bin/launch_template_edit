@@ -24,6 +24,7 @@ parser.add_argument('--user', metavar='username at submission node', type=str,
 help='Please provide your user name', default=os.environ.get('GRID_USER',os.environ.get('USER','unknown')))
 parser.add_argument('--setup', metavar='the setup you do at your interactive node', type=str, nargs='*', help='provide the necessary comands for your submission node e.g. setup_nova', default = None)
 parser.add_argument('--test_client', metavar='want to test the client URL query', type=str, help='use to test the client URL query', default = False)
+parser.add_argument('--poms_role', type=str, help='use to test the client URL query', default = 'production')
 
 
 args = parser.parse_args()
@@ -44,6 +45,7 @@ logging.debug( "user="+ str(args.user ))
 logging.debug( "test_client"+ str(args.test_client ))
 
 
+poms_client.update_session_role(args.poms_role)
 res = launch_template_edit(action = args.action,
                             launch_name = args.launch_name,
                             launch_host = args.host,

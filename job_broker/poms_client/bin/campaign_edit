@@ -32,9 +32,13 @@ parser.add_argument('--completion', metavar='0%%/-100%%', type=int, help='provid
 parser.add_argument('--param_overrides', metavar='parameters of the script', type=str, nargs='*', help='parameters of collaboration script')
 parser.add_argument('--depends_on', metavar='dependencies of the campaigns', type=str, nargs='*', help='you can setup the campaign dependencies e.g. {"campaigns":["mwm_test_1","mwm_test_2"],"file_patterns":["%%.raw","%%.root"]}')
 parser.add_argument('--test_client', metavar='want to test the client URL query', type=str, help='use to test the client URL query', default = False)
+parser.add_argument('--poms_role', type=str, help='use to test the client URL query', default = 'production')
 args = parser.parse_args()
 if args.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
+
+poms_client.update_session_role(args.poms_role)
+
 #parser.print_help()
 logging.debug( args )
 logging.debug( 'The arguments you pass are:' )
