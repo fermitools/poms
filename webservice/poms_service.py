@@ -481,12 +481,13 @@ class PomsService(object):
     def register_poms_campaign(self, experiment, campaign_name, version, user=None,
                                campaign_definition=None, dataset="", role="Analysis",
                                params=[]):
+        user = cherrypy.session.get('experimenter')
         campaign_id = self.campaignsPOMS.register_poms_campaign(cherrypy.request.db,
                                                                 experiment,
                                                                 campaign_name,
                                                                 version, user,
                                                                 campaign_definition,
-                                                                dataset, role,
+                                                                dataset, role,user.session_role,
                                                                 cherrypy.session.get, params)
         return "Campaign=%d" % campaign_id
 
@@ -789,7 +790,7 @@ class PomsService(object):
     def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None, test_launch_template=None,
                     experiment=None, launcher=None):
 
-        if cherrypy.session.get('experimenter').username and 'poms' != cherrypy.session.get('experimenter').username :
+        if cherrypy.session.get('experimenter').username and ('poms' != cherrypy.session.get('experimenter').username or launch_user='') :
             launch_user = cherrypy.session.get('experimenter').experimenter_id 
         else:
             launch_user = launcher
