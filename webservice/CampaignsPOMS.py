@@ -215,6 +215,9 @@ class CampaignsPOMS():
 
         if action == 'add' or action == 'edit':
             campaign_definition_id = None
+            definition_parameters = kwargs.pop('ae_definition_parameters')
+            if definition_parameters:
+                definition_parameters = json.loads(definition_parameters)
             if pcl_call == 1:  # Enter here if the access was from the poms_client
                 name = kwargs.pop('ae_definition_name')
                 if isinstance(name, str):
@@ -230,9 +233,6 @@ class CampaignsPOMS():
                 output_files_per_job = kwargs.pop('ae_output_files_per_job', 0)
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
-                definition_parameters = kwargs.pop('ae_definition_parameters')
-                if definition_parameters:
-                    definition_parameters = json.loads(definition_parameters)
                 recoveries = kwargs.pop('ae_definition_recovery', "[]")
                 # Getting the info that was not passed by the poms_client arguments
                 if input_files_per_job in [None, ""]:
