@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from poms_client import get_task_id_for
+from poms_client import get_task_id_for,update_session_role
 import optparse
 import os
 
@@ -13,9 +13,11 @@ parser.add_option('--input_dataset',  help="dataset name for job", default = Non
 parser.add_option('--parent_task_id',  help="parent task id, if any", default = None)
 parser.add_option('--task_id',  help="task_id if we are updating it not just getting it", default = None)
 parser.add_option('--test',  help="dataset name for job", default = None)
+parser.add_argument('--poms_role', type=str, help='use to test the client URL query', default = 'production')
 
 (options, args ) = parser.parse_args()
 
+update_session_role(args.poms_role)
 res = get_task_id_for(campaign = options.campaign, 
 	user = options.user,
 	experiment = options.experiment,

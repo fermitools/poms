@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #from test_pipe import campaign_definition_edit_test
-from poms_client import campaign_definition_edit
+from poms_client import campaign_definition_edit,update_session_role
 import os
 import argparse
 import logging
@@ -19,6 +19,7 @@ parser.add_argument('--output_file_patterns', metavar='string with output file p
 parser.add_argument('--launch_script', metavar='the setup you do at your interactive node', type=str, nargs='*',help='the script that you run to submit jobs in your machine', default = None)
 parser.add_argument('--def_parameter', metavar='parameters pass to the launch_script', type=str, nargs='*', help='The arguments your script (included in Launch script) use for the submission')
 parser.add_argument('--test_client', metavar='want to test the client URL query', type=str, help='use to test the client URL query', default = False)
+parser.add_argument('--poms_role', type=str, help='use to test the client URL query', default = 'production')
 args = parser.parse_args()
 if args.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
@@ -34,6 +35,7 @@ logging.debug( 'def_parameter='+ str(args.def_parameter))
 logging.debug( 'test_client='+ str(args.test_client))
 
 
+update_session_role(args.poms_role)
 #Calling the poms_client.campaign_definition_edit'
 if args.action in ['add','delete','edit']:
     res = campaign_definition_edit(pc_username=args.user,

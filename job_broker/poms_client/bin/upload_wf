@@ -6,10 +6,11 @@ import ConfigParser
 import poms_client
 import json
 import logging
+import argparse
 
 class uploader:
 
-    def __init__(self, cfgfile):
+    def __init__(self, cfgfile, args):
         self.cfg = ConfigParser.SafeConfigParser()
         self.cfg.optionxform = str
         self.cfg.read(cfgfile)
@@ -17,6 +18,12 @@ class uploader:
             self.cfg_globals = dict(self.cfg.items('global'))
         else:
             self.cfg_globals = dict()
+
+        role = args.poms_role
+        if self.cfg_get('global','poms_role'):
+            role = self.cfg_get('global','poms_role') 
+
+        poms_client.update_session_role(role)
 
     def cfg_get(self,section,item):
         try:
@@ -26,7 +33,7 @@ class uploader:
         except ConfigParser.NoSectionError:
             return None
 
-    def upload_wf(self, testflag = None):
+    def upload_wf(self, testflag = None, action = 'add'):
         cfg_stages = self.cfg_get('campaign','campaign_stage_list').split()
         cfg_jobtypes = set()
         cfg_launches = set()
@@ -36,11 +43,11 @@ class uploader:
             cfg_launches.add(self.cfg_get('campaign_stage %s'%s, 'launch_template'))
             
         for l in cfg_launches:
-            self.upload_launch_template(l, testflag)
+            self.upload_launch_template(l, testflag, action)
         for jt in cfg_jobtypes:
-            self.upload_jobtype(jt, testflag)
+            self.upload_jobtype(jt, testflag, action)
         for s in cfg_stages:
-            self.upload_stage(s, testflag)
+            self.upload_stage(s, testflag, action)
 
         self.tag_em(self.cfg_get('campaign','tag'), cfg_stages, testflag)
 
@@ -51,7 +58,7 @@ class uploader:
         cids = map((lambda x:str(cname_id_map[x])), cfg_stages)
         poms_client.tag_campaigns(tag = tag, cids = ','.join(cids), experiment=self.cfg_get('campaign','experiment'), test_client = testflag)
 
-    def upload_jobtype(self,jt, testflag = None):
+    def upload_jobtype(self,jt, testflag = None, action = 'add'):
         field_map = {
             'launch_script':'launch_script',
             'parameters':'def_parameter',
@@ -61,7 +68,7 @@ class uploader:
         print( "I should upload jt %s" % jt)
         print(repr(d))
         args = {
-            'action': 'add', 
+            'action': action, 
             'name': jt, 
             'experiment': self.cfg_get('campaign','experiment'), 
             'pc_username': os.environ['USER'],
@@ -75,7 +82,7 @@ class uploader:
         print("args:%s" % repr(args))
         poms_client.campaign_definition_edit(**args)
 
-    def upload_launch_template(self,lt, testflag = None):
+    def upload_launch_template(self,lt, testflag = None, action = 'add'):
         field_map = {
             'host': 'launch_host',
             'account': 'user_account',
@@ -85,7 +92,7 @@ class uploader:
         print( "I should upload lt %s" % lt)
         print( repr(d))
         args = {
-             'action': 'add', 
+             'action': action, 
              'launch_name': lt, 
              'experiment': self.cfg_get('campaign','experiment'), 
              'pc_username': os.environ['USER'],
@@ -97,7 +104,7 @@ class uploader:
         args['launch_setup'] = [ args['launch_setup'] ]
         poms_client.launch_template_edit(**args)
         
-    def upload_stage(self,st, testflag = None):
+    def upload_stage(self,st, testflag = None, action = 'add'):
         field_map = {
             'dataset': 'dataset',
             'software_version': 'ae_software_version',
@@ -121,7 +128,7 @@ class uploader:
         print( repr(d))
         print( "deps: %s" % repr(deps))
         args = {
-            'action': 'add', 
+            'action': action, 
             'ae_campaign_name': st,  
             'experiment': self.cfg_get('campaign','experiment'), 
             'ae_active': True, 
@@ -136,10 +143,17 @@ class uploader:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    testflag = None
-    if sys.argv[1] == '-t':
+
+    parser = argparse.ArgumentParser(description='Optional arguments edit campaign')
+    parser.add_argument('--test', type=bool, help='use test POMS ', default = 'False')
+    parser.add_argument('--poms_role', type=str, help='set role in poms session', default = 'production')
+    parser.add_argument('--action', type=str, help='say whether to "add" new or "edit" (update) existing records', default = 'add')
+    args = parser.parse_args()
+
+    if args.test:
         testflag = True
         sys.argv.pop(1)
-    u=uploader(sys.argv[1])
-    u.upload_wf(testflag)
+
+    u=uploader(sys.argv[1], args)
+    u.upload_wf(testflag, args.action)
 
