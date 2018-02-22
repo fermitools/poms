@@ -1,16 +1,15 @@
 #!/bin/env python
 
-import sys
 import argparse
 import time
 import logging
 import psycopg2
 import requests
-
-if sys.version_info > (3, 0):
-    import urllib3
-else:
+try:
     import requests.packages.urllib3 as urllib3
+except ImportError:
+    import urllib3
+
 urllib3.disable_warnings()
 
 def parse_command_line():
@@ -48,7 +47,7 @@ def query_ferry(cert, ferry_url, exp, role):
     url = ferry_url + "/getAffiliationMembersRoles?experimentname=%s&rolename=/%s/Role=%s" % (exp, exp, role)
     logging.debug("query_ferry: requested url: %s", url)
     r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
-    if r.status_code != requests.codes.ok:
+    if r.status_code != requests.codes.get('ok'):
         logging.debug("get_ferry_experiment_users -- error status_code: %s  -- %s", r.status_code, url)
     else:
         results = r.json()
