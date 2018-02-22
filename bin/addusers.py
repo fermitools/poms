@@ -3,6 +3,7 @@
 import sys
 import argparse
 import time
+import logging
 import psycopg2
 import requests
 
@@ -11,17 +12,6 @@ if sys.version_info > (3, 0):
 else:
     import requests.packages.urllib3 as urllib3
 urllib3.disable_warnings()
-
-dbg = False
-log = None
-
-def debug(message):
-    global dbg
-    global log
-    if dbg:
-        print(message)
-    if log:
-        log.write(message+'\n')
 
 def parse_command_line():
     doc = "Loads a VOMS generated JSON file of experimenters into POMS."
@@ -36,14 +26,9 @@ def parse_command_line():
     parser.add_argument('-s', '--skip_analysis', action="store_true", help='Do not include analysis users.')
     parser.add_argument('-e', '--experiment', help='Run for a specific experiment, otherwise runs for all experiments in database.')
     parser.add_argument('-p', '--password', help="Password for the database user account. For testing only, for production use .pgpass .")
-    parser.add_argument('-d', '--debug', action="store_true", help="Send debug data to screen")
-    parser.add_argument('-l', '--log', help="Directory/filename for logging debug data.")
+    parser.add_argument('-v', '--verbose', action="store_true", help='Output log data to screen')
+    parser.add_argument('-l', '--log_dir', help="Output directory for log file.")
     args = parser.parse_args()
-    # Get password if not suppled
-    #d = vars(args)
-    #if d['password'] == None:
-    #    d['password'] = getpass.getpass('Password: ')
-
     return args
 
 
@@ -59,17 +44,17 @@ def get_experiments(cursor, experiment):
 
 def query_ferry(cert, ferry_url, exp, role):
     results = {}
-    debug("query_ferry for experiment: %s  role: %s" % (exp, role))
+    logging.debug("query_ferry for experiment: %s  role: %s", exp, role)
     url = ferry_url + "/getAffiliationMembersRoles?experimentname=%s&rolename=/%s/Role=%s" % (exp, exp, role)
-    debug("query_ferry: requested url: %s" % url)
+    logging.debug("query_ferry: requested url: %s", url)
     r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
     if r.status_code != requests.codes.ok:
-        debug("get_ferry_experiment_users -- error status_code: %s  -- %s" % (r.status_code, url))
+        logging.debug("get_ferry_experiment_users -- error status_code: %s  -- %s", r.status_code, url)
     else:
         results = r.json()
         ferry_error = results.get('ferry_error', None)
         if ferry_error is not None:
-            debug("get_ferry_experiment_users -- ferry_error: %s  URL: %s" % (str(ferry_error), url))
+            logging.debug("get_ferry_experiment_users -- ferry_error: %s  URL: %s", str(ferry_error), url)
             results = {}
     return results.get(exp, {})
 
@@ -94,7 +79,7 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
     return users
 
 def get_voms_data(cert, exp):
-    debug("get_voms_data for: %s" % exp)
+    logging.debug("get_voms_data for: %s", exp)
     payload = {"accountName": "%spro" % exp}
     req = requests.get("https://gums2.fnal.gov:8443/gums/map_account.jsp", params=payload, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
     users = {}
@@ -150,7 +135,7 @@ def add_users(cursor, exp, new_users):
             """ % (last_name, first_name, username, exp)
             cursor.execute(sql)
             experimenter_id = cursor.fetchone()[0]
-            debug("add_user: inserted new experimenter id=%s username: %s commonname: %s " % (experimenter_id, username, user['commonname']))
+            logging.debug("add_user: inserted new experimenter id=%s username: %s commonname: %s ", experimenter_id, username, user['commonname'])
         add_relationship(cursor, experimenter_id, exp, user['role'], username)
     return
 
@@ -159,51 +144,59 @@ def add_relationship(cursor, experimenter_id, exp, role, username):
     cursor.execute(sql)
     if cursor.fetchone() is None:
         sql = "insert into experiments_experimenters (experiment,experimenter_id,active,role) values ('%s',%s,'True','%s')" % (exp, experimenter_id, role)
-        debug("    add_relationship: inserted experiment=%s  experimenter_id=%s (%s) role=%s" % (exp, experimenter_id, username, role))
+        logging.debug("    add_relationship: inserted experiment=%s  experimenter_id=%s (%s) role=%s", exp, experimenter_id, username, role)
         cursor.execute(sql)
     else:
         sql = "update experiments_experimenters set active=true, role='%s' where experiment='%s' and experimenter_id=%s" % (role, exp, experimenter_id)
-        debug("    add_relationship: updated experiment=%s  experimenter_id=%s (%s) role=%s active=true" % (exp, experimenter_id, username, role))
+        logging.debug("    add_relationship: updated experiment=%s  experimenter_id=%s (%s) role=%s active=true", exp, experimenter_id, username, role)
         cursor.execute(sql)
 
 def set_active_status(cursor, active_status, exp):
     for username, user in active_status.items():
         sql = "update experiments_experimenters set active=%s where experiment='%s' and experimenter_id=%s" % (user['active'], exp, user['experimenter_id'])
         cursor.execute(sql)
-        debug("set_active_status: experiment=%s experimenter_id=%s (%s) active set to: %s" % (exp, user['experimenter_id'], username, user['active']))
+        logging.debug("set_active_status: experiment=%s experimenter_id=%s (%s) active set to: %s", exp, user['experimenter_id'], username, user['active'])
 
 def set_assigned_role(cursor, role_changes, exp):
     for username, user in role_changes.items():
         sql = "update experiments_experimenters set role='%s', active=true where experiment='%s' and experimenter_id=%s" % (user['role'], exp, user['experimenter_id'])
         cursor.execute(sql)
-        debug("set_assigned_role: experiment=%s experimenter_id=%s (%s) role=%s" % (exp, user['experimenter_id'], username, user['role']))
+        logging.debug("set_assigned_role: experiment=%s experimenter_id=%s (%s) role=%s", exp, user['experimenter_id'], username, user['role'])
+
+def set_logging(log_dir, verbose):
+    logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+    rootLogger = logging.getLogger()
+    rootLogger.setLevel(logging.DEBUG)
+    if log_dir:
+        log_file = "%s/addusers-%s.log" % (log_dir, time.strftime('%Y-%m-%d-%H%M%S'))
+        fileHandler = logging.FileHandler(log_file)
+        fileHandler.setFormatter(logFormatter)
+        fileHandler.setLevel(logging.DEBUG)
+        rootLogger.addHandler(fileHandler)
+    if verbose:
+        consoleHandler = logging.StreamHandler()
+        consoleHandler.setFormatter(logFormatter)
+        consoleHandler.setLevel(logging.DEBUG)
+        rootLogger.addHandler(consoleHandler)
 
 def main():
-    global dbg
-    global log
+
     stime = time.time()
     args = parse_command_line()
-
-    if args.debug:
-        dbg = True
-
-    if args.log:
-        logfile = "%s-%s.log" % (args.log, time.strftime('%Y%m%d%H%M%S'))
-        log = open(logfile, 'w')
-        sys.stderr = log
+    set_logging(args.log_dir, args.verbose)
 
     password = ""
     if args.password:
         password = "password=%s" % args.password
+    logging.debug("main:POMS Database: %s Host: %s Port:%s", args.dbname, args.host, args.port)
 
-    debug("main:POMS Database: %s Host: %s Port:%s" % (args.dbname, args.host, args.port))
     conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s %s" % (args.dbname, args.host, args.port, args.user, password))
     cursor = conn.cursor()
 
     exp_list = get_experiments(cursor, args.experiment)
-    debug("main:Experiment todo list: %s" % exp_list)
+    logging.debug("main:Experiment todo list: %s", exp_list)
     for exp in exp_list:
-        debug("\nmain: Experiment: %s" % exp)
+        logging.debug("main: Experiment: %s", exp)
         users = {}
         if args.ferry:
             users = get_ferry_data(args.cert, args.ferry, exp, args.skip_analysis)
@@ -216,16 +209,16 @@ def main():
 
         if args.commit is True:
             conn.commit()
-            debug("main: %s database changes COMMITED!!" % exp)
+            logging.debug("main: %s database changes COMMITED!!", exp)
         else:
             conn.rollback()
-            debug("main: %s database changes ROLLED BACK!!" % exp)
+            logging.debug("main: %s database changes ROLLED BACK!!", exp)
 
 
     cursor.close()
     conn.close()
-    debug("main: elapsed seconds: %s" % (time.time() - stime))
-    debug("main: finito!")
+    logging.debug("main: elapsed seconds: %s", (time.time() - stime))
+    logging.debug("main: finito!")
 
 if __name__ == "__main__":
     main()
