@@ -968,10 +968,14 @@ class CampaignsPOMS():
             Give time-bars for Tasks for this campaign in a time window
             using the time_grid code
         """
+        if campaign_id == None:
+            base_link = 'campaign_time_bars?tag={}&'.format(tag)
+        else:
+            base_link = 'campaign_time_bars?campaign_id={}&'.format(campaign_id)
+
         (
             tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays
-        ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
-                                                     'campaign_time_bars?campaign_id={}&'.format(campaign_id))
+        ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,base_link)
         tg = time_grid.time_grid()
         key = tg.key()
 

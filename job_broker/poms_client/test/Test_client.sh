@@ -25,7 +25,7 @@ test_campaign_edit() {
 
 test_register_poms_campaign() {
   
-    register_poms_campaign --campaign="mwm_demo_test" --user=$USER --experiment=samdev --version=v1_0 --campaign-definition=test --dataset=gen_cfg --test --poms_role=production
+    register_poms_campaign --campaign="mwm_demo_test" --user=$USER --experiment=samdev --version=v1_0 --campaign-definition=test_launch_mock_job --dataset=gen_cfg --test --poms_role=production
 }
 
 testsuite command_tests \
