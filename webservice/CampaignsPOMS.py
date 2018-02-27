@@ -696,6 +696,7 @@ class CampaignsPOMS():
 
         res.append("[campaign]")
         res.append("experiment=%s" % cl[0].experiment)
+        res.append("poms_role=%s" % cl[0].creator_role)
         if tag == None:
             res.append("stage_id: %s" % camp_id)
         else:
