@@ -65,9 +65,9 @@ Campaign Stages{%include 'help_button.html'%}
                 <th>Tags</th>
                 <th>Hold By</th>
                 <th>Creator</th>
-                <th>Updater</th>
-                <th>Updated</th>
                 <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
+                <th>Updater</th>
+                <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Updated</th>
             </tr>
         </thead>
 
@@ -83,7 +83,7 @@ Campaign Stages{%include 'help_button.html'%}
                     <td>{{campaign.experimenter_creator_obj.username}}</td>
                     <td>{{campaign.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>
                     <td>{{campaign.experimenter_updater_obj.username}}</td>
-                    <td>{{campaign.updated.strftime('%Y-%m-%d %H:%M:%S')}}</td>
+                    <td>{%if None == campaign.updated%}never{%else%}{{campaign.updated.strftime('%Y-%m-%d %H:%M:%S')}}{%endif%}</td>
                     <td id="c_name_{{loop.index}}" style="display:none">{{campaign.name}}</td>
                 </tr>
             {% endfor %}
