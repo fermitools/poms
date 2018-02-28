@@ -608,8 +608,10 @@ class JobsPOMS(object):
                 tl = dbhandle.query(Task).filter(Task.task_id == task_id).all()
             if len(tl):
                 c = tl[0].campaign_snap_obj
+                lts = tl[0].launch_template_snap_obj
             else:
                 c = None
+                lts = None
             for t in tl:
                 tjid = self.poms_service.taskPOMS.task_min_job(dbhandle, t.task_id)
                 logit.log("kill_jobs: task_id %s -> tjid %s" % (t.task_id, tjid))
@@ -623,6 +625,7 @@ class JobsPOMS(object):
             c = jql[0].task_obj.campaign_snap_obj
             for j in jql:
                 jjil.append(j.jobsub_job_id)
+            lts = jql[0].task_obj.launch_template_snap_obj
 
         if confirm is None:
             jijatem = 'kill_jobs_confirm.html'
@@ -632,7 +635,7 @@ class JobsPOMS(object):
             group = c.experiment
             if group == 'samdev':
                 group = 'fermilab'
-          
+
             subcmd = 'rm'
             if act == 'kill':
                 subcmd = 'rm'
@@ -643,7 +646,7 @@ class JobsPOMS(object):
             if test == true:
                 os.open("echo jobsub_%s -G %s --role %s --jobid %s 2>&1" % (subcmd, group, c.vo_role, ','.join(jjil)), "r")
             '''
-            f = os.popen("export PATH=$HOME/bin:$PATH; /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
+            f = os.popen("ssh %s@%s '%s; jobsub_rm -G %s --role %s --jobid %s 2>&1'" % (lts.launch_user, lts.launch_host, lts.launch_setup, group, c.vo_role, ','.join(jjil)), "r")
             output = f.read()
             f.close()
 
