@@ -50,6 +50,7 @@ class CampaignsPOMS():
             callback to actually change launch templates from edit screen
         """
         data = {}
+        template = None
         message = None
         ae_launch_id = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(
@@ -119,6 +120,8 @@ class CampaignsPOMS():
                                                   launch_setup=ae_launch_setup, creator=experimenter_id,
                                                   created=datetime.now(utc), creator_role=role)
                     dbhandle.add(template)
+                    dbhandle.commit()
+                    data['launch_template_id'] = template.launch_id
                 else:
                     columns = {
                         "name": ae_launch_name,
@@ -130,7 +133,9 @@ class CampaignsPOMS():
                     }
                     template = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id == ae_launch_id).update(
                         columns)
-                dbhandle.commit()
+                    dbhandle.commit()
+                    data['launch_template_id'] = ae_launch_id
+
             except IntegrityError as e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
                 logit.log(' '.join(e.args))
