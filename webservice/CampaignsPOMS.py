@@ -1064,7 +1064,7 @@ class CampaignsPOMS():
         if user is None:
             user = 4
         else:
-            u = dbhandle.query(Experimenter).filter(Experimenter.username == user.username).first()
+            u = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
             if u:
                 user = u.experimenter_id
 
