@@ -646,7 +646,23 @@ class JobsPOMS(object):
             if test == true:
                 os.open("echo jobsub_%s -G %s --role %s --jobid %s 2>&1" % (subcmd, group, c.vo_role, ','.join(jjil)), "r")
             '''
-            f = os.popen("ssh %s@%s '%s; jobsub_rm -G %s --role %s --jobid %s 2>&1'" % (lts.launch_user, lts.launch_host, lts.launch_setup, group, c.vo_role, ','.join(jjil)), "r")
+            cmd = """
+                exec 2>&1
+                export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s
+                kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true
+                ssh %s@%s '%s; set -x; jobsub_rm -G %s --role %s --jobid %s'
+            """ % (
+                group,
+                self.poms_service.hostname,
+                lts.launch_account, 
+                lts.launch_host, 
+                lts.launch_setup, 
+                group, 
+                c.vo_role, 
+                ','.join(jjil)
+            )
+            
+            f = os.popen(cmd, "r")
             output = f.read()
             f.close()
 
