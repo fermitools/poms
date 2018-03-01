@@ -85,7 +85,7 @@ function pop_experiment_users_modal(experiment) {
     <tfoot>
       <tr>
 	<th colspan="4">
-	  <input id="exp_btn_submit" type="button" class="ui {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }} teal button" value="Submit"
+	  <input id="exp_btn_submit" type="button" class="ui {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }} teal button" value="Save"
                  onclick="pop_confirm_modal()">
 	</th>
       </tr>
@@ -135,7 +135,7 @@ function pop_experiment_users_modal(experiment) {
 	<input type="text" name="name" placeholder="Full Name">
       </div>
     </div>
-    <input type="submit" class="ui teal button" value="Submit">
+    <input type="submit" class="ui teal button" value="Save">
     <div class="ui hidden divider"></div>
   </form>
 </div> <!-- Ends Modal -->

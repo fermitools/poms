@@ -296,7 +296,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       <div class="actions">
         <div class="ui button deny red">Cancel</div>
         <!-- ae_submit can be disabled in edit_campaign function -->
-        <input id="ae_submit" name="ae_submit" type="submit" value="Submit" class="ui button teal" >
+        <input id="ae_submit" name="ae_submit" type="submit" value="Save" class="ui button teal" >
       {% if extra_edit_flag|default(False) %}
          <input type="submit" name="{{extra_edit_flag}}" class="ui button orange" value="Launch Test">
       {% endif %}
@@ -698,7 +698,7 @@ function edit_campaign(index,clone) {
   console.log("clone = : " + clone)
   if ( typeof clone === 'undefined' )
   {
-    $("#ae_submit").prop("value","Submit");
+    $("#ae_submit").prop("value","Save");
     if ( ($("#c_authorized_"+index).text() == "False") ) {
       $("#ae_submit").prop("disabled",true);
     } else {

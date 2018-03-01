@@ -125,7 +125,7 @@ function user_action(action) {
     <tfoot>
       <tr>
 	<th colspan="2">
-	  <input type="submit" class="ui {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }} teal button" value="Submit">
+	  <input type="submit" class="ui {{ 'disabled' if (not (current_experimenter and current_experimenter.is_root())) }} teal button" value="Save">
 	</th>
       </tr>
     </tfoot>
@@ -155,7 +155,7 @@ function user_action(action) {
         <input type="text" id="user_last_name" name="last_name" placeholder="Last Name">
       </div>
     </div>
-    <input type="submit" value="Submit" class="ui teal button" />
+    <input type="submit" value="Save" class="ui teal button" />
     <input type="hidden" id="user_action" name="action" value="add">
     <input type="hidden" id="user_experimenter_id" name="experimenter_id">
   </form>
