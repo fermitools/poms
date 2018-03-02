@@ -492,7 +492,7 @@ class JobsPOMS(object):
 
         return "Ok."
 
-    def failed_or_located(self, j, dbhandle):
+    def failed_job(self, j, dbhandle):
         '''
            compute final state: Failed/Located
            see the wiki [[Success]] page...
@@ -534,6 +534,7 @@ class JobsPOMS(object):
                    score = score + 1
                 if j.user_exe_exit_code == 0:
                    score = score + 1
+        return score < 2
 
     def update_job_common(self, dbhandle, rpstatus, samhandle, j, kwargs):
 
@@ -545,6 +546,10 @@ class JobsPOMS(object):
                 # so clean out any old (wrong) Completed statuses from
                 # the JobHistory... (Bug #15322)
                 dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status.in_(['Completed','Removed','Failed'])).delete(synchronize_session=False)
+
+            if kwargs.get('status', None) == 'Completed':
+                    if self.failed_job(j, dbhandle):
+                        kwargs['status'] = "Failed"
 
             # first, Job string fields the db requres be not null:
             for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code', 'reason_held']:
@@ -563,7 +568,10 @@ class JobsPOMS(object):
             if kwargs.get('output_files_declared', None) == "True":
                 if j.status == "Completed":
                     j.output_files_declared = True
-                    j.status = self.failed_or_located(j, dbhandle)
+                    if self.failed_job(j, dbhandle):
+                        j.status = "Failed"
+                    else:
+                        j.status = "Located"
 
             # next fields we set in our Task
             for field in ['project', 'recovery_tasks_parent']:
