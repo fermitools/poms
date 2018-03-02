@@ -497,40 +497,41 @@ class JobsPOMS(object):
            compute final state: Failed/Located
            see the wiki [[Success]] page...
         '''
-        ofcount = dbhandle.query(fn.count(JobFile.file_name)).filter(JobFile.job_id == j.job_id, JobFile.file_type == 'output').first()
-        ifcount = dbhandle.query(fn.count(JobFile.file_name)).filter(JobFile.job_id == j.job_id, JobFile.file_type == 'input').first()
+        ofcount = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == j.job_id, JobFile.file_type == 'output').first()
+        ifcount = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == j.job_id, JobFile.file_type == 'input').first()
+        score = 0
         if j.task_obj.project:
-            if ifcount > 0:
+            if ifcount[0] != None and  ifcount[0] > 0:
                 # SAM file processing case
                 score = 0
                 if j.cpu_time > 5.0:
                    score = score + 1
-                if ofcount > 1.0:
+                if ofcount[0] > 1.0:
                    score = score + 1
                 if j.user_exe_exit_code == 0:
                    score = score + 1
             else:
                 # SAM file out of files case
-                if j.cpu_time > 5.0:
+                if j.cpu_time != None and j.cpu_time > 5.0:
                    score = score + 1
-                if ofcount == 0:
+                if ofcount[0] == 0:
                    score = score + 1
                 if j.user_exe_exit_code == 0:
                    score = score + 1
         else:
-            if ifcount > 0:
+            if ifcount[0] != None and ifcount[0] > 0:
                 # non-SAM file processing case
-                if j.cpu_time > 5.0:
+                if j.cpu_time != None and j.cpu_time > 5.0:
                    score = score + 1
-                if ofcount > 1.0:
+                if ofcount[0] != None and ofcount[0] > 1.0:
                    score = score + 1
                 if j.user_exe_exit_code == 0:
                    score = score + 1
             else:
                 # non-SAM  mc/gen case
-                if j.cpu_time > 5.0:
+                if j.cpu_time != None and j.cpu_time > 5.0:
                    score = score + 1
-                if ofcount > 1.0:
+                if ofcount[0] != None  and ofcount[0] > 1.0:
                    score = score + 1
                 if j.user_exe_exit_code == 0:
                    score = score + 1
