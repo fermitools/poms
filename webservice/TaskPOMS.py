@@ -87,10 +87,32 @@ class TaskPOMS:
         # make jobs which completed with no *undeclared* output files have status "Located".
         #
         t = text("""update jobs set status = 'Located'
-            where (status = 'Completed' or status = 'Removed') and (select count(file_name) from job_files
-                                            where job_files.job_id = jobs.job_id
-                                                and job_files.file_type = 'output'
-                                                and job_files.declared is null) = 0""")
+            where status = 'Completed'
+              and user_exe_exit_code == 0
+              and (select count(file_name) from job_files
+                    where job_files.job_id = jobs.job_id
+                      and job_files.file_type = 'output'
+                      and job_files.declared is null) = 0
+              and (select count(file_name) from job_files
+                    where job_files.job_id = jobs.job_id
+                      and job_files.file_type = 'input'
+                      and job_files.declared is null) = 0
+""")
+        dbhandle.execute(t)
+        t = text("""update jobs set status = 'Failed'
+            where status = 'Completed'
+              and user_exe_exit_code != 0
+              or ( 
+                  (select count(file_name) from job_files
+                    where job_files.job_id = jobs.job_id
+                      and job_files.file_type = 'output'
+                      and job_files.declared is null) = 0
+                 and (select count(file_name) from job_files
+                    where job_files.job_id = jobs.job_id
+                      and job_files.file_type = 'input'
+                      and job_files.declared is null) != 0)
+               )
+""")
         dbhandle.execute(t)
 
         #
@@ -108,7 +130,7 @@ class TaskPOMS:
                                 (Job.status == "Completed", 0),
                                 (Job.status == "Removed", 0),
                                 (Job.status == "Located", 0),
-                            ], else_=1)))
+                                (Job.status == "Failed", 0),
              .filter(Job.task_id == Task.task_id)
              .filter(Task.status != "Completed", Task.status != "Located")
              .group_by(Task.task_id)
@@ -155,61 +177,6 @@ class TaskPOMS:
 
         q = (dbhandle.query(Task.task_id, func.max(CampaignSnapshot.completion_pct), func.count(Job.job_id),
                             func.sum(case([
-                                (Job.status == "Completed", 1),
-                                (Job.status == "Located", 1),
-                            ], else_=0)))
-             .filter(Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
-             .filter(Job.task_id == Task.task_id)
-             .filter(Task.status.in_(["Completed", "Running"]))
-             .filter(CampaignSnapshot.completion_type == "complete")
-             .group_by(Task.task_id)
-            )
-
-        for tid, cfrac, totcount, compcount in q.all():
-
-            if totcount == 0:
-                # cannot be done with no jobs...
-                continue
-
-            res.append("completion_type: complete Task %d cfrac %d pct %f " % (tid, cfrac, (compcount * 100) / totcount + 0.1))
-
-            if (compcount * 100.0) / totcount + 0.1 >= cfrac:
-                n_located = n_located + 1
-                mark_located.append(tid)
-                finish_up_tasks.append(tid)
-
-        if len(mark_located) > 0:
-            # lock tasks, jobs in order so we can update them
-            dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all()
-            #
-            # why mark the jobs? just fix the tasks!
-            #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all();
-            #q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True}, synchronize_session=False)
-            q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
-        dbhandle.commit()
-
-
-        q = (dbhandle.query(Task.task_id, func.max(CampaignSnapshot.completion_pct), func.count(Job.job_id),
-                            func.sum(case([
-                                (Job.status == "Located", 1),
-                            ], else_=0)))
-             .join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
-             .filter(Job.task_id == Task.task_id)
-             .filter(Task.status.in_(["Completed", "Running"]))
-             .filter(CampaignSnapshot.completion_type == "located")
-             .group_by(Task.task_id)
-            )
-
-        mark_located = deque()
-        for tid, cfrac, totcount, compcount in q.all():
-
-            if totcount == 0:
-                # cannot be done with no jobs...
-                continue
-
-            res.append("completion_type: complete Task %d cfrac %d pct %f " % (tid, cfrac, (compcount * 100) / totcount + 0.1))
-
-            if (compcount * 100.0) / totcount + 0.01 >= cfrac:
                 n_located = n_located + 1
                 mark_located.append(tid)
                 finish_up_tasks.append(tid)
@@ -232,7 +199,7 @@ class TaskPOMS:
             if now - task.updated > timedelta(days=2):
                 n_located = n_located + 1
                 n_stale = n_stale + 1
-                task.status = "Located"
+                task.status = "Located" # XXX check for Failed?
                 finish_up_tasks.append(task.task_id)
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
@@ -343,7 +310,7 @@ class TaskPOMS:
             else:
                 jjid = 'j' + str(jh.job_id)
 
-            if j.status != "Completed" and j.status != "Located" and j.status != "Removed":
+            if j.status != "Completed" and j.status != "Located" and j.status != "Removed" and j.status != "Failed":
                 extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d&act=hold"><i class="ui pause icon"></i></a><a href="%s/kill_jobs?job_id=%d&act=release"><i class="ui play icon"></i></a><a href="%s/kill_jobs?job_id=%d&act=kill"><i class="ui trash icon"></i></a>' % (self.poms_service.path, jh.job_id,self.poms_service.path, jh.job_id,self.poms_service.path, jh.job_id)
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
@@ -387,6 +354,8 @@ class TaskPOMS:
             res = "Held"
         if st['Running'] > 0:
             res = "Running"
+        if st['Failed'] > st['Completed'] and res == "New":
+            res = "Failed"
         if st['Completed'] > 0 and  res == "New":
             res = "Completed"
         if st['Removed'] > 0 and  res == "New":

@@ -28,7 +28,7 @@ class JobsPOMS(object):
 
     def active_jobs(self, dbhandle):
         res = deque()
-        for jobsub_job_id, task_id in dbhandle.query(Job.jobsub_job_id, Job.task_id).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").execution_options(stream_results=True).all():
+        for jobsub_job_id, task_id in dbhandle.query(Job.jobsub_job_id, Job.task_id).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed", Job.status != "Failed").execution_options(stream_results=True).all():
             if jobsub_job_id == "unknown":
                 continue
             res.append((jobsub_job_id, task_id))
@@ -492,16 +492,59 @@ class JobsPOMS(object):
 
         return "Ok."
 
+    def failed_or_located(self, j, dbhandle):
+        '''
+           compute final state: Failed/Located
+           see the wiki [[Success]] page...
+        '''
+        ofcount = dbhandle.query(fn.count(JobFile.file_name)).filter(JobFile.job_id == j.job_id, JobFile.file_type == 'output').first()
+        ifcount = dbhandle.query(fn.count(JobFile.file_name)).filter(JobFile.job_id == j.job_id, JobFile.file_type == 'input').first()
+        if j.task_obj.project:
+            if ifcount > 0:
+                # SAM file processing case
+                score = 0
+                if j.cpu_time > 5.0:
+                   score = score + 1
+                if ofcount > 1.0:
+                   score = score + 1
+                if j.user_exe_exit_code == 0:
+                   score = score + 1
+            else:
+                # SAM file out of files case
+                if j.cpu_time > 5.0:
+                   score = score + 1
+                if ofcount == 0:
+                   score = score + 1
+                if j.user_exe_exit_code == 0:
+                   score = score + 1
+        else:
+            if ifcount > 0:
+                # non-SAM file processing case
+                if j.cpu_time > 5.0:
+                   score = score + 1
+                if ofcount > 1.0:
+                   score = score + 1
+                if j.user_exe_exit_code == 0:
+                   score = score + 1
+            else:
+                # non-SAM  mc/gen case
+                if j.cpu_time > 5.0:
+                   score = score + 1
+                if ofcount > 1.0:
+                   score = score + 1
+                if j.user_exe_exit_code == 0:
+                   score = score + 1
+
     def update_job_common(self, dbhandle, rpstatus, samhandle, j, kwargs):
 
             oldstatus = j.status
             logit.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
 
-            if kwargs.get('status', None) and oldstatus != kwargs.get('status') and oldstatus in ('Completed','Removed') and kwargs.get('status') != 'Located':
+            if kwargs.get('status', None) and oldstatus != kwargs.get('status') and oldstatus in ('Completed','Removed','Failed') and kwargs.get('status') != 'Located':
                 # we went from Completed or Removed back to some Running/Idle state...
                 # so clean out any old (wrong) Completed statuses from
                 # the JobHistory... (Bug #15322)
-                dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status.in_(['Completed','Removed'])).delete(synchronize_session=False)
+                dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status.in_(['Completed','Removed','Failed'])).delete(synchronize_session=False)
 
             # first, Job string fields the db requres be not null:
             for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code', 'reason_held']:
@@ -520,7 +563,7 @@ class JobsPOMS(object):
             if kwargs.get('output_files_declared', None) == "True":
                 if j.status == "Completed":
                     j.output_files_declared = True
-                    j.status = "Located"
+                    j.status = self.failed_or_located(j, dbhandle)
 
             # next fields we set in our Task
             for field in ['project', 'recovery_tasks_parent']:
@@ -603,7 +646,7 @@ class JobsPOMS(object):
         t = None
         if campaign_id is not None or task_id is not None:
             if campaign_id is not None:
-                tl = dbhandle.query(Task).filter(Task.campaign_id == campaign_id, Task.status != 'Completed', Task.status != 'Located').all()
+                tl = dbhandle.query(Task).filter(Task.campaign_id == campaign_id, Task.status != 'Completed', Task.status != 'Located', Task.status != 'Failed').all()
             else:
                 tl = dbhandle.query(Task).filter(Task.task_id == task_id).all()
             if len(tl):
@@ -621,7 +664,7 @@ class JobsPOMS(object):
                 if tjid:
                     jjil.append(tjid.replace('.0', ''))
         else:
-            jql = dbhandle.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Removed', Job.status != 'Located').execution_options(stream_results=True).all()
+            jql = dbhandle.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Removed', Job.status != 'Located', Job.status != 'Failed').execution_options(stream_results=True).all()
             c = jql[0].task_obj.campaign_snap_obj
             for j in jql:
                 jjil.append(j.jobsub_job_id)
