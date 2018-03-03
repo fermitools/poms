@@ -86,12 +86,40 @@ class TaskPOMS:
         #
         # make jobs which completed with no *undeclared* output files have status "Located".
         #
+        # lock Jobs in order first
+        dbhandle.query(Job.job_id).filter(Job.status == 'Completed').with_for_update().order_by(Job.jobsub_job_id).all()
+
         t = text("""update jobs set status = 'Located'
-            where (status = 'Completed' or status = 'Removed') and (select count(file_name) from job_files
-                                            where job_files.job_id = jobs.job_id
-                                                and job_files.file_type = 'output'
-                                                and job_files.declared is null) = 0""")
+            where status = 'Completed'
+              and user_exe_exit_code = 0
+              and (select count(file_name) from job_files
+                    where job_files.job_id = jobs.job_id
+                      and job_files.file_type = 'output'
+                      and job_files.declared is null) = 0
+              and (select count(file_name) from job_files
+                    where job_files.job_id = jobs.job_id
+                      and job_files.file_type = 'input'
+                      and job_files.declared is null) = 0
+""")
         dbhandle.execute(t)
+        dbhandle.commit()
+
+        dbhandle.query(Job.job_id).filter(Job.status == 'Completed').with_for_update().order_by(Job.jobsub_job_id).all()
+        t = text("""update jobs set status = 'Failed'
+            where status = 'Completed'
+              and user_exe_exit_code != 0
+              or ( 
+                  (select count(file_name) from job_files
+                    where job_files.job_id = jobs.job_id
+                      and job_files.file_type = 'output'
+                      and job_files.declared is null) = 0
+                 and (select count(file_name) from job_files
+                    where job_files.job_id = jobs.job_id
+                      and job_files.file_type = 'input'
+                      and job_files.declared is null) != 0)
+""")
+        dbhandle.execute(t)
+        dbhandle.commit()
 
         #
         # tried to do as below, but no such luck
@@ -108,7 +136,8 @@ class TaskPOMS:
                                 (Job.status == "Completed", 0),
                                 (Job.status == "Removed", 0),
                                 (Job.status == "Located", 0),
-                            ], else_=1)))
+                                (Job.status == "Failed", 0),
+                           ], else_=1)))
              .filter(Job.task_id == Task.task_id)
              .filter(Task.status != "Completed", Task.status != "Located")
              .group_by(Task.task_id)
@@ -232,7 +261,7 @@ class TaskPOMS:
             if now - task.updated > timedelta(days=2):
                 n_located = n_located + 1
                 n_stale = n_stale + 1
-                task.status = "Located"
+                task.status = "Located" # XXX check for Failed?
                 finish_up_tasks.append(task.task_id)
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
@@ -343,7 +372,7 @@ class TaskPOMS:
             else:
                 jjid = 'j' + str(jh.job_id)
 
-            if j.status != "Completed" and j.status != "Located" and j.status != "Removed":
+            if j.status != "Completed" and j.status != "Located" and j.status != "Removed" and j.status != "Failed":
                 extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d&act=hold"><i class="ui pause icon"></i></a><a href="%s/kill_jobs?job_id=%d&act=release"><i class="ui play icon"></i></a><a href="%s/kill_jobs?job_id=%d&act=kill"><i class="ui trash icon"></i></a>' % (self.poms_service.path, jh.job_id,self.poms_service.path, jh.job_id,self.poms_service.path, jh.job_id)
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
@@ -387,6 +416,8 @@ class TaskPOMS:
             res = "Held"
         if st['Running'] > 0:
             res = "Running"
+        if st['Failed'] > st['Completed'] and res == "New":
+            res = "Failed"
         if st['Completed'] > 0 and  res == "New":
             res = "Completed"
         if st['Removed'] > 0 and  res == "New":

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# eat user@host bits...
+shift
+
+# get the jobsub-ish bits of the command
+cmd=`echo "$*" | sed -e 's/.*jobsub_/jobsub_/'`
+
+$cmd

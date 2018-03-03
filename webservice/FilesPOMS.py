@@ -220,7 +220,7 @@ class Files_status(object):
         ck = list(counts.keys())
         res = ['<div><b>%s Job States</b><br>' % title_bits,
                '<table class="ui celled table unstackable">',
-               '<tr><th>Total</th><th colspan=3>Active</th><th colspan=3>Completed In %s</th></tr>' % range_string,
+               '<tr><th>Total</th><th colspan=3>Active</th><th colspan=4>Completed In %s</th></tr>' % range_string,
                '<tr>']
         for k in ck:
             if k == "Completed Total":

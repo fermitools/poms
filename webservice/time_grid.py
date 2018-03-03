@@ -37,7 +37,7 @@ class time_grid:
 
     def key(self, fancy=0):
         res = ['<div class="ui raised padded container segment" style="height: %sem">' % (11 if fancy else 5)]
-        list = ["new", "Idle", "Held", "Running", "Completed", "Removed", "Located"]
+        list = ["new", "Idle", "Held", "Running", "Completed", "Removed", "Located","Failed"]
         if fancy:
             list += ["running: user code",
                      "running: copying files in",
@@ -105,6 +105,8 @@ class time_grid:
             return "#f0f0f0"
         if line.find("Located") >= 0:
             return "#f8f8f8"
+        if line.find("Failed") >= 0:
+            return "#f80000"
         return "#ffffff"
 
 
