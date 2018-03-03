@@ -151,6 +151,9 @@ $( document ).ready(function() {
                 <th>Removed
                   <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
                 </th>
+                <th>Failed
+                  <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+                </th>
                 <th>%Efficiency
                   <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
                 </th>
@@ -162,7 +165,7 @@ $( document ).ready(function() {
                 </th>
             </tr>
         </thead>
-        {%set column_heads = ['All','Idle','Running','Held','Total Completed','Completed', 'Located', 'Removed', 'efficiency', 'pending' ] %}
+        {%set column_heads = ['All','Idle','Running','Held','Total Completed','Completed', 'Located', 'Removed','Failed', 'efficiency', 'pending' ] %}
         <tbody>
             <tr>
                 {% for k in column_heads %}
