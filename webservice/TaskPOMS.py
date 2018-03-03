@@ -86,9 +86,12 @@ class TaskPOMS:
         #
         # make jobs which completed with no *undeclared* output files have status "Located".
         #
+        # lock Jobs in order first
+        dbhandle.query(Job.job_id).filter(Job.status == 'Completed').with_for_update().order_by(Job.jobsub_job_id).all()
+
         t = text("""update jobs set status = 'Located'
             where status = 'Completed'
-              and user_exe_exit_code == 0
+              and user_exe_exit_code = 0
               and (select count(file_name) from job_files
                     where job_files.job_id = jobs.job_id
                       and job_files.file_type = 'output'
@@ -99,6 +102,9 @@ class TaskPOMS:
                       and job_files.declared is null) = 0
 """)
         dbhandle.execute(t)
+        dbhandle.commit()
+
+        dbhandle.query(Job.job_id).filter(Job.status == 'Completed').with_for_update().order_by(Job.jobsub_job_id).all()
         t = text("""update jobs set status = 'Failed'
             where status = 'Completed'
               and user_exe_exit_code != 0
@@ -111,9 +117,9 @@ class TaskPOMS:
                     where job_files.job_id = jobs.job_id
                       and job_files.file_type = 'input'
                       and job_files.declared is null) != 0)
-               )
 """)
         dbhandle.execute(t)
+        dbhandle.commit()
 
         #
         # tried to do as below, but no such luck
