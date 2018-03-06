@@ -27,6 +27,7 @@ from . import logit
 from .poms_model import (Service,
                          Experimenter,
                          Job,
+                         JobFile,
                          JobHistory,
                          Task,
                          CampaignDefinition,
@@ -96,30 +97,8 @@ class TaskPOMS:
                     where job_files.job_id = jobs.job_id
                       and job_files.file_type = 'output'
                       and job_files.declared is null) = 0
-              and (select count(file_name) from job_files
-                    where job_files.job_id = jobs.job_id
-                      and job_files.file_type = 'input'
-                      and job_files.declared is null) = 0
 """)
         dbhandle.execute(t)
-        dbhandle.commit()
-
-        dbhandle.query(Job.job_id).filter(Job.status == 'Completed').with_for_update().order_by(Job.jobsub_job_id).all()
-        t = text("""update jobs set status = 'Failed'
-            where status = 'Completed'
-              and user_exe_exit_code != 0
-              or ( 
-                  (select count(file_name) from job_files
-                    where job_files.job_id = jobs.job_id
-                      and job_files.file_type = 'output'
-                      and job_files.declared is null) = 0
-                 and (select count(file_name) from job_files
-                    where job_files.job_id = jobs.job_id
-                      and job_files.file_type = 'input'
-                      and job_files.declared is null) != 0)
-""")
-        dbhandle.execute(t)
-        dbhandle.commit()
 
         #
         # tried to do as below, but no such luck
