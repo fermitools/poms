@@ -25,6 +25,7 @@ class JobsPOMS(object):
 
     def __init__(self, poms_service):
         self.poms_service = poms_service
+        self.pending_files_offset = 0
 
     def active_jobs(self, dbhandle):
         res = deque()
@@ -38,6 +39,8 @@ class JobsPOMS(object):
 
     def output_pending_jobs(self, dbhandle):
         res = {}
+        windowsize = 1000
+        count = 0
         preve = None
         prevj = None
         # it would be really cool if we could push the pattern match all the
@@ -46,26 +49,39 @@ class JobsPOMS(object):
         # but with a comma separated list of them, I don't think it works
         # directly -- we would have to convert comma to pipe...
         # for now, I'm just going to make it a regexp and filter them here.
-        for e, jobsub_job_id, fname in (dbhandle.query(CampaignSnapshot.experiment,
+        for e, jobsub_job_id, fname in (dbhandle.query(
+                                 Campaign.experiment,
                                  Job.jobsub_job_id,
                                  JobFile.file_name)
-                  .join(Task).join(Job)
-                  .filter(Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
-                          Job.jobsub_job_id != "unknown",
+                  .join(Task)
+                  .filter(
+                          Task.status == "Completed",
+                          Task.campaign_id == Campaign.campaign_id,
                           Job.task_id == Task.task_id,
                           Job.job_id == JobFile.job_id,
-                          Job.status == "Completed",
+                          JobFile.file_type == 'output',
                           JobFile.declared == None, 
-                          JobFile.file_type == 'output')
-                  .order_by(CampaignSnapshot.experiment, Job.jobsub_job_id).all()):
+                        )
+                  .order_by(Campaign.experiment, Job.jobsub_job_id)
+                  .offset(self.pending_files_offset)
+                  .limit(windowsize)
+                  .all()):
+
             if preve != e:
                 preve = e
                 res[e] = {}
             if prevj != jobsub_job_id:
                 prevj = jobsub_job_id
                 res[e][jobsub_job_id] = []
-            logit.log("adding %s to exp %s jjid %s" % (fname, e, jobsub_job_id))
-            res[e][jobsub_job_id].append(fname)
+            if not fname in ['fcl','logs','ana_hist.root'] and not fname.endswith('.json'):
+                logit.log("adding %s to exp %s jjid %s" % (fname, e, jobsub_job_id))
+                res[e][jobsub_job_id].append(fname)
+            count = count + 1
+
+        if count != 0:
+            self.pending_files_offset = self.pending_files_offset  + windowsize
+        else:
+            self.pending_files_offset = 0
         return res
 
     def update_SAM_project(self, samhandle, j, projname):
