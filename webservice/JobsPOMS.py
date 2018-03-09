@@ -23,9 +23,11 @@ from .pomscache import pomscache, pomscache_10
 
 class JobsPOMS(object):
 
+    pending_files_offset = 0
+
     def __init__(self, poms_service):
         self.poms_service = poms_service
-        self.pending_files_offset = 0
+        self.junkre = re.compile('.*fcl|log.*|.*\.log$|ana_hist\.root$|.*\.sh$|.*\.tar$|.*\.json$|[-_0-9]*$')
 
     def active_jobs(self, dbhandle):
         res = deque()
@@ -61,9 +63,10 @@ class JobsPOMS(object):
                           Job.job_id == JobFile.job_id,
                           JobFile.file_type == 'output',
                           JobFile.declared == None, 
+                          Job.status == "Completed",
                         )
                   .order_by(Campaign.experiment, Job.jobsub_job_id)
-                  .offset(self.pending_files_offset)
+                  .offset(JobsPOMS.pending_files_offset)
                   .limit(windowsize)
                   .all()):
 
@@ -73,15 +76,18 @@ class JobsPOMS(object):
             if prevj != jobsub_job_id:
                 prevj = jobsub_job_id
                 res[e][jobsub_job_id] = []
-            if not fname in ['fcl','logs','ana_hist.root'] and not fname.endswith('.json'):
+            if not self.junkre.match(fname):
                 logit.log("adding %s to exp %s jjid %s" % (fname, e, jobsub_job_id))
                 res[e][jobsub_job_id].append(fname)
             count = count + 1
 
         if count != 0:
-            self.pending_files_offset = self.pending_files_offset  + windowsize
+            JobsPOMS.pending_files_offset = JobsPOMS.pending_files_offset  + windowsize
         else:
-            self.pending_files_offset = 0
+            JobsPOMS.pending_files_offset = 0
+
+        logit.log("pending files offset now: %d" % JobsPOMS.pending_files_offset)
+
         return res
 
     def update_SAM_project(self, samhandle, j, projname):
@@ -169,6 +175,7 @@ class JobsPOMS(object):
 
         newfiles = set()
         fnames = set()
+        # regexp to filter out things we copy out that are not output files..
         logit.log(" bulk_update_job: ldata1")
         for r in ldata: # make lists for [field][value] pairs
             if r['task_id'] and not (int(r['task_id']) in tids_present):
@@ -183,7 +190,7 @@ class JobsPOMS(object):
                     for v in value.split(' '):
                         if len(v) < 2 or v[0] == '-':
                            continue
-                        if ftype == 'output' and not re.match(of_res.get(r['task_id'],''),v) or v.find('.log') > 0:
+                        if ftype == 'output' and self.junkre.match(of_res.get(r['task_id'],''),v) > 0:
                             thisftype = 'log'
                         else:
                             thisftype = ftype

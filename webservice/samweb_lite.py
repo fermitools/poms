@@ -234,11 +234,16 @@ class samweb_lite:
         flist = []
         dims = self.cleanup_dims(dims)
         res = requests.get(url, params={"dims": dims, "format": "json"})
-        if res:
-            try:
-                flist = res.json()
-            except ValueError:
-                pass
+        #print( "status code: %d url: %s" % (res.status_code, res.url))
+        #print( "got output: %s" % res.text)
+        if res.status_code >= 200 and res.status_code < 300:
+            logit.log(logit.INFO, "got status code %d looking up dims: %s" % (res.status_code, dims))
+        else:
+            logit.log(logit.ERROR, "got status code %d looking up dims: %s" % (res.status_code, dims))
+        try:
+            flist = res.json()
+        except ValueError:
+            flist = []
         return flist
 
     def list_files(self, experiment, dims, dbhandle=None):

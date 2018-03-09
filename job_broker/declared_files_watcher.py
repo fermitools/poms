@@ -149,7 +149,7 @@ class declared_files_watcher:
                           all_located = False
 
                  if all_located:
-                     print("reporting files located status located ", jobsub_jobi_id)
+                     print("reporting files located status located ", jobsub_job_id)
                      self.job_reporter.report_status(jobsub_job_id,output_files_declared = "True",status="Located")
 
          print("Looked through files..")
