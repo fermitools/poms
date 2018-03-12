@@ -509,6 +509,7 @@ class JobsPOMS(object):
            compute final state: Failed/Located
            see the wiki [[Success]] page...
         '''
+        min_successful_cpu = 7
         ofcount = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == j.job_id, JobFile.file_type == 'output').first()
         ifcount = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == j.job_id, JobFile.file_type == 'input').first()
         score = 0
@@ -516,7 +517,7 @@ class JobsPOMS(object):
             if ifcount[0] != None and  ifcount[0] > 0:
                 # SAM file processing case
                 score = 0
-                if j.cpu_time > 5.0:
+                if j.cpu_time > min_successful_cpu:
                    score = score + 1
                 if ofcount[0] > 1.0:
                    score = score + 1
@@ -524,7 +525,9 @@ class JobsPOMS(object):
                    score = score + 1
             else:
                 # SAM file out of files case
-                if j.cpu_time != None and j.cpu_time > 5.0:
+                # note the cpu test is backwards in this case...
+                # it shouldn't take long to figure out we have no work.
+                if j.cpu_time == None or j.cpu_time < min_successful_cpu:
                    score = score + 1
                 if ofcount[0] == 0:
                    score = score + 1
@@ -533,7 +536,7 @@ class JobsPOMS(object):
         else:
             if ifcount[0] != None and ifcount[0] > 0:
                 # non-SAM file processing case
-                if j.cpu_time != None and j.cpu_time > 5.0:
+                if j.cpu_time != None and j.cpu_time > min_successful_cpu:
                    score = score + 1
                 if ofcount[0] != None and ofcount[0] > 1.0:
                    score = score + 1
@@ -541,7 +544,7 @@ class JobsPOMS(object):
                    score = score + 1
             else:
                 # non-SAM  mc/gen case
-                if j.cpu_time != None and j.cpu_time > 5.0:
+                if j.cpu_time != None and j.cpu_time > min_successful_cpu:
                    score = score + 1
                 if ofcount[0] != None  and ofcount[0] > 1.0:
                    score = score + 1
