@@ -703,27 +703,31 @@ class JobsPOMS(object):
             if group == 'samdev':
                 group = 'fermilab'
 
-            subcmd = 'rm'
+            subcmd = 'q'
             if act == 'kill':
                 subcmd = 'rm'
-            if act in ('hold','release'):
+            elif act in ('hold','release'):
                 subcmd = act
+            else:
+                raise SyntaxError("called with unknown action %s" % act)
 
             '''
             if test == true:
                 os.open("echo jobsub_%s -G %s --role %s --jobid %s 2>&1" % (subcmd, group, c.vo_role, ','.join(jjil)), "r")
             '''
+
             cmd = """
                 exec 2>&1
                 export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s
                 kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true
-                ssh %s@%s '%s; set -x; jobsub_rm -G %s --role %s --jobid %s'
+                ssh %s@%s '%s; set -x; jobsub_%s -G %s --role %s --jobid %s'
             """ % (
                 group,
                 self.poms_service.hostname,
                 lts.launch_account, 
                 lts.launch_host, 
                 lts.launch_setup, 
+                act,
                 group, 
                 c.vo_role, 
                 ','.join(jjil)
