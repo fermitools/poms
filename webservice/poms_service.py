@@ -537,7 +537,7 @@ class PomsService(object):
                 if user.is_root():
                     auth = True
                 elif user.session_experiment == campaign.experiment:
-                    if user.is_cooridator():
+                    if user.is_coordinator():
                         auth = True
                     elif user.is_production() and campaign.creator_role == 'production':
                         auth = True
