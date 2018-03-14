@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from poms_client import register_poms_campaign
+from poms_client import register_poms_campaign,update_session_role
 import optparse
 import os
 
@@ -18,11 +18,13 @@ parser.add_option('--version',  help="software version for campaign", default = 
 parser.add_option('--campaign-definition',  help="software version for campaign", default = None)
 parser.add_option('--dataset',  help="dataset name for job", default = None)
 parser.add_option('--test',  help="use test server", default = None)
+parser.add_option('--poms_role', type=str, help='set role in poms', default = 'production')
 
 (options, args ) = parser.parse_args()
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 
+update_session_role(options.poms_role)
 res = register_poms_campaign(campaign_name = options.campaign, 
 	user = options.user,
 	experiment = options.experiment,

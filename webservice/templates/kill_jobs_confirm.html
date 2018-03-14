@@ -29,20 +29,25 @@ Confirm {{act}} request {%include 'help_button.html'%}
        Job(s) {{jjil|join(', ')}}
      {% endif %}
     ? <br>
-
-   <button class="ui button">
+  <a href=
      {% if campaign_id is not none %}
-       <a href="{{pomspath}}/kill_jobs?confirm=y&campaign_id={{campaign_id}}&act={{act}}">Yes, {{act}} them</a>
+     "{{pomspath}}/kill_jobs?confirm=y&campaign_id={{campaign_id}}&act={{act}}"
      {% elif task_id is not none %}
-       <a href="{{pomspath}}/kill_jobs?confirm=y&task_id={{task_id}}&act={{act}}">Yes, {{act}} them</a>
+       "{{pomspath}}/kill_jobs?confirm=y&task_id={{task_id}}&act={{act}}"
      {% elif job_id is not none %}
-       <a href="{{pomspath}}/kill_jobs?confirm=y&job_id={{job_id}}&act={{act}}">Yes, {{act}} them</a>
+       "{{pomspath}}/kill_jobs?confirm=y&job_id={{job_id}}&act={{act}}"
      {% endif %}
-   </button>
+   >
+      <button class="ui button">
+         Yes, {{act}} them
+      </button>
+  </a>
 
-   <button class="ui button">
-      <a onclick="window.history.back()">No! go back</a>
-   </button>
+  <a onclick="window.history.back()">
+     <button class="ui button">
+         No! go back
+     </button>
+  </a>
 
 </div>
 

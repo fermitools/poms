@@ -143,7 +143,7 @@ Launch Templates {{ show_hint('', 'Help page') }}
     </div>
     <div class="actions">
       <div class="ui button deny red">Cancel</div>
-      <input type="submit" value="Submit" id="ae_submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
+      <input type="submit" value="Save" id="ae_submit" class="ui button teal" {{ 'disabled' if (data.authorized==False) }}/>
       <input type="submit" value="Test" name="test_template" id="ae_test" class="ui button orange" {{ 'disabled' if (data.authorized==False) }}/>
     </div>
     <input type="hidden" name="experiment" id="ae_experiment" value="{{data.curr_experiment}}">
@@ -212,13 +212,15 @@ $("#experiment").change(function() {
     $("#template_add_edit_modal").modal({}).modal('show');
     if ( typeof clone === 'undefined' )
     {
-      if ( ($("#ldf_authorized_"+index).val() == false) ) {
-        $("#ae_submit").prop("disabled",true);
-        $("#ae_test").prop("disabled",true);
+      $("#ae_submit").prop("value","Save");
+      if ( ($("#c_authorized_"+index).text() == "False") ) {
+	$("#ae_submit").prop("disabled",true);
+      } else {
+	$("#ae_submit").prop("disabled",false);
       }
     } else {
-      $("#ae_submit").prop('value', 'Clone');
-      $("#ae_test").hide();
+      $("#ae_submit").prop("value","Clone");
+      $("#ae_submit").prop("disabled",false);
     }
   }
 

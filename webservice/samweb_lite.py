@@ -228,6 +228,24 @@ class samweb_lite:
         dims = dims.replace("(file_name __no_project__ ) union", "")
         return dims
 
+    def plain_list_files(self, experiment, dims):
+        base = "http://samweb.fnal.gov:8480"
+        url = "%s/sam/%s/api/files/list" % (base, experiment)
+        flist = []
+        dims = self.cleanup_dims(dims)
+        res = requests.get(url, params={"dims": dims, "format": "json"})
+        #print( "status code: %d url: %s" % (res.status_code, res.url))
+        #print( "got output: %s" % res.text)
+        if res.status_code >= 200 and res.status_code < 300:
+            logit.log(logit.INFO, "got status code %d looking up dims: %s" % (res.status_code, dims))
+        else:
+            logit.log(logit.ERROR, "got status code %d looking up dims: %s" % (res.status_code, dims))
+        try:
+            flist = res.json()
+        except ValueError:
+            flist = []
+        return flist
+
     def list_files(self, experiment, dims, dbhandle=None):
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/files/list" % (base, experiment)

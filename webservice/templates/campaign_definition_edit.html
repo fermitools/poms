@@ -174,7 +174,7 @@ Job Types {%include 'help_button.html'%}
 
       <div class="actions">
 	<div class="ui button deny red">Cancel</div>
-	<input type="submit" value="Submit" id="ae_submit" class="ui button teal" />
+	<input type="submit" value="Save" id="ae_submit" class="ui button teal" />
 	<input type="submit" name="test_template" value="Test" id="ae_test"class="ui button orange" />
       </div>
       <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
@@ -733,7 +733,7 @@ function ep_down_button(current_row) {
     $("#definition_add_edit_modal").modal('show');
     if ( typeof clone === 'undefined' )
     {
-      $("#ae_submit").prop('value', 'Submit');
+      $("#ae_submit").prop('value', 'Save');
       if ( ($("#cdf_authorized_"+index).text() == "False") ) {
         $("#ae_submit").prop("disabled",true);
         $("#ae_test").prop("disabled",true);

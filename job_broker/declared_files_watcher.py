@@ -95,14 +95,14 @@ class declared_files_watcher:
 
         res = []
         while len(flist) > 0:
-            batch = flist[:300]
-            flist = flist[300:]
+            batch = flist[:200]
+            flist = flist[200:]
             dims = "file_name '%s'" % "','".join(batch)
             print("trying dimensions: ", dims)
             sys.stdout.flush()
             #found = self.samweb.listFiles(dims)
-            found = self.samweb.list_files(experiment, dims)
-            print( "got: ", found)
+            found = self.samweb.plain_list_files(experiment, dims)
+            print( "got files: ", found)
             sys.stdout.flush()
             res = res + list(found)
         print("found %d located files for %s" % (len(res), experiment))
@@ -149,7 +149,7 @@ class declared_files_watcher:
                           all_located = False
 
                  if all_located:
-                     print("reporting files located status located ", jobsub_jobi_id)
+                     print("reporting files located status located ", jobsub_job_id)
                      self.job_reporter.report_status(jobsub_job_id,output_files_declared = "True",status="Located")
 
          print("Looked through files..")
@@ -176,7 +176,8 @@ class declared_files_watcher:
 
             self.threadCount.set(threading.active_count())
             self.tracked_files.set(self.totalTracked)
-            time.sleep(60)
+            #time.sleep(60)
+            time.sleep(1)
 
 if __name__ == "__main__":
 

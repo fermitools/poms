@@ -50,6 +50,7 @@ class CampaignsPOMS():
             callback to actually change launch templates from edit screen
         """
         data = {}
+        template = None
         message = None
         ae_launch_id = None
         data['exp_selections'] = dbhandle.query(Experiment).filter(
@@ -119,6 +120,8 @@ class CampaignsPOMS():
                                                   launch_setup=ae_launch_setup, creator=experimenter_id,
                                                   created=datetime.now(utc), creator_role=role)
                     dbhandle.add(template)
+                    dbhandle.commit()
+                    data['launch_template_id'] = template.launch_id
                 else:
                     columns = {
                         "name": ae_launch_name,
@@ -130,7 +133,9 @@ class CampaignsPOMS():
                     }
                     template = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id == ae_launch_id).update(
                         columns)
-                dbhandle.commit()
+                    dbhandle.commit()
+                    data['launch_template_id'] = ae_launch_id
+
             except IntegrityError as e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
                 logit.log(' '.join(e.args))
@@ -215,6 +220,9 @@ class CampaignsPOMS():
 
         if action == 'add' or action == 'edit':
             campaign_definition_id = None
+            definition_parameters = kwargs.pop('ae_definition_parameters')
+            if definition_parameters:
+                definition_parameters = json.loads(definition_parameters)
             if pcl_call == 1:  # Enter here if the access was from the poms_client
                 name = kwargs.pop('ae_definition_name')
                 if isinstance(name, str):
@@ -230,7 +238,6 @@ class CampaignsPOMS():
                 output_files_per_job = kwargs.pop('ae_output_files_per_job', 0)
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
-                definition_parameters = kwargs.pop('ae_definition_parameters')
                 recoveries = kwargs.pop('ae_definition_recovery', "[]")
                 # Getting the info that was not passed by the poms_client arguments
                 if input_files_per_job in [None, ""]:
@@ -247,7 +254,7 @@ class CampaignsPOMS():
                         CampaignDefinition.campaign_definition_id == campaign_definition_id).firts().launch_script
                 if definition_parameters in [None, ""]:
                     definition_parameters = dbhandle.query(CampaignDefinition).filter(
-                        CampaignDefinition.campaign_definition_id == campaign_definition_id).firts().definition_parameters
+                        CampaignDefinition.campaign_definition_id == campaign_definition_id).first().definition_parameters
             else:
                 experimenter_id = kwargs.pop('experimenter_id')
                 campaign_definition_id = kwargs.pop('ae_campaign_definition_id')
@@ -258,7 +265,6 @@ class CampaignsPOMS():
                 output_files_per_job = kwargs.pop('ae_output_files_per_job', 0)
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
-                definition_parameters = json.loads(kwargs.pop('ae_definition_parameters'))
                 recoveries = kwargs.pop('ae_definition_recovery')
             try:
                 if action == 'add':
@@ -399,7 +405,7 @@ class CampaignsPOMS():
             c.dataset = ""
             c.launch_id = lt.launch_id
             c.software_version = ""
-            c.campaign_typ = 'regular'
+            c.campaign_type = 'regular'
             dbhandle.add(c)
             dbhandle.commit()
             c = dbhandle.query(Campaign).filter(Campaign.campaign_definition_id == campaign_def_id,
@@ -676,10 +682,14 @@ class CampaignsPOMS():
             dmap[cid] = []
 
 
+        fpmap = {}
         for cid in cnames.keys():
-            cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id==cid).filter(CampaignDependency.uses_camp_id.in_(cnames.keys())).all()
+            cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.uses_camp_id==cid).filter(CampaignDependency.needs_camp_id.in_(cnames.keys())).all()
             for cd in cdl:
-                dmap[cid].append(cd.uses_camp_id)
+                if cd.needs_camp_id in cnames.keys():
+                    dmap[cid].append(cd.needs_camp_id)
+                    fpmap[(cid, cd.needs_camp_id)] = cd.file_patterns
+
         #------------
 
         # sort by dependencies(?)
@@ -691,19 +701,20 @@ class CampaignsPOMS():
 
         res.append("[campaign]")
         res.append("experiment=%s" % cl[0].experiment)
+        res.append("poms_role=%s" % cl[0].creator_role)
         if tag == None:
-            res.append("layer_id: %s" % camp_id)
+            res.append("stage_id: %s" % camp_id)
         else:
             res.append("tag: %s" % tag)
 
         jts = set()
         lts = set()
 
-        res.append("campaign_layer_list=%s" % " ".join(map(cnames.get,cidl)))
+        res.append("campaign_stage_list=%s" % " ".join(map(cnames.get,cidl)))
         res.append("")
 
         for c in cl:
-            res.append("[campaign_layer %s]" % c.name)
+            res.append("[campaign_stage %s]" % c.name)
             res.append("dataset=%s" % c.dataset)
             res.append("software_version=%s" % c.software_version)
             res.append("vo_role=%s" % c.vo_role)
@@ -732,15 +743,22 @@ class CampaignsPOMS():
             res.append("")
             # still need: recovery launches
 
-        res.append("[dependencies]")
         # still need dependencies
         deps = deque()
-        for cid in cidl:
-            res.append("%s=%s" % (cnames[cid], " ".join(map(cnames.get, dmap[cid]))))
+        for cid in dmap.keys(): 
+            if len(dmap[cid]) == 0:
+                continue
+            res.append("[dependencies %s]" % cnames[cid])
+            i = 0
+            for dcid in dmap[cid]:
+                i = i + 1
+                res.append("campaign_stage_%d = %s" % (i, cnames[dcid]))
+                res.append("file_pattern_%d = %s" % (i, fpmap[(cid,dcid)]))
+            res.append("")
 
         res.append("")
 
-        return "\n".join(res)
+        return "\n".join(res).replace("%","%%")
 
     def campaign_deps_svg(self, dbhandle, config_get, tag=None, camp_id=None):
         '''
@@ -956,10 +974,14 @@ class CampaignsPOMS():
             Give time-bars for Tasks for this campaign in a time window
             using the time_grid code
         """
+        if campaign_id == None:
+            base_link = 'campaign_time_bars?tag={}&'.format(tag)
+        else:
+            base_link = 'campaign_time_bars?campaign_id={}&'.format(campaign_id)
+
         (
             tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays
-        ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
-                                                     'campaign_time_bars?campaign_id={}&'.format(campaign_id))
+        ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,base_link)
         tg = time_grid.time_grid()
         key = tg.key()
 
@@ -1014,7 +1036,7 @@ class CampaignsPOMS():
             if tag is not None:
                 jjid = jjid + "<br>" + th.task_obj.campaign_obj.name
 
-            if th.status != "Completed" and th.status != "Located":
+            if th.status not in ("Completed", "Located","Failed","Removed"):
                 extramap[
                     jjid] = '<a href="{}/kill_jobs?task_id={:d}&act=hold"><i class="ui pause icon"></i></a><a href="{}/kill_jobs?task_id={:d}&act=release"><i class="ui play icon"></i></a><a href="{}/kill_jobs?task_id={:d}&act=kill"><i class="ui trash icon"></i></a>'.format(
                     self.poms_service.path, th.task_id, self.poms_service.path, th.task_id, self.poms_service.path,

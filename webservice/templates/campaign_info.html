@@ -151,6 +151,9 @@ $( document ).ready(function() {
                 <th>Removed
                   <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
                 </th>
+                <th>Failed
+                  <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
+                </th>
                 <th>%Efficiency
                   <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
                 </th>
@@ -162,7 +165,7 @@ $( document ).ready(function() {
                 </th>
             </tr>
         </thead>
-        {%set column_heads = ['All','Idle','Running','Held','Total Completed','Completed', 'Located', 'Removed', 'efficiency', 'pending' ] %}
+        {%set column_heads = ['All','Idle','Running','Held','Total Completed','Completed', 'Located', 'Removed','Failed', 'efficiency', 'pending' ] %}
         <tbody>
             <tr>
                 {% for k in column_heads %}
@@ -230,7 +233,7 @@ $( document ).ready(function() {
               </div>
               <div class=item>
                <a href="{{pomspath}}/jobs_time_histo?timetype=copy_out_time&campaign_id={{Campaign.campaign_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Job Copy Out Time Histogram
+                   <i class="external bar chart icon" data-content="Campaign Jobs Efficiency" data-variation="basic"></i>Copy Out Time Histogram(1 month)
                </a>
               </div>
               <div class=item>
@@ -290,7 +293,7 @@ $( document ).ready(function() {
               </div>
 
               <div class=item>
-                 <a href="{{pomspath}}/kill_jobs?campaign_id={{Campaign.campaign_id}}" {{"disabled" if (session_role=="analysis"
+                 <a href="{{pomspath}}/kill_jobs?campaign_id={{Campaign.campaign_id}}&act=release" {{"disabled" if (session_role=="analysis"
                          and Campaign.creator!=current_experimenter.experimenter_id) or Campaign.experimenter_holder_obj}}
                  >
                     <i class="external play icon" data-content="Release held jobs in Campaign" data-variation="basic">

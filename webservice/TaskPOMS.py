@@ -27,6 +27,7 @@ from . import logit
 from .poms_model import (Service,
                          Experimenter,
                          Job,
+                         JobFile,
                          JobHistory,
                          Task,
                          CampaignDefinition,
@@ -86,11 +87,16 @@ class TaskPOMS:
         #
         # make jobs which completed with no *undeclared* output files have status "Located".
         #
+        # lock Jobs in order first
+        dbhandle.query(Job.job_id).filter(Job.status == 'Completed').with_for_update().order_by(Job.jobsub_job_id).all()
+
         t = text("""update jobs set status = 'Located'
-            where (status = 'Completed' or status = 'Removed') and (select count(file_name) from job_files
-                                            where job_files.job_id = jobs.job_id
-                                                and job_files.file_type = 'output'
-                                                and job_files.declared is null) = 0""")
+            where status = 'Completed'
+              and (select count(file_name) from job_files
+                    where job_files.job_id = jobs.job_id
+                      and job_files.file_type = 'output'
+                      and job_files.declared is null) = 0
+""")
         dbhandle.execute(t)
 
         #
@@ -108,7 +114,8 @@ class TaskPOMS:
                                 (Job.status == "Completed", 0),
                                 (Job.status == "Removed", 0),
                                 (Job.status == "Located", 0),
-                            ], else_=1)))
+                                (Job.status == "Failed", 0),
+                           ], else_=1)))
              .filter(Job.task_id == Task.task_id)
              .filter(Task.status != "Completed", Task.status != "Located")
              .group_by(Task.task_id)
@@ -232,7 +239,7 @@ class TaskPOMS:
             if now - task.updated > timedelta(days=2):
                 n_located = n_located + 1
                 n_stale = n_stale + 1
-                task.status = "Located"
+                task.status = "Located" # XXX check for Failed?
                 finish_up_tasks.append(task.task_id)
                 task.updated = datetime.now(utc)
                 dbhandle.add(task)
@@ -343,7 +350,7 @@ class TaskPOMS:
             else:
                 jjid = 'j' + str(jh.job_id)
 
-            if j.status != "Completed" and j.status != "Located" and j.status != "Removed":
+            if j.status != "Completed" and j.status != "Located" and j.status != "Removed" and j.status != "Failed":
                 extramap[jjid] = '<a href="%s/kill_jobs?job_id=%d&act=hold"><i class="ui pause icon"></i></a><a href="%s/kill_jobs?job_id=%d&act=release"><i class="ui play icon"></i></a><a href="%s/kill_jobs?job_id=%d&act=kill"><i class="ui trash icon"></i></a>' % (self.poms_service.path, jh.job_id,self.poms_service.path, jh.job_id,self.poms_service.path, jh.job_id)
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
@@ -387,6 +394,8 @@ class TaskPOMS:
             res = "Held"
         if st['Running'] > 0:
             res = "Running"
+        if st['Failed'] > st['Completed'] and res == "New":
+            res = "Failed"
         if st['Completed'] > 0 and  res == "New":
             res = "Completed"
         if st['Removed'] > 0 and  res == "New":
@@ -628,6 +637,7 @@ class TaskPOMS:
             dataset_override = "fake_test_dataset"
             cdid = "-"
             cid = "-"
+            tid = "-"
             c = None
             c_param_overrides = []
             vers = 'v0_0'
@@ -730,15 +740,15 @@ class TaskPOMS:
             #    front of the path and can intercept calls to "jobsub_submit"
             #
             "source /grid/fermiapp/products/common/etc/setups",
-            "setup poms_client v2_0_1 -z /grid/fermiapp/products/common/db",
+            "setup poms_client -z /grid/fermiapp/products/common/db",
             lt.launch_setup % {
                 "dataset": dataset,
                 "version": vers,
                 "group": group,
                 "experimenter": experimenter_login,
             },
-            "setup -j poms_jobsub_wrapper v2_0_1 -z /grid/fermiapp/products/common/db",
-            "setup -j poms_client v2_0_1 -z /grid/fermiapp/products/common/db",
+            "setup -j poms_jobsub_wrapper -z /grid/fermiapp/products/common/db",
+            "setup poms_client -z /grid/fermiapp/products/common/db",
             "export POMS_CAMPAIGN_ID=%s" % cid,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "export POMS_TASK_ID=%s" % tid, 

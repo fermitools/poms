@@ -115,7 +115,7 @@ class SATool(cherrypy.Tool):
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
         self.session.execute("SET SESSION lock_timeout = '360s';")
-        self.session.execute("SET SESSION statement_timeout = '120s';")
+        self.session.execute("SET SESSION statement_timeout = '240s';")
         self.session.commit()
 
     def release_session(self):
@@ -146,11 +146,8 @@ class SessionExperimenter(object):
         """
         Returns the list of allowed roles for the user/experiment in the session
         """
-        exp = self.authorization.get(self.session_experiment)
-        if exp:
-            return exp.get('roles')
-        else:
-            return []
+        exp = self.authorization.get(self.session_experiment, {'roles':[]})
+        return exp.get('roles')
 
     def is_authorized(self, campaign=None):
         """
@@ -279,23 +276,29 @@ class SessionTool(cherrypy.Tool):
 
         # Retrieve what experiments a user is ACTIVE in and the level of access right to each experiment.
         # and construct security role data on each active experiment
-        exps = {}
-        e2e = (cherrypy.request.db.query(ExperimentsExperimenters)
-               .filter(ExperimentsExperimenters.experimenter_id == e.experimenter_id)
-               .filter(ExperimentsExperimenters.active == True))
-        # Not that root is a FLAG not a ROLE.  For the dropdown, it simply provides all roles.
+        # Not that root is a FLAG not a ROLE. Take care not to make it a role.
         roles = ['analysis', 'production', 'coordinator']  #Ordered by how they will appear in the form dropdown.
-        for row in e2e:
-            position = 0
-            if e.root is True:
-                position = 3
-            elif row.role == 'coordinator':
-                position = 3
-            elif row.role == 'production':
-                position = 2
-            else: #analysis
-                position = 1
-            exps[row.experiment] = {'roles':roles[:position]}
+        exps = {}
+        e2e = None
+        if e.root is True:
+            e2e = (cherrypy.request.db.query(Experiment))
+            for row in e2e:
+                exps[row.experiment] = {'roles':roles}
+        else:
+            e2e = (cherrypy.request.db.query(ExperimentsExperimenters)
+                   .filter(ExperimentsExperimenters.experimenter_id == e.experimenter_id)
+                   .filter(ExperimentsExperimenters.active == True))
+            for row in e2e:
+                position = 0
+                if e.root is True:
+                    position = 3
+                elif row.role == 'coordinator':
+                    position = 3
+                elif row.role == 'production':
+                    position = 2
+                else: #analysis
+                    position = 1
+                exps[row.experiment] = {'roles':roles[:position]}
 
         if e.session_experiment == "":
             # don't choke on blank session_experiment, just pick one...

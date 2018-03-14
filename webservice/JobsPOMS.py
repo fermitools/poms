@@ -23,12 +23,15 @@ from .pomscache import pomscache, pomscache_10
 
 class JobsPOMS(object):
 
+    pending_files_offset = 0
+
     def __init__(self, poms_service):
         self.poms_service = poms_service
+        self.junkre = re.compile('.*fcl|log.*|.*\.log$|ana_hist\.root$|.*\.sh$|.*\.tar$|.*\.json$|[-_0-9]*$')
 
     def active_jobs(self, dbhandle):
         res = deque()
-        for jobsub_job_id, task_id in dbhandle.query(Job.jobsub_job_id, Job.task_id).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed").execution_options(stream_results=True).all():
+        for jobsub_job_id, task_id in dbhandle.query(Job.jobsub_job_id, Job.task_id).filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed", Job.status != "Failed").execution_options(stream_results=True).all():
             if jobsub_job_id == "unknown":
                 continue
             res.append((jobsub_job_id, task_id))
@@ -38,6 +41,8 @@ class JobsPOMS(object):
 
     def output_pending_jobs(self, dbhandle):
         res = {}
+        windowsize = 1000
+        count = 0
         preve = None
         prevj = None
         # it would be really cool if we could push the pattern match all the
@@ -46,37 +51,43 @@ class JobsPOMS(object):
         # but with a comma separated list of them, I don't think it works
         # directly -- we would have to convert comma to pipe...
         # for now, I'm just going to make it a regexp and filter them here.
-        for e, jobsub_job_id, fname, fpattern in (dbhandle.query(CampaignSnapshot.experiment,
+        for e, jobsub_job_id, fname in (dbhandle.query(
+                                 Campaign.experiment,
                                  Job.jobsub_job_id,
-                                 JobFile.file_name,
-                                 CampaignDefinitionSnapshot.output_file_patterns)
-                  .join(Task).join(CampaignDefinitionSnapshot).join(Job)
-                  .filter(Task.campaign_definition_snap_id == CampaignDefinitionSnapshot.campaign_definition_snap_id,
-                          Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id,
+                                 JobFile.file_name)
+                  .join(Task)
+                  .filter(
                           Task.status == "Completed",
-                          Job.jobsub_job_id != "unknown",
+                          Task.campaign_id == Campaign.campaign_id,
                           Job.task_id == Task.task_id,
                           Job.job_id == JobFile.job_id,
-                          Job.status.in_(["Completed","Removed"]),
-                          or_(Job.output_files_declared == False, JobFile.declared == None), JobFile.file_type == 'output')
-                  .order_by(CampaignSnapshot.experiment, Job.jobsub_job_id).all()):
-            # convert fpattern "%.root,%.dat" to regexp ".*\.root|.*\.dat"
-            if fpattern is None:
-                fpattern = '%'
-            fpattern = fpattern.replace('.', '\\.')
-            fpattern = fpattern.replace('%', '.*')
-            fpattern = fpattern.replace(',', '|')
-            if not re.match(fpattern, fname):
-                logit.log("skipping non-output fname %s" % fname)
-                continue
+                          JobFile.file_type == 'output',
+                          JobFile.declared == None, 
+                          Job.status == "Completed",
+                        )
+                  .order_by(Campaign.experiment, Job.jobsub_job_id)
+                  .offset(JobsPOMS.pending_files_offset)
+                  .limit(windowsize)
+                  .all()):
+
             if preve != e:
                 preve = e
                 res[e] = {}
             if prevj != jobsub_job_id:
                 prevj = jobsub_job_id
                 res[e][jobsub_job_id] = []
-            logit.log("adding %s to exp %s jjid %s" % (fname, e, jobsub_job_id))
-            res[e][jobsub_job_id].append(fname)
+            if not self.junkre.match(fname):
+                logit.log("adding %s to exp %s jjid %s" % (fname, e, jobsub_job_id))
+                res[e][jobsub_job_id].append(fname)
+            count = count + 1
+
+        if count != 0:
+            JobsPOMS.pending_files_offset = JobsPOMS.pending_files_offset  + windowsize
+        else:
+            JobsPOMS.pending_files_offset = 0
+
+        logit.log("pending files offset now: %d" % JobsPOMS.pending_files_offset)
+
         return res
 
     def update_SAM_project(self, samhandle, j, projname):
@@ -164,6 +175,7 @@ class JobsPOMS(object):
 
         newfiles = set()
         fnames = set()
+        # regexp to filter out things we copy out that are not output files..
         logit.log(" bulk_update_job: ldata1")
         for r in ldata: # make lists for [field][value] pairs
             if r['task_id'] and not (int(r['task_id']) in tids_present):
@@ -178,7 +190,7 @@ class JobsPOMS(object):
                     for v in value.split(' '):
                         if len(v) < 2 or v[0] == '-':
                            continue
-                        if ftype == 'output' and not re.match(of_res.get(r['task_id'],''),v) or v.find('.log') > 0:
+                        if ftype == 'output' and self.junkre.match(of_res.get(r['task_id'],''),v) > 0:
                             thisftype = 'log'
                         else:
                             thisftype = ftype
@@ -492,16 +504,68 @@ class JobsPOMS(object):
 
         return "Ok."
 
+    def failed_job(self, j, dbhandle):
+        '''
+           compute final state: Failed/Located
+           see the wiki [[Success]] page...
+        '''
+        min_successful_cpu = 7
+        ofcount = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == j.job_id, JobFile.file_type == 'output').first()
+        ifcount = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == j.job_id, JobFile.file_type == 'input').first()
+        score = 0
+        if j.task_obj.project:
+            if ifcount[0] != None and  ifcount[0] > 0:
+                # SAM file processing case
+                score = 0
+                if j.cpu_time > min_successful_cpu:
+                   score = score + 1
+                if ofcount[0] > 1.0:
+                   score = score + 1
+                if j.user_exe_exit_code == 0:
+                   score = score + 1
+            else:
+                # SAM file out of files case
+                # note the cpu test is backwards in this case...
+                # it shouldn't take long to figure out we have no work.
+                if j.cpu_time == None or j.cpu_time < min_successful_cpu:
+                   score = score + 1
+                if ofcount[0] == 0:
+                   score = score + 1
+                if j.user_exe_exit_code == 0:
+                   score = score + 1
+        else:
+            if ifcount[0] != None and ifcount[0] > 0:
+                # non-SAM file processing case
+                if j.cpu_time != None and j.cpu_time > min_successful_cpu:
+                   score = score + 1
+                if ofcount[0] != None and ofcount[0] > 1.0:
+                   score = score + 1
+                if j.user_exe_exit_code == 0:
+                   score = score + 1
+            else:
+                # non-SAM  mc/gen case
+                if j.cpu_time != None and j.cpu_time > min_successful_cpu:
+                   score = score + 1
+                if ofcount[0] != None  and ofcount[0] > 1.0:
+                   score = score + 1
+                if j.user_exe_exit_code == 0:
+                   score = score + 1
+        return score < 2
+
     def update_job_common(self, dbhandle, rpstatus, samhandle, j, kwargs):
 
             oldstatus = j.status
             logit.log("update_job: updating job %d" % (j.job_id if j.job_id else -1))
 
-            if kwargs.get('status', None) and oldstatus != kwargs.get('status') and oldstatus in ('Completed','Removed') and kwargs.get('status') != 'Located':
+            if kwargs.get('status', None) and oldstatus != kwargs.get('status') and oldstatus in ('Completed','Removed','Failed') and kwargs.get('status') != 'Located':
                 # we went from Completed or Removed back to some Running/Idle state...
                 # so clean out any old (wrong) Completed statuses from
                 # the JobHistory... (Bug #15322)
-                dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status.in_(['Completed','Removed'])).delete(synchronize_session=False)
+                dbhandle.query(JobHistory).filter(JobHistory.job_id == j.job_id, JobHistory.status.in_(['Completed','Removed','Failed'])).delete(synchronize_session=False)
+
+            if kwargs.get('status', None) == 'Completed':
+                    if self.failed_job(j, dbhandle):
+                        kwargs['status'] = "Failed"
 
             # first, Job string fields the db requres be not null:
             for field in ['cpu_type', 'node_name', 'host_site', 'status', 'user_exe_exit_code', 'reason_held']:
@@ -520,7 +584,10 @@ class JobsPOMS(object):
             if kwargs.get('output_files_declared', None) == "True":
                 if j.status == "Completed":
                     j.output_files_declared = True
-                    j.status = "Located"
+                    if self.failed_job(j, dbhandle):
+                        j.status = "Failed"
+                    else:
+                        j.status = "Located"
 
             # next fields we set in our Task
             for field in ['project', 'recovery_tasks_parent']:
@@ -603,13 +670,15 @@ class JobsPOMS(object):
         t = None
         if campaign_id is not None or task_id is not None:
             if campaign_id is not None:
-                tl = dbhandle.query(Task).filter(Task.campaign_id == campaign_id, Task.status != 'Completed', Task.status != 'Located').all()
+                tl = dbhandle.query(Task).filter(Task.campaign_id == campaign_id, Task.status != 'Completed', Task.status != 'Located', Task.status != 'Failed').all()
             else:
                 tl = dbhandle.query(Task).filter(Task.task_id == task_id).all()
             if len(tl):
                 c = tl[0].campaign_snap_obj
+                lts = tl[0].launch_template_snap_obj
             else:
                 c = None
+                lts = None
             for t in tl:
                 tjid = self.poms_service.taskPOMS.task_min_job(dbhandle, t.task_id)
                 logit.log("kill_jobs: task_id %s -> tjid %s" % (t.task_id, tjid))
@@ -619,35 +688,62 @@ class JobsPOMS(object):
                 if tjid:
                     jjil.append(tjid.replace('.0', ''))
         else:
-            jql = dbhandle.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Removed', Job.status != 'Located').execution_options(stream_results=True).all()
-            c = jql[0].task_obj.campaign_snap_obj
-            for j in jql:
-                jjil.append(j.jobsub_job_id)
+            jql = dbhandle.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Removed', Job.status != 'Located', Job.status != 'Failed').execution_options(stream_results=True).all()
+
+            if len(jql) == 0:
+                jjil = ["(None Found)"]
+            else:  
+                c = jql[0].task_obj.campaign_snap_obj
+                for j in jql:
+                    jjil.append(j.jobsub_job_id)
+                lts = jql[0].task_obj.launch_template_snap_obj
 
         if confirm is None:
             jijatem = 'kill_jobs_confirm.html'
 
             return jjil, t, campaign_id, task_id, job_id
-        else:
+        elif c:
             group = c.experiment
             if group == 'samdev':
                 group = 'fermilab'
-          
-            subcmd = 'rm'
+
+            subcmd = 'q'
             if act == 'kill':
                 subcmd = 'rm'
-            if act in ('hold','release'):
+            elif act in ('hold','release'):
                 subcmd = act
+            else:
+                raise SyntaxError("called with unknown action %s" % act)
 
             '''
             if test == true:
                 os.open("echo jobsub_%s -G %s --role %s --jobid %s 2>&1" % (subcmd, group, c.vo_role, ','.join(jjil)), "r")
             '''
-            f = os.popen("export PATH=$HOME/bin:$PATH; /usr/bin/python $JOBSUB_CLIENT_DIR/jobsub_rm -G %s --role %s --jobid %s 2>&1" % (group, c.vo_role, ','.join(jjil)), "r")
+
+            cmd = """
+                exec 2>&1
+                export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s
+                kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true
+                ssh %s@%s '%s; set -x; jobsub_%s -G %s --role %s --jobid %s'
+            """ % (
+                group,
+                self.poms_service.hostname,
+                lts.launch_account, 
+                lts.launch_host, 
+                lts.launch_setup, 
+                act,
+                group, 
+                c.vo_role, 
+                ','.join(jjil)
+            )
+            
+            f = os.popen(cmd, "r")
             output = f.read()
             f.close()
 
             return output, c, campaign_id, task_id, job_id
+        else:
+            return "Nothing to %s!" % act,  None, 0, 0, 0 
 
     def jobs_time_histo(self, dbhandle, campaign_id, timetype, binsize = None, tmax=None, tmin=None, tdays=1, submit=None):
         """  histogram based on cpu_time/wall_time/aggregate copy times

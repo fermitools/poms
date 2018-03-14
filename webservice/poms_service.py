@@ -284,7 +284,7 @@ class PomsService(object):
 
         if kwargs.get('test_template'):
             raise cherrypy.HTTPRedirect(
-                "%s/launch_jobs?campaign_id=None&test_launch_template=%s" % (self.path, kwargs.get('ae_launch_id')))
+                "%s/launch_jobs?campaign_id=None&test_launch_template=%s" % (self.path, data['launch_template_id']))
 
         template = self.jinja_env.get_template('launch_template_edit.html')
         return template.render(data=data, help_page="LaunchTemplateEditHelp")
@@ -481,12 +481,17 @@ class PomsService(object):
     def register_poms_campaign(self, experiment, campaign_name, version, user=None,
                                campaign_definition=None, dataset="", role="Analysis",
                                params=[]):
+        loguser = cherrypy.session.get('experimenter')
+
+        if loguser.username != 'poms':
+            user = loguser.username
+
         campaign_id = self.campaignsPOMS.register_poms_campaign(cherrypy.request.db,
                                                                 experiment,
                                                                 campaign_name,
                                                                 version, user,
                                                                 campaign_definition,
-                                                                dataset, role,
+                                                                dataset, role,loguser.session_role,
                                                                 cherrypy.session.get, params)
         return "Campaign=%d" % campaign_id
 
@@ -532,7 +537,7 @@ class PomsService(object):
                 if user.is_root():
                     auth = True
                 elif user.session_experiment == campaign.experiment:
-                    if user.is_cooridator():
+                    if user.is_coordinator():
                         auth = True
                     elif user.is_production() and campaign.creator_role == 'production':
                         auth = True
@@ -789,7 +794,7 @@ class PomsService(object):
     def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None, test_launch_template=None,
                     experiment=None, launcher=None):
 
-        if cherrypy.session.get('experimenter').username and 'poms' != cherrypy.session.get('experimenter').username :
+        if cherrypy.session.get('experimenter').username and ('poms' != cherrypy.session.get('experimenter').username or launch_user == '') :
             launch_user = cherrypy.session.get('experimenter').experimenter_id 
         else:
             launch_user = launcher

@@ -42,7 +42,7 @@ Campaign Stages{%include 'help_button.html'%}
     }
 </style>
 <div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
-<div class="ui teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
+<div class="ui teal button" onclick="pop_tag_untag_modal();">Tag/Untag Campaigns</div>
 <div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Campaign Submission</div>
 <div class="ui teal button" onclick="show_stats();">Show ALL Campaigns Statistics</div>
 {% if campaigns|length == 0 %}
@@ -66,6 +66,8 @@ Campaign Stages{%include 'help_button.html'%}
                 <th>Hold By</th>
                 <th>Creator</th>
                 <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
+                <th>Updater</th>
+                <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Updated</th>
             </tr>
         </thead>
 
@@ -80,6 +82,8 @@ Campaign Stages{%include 'help_button.html'%}
                     <td>{{campaign.experimenter_holder_obj.username}}</td>
                     <td>{{campaign.experimenter_creator_obj.username}}</td>
                     <td>{{campaign.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>
+                    <td>{{campaign.experimenter_updater_obj.username}}</td>
+                    <td>{%if None == campaign.updated%}never{%else%}{{campaign.updated.strftime('%Y-%m-%d %H:%M:%S')}}{%endif%}</td>
                     <td id="c_name_{{loop.index}}" style="display:none">{{campaign.name}}</td>
                 </tr>
             {% endfor %}
