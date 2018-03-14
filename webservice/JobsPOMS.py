@@ -689,16 +689,20 @@ class JobsPOMS(object):
                     jjil.append(tjid.replace('.0', ''))
         else:
             jql = dbhandle.query(Job).filter(Job.job_id == job_id, Job.status != 'Completed', Job.status != 'Removed', Job.status != 'Located', Job.status != 'Failed').execution_options(stream_results=True).all()
-            c = jql[0].task_obj.campaign_snap_obj
-            for j in jql:
-                jjil.append(j.jobsub_job_id)
-            lts = jql[0].task_obj.launch_template_snap_obj
+
+            if len(jql) == 0:
+                jjil = ["(None Found)"]
+            else:  
+                c = jql[0].task_obj.campaign_snap_obj
+                for j in jql:
+                    jjil.append(j.jobsub_job_id)
+                lts = jql[0].task_obj.launch_template_snap_obj
 
         if confirm is None:
             jijatem = 'kill_jobs_confirm.html'
 
             return jjil, t, campaign_id, task_id, job_id
-        else:
+        elif c:
             group = c.experiment
             if group == 'samdev':
                 group = 'fermilab'
@@ -738,6 +742,8 @@ class JobsPOMS(object):
             f.close()
 
             return output, c, campaign_id, task_id, job_id
+        else:
+            return "Nothing to %s!" % act,  None, 0, 0, 0 
 
     def jobs_time_histo(self, dbhandle, campaign_id, timetype, binsize = None, tmax=None, tmin=None, tdays=1, submit=None):
         """  histogram based on cpu_time/wall_time/aggregate copy times
