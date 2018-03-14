@@ -405,7 +405,7 @@ class CampaignsPOMS():
             c.dataset = ""
             c.launch_id = lt.launch_id
             c.software_version = ""
-            c.campaign_typ = 'regular'
+            c.campaign_type = 'regular'
             dbhandle.add(c)
             dbhandle.commit()
             c = dbhandle.query(Campaign).filter(Campaign.campaign_definition_id == campaign_def_id,
