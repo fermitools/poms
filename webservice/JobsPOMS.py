@@ -731,7 +731,7 @@ class JobsPOMS(object):
                 lts.launch_account, 
                 lts.launch_host, 
                 lts.launch_setup, 
-                act,
+                subcmd,
                 group, 
                 c.vo_role, 
                 ','.join(jjil)

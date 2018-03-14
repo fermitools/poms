@@ -188,10 +188,10 @@ def test_kill_jobs():
     #job_obj4 = dbhandle.query(Job).filter(Job.jobsub_job_id == jid4).first()
 
     #Calls to the rutine under test.
-    output_killjob, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, job_id=job_obj1.job_id, confirm = "yes") #single job
-    output_killTask, c_obje_T, c_idr_T, task_idr_T, job_idr_T = mps.jobsPOMS.kill_jobs(dbhandle, task_id=task_id, confirm = "yes") #all task
-    output_killCampaign, c_obje_C, c_idr_C, task_idr_C, job_idr_C = mps.jobsPOMS.kill_jobs(dbhandle, campaign_id='14', confirm = "yes") #all campaign
-    #output_killjob2, c_obje2, c_idr2, task_idr2, job_idr2 = mps.jobsPOMS.kill_jobs(dbhandle, job_id=job_obj2.job_id, confirm = "yes")
+    output_killjob, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, job_id=job_obj1.job_id, confirm = "yes", act="kill") #single job
+    output_killTask, c_obje_T, c_idr_T, task_idr_T, job_idr_T = mps.jobsPOMS.kill_jobs(dbhandle, task_id=task_id, confirm = "yes", act="kill") #all task
+    output_killCampaign, c_obje_C, c_idr_C, task_idr_C, job_idr_C = mps.jobsPOMS.kill_jobs(dbhandle, campaign_id='14', confirm = "yes", act="kill") #all campaign
+    #output_killjob2, c_obje2, c_idr2, task_idr2, job_idr2 = mps.jobsPOMS.kill_jobs(dbhandle, job_id=job_obj2.job_id, confirm = "yes", act="kill")
 
     #Now the check the outputs, they need a bit of pre-processing.
     #Arguments
