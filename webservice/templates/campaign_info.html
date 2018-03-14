@@ -293,7 +293,7 @@ $( document ).ready(function() {
               </div>
 
               <div class=item>
-                 <a href="{{pomspath}}/kill_jobs?campaign_id={{Campaign.campaign_id}}" {{"disabled" if (session_role=="analysis"
+                 <a href="{{pomspath}}/kill_jobs?campaign_id={{Campaign.campaign_id}}&act=release" {{"disabled" if (session_role=="analysis"
                          and Campaign.creator!=current_experimenter.experimenter_id) or Campaign.experimenter_holder_obj}}
                  >
                     <i class="external play icon" data-content="Release held jobs in Campaign" data-variation="basic">
