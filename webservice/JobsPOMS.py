@@ -190,7 +190,7 @@ class JobsPOMS(object):
                     for v in value.split(' '):
                         if len(v) < 2 or v[0] == '-':
                            continue
-                        if ftype == 'output' and self.junkre.match(of_res.get(r['task_id'],''),v):
+                        if ftype == 'output' and self.junkre.match(v):
                             thisftype = 'log'
                         else:
                             thisftype = ftype
