@@ -740,15 +740,16 @@ class TaskPOMS:
             #    front of the path and can intercept calls to "jobsub_submit"
             #
             "source /grid/fermiapp/products/common/etc/setups",
-            "setup poms_client -z /grid/fermiapp/products/common/db",
+            "setup poms_client -t -z /grid/fermiapp/products/common/db",
             lt.launch_setup % {
                 "dataset": dataset,
                 "version": vers,
                 "group": group,
                 "experimenter": experimenter_login,
             },
-            "setup -j poms_jobsub_wrapper -z /grid/fermiapp/products/common/db",
-            "setup poms_client -z /grid/fermiapp/products/common/db",
+            "setup -j poms_jobsub_wrapper -t -z /grid/fermiapp/products/common/db",
+            "setup poms_client -t -z /grid/fermiapp/products/common/db",
+            "ups active",
             "export POMS_CAMPAIGN_ID=%s" % cid,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "export POMS_TASK_ID=%s" % tid, 
