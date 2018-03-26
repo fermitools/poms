@@ -1,0 +1,172 @@
+
+<body onload="main()">
+
+<pre id="src">
+# layer->stage throughought
+# dependency stanza per dependency
+# add a multiple campaigns layer?
+# escape %% stuff that's interpolated later
+[global]
+
+[campaign]
+experiment=sbnd
+tag= mcc_test_1
+campaign_stage_list=sbnd_detsim_test sbnd_reco_test sbnd_g4_test sbnd_gen_test sbnd_anatree_test
+
+[campaign_stage sbnd_reco_test]
+dataset=from_parent
+software_version=v06_48_00_MCC
+vo_role=Production
+cs_split_type=None
+job_type=sbnd_process_fife_launch_test
+launch_template=sbnd_launch_test_1
+param_overrides=[["-Oglobal.fclfile=", "standard_reco_sbnd_basic.fcl"], ["-Osubmit.N=", "10"], ["-Oglobal.basename=", "reco"]]
+completion_type=complete
+completion_pct=95
+
+[campaign_stage sbnd_detsim_test]
+dataset=from_parent
+software_version=v06_48_00_MCC
+vo_role=Production
+cs_split_type=None
+job_type=sbnd_process_fife_launch_test
+launch_template=sbnd_launch_test_1
+param_overrides=[["-Oglobal.fclfile=", "standard_detsim_sbnd.fcl"], ["-Osubmit.N=", "10"], ["-Oglobal.basename=", "detsim"]]
+completion_type=complete
+completion_pct=95
+
+[campaign_stage sbnd_anatree_test]
+dataset=from_parent
+software_version=v06_48_00_MCC
+vo_role=Production
+cs_split_type=None
+job_type=sbnd_process_fife_launch_test
+launch_template=sbnd_launch_test_1
+param_overrides=[["-Oglobal.fclfile=", "standard_anatree_sbnd.fcl"], ["-Osubmit.N=", "10"], ["-Oglobal.basename=", "anatree"]]
+completion_type=complete
+completion_pct=95
+
+[campaign_stage sbnd_g4_test]
+dataset=poms_depends_41209_1
+software_version=v06_48_00_MCC
+vo_role=Production
+cs_split_type=None
+job_type=sbnd_process_fife_launch_test
+launch_template=sbnd_launch_test_1
+param_overrides=[["-Oglobal.fclfile=", "standard_g4_sbnd.fcl"], ["-Osubmit.N=", "10"], ["-Oglobal.basename=", "g4"], ["-Ojob_setup.prescript=", "'export LD_LIBRARY_PATH=/cvmfs/nova.opensciencegrid.org/externals/library_shim/v03.03/NULL/lib/sl6:$LD_LIBRARY_PATH'"], ["-Osubmit.resource-provides=", "usage_model=OPPORTUNISTIC,DEDICATED"]]
+completion_type=complete
+completion_pct=95
+
+[campaign_stage sbnd_gen_test]
+dataset=None
+software_version=v06_48_00_MCC
+vo_role=Production
+cs_split_type=None
+job_type=sbnd_gen_fife_launch_test
+launch_template=sbnd_launch_test_1
+param_overrides=[["-Oglobal.fclfile=", "prodgenie_nu_singleinteraction_cryostat_gsimple-configb-v1.fcl"], ["-Osubmit.N=", "10"], ["-Oexecutable.arg_5=", "-n15"]]
+completion_type=complete
+completion_pct=100
+
+[launch_template sbnd_launch_test_1]
+host=sbndgpvm01.fnal.gov
+account=sbndpro
+setup=export X509_USER_PROXY=/opt/sbndpro/sbndpro.Production.proxy; setup fife_utils v3_2_0, poms_client ,  poms_jobsub_wrapper
+
+[job_type sbnd_gen_fife_launch_test]
+launch_script=fife_launch -c /sbnd/app/home/poms_test/cfg/sbnd_launch.cfg
+parameters=[["-Oexecutable.arg_5=", " "], ["-Ojob_output.add_to_dataset=", "_poms_task"], ["-Oglobal.fclfile=", "prodgenie_nu_singleinteraction_cryostat_gsimple-configb-v1.fcl"]]
+output_file_patterns=%%.root
+
+[job_type sbnd_process_fife_launch_test]
+launch_script=fife_launch -c /sbnd/app/home/poms_test/cfg/sbnd_launch.cfg
+parameters=[["-Ojob_setup.multifile=", "True"], ["-Osubmit.dataset=", "%%(dataset)s"], ["-Oglobal.fclfile=", "standard_anatree_sbnd.fcl"]]
+output_file_patterns=%%.root
+
+[dependencies sbnd_anatree_test]
+campaign_stage_1= sbnd_reco_test
+file_pattern_1 = reco%%.root
+
+[dependencies sbnd_reco_test]
+campaign_stage_1= sbnd_detsim_test
+file_pattern_1 = detsim%%.root
+
+[dependencies sbnd_detsim_test]
+campaign_stage_1= sbnd_g4_test
+file_pattern_1 = g4%%.root
+
+[dependencies sbnd_g4_test]
+campaign_stage_1= sbnd_gen_test
+file_pattern_1 = gen%%.root
+</pre>
+
+<pre id="dst">
+</pre>
+
+<script type="text/javascript">
+
+function trim_blanks(s) {
+   var i, j;
+   i = 0;
+   if (s === undefined) {
+      return ''
+   }
+   j = s.length;
+   while(s[i]== ' '){
+     i++;
+   }
+   while(s[j-1] == ' ') {
+     j--;
+   }
+   return s.slice(i,j);
+}
+
+function convert_ini_2_json(s) {
+   var res = []
+   var lines = s.split('\n')
+   var l, k_v, k, v, i;
+   for (i = 0 ; i < lines.length; i++) {
+      if (lines[i] === undefined)
+          break
+      l = trim_blanks(lines[i])
+
+      // skip blank lines and comments
+      if (l.length == 0)
+          continue
+      if (l[0] == '#') {
+          continue
+
+      } else if (l[0] == '[' &&  l[l.length-1]  == ']') {
+          if (res.length > 0 && res[res.length-1].slice(-1) == ',') {
+             res[res.length-1] = res[res.length-1].slice(0,-1)
+          }
+          res.push('},')
+          res.push('"' + l.slice(1,-1) + '": {')
+      } else {
+          k_v = l.split('=')
+          k = trim_blanks(k_v.shift())
+          v = trim_blanks(k_v.join('=')).replace(/"/g,'\\"')
+          if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
+              continue
+          }
+          res.push('"' + k + '": "' + v + '",')
+      }
+   }
+   res[0] = '{'
+
+   res.push('}')
+   return res.join('\n')
+}
+
+function test1() {
+   srctxt = document.getElementById("src").innerHTML
+   dsttxt = convert_ini_2_json(srctxt)
+   document.getElementById("dst").innerHTML = dsttxt
+}
+
+function main() {
+   test1()
+}
+
+</script>
+</body>
