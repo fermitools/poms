@@ -103,6 +103,9 @@ file_pattern_1 = gen%%.root
 <pre id="dst">
 </pre>
 
+<pre id="dst2"
+</pre>
+
 <script type="text/javascript">
 
 function trim_blanks(s) {
@@ -154,6 +157,11 @@ function convert_ini_2_json(s) {
    }
    res[0] = '{'
 
+   // fix last comma...
+   if (res.length > 0 && res[res.length-1].slice(-1) == ',') {
+     res[res.length-1] = res[res.length-1].slice(0,-1)
+   }
+   res.push('}')
    res.push('}')
    return res.join('\n')
 }
@@ -162,6 +170,9 @@ function test1() {
    srctxt = document.getElementById("src").innerHTML
    dsttxt = convert_ini_2_json(srctxt)
    document.getElementById("dst").innerHTML = dsttxt
+   dd = JSON.parse(dsttxt)
+   ddtxt = JSON.stringify(dd)
+   document.getElementById("dst2").innerHTML = ddtxt
 }
 
 function main() {
