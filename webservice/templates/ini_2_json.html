@@ -1,17 +1,75 @@
 
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<style type="text/css">
+
+td.box {
+    border: 1px dotted black;
+    padding: 1em;
+    border-radius: 0.5em;
+}
+
+td.box.selected {
+    border: 1px solid black;
+}
+
+td.pad {
+    width: 3em;
+}
+tr.pad {
+    height: 2em;
+}
+
+.popup_parent {
+   display: inline;
+   position: relative;
+}
+
+.popup_form { 
+    display: block;
+    background-color: white;
+    opacity: 1;
+    position: absolute;
+    z-index: 1;
+    left: 0;
+    top: -5px;
+    border: 2px solid red;
+    margin: 2px;
+    padding: 1em;
+}
+.wakefields:before { content: "\25a6"; width: 1em; height 1em; }
+.wakedeps:before { content: "\269f"; width: 1em; height 1em; }
+
+</style>
+</head>
 <body onload="main()">
 
-<pre id="src">
+<table>
+<tbody id="deps">
+<tr id="defaults"> </tr>
+<tr class="pad"> </tr>
+</tbody>
+</table>
+
+
+<pre id="src" style="display: none;">
 # layer->stage throughought
 # dependency stanza per dependency
 # add a multiple campaigns layer?
 # escape %% stuff that's interpolated later
 [global]
+dataset=from_parent
+software_version=v06_48_00_MCC
+vo_role=Production
+launch_template=sbnd_launch_test_1
+completion_type=complete
+completion_pct=95
 
 [campaign]
 experiment=sbnd
 tag= mcc_test_1
-campaign_stage_list=sbnd_detsim_test sbnd_reco_test sbnd_g4_test sbnd_gen_test sbnd_anatree_test
+campaign_stage_list=sbnd_gen_test sbnd_g4_test sbnd_detsim_test sbnd_reco_test sbnd_anatree_test
 
 [campaign_stage sbnd_reco_test]
 dataset=from_parent
@@ -100,13 +158,15 @@ campaign_stage_1= sbnd_gen_test
 file_pattern_1 = gen%%.root
 </pre>
 
-<pre id="dst">
+<pre id="dst" style="display: none;">
 </pre>
 
-<pre id="dst2"
+<pre id="dst2">
 </pre>
 
 <script type="text/javascript">
+
+document.edit_dict = {}
 
 function trim_blanks(s) {
    var i, j;
@@ -122,6 +182,15 @@ function trim_blanks(s) {
      j--;
    }
    return s.slice(i,j);
+}
+
+function un_trailing_comma(res) {
+   // we end with: "foo": "bar",
+   // and we're about to add a '}', 
+   // so dink last comma.
+   if (res.length > 0 && res[res.length-1].slice(-1) == ',') {
+     res[res.length-1] = res[res.length-1].slice(0,-1)
+   }
 }
 
 function convert_ini_2_json(s) {
@@ -140,9 +209,7 @@ function convert_ini_2_json(s) {
           continue
 
       } else if (l[0] == '[' &&  l[l.length-1]  == ']') {
-          if (res.length > 0 && res[res.length-1].slice(-1) == ',') {
-             res[res.length-1] = res[res.length-1].slice(0,-1)
-          }
+          un_trailing_comma(res)
           res.push('},')
           res.push('"' + l.slice(1,-1) + '": {')
       } else {
@@ -155,12 +222,11 @@ function convert_ini_2_json(s) {
           res.push('"' + k + '": "' + v + '",')
       }
    }
+
+   // fix leading line wart
    res[0] = '{'
 
-   // fix last comma...
-   if (res.length > 0 && res[res.length-1].slice(-1) == ',') {
-     res[res.length-1] = res[res.length-1].slice(0,-1)
-   }
+   un_trailing_comma(res)
    res.push('}')
    res.push('}')
    return res.join('\n')
@@ -170,14 +236,115 @@ function test1() {
    srctxt = document.getElementById("src").innerHTML
    dsttxt = convert_ini_2_json(srctxt)
    document.getElementById("dst").innerHTML = dsttxt
-   dd = JSON.parse(dsttxt)
-   ddtxt = JSON.stringify(dd)
+   document.edit_dict = JSON.parse(dsttxt)
+   ddtxt = JSON.stringify(document.edit_dict)
    document.getElementById("dst2").innerHTML = ddtxt
+   draw_deps(document.edit_dict, "deps")
 }
 
 function main() {
    test1()
 }
 
+function escape_quotes(s) {
+   if (s != undefined) {
+       return s.replace(/"/g,'&quot;')
+   } else { 
+       return s
+   }
+}
+
+function make_forms(stage, stage_dict, deps , default_dict , skip_deps = false) {
+    res = [] 
+    res.push('<button onclick="toggle_form(\'fields_' + stage + '\')" id="wake_fields_' + stage + '"><span class="wakefields"</span></button>' )
+    res.push('<div class="popup_parent">')
+    res.push('<form id="fields_' + stage + '" class="popup_form" style="display: none;">' )
+    for ( k in stage_dict ) {
+       if (stage_dict[k] == default_dict[k]) {
+           val="%(default."+k+")s"
+       } else {
+           val=stage_dict[k]
+       }
+       res.push('<label>' + k + '</label> <input id="_inp_' + stage + '_' + k + '" value="' + escape_quotes(val) + '"><br>')
+    }
+    res.push('</form>' )
+    res.push('</div>')
+    if (! skip_deps) {
+    res.push('<button onclick="toggle_form(\'deps_' + stage + '\')" id="wake_fields_' + stage + '"><span class="wakedeps"</span></button>' )
+    res.push('<div class="popup_parent">')
+    res.push('<form id="deps_' + stage + '" class="popup_form" style="display: none;">' )
+    for ( k in deps) {
+       res.push('<label>' + k + '</label> <input id="_inp_' + stage + '_' + k + '" value="' + escape_quotes(stage_dict[k]) + '"><br>')
+    }
+    res.push('</form>' )
+    res.push('</div>')
+    }
+    return res.join("\n")
+}
+
+function draw_deps(dd, tb_id) {
+    var csl = dd["campaign"]["campaign_stage_list"].split(" ")
+    var cur_row = 1
+    var cur_col = 1
+    var max_col = 0
+    var i
+    var sd
+    var deps
+    document.getElementById('defaults').innerHTML = '<td class="box" onclick="toggle_box_selected(\'defaults\')">' + 'defaults' + '<br>' + make_forms('defaults', dd["global"],{}, {}, true ) + '</div></td>'
+    for( i in csl) {
+        stage = csl[i]
+        sd = dd["campaign_stage " + stage]
+        deps = dd["dependencies " + stage]
+        if (cur_col > max_col) {
+            max_col = max_col + 1
+            document.getElementById("deps").innerHTML += '<tr id="deps_col_'+max_col.toString()+'"></tr><tr class="pad"</tr>'
+       
+        }
+        document.getElementById('deps_col_'+cur_col.toString()).innerHTML += '<td class="box" onclick="toggle_box_selected(\''+stage+'\')" id="'+stage+'">' + stage + '<br>' + make_forms(stage, sd, deps, dd["global"] ) + '</div></td><td class="pad"></td>'
+    }
+}
+
+function get_back_values(id) {
+   if( id.slice(0,7) == 'fields_' ) {
+      if (id == 'fields_defaults' ){
+          eds = document.edit_dict['global']
+      } else {
+          eds = document.edit_dict['campaign_stage '+stage]
+      }
+      stage = id.slice(7)
+      alert("stage is " + stage)
+      if ( eds != undefined ) {
+          for(k in eds) {
+              eds[k] = document.getElementById('_inp_'+stage+'_'+k).value
+          }
+      } else {
+          alert("that didn't work...")
+      }
+   }
+   ddtxt = JSON.stringify(document.edit_dict)
+   document.getElementById("dst2").innerHTML = ddtxt
+}
+
+function toggle_form(id) {
+    if (document.getElementById(id).style.display == 'block') {
+        get_back_values(id)
+        document.getElementById(id).style.display = 'none'
+    } else {
+        document.getElementById(id).style.display = 'block'
+    }
+}
+
+function toggle_box_selected(id) {
+   x =  document.getElementById(id)
+   if (x.className == 'box') {
+       x.classList.add('selected')
+   } else {
+       x.classList.remove('selected')
+   }
+}
+
+
+
 </script>
 </body>
+</html>
