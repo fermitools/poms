@@ -8,6 +8,16 @@ td.box {
     border: 1px dotted black;
     padding: 1em;
     border-radius: 0.5em;
+    background: white;
+    z-index: 1;
+    opacity: 1;
+}
+
+div.depbox {
+    z-index: -1;
+    position: absolute;
+    border-left: 2px solid red;
+    border-bottom: 2px solid red;
 }
 
 td.box.selected {
@@ -31,7 +41,7 @@ tr.pad {
     background-color: white;
     opacity: 1;
     position: absolute;
-    z-index: 1;
+    z-index: 2;
     left: 0;
     top: -5px;
     border: 2px solid red;
@@ -239,7 +249,7 @@ function test1() {
    document.edit_dict = JSON.parse(dsttxt)
    ddtxt = JSON.stringify(document.edit_dict)
    document.getElementById("dst2").innerHTML = ddtxt
-   draw_deps(document.edit_dict, "deps")
+   draw_stages(document.edit_dict, "deps")
 }
 
 function main() {
@@ -282,25 +292,50 @@ function make_forms(stage, stage_dict, deps , default_dict , skip_deps = false) 
     return res.join("\n")
 }
 
-function draw_deps(dd, tb_id) {
+function draw_stages(dd, tb_id) {
     var csl = dd["campaign"]["campaign_stage_list"].split(" ")
-    var cur_row = 1
-    var cur_col = 1
-    var max_col = 0
+    var cur_row = 0
+    var cur_col = 0
+    var gen_row = -1
+    var gen_col = 0
     var i
     var sd
     var deps
+    var prevdep = ''
     document.getElementById('defaults').innerHTML = '<td class="box" onclick="toggle_box_selected(\'defaults\')">' + 'defaults' + '<br>' + make_forms('defaults', dd["global"],{}, {}, true ) + '</div></td>'
     for( i in csl) {
         stage = csl[i]
         sd = dd["campaign_stage " + stage]
         deps = dd["dependencies " + stage]
-        if (cur_col > max_col) {
-            max_col = max_col + 1
-            document.getElementById("deps").innerHTML += '<tr id="deps_col_'+max_col.toString()+'"></tr><tr class="pad"</tr>'
+        // pick next row or column depending whether we are in a chain
+        if ( deps == undefined || deps['campaign_stage_1'] != prevdep ) {
+           cur_col = cur_col + 1
+        } else {
+           cur_row = cur_row + 1
+        }
+        prevdep = stage
+        if (cur_row > gen_row) {
+            gen_row = gen_row + 1
+            gen_col = 0
+            document.getElementById("deps").innerHTML += '<tr id="deps_col_'+cur_col.toString()+'"></tr><tr class="pad"</tr>'
        
         }
+
+        while( gen_col < cur_col - 1) {
+            document.getElementById('deps_col_'+cur_col.toString()).innerHTML += '<td class="pad"></td><td class="pad"></td>'
+            gen_col = gen_col + 1
+        }
+
         document.getElementById('deps_col_'+cur_col.toString()).innerHTML += '<td class="box" onclick="toggle_box_selected(\''+stage+'\')" id="'+stage+'">' + stage + '<br>' + make_forms(stage, sd, deps, dd["global"] ) + '</div></td><td class="pad"></td>'
+        gen_col = gen_col + 1
+        // update where we want to be...
+    }
+    for( i in csl) {
+        stage = csl[i]
+        deps = dd["dependencies " + stage]
+        if (deps != undefined && deps["campaign_stage_1"] != undefined) {
+            draw_dependency(deps["campaign_stage_1"], stage)
+        }
     }
 }
 
@@ -343,7 +378,26 @@ function toggle_box_selected(id) {
    }
 }
 
-
+function draw_dependency(stage1, stage2) {
+   var e1 = document.getElementById(stage1)   
+   var e2 = document.getElementById(stage2)   
+   var br = document.body.getBoundingClientRect()
+   var e1r = e1.getBoundingClientRect()
+   var e2r = e2.getBoundingClientRect()
+   var dep = document.createElement("DIV")
+   dep.className = 'depbox'
+   dep.style.position='absolute'
+   dep.id = 'dep_' + stage1 + '_' + stage2
+   var dtly = e1r.top - br.top + (e1r.width)/2
+   var dtlx = e1r.left - br.left + (e1r.width)/2
+   var dbry = dtly + e2r.top - e1r.top 
+   var dbrx = dtlx + e2r.left - e1r.left 
+   dep.style.top = dtly.toString()+"px"
+   dep.style.height = (dbry - dtly).toString()+"px"
+   dep.style.left = dtlx.toString()+"px"
+   dep.style.width = dbrx - dtlx
+   document.body.appendChild(dep)
+}
 
 </script>
 </body>
