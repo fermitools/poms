@@ -411,7 +411,7 @@ class TaskPOMS:
         if task_id in self.task_min_job_cache:
             return self.task_min_job_cache.get(task_id)
         jt = dbhandle.query(func.min(Job.jobsub_job_id)).filter(Job.task_id == task_id).first()
-        if len(jt) and jt[0]: 
+        if len(jt) and jt[0]:
             self.task_min_job_cache[task_id] = jt[0]
             return jt[0]
         return None
@@ -607,7 +607,7 @@ class TaskPOMS:
             return "Held."
 
         hl = dbhandle.query(HeldLaunch).with_for_update().order_by(HeldLaunch.created).first()
-        launch_user=dbhandle.query(Experimenter).filter(Expermenter.experimenter_id == hl.launcher).first()
+        launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == hl.launcher).first()
         if hl:
             dbhandle.delete(hl)
             dbhandle.commit()
@@ -624,7 +624,8 @@ class TaskPOMS:
             return "None."
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
-                    err_res, campaign_id, launcher, dataset_override=None, parent_task_id=None, param_overrides=None, test_launch_template = None, experiment = None):
+                    err_res, campaign_id, launcher, dataset_override=None, parent_task_id=None,
+                    param_overrides=None, test_launch_template=None, experiment=None):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
 
@@ -684,7 +685,7 @@ class TaskPOMS:
 
                 return lcmd, c, campaign_id, outdir, outfile
 
-            
+
             # allocate task to set ownership
             tid =  self.get_task_id_for( dbhandle, campaign_id, user=launcher_experimenter.username, experiment=experiment, parent_task_id=parent_task_id)
 
@@ -733,7 +734,7 @@ class TaskPOMS:
             # own setup as possible after the users' launch_setup text,
             # so we don't undo stuff they may put on the front of the path
             # etc -- *except* that we need jobsub_wrapper setup.
-            # so we 
+            # so we
             # 1. do our setup except jobsub_wrapper
             # 2. do their setup stuff from the launch template
             # 3. setup *just* poms_jobsub_wrapper, so it gets on the
@@ -752,8 +753,8 @@ class TaskPOMS:
             "ups active",
             "export POMS_CAMPAIGN_ID=%s" % cid,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
-            "export POMS_TASK_ID=%s" % tid, 
-            "export POMS_LAUNCHER=%s" % launcher_experimenter.username, 
+            "export POMS_TASK_ID=%s" % tid,
+            "export POMS_LAUNCHER=%s" % launcher_experimenter.username,
             "export POMS_TEST=%s" % ("" if "poms" in self.poms_service.hostname else "1"),
             "export POMS_TASK_DEFINITION_ID=%s" % cdid,
             "export JOBSUB_GROUP=%s" % group,

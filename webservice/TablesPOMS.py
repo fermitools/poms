@@ -62,13 +62,21 @@ class TablesPOMS(object):
                 continue
             if kwargs.get(fieldname, None) == 'None':
                 continue
-            if str(columns[fieldname].type) == 'Integer':
+            if str(columns[fieldname].type) == 'INTEGER':
                 setattr(found, fieldname, int(kwargs.get(fieldname, '')))
             if str(columns[fieldname].type) == 'JSON':
                 v = json.loads(kwargs.get(fieldname, ''))
                 logit.log("json load gives: %s" % repr(v))
                 setattr(found, fieldname,v)
-            elif str(columns[fieldname].type) == 'DateTime':
+            elif str(columns[fieldname].type) == 'BOOLEAN':
+                v = kwargs.get(fieldname, 'None')
+                logit.log("converting boolean: %s " % v)
+                if v == 'False':
+                    v = False
+                if v == 'True':
+                    v = True
+                setattr(found, fieldname,v)
+            elif str(columns[fieldname].type) == 'DATETIME':
                 # special case created, updated fields; set created
                 # if its null, and always set updated if we're updating
                 if fieldname == "created" and getattr(found, fieldname, None) is None:
@@ -76,7 +84,7 @@ class TablesPOMS(object):
                 if fieldname == "updated" and kwargs.get(fieldname, None) is None:
                     setattr(found, fieldname, datetime.now(utc))
                 if kwargs.get(fieldname, None) is not None:
-                    setattr(found, fieldname, datetime.strptime(kwargs.get(fieldname, '')).replace(tzinfo=utc), "%Y-%m-%dT%H:%M")
+                    setattr(found, fieldname, datetime.strptime(kwargs.get(fieldname, '')[:16], "%Y-%m-%d %H:%M").replace(tzinfo=utc))
 
             elif str(columns[fieldname].type) == 'ForeignKey':
                 kval = kwargs.get(fieldname, None)

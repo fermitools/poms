@@ -1075,11 +1075,11 @@ class CampaignsPOMS():
                 user = u.experimenter_id
 
         if campaign_definition is not None and campaign_definition != "None":
-            cd = dbhandle.query(CampaignDefinition).filter(Campaign.name == campaign_definition,
-                                                           Campaign.experiment == experiment).first()
+            cd = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name == campaign_definition,
+                                                           CampaignDefinition.experiment == experiment).first()
         else:
             cd = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name.ilike("%generic%"),
-                                                           Campaign.experiment == experiment).first()
+                                                           CampaignDefinition.experiment == experiment).first()
 
         ld = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.name.ilike("%generic%"),
                                                    LaunchTemplate.experiment == experiment).first()
@@ -1123,7 +1123,7 @@ class CampaignsPOMS():
             launch for a given campaign
         '''
 
-        if not camp.cs_split_type or camp.cs_split_type == 'None':
+        if not camp.cs_split_type or camp.cs_split_type == 'None' or camp.cs_split_type == 'none':
             return camp.dataset
 
         #
