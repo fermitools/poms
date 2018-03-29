@@ -392,10 +392,12 @@ function draw_dependency(stage1, stage2) {
    var dtlx = e1r.left - br.left + (e1r.width)/2
    var dbry = dtly + e2r.top - e1r.top 
    var dbrx = dtlx + e2r.left - e1r.left 
+   var dh = dbry - dtly 
+   var dw = dbrx - dtlx
    dep.style.top = dtly.toString()+"px"
-   dep.style.height = (dbry - dtly).toString()+"px"
+   dep.style.height = dh.toString()+"px"
    dep.style.left = dtlx.toString()+"px"
-   dep.style.width = dbrx - dtlx
+   dep.style.width = dw.toString() + "px"
    document.body.appendChild(dep)
 }
 

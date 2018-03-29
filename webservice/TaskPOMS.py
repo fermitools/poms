@@ -514,7 +514,13 @@ class TaskPOMS:
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator)
             else:
                 i = i + 1
-                dims = "ischildof: (snapshot_for_project_name %s) and version %s and file_name like '%s' " % (t.project, t.campaign_snap_obj.software_version, cd.file_patterns)
+                if cd_file_patterns.find(' '):
+                    # it is a dimension fragment, not just a file pattern
+                    dim_bits = cd.file_patterns
+                else:
+                    dim_bits = "file_name like '%s'" % cd.file_patterns
+                dims = "ischildof: (snapshot_for_project_name %s) and version %s and %s " % (t.project, t.campaign_snap_obj.software_version, dimbits)
+
                 dname = "poms_depends_%d_%d" % (t.task_id, i)
 
                 samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
@@ -558,7 +564,12 @@ class TaskPOMS:
                     oftypelist = ["%"]
 
                 for oft in oftypelist:
-                    recovery_dims += "minus isparent: ( version %s and file_name like %s) " % (t.campaign_snap_obj.software_version, oft)
+                    if oft.find(' ') > 0:
+                        # it is a dimension not a file_name pattern
+                        dim_bits = oft
+                    else:
+                        dim_bits = "file_name like %s" % oft
+                    recovery_dims += "minus isparent: ( version %s and %s) " % (t.campaign_snap_obj.software_version, dimbits)
             else:
                 # default to consumed status(?)
                 recovery_dims = "project_name %s and consumed_status != 'consumed'" % t.project

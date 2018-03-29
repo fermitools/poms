@@ -33,6 +33,9 @@
     <div class="menu">
         <a class="item" href="{{exp_obj.snow_url if exp_obj else '#'}}" target="_blank">POMS ServiceNow Page</a>
     </div>
+    <div class="menu">
+        <a href="https://fermi.service-now.com/home.do?sysparm_view=scd_outage_calendar&sysparm_auto_request=true" target="_popup" >Downtime Calendar</a>
+    </div>
   </div>
 
   {% if current_experimenter and current_experimenter.is_root() %}

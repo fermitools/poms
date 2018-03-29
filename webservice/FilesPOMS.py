@@ -88,10 +88,15 @@ class Files_status(object):
             for pat in str(t.campaign_definition_snap_obj.output_file_patterns).split(','):
                 if pat == 'None':
                     pat = '%'
+                if pat.find(' ') > 0:
+                    dimbits = pat
+                else:
+                    dimbits = "filename like '%s'" % pat
+
                 allkiddims = ("%s and isparentof: ( file_name '%s' and version '%s' ) " %
-                              (allkiddims, pat, t.campaign_snap_obj.software_version))
+                              (allkiddims, dimbits, t.campaign_snap_obj.software_version))
                 allkiddecldims = ("%s and isparentof: ( file_name '%s' and version '%s' with availability anylocation ) " %
-                                  (allkiddecldims, pat, t.campaign_snap_obj.software_version))
+                                  (allkiddecldims, dimbits, t.campaign_snap_obj.software_version))
             all_kids_needed.append(allkiddims)
             all_kids_decl_needed.append(allkiddecldims)
         #
