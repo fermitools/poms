@@ -9,7 +9,7 @@ class byrun:
         self.ds = c.dataset
         self.low = 1
         self.high = 999999
-        parms = c.cs_split_type[4:].split(',')
+        parms = c.cs_split_type[6:].split(',')
         low = 1
         for p in parms:
             if p.endswith(')'): p = p[:-1]
