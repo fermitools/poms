@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="ISO-8859-1">
+<script src="/poms/static/js/jquery-2.1.4.min.js"></script>
 <style type="text/css">
 
 td.box {
@@ -253,7 +254,16 @@ function test1() {
 }
 
 function main() {
-   test1()
+   args = getSearchParams()
+   if (args['campaign'] != undefined) {
+       $.ajax( {
+         url: args['_base_']+'/campaign_deps_ini?tag=' + args['campaign']
+       }).done( function(data) {
+          draw_stages( JSON.parse(convert_ini_2_json(data)), "deps")
+       }
+   } else {
+       draw_stages(default_campaign_dict,"deps")
+   }
 }
 
 function escape_quotes(s) {
@@ -399,6 +409,12 @@ function draw_dependency(stage1, stage2) {
    dep.style.left = dtlx.toString()+"px"
    dep.style.width = dw.toString() + "px"
    document.body.appendChild(dep)
+}
+
+function getSearchParams(){
+ var p={};
+ location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi,function(s,k,v){p[k]=v})
+ return p;
 }
 
 </script>
