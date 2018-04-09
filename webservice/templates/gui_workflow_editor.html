@@ -260,7 +260,7 @@ function main() {
          url: args['_base_']+'/campaign_deps_ini?tag=' + args['campaign']
        }).done( function(data) {
           draw_stages( JSON.parse(convert_ini_2_json(data)), "deps")
-       }
+       })
    } else {
        draw_stages(default_campaign_dict,"deps")
    }
