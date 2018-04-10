@@ -45,7 +45,7 @@ config = utils.get_config()
 # in their metadata so the tests will all find something.
 #
 
-def make_split(ds, split):
+def make_split(ds, split,should_hit_end):
     def test_splits():
          c = dbhandle.query(Campaign).filter(Campaign.name == 'mwm_test_splits').first()
          c.dataset = ds
@@ -54,29 +54,35 @@ def make_split(ds, split):
          mps.campaignsPOMS.reset_campaign_split(dbhandle, samhandle, c.campaign_id)
          #logger.debug("testing %s on %s" % (split, ds))
          print("testing %s on %s" % (split, ds))
+         hit_end = 0
          for i in range(1,4):
              try:
                  res = mps.campaignsPOMS.get_dataset_for(dbhandle, samhandle, RuntimeError, c)
              except RuntimeError:
                  print("Hit end!")
-                 res = ds
-                 pass
+                 hit_end = 1
+                 break
 
              n = samhandle.count_files(c.experiment, "defname:"+res)
              print("got %s with %d files" % (res, n))
 
              assert(n > 0)
+        assert(hit_end == should_hit_end)
     return test_splits
 
 split_table=[
-    ['gen_cfg','byrun(low=1,high=4)'],
-    ['gen_cfg','draining'],
-    ['gen_cfg','mod(3)'],
-    ['gen_cfg_slice0_of_3,gen_cfg_slice1_of_3,gen_cfg_slice2_of_3','list'],
-    ['gen_cfg','new(firsttime=1475280000,window=1d)'],
-    ['gen_cfg','nfiles(2)']
+    ['gen_cfg','byrun(low=1,high=4)', 1],
+    ['gen_cfg','byrun( low=1, high=4 ) ', 1],
+    ['gen_cfg','draining', 0],
+    ['gen_cfg','mod(3)', 1],
+    ['gen_cfg','mod( 3 )', 1],
+    ['gen_cfg_slice0_of_3,gen_cfg_slice1_of_3,gen_cfg_slice2_of_3','list', 1],
+    ['gen_cfg_slice0_of_3, gen_cfg_slice1_of_3, gen_cfg_slice2_of_3','list', 1],
+    ['gen_cfg','new(firsttime=1475280000,window=1d)', 0],
+    ['gen_cfg','new( firsttime=1475280000, window=1d )', 0],
+    ['gen_cfg','nfiles(2)', 1]
 ]
-for ds,splitt in split_table:
+for ds,splitt,should_hit_end in split_table:
     if splitt.find('(') > 0:
         base = splitt[:splitt.find('(')]
     else:
@@ -86,14 +92,14 @@ for ds,splitt in split_table:
     # this is the magic to actually define the test function of that name
     # at the global scope
     #
-    globals()[name] =  make_split(ds,splitt)
+    globals()[name] =  make_split(ds,splitt, should_hit_end)
 
 def test_coverage():
     """
         Make sure we have tests for everything in our split_types directory
     """
     have_test_for = {}
-    for ds,splitt in split_table:
+    for ds,splitt,should_hit_end in split_table:
         if splitt.find('(') > 0:
             base = splitt[:splitt.find('(')]
         else:
