@@ -2,34 +2,42 @@
 <html>
 <head>
 <meta charset="ISO-8859-1">
-<script src="/poms/static/js/jquery-2.1.4.min.js"></script>
+<script src="../static/js/jquery-2.1.4.min.js"></script>
 <style type="text/css">
 
-td.box {
+div.box {
     border: 1px dotted black;
     padding: 1em;
     border-radius: 0.5em;
     background: white;
+    position: absolute;
     z-index: 1;
-    opacity: 1;
+}
+
+div.depbuttonbox1 {
+   z-index: 1;
+   position:absolute;
+   bottom: 0;
+   left: 0;
+   right: 0;
+}
+
+div.depbuttonbox2 {
+   z-index: 1;
+   position: relative;
+   margin-left: 30%;
+   width: 2em;
 }
 
 div.depbox {
-    z-index: -1;
+    z-index: 0;
     position: absolute;
     border-left: 2px solid red;
     border-bottom: 2px solid red;
 }
 
-td.box.selected {
+div.box.selected {
     border: 1px solid black;
-}
-
-td.pad {
-    width: 3em;
-}
-tr.pad {
-    height: 2em;
 }
 
 .popup_parent {
@@ -40,28 +48,30 @@ tr.pad {
 .popup_form { 
     display: block;
     background-color: white;
-    opacity: 1;
     position: absolute;
-    z-index: 2;
+    z-index: 3;
     left: 0;
-    top: -5px;
-    border: 2px solid red;
+    top: 2em;
+    border: 2px solid grey;
     margin: 2px;
     padding: 1em;
+    opacity: 1;
 }
+
 .wakefields:before { content: "\25a6"; width: 1em; height 1em; }
 .wakedeps:before { content: "\269f"; width: 1em; height 1em; }
+
+div#deps {
+  /* try to force a stacking context... */
+  opacity: 0.99; 
+}
 
 </style>
 </head>
 <body onload="main()">
 
-<table>
-<tbody id="deps">
-<tr id="defaults"> </tr>
-<tr class="pad"> </tr>
-</tbody>
-</table>
+<div id="deps">
+</div>
 
 
 <pre id="src" style="display: none;">
@@ -169,6 +179,22 @@ campaign_stage_1= sbnd_gen_test
 file_pattern_1 = gen%%.root
 </pre>
 
+<!-- padding -->
+<pre>
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+
 <pre id="dst" style="display: none;">
 </pre>
 
@@ -262,7 +288,8 @@ function main() {
           draw_stages( JSON.parse(convert_ini_2_json(data)), "deps")
        })
    } else {
-       draw_stages(default_campaign_dict,"deps")
+       test1()
+       /* draw_stages(default_campaign_dict,"deps") */
    }
 }
 
@@ -274,79 +301,110 @@ function escape_quotes(s) {
    }
 }
 
-function make_forms(stage, stage_dict, deps , default_dict , skip_deps = false) {
-    res = [] 
+/*
+** XXX
+** this needs refactoring -- we need one routine to make the button
+** and one to make the form, and the form needs to be at the outer
+** level, absolutely positioned...  Otherwise you can't make the popups
+** cover everything...
+*/
+function make_forms(stage, stage_dict,  default_dict) {
+    var res = []
     res.push('<button onclick="toggle_form(\'fields_' + stage + '\')" id="wake_fields_' + stage + '"><span class="wakefields"</span></button>' )
     res.push('<div class="popup_parent">')
     res.push('<form id="fields_' + stage + '" class="popup_form" style="display: none;">' )
     for ( k in stage_dict ) {
        if (stage_dict[k] == default_dict[k]) {
-           val="%(default."+k+")s"
+           val=""
        } else {
            val=stage_dict[k]
        }
-       res.push('<label>' + k + '</label> <input id="_inp_' + stage + '_' + k + '" value="' + escape_quotes(val) + '"><br>')
+       res.push('<label>' + k + '</label> <input id="_inp_' + stage + '_' + k + '" value="' + escape_quotes(val) + '" placeholder="default"><br>')
     }
     res.push('</form>' )
     res.push('</div>')
-    if (! skip_deps) {
+    return res.join("\n")
+}
+
+function dict_size(d) {
+   c=0
+   for (i in d) {
+     c++
+   }
+   return c
+}
+
+function deps_form( stage1, stage2,  dd ) {
+    var i
+    var res = []
+    var istr
+    var deps
+    var stage
+    deps = dd["dependencies " + stage2]
+    istr = "1"
+    for (i = 0; i <  dict_size(deps)/2; i++ ) {
+        istr = (i+1).toString()
+        if (deps["campaign_stage_"+istr] == stage1 ) {
+            break
+        }
+    }
+
+    deps["stage"] = stage2
+
+    
+    stage = stage1 + "_" + stage2
     res.push('<button onclick="toggle_form(\'deps_' + stage + '\')" id="wake_fields_' + stage + '"><span class="wakedeps"</span></button>' )
     res.push('<div class="popup_parent">')
     res.push('<form id="deps_' + stage + '" class="popup_form" style="display: none;">' )
-    for ( k in deps) {
-       res.push('<label>' + k + '</label> <input id="_inp_' + stage + '_' + k + '" value="' + escape_quotes(stage_dict[k]) + '"><br>')
+
+    fl = [ "stage" , "campaign_stage_"+istr , "file_pattern_"+istr ]
+    for ( k in fl ) {
+       res.push('<label>' + fl[k] + '</label> <input id="_inp_' + stage + '_' + k + '" value="' + escape_quotes(deps[fl[k]]) + '"><br>')
     }
     res.push('</form>' )
     res.push('</div>')
-    }
     return res.join("\n")
 }
 
 function draw_stages(dd, tb_id) {
     var csl = dd["campaign"]["campaign_stage_list"].split(" ")
-    var cur_row = 0
+    var cur_row = -1 
     var cur_col = 0
-    var gen_row = -1
-    var gen_col = 0
     var i
     var sd
     var deps
     var prevdep = ''
-    document.getElementById('defaults').innerHTML = '<td class="box" onclick="toggle_box_selected(\'defaults\')">' + 'defaults' + '<br>' + make_forms('defaults', dd["global"],{}, {}, true ) + '</div></td>'
+    var toppos, leftpos
     for( i in csl) {
         stage = csl[i]
         sd = dd["campaign_stage " + stage]
         deps = dd["dependencies " + stage]
         // pick next row or column depending whether we are in a chain
+
         if ( deps == undefined || deps['campaign_stage_1'] != prevdep ) {
-           cur_col = cur_col + 1
-        } else {
            cur_row = cur_row + 1
+        } else {
+           cur_col = cur_col + 1
         }
         prevdep = stage
-        if (cur_row > gen_row) {
-            gen_row = gen_row + 1
-            gen_col = 0
-            document.getElementById("deps").innerHTML += '<tr id="deps_col_'+cur_col.toString()+'"></tr><tr class="pad"</tr>'
-       
-        }
+      
+        toppos = cur_row * 6;
+        leftpos = cur_col * 12;
 
-        while( gen_col < cur_col - 1) {
-            document.getElementById('deps_col_'+cur_col.toString()).innerHTML += '<td class="pad"></td><td class="pad"></td>'
-            gen_col = gen_col + 1
-        }
-
-        document.getElementById('deps_col_'+cur_col.toString()).innerHTML += '<td class="box" onclick="toggle_box_selected(\''+stage+'\')" id="'+stage+'">' + stage + '<br>' + make_forms(stage, sd, deps, dd["global"] ) + '</div></td><td class="pad"></td>'
-        gen_col = gen_col + 1
+        document.getElementById('deps').innerHTML += '<div class="box" style="top: ' + toppos + 'em ; left: ' +leftpos+ 'em;" onclick="toggle_box_selected(\''+stage+'\')" id="'+stage+'">' + stage + '<br>' + make_forms(stage, sd, dd["global"] ) + '</div>'
         // update where we want to be...
     }
+
     for( i in csl) {
         stage = csl[i]
         deps = dd["dependencies " + stage]
         if (deps != undefined && deps["campaign_stage_1"] != undefined) {
-            draw_dependency(deps["campaign_stage_1"], stage)
+            draw_dependency(deps["campaign_stage_1"], stage, dd)
         }
     }
+
+    toppos = (cur_row + 1) * 6;
+    document.getElementById('deps').innerHTML += '<div class="box" style="top:'+toppos.toString()+'em; left: 0em;" onclick="toggle_box_selected(\'defaults\')">' + 'defaults' + '<br>' + make_forms('defaults', dd["global"],{}, {}, true ) + '</div>'
 }
 
 function get_back_values(id) {
@@ -357,13 +415,10 @@ function get_back_values(id) {
           eds = document.edit_dict['campaign_stage '+stage]
       }
       stage = id.slice(7)
-      alert("stage is " + stage)
       if ( eds != undefined ) {
           for(k in eds) {
               eds[k] = document.getElementById('_inp_'+stage+'_'+k).value
           }
-      } else {
-          alert("that didn't work...")
       }
    }
    ddtxt = JSON.stringify(document.edit_dict)
@@ -381,6 +436,9 @@ function toggle_form(id) {
 
 function toggle_box_selected(id) {
    x =  document.getElementById(id)
+   if (x == null) {
+      return;
+   }
    if (x.className == 'box') {
        x.classList.add('selected')
    } else {
@@ -388,27 +446,49 @@ function toggle_box_selected(id) {
    }
 }
 
-function draw_dependency(stage1, stage2) {
+function draw_dependency(stage1, stage2, dd) {
    var e1 = document.getElementById(stage1)   
    var e2 = document.getElementById(stage2)   
-   var br = document.body.getBoundingClientRect()
+   var br = e1.parentNode.getBoundingClientRect()
    var e1r = e1.getBoundingClientRect()
    var e2r = e2.getBoundingClientRect()
+   var ulx, uly, lrx, lry, w, h
+   if ((e2r.top - e1r.top) > 20 ) {
+       /* go from bottom to side */
+       ulx = (e1r.left + e1r.right) / 2
+       uly = e1r.bottom 
+   } else {
+       /* go from side to side */
+       ulx = e1r.right  
+       uly = (e1r.top + e1r.bottom) / 2 
+   }
+
+   /* our lower right is always the left side of the dest box */
+   lrx = e2r.left  
+   lry = (e2r.top + e2r.bottom) / 2
+
+   /* width and height... */
+   w = lrx - ulx
+   h = lry - uly
+
    var dep = document.createElement("DIV")
    dep.className = 'depbox'
    dep.style.position='absolute'
    dep.id = 'dep_' + stage1 + '_' + stage2
-   var dtly = e1r.top - br.top + (e1r.width)/2
-   var dtlx = e1r.left - br.left + (e1r.width)/2
-   var dbry = dtly + e2r.top - e1r.top 
-   var dbrx = dtlx + e2r.left - e1r.left 
-   var dh = dbry - dtly 
-   var dw = dbrx - dtlx
-   dep.style.top = dtly.toString()+"px"
-   dep.style.height = dh.toString()+"px"
-   dep.style.left = dtlx.toString()+"px"
-   dep.style.width = dw.toString() + "px"
+   dep.style.top = uly.toString()+"px"
+   dep.style.left = ulx.toString()+"px"
+   dep.style.height = h.toString() + "px"
+   dep.style.width = w.toString()+"px"
+
+   var db = document.createElement("DIV")
+   db.id = 'dep_box' + stage1 + '_' + stage2
+   db.className = 'depbuttonbox1'
+   var db2 = document.createElement("DIV")
+   db2.className = 'depbuttonbox2'
+   db.appendChild(db2)
+   dep.appendChild(db)
    document.body.appendChild(dep)
+   db2.innerHTML = deps_form(stage1, stage2, dd)
 }
 
 function getSearchParams(){
