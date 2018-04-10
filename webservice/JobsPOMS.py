@@ -676,9 +676,12 @@ class JobsPOMS(object):
             if len(tl):
                 c = tl[0].campaign_snap_obj
                 lts = tl[0].launch_template_snap_obj
+                st = tl[0]
             else:
                 c = None
                 lts = None
+               
+
             for t in tl:
                 tjid = self.poms_service.taskPOMS.task_min_job(dbhandle, t.task_id)
                 logit.log("kill_jobs: task_id %s -> tjid %s" % (t.task_id, tjid))
@@ -693,15 +696,16 @@ class JobsPOMS(object):
             if len(jql) == 0:
                 jjil = ["(None Found)"]
             else:  
-                c = jql[0].task_obj.campaign_snap_obj
+                st = jql[0].task_obj
+                c = st.campaign_snap_obj
                 for j in jql:
                     jjil.append(j.jobsub_job_id)
-                lts = jql[0].task_obj.launch_template_snap_obj
+                lts = st.launch_template_snap_obj
 
         if confirm is None:
             jijatem = 'kill_jobs_confirm.html'
 
-            return jjil, t, campaign_id, task_id, job_id
+            return jjil, st, campaign_id, task_id, job_id
         elif c:
             group = c.experiment
             if group == 'samdev':
@@ -720,6 +724,15 @@ class JobsPOMS(object):
                 os.open("echo jobsub_%s -G %s --role %s --jobid %s 2>&1" % (subcmd, group, c.vo_role, ','.join(jjil)), "r")
             '''
 
+            # expand launch setup %{whatever}s tags...
+
+            launch_setup = lts.launch_setup % {
+                "dataset": c.dataset,
+                "version": c.software_version,
+                "group": group,
+                "experimenter":  st.experimenter_creator_obj.name
+                }
+
             cmd = """
                 exec 2>&1
                 export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s
@@ -730,7 +743,7 @@ class JobsPOMS(object):
                 self.poms_service.hostname,
                 lts.launch_account, 
                 lts.launch_host, 
-                lts.launch_setup, 
+                launch_setup, 
                 subcmd,
                 group, 
                 c.vo_role, 
