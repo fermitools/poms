@@ -730,7 +730,7 @@ class JobsPOMS(object):
                 "dataset": c.dataset,
                 "version": c.software_version,
                 "group": group,
-                "experimenter":  st.experimenter_creator_obj.name
+                "experimenter":  st.experimenter_creator_obj.username
                 }
 
             cmd = """
