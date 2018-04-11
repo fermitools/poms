@@ -308,11 +308,18 @@ function escape_quotes(s) {
 ** level, absolutely positioned...  Otherwise you can't make the popups
 ** cover everything...
 */
-function make_forms(stage, stage_dict,  default_dict) {
+function make_form_button(stage, stage_dict,  default_dict) {
     var res = []
     res.push('<button onclick="toggle_form(\'fields_' + stage + '\')" id="wake_fields_' + stage + '"><span class="wakefields"</span></button>' )
+    return res.join('\n')
+}
+
+function make_form_popup(stage, stage_dict,  default_dict, toppos, leftpos) {
+    var res = []
+    toppos = toppos + 2
+    leftpos = leftpos + 2
     res.push('<div class="popup_parent">')
-    res.push('<form id="fields_' + stage + '" class="popup_form" style="display: none;">' )
+    res.push('<form id="fields_' + stage + '" class="popup_form" style="display: none; top: '+ toppos.toString()+'em; left: ' +leftpos.toString()+'em;">' )
     for ( k in stage_dict ) {
        if (stage_dict[k] == default_dict[k]) {
            val=""
@@ -391,7 +398,7 @@ function draw_stages(dd, tb_id) {
         toppos = cur_row * 6;
         leftpos = cur_col * 12;
 
-        document.getElementById('deps').innerHTML += '<div class="box" style="top: ' + toppos + 'em ; left: ' +leftpos+ 'em;" onclick="toggle_box_selected(\''+stage+'\')" id="'+stage+'">' + stage + '<br>' + make_forms(stage, sd, dd["global"] ) + '</div>'
+        document.getElementById('deps').innerHTML += '<div class="box" style="top: ' + toppos + 'em ; left: ' +leftpos+ 'em;" onclick="toggle_box_selected(\''+stage+'\')" id="'+stage+'">' + stage + '<br>' + make_form_button(stage, sd, dd["global"] ) + '</div>' + make_form_popup(stage, sd, dd["global"] , toppos, leftpos)
         // update where we want to be...
     }
 
@@ -404,7 +411,8 @@ function draw_stages(dd, tb_id) {
     }
 
     toppos = (cur_row + 1) * 6;
-    document.getElementById('deps').innerHTML += '<div class="box" style="top:'+toppos.toString()+'em; left: 0em;" onclick="toggle_box_selected(\'defaults\')">' + 'defaults' + '<br>' + make_forms('defaults', dd["global"],{}, {}, true ) + '</div>'
+
+    document.getElementById('deps').innerHTML += '<div class="box" style="top:'+toppos.toString()+'em; left: 0em;" onclick="toggle_box_selected(\'defaults\')">' + 'defaults' + '<br>' + make_form_button('defaults', dd["global"],{} ) + '</div>'+ make_form_popup('defaults', dd["global"],{}, toppos, 0 )
 }
 
 function get_back_values(id) {
