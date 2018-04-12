@@ -751,7 +751,7 @@ class JobsPOMS(object):
                 self.poms_service.hostname,
                 lts.launch_account,
                 lts.launch_host,
-                lts.launch_setup,
+                launch_setup,
                 subcmd,
                 group,
                 c.vo_role,
