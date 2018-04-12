@@ -1133,14 +1133,22 @@ class CampaignsPOMS:
         if not camp.cs_split_type or camp.cs_split_type == 'None' or camp.cs_split_type == 'none':
             return camp.dataset
 
+        # clean up split_type -- de-white-space it
+        camp.cs_split_type = camp.cs_split_type.replace(' ','')
+        camp.cs_split_type = camp.cs_split_type.replace('\n','')
+
         #
         # the module name is the first part of the string, i.e.
         # fred_by_whatever(xxx) -> 'fred'
         # new_localtime -> 'new'
         #
-        p1 = camp.cs_split_type.find('_')
-        if p1 < 0:
-            p1 = camp.cs_split_type.find('(')
+        p1 = camp.cs_split_type.find('(')
+        p2 = camp.cs_split_type.find('_')
+        if p1 < p2 and p1 > 0:
+            pass
+        elif p2 < p1 and p2 > 0:
+            p1 = p2
+
         if p1 < 0:
             p1 = len(camp.cs_split_type)
 

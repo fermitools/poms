@@ -54,33 +54,35 @@ def make_split(ds, split,should_hit_end):
          mps.campaignsPOMS.reset_campaign_split(dbhandle, samhandle, c.campaign_id)
          #logger.debug("testing %s on %s" % (split, ds))
          print("testing %s on %s" % (split, ds))
-         hitend = 0
-         for i in range(1,5):
+         hit_end = 0
+         for i in range(1,6):
              try:
                  res = mps.campaignsPOMS.get_dataset_for(dbhandle, samhandle, RuntimeError, c)
              except RuntimeError:
                  print("Hit end!")
-                 hitend = 1
-                 res = ds
+                 hit_end = 1
                  break
 
              n = samhandle.count_files(c.experiment, "defname:"+res)
              print("got %s with %d files" % (res, n))
 
              assert(n > 0)
-
-         assert(hitend == should_hit_end)
-
+         assert(hit_end == should_hit_end)
     return test_splits
 
 split_table=[
-    ['gen_cfg','byrun(low=1,high=3)',1],
-    ['gen_cfg','draining',0],
-    ['gen_cfg','mod(3)',1],
-    ['gen_cfg_slice0_of_3,gen_cfg_slice1_of_3,gen_cfg_slice2_of_3','list',1],
-    ['gen_cfg','nfiles(2)',1],
-    ['gen_cfg','new(firsttime=1475280000,window=1d)',0],
+    ['gen_cfg','byrun(low=1,high=4)', 1],
+    ['gen_cfg','byrun( low=1, high=4 ) ', 1],
+    ['gen_cfg','draining', 0],
+    ['gen_cfg','mod(3)', 1],
+    ['gen_cfg','mod( 3 )', 1],
+    ['gen_cfg_slice0_of_3,gen_cfg_slice1_of_3,gen_cfg_slice2_of_3','list', 1],
+    ['gen_cfg_slice0_of_3, gen_cfg_slice1_of_3, gen_cfg_slice2_of_3','list', 1],
+    ['gen_cfg','new(firsttime=1475280000,window=1d,lasttime=1475539200)', 1],
+    ['gen_cfg','new( firsttime=1475280000, window=1d, lasttime=1475539200 )', 1],
+    ['gen_cfg','nfiles(2)', 1]
 ]
+
 for ds,splitt,should_hit_end in split_table:
     if splitt.find('(') > 0:
         base = splitt[:splitt.find('(')]
