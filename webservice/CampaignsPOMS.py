@@ -9,40 +9,49 @@ poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
 Date: April 28th, 2017. (changes for the POMS_client)
 """
 
-from collections import deque, OrderedDict
-from datetime import datetime, tzinfo, timedelta
-import time
+import glob
+import importlib
 import json
 import os
-import glob
 import subprocess
-import importlib
+import time
 import traceback
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from sqlalchemy import func, desc, not_, and_, or_, distinct
-from sqlalchemy.orm import subqueryload, joinedload, contains_eager
-from functools import cmp_to_key
+from collections import OrderedDict, deque
+from datetime import datetime, timedelta
 
+import cherrypy
 from crontab import CronTab
-from .poms_model import (Experiment, Experimenter, Campaign, CampaignDependency,
-                         LaunchTemplate, CampaignDefinition, CampaignRecovery,
-                         CampaignsTags, Tag, CampaignSnapshot, RecoveryType, TaskHistory, Task
-                         )
-from . import time_grid
+from sqlalchemy import and_, distinct, func, or_
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import joinedload
+
+from . import logit, time_grid
+from .poms_model import (Campaign,
+                         CampaignDefinition,
+                         CampaignDependency,
+                         CampaignRecovery,
+                         CampaignSnapshot,
+                         CampaignsTags,
+                         Experiment,
+                         Experimenter,
+                         LaunchTemplate,
+                         RecoveryType,
+                         Tag,
+                         Task,
+                         TaskHistory)
+from .pomscache import pomscache_10
 from .utc import utc
-from .pomscache import pomscache, pomscache_10
-from . import logit
 
 
-class CampaignsPOMS():
-    '''
+class CampaignsPOMS:
+    """
        Business logic for Campaign related items
-    '''
+    """
 
     def __init__(self, ps):
-        '''
+        """
             initialize ourself with a reference back to the overall poms_service
-        '''
+        """
         self.poms_service = ps
 
     def launch_template_edit(self, dbhandle, seshandle, *args, **kwargs):
@@ -53,9 +62,9 @@ class CampaignsPOMS():
         template = None
         message = None
         ae_launch_id = None
-        data['exp_selections'] = dbhandle.query(Experiment).filter(
-            ~Experiment.experiment.in_(['root', 'public'])).order_by(
-            Experiment.experiment)
+        data['exp_selections'] = (dbhandle.query(Experiment)
+                                  .filter(~Experiment.experiment.in_(['root', 'public']))
+                                  .order_by(Experiment.experiment))
         action = kwargs.pop('action', None)
         exp = seshandle('experimenter').session_experiment
         pcl_call = int(kwargs.pop('pcl_call', 0))
@@ -131,8 +140,8 @@ class CampaignsPOMS():
                         "updated": datetime.now(utc),
                         "updater": experimenter_id
                     }
-                    template = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.launch_id == ae_launch_id).update(
-                        columns)
+                    template = (dbhandle.query(LaunchTemplate)
+                                .filter(LaunchTemplate.launch_id == ae_launch_id).update(columns))
                     dbhandle.commit()
                     data['launch_template_id'] = ae_launch_id
 
@@ -154,18 +163,19 @@ class CampaignsPOMS():
             data['curr_experiment'] = exp
             data['authorized'] = []
             se_role = seshandle('experimenter').session_role
-            if se_role == 'root' or se_role == 'coordinator':
-                # One has to execuate the query here instead of sending to jinja to do it,
+            if se_role in ('root', 'coordinator'):
+                # One has to execute the query here instead of sending to jinja to do it,
                 # because we need to know the LaunchTemplate detail to figure the authorization.
                 # Otherwise, we have to figure it out in the client/html.
                 data['templates'] = dbhandle.query(LaunchTemplate, Experiment).join(Experiment).filter(
                     LaunchTemplate.experiment == exp).order_by(LaunchTemplate.name).all()
             else:
-                data['templates'] = dbhandle.query(LaunchTemplate, Experiment).join(Experiment).filter(
-                    LaunchTemplate.experiment == exp).filter(
-                    LaunchTemplate.creator_role == se_role).order_by(LaunchTemplate.name).all()
+                data['templates'] = (dbhandle.query(LaunchTemplate, Experiment).join(Experiment)
+                                     .filter(LaunchTemplate.experiment == exp)
+                                     .filter(LaunchTemplate.creator_role == se_role)
+                                     .order_by(LaunchTemplate.name).all())
             for lt in data['templates']:
-                if se_role == 'root' or se_role == 'coordinator':
+                if se_role in ('root', 'coordinator'):
                     data['authorized'].append(True)
                 elif se_role == 'production':
                     data['authorized'].append(True)
@@ -177,21 +187,22 @@ class CampaignsPOMS():
         return data
 
     def campaign_list(self, dbhandle):
-        '''
+        """
             Return list of all campaign_id s and names. --
             This is actually for Landscape to use.
-        '''
+        """
         data = dbhandle.query(Campaign.campaign_id, Campaign.name).all()
         return data
 
     def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
-        '''
+        """
             callback from edit screen/client.
-        '''
+        """
         data = {}
         message = None
-        data['exp_selections'] = dbhandle.query(Experiment).filter(
-            ~Experiment.experiment.in_(["root", "public"])).order_by(Experiment.experiment)
+        data['exp_selections'] = (dbhandle.query(Experiment)
+                                  .filter(~Experiment.experiment.in_(["root", "public"]))
+                                  .order_by(Experiment.experiment))
         action = kwargs.pop('action', None)
         exp = seshandle('experimenter').session_experiment
         r = seshandle('experimenter').session_role
@@ -351,8 +362,7 @@ class CampaignsPOMS():
                     data['authorized'].append(True)
                 elif df.CampaignDefinition.creator_role == 'production' and r == "production":
                     data['authorized'].append(True)
-                elif df.CampaignDefinition.creator_role == r \
-                        and df.CampaignDefinition.creator == seshandle('experimenter').experimenter_id:
+                elif df.CampaignDefinition.creator_role == r and df.CampaignDefinition.creator == seshandle('experimenter').experimenter_id:
                     data['authorized'].append(True)
                 else:
                     data['authorized'].append(False)
@@ -361,14 +371,15 @@ class CampaignsPOMS():
             cids = [ ]
             recs_dict = {}
             for cid in cids:
-                recs = (dbhandle.query(CampaignRecovery).join(CampaignDefinition).options(
-                    joinedload(CampaignRecovery.recovery_type))
+                recs = (dbhandle.query(CampaignRecovery)
+                        .join(CampaignDefinition).options(joinedload(CampaignRecovery.recovery_type))
                         .filter(CampaignRecovery.campaign_definition_id == cid, CampaignDefinition.experiment == exp)
                         .order_by(CampaignRecovery.campaign_definition_id, CampaignRecovery.recovery_order))
                 rec_list = deque()
                 for rec in recs:
-                    if type(rec.param_overrides) == type(""):
-                        if rec.param_overrides in ('', '{}', '[]'): rec.param_overrides = "[]"
+                    if isinstance(rec.param_overrides, str):
+                        if rec.param_overrides in ('', '{}', '[]'):
+                            rec.param_overrides = "[]"
                         rec_vals = [rec.recovery_type.name, json.loads(rec.param_overrides)]
                     else:
                         rec_vals = [rec.recovery_type.name, rec.param_overrides]
@@ -378,16 +389,15 @@ class CampaignsPOMS():
                 recs_dict[cid] = json.dumps(list(rec_list))
 
             data['recoveries'] = recs_dict
-            data['rtypes'] = (
-                dbhandle.query(RecoveryType.name, RecoveryType.description).order_by(RecoveryType.name).all())
+            data['rtypes'] = (dbhandle.query(RecoveryType.name, RecoveryType.description).order_by(RecoveryType.name).all())
 
         data['message'] = message
         return data
 
     def make_test_campaign_for(self, dbhandle, sesshandle, campaign_def_id, campaign_def_name):
-        '''
+        """
             Build a test_campaign for a given campaign definition
-        '''
+        """
         c = dbhandle.query(Campaign).filter(Campaign.campaign_definition_id == campaign_def_id,
                                             Campaign.name == "_test_%s" % campaign_def_name).first()
         if not c:
@@ -423,8 +433,7 @@ class CampaignsPOMS():
         user_id = sesshandle.get('experimenter').experimenter_id
         message = None
         exp = sesshandle.get('experimenter').session_experiment
-        data['exp_selections'] = dbhandle.query(Experiment).filter(
-            ~Experiment.experiment.in_(["root", "public"])).order_by(Experiment.experiment)
+        data['exp_selections'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root", "public"])).order_by(Experiment.experiment)
         # for k,v in kwargs.items():
         #    print ' k=%s, v=%s ' %(k,v)
         action = kwargs.pop('action', None)
@@ -546,8 +555,7 @@ class CampaignsPOMS():
                 logit.log(' '.join(e.args))
                 dbhandle.rollback()
             except SQLAlchemyError as e:
-                message = "SQLAlchemyError.  Please report this to the administrator.   Message: {}".format(
-                    ' '.join(e.args))
+                message = "SQLAlchemyError.  Please report this to the administrator.   Message: {}".format(' '.join(e.args))
                 logit.log(' '.join(e.args))
                 dbhandle.rollback()
             else:
@@ -575,8 +583,8 @@ class CampaignsPOMS():
             data['campaigns'] = cquery
             data['definitions'] = dbhandle.query(CampaignDefinition).filter(
                 CampaignDefinition.experiment == exp).order_by(CampaignDefinition.name)
-            data['templates'] = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment == exp).order_by(
-                LaunchTemplate.name)
+            data['templates'] = (dbhandle.query(LaunchTemplate)
+                                 .filter(LaunchTemplate.experiment == exp).order_by(LaunchTemplate.name))
             cq = data['campaigns'].all()
             cids = []
             for c in cq:
@@ -585,8 +593,7 @@ class CampaignsPOMS():
                     data['authorized'].append(True)
                 elif c.creator_role == 'production' and sesshandle.get('experimenter').session_role == 'production':
                     data['authorized'].append(True)
-                elif c.creator_role == role \
-                        and c.creator == sesshandle.get('experimenter').experimenter_id:
+                elif c.creator_role == role and c.creator == sesshandle.get('experimenter').experimenter_id:
                     data['authorized'].append(True)
                 else:
                     data['authorized'].append(False)
@@ -658,7 +665,7 @@ class CampaignsPOMS():
         dbhandle.commit()
         return "Task=%d" % t.task_id
 
-    def campaign_deps_ini( self, dbhandle, config_get, tag=None, camp_id=None):
+    def campaign_deps_ini(self, dbhandle, config_get, tag=None, camp_id=None):
         res = []
         if tag is not None:
             cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
@@ -696,7 +703,7 @@ class CampaignsPOMS():
         cidl = list(cnames.keys())
         for cid in cnames.keys():
             for dcid in dmap[cid]:
-                if (cidl.index(dcid) < cidl.index(cid)):
+                if cidl.index(dcid) < cidl.index(cid):
                     cidl[cidl.index(dcid)],cidl[cidl.index(cid)] = cidl[cidl.index(cid)],cidl[cidl.index(dcid)]
 
         res.append("[campaign]")
@@ -745,7 +752,7 @@ class CampaignsPOMS():
 
         # still need dependencies
         deps = deque()
-        for cid in dmap.keys(): 
+        for cid in dmap.keys():
             if len(dmap[cid]) == 0:
                 continue
             res.append("[dependencies %s]" % cnames[cid])
@@ -753,12 +760,12 @@ class CampaignsPOMS():
             for dcid in dmap[cid]:
                 i = i + 1
                 res.append("campaign_stage_%d = %s" % (i, cnames[dcid]))
-                res.append("file_pattern_%d = %s" % (i, fpmap[(cid,dcid)]))
+                res.append("file_pattern_%d = %s" % (i, fpmap[(cid, dcid)]))
             res.append("")
 
         res.append("")
 
-        return "\n".join(res).replace("%","%%")
+        return "\n".join(res).replace("%", "%%")
 
     def campaign_deps_svg(self, dbhandle, config_get, tag=None, camp_id=None):
         '''
@@ -804,8 +811,7 @@ class CampaignsPOMS():
                                                                                                          c.name,
                                                                                                          tot,
                                                                                                          ltot,
-                                                                                                         (
-                                                                                                             "darkgreen" if ltot == tot else "black")))
+                                                                                                         ("darkgreen" if ltot == tot else "black")))
 
             cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_camp_id.in_(c_ids)).all()
 
@@ -828,8 +834,7 @@ class CampaignsPOMS():
             time window for a given experiment
         :rtype: object
         """
-        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = \
-            self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
 
         experiment = sesshandler('experimenter').session_experiment
         se_role = sesshandler('experimenter').session_role
@@ -1034,13 +1039,15 @@ class CampaignsPOMS():
                 jjid = jjid.replace('fifebatch', '').replace('.fnal.gov', '')
 
             if tag is not None:
-                jjid = jjid + "<br>" + th.task_obj.campaign_obj.name
+                jjid += "<br>" + th.task_obj.campaign_obj.name
 
-            if th.status not in ("Completed", "Located","Failed","Removed"):
-                extramap[
-                    jjid] = '<a href="{}/kill_jobs?task_id={:d}&act=hold"><i class="ui pause icon"></i></a><a href="{}/kill_jobs?task_id={:d}&act=release"><i class="ui play icon"></i></a><a href="{}/kill_jobs?task_id={:d}&act=kill"><i class="ui trash icon"></i></a>'.format(
-                    self.poms_service.path, th.task_id, self.poms_service.path, th.task_id, self.poms_service.path,
-                    th.task_id)
+            if th.status not in ("Completed", "Located", "Failed", "Removed"):
+                extramap[jjid] = ('<a href="{}/kill_jobs?task_id={:d}&act=hold"><i class="ui pause icon"></i></a>'
+                                  '<a href="{}/kill_jobs?task_id={:d}&act=release"><i class="ui play icon"></i></a>'
+                                  '<a href="{}/kill_jobs?task_id={:d}&act=kill"><i class="ui trash icon"></i></a>'
+                                  ).format(self.poms_service.path, th.task_id,
+                                           self.poms_service.path, th.task_id,
+                                           self.poms_service.path, th.task_id)
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
 
@@ -1201,7 +1208,7 @@ class CampaignsPOMS():
         return c, job, launch_flist
 
     def update_launch_schedule(self, campaign_id, dowlist='', domlist='', monthly='', month='', hourlist='', submit='',
-                               minlist='', delete='',user=''):
+                               minlist='', delete='', user=''):
         '''
             callback for changing the launch schedule
         '''

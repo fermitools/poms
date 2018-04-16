@@ -1,43 +1,41 @@
 #!/usr/bin/env python
-'''
+"""
 This module contain the methods that handle the Task.
 List of methods: wrapup_tasks,
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py
 written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
-'''
+"""
 
-from collections import deque, OrderedDict
-from datetime import datetime
-from datetime import timedelta
 import json
+import os
+import select
 import subprocess
 import time
-import select
-import os
-from sqlalchemy.orm import joinedload
-from sqlalchemy import func, text, case
+from collections import OrderedDict, deque
+from datetime import datetime, timedelta
+
 from psycopg2.extensions import QueryCanceledError
+from sqlalchemy import case, func, text
+from sqlalchemy.orm import joinedload
 
-from . import time_grid
-from .utc import utc
-from . import condor_log_parser
-from . import logit
-#from exceptions import KeyError
-
-from .poms_model import (Service,
-                         Experimenter,
-                         Job,
-                         JobFile,
-                         JobHistory,
-                         Task,
+from . import condor_log_parser, logit, time_grid
+from .poms_model import (Campaign,
                          CampaignDefinition,
-                         Campaign,
-                         LaunchTemplate,
-                         CampaignSnapshot,
                          CampaignDefinitionSnapshot,
-                         LaunchTemplateSnapshot,
                          CampaignDependency,
-                         HeldLaunch)
+                         CampaignSnapshot,
+                         Experimenter,
+                         HeldLaunch,
+                         Job,
+                         JobHistory,
+                         LaunchTemplate,
+                         LaunchTemplateSnapshot,
+                         Service,
+                         Task)
+from .utc import utc
+
+
+# from exceptions import KeyError
 
 
 #
@@ -524,7 +522,7 @@ class TaskPOMS:
                 dname = "poms_depends_%d_%d" % (t.task_id, i)
 
                 samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override=dname )
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override=dname)
         return 1
 
 
@@ -698,7 +696,7 @@ class TaskPOMS:
 
 
             # allocate task to set ownership
-            tid =  self.get_task_id_for( dbhandle, campaign_id, user=launcher_experimenter.username, experiment=experiment, parent_task_id=parent_task_id)
+            tid = self.get_task_id_for(dbhandle, campaign_id, user=launcher_experimenter.username, experiment=experiment, parent_task_id=parent_task_id)
 
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)

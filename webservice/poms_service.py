@@ -7,21 +7,21 @@ import socket
 
 import cherrypy
 from jinja2 import Environment, PackageLoader
-from . import CalendarPOMS
-from . import CampaignsPOMS
-from . import DBadminPOMS
-from . import FilesPOMS
-from . import JobsPOMS
-from . import TablesPOMS
-from . import TagsPOMS
-from . import TaskPOMS
-from . import TriagePOMS
-from . import UtilsPOMS
-from . import logit
-from . import version
+
+from . import (CalendarPOMS,
+               CampaignsPOMS,
+               DBadminPOMS,
+               FilesPOMS,
+               JobsPOMS,
+               TablesPOMS,
+               TagsPOMS,
+               TaskPOMS,
+               TriagePOMS,
+               UtilsPOMS,
+               logit,
+               version)
 from .elasticsearch import Elasticsearch
-from .poms_model import Service, Task, Campaign
-from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment
+from .poms_model import Campaign, Service, Task
 
 
 def error_response():
@@ -562,13 +562,13 @@ class PomsService(object):
     @logit.logstartstop
     def mark_campaign_hold(self, ids2HR=None, is_hold=''):
         """
-                Who can hold/relase a campagin:
-                The creator can hold/release her/his own campagins.
-                The root can hold/release any campagins.
-                The coordinator can hold/release any campagins that in the same experiment as the coordinator.
-                Anyone with a production role can hold/release a campagin created with a production role.
+                Who can hold/release a campaign:
+                The creator can hold/release her/his own campaigns.
+                The root can hold/release any campaigns.
+                The coordinator can hold/release any campaigns that in the same experiment as the coordinator.
+                Anyone with a production role can hold/release a campaign created with a production role.
 
-                :param  ids2HR: A list of campagin ids to be hold/released.
+                :param  ids2HR: A list of campaign ids to be hold/released.
                 :param is_hold: 'Hold' or 'Release'
                 :return:
         """
@@ -710,8 +710,7 @@ class PomsService(object):
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def json_pending_for_campaigns(self, cl, tmin, tmax, uuid=None):
-        res = self.filesPOMS.get_pending_dict_for_campaigns(cherrypy.request.db, cherrypy.request.samweb_lite, cl, tmin,
-                                                            tmax)
+        res = self.filesPOMS.get_pending_dict_for_campaigns(cherrypy.request.db, cherrypy.request.samweb_lite, cl, tmin, tmax)
         return res
 
     @cherrypy.expose
@@ -795,7 +794,7 @@ class PomsService(object):
                     experiment=None, launcher=None):
 
         if cherrypy.session.get('experimenter').username and ('poms' != cherrypy.session.get('experimenter').username or launcher == ''):
-            launch_user = cherrypy.session.get('experimenter').experimenter_id 
+            launch_user = cherrypy.session.get('experimenter').experimenter_id
         else:
             launch_user = launcher
 
@@ -804,19 +803,19 @@ class PomsService(object):
                                          cherrypy.request.headers.get,
                                          cherrypy.session.get,
                                          cherrypy.request.samweb_lite,
-                                         cherrypy.response.status, campaign_id, 
+                                         cherrypy.response.status, campaign_id,
                                          launch_user,
                                          dataset_override=dataset_override,
                                          parent_task_id=parent_task_id, test_launch_template=test_launch_template,
                                          experiment=experiment)
         logit.log("Got vals: %s" % repr(vals))
         lcmd, c, campaign_id, outdir, outfile = vals
-        if (lcmd == ""):
+        if lcmd == "":
             return "Launches held, job queued..."
         else:
             if test_launch_template:
                 raise cherrypy.HTTPRedirect("%s/list_launch_file?launch_template_id=%s&fname=%s" % (
-                self.path, test_launch_template, os.path.basename(outfile)))
+                    self.path, test_launch_template, os.path.basename(outfile)))
             else:
                 raise cherrypy.HTTPRedirect(
                     "%s/list_launch_file?campaign_id=%s&fname=%s" % (self.path, campaign_id, os.path.basename(outfile)))
