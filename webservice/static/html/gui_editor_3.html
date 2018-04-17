@@ -149,7 +149,7 @@ function test1() {
 }
 
 function main() {
-   args = getSearchParams()
+   args = mwm_utils.getSearchParams()
    if (args['campaign'] != undefined) {
        $.ajax( {
          url: args['_base_']+'/campaign_deps_ini?tag=' + args['campaign']

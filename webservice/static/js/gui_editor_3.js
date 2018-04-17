@@ -1,5 +1,16 @@
+/* utility function bundle */
 
-function dict_size(d) {
+mwm_utils = function() {
+   return;
+}
+
+mwm_utils.getSearchParams = function(){
+ var p={};
+ location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi,function(s,k,v){p[k]=v})
+ return p;
+}
+
+mwm_utils.dict_size = function(d) {
    c=0
    for (i in d) {
      c++
@@ -7,7 +18,8 @@ function dict_size(d) {
    return c
 }
 
-function dict_keys(d) {
+mwm_utils.dict_keys = function(d) {
+   var res, i
    res = []
    for (i in d) {
      res.push(i)
@@ -15,19 +27,7 @@ function dict_keys(d) {
    return res
 }
 
-gui_editor = function () {
-    this.div = document.createElement("DIV");
-    this.div.classname = 'gui_editor_frame';
-    this.div.style.position='relative';
-    document.body.appendChild(this.div);
-}
-
-gui_editor.prototype.set_state = function (ini_dump) {
-    this.state = JSON.parse(this.ini2json(ini_dump));
-    this.draw_state()
-}
-
-gui_editor.prototype.trim_blanks = function (s) {
+mwm_utils.trim_blanks = function (s) {
    var i, j;
    i = 0;
    if (s === undefined) {
@@ -42,6 +42,110 @@ gui_editor.prototype.trim_blanks = function (s) {
    }
    return s.slice(i,j);
 }
+
+/* gui editor itself */
+
+gui_editor = function () {
+    this.div = document.createElement("DIV");
+    this.div.classname = 'gui_editor_frame';
+    this.div.style.position='relative';
+    this.div.addEventListener("drop", gui_editor.drop_handler)
+    this.div.addEventListener("dragover",gui_editor.dragover_handler)
+    this.div.style.width="1024px"
+    this.div.style.height="1024px"
+    this.div.style.backgroundColor="#ccddbb"
+    this.stageboxes = []
+    this.miscboxes = []
+    this.depboxes = []
+    document.body.appendChild(this.div);
+    gui_editor.instance_list.push(this)
+}
+
+/* static vars */
+
+gui_editor.instance_list = []
+
+/* static methods */
+
+gui_editor.redraw_all_deps = function() {
+   var i;
+   for( i in gui_editor.instance_list ) {
+       gui_editor.instance_list[i].redraw_deps()
+   }
+}
+
+
+
+gui_editor.toggle_form = function(id) {
+    console.log("toggle_form: " + id)
+    var e = document.getElementById(id)
+    if (e && e.style.display == 'block') {
+        console.log("hiding: " + id)
+        if (e.parentNode && e.parentNode.gui_box) {
+            console.log("trying to save values for " + id)
+            e.parentNode.gui_box.save_values()
+        }
+        e.style.display = 'none'
+    } else if ( e ) {
+        console.log("unhiding: " + id)
+        e.style.display = 'block'
+        gui_editor.redraw_all_deps()
+    }
+}
+
+
+gui_editor.toggle_box_selected = function(id) {
+   var x = document.getElementById(id)
+   if (x == null) {
+      return;
+   }
+   if (x.className == 'box') {
+       x.classList.add('selected')
+   } else {
+       x.classList.remove('selected')
+   }
+}
+
+gui_editor.drag_start = function(ev) {
+/* 
+ * stash the element's id and the x,y coords inside the id in the text data 
+ * of the event so we can drop it later
+ */
+   var r = ev.target.getBoundingClientRect();
+   var x = ev.x - r.x;
+   var y = ev.y - r.y;
+   ev.dataTransfer.setData("text",ev.target.id + "@" + x.toString() + "," + y.toString())
+}
+
+gui_editor.drop_handler = function(ev) {
+    ev.preventDefault();
+    var idatxy = ev.dataTransfer.getData("text")
+    var idatxyl = idatxy.split(/[@,]/g)
+    console.log("drop_handler: " + idatxy)
+    var id = idatxyl[0]
+    var clickx = parseInt(idatxyl[1])
+    var clicky = parseInt(idatxyl[2])
+    var d = document.getElementById(id)
+    var r = d.parentNode.getBoundingClientRect();
+    if (d != null) {
+        d.style.left = (ev.x - clickx -r.x).toString() + "px"
+        d.style.top = (ev.y - clicky - r.y).toString() + "px"
+    }
+}
+
+gui_editor.dragover_handler = function(ev) {
+    console.log("dragover_handler: ")
+    ev.preventDefault();
+}
+
+
+/* instance methods */
+
+gui_editor.prototype.set_state = function (ini_dump) {
+    this.state = JSON.parse(this.ini2json(ini_dump));
+    this.draw_state()
+}
+
 
 gui_editor.prototype.un_trailing_comma = function(res) {
    // we end with: "foo": "bar",
@@ -59,7 +163,7 @@ gui_editor.prototype.ini2json = function (s) {
    for (i = 0 ; i < lines.length; i++) {
       if (lines[i] === undefined)
           break;
-      l = this.trim_blanks(lines[i]);
+      l = mwm_utils.trim_blanks(lines[i]);
 
       // skip blank lines and comments
       if (l.length == 0)
@@ -73,8 +177,8 @@ gui_editor.prototype.ini2json = function (s) {
           res.push('"' + l.slice(1,-1) + '": {');
       } else {
           k_v = l.split('=');
-          k = this.trim_blanks(k_v.shift());
-          v = this.trim_blanks(k_v.join('=')).replace(/"/g,'\\"');
+          k = mwm_utils.trim_blanks(k_v.shift());
+          v = mwm_utils.trim_blanks(k_v.join('=')).replace(/"/g,'\\"');
           if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
               continue;
           }
@@ -108,7 +212,7 @@ gui_editor.prototype.draw_state = function () {
    var pad = 5;
    var x = pad;
    var y = pad;
-   var i, prevstage, prevtype, istr;
+   var i, prevstage, prevtype, istr, b;
    prevtype = ""
    prevstage = ""
 
@@ -116,7 +220,8 @@ gui_editor.prototype.draw_state = function () {
        if ((k == 'campaign') || ( k == 'global')) {
            ;
        } else if (k.startsWith('campaign_stage')) {
-           new stage_box(k, this.state[k], dict_keys(this.state[k]), this.div, x, y)
+           b = new stage_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y)
+           this.stageboxes.push(b)
            /* wimpy layout, assumes tsorted list... */
 
            if (this.checkdep(k.substr(15), prevstage)) {
@@ -125,23 +230,26 @@ gui_editor.prototype.draw_state = function () {
                x = x + grid;
            }
        } else if (k.startsWith('launch_template')) {
-           new generic_box(k, this.state[k], dict_keys(this.state[k]), this.div, x, y)
+           b = new misc_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y);
+           this.miscboxes.push(b)
            if (prevtype != 'launch_template') {
                y = y + grid;
                x = pad;
            }
            prevtype = 'launch_template';
        } else if (k.startsWith('job_type')) {
-           new generic_box(k, this.state[k], dict_keys(this.state[k]), this.div, x, y)
+           b = new misc_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y)
+           this.miscboxes.push(b)
            if (prevtype != 'job_type') {
                y = y + grid;
                x = pad;
            }
            prevtype = 'launch_template';
        } else if (k.startsWith('dependencies')) {
-          for (i = 1; i <= dict_size(this.state[k])/2; i++) {
+          for (i = 1; i <= mwm_utils.dict_size(this.state[k])/2; i++) {
               var istr = i.toString()
-              new dependency_box(k, this.state[k], ["campaign_stage_"+istr,"file_pattern_"+istr], this.div, x, y);
+              db = new dependency_box(k+istr, this.state[k], ["campaign_stage_"+istr,"file_pattern_"+istr], this.div, x, y);
+              this.depboxes.push(db)
           }
        } else {
            alert("unknown item " + k);
@@ -149,12 +257,10 @@ gui_editor.prototype.draw_state = function () {
    }
 }
 
-function escape_quotes(s) {
-   if (s != undefined) {
-       return s.replace(/"/g,'&quot;')
-   } else { 
-       return s
-   }
+gui_editor.prototype.redraw_deps = function () {
+    for (k in this.depboxes) {
+        this.depboxes[k].set_bounds()
+    }
 }
 
 generic_box = function (name, vdict, klist, top, x, y) {
@@ -163,32 +269,34 @@ generic_box = function (name, vdict, klist, top, x, y) {
        return;
     }
     this.dict = vdict;
+    this.klist = klist;
     this.box = document.createElement("DIV");
+    this.box.gui_box = this
     this.box.className = "box";
     this.box.id = name
     this.box.style.width = "120px";
     this.box.style.left = x.toString() + "px";
     this.box.style.top = y.toString() + "px";
-    this.box.onclick = "toggle_box_selected(name)";
-    this.box.innerHTML = name + '<br> <button onclick="toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"</span></button>' ;
+    this.box.onclick = "gui_editor.toggle_box_selected(name)";
     this.popup_parent = document.createElement("DIV");
+    this.popup_parent.gui_box = this
     this.popup_parent.className = "popup_parent";
-    x = x+20;
-    y = y+10;
+    x = x+50;
+    y = y+50;
     stage = name.substr(name.indexOf(" ")+1)
     res = [];
-    res.push('<form id="fields_' + stage + '" class="popup_form" style="display: none; top: '+ y.toString()+'px; left: ' +x.toString()+'px;">' );
+    res.push('<form id="fields_' + name + '" class="popup_form" style="display: none; top: '+ y.toString()+'px; left: ' +x.toString()+'px;">' );
     res.push('<input id="_tag" type="hidden" value="%s">' % stage);
     var val, placeholder;
     for ( k in klist ) {
        if (vdict[k] == null) {
            val="";
-           placeholder="defualt";
+           placeholder="default";
        } else {
            val=stage_dict[k];
            placeholder="";
        }
-       res.push('<label>' + k + '</label> <input id="_inp_' + stage + '_' + k + '" value="' + escape_quotes(val) + '" placeholder="'+placeholder+'"><br>');
+       res.push('<label>' + k + '</label> <input id="_inp_' + name + '_' + k + '" value="' + this.escape_quotes(val) + '" placeholder="'+placeholder+'"><br>');
     }
     res.push('</form>' );
     this.popup_parent.innerHTML = res.join('\n');
@@ -196,19 +304,44 @@ generic_box = function (name, vdict, klist, top, x, y) {
     top.appendChild(this.popup_parent);
 }
 
-stage_box = function(name, vdict, klist, top, x, y) {
-    this.generic_box = generic_box
-    this.generic_box(name, vdict, klist, top, x, y) /* superclass init */;
-    this.box.draggable = true;
-    this.box.dragstart="drag_start(event)";
+generic_box.prototype.save_values = function() {
+    var inp_id, e
+    for (k in this.klist) {
+        inp_id = "_inp_" + this.box.id + '_' + k;
+        e = document.getElementById(inp_id)
+        this.dict[k] = e.value;
+    }
 }
 
+generic_box.prototype.escape_quotes = function(s) {
+   if (s != undefined) {
+       return s.replace(/"/g,'&quot;')
+   } else { 
+       return s
+   }
+}
+
+misc_box  = function(name, vdict, klist, top, x, y) {
+    this.generic_box = generic_box; /* superclass init */
+    this.generic_box(name, vdict, klist, top, x, y);
+    this.box.innerHTML = name + '<br> <button onclick="gui_editor.toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"</span></button>' ;
+}
+misc_box.prototype = new generic_box()
+
+stage_box = function(name, vdict, klist, top, x, y) {
+    this.generic_box = generic_box; /* superclass init */
+    this.generic_box(name, vdict, klist, top, x, y);
+    this.box.draggable = true;
+    this.box.addEventListener("dragstart", gui_editor.drag_start)
+    this.box.innerHTML = name + '<br> <button onclick="gui_editor.toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"</span></button>' ;
+}
+stage_box.prototype = new generic_box()
+
 dependency_box = function (name, vdict, klist, top, x, y) {
-    this.generic_box = generic_box
-    this.trim_blanks = gui_editor.prototype.trim_blanks
+    this.generic_box = generic_box;
     this.generic_box(name, vdict, klist, top, x, y) /* superclass init */;
-    this.stage1 = this.trim_blanks(vdict[klist[0]]);
-    this.stage2 = this.trim_blanks(name.slice(13));
+    this.stage1 = mwm_utils.trim_blanks(vdict[klist[0]]);
+    this.stage2 = mwm_utils.trim_blanks(name.slice(13));
     console.log("trying to do dependency from: " + this.stage1 + " to " + this.stage2)
     this.box.className = 'depbox';
     this.db = document.createElement("DIV");
@@ -216,10 +349,19 @@ dependency_box = function (name, vdict, klist, top, x, y) {
     this.box.className = 'depbox1';
     this.set_bounds();
 }
+dependency_box.prototype = new generic_box()
 
 dependency_box.prototype.set_bounds = function () {
    var e1 = document.getElementById("campaign_stage " + this.stage1)   ;
    var e2 = document.getElementById("campaign_stage " + this.stage2)   ;
+   if ( e1 == null) {
+      console.log("could not find campaign_stage: " + this.stage1)
+      return
+   }
+   if ( e2 == null) {
+      console.log("could not find campaign_stage: " + this.stage1)
+      return
+   }
    var br = this.box.parentNode.getBoundingClientRect();
    var e1r = e1.getBoundingClientRect();
    var e2r = e2.getBoundingClientRect();
@@ -259,50 +401,3 @@ dependency_box.prototype.set_bounds = function () {
    }
 }
 
-function getSearchParams(){
- var p={};
- location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi,function(s,k,v){p[k]=v})
- return p;
-}
-
-function allowDrop(ev) {
-    ev.preventDefault();
-}
-
-function drop_it(ev) { 
-    ev.preventDefault();
-    var id = ev.dataTransfer.getData("text")
-    var d = document.getElementById(id)
-    if (d != null) {
-        d.style.left = ev.x.toString() + "px"
-        d.style.top = ev.y.toString() + "px"
-    } else {
-       alert("could not find: " + id)
-    }
-    re_draw_dependency_lines(document.edit_dict)
-}
-
-function drag_start(ev) {
-   ev.dataTransfer.setData("text",ev.target.id)
-}
-
-function toggle_form(id) {
-    if (document.getElementById(id).style.display == 'block') {
-        get_back_values(id)
-        document.getElementById(id).style.display = 'none'
-    } else {
-        document.getElementById(id).style.display = 'block'
-    }
-}
-
-function toggle_box_selected(id) {
-   x =  document.getElementById(id)
-   if (x == null) {
-      return;
-   }
-   if (x.className == 'box') {
-       x.classList.add('selected')
-   } else {
-       x.classList.remove('selected')
-   }
-}
