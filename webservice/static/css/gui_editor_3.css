@@ -1,10 +1,11 @@
 
-div.depscanvas {
-  /* try to force a stacking context... */
-  opacity: 0.99; 
-  border: 1px solid green;
-  width: 100%;
-  height: 30ex;
+div.gui_editor_frame {
+    width: 100%;
+    height: 200ex;
+    border: 1px solid black;
+    border-radius: 0.5em;
+    /* try to force a stacking context... */
+    opacity: 0.99; 
 }
 
 
@@ -51,6 +52,7 @@ div.box.selected {
     border: 1px solid black;
 }
 
+
 .popup_parent {
    display: inline;
    position: relative;
@@ -63,11 +65,30 @@ div.box.selected {
     z-index: 3;
     left: 0;
     top: 2em;
-    border: 2px solid grey;
+    border: 2px solid black;
+    outline: 2px solid grey;
     margin: 2px;
     padding: 1em;
     opacity: 1;
+    width: 30em;
 }
 
-.wakefields:before { content: "\25a6"; width: 1em; height 1em; }
-.wakedeps:before { content: "\269f"; width: 1em; height 1em; }
+.popup_form h3 {
+   width: 100%;
+}
+.popup_form input {
+    width: 69%;
+}
+.popup_form label {
+    display: inline-block;
+    width: 30%;
+}
+
+.rightbutton { 
+  display: block;
+  float: right;
+}
+
+.wakefields:before { content: "\25a6"; width: 1em; height 1em; font-size: larger }
+.wakedeps:before { content: "\269f"; width: 1em; height 1em;  font-size: larger}
+.deletebutton:before { content: "\267b"; width: 1em; height 1em;  font-size: larger}

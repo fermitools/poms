@@ -25,6 +25,15 @@ mwm_utils.dict_size = function(d) {
    }
    return c;
 }
+mwm_utils.dict_contents = function(d) {
+   var res, i;
+   res = [];
+   for (i in d) {
+     res.push(i);
+     res.push(d[i]);
+   }
+   return res.join(":");
+}
 
 /* return list of keys in dictionary */
 mwm_utils.dict_keys = function(d) {
@@ -57,7 +66,7 @@ mwm_utils.trim_blanks = function (s) {
 
 function gui_editor() {
     this.div = document.createElement("DIV");
-    this.div.classname = 'gui_editor_frame';
+    this.div.className = 'gui_editor_frame';
     this.div.style.position='relative';
     this.div.addEventListener("dragover",gui_editor.dragover_handler);
     this.div.addEventListener("drop", gui_editor.drop_handler);
@@ -78,7 +87,6 @@ gui_editor.instance_list = []
 
 /* redraw all dependencies 'cause something moved */
 gui_editor.redraw_all_deps = function() {
-   console.log("redraw_all_deps: here")
    var i;
    for( i in gui_editor.instance_list ) {
        gui_editor.instance_list[i].redraw_deps()
@@ -87,17 +95,13 @@ gui_editor.redraw_all_deps = function() {
 
 /* make form visible/invisible, save on invis */
 gui_editor.toggle_form = function(id) {
-    console.log("toggle_form: " + id)
     var e = document.getElementById(id)
     if (e && e.style.display == 'block') {
-        console.log("hiding: " + id)
         if (e.parentNode && e.parentNode.gui_box) {
-            console.log("trying to save values for " + id)
             e.parentNode.gui_box.save_values()
         }
         e.style.display = 'none'
     } else if ( e ) {
-        console.log("unhiding: " + id)
         e.style.display = 'block'
         gui_editor.redraw_all_deps()
     }
@@ -132,7 +136,6 @@ gui_editor.drag_start = function(ev) {
 
 gui_editor.drop_handler = function(ev) {
     ev.preventDefault();
-    console.log("drop_handler: ")
     var idatxy = ev.dataTransfer.getData("text")
     var idatxyl = idatxy.split(/[@,]/g)
     var id = idatxyl[0]
@@ -154,7 +157,19 @@ gui_editor.drop_handler = function(ev) {
 
 gui_editor.dragover_handler = function(ev) {
     ev.preventDefault();
-    console.log("dragover_handler: ")
+}
+
+gui_editor.delete_me = function(id) {
+    console.log("trying to delete: " + id)
+    var e = document.getElementById(id);
+    if (e == null){
+       return;
+    }
+    if (confirm("Are you sure you want to delete " + id + "?")) {
+        e.gui_box.delete_me()
+    } else {
+        console.log("never mind...")
+    }
 }
 
 /* instance methods */
@@ -164,6 +179,26 @@ gui_editor.prototype.set_state = function (ini_dump) {
     this.draw_state()
 }
 
+gui_editor.prototype.delete_key_if_empty = function (k) {
+    console.log("delete_key_if_empty:" + k )
+    if (k[k.length - 2] == '_') {
+       /* for a dependency, we get a name with _1 or _2 etc. on the end */
+       k = k.slice(0,-2)
+    }
+    console.log("delete_key_if_empty -- now:" + k )
+    if (k in this.state) {
+       console.log("delete_key_if_empty -- saw it...")
+       /* 
+        * we should have emptied all the fields out before
+        * getting here, *unless* we deleted *one* of multiple
+        * dependencies from a [dependencies stagename] block
+        * so make sure it's empty before actually deleting...
+        */
+       if (mwm_utils.dict_size(this.state[k]) == 0) {
+           delete this.state[k]
+       }
+    }
+}
 
 gui_editor.prototype.un_trailing_comma = function(res) {
    // we end with: "foo": "bar",
@@ -216,20 +251,23 @@ gui_editor.prototype.ini2json = function (s) {
 gui_editor.prototype.tsort = function (dlist) {
    var n, i, j, k,  t;
    n = dlist.length;
-   console.log("tsort: start " + dlist.join(","))
    for(i = 0; i < n; i++) {
        for(j = 0; j < i; j++ ) {
-           if ((j < i && this.checkdep(dlist[i],dlist[j]))) {
+           if ((j < i && this.checkdep(dlist[j],dlist[i]))) {
                t = dlist[i];
                dlist[i] = dlist[j];
                dlist[j] = t;
            } 
        }
    }
-   console.log("tsort: finish " + dlist.join(","))
 }
 
 gui_editor.prototype.checkdep = function(s2, s1) {
+   var res = this.checkdep_real(s1, s2)
+   return res
+}
+
+gui_editor.prototype.checkdep_real = function(s2, s1) {
    if (s2 == '') {
        return 0;
    }
@@ -256,10 +294,12 @@ gui_editor.prototype.checkdep = function(s2, s1) {
 }
 
 gui_editor.prototype.draw_state = function () {
-   var grid = 200;
+   var gridx = 220;
+   var gridy = 100;
+   var labely = 50;
    var pad = 5;
    var x = pad;
-   var y = pad;
+   var y = 0;
    var i, prevstage,  istr, b;
    var stagelist, jobtypelist, launchtemplist, k;
    var db, istr;  
@@ -268,8 +308,8 @@ gui_editor.prototype.draw_state = function () {
    stagelist = []
    jobtypelist = []
    launchtemplist = []
- 
 
+ 
    for (k in this.state) {
        if (k.startsWith('campaign_stage')) {
            stagelist.push(k.slice(15))
@@ -282,73 +322,103 @@ gui_editor.prototype.draw_state = function () {
          
    this.tsort(stagelist)
 
+
+   new label_box("Campaign Stages:", this.div, x, y)
+   y = y + labely
+
+   var first = true
+   /* wimpy layout, assumes tsorted list... */
    for( i in stagelist) {
         k = 'campaign_stage ' + stagelist[i];
-        console.log("cs: " + k + mwm_utils.dict_keys(this.state[k]).join(','));
-        b = new stage_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y)
-        this.stageboxes.push(b);
-        /* wimpy layout, assumes tsorted list... */
 
-        if (this.checkdep(prevstage, k.substr(15))) {
-            y = y + grid;
+        if (! first) {
+        if (this.checkdep( stagelist[i],prevstage)) {
+            x = x + gridx;
         } else {
-            x = x + grid;
+            y = y + gridy;
         }
+        }
+        prevstage = stagelist[i]
+        first = false
+        b = new stage_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y, this)
+        this.stageboxes.push(b);
+   }
+
+   y = y + 2 * gridy
+   x = pad
+
+   new label_box("Job Types:", this.div, x, y)
+   y = y + labely
+
+   for (i in jobtypelist) {
+        k = 'job_type ' + jobtypelist[i]
+        b = new misc_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y, this)
+        this.miscboxes.push(b)
+        x = x + gridx;
+   }
+
+   y = y + gridy
+   x = pad 
+
+   new label_box("Login Templates:", this.div, x, y)
+   y = y + labely
+
+   for (i in launchtemplist) {
+        k = 'launch_template ' + launchtemplist[i];
+        b = new misc_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y, this);
+        this.miscboxes.push(b)
+        x = x + gridx;
     }
 
-    y = y + grid
-    x = 0
-    for (i in jobtypelist) {
-        k = 'job_type ' + jobtypelist[i]
-        b = new misc_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y)
-        this.miscboxes.push(b)
-        x = x + grid;
-    }
-    y = y + grid
-    x = 0
-    for (i in launchtemplist) {
-        k = 'launch_template ' + launchtemplist[i];
-        b = new misc_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y);
-        this.miscboxes.push(b)
-        x = x + grid;
-    }
     for (k in this.state) {
         if (k.startsWith('dependencies')) {
           for (i = 1; i <= mwm_utils.dict_size(this.state[k])/2; i++) {
               istr = i.toString()
-              db = new dependency_box(k+"_"+istr, this.state[k], ["campaign_stage_"+istr,"file_pattern_"+istr], this.div, x, y);
+              db = new dependency_box(k+"_"+istr, this.state[k], ["campaign_stage_"+istr,"file_pattern_"+istr], this.div, x, y, this);
               this.depboxes.push(db)
           }
        }
    }
-   y = y + 2 * grid;
+   y = y + 2 * gridy;
 
-   this.div.style.height=y.toString+"px"
+   this.div.style.height = y.toString()+"px"
 }
 
 gui_editor.prototype.redraw_deps = function () {
     var k;
-    console.log("redraw_deps: here")
     for (k in this.depboxes) {
         this.depboxes[k].set_bounds()
     }
 }
 
+function label_box(text, top, x, y) {
+    var box = document.createElement("DIV");
+    box.style.position='absolute'
+    box.style.left = x.toString() + "px";
+    box.style.top = y.toString() + "px";
+    box.innerHTML = "<h2>" + text + "</h2>"
+    top.appendChild(box);
+}
 
-function generic_box(name, vdict, klist, top, x, y) {
+function generic_box(name, vdict, klist, top, x, y, gui) {
     var i, k, x, y, val , placeholder;
     var stage, res;
     if (name == undefined) { 
        /* make prototype call work... */
        return;
     }
+    this.gui = gui
     this.dict = vdict;
     this.klist = klist;
     this.box = document.createElement("DIV");
     this.box.gui_box = this
     this.box.className = "box";
     this.box.id = name
-    this.box.style.width = "120px";
+    if (name.length - name.indexOf(' ') > 20) {
+        this.box.style.width = "185px";
+    } else { 
+        this.box.style.width = "120px";
+    }
     this.box.style.left = x.toString() + "px";
     this.box.style.top = y.toString() + "px";
     this.box.addEventListener("click", function(){gui_editor.toggle_box_selected(name)});
@@ -361,6 +431,9 @@ function generic_box(name, vdict, klist, top, x, y) {
     res = [];
     res.push('<form id="fields_' + name + '" class="popup_form" style="display: none; top: '+ y.toString()+'px; left: ' +x.toString()+'px;">' );
     var val, placeholder;
+    res.push('<h3>' + name );
+    res.push('<button title="Delete" class="rightbutton" onclick="gui_editor.delete_me(\''+name+'\')"><span class="deletebutton"></span></button><p>');
+    res.push('</h3>');
     for ( i in klist ) {
        k = klist[i]
        if (vdict[k] == null) {
@@ -376,6 +449,31 @@ function generic_box(name, vdict, klist, top, x, y) {
     this.popup_parent.innerHTML = res.join('\n');
     top.appendChild(this.box);
     top.appendChild(this.popup_parent);
+}
+
+generic_box.prototype.delete_me = function() {
+    var i;
+    var name = this.box.id
+    /* clean up circular reference... */
+    this.box.gui_box = null
+    this.box.parentNode.removeChild(this.box)
+    this.box = null
+    this.popup_parent.parentNode.removeChild(this.popup_parent)
+    this.popup_parent = null
+    if ('db' in this) {
+        this.db.parentNode.removeChild(this.db)
+        this.db = null
+    }
+    if ('db2' in this) {
+        this.db2.parentNode.removeChild(this.db2)
+        this.db2 = null
+    }
+    for( i in this.klist) {
+        delete this.dict[this.klist[i]]
+    }
+    this.gui.delete_key_if_empty(name)
+    this.gui = null
+    delete this
 }
 
 generic_box.prototype.get_input_tag = function(k) {
@@ -404,29 +502,28 @@ generic_box.prototype.escape_quotes = function(s) {
    }
 }
 
-function misc_box(name, vdict, klist, top, x, y) {
+function misc_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box = generic_box; /* superclass init */
-    this.generic_box(name, vdict, klist, top, x, y);
-    this.box.innerHTML = name + '<br> <button onclick="gui_editor.toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"</span></button>' ;
+    this.generic_box(name, vdict, klist, top, x, y, gui);
+    this.box.innerHTML = name + '<br> <button onclick="gui_editor.toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"></span></button>' ;
 }
 misc_box.prototype = new generic_box()
 
-function stage_box(name, vdict, klist, top, x, y) {
+function stage_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box = generic_box; /* superclass init */
-    this.generic_box(name, vdict, klist, top, x, y);
+    this.generic_box(name, vdict, klist, top, x, y, gui);
     this.box.draggable = true;
     this.box.addEventListener("dragstart", gui_editor.drag_start)
-    this.box.innerHTML = name + '<br> <button onclick="gui_editor.toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"</span></button>' ;
+    this.box.innerHTML = name + '<br> <button onclick="gui_editor.toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"></span></button>' ;
 }
 stage_box.prototype = new generic_box()
 
-function dependency_box(name, vdict, klist, top, x, y) {
+function dependency_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box = generic_box;
-    this.generic_box(name, vdict, klist, top, x, y) /* superclass init */;
+    this.generic_box(name, vdict, klist, top, x, y, gui) /* superclass init */;
     this.stage1 = mwm_utils.trim_blanks(vdict[klist[0]]);
     this.stage2 = mwm_utils.trim_blanks(name.slice(13, -2)); /* has a _1 or _2 on the end AND a 'campaign_stage ' on the front */
     /* this.box.id = 'dep_' + this.stage1 + '_' + this.stage2 */
-    console.log("trying to do dependency from: " + this.stage1 + " to " + this.stage2)
     this.box.className = 'depbox';
     this.box.style.position='absolute'
     this.db = document.createElement("DIV");

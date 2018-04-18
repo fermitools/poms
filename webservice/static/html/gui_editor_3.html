@@ -9,11 +9,89 @@
 </head>
 <body onload="main()">
 
-<div id="deps" ondrop="drop_it(event)" ondragover="allowDrop(event)">
-</div>
+<pre id="src_1" style="display: none;">
+[global]
+dataset=from_parent
+software_version=v1_2_3
+vo_role=Production
+launch_template=uboone_launch
+completion_type=complete
+completion_pct=95
 
+[campaign]
+experiment=uboone
+tag=split_merge
+campaign_stage_list=split merge_a merge_b merge_c
 
-<pre id="src" style="display: none;">
+[campaign_stage split]
+dataset=new_raw_data
+software_version=v1_2_3
+vo_role=Production
+cs_split_type=None
+job_type=ubone_process_fife_launch
+launch_template=uboone_launch_1
+param_overrides=[["-Oglobal.fclfile=", "split.fcl"], ["-Osubmit.N=", "10"], ["-Oglobal.basename=", "split"]]
+completion_type=complete
+completion_pct=95
+
+[campaign_stage merge_a]
+dataset=from_parent
+software_version=v1_2_3
+vo_role=Production
+cs_split_type=None
+job_type=uboone_process_fife_launch
+launch_template=uboone_launch
+param_overrides=[["-Oglobal.fclfile=", "merge.fcl"], ["-Osubmit.N=", "10"], ["-Oglobal.basename=", "merge_a"]]
+completion_type=complete
+completion_pct=95
+
+[dependencies merge_a]
+campaign_stage_1= split
+file_pattern_1= %%_a.root
+
+[campaign_stage merge_b]
+dataset=from_parent
+software_version=v1_2_3
+vo_role=Production
+cs_split_type=None
+job_type=uboone_process_fife_launch
+launch_template=sbnd_launch_test_1
+param_overrides=[["-Oglobal.fclfile=", "merge.fcl"], ["-Osubmit.N=", "10"], ["-Oglobal.basename=", "merge_b"]]
+completion_type=complete
+completion_pct=95
+
+[dependencies merge_b]
+campaign_stage_1= split
+file_pattern_1= %%_b.root
+
+[campaign_stage merge_c]
+dataset=from_parent
+software_version=v1_2_3
+vo_role=Production
+cs_split_type=None
+job_type=uboone_process_fife_launch
+launch_template=sbnd_launch_test_1
+param_overrides=[["-Oglobal.fclfile=", "merge.fcl"], ["-Osubmit.N=", "10"], ["-Oglobal.basename=", "merge_c"]]
+completion_type=complete
+completion_pct=95
+
+[dependencies merge_c]
+campaign_stage_1= split
+file_pattern_1= %%_c.root
+
+[job_type uboone_process_fife_launch]
+launch_script=fife_launch -c /sbnd/app/home/poms_test/cfg/sbnd_launch.cfg
+parameters=[["-Ojob_setup.multifile=", "True"], ["-Osubmit.dataset=", "%%(dataset)s"], ["-Oglobal.fclfile=", "standard_anatree_sbnd.fcl"]]
+output_file_patterns=%%.root
+
+[launch_template uboone_launch]
+host=uboonegvm01.fnal.gov
+account=uboonepro
+setup=export X509_USER_PROXY=/opt/uboonepro/uboonepro.Production.proxy; setup fife_utils v3_2_0, poms_client ,  poms_jobsub_wrapper
+
+</pre>
+
+<pre id="src_2" style="display: none;">
 # layer->stage throughought
 # dependency stanza per dependency
 # add a multiple campaigns layer?
@@ -103,47 +181,26 @@ output_file_patterns=%%.root
 
 [dependencies sbnd_anatree_test]
 campaign_stage_1= sbnd_reco_test
-file_pattern_1 = reco%%.root
+file_pattern_1= reco%%.root
 
 [dependencies sbnd_reco_test]
 campaign_stage_1= sbnd_detsim_test
-file_pattern_1 = detsim%%.root
+file_pattern_1= detsim%%.root
 
 [dependencies sbnd_detsim_test]
 campaign_stage_1= sbnd_g4_test
-file_pattern_1 = g4%%.root
+file_pattern_1= g4%%.root
 
 [dependencies sbnd_g4_test]
 campaign_stage_1= sbnd_gen_test
-file_pattern_1 = gen%%.root
+file_pattern_1= gen%%.root
 </pre>
 
-<!-- padding -->
-<pre>
-
-
-
-
-
-
-
-
-
-
-
-
-</pre>
-
-<pre id="dst" style="display: none;">
-</pre>
-
-<pre id="dst2">
-</pre>
 
 <script type="text/javascript">
 
 function test1() {
-   srctxt = document.getElementById("src").innerHTML
+   srctxt = document.getElementById("src_2").innerHTML
    ge = new gui_editor()
    ge.set_state(srctxt)
 }
