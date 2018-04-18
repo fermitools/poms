@@ -1,4 +1,13 @@
 
+div.depscanvas {
+  /* try to force a stacking context... */
+  opacity: 0.99; 
+  border: 1px solid green;
+  width: 100%;
+  height: 30ex;
+}
+
+
 div.box {
     border: 1px dotted black;
     padding: 1em;
@@ -62,12 +71,3 @@ div.box.selected {
 
 .wakefields:before { content: "\25a6"; width: 1em; height 1em; }
 .wakedeps:before { content: "\269f"; width: 1em; height 1em; }
-
-div#deps {
-  /* try to force a stacking context... */
-  opacity: 0.99; 
-  border: 1px solid green;
-  width: 100%;
-  height: 30ex;
-}
-
