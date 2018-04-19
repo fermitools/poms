@@ -15,6 +15,10 @@ mwm_utils.getSearchParams = function(){
  location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi,function(s,k,v){p[k]=v});
  return p;
 }
+mwm_utils.getBaseURL = function(){
+ var p = location.href.replace(/\/static.*/,'');
+ return p;
+}
 
 /* return count of pairs in dictionary */
 mwm_utils.dict_size = function(d) {
@@ -304,8 +308,8 @@ gui_editor.prototype.tsort = function (dlist) {
    var n, i, j, k,  t;
    n = dlist.length;
    for(i = 0; i < n; i++) {
-       for(j = 0; j < i; j++ ) {
-           if ((j < i && this.checkdep(dlist[j],dlist[i]))) {
+       for(j = 0; j < n; j++ ) {
+           if (this.checkdep(dlist[j],dlist[i])) {
                t = dlist[i];
                dlist[i] = dlist[j];
                dlist[j] = t;
@@ -314,14 +318,13 @@ gui_editor.prototype.tsort = function (dlist) {
    }
 }
 
-
 /*
  * check if there is a dependecy s2 -> s1
  * only checks for two, probably ought to
  * be a for loop 1..9 or so
  */
-gui_editor.prototype.checkdep = function(s2, s1) {
-   if (s2 == '') {
+gui_editor.prototype.checkdep = function(s1, s2) {
+   if (s2 == '' || s1 == '') {
        return 0;
    }
    var k = "dependencies " + s1;
@@ -723,3 +726,158 @@ dependency_box.prototype.set_bounds = function () {
    }
 }
 
+/*
+ * ===================================================================
+ * uploader -- translated from the upload_wf code in poms_client...
+ */
+function wf_uploader(state) {
+    var i, s, l, jt;
+    this.cfg = state;
+    var role = state['global']['role'];
+    this.update_session_role(role);
+    cfg_stages = self.cfg['campaign','campaign_stage_list'].split(' ');
+    cfg_jobtypes = {}
+    cfg_launches = {}
+ 
+    for( i in stages) {
+        s = cfg_stages[i];
+        cfg_jobtypes[this.cfg['campaign_stage ' +s]['job_type']] = 1
+        cfg_launches[this.cfg['campaign_stage ' +s]['launch_template']] = 1
+    }
+    for( l in cfg_launches) {
+        this.upload_launch_template(l)
+    }
+    for(jt in cfg_jobtypes) {
+        this.upload_jobtype(jt)
+    }
+    for( i in stages) {
+        s = cfg_stages[i];
+        this.upload_stage(s)
+    }
+    /* should we upload the default stage? */
+
+    this.tag_em(this.cfg['campaign']['tag'],cfg_stages)
+}
+
+wf_uploader.prototype.tag_em =  function(tag, cfg_stages) {
+    var cname_id_map = this.get_campaign_list();
+    var cids = cfg_stages.map(x => cname_id_map[x].toString());
+    var args = { 'tag': tag, 'cids': cids.join(','), 'expermient': this.cfg['campaign']['experiment'] };
+    self.make_poms_call('tag_campaigns',args);
+}
+
+wf_uploader.prototype.upload_jobtype =  function(jt) {
+    var field_map = {
+            'launch_script':'launch_script',
+            'parameters':'def_parameter',
+            'output_file_patterns':'output_file_patterns',
+        };
+     var d = this.cfg['job_type ' + jt]
+     var args = {
+        'action': 'add',
+        'name': jt,
+        'experiment': this.cfg['campaign']['experiment'],
+     }
+     for(k in d) {
+         if (k in field_map) {
+            args[field_map[k]] = d[k]
+         } else {
+            args[k] = d[k]
+         }
+     }
+     /* there are separate add/update calls; just do both, if it
+      * exists already, the first will fail.. 
+      */
+     self.make_poms_call('campaign_definition_edit', args)
+     args['action'] = 'update'
+     self.make_poms_call('campaign_definition_edit', args)
+}
+
+wf_uploader.prototype.upload_launch_template =  function(l) {
+    var  field_map = {
+            'host': 'launch_host',
+            'account': 'user_account',
+            'setup': 'launch_setup',
+    };
+    var d = this.cfg['launch_template ' + jt]
+    var args  = {
+             'action': action, 
+             'launch_name': lt, 
+             'experiment': this.cfg['campaign']['experiment']
+        }
+    for(k in d) {
+         if (k in field_map) {
+            args[field_map[k]] = d[k]
+         } else {
+            args[k] = d[k]
+         }
+     }
+     make_poms_call('launch_template_edit', args)
+}
+
+wf_uploader.prototype.upload_stage =  function(s) {
+    var i, dst;
+    var field_map = {
+            'dataset': 'dataset',
+            'software_version': 'ae_software_version',
+            'vo_role': 'vo_role',
+            'cs_split_type': 'ae_split_type',
+            'job_type': 'ae_campaign_definition',
+            'launch_template': 'ae_launch_name',
+            'param_overrides': 'ae_param_overrides',
+            'completion_type': 'ae_completion_type',
+            'completion_pct': 'ae_completion_pct',
+        };
+    var deps = {"file_patterns":[], "campaigns":[]}
+    for (i = 0; i< 10; i++ ) {
+        if ((('dependencies ' + st) in this.cfg) && ('campaign_stage_'+i.toString()) in this.cfg['dependencies ' + st]) {
+            dst = this.cfg['dependencies ' + st]['campaign_stage_'+i.toString()]
+            pat = this.cfg['dependencies ' + st]['file_pattern_'+i.toString()]
+            deps["campaigns"].push(dst)
+            deps["file_patterns"].push(pat)
+        }
+    }  
+    var d = this.cfg['campaign_stage '+st]
+    var args = {
+            'action': 'add', 
+            'ae_campaign_name': st,  
+            'experiment': self.cfg_get('campaign','experiment'), 
+            'ae_active': True, 
+            'ae_depends': JSON.dumps(deps),
+        }
+    for(k in d) {
+         if (k in field_map) {
+            args[field_map[k]] = d[k]
+         } else {
+            args[k] = d[k]
+         }
+     }
+     make_poms_call('campaign_edit', args)
+     args['action'] = 'update'
+     make_poms_call('campaign_edit', args)
+}
+
+wf_uploader.prototype.get_campaign_list = function() {
+     return this.make_poms_call('campaign_list_json', {})
+}
+
+wf_uploader.prototype.update_session_role = function(role) {
+     return this.make_poms_call('update_session_role', {'role': role})
+}
+wf_uploader.prototype.make_poms_call = function(name, args) {
+     var k, res;
+     var base = mwm_utils.getBaseURL()
+     for (k in args) {
+          if (args[k] == null || args[k] == undefined) {
+              delete args[k];
+          }
+     }
+     jQuery.ajax({
+        url: base + '/' + name,
+        success: function(result) {
+            res = result;
+        }, 
+        async: false
+     });
+     return res;
+}
