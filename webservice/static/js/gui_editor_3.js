@@ -62,7 +62,12 @@ mwm_utils.trim_blanks = function (s) {
    return s.slice(i,j+1);
 }
 
-/* gui editor itself */
+/* gui editor itself 
+ * We setup the <div> that it's all in
+ * add drag/drop event handlers, and an initial size
+ * and some lists to keep track of boxes...
+ * and add ourselves to our class static instance list
+ */
 
 function gui_editor() {
     this.div = document.createElement("DIV");
@@ -81,11 +86,13 @@ function gui_editor() {
 
 /* static vars */
 
+/* aforementioned instance list */
 gui_editor.instance_list = []
 
 /* static methods */
 
 /* redraw all dependencies 'cause something moved */
+/*  this is where we actually use the instance list */
 gui_editor.redraw_all_deps = function() {
    var i;
    for( i in gui_editor.instance_list ) {
@@ -103,11 +110,13 @@ gui_editor.toggle_form = function(id) {
         e.style.display = 'none'
     } else if ( e ) {
         e.style.display = 'block'
+        /* not sure why this is here? should be fine without... */
         gui_editor.redraw_all_deps()
     }
 }
 
 
+/* make box selected... just use a CSS class */
 gui_editor.toggle_box_selected = function(id) {
    var x = document.getElementById(id)
    if (x == null) {
@@ -120,11 +129,14 @@ gui_editor.toggle_box_selected = function(id) {
    }
 }
 
-gui_editor.drag_start = function(ev) {
 /* 
- * stash the element's id and the x,y coords inside the id in the text data 
+ * drag handling code -- 3 handlers...
+ *
+ * drag_handler:
+ * stash the element's id and the x,y coords relative to box in the text data 
  * of the event so we can drop it later
  */
+gui_editor.drag_handler = function(ev) {
    if (ev.target == null) {
        return;
    }
@@ -134,6 +146,10 @@ gui_editor.drag_start = function(ev) {
    ev.dataTransfer.setData("text",ev.target.id + "@" + x.toString() + "," + y.toString())
 }
 
+/*
+ * drop_handler -- move the box AND the popup (even though its hidden)
+ * there's a little geometry arithmetic to leave it where you dropped it
+ */
 gui_editor.drop_handler = function(ev) {
     ev.preventDefault();
     var idatxy = ev.dataTransfer.getData("text")
@@ -155,10 +171,19 @@ gui_editor.drop_handler = function(ev) {
     gui_editor.redraw_all_deps()
 }
 
+/*
+ * dragover_handler:
+ * apparently one needs this so dragging works.. cargo cult
+ */
 gui_editor.dragover_handler = function(ev) {
     ev.preventDefault();
 }
 
+/*
+ * callback for delete buttons -- uses the 'gui_box' field we 
+ * add to the actual DOM object to find our generic_box object
+ * and passes the message on to it -- after a confirm
+ */
 gui_editor.delete_me = function(id) {
     console.log("trying to delete: " + id)
     var e = document.getElementById(id);
@@ -174,11 +199,20 @@ gui_editor.delete_me = function(id) {
 
 /* instance methods */
 
+/*
+ * set the gui state from an ini-format dump
+ */
 gui_editor.prototype.set_state = function (ini_dump) {
     this.state = JSON.parse(this.ini2json(ini_dump));
     this.draw_state()
 }
 
+/*
+ * callback from the box object to the gui to clean out
+ * ini-section-entry from the state -- if it's empty
+ * XXX this should also take the actual box object and delete 
+ * them from the stagelist, etc. in the gui state...
+ */
 gui_editor.prototype.delete_key_if_empty = function (k) {
     console.log("delete_key_if_empty:" + k )
     if (k[k.length - 2] == '_') {
@@ -200,15 +234,25 @@ gui_editor.prototype.delete_key_if_empty = function (k) {
     }
 }
 
+/*
+ * fixup for ini->json conversion
+ * we end with: "foo": "bar",
+ * and we're about to add a '}', 
+ * so dink last comma.
+ */
 gui_editor.prototype.un_trailing_comma = function(res) {
-   // we end with: "foo": "bar",
-   // and we're about to add a '}', 
-   // so dink last comma.
    if (res.length > 0 && res[res.length-1].slice(-1) == ',') {
      res[res.length-1] = res[res.length-1].slice(0,-1);
    }
 }
 
+/* 
+ * overall .ini to JSON converter
+ * really only does subset of ini file format that 
+ * POMS actually generates, doesn't handle colons, 
+ * multi-line text blocks, etc.
+ * builds a list of strings and joins them, python-style
+ */
 gui_editor.prototype.ini2json = function (s) {
    var res = [];
    var lines = s.split('\n');
@@ -248,6 +292,14 @@ gui_editor.prototype.ini2json = function (s) {
    return res.join('\n');
 }
 
+/*
+ * topological sort -- put the list of stages in order left
+ *   to right so things we depend on are always at our left
+ *   looks like a bubblesort, yes?
+ *   I think perhaps we ought to do a transitive closure first
+ *   in the general case(?), but our graphs are usually pretty simple
+ *   and it seems to work out...
+ */
 gui_editor.prototype.tsort = function (dlist) {
    var n, i, j, k,  t;
    n = dlist.length;
@@ -262,12 +314,13 @@ gui_editor.prototype.tsort = function (dlist) {
    }
 }
 
-gui_editor.prototype.checkdep = function(s2, s1) {
-   var res = this.checkdep_real(s1, s2)
-   return res
-}
 
-gui_editor.prototype.checkdep_real = function(s2, s1) {
+/*
+ * check if there is a dependecy s2 -> s1
+ * only checks for two, probably ought to
+ * be a for loop 1..9 or so
+ */
+gui_editor.prototype.checkdep = function(s2, s1) {
    if (s2 == '') {
        return 0;
    }
@@ -293,6 +346,12 @@ gui_editor.prototype.checkdep_real = function(s2, s1) {
    return 0
 }
 
+/*
+ * Top level routine to draw the whole screen
+ * -- really only called once
+ * -- lots of guestimates about positions and offsets
+ * --  particularly stupid about long names/wide boxes
+ */
 gui_editor.prototype.draw_state = function () {
    var gridx = 220;
    var gridy = 100;
@@ -326,8 +385,15 @@ gui_editor.prototype.draw_state = function () {
    new label_box("Campaign Stages:", this.div, x, y)
    y = y + labely
 
+   /* wimpy layout, assumes tsorted list -- build
+    * dependency chains left to right, move other
+    * nodes down to next row.
+    * probably *ought* to check who the thing
+    * actually does depend on and move it one column
+    * right of that, but close enough for a first pass
+    */
+
    var first = true
-   /* wimpy layout, assumes tsorted list... */
    for( i in stagelist) {
         k = 'campaign_stage ' + stagelist[i];
 
@@ -384,6 +450,9 @@ gui_editor.prototype.draw_state = function () {
    this.div.style.height = y.toString()+"px"
 }
 
+/*
+ * redo the dependecny boxes on this gui_editor
+ */
 gui_editor.prototype.redraw_deps = function () {
     var k;
     for (k in this.depboxes) {
@@ -391,6 +460,11 @@ gui_editor.prototype.redraw_deps = function () {
     }
 }
 
+/*
+ * make a div with a label in it on the overall screen
+ * we don't actually track it, as we don't currently try
+ * to move it or anything.
+ */
 function label_box(text, top, x, y) {
     var box = document.createElement("DIV");
     box.style.position='absolute'
@@ -400,6 +474,14 @@ function label_box(text, top, x, y) {
     top.appendChild(box);
 }
 
+/*
+ * base class for all our boxes on the screen representing
+ * sections in the .ini file dump
+ * makes a box and a popup form that are both absolutely 
+ * placed on the overall gui <div>...
+ * -- we subclass this for campaign stage boxes, dependency boxes, and 
+ *   other ini file boxes
+ */
 function generic_box(name, vdict, klist, top, x, y, gui) {
     var i, k, x, y, val , placeholder;
     var stage, res;
@@ -451,6 +533,9 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     top.appendChild(this.popup_parent);
 }
 
+/*
+ * actual object delete code called by initial click handler
+ */
 generic_box.prototype.delete_me = function() {
     var i;
     var name = this.box.id
@@ -460,6 +545,11 @@ generic_box.prototype.delete_me = function() {
     this.box = null
     this.popup_parent.parentNode.removeChild(this.popup_parent)
     this.popup_parent = null
+    /*
+     * in a perfect OO implementation we would subclass for these
+     * but we can just be polymorphic and check if we have certain
+     * object members...
+     */
     if ('db' in this) {
         this.db.parentNode.removeChild(this.db)
         this.db = null
@@ -476,11 +566,18 @@ generic_box.prototype.delete_me = function() {
     delete this
 }
 
+/*
+ * pulled out to share input tag name figuring between
+ * generate and save code...
+ */
 generic_box.prototype.get_input_tag = function(k) {
 
     return "_inp" + this.box.id + '_' + k
 }
 
+/*
+ * save values from a popup form back into the state.
+ */
 generic_box.prototype.save_values = function() {
     var inp_id, e, k, i; 
     for (i in this.klist) {
@@ -494,6 +591,10 @@ generic_box.prototype.save_values = function() {
     }
 }
 
+/*
+ * convert quotes to &quot; for <input value="xxx'> values
+ * should be a  astatic method...
+ */
 generic_box.prototype.escape_quotes = function(s) {
    if (s != undefined) {
        return s.replace(/"/g,'&quot;')
@@ -502,6 +603,10 @@ generic_box.prototype.escape_quotes = function(s) {
    }
 }
 
+/*
+ * non-draggable, non-dependency box class
+ * for job_types, etc.  subclass of generic_box
+ */
 function misc_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box = generic_box; /* superclass init */
     this.generic_box(name, vdict, klist, top, x, y, gui);
@@ -509,15 +614,22 @@ function misc_box(name, vdict, klist, top, x, y, gui) {
 }
 misc_box.prototype = new generic_box()
 
+/*
+ * box to represent campaign stages -- draggable, etc.
+ */
 function stage_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box = generic_box; /* superclass init */
     this.generic_box(name, vdict, klist, top, x, y, gui);
     this.box.draggable = true;
-    this.box.addEventListener("dragstart", gui_editor.drag_start)
+    this.box.addEventListener("dragstart", gui_editor.drag_handler)
     this.box.innerHTML = name + '<br> <button onclick="gui_editor.toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"></span></button>' ;
 }
 stage_box.prototype = new generic_box()
 
+/*
+ * box to represent dependencies -- note that 
+ * you generally only see two borders of these boxes, and the button
+ */
 function dependency_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box = generic_box;
     this.generic_box(name, vdict, klist, top, x, y, gui) /* superclass init */;
@@ -540,6 +652,13 @@ function dependency_box(name, vdict, klist, top, x, y, gui) {
 }
 dependency_box.prototype = new generic_box()
 
+/*
+ * routine to (re)set the bounds of a dependency box 
+ * so its corners are centered on the two states that
+ * it involves.
+ * note that this also moves the popup form for the
+ * dependency to be next to it (even while hidden)
+ */
 dependency_box.prototype.set_bounds = function () {
    var e1 = document.getElementById("campaign_stage " + this.stage1);
    var e2 = document.getElementById("campaign_stage " + this.stage2);
