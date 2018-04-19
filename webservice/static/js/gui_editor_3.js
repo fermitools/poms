@@ -758,7 +758,7 @@ function wf_uploader(state) {
     for(jt in cfg_jobtypes) {
         this.upload_jobtype(jt)
     }
-    for( i in stages) {
+    for( i in cfg_stages) {
         s = cfg_stages[i];
         this.upload_stage(s)
     }
@@ -771,7 +771,7 @@ wf_uploader.prototype.tag_em =  function(tag, cfg_stages) {
     var cname_id_map = this.get_campaign_list();
     var cids = cfg_stages.map(x => cname_id_map[x].toString());
     var args = { 'tag': tag, 'cids': cids.join(','), 'expermient': this.cfg['campaign']['experiment'] };
-    self.make_poms_call('tag_campaigns',args);
+    this.make_poms_call('tag_campaigns',args);
 }
 
 wf_uploader.prototype.upload_jobtype =  function(jt) {
@@ -796,9 +796,9 @@ wf_uploader.prototype.upload_jobtype =  function(jt) {
      /* there are separate add/update calls; just do both, if it
       * exists already, the first will fail.. 
       */
-     self.make_poms_call('campaign_definition_edit', args)
+     this.make_poms_call('campaign_definition_edit', args)
      args['action'] = 'update'
-     self.make_poms_call('campaign_definition_edit', args)
+     this.make_poms_call('campaign_definition_edit', args)
 }
 
 wf_uploader.prototype.upload_launch_template =  function(l) {
@@ -809,8 +809,8 @@ wf_uploader.prototype.upload_launch_template =  function(l) {
     };
     var d = this.cfg['launch_template ' + l]
     var args  = {
-             'action': action, 
-             'launch_name': lt, 
+             'action': 'add', 
+             'launch_name': l, 
              'experiment': this.cfg['campaign']['experiment']
         }
     for(k in d) {
@@ -820,10 +820,10 @@ wf_uploader.prototype.upload_launch_template =  function(l) {
             args[k] = d[k]
          }
      }
-     make_poms_call('launch_template_edit', args)
+     this.make_poms_call('launch_template_edit', args)
 }
 
-wf_uploader.prototype.upload_stage =  function(s) {
+wf_uploader.prototype.upload_stage =  function(st) {
     var i, dst;
     var field_map = {
             'dataset': 'dataset',
@@ -849,9 +849,9 @@ wf_uploader.prototype.upload_stage =  function(s) {
     var args = {
             'action': 'add', 
             'ae_campaign_name': st,  
-            'experiment': self.cfg_get('campaign','experiment'), 
-            'ae_active': True, 
-            'ae_depends': JSON.dumps(deps),
+            'experiment': this.cfg['campaign']['experiment'], 
+            'ae_active': true, 
+            'ae_depends': JSON.stringify(deps),
         }
     for(k in d) {
          if (k in field_map) {
@@ -860,9 +860,9 @@ wf_uploader.prototype.upload_stage =  function(s) {
             args[k] = d[k]
          }
      }
-     make_poms_call('campaign_edit', args)
+     this.make_poms_call('campaign_edit', args)
      args['action'] = 'update'
-     make_poms_call('campaign_edit', args)
+     this.make_poms_call('campaign_edit', args)
 }
 
 wf_uploader.prototype.get_campaign_list = function() {
