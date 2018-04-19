@@ -1,4 +1,4 @@
-"use strict";
+"-- use strict";
 
 /* utility function bundle */
 
@@ -15,6 +15,7 @@ mwm_utils.getSearchParams = function(){
  location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi,function(s,k,v){p[k]=v});
  return p;
 }
+
 mwm_utils.getBaseURL = function(){
  var p = location.href.replace(/\/static.*/,'');
  return p;
@@ -190,16 +191,23 @@ gui_editor.dragover_handler = function(ev) {
  */
 gui_editor.delete_me = function(id) {
     console.log("trying to delete: " + id)
+    var err;
     var e = document.getElementById(id);
     if (e == null){
        return;
     }
-    if (confirm("Are you sure you want to delete " + id + "?")) {
-        e.gui_box.delete_me()
-    } else {
-        console.log("never mind...")
+    try {
+        if (window.confirm("Are you sure you want to delete " + id + "?")) {
+            e.gui_box.delete_me();
+        }  else {
+           console.log("declined..");
+        }
+    } catch(err) { 
+        console.log(err);
     }
+    return "ok";
 }
+
 
 /* instance methods */
 
@@ -517,7 +525,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     res.push('<form id="fields_' + name + '" class="popup_form" style="display: none; top: '+ y.toString()+'px; left: ' +x.toString()+'px;">' );
     var val, placeholder;
     res.push('<h3>' + name );
-    res.push('<button title="Delete" class="rightbutton" onclick="gui_editor.delete_me(\''+name+'\')"><span class="deletebutton"></span></button><p>');
+    res.push('<button title="Delete" class="rightbutton" type="button" onclick="gui_editor.delete_me(\''+name+'\')"><span class="deletebutton"></span></button><p>');
     res.push('</h3>');
     for ( i in klist ) {
        k = klist[i]
@@ -613,7 +621,7 @@ generic_box.prototype.escape_quotes = function(s) {
 function misc_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box = generic_box; /* superclass init */
     this.generic_box(name, vdict, klist, top, x, y, gui);
-    this.box.innerHTML = name + '<br> <button onclick="gui_editor.toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"></span></button>' ;
+    this.box.innerHTML = name + '<br> <button type="button" onclick="gui_editor.toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"></span></button>' ;
 }
 misc_box.prototype = new generic_box()
 
@@ -625,7 +633,7 @@ function stage_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box(name, vdict, klist, top, x, y, gui);
     this.box.draggable = true;
     this.box.addEventListener("dragstart", gui_editor.drag_handler)
-    this.box.innerHTML = name + '<br> <button onclick="gui_editor.toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"></span></button>' ;
+    this.box.innerHTML = name + '<br> <button type="button" onclick="gui_editor.toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"></span></button>' ;
 }
 stage_box.prototype = new generic_box()
 
