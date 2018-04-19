@@ -741,13 +741,13 @@ dependency_box.prototype.set_bounds = function () {
 function wf_uploader(state) {
     var i, s, l, jt;
     this.cfg = state;
-    var role = state['global']['role'];
+    var role = state['campaign']['poms_role'];
     this.update_session_role(role);
-    cfg_stages = self.cfg['campaign','campaign_stage_list'].split(' ');
+    cfg_stages = this.cfg['campaign']['campaign_stage_list'].split(' ');
     cfg_jobtypes = {}
     cfg_launches = {}
  
-    for( i in stages) {
+    for( i in cfg_stages) {
         s = cfg_stages[i];
         cfg_jobtypes[this.cfg['campaign_stage ' +s]['job_type']] = 1
         cfg_launches[this.cfg['campaign_stage ' +s]['launch_template']] = 1
@@ -807,7 +807,7 @@ wf_uploader.prototype.upload_launch_template =  function(l) {
             'account': 'user_account',
             'setup': 'launch_setup',
     };
-    var d = this.cfg['launch_template ' + jt]
+    var d = this.cfg['launch_template ' + l]
     var args  = {
              'action': action, 
              'launch_name': lt, 
@@ -870,8 +870,9 @@ wf_uploader.prototype.get_campaign_list = function() {
 }
 
 wf_uploader.prototype.update_session_role = function(role) {
-     return this.make_poms_call('update_session_role', {'role': role})
+     return this.make_poms_call('update_session_role', {'session_role': role})
 }
+
 wf_uploader.prototype.make_poms_call = function(name, args) {
      var k, res;
      var base = mwm_utils.getBaseURL()
@@ -882,6 +883,8 @@ wf_uploader.prototype.make_poms_call = function(name, args) {
      }
      jQuery.ajax({
         url: base + '/' + name,
+        data: args,
+        method: args ? 'POST':'GET',
         success: function(result) {
             res = result;
         }, 
