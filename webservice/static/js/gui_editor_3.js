@@ -775,8 +775,8 @@ wf_uploader.prototype.upload = function(state) {
 wf_uploader.prototype.tag_em =  function(tag, cfg_stages) {
     var cname_id_map = this.get_campaign_list();
     var cids = cfg_stages.map(x => cname_id_map[x].toString());
-    var args = { 'tag': tag, 'cids': cids.join(','), 'expermient': this.cfg['campaign']['experiment'] };
-    this.make_poms_call('tag_campaigns',args);
+    var args = { 'tag_name': tag, 'campaign_id': cids.join(','), 'experiment': this.cfg['campaign']['experiment'] };
+    this.make_poms_call('link_tags',args);
 }
 
 wf_uploader.prototype.upload_jobtype =  function(jt) {
@@ -882,7 +882,14 @@ wf_uploader.prototype.upload_stage =  function(st) {
 }
 
 wf_uploader.prototype.get_campaign_list = function() {
-     return this.make_poms_call('campaign_list_json', {})
+     var x, res, i, pair;
+     x =  this.make_poms_call('campaign_list_json', {})
+     res = {}
+     for( i in x) {
+         pair = x[i];
+         res[pair.name] = pair.campaign_id;
+     }
+     return res;
 }
 
 wf_uploader.prototype.update_session_role = function(role) {
