@@ -1,4 +1,4 @@
-"-- use strict";
+"use strict";
 
 /* utility function bundle */
 
@@ -738,15 +738,20 @@ dependency_box.prototype.set_bounds = function () {
  * ===================================================================
  * uploader -- translated from the upload_wf code in poms_client...
  */
-function wf_uploader(state) {
+function wf_uploader() {
     var i, s, l, jt;
+    this.cfg = null;
+}
+ 
+wf_uploader.prototype.upload = function(state) {
     this.cfg = state;
+    this.username = this.get_headers()['X-Shib-Userid']
     var role = state['campaign']['poms_role'];
     this.update_session_role(role);
-    cfg_stages = this.cfg['campaign']['campaign_stage_list'].split(' ');
-    cfg_jobtypes = {}
-    cfg_launches = {}
- 
+    var cfg_stages = this.cfg['campaign']['campaign_stage_list'].split(' ');
+    var cfg_jobtypes = {};
+    var cfg_launches = {};
+    var i, l, jt, s;
     for( i in cfg_stages) {
         s = cfg_stages[i];
         cfg_jobtypes[this.cfg['campaign_stage ' +s]['job_type']] = 1
@@ -775,42 +780,49 @@ wf_uploader.prototype.tag_em =  function(tag, cfg_stages) {
 }
 
 wf_uploader.prototype.upload_jobtype =  function(jt) {
-    var field_map = {
-            'launch_script':'launch_script',
-            'parameters':'def_parameter',
-            'output_file_patterns':'output_file_patterns',
+    var field_map, k, d, args;
+    field_map = {
+            'launch_script':'ae_launch_script',
+            'parameters':'ae_definition_parameters',
+            'output_file_patterns':'ae_output_file_patterns',
         };
-     var d = this.cfg['job_type ' + jt]
-     var args = {
+    d = this.cfg['job_type ' + jt]
+    args = {
+        'pcl_call': '1',
+        'pc_username': this.username,
         'action': 'add',
-        'name': jt,
+        'ae_definition_name': jt,
         'experiment': this.cfg['campaign']['experiment'],
-     }
-     for(k in d) {
+    }
+    for(k in d) {
          if (k in field_map) {
             args[field_map[k]] = d[k]
          } else {
             args[k] = d[k]
          }
-     }
+    }
      /* there are separate add/update calls; just do both, if it
       * exists already, the first will fail.. 
       */
-     this.make_poms_call('campaign_definition_edit', args)
-     args['action'] = 'update'
-     this.make_poms_call('campaign_definition_edit', args)
+    this.make_poms_call('campaign_definition_edit', args)
+    args['action'] = 'edit'
+    this.make_poms_call('campaign_definition_edit', args)
 }
 
 wf_uploader.prototype.upload_launch_template =  function(l) {
-    var  field_map = {
-            'host': 'launch_host',
-            'account': 'user_account',
-            'setup': 'launch_setup',
+    var field_map, d, args, k ;
+    field_map = {
+            'host': 'ae_launch_host',
+            'account': 'ae_launch_account',
+            'setup': 'ae_launch_setup',
     };
-    var d = this.cfg['launch_template ' + l]
-    var args  = {
+    d = this.cfg['launch_template ' + l]
+    console.log(['d',d])
+    args  = {
              'action': 'add', 
-             'launch_name': l, 
+             'pcl_call': '1',
+             'pc_username': this.username,
+             'ae_launch_name': l, 
              'experiment': this.cfg['campaign']['experiment']
         }
     for(k in d) {
@@ -821,14 +833,16 @@ wf_uploader.prototype.upload_launch_template =  function(l) {
          }
      }
      this.make_poms_call('launch_template_edit', args)
+     args['action'] = 'edit'
+     this.make_poms_call('launch_template_edit', args)
 }
 
 wf_uploader.prototype.upload_stage =  function(st) {
-    var i, dst;
-    var field_map = {
-            'dataset': 'dataset',
+    var i, dst, field_map, deps, d, args, k, pat;
+    field_map = {
+            'dataset': 'ae_dataset',
             'software_version': 'ae_software_version',
-            'vo_role': 'vo_role',
+            'vo_role': 'ae_vo_role',
             'cs_split_type': 'ae_split_type',
             'job_type': 'ae_campaign_definition',
             'launch_template': 'ae_launch_name',
@@ -836,7 +850,7 @@ wf_uploader.prototype.upload_stage =  function(st) {
             'completion_type': 'ae_completion_type',
             'completion_pct': 'ae_completion_pct',
         };
-    var deps = {"file_patterns":[], "campaigns":[]}
+    deps = {"file_patterns":[], "campaigns":[]}
     for (i = 0; i< 10; i++ ) {
         if ((('dependencies ' + st) in this.cfg) && ('campaign_stage_'+i.toString()) in this.cfg['dependencies ' + st]) {
             dst = this.cfg['dependencies ' + st]['campaign_stage_'+i.toString()]
@@ -845,8 +859,10 @@ wf_uploader.prototype.upload_stage =  function(st) {
             deps["file_patterns"].push(pat)
         }
     }  
-    var d = this.cfg['campaign_stage '+st]
-    var args = {
+    d = this.cfg['campaign_stage '+st]
+    args = {
+            'pcl_call': '1',
+            'pc_username': this.username,
             'action': 'add', 
             'ae_campaign_name': st,  
             'experiment': this.cfg['campaign']['experiment'], 
@@ -861,7 +877,7 @@ wf_uploader.prototype.upload_stage =  function(st) {
          }
      }
      this.make_poms_call('campaign_edit', args)
-     args['action'] = 'update'
+     args['action'] = 'edit'
      this.make_poms_call('campaign_edit', args)
 }
 
@@ -873,9 +889,17 @@ wf_uploader.prototype.update_session_role = function(role) {
      return this.make_poms_call('update_session_role', {'session_role': role})
 }
 
+wf_uploader.prototype.get_headers= function() {
+    var s = this.make_poms_call('headers', {});
+    s = s.replace(/\'/g,'"')
+    return JSON.parse(s);
+}
+
 wf_uploader.prototype.make_poms_call = function(name, args) {
      var k, res;
      var base = mwm_utils.getBaseURL()
+
+     console.log(['make_poms_call',name,args])
      for (k in args) {
           if (args[k] == null || args[k] == undefined) {
               delete args[k];
@@ -888,6 +912,22 @@ wf_uploader.prototype.make_poms_call = function(name, args) {
         success: function(result) {
             res = result;
         }, 
+        error: function(result) {
+            var p, resp;
+            p = result.responseText.indexOf('>Traceback');
+            if (p > 0) {
+                resp = result.responseText.slice(p+6,);
+                p = resp.indexOf('</label>')
+                if(p < 0) {
+                    p = resp.indexOf('</pre>')
+                }
+                resp = resp.slice(0,p)
+                resp.replace(/<br\/>/g,'\n')
+            } else {
+                resp = result.responseText;
+            }
+            console.log(resp);
+        },
         async: false
      });
      return res;
