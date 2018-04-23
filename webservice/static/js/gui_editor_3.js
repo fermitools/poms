@@ -767,7 +767,8 @@ dependency_box.prototype.set_bounds = function () {
 
 gui_editor.prototype.new_stage = function () {
     var k = window.prompt("New stage name:")
-    var x, y;
+    var x, y, b;
+    k = 'campaign_stage ' + k
     this.state[k] = {
 	'dataset': null,
 	'software_version': null,
@@ -786,7 +787,7 @@ gui_editor.prototype.new_stage = function () {
 }
 
 gui_editor.prototype.new_dependency = function() {
-    var elist, k1, istr, db;
+    var elist, k1, istr, db, s1, s2;
     elist = this.div.getElementsByClassName('selected')
     if (elist.length < 2 || elist.length > 2) {
         window.alert("Need exactly two Campagn Stages selected")
@@ -801,25 +802,28 @@ gui_editor.prototype.new_dependency = function() {
        elist[0] = elist[1];
        elist[1] = t;
    }
-   k1 = 'dependencies ' + elist[1].id
+   s1 = elist[0].id.replace("campaign_stage ","")
+   s2 = elist[1].id.replace("campaign_stage ","")
+   k1 = 'dependencies ' + s2
    if (k1 in this.state) {
-       istr =((mwm_utils.dict_count(this.state[k1]) / 2) + 1).toString()
+       istr =((mwm_utils.dict_size(this.state[k1]) / 2) + 1).toString()
    } else {
        this.state[k1] = {};
        istr = '1';
    }
-   this.state[k1]['campaign_stage_' + istr] = elist[0].id
+   console.log('elist:')
+   console.log(elist)
+
+   this.state[k1]['campaign_stage_' + istr] = s1
    this.state[k1]['file_pattern_' + istr] = '%'
-   db = new dependency_box(k1+"_"+istr, this.state[k1], ["campaign_stage_"+istr,"file_pattern_"+istr], this.div, x, y, this);
+   db = new dependency_box(k1+"_"+istr, this.state[k1], ["campaign_stage_"+istr,"file_pattern_"+istr], this.div, 0, 0, this);
    this.depboxes.push(db)
-   db.set_bounds()
 }
 
 gui_editor.prototype.save_state = function() {
    var wu = new wf_uploader( function(){ this.unbuzy()})
-   wu.set_state(this.state)
    this.busy()
-   wu.upload()
+   wu.upload(this.state)
 }
 
 gui_editor.prototype.busy = function() {
@@ -835,9 +839,6 @@ gui_editor.prototype.unbusy = function() {
 function wf_uploader(on_complete) {
     var i, s, l, jt;
     this.cfg = null;
-    this.task_queue = []
-    this.task_running = false
-    this.task_completed = complete
 }
  
 wf_uploader.prototype.upload = function(state) {
@@ -999,40 +1000,21 @@ wf_uploader.prototype.get_headers= function() {
     return JSON.parse(s);
 }
 
-
 wf_uploader.prototype.make_poms_call = function(name, args) {
      var k, res;
      var base = mwm_utils.getBaseURL()
-
      console.log(['make_poms_call',name,args])
      for (k in args) {
           if (args[k] == null || args[k] == undefined) {
               delete args[k];
           }
      }
-     this.task_queue.push([name, args]);
-     if (!this.task_running) {
-         this.next_queue();
-     }
-}
-
-wf_uploader.prototype.next_queue = function() {
-     this.task_running = true
-     if (this.task_queue.length == 0) {
-         this.task_running = false
-         this.task_completed()
-         return
-     }
-     napair = this.task_running.shift()
-     name = napair[0]
-     args = napar[1]
      jQuery.ajax({
         url: base + '/' + name,
         data: args,
         method: args ? 'POST':'GET',
         success: function(result) {
-            console.log(result);
-            this.next_queue()
+            res = result;
         }, 
         error: function(result) {
             var p, resp;
@@ -1049,7 +1031,6 @@ wf_uploader.prototype.next_queue = function() {
                 resp = result.responseText;
             }
             console.log(resp);
-            this.next_queue()
         },
         async: false
      });
