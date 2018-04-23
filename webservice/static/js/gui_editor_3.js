@@ -768,6 +768,7 @@ dependency_box.prototype.set_bounds = function () {
 gui_editor.prototype.new_stage = function () {
     var k = window.prompt("New stage name:")
     var x, y, b;
+    this.state['campaign']['campaign_stage_list'] += " " + k
     k = 'campaign_stage ' + k
     this.state[k] = {
 	'dataset': null,
@@ -843,13 +844,16 @@ function wf_uploader(on_complete) {
  
 wf_uploader.prototype.upload = function(state) {
     this.cfg = state;
-    this.username = this.get_headers()['X-Shib-Userid']
+    var headers =this.get_headers()
+    this.username = headers['X-Shib-Userid']
+    this.experiment = state['campaign']['experiment']
     var role = state['campaign']['poms_role'];
     this.update_session_role(role);
     var cfg_stages = this.cfg['campaign']['campaign_stage_list'].split(' ');
     var cfg_jobtypes = {};
     var cfg_launches = {};
     var i, l, jt, s;
+    this.cname_id_map = this.get_campaign_list();
     for( i in cfg_stages) {
         s = cfg_stages[i];
         cfg_jobtypes[this.cfg['campaign_stage ' +s]['job_type']] = 1
@@ -871,8 +875,9 @@ wf_uploader.prototype.upload = function(state) {
 }
 
 wf_uploader.prototype.tag_em =  function(tag, cfg_stages) {
-    var cname_id_map = this.get_campaign_list();
-    var cids = cfg_stages.map(x => cname_id_map[x].toString());
+    var cids = cfg_stages.map(x => this.cname_id_map[x].toString());
+    /* have to re-fetch the list, if we added any campaigns... */
+    this.cname_id_map = this.get_campaign_list();
     var args = { 'tag_name': tag, 'campaign_id': cids.join(','), 'experiment': this.cfg['campaign']['experiment'] };
     this.make_poms_call('link_tags',args);
 }
@@ -961,7 +966,7 @@ wf_uploader.prototype.upload_stage =  function(st) {
     args = {
             'pcl_call': '1',
             'pc_username': this.username,
-            'action': 'add', 
+            'action': (st in this.cname_id_map)?'edit':'add',
             'ae_campaign_name': st,  
             'experiment': this.cfg['campaign']['experiment'], 
             'ae_active': true, 
@@ -975,8 +980,6 @@ wf_uploader.prototype.upload_stage =  function(st) {
          }
      }
      this.make_poms_call('campaign_edit', args)
-     args['action'] = 'edit'
-     this.make_poms_call('campaign_edit', args)
 }
 
 wf_uploader.prototype.get_campaign_list = function() {
@@ -985,7 +988,9 @@ wf_uploader.prototype.get_campaign_list = function() {
      res = {}
      for( i in x) {
          pair = x[i];
-         res[pair.name] = pair.campaign_id;
+         if (pair.experiment == this.experiment) {
+             res[pair.name] = pair.campaign_id;
+         }
      }
      return res;
 }
