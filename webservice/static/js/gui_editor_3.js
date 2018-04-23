@@ -77,6 +77,8 @@ mwm_utils.trim_blanks = function (s) {
 function gui_editor() {
     this.div = document.createElement("DIV");
     this.div.className = 'gui_editor_frame';
+    this.div.id = 'gui_editor_' + gui_editor.instance_list.length;
+    this.div.gui_box = this;
     this.div.style.position='relative';
     this.div.addEventListener("dragover",gui_editor.dragover_handler);
     this.div.addEventListener("drop", gui_editor.drop_handler);
@@ -208,6 +210,28 @@ gui_editor.delete_me = function(id) {
     return "ok";
 }
 
+gui_editor.newstage = function(id) {
+   var e = document.getElementById(id)
+   if (e == null){  
+       alert("cannot find: " + id)
+   }
+   e.gui_box.new_stage()
+}
+
+gui_editor.makedep = function(id) {
+   var e = document.getElementById(id)
+   if (e == null){  
+       alert("cannot find: " + id)
+   }
+   e.gui_box.new_dependency()
+}
+gui_editor.save = function(id) {
+   var e = document.getElementById(id)
+   if (e == null){  
+       alert("cannot find: " + id)
+   }
+   e.gui_box.save_state()
+}
 
 /* instance methods */
 
@@ -372,7 +396,7 @@ gui_editor.prototype.draw_state = function () {
    var y = 0;
    var i, prevstage,  istr, b;
    var stagelist, jobtypelist, launchtemplist, k;
-   var db, istr;  
+   var db, istr, cb;
    prevstage = ""
 
    stagelist = []
@@ -392,6 +416,12 @@ gui_editor.prototype.draw_state = function () {
          
    this.tsort(stagelist)
 
+   cb = new label_box("Campaign: " + this.state['campaign']['tag'], this.div, x, y)
+   cb.innerHTML += '<button type="button" onclick="gui_editor.save(\'' + this.div.id + '\')">Save</button>';
+   cb.innerHTML += '<button type="button" onclick="gui_editor.makedep(\'' + this.div.id + '\')">+ Connect Stages</button>';
+   cb.innerHTML += '<button type="button" onclick="gui_editor.newstage(\'' + this.div.id + '\')">+ New Stage</button>';
+
+   y = y + 2 * labely
 
    new label_box("Campaign Stages:", this.div, x, y)
    y = y + labely
@@ -451,7 +481,7 @@ gui_editor.prototype.draw_state = function () {
         if (k.startsWith('dependencies')) {
           for (i = 1; i <= mwm_utils.dict_size(this.state[k])/2; i++) {
               istr = i.toString()
-              db = new dependency_box(k+"_"+istr, this.state[k], ["campaign_stage_"+istr,"file_pattern_"+istr], this.div, x, y, this);
+              db = new dependency_box(k+"_"+istr, this.state[k], ["campaign_stage_"+istr,"file_pattern_"+istr], this.div, 0, 0, this);
               this.depboxes.push(db)
           }
        }
@@ -483,6 +513,7 @@ function label_box(text, top, x, y) {
     box.style.top = y.toString() + "px";
     box.innerHTML = "<h2>" + text + "</h2>"
     top.appendChild(box);
+    return box;
 }
 
 /*
@@ -734,13 +765,79 @@ dependency_box.prototype.set_bounds = function () {
    }
 }
 
+gui_editor.prototype.new_stage = function () {
+    var k = window.prompt("New stage name:")
+    var x, y;
+    this.state[k] = {
+	'dataset': null,
+	'software_version': null,
+	'vo_role': null,
+	'cs_split_type': null,
+	'job_type': null,
+	'launch_template': null,
+	'param_overrides': null,
+	'completion_type': null,
+	'completion_pct': null
+    }
+    x = 300;
+    y = 30;
+    b = new stage_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y, this)
+    this.stageboxes.push(b);
+}
+
+gui_editor.prototype.new_dependency = function() {
+    var elist, k1, istr, db;
+    elist = this.div.getElementsByClassName('selected')
+    if (elist.length < 2 || elist.length > 2) {
+        window.alert("Need exactly two Campagn Stages selected")
+        return
+    }
+    /* we think the left-to-right position on the screen indicates
+     * which way the dependency should go, so if they're the other
+     * way around, swap them...
+     */
+   if(elist[0].getBoundingClientRect().x > elist[1].getBoundingClientRect().x) {
+       var t = elist[0];
+       elist[0] = elist[1];
+       elist[1] = t;
+   }
+   k1 = 'dependencies ' + elist[1].id
+   if (k1 in this.state) {
+       istr =((mwm_utils.dict_count(this.state[k1]) / 2) + 1).toString()
+   } else {
+       this.state[k1] = {};
+       istr = '1';
+   }
+   this.state[k1]['campaign_stage_' + istr] = elist[0].id
+   this.state[k1]['file_pattern_' + istr] = '%'
+   db = new dependency_box(k1+"_"+istr, this.state[k1], ["campaign_stage_"+istr,"file_pattern_"+istr], this.div, x, y, this);
+   this.depboxes.push(db)
+   db.set_bounds()
+}
+
+gui_editor.prototype.save_state = function() {
+   var wu = new wf_uploader( function(){ this.unbuzy()})
+   wu.set_state(this.state)
+   this.busy()
+   wu.upload()
+}
+
+gui_editor.prototype.busy = function() {
+}
+
+gui_editor.prototype.unbusy = function() {
+}
+
 /*
  * ===================================================================
  * uploader -- translated from the upload_wf code in poms_client...
  */
-function wf_uploader() {
+function wf_uploader(on_complete) {
     var i, s, l, jt;
     this.cfg = null;
+    this.task_queue = []
+    this.task_running = false
+    this.task_completed = complete
 }
  
 wf_uploader.prototype.upload = function(state) {
@@ -902,6 +999,7 @@ wf_uploader.prototype.get_headers= function() {
     return JSON.parse(s);
 }
 
+
 wf_uploader.prototype.make_poms_call = function(name, args) {
      var k, res;
      var base = mwm_utils.getBaseURL()
@@ -912,12 +1010,29 @@ wf_uploader.prototype.make_poms_call = function(name, args) {
               delete args[k];
           }
      }
+     this.task_queue.push([name, args]);
+     if (!this.task_running) {
+         this.next_queue();
+     }
+}
+
+wf_uploader.prototype.next_queue = function() {
+     this.task_running = true
+     if (this.task_queue.length == 0) {
+         this.task_running = false
+         this.task_completed()
+         return
+     }
+     napair = this.task_running.shift()
+     name = napair[0]
+     args = napar[1]
      jQuery.ajax({
         url: base + '/' + name,
         data: args,
         method: args ? 'POST':'GET',
         success: function(result) {
-            res = result;
+            console.log(result);
+            this.next_queue()
         }, 
         error: function(result) {
             var p, resp;
@@ -934,6 +1049,7 @@ wf_uploader.prototype.make_poms_call = function(name, args) {
                 resp = result.responseText;
             }
             console.log(resp);
+            this.next_queue()
         },
         async: false
      });
