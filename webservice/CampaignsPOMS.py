@@ -543,7 +543,7 @@ class CampaignsPOMS:
                     # now redo dependencies
                 dbhandle.query(CampaignDependency).filter(CampaignDependency.uses_camp_id == campaign_id).delete(synchronize_session=False)
                 logit.log("depends for %s are: %s" % (campaign_id, depends))
-                depcamps = dbhandle.query(Campaign).filter(Campaign.name.in_(depends['campaigns'])).all()
+                depcamps = dbhandle.query(Campaign).filter(Campaign.name.in_(depends['campaigns']),Campaign.experiment == exp).all()
                 for i in range(len(depcamps)):
                     logit.log("trying to add dependency for: {}".format(depcamps[i].name))
                     d = CampaignDependency(uses_camp_id=campaign_id, needs_camp_id=depcamps[i].campaign_id,
