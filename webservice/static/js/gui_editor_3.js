@@ -240,7 +240,62 @@ gui_editor.save = function(id) {
  */
 gui_editor.prototype.set_state = function (ini_dump) {
     this.state = JSON.parse(this.ini2json(ini_dump));
+    this.defaultify_state();
     this.draw_state()
+}
+
+gui_editor.prototype.defaultify_state = function() {
+    var st, k, j, max, maxslot;
+    st = {};
+    this.mode = {}
+    /* count frequency of occurance...*/
+    for (k in this.state) {
+        if (k.startsWith('campaign_stage')) {
+           for (j in this.state[k]) {
+               if (!(j in st)) {
+                   st[j]={}
+               }
+               if (! (this.state[k][j] in st[j])) {
+                   st[j][this.state[k][j]] = 0;
+               }
+               st[j][this.state[k][j]]++;
+           }
+        }
+    }
+    /* pick the most popular answer for each slot */
+    for( j in st ) {
+       max = 0;
+       maxslot = 0;
+       for (k in st[j]) {
+           if (st[j][k] > max){
+              max = st[j][k];
+              maxslot = k;
+           }
+       }
+       this.mode[j] = maxslot;
+    }
+    /* now null out whatever is the default */
+    for (k in this.state) {
+       if (k.startsWith('campaign_stage')) {
+           for (j in this.state[k]) {
+               if (this.state[k][j] == this.mode[j]) {
+                   this.state[k][j] = null
+               }
+           } 
+       }
+    }
+}
+
+gui_editor.prototype.undefaultify_state = function() {
+    for (k in this.state) {
+       if (k.startsWith('campaign_stage')) {
+           for (j in k) {
+               if (state[k][j] == null ) {
+                   state[k][j] = this.mode[j]
+               }
+           } 
+       }
+    }
 }
 
 /*
@@ -396,14 +451,15 @@ gui_editor.prototype.draw_state = function () {
    var y = 0;
    var i, prevstage,  istr, b;
    var stagelist, jobtypelist, launchtemplist, k;
-   var db, istr, cb;
+   var db, istr, cb, csb;
    prevstage = ""
 
    stagelist = []
    jobtypelist = []
    launchtemplist = []
 
- 
+   
+
    for (k in this.state) {
        if (k.startsWith('campaign_stage')) {
            stagelist.push(k.slice(15))
@@ -418,13 +474,16 @@ gui_editor.prototype.draw_state = function () {
 
    cb = new label_box("Campaign: " + this.state['campaign']['tag'], this.div, x, y)
    cb.innerHTML += '<button type="button" onclick="gui_editor.save(\'' + this.div.id + '\')">Save</button>';
-   cb.innerHTML += '<button type="button" onclick="gui_editor.makedep(\'' + this.div.id + '\')">+ Connect Stages</button>';
-   cb.innerHTML += '<button type="button" onclick="gui_editor.newstage(\'' + this.div.id + '\')">+ New Stage</button>';
 
    y = y + 2 * labely
 
-   new label_box("Campaign Stages:", this.div, x, y)
-   y = y + labely
+   csb = new label_box("Campaign Stages:", this.div, x, y)
+   csb.innerHTML += '<button type="button" onclick="gui_editor.makedep(\'' + this.div.id + '\')">+ Connect Stages</button>';
+   csb.innerHTML += '<button type="button" onclick="gui_editor.newstage(\'' + this.div.id + '\')">+ New Stage</button>';
+
+   var dfb = new misc_box("Default Values", this.mode, mwm_utils.dict_keys(this.mode), this.div, x + 240, y+10, this)
+
+   y = y + 2 * labely
 
    /* wimpy layout, assumes tsorted list -- build
     * dependency chains left to right, move other
@@ -781,8 +840,8 @@ gui_editor.prototype.new_stage = function () {
 	'completion_type': null,
 	'completion_pct': null
     }
-    x = 300;
-    y = 30;
+    x = 500;
+    y = 150;
     b = new stage_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y, this)
     this.stageboxes.push(b);
 }
@@ -824,7 +883,9 @@ gui_editor.prototype.new_dependency = function() {
 gui_editor.prototype.save_state = function() {
    var wu = new wf_uploader( function(){ this.unbuzy()})
    this.busy()
+   this.undefaultify_state()
    wu.upload(this.state)
+   this.defaultify_state()
 }
 
 gui_editor.prototype.busy = function() {
@@ -1041,3 +1102,4 @@ wf_uploader.prototype.make_poms_call = function(name, args) {
      });
      return res;
 }
+
