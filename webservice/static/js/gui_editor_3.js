@@ -17,7 +17,7 @@ mwm_utils.getSearchParams = function(){
 }
 
 mwm_utils.getBaseURL = function(){
- var p = location.href.replace(/\/static.*/,'');
+ var p = location.href.replace(/\/poms.*/,'/poms');
  return p;
 }
 
@@ -75,7 +75,8 @@ mwm_utils.trim_blanks = function (s) {
  * and add ourselves to our class static instance list
  */
 
-function gui_editor() {
+function gui_editor(toptag) {
+    gui_editor.body = document.getElementById(toptag)
     this.div = document.createElement("DIV");
     this.div.className = 'gui_editor_frame';
     this.div.id = 'gui_editor_' + gui_editor.instance_list.length;
@@ -88,11 +89,13 @@ function gui_editor() {
     this.stageboxes = [];
     this.miscboxes = [];
     this.depboxes = [];
-    document.body.appendChild(this.div);
+    gui_editor.body.appendChild(this.div);
     gui_editor.instance_list.push(this);
 }
 
 /* static vars */
+
+gui_editor.body = document.body
 
 /* aforementioned instance list */
 gui_editor.instance_list = [];
@@ -154,7 +157,7 @@ gui_editor.json_editor_start = function(id) {
     myform.style.right = r.right
     myform.id = fid
     myform.innerHTML += res.join('\n');
-    document.body.appendChild(myform)
+    gui_editor.body.appendChild(myform)
 }
 
 /*
@@ -218,7 +221,7 @@ gui_editor.json_editor_cancel= function(fid) {
      * delete the form
      */
     var e = document.getElementById(fid);
-    document.body.removeChild(e)
+    gui_editor.top.removeChild(e)
 }
 
 
@@ -386,11 +389,12 @@ gui_editor.prototype.defaultify_state = function() {
 }
 
 gui_editor.prototype.undefaultify_state = function() {
+    var k, j;
     for (k in this.state) {
        if (k.startsWith('campaign_stage')) {
-           for (j in k) {
-               if (state[k][j] == null ) {
-                   state[k][j] = this.mode[j]
+           for (j in this.state[k]) {
+               if (this.state[k][j] == null ) {
+                   this.state[k][j] = this.mode[j]
                }
            } 
        }
@@ -403,7 +407,7 @@ gui_editor.prototype.undefaultify_state = function() {
  * XXX this should also take the actual box object and delete 
  * them from the stagelist, etc. in the gui state...
  */
-gui_editor.prototype.delete_key_if_empty = function (k) {
+gui_editor.prototype.delete_key_if_empty = function (k, box) {
     console.log("delete_key_if_empty:" + k )
     if (k[k.length - 2] == '_') {
        /* for a dependency, we get a name with _1 or _2 etc. on the end */
@@ -421,6 +425,17 @@ gui_editor.prototype.delete_key_if_empty = function (k) {
        if (mwm_utils.dict_size(this.state[k]) == 0) {
            delete this.state[k]
        }
+    }
+    /* clean it form our box lists... */
+    var bl, l, i,j ;
+    bl = [this.stageboxes, this.miscboxes, this.depboxes]
+    for (i in bl) {
+        for( j in bl[i] ) {
+            if( bl[i][j] == box) {
+               console.log("cleaning out" , i , j)
+               delete bl[i][j];
+            }
+        }
     }
 }
 
@@ -463,7 +478,8 @@ gui_editor.prototype.ini2json = function (s) {
           res.push('},');
           res.push('"' + l.slice(1,-1) + '": {');
       } else {
-          k_v = l.split('=');
+          k_v = l.split(/ *[=:] */);
+          console.log(k_v)
           k = mwm_utils.trim_blanks(k_v.shift());
           v = mwm_utils.trim_blanks(k_v.join('=')).replace(/"/g,'\\"');
           if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
@@ -494,7 +510,7 @@ gui_editor.prototype.tsort = function (dlist) {
    var n, i, j, k,  t;
    n = dlist.length;
    for(i = 0; i < n; i++) {
-       for(j = 0; j < n; j++ ) {
+       for(j = 0; j < i; j++ ) {
            if (this.checkdep(dlist[j],dlist[i])) {
                t = dlist[i];
                dlist[i] = dlist[j];
@@ -580,7 +596,7 @@ gui_editor.prototype.draw_state = function () {
    csb.innerHTML += '<button type="button" onclick="gui_editor.makedep(\'' + this.div.id + '\')">+ Connect Stages</button>';
    csb.innerHTML += '<button type="button" onclick="gui_editor.newstage(\'' + this.div.id + '\')">+ New Stage</button>';
 
-   var dfb = new misc_box("Default Values", this.mode, mwm_utils.dict_keys(this.mode), this.div, x + 240, y+10, this)
+   var dfb = new misc_box("Default Values", this.mode, mwm_utils.dict_keys(this.mode), this.div, x + 240, y, this)
 
    y = y + 2 * labely
 
@@ -767,9 +783,9 @@ generic_box.prototype.delete_me = function() {
     for( i in this.klist) {
         delete this.dict[this.klist[i]]
     }
-    this.gui.delete_key_if_empty(name)
-    this.gui = null
-    delete this
+    this.gui.delete_key_if_empty(name, this);
+    this.gui = null;
+    delete this;
 }
 
 /*
@@ -839,7 +855,7 @@ stage_box.prototype = new generic_box()
 function dependency_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box = generic_box;
     this.generic_box(name, vdict, klist, top, x, y, gui) /* superclass init */;
-    this.stage1 = mwm_utils.trim_blanks(vdict[klist[0]]);
+    this.stage1 = mwm_utils.trim_blanks(this.dict[this.klist[0]]);
     this.stage2 = mwm_utils.trim_blanks(name.slice(13, -2)); /* has a _1 or _2 on the end AND a 'campaign_stage ' on the front */
     /* this.box.id = 'dep_' + this.stage1 + '_' + this.stage2 */
     this.box.className = 'depbox';
@@ -866,6 +882,7 @@ dependency_box.prototype = new generic_box()
  * dependency to be next to it (even while hidden)
  */
 dependency_box.prototype.set_bounds = function () {
+   console.log("set_bounds('"+ this.stage1+ "' , '" + this.stage2 + "')")
    var e1 = document.getElementById("campaign_stage " + this.stage1);
    var e2 = document.getElementById("campaign_stage " + this.stage2);
    if ( e1 == null) {
@@ -873,7 +890,7 @@ dependency_box.prototype.set_bounds = function () {
       return
    }
    if ( e2 == null) {
-      console.log("could not find campaign_stage: '" + this.stage1 + "'")
+      console.log("could not find campaign_stage: '" + this.stage2 + "'")
       return
    }
    var br = e1.parentNode.getBoundingClientRect();
@@ -899,6 +916,15 @@ dependency_box.prototype.set_bounds = function () {
    w = lrx - ulx
    h = lry - uly
 
+   var circular = (this.stage1 == this.stage2)
+
+   if (circular) {
+       w=30
+       h=70
+       lry += 70
+       lrx += 30
+   }
+
    var uphill = (y2 >= y1)
 
    /* make relative to bounding rectangle */
@@ -913,10 +939,12 @@ dependency_box.prototype.set_bounds = function () {
    this.box.style.height = h.toString() + "px"
    this.box.style.width = w.toString()+"px"
 
-   if(  uphill ) {
-       this.db.className = 'depbox1';
-   } else {
+   if(  circular  ) {
+       this.db.className = 'depbox1 circular';
+   } else if (uphill)  {
        this.db.className = 'depbox1 uphill';
+   } else {
+       this.db.className = 'depbox1 downhill';
    }
    this.db2.style.left = (midx-10).toString()+"px"
    this.db2.style.top = lry.toString()+"px"
@@ -952,8 +980,15 @@ gui_editor.prototype.new_stage = function () {
 }
 
 gui_editor.prototype.new_dependency = function() {
-    var elist, k1, istr, db, s1, s2;
-    elist = this.div.getElementsByClassName('selected')
+    var elist1, elist, k1, istr, db, s1, s2, i;
+    elist1 = this.div.getElementsByClassName('selected')
+    elist = []
+    for (i = 0; i < elist1.length; i++) {
+        elist.push(elist1[i]);
+    }
+  
+    console.log(['selected', elist])
+    
     if (elist.length < 2 || elist.length > 2) {
         window.alert("Need exactly two Campagn Stages selected")
         return

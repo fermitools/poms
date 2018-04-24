@@ -213,9 +213,10 @@ function main() {
    console.log(["args:", args, "base:", base ])
    if (args['campaign'] != undefined) {
        $.ajax( {
-         url: base+'/campaign_deps_ini?tag=' + args['campaign']
+          url: base+'/campaign_deps_ini?tag=' + args['campaign']
        }).done( function(data) {
-          draw_stages( JSON.parse(convert_ini_2_json(data)), "deps")
+          var ge = new gui_editor();
+          ge.set_state(data)
        })
    } else {
        test1()

@@ -349,6 +349,11 @@ class PomsService(object):
                                extra_edit_flag=kwargs.get("extra_edit_flag", None),
                                jump_to_campaign=kwargs.get("jump_to_campaign", None)
                                )
+    @cherrypy.expose
+    @logit.logstartstop
+    def gui_wf_edit(self, *args, **kwargs):
+        template = self.jinja_env.get_template('gui_wf_edit.html')
+        return template.render(help_page="CampaignEditHelp")
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
