@@ -208,10 +208,12 @@ function test1() {
 }
 
 function main() {
-   args = mwm_utils.getSearchParams()
+   var args = mwm_utils.getSearchParams()
+   var base = mwm_utils.getBaseURL()
+   console.log(["args:", args, "base:", base ])
    if (args['campaign'] != undefined) {
        $.ajax( {
-         url: args['_base_']+'/campaign_deps_ini?tag=' + args['campaign']
+         url: base+'/campaign_deps_ini?tag=' + args['campaign']
        }).done( function(data) {
           draw_stages( JSON.parse(convert_ini_2_json(data)), "deps")
        })
