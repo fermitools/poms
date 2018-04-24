@@ -110,10 +110,10 @@ gui_editor.redraw_all_deps = function() {
 
 /* make form visible/invisible, save on invis */
 gui_editor.toggle_form = function(id) {
-    var e = document.getElementById(id)
+    var e = document.getElementById(id);
     if (e && e.style.display == 'block') {
         if (e.parentNode && e.parentNode.gui_box) {
-            e.parentNode.gui_box.save_values()
+            e.parentNode.gui_box.save_values();
         }
         e.style.display = 'none';
     } else if ( e ) {
@@ -122,15 +122,14 @@ gui_editor.toggle_form = function(id) {
 }
 
 gui_editor.json_editor_start = function(id) {
-    var e, r,v, res, i, j, fid, istr;
+    var e, r,v, res, i, j, fid, istr, k;
     e = document.getElementById(id);
     r = e.getBoundingClientRect();
     v = e.value;
-    j = JSON.parse(v)
-    fid = 'edit_form_'+id
-    res = []
-    res.push('<form class="popup_form" style="top:'+r.bottom+';left:'+r.right+';" id="'+fid+'">');
-    res.push('<input type="hidden" id="'+fid+'_count" value="'+j.length.toString()+'">')
+    j = JSON.parse(v);
+    fid = 'edit_form_'+id;
+    res = [];
+    res.push('<input type="hidden" id="'+fid+'_count" value="'+j.length.toString()+'">');
     res.push('<table>');
     res.push('<thead>');
     res.push('<tr>');
@@ -143,14 +142,19 @@ gui_editor.json_editor_start = function(id) {
     for (i in j) {
         k = j[i][0];
         v = j[i][1];
-        gui_editor.json_editor_addrow(res, fid i, k, v)
+        gui_editor.json_editor_addrow(res, fid, i, k, v);
     }
-    res.push('</tbody>')
-    res.push('</table>')
-    res.push('<button type="button" onclick="" >Cancel</button>')
-    res.push('<button type="button" onclick="" >Accept</button>')
-    res.push('</form>')
-    document.body.innerHTML += res.join('\n')
+    res.push('</tbody>');
+    res.push('</table>');
+    res.push('<button type="button" onclick="gui_editor.json_editor_cancel(\''+fid+'\')" >Cancel</button>');
+    res.push('<button type="button" onclick="gui_editor.json_editor_save(\''+fid+'\')" >Accept</button>');
+    var myform =  document.createElement("FORM");
+    myform.className = "popup_form"
+    myform.style.top = r.bottom
+    myform.style.right = r.right
+    myform.id = fid
+    myform.innerHTML += res.join('\n');
+    document.body.appendChild(myform)
 }
 
 /*
@@ -158,53 +162,62 @@ gui_editor.json_editor_start = function(id) {
  * the plus-button callback can share it..
  */
 gui_editor.json_editor_addrow= function(res, fid, i, k, v) {
-        istr = i.toString()
-        res.push('<tr>')
-        res.push('<td><input name="'fid+'k'+istr'"></td>
-        res.push('<td><input name="'fid+'v'+istr'"></td>
-        res.push('<td>'
-        res.push('<button type="button" onclick="gui_editor.json_editor_plus("'+ fid+'",'+istr+')" >+</button>')
-        res.push('<button type="button" onclick="gui_editor.json_editor_minus"'+ fid+'",'+istr+')" >-</button>')
-        res.push('<button type="button" onclick="gui_editor.json_editor_up"'+ fid+'",'+istr+')" >↑</button>')
-        res.push('<button type="button" onclick="gui_editor.json_editor_down"'+ fid+'",'+istr+')" >↓</button>')
-        res.push('</tr>')
+        var istr = i.toString();
+        res.push('<tr>');
+        res.push('<td><input id="'+fid+'k'+istr+'" value="'+k+'"></td>');
+        res.push('<td><input id="'+fid+'v'+istr+'" value="'+v+'"></td>');
+        res.push('<td>');
+        res.push('<button type="button" onclick="gui_editor.json_editor_plus(\''+ fid+'\','+istr+')" >+</button>');
+        res.push('<button type="button" onclick="gui_editor.json_editor_minus(\''+ fid+'\','+istr+')" >-</button>');
+        res.push('<button type="button" onclick="gui_editor.json_editor_up(\''+ fid+'\','+istr+')" >↑</button>');
+        res.push('<button type="button" onclick="gui_editor.json_editor_down(\''+ fid+'\','+istr+')" >↓</button>');
+        res.push('</tr>');
 }
+
 gui_editor.json_editor_plus= function(fid,i) {
   alert('not implemented')
 }
 gui_editor.json_editor_minus= function(fid,i) {
   alert('not implemented')
 }
-gui_editor.json_editor_up function(fid,i) {
+gui_editor.json_editor_up = function(fid,i) {
   alert('not implemented')
 }
-gui_editor.json_editor_down function(fid,i) {
+gui_editor.json_editor_down = function(fid,i) {
   alert('not implemented')
 }
-gui_editor.json_editor_save= function(fid) {
+gui_editor.json_editor_save = function(fid) {
     /*
      * extract values from the form back in to destination input
      */
-    var e,c, ke, ve, res, id, dest;
+    var e,c, ke, ve, res, id, dest, i, istr;
     e = document.getElementById(fid);
-    c = document.getElementById(fid+'_count').value;
+    c = parseInt(document.getElementById(fid+'_count').value);
     res = [];
-    for (i = 1 ; i < c ; i++ ) {
+    console.log(["count", c])
+    for (i = 0 ; i < c ; i++ ) {
         istr = i.toString();
-        ke = documetn.getElementById(fid + 'k' + istr);
-        ve = documetn.getElementById(fid + 'v' + istr);
-        res.push([ ke.value, ve.value ]);
+        ke = document.getElementById(fid + 'k' + istr);
+        ve = document.getElementById(fid + 'v' + istr);
+        if (ke != null && ve != null) {
+            var pair=[ ke.value, ve.value ]
+            res.push(pair);
+            console.log(["adding", pair])
+        } else {
+            console.log(['cannot find:', fid+'k'+istr, fid+'v'+istr]);
+        }
     }
-    id = fid.replace('edit_row_','')
-    dest = document.getElementByID(id)
+    id = fid.replace('edit_form_','')
+    dest = document.getElementById(id)
     dest.value = JSON.stringify(res)
+    console.log(["updating", id, dest, res])
     gui_editor.json_editor_cancel(fid)
 }
 gui_editor.json_editor_cancel= function(fid) {
     /*
      * delete the form
      */
-    e = document.getElementById(fid);
+    var e = document.getElementById(fid);
     document.body.removeChild(e)
 }
 
@@ -701,9 +714,9 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     res.push('<form id="fields_' + name + '" class="popup_form" style="display: none; top: '+ y.toString()+'px; left: ' +x.toString()+'px;">' );
     var val, placeholder;
     res.push('<h3>' + name );
-    if ( name =! 'Default Values') {
+    if ( name != 'Default Values') {
     res.push('<button title="Delete" class="rightbutton" type="button" onclick="gui_editor.delete_me(\''+name+'\')"><span class="deletebutton"></span></button><p>');
-    }
+    } 
     res.push('</h3>');
     for ( i in klist ) {
        k = klist[i]
@@ -715,7 +728,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
            placeholder="";
        }
        res.push('<label>' + k + '</label> <input id="' + this.get_input_tag(k) + '" value="' + this.escape_quotes(val) + '" placeholder="'+placeholder+'">');
-       if (k.startswith('param') ) { 
+       if (k.startsWith('param') ) { 
            res.push('<button type="button" onclick="gui_editor.json_editor_start(\'' + this.get_input_tag(k) + '\')">Edit</button>')
        }
        res.push('<br>')
