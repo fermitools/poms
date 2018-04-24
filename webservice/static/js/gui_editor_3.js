@@ -30,6 +30,7 @@ mwm_utils.dict_size = function(d) {
    }
    return c;
 }
+
 mwm_utils.dict_contents = function(d) {
    var res, i;
    res = [];
@@ -94,7 +95,7 @@ function gui_editor() {
 /* static vars */
 
 /* aforementioned instance list */
-gui_editor.instance_list = []
+gui_editor.instance_list = [];
 
 /* static methods */
 
@@ -103,7 +104,7 @@ gui_editor.instance_list = []
 gui_editor.redraw_all_deps = function() {
    var i;
    for( i in gui_editor.instance_list ) {
-       gui_editor.instance_list[i].redraw_deps()
+       gui_editor.instance_list[i].redraw_deps();
    }
 }
 
@@ -114,12 +115,97 @@ gui_editor.toggle_form = function(id) {
         if (e.parentNode && e.parentNode.gui_box) {
             e.parentNode.gui_box.save_values()
         }
-        e.style.display = 'none'
+        e.style.display = 'none';
     } else if ( e ) {
-        e.style.display = 'block'
-        /* not sure why this is here? should be fine without... */
-        gui_editor.redraw_all_deps()
+        e.style.display = 'block';
     }
+}
+
+gui_editor.json_editor_start = function(id) {
+    var e, r,v, res, i, j, fid, istr;
+    e = document.getElementById(id);
+    r = e.getBoundingClientRect();
+    v = e.value;
+    j = JSON.parse(v)
+    fid = 'edit_form_'+id
+    res = []
+    res.push('<form class="popup_form" style="top:'+r.bottom+';left:'+r.right+';" id="'+fid+'">');
+    res.push('<input type="hidden" id="'+fid+'_count" value="'+j.length.toString()+'">')
+    res.push('<table>');
+    res.push('<thead>');
+    res.push('<tr>');
+    res.push('<td>Key <a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Key" class="helpbutton">?</a></td>');
+    res.push('<td>Value <a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Value" class="helpbutton">?</a></td>');
+    res.push('<td>&nbsp;</td>');
+    res.push('</tr>');
+    res.push('</thead>');
+    res.push('<tbody>');
+    for (i in j) {
+        k = j[i][0];
+        v = j[i][1];
+        gui_editor.json_editor_addrow(res, fid i, k, v)
+    }
+    res.push('</tbody>')
+    res.push('</table>')
+    res.push('<button type="button" onclick="" >Cancel</button>')
+    res.push('<button type="button" onclick="" >Accept</button>')
+    res.push('</form>')
+    document.body.innerHTML += res.join('\n')
+}
+
+/*
+ * add a row to the popup editor.  This is factored out so
+ * the plus-button callback can share it..
+ */
+gui_editor.json_editor_addrow= function(res, fid, i, k, v) {
+        istr = i.toString()
+        res.push('<tr>')
+        res.push('<td><input name="'fid+'k'+istr'"></td>
+        res.push('<td><input name="'fid+'v'+istr'"></td>
+        res.push('<td>'
+        res.push('<button type="button" onclick="gui_editor.json_editor_plus("'+ fid+'",'+istr+')" >+</button>')
+        res.push('<button type="button" onclick="gui_editor.json_editor_minus"'+ fid+'",'+istr+')" >-</button>')
+        res.push('<button type="button" onclick="gui_editor.json_editor_up"'+ fid+'",'+istr+')" >↑</button>')
+        res.push('<button type="button" onclick="gui_editor.json_editor_down"'+ fid+'",'+istr+')" >↓</button>')
+        res.push('</tr>')
+}
+gui_editor.json_editor_plus= function(fid,i) {
+  alert('not implemented')
+}
+gui_editor.json_editor_minus= function(fid,i) {
+  alert('not implemented')
+}
+gui_editor.json_editor_up function(fid,i) {
+  alert('not implemented')
+}
+gui_editor.json_editor_down function(fid,i) {
+  alert('not implemented')
+}
+gui_editor.json_editor_save= function(fid) {
+    /*
+     * extract values from the form back in to destination input
+     */
+    var e,c, ke, ve, res, id, dest;
+    e = document.getElementById(fid);
+    c = document.getElementById(fid+'_count').value;
+    res = [];
+    for (i = 1 ; i < c ; i++ ) {
+        istr = i.toString();
+        ke = documetn.getElementById(fid + 'k' + istr);
+        ve = documetn.getElementById(fid + 'v' + istr);
+        res.push([ ke.value, ve.value ]);
+    }
+    id = fid.replace('edit_row_','')
+    dest = document.getElementByID(id)
+    dest.value = JSON.stringify(res)
+    gui_editor.json_editor_cancel(fid)
+}
+gui_editor.json_editor_cancel= function(fid) {
+    /*
+     * delete the form
+     */
+    e = document.getElementById(fid);
+    document.body.removeChild(e)
 }
 
 
@@ -130,9 +216,9 @@ gui_editor.toggle_box_selected = function(id) {
       return;
    }
    if (x.className == 'box') {
-       x.classList.add('selected')
+       x.classList.add('selected');
    } else {
-       x.classList.remove('selected')
+       x.classList.remove('selected');
    }
 }
 
@@ -175,7 +261,7 @@ gui_editor.drop_handler = function(ev) {
         f.style.left = (ev.x - clickx -r.x + 50).toString() + "px"
         f.style.top = (ev.y - clicky - r.y + 50).toString() + "px"
     }
-    gui_editor.redraw_all_deps()
+    gui_editor.redraw_all_deps();
 }
 
 /*
@@ -556,7 +642,9 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     res.push('<form id="fields_' + name + '" class="popup_form" style="display: none; top: '+ y.toString()+'px; left: ' +x.toString()+'px;">' );
     var val, placeholder;
     res.push('<h3>' + name );
+    if ( name =! 'Default Values') {
     res.push('<button title="Delete" class="rightbutton" type="button" onclick="gui_editor.delete_me(\''+name+'\')"><span class="deletebutton"></span></button><p>');
+    }
     res.push('</h3>');
     for ( i in klist ) {
        k = klist[i]
@@ -567,7 +655,11 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
            val=vdict[k];
            placeholder="";
        }
-       res.push('<label>' + k + '</label> <input id="' + this.get_input_tag(k) + '" value="' + this.escape_quotes(val) + '" placeholder="'+placeholder+'"><br>');
+       res.push('<label>' + k + '</label> <input id="' + this.get_input_tag(k) + '" value="' + this.escape_quotes(val) + '" placeholder="'+placeholder+'">');
+       if (k.startswith('param') ) { 
+           res.push('<button type="button" onclick="gui_editor.json_editor_start(\'' + this.get_input_tag(k) + '\')">Edit</button>')
+       }
+       res.push('<br>')
     }
     res.push('</form>' );
     this.popup_parent.innerHTML = res.join('\n');
@@ -818,15 +910,9 @@ gui_editor.prototype.new_dependency = function() {
 gui_editor.prototype.save_state = function() {
    var wu = new wf_uploader( function(){ this.unbuzy()})
    wu.set_state(this.state)
-   this.busy()
    wu.upload()
 }
 
-gui_editor.prototype.busy = function() {
-}
-
-gui_editor.prototype.unbusy = function() {
-}
 
 /*
  * ===================================================================
@@ -864,7 +950,6 @@ wf_uploader.prototype.upload = function(state) {
         s = cfg_stages[i];
         this.upload_stage(s)
     }
-    /* should we upload the default stage? */
 
     this.tag_em(this.cfg['campaign']['tag'],cfg_stages)
 }
