@@ -1,4 +1,9 @@
 
+/* constructor, not used since everything is static.. */
+
+function json_field_editor() {
+  ;
+}
 json_field_editor.start = function(id) {
     var e, r,v, res, i, j, fid, istr, k;
     e = document.getElementById(id);

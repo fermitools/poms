@@ -147,12 +147,13 @@ gui_editor.toggle_box_selected = function(id) {
  * of the event so we can drop it later
  */
 gui_editor.drag_handler = function(ev) {
+   ev = ev || window.event;
    if (ev.target == null) {
        return;
    }
    var r = ev.target.getBoundingClientRect();
-   var x = ev.x - r.x;
-   var y = ev.y - r.y;
+   var x = ev.clientX - r.x;
+   var y = ev.clientY - r.y;
    ev.dataTransfer.setData("text",ev.target.id + "@" + x.toString() + "," + y.toString())
 }
 
@@ -161,22 +162,30 @@ gui_editor.drag_handler = function(ev) {
  * there's a little geometry arithmetic to leave it where you dropped it
  */
 gui_editor.drop_handler = function(ev) {
+    ev = ev || window.event;
     ev.preventDefault();
+    console.log("in drop handler")
     var idatxy = ev.dataTransfer.getData("text")
     var idatxyl = idatxy.split(/[@,]/g)
     var id = idatxyl[0]
+    console.log("id is: " + id)
+    console.log("idatxy is " + idatxy)
+    console.log("clickx: " + idatxyl[1])
+    console.log("clicky: " + idatxyl[2])
     var clickx = parseInt(idatxyl[1])
     var clicky = parseInt(idatxyl[2])
     var d = document.getElementById(id)
     var f = document.getElementById('fields_'+id)
     var r = d.parentNode.getBoundingClientRect();
     if (d != null) {
-        d.style.left = (ev.x - clickx -r.x).toString() + "px"
-        d.style.top = (ev.y - clicky - r.y).toString() + "px"
+        console.log("found id")
+        d.style.left = (ev.clientX - clickx -r.x).toString() + "px"
+        d.style.top = (ev.clientY - clicky - r.y).toString() + "px"
     }
     if (f != null) {
-        f.style.left = (ev.x - clickx -r.x + 50).toString() + "px"
-        f.style.top = (ev.y - clicky - r.y + 50).toString() + "px"
+        console.log("found form")
+        f.style.left = (ev.clientX - clickx -r.x + 50).toString() + "px"
+        f.style.top = (ev.clientY - clicky - r.y + 50).toString() + "px"
     }
     gui_editor.redraw_all_deps();
 }
@@ -186,6 +195,7 @@ gui_editor.drop_handler = function(ev) {
  * apparently one needs this so dragging works.. cargo cult
  */
 gui_editor.dragover_handler = function(ev) {
+    ev = ev || window.event;
     ev.preventDefault();
 }
 
@@ -344,8 +354,8 @@ gui_editor.prototype.defaultify_state = function() {
     }
     /* pick the most popular answer for each slot */
     for( j in st ) {
-       max = 0;
-       maxslot = 0;
+       max = -1;
+       maxslot = -1;
        for (k in st[j]) {
            if (st[j][k] > max){
               max = st[j][k];
@@ -996,13 +1006,13 @@ gui_editor.prototype.new_dependency = function() {
    console.log(elist)
 
    this.state[k1]['campaign_stage_' + istr] = s1
-   this.state[k1]['file_pattern_' + istr] = '%'
+   this.state[k1]['file_pattern_' + istr] = '%%'
    db = new dependency_box(k1+"_"+istr, this.state[k1], ["campaign_stage_"+istr,"file_pattern_"+istr], this.div, 0, 0, this);
    this.depboxes.push(db)
 }
 
 gui_editor.prototype.save_state = function() {
-   var wu = new wf_uploader( function(){ this.unbuzy()})
+   var wu = new wf_uploader()
    this.undefaultify_state()
    wu.upload(this.state)
    this.defaultify_state()
@@ -1013,7 +1023,7 @@ gui_editor.prototype.save_state = function() {
  * ===================================================================
  * uploader -- translated from the upload_wf code in poms_client...
  */
-function wf_uploader(on_complete) {
+function wf_uploader() {
     var i, s, l, jt;
     this.cfg = null;
 }
@@ -1035,9 +1045,6 @@ wf_uploader.prototype.upload = function(state) {
         cfg_jobtypes[this.cfg['campaign_stage ' +s]['job_type']] = 1
         cfg_launches[this.cfg['campaign_stage ' +s]['launch_template']] = 1
     }
-    for( l in cfg_launches) {
-        this.upload_launch_template(l)
-    }
     for(jt in cfg_jobtypes) {
         this.upload_jobtype(jt)
     }
@@ -1046,11 +1053,11 @@ wf_uploader.prototype.upload = function(state) {
         this.upload_stage(s)
     }
 
-    this.tag_em(this.cfg['campaign']['tag'],cfg_stages)
+    this.tag_em(this.cfg['campaign']['tag'],cfg_stages);
 }
 
 wf_uploader.prototype.tag_em =  function(tag, cfg_stages) {
-    var cids = cfg_stages.map(x => this.cname_id_map[x].toString());
+    var cids = cfg_stages.map(x => (x in this.cname_id_map) ? this.cname_id_map[x].toString():'');
     /* have to re-fetch the list, if we added any campaigns... */
     this.cname_id_map = this.get_campaign_list();
     var args = { 'tag_name': tag, 'campaign_id': cids.join(','), 'experiment': this.cfg['campaign']['experiment'] };

@@ -21,22 +21,30 @@ Campaign Tags:
 <ul>
 {% for t in tl|sort(attribute='tag_name') %}
 <li style="margin-top: 0.5em;" id="li_tag_{{t.tag_id}}"> <span class="ui blue tag label">{{t.tag_name}}</span>
-    <button>
+    <button type="button">
     <i class="trash blue icon poms_tag" id="tag_{{t.tag_id}}" style="border-radius: 5px;"></i>
     </button>
   
-   <button>
-   <a href="{{pomspath}}/campaign_deps?tag={{t.tag_name}}"><i class="sitemap icon"></i>Dependencies</a>, 
+   <a href="{{pomspath}}/campaign_deps?tag={{t.tag_name}}">
+   <button type="button">
+    <i class="sitemap icon"></i>Dependencies 
     </button>
-   <button>
-   <a href="{{pomspath}}/campaign_deps_ini?tag={{t.tag_name}}"><i class="file icon"></i>Workflow_ini file</a>, 
+   </a>
+   <a href="{{pomspath}}/campaign_deps_ini?tag={{t.tag_name}}">
+   <button type="button">
+   <i class="file icon"></i>Workflow_ini file
+   </button>
+   </a>
+   <a href="{{pomspath}}/campaign_time_bars?tag={{t.tag_name}}&tdays=7&tmax={{last_activity}}">
+    <button type="button">
+    <i class="tasks icon"></i>Submissions
     </button>
-    <button>
-   <a href="{{pomspath}}/campaign_time_bars?tag={{t.tag_name}}&tdays=7&tmax={{last_activity}}"><i class="tasks icon"></i>Submissions</a>
+   </a>
+   <a href="{{pomspath}}/gui_wf_edit?campaign={{t.tag_name}}">
+   <button type="button">
+    <i class="pencil icon"></i>Edit Workflow
     </button>
-   <button>
-   <a href="{{pomspath}}/gui_wf_edit?campaign={{t.tag_name}}"><i class="pencil icon"></i>Edit Workflow</a>
-    </button>
+   </a>
    <form style="border:1px solid black; margin: 5px; width: 50%;"  method="GET" action={{pomspath}}/gui_wf_edit?">
       <input type="hidden" name="campaign" value="{{t.tag_name}}">
       <input type="submit" name="clone" value="Clone">
