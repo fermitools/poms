@@ -152,8 +152,8 @@ gui_editor.drag_handler = function(ev) {
        return;
    }
    var r = ev.target.getBoundingClientRect();
-   var x = ev.clientX - r.x;
-   var y = ev.clientY - r.y;
+   var x = ev.clientX - r.left;
+   var y = ev.clientY - r.top;
    ev.dataTransfer.setData("text",ev.target.id + "@" + x.toString() + "," + y.toString())
 }
 
@@ -164,11 +164,9 @@ gui_editor.drag_handler = function(ev) {
 gui_editor.drop_handler = function(ev) {
     ev = ev || window.event;
     ev.preventDefault();
-    console.log("in drop handler")
     var idatxy = ev.dataTransfer.getData("text")
     var idatxyl = idatxy.split(/[@,]/g)
     var id = idatxyl[0]
-    console.log("id is: " + id)
     console.log("idatxy is " + idatxy)
     console.log("clickx: " + idatxyl[1])
     console.log("clicky: " + idatxyl[2])
@@ -179,13 +177,13 @@ gui_editor.drop_handler = function(ev) {
     var r = d.parentNode.getBoundingClientRect();
     if (d != null) {
         console.log("found id")
-        d.style.left = (ev.clientX - clickx -r.x).toString() + "px"
-        d.style.top = (ev.clientY - clicky - r.y).toString() + "px"
+        d.style.left = (ev.clientX - clickx -r.left).toString() + "px"
+        d.style.top = (ev.clientY - clicky - r.top).toString() + "px"
     }
     if (f != null) {
         console.log("found form")
-        f.style.left = (ev.clientX - clickx -r.x + 50).toString() + "px"
-        f.style.top = (ev.clientY - clicky - r.y + 50).toString() + "px"
+        f.style.left = (ev.clientX - clickx -r.left + 50).toString() + "px"
+        f.style.top = (ev.clientY - clicky - r.top + 50).toString() + "px"
     }
     gui_editor.redraw_all_deps();
 }
@@ -281,7 +279,7 @@ gui_editor.prototype.rename_entity = function(before, after) {
      var e, gb;
      this.state[ after ] = this.state[before];
      delete this.state[before];
-     if (before.startsWith('campaign_stage ')) {
+     if (before.indexOf('campaign_stage ')==0) {
          this.fix_dependencies(before.substr(15), after.substr(15));
          if (('dependencies ' + before.substr(15)) in this.state) {
              this.rename_entity('dependencies ' + before.substr(15) ,'dependencies ' + after.substr(15));
@@ -299,7 +297,7 @@ gui_editor.prototype.rename_entity = function(before, after) {
 gui_editor.prototype.fix_dependencies = function(before, after) {
      var k ,j, e; 
      for (k in this.state) {
-         if (k.startsWith('dependencies ')){
+         if (k.indexOf('dependencies ')==0){
              for( j in this.state[k] ) {
                  if (this.state[k][j] == before) {
                      this.state[k][j] = after; 
@@ -340,7 +338,7 @@ gui_editor.prototype.defaultify_state = function() {
     this.mode = {}
     /* count frequency of occurance...*/
     for (k in this.state) {
-        if (k.startsWith('campaign_stage')) {
+        if (k.indexOf('campaign_stage')==0) {
            for (j in this.state[k]) {
                if (!(j in st)) {
                    st[j]={}
@@ -366,7 +364,7 @@ gui_editor.prototype.defaultify_state = function() {
     }
     /* now null out whatever is the default */
     for (k in this.state) {
-       if (k.startsWith('campaign_stage')) {
+       if (k.indexOf('campaign_stage')==0) {
            for (j in this.state[k]) {
                if (this.state[k][j] == this.mode[j]) {
                    this.state[k][j] = null
@@ -379,7 +377,7 @@ gui_editor.prototype.defaultify_state = function() {
 gui_editor.prototype.undefaultify_state = function() {
     var k, j;
     for (k in this.state) {
-       if (k.startsWith('campaign_stage')) {
+       if (k.indexOf('campaign_stage')==0) {
            for (j in this.state[k]) {
                if (this.state[k][j] == null ) {
                    this.state[k][j] = this.mode[j]
@@ -567,11 +565,11 @@ gui_editor.prototype.draw_state = function () {
    
 
    for (k in this.state) {
-       if (k.startsWith('campaign_stage')) {
+       if (k.indexOf('campaign_stage')==0) {
            stagelist.push(k.slice(15))
-       } else if (k.startsWith('job_type')) {
+       } else if (k.indexOf('job_type')==0) {
            jobtypelist.push(k.slice(9))
-       } else if (k.startsWith('launch_template')) {
+       } else if (k.indexOf('launch_template')==0) {
            launchtemplist.push(k.slice(16))
        }
    }
@@ -643,7 +641,7 @@ gui_editor.prototype.draw_state = function () {
     }
 
     for (k in this.state) {
-        if (k.startsWith('dependencies')) {
+        if (k.indexOf('dependencies')==0) {
           for (i = 1; i <= mwm_utils.dict_size(this.state[k])/2; i++) {
               istr = i.toString()
               db = new dependency_box(k+"_"+istr, this.state[k], ["campaign_stage_"+istr,"file_pattern_"+istr], this.div, 0, 0, this);
@@ -735,7 +733,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
            placeholder="";
        }
        res.push('<label>' + k + '</label> <input id="' + this.get_input_tag(k) + '" value="' + this.escape_quotes(val) + '" placeholder="'+placeholder+'">');
-       if (k.startsWith('param') ) { 
+       if (k.indexOf('param')==0 ) { 
            res.push('<button type="button" onclick="json_field_editor.start(\'' + this.get_input_tag(k) + '\')">Edit</button>')
        }
        res.push('<br>')
@@ -889,6 +887,8 @@ dependency_box.prototype.set_bounds = function () {
    var e2r = e2.getBoundingClientRect();
    var x1, x2, y1, y2, midx, midy, ulx, uly, lrx, lry, w, h;
 
+   console.log(['e1r',e1r])
+   console.log(['e2r',e2r])
    /* just go from center of one box to the other */
    x1 = (e1r.left + e1r.right) / 2
    x2 = (e2r.left + e2r.right) / 2
@@ -919,11 +919,11 @@ dependency_box.prototype.set_bounds = function () {
    var uphill = (y2 >= y1)
 
    /* make relative to bounding rectangle */
-   ulx = ulx - br.x
-   uly = uly - br.y
-   lrx = lrx - br.x
-   lry = lry - br.y
-   midx = midx - br.x
+   ulx = ulx - br.left
+   uly = uly - br.top
+   lrx = lrx - br.left
+   lry = lry - br.top
+   midx = midx - br.left
 
    this.box.style.top = uly.toString()+"px"
    this.box.style.left = ulx.toString()+"px"
@@ -1057,7 +1057,7 @@ wf_uploader.prototype.upload = function(state) {
 }
 
 wf_uploader.prototype.tag_em =  function(tag, cfg_stages) {
-    var cids = cfg_stages.map(x => (x in this.cname_id_map) ? this.cname_id_map[x].toString():'');
+    var cids = cfg_stages.map(function(x) {return (x in this.cname_id_map) ? this.cname_id_map[x].toString():''});
     /* have to re-fetch the list, if we added any campaigns... */
     this.cname_id_map = this.get_campaign_list();
     var args = { 'tag_name': tag, 'campaign_id': cids.join(','), 'experiment': this.cfg['campaign']['experiment'] };
@@ -1207,7 +1207,7 @@ wf_uploader.prototype.make_poms_call = function(name, args) {
             var p, resp;
             p = result.responseText.indexOf('>Traceback');
             if (p > 0) {
-                resp = result.responseText.slice(p+6,);
+                resp = result.responseText.slice(p+6);
                 p = resp.indexOf('</label>')
                 if(p < 0) {
                     p = resp.indexOf('</pre>')
