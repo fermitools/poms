@@ -37,6 +37,12 @@ Campaign Tags:
    <button>
    <a href="{{pomspath}}/gui_wf_edit?campaign={{t.tag_name}}"><i class="pencil icon"></i>Edit Workflow</a>
     </button>
+   <form style="border:1px solid black; margin: 5px; width: 50%;"  method="GET" action={{pomspath}}/gui_wf_edit?">
+      <input type="hidden" name="campaign" value="{{t.tag_name}}">
+      <input type="submit" name="clone" value="Clone">
+      replacing: <input name="from">
+      with: <input name="to">
+    </form>
 {% endfor %}
 </ul>
 
