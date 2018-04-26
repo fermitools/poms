@@ -67,7 +67,8 @@ div.box.selected {
    position: relative;
 }
 
-.popup_form { 
+
+.popup_form, .popup_form_json { 
     display: block;
     background-color: white;
     position: absolute;

@@ -21,22 +21,25 @@ json_field_editor.start = function(id) {
     res.push('<thead>');
     res.push('<tr>');
     res.push('<td>Key <a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Key" class="helpbutton">?</a></td>');
+    res.push('<td>&nbsp;<a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Space" class="helpbutton">?</a></td>');
     res.push('<td>Value <a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Value" class="helpbutton">?</a></td>');
     res.push('<td>&nbsp;</td>');
     res.push('</tr>');
     res.push('</thead>');
-    res.push('<tbody>');
+    res.push('<tbody id="'+fid+'_tbody">');
     for (i in j) {
         k = j[i][0];
         v = j[i][1];
+        res.push('<tr>');
         json_field_editor.addrow(res, fid, i, k, v);
+        res.push('</tr>');
     }
     res.push('</tbody>');
     res.push('</table>');
     res.push('<button type="button" onclick="json_field_editor.cancel(\''+fid+'\')" >Cancel</button>');
     res.push('<button type="button" onclick="json_field_editor.save(\''+fid+'\')" >Accept</button>');
     var myform =  document.createElement("FORM");
-    myform.className = "popup_form"
+    myform.className = "popup_form_json "
     myform.style.top = r.bottom
     myform.style.right = r.right
     myform.id = fid
@@ -50,44 +53,106 @@ json_field_editor.start = function(id) {
  */
 json_field_editor.addrow= function(res, fid, i, k, v) {
         var istr = i.toString();
-        res.push('<tr>');
-        res.push('<td><input id="'+fid+'k'+istr+'" value="'+k+'"></td>');
-        res.push('<td><input id="'+fid+'v'+istr+'" value="'+v+'"></td>');
+        if (k[k.length-1] == ' ' || v[0] == ' ') {
+            while( k[k.length-1] == '') {
+               k = k.slice(0,-1)
+            }
+            while( v[0] == '') {
+               v = v.slice(1)
+            }
+            ws = 'checked="true"'
+        } else {
+            ws = ''
+        }
+        res.push('<td><input id="'+fid+'_k_'+istr+'" value="'+k+'"></td>');
+        res.push('<td><input type="checkbox" id="'+fid+'_ws_'+istr+'" '+ws+' value=" "></td>')
+
+        res.push('<td><input id="'+fid+'_v_'+istr+'" value="'+v+'"></td>');
         res.push('<td>');
         res.push('<button type="button" onclick="json_field_editor.plus(\''+ fid+'\','+istr+')" >+</button>');
         res.push('<button type="button" onclick="json_field_editor.minus(\''+ fid+'\','+istr+')" >-</button>');
         res.push('<button type="button" onclick="json_field_editor.up(\''+ fid+'\','+istr+')" >↑</button>');
         res.push('<button type="button" onclick="json_field_editor.down(\''+ fid+'\','+istr+')" >↓</button>');
-        res.push('</tr>');
+}
+json_field_editor.renumber= function(fid,c) {
+    var i;
+    var tb = document.getElementById(fid+'_tbody');
+    for(i = 0; i< c; i++ ) {
+        istr = i.toString()
+        tr = tb.children[i]
+        tr.children[0].children[0].id = fid+"_k_"+istr
+        tr.children[1].children[0].id = fid+"_ws_"+istr
+        tr.children[2].children[0].id = fid+"_v_"+istr
+        tr.children[3].children[0].addEventListener("click",function(){json.field_editor.plus(fid,i)})
+        tr.children[3].children[1].addEventListener("click",function(){json.field_editor.minus(fid,i)})
+        tr.children[3].children[2].addEventListener("click",function(){json.field_editor.up(fid,i)})
+        tr.children[3].children[3].addEventListener("click",function(){json.field_editor.down(fid,i)})
+    }
 }
 
 json_field_editor.plus= function(fid,i) {
-  alert('not implemented')
+    var res = []     
+    var tb = document.getElementById(fid+'_tbody');
+    var tr = document.createElement('TR');
+    var ce = document.getElementById(fid+'_count')
+    console.log("before: count: " + ce.value)
+    var c = parseInt(ce.value);
+    
+    json_field_editor.addrow(res, fid, c, "", "");
+    tr.innerHTML = res.join("\n")
+
+    ce.value = (c + 1).toString();
+    console.log("after: count: " + ce.value)
+
+    tb.insertBefore(tr, tb.children[i])
+    json_field_editor.renumber(fid,c+1);
 }
+
 json_field_editor.minus= function(fid,i) {
-  alert('not implemented')
+    var tb = document.getElementById(fid+'_tbody');
+    tb.removeChild(tb.children[i]);
+    var c = parseInt(document.getElementById(fid+'_count').value);
+    document.getElementById(fid+'_count').value = (c - 1).toString();
+    json_field_editor.renumber(fid,c);
 }
+
 json_field_editor.up = function(fid,i) {
-  alert('not implemented')
+    var tb = document.getElementById(fid+'_tbody');
+    var tr = tb.children[i];
+    var c = parseInt(document.getElementById(fid+'_count').value);
+    tb.removeChild(tr);
+    tb.insertBefore(tr, tb.children[i-1])
+    json_field_editor.renumber(fid,c);
 }
+
 json_field_editor.down = function(fid,i) {
-  alert('not implemented')
+    var tb = document.getElementById(fid+'_tbody');
+    var tr = tb.children[i];
+    var c = parseInt(document.getElementById(fid+'_count').value);
+    tb.removeChild(tr);
+    tb.insertBefore(tr, tb.children[i+1])
+    json_field_editor.renumber(fid,c);
 }
+
 json_field_editor.save = function(fid) {
     /*
      * extract values from the form back in to destination input
      */
-    var e,c, ke, ve, res, id, dest, i, istr;
+    var e, ke, ve, res, id, dest, i, istr;
     e = document.getElementById(fid);
-    c = parseInt(document.getElementById(fid+'_count').value);
+    var ce = document.getElementById(fid+'_count')
+    console.log("before: count: " + ce.value)
+    var c = parseInt(ce.value);
+    
     res = [];
     console.log(["count", c])
     for (i = 0 ; i < c ; i++ ) {
         istr = i.toString();
-        ke = document.getElementById(fid + 'k' + istr);
-        ve = document.getElementById(fid + 'v' + istr);
+        ke = document.getElementById(fid + '_k_' + istr);
+        ws = document.getElementById(fid + '_ws_' + istr);
+        ve = document.getElementById(fid + '_v_' + istr);
         if (ke != null && ve != null) {
-            var pair=[ ke.value, ve.value ]
+            var pair=[ ke.value + ws.value, ve.value ]
             res.push(pair);
             console.log(["adding", pair])
         } else {
