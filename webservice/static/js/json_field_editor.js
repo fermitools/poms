@@ -54,10 +54,10 @@ json_field_editor.start = function(id) {
 json_field_editor.addrow= function(res, fid, i, k, v) {
         var istr = i.toString();
         if (k[k.length-1] == ' ' || v[0] == ' ') {
-            while( k[k.length-1] == '') {
+            while( k[k.length-1] == ' ') {
                k = k.slice(0,-1)
             }
-            while( v[0] == '') {
+            while( v[0] == ' ') {
                v = v.slice(1)
             }
             ws = 'checked="true"'
@@ -152,7 +152,7 @@ json_field_editor.save = function(fid) {
         ws = document.getElementById(fid + '_ws_' + istr);
         ve = document.getElementById(fid + '_v_' + istr);
         if (ke != null && ve != null) {
-            var pair=[ ke.value + ws.value, ve.value ]
+            var pair=[ ke.value + (ws.checked? " " : ""), ve.value ]
             res.push(pair);
             console.log(["adding", pair])
         } else {
