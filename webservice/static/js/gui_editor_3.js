@@ -58,14 +58,14 @@ mwm_utils.trim_blanks = function (s) {
    if (s === undefined) {
       return '';
    }
-   j = s.length-1;
+   j = s.length;
    while(s[i]== ' '){
      i++;
    }
    while(s[j-1] == ' ') {
      j--;
    }
-   return s.slice(i,j+1);
+   return s.slice(i,j);
 }
 
 /* gui editor itself 
@@ -467,10 +467,12 @@ gui_editor.prototype.ini2json = function (s) {
           res.push('},');
           res.push('"' + l.slice(1,-1) + '": {');
       } else {
+          l = mwm_utils.trim_blanks(l)
+          l = l.replace(/%%/g,'%');
           k_v = l.split(/ *[=:] */);
           console.log(k_v)
-          k = mwm_utils.trim_blanks(k_v.shift());
-          v = mwm_utils.trim_blanks(k_v.join('=')).replace(/"/g,'\\"');
+          k = k_v.shift();
+          v = k_v.join('=').replace(/"/g,'\\"');
           if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
               continue;
           }

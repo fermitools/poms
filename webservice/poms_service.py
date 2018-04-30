@@ -356,10 +356,13 @@ class PomsService(object):
         template = self.jinja_env.get_template('gui_wf_edit.html')
         return template.render(help_page="GUI_Workflow_Editor_User_Guide", campaign=kwargs.get('campaign'))
 
+    @cherrypy.expose
+    @logit.logstartstop
     def sample_workflows(self, *args, **kwargs):
-        sl = [x.replace('static/','') for x in glob.glob('static/samples/*')]
+        sl = [x.replace(os.environ['POMS_DIR']+'/webservice/static/','') for x in glob.glob(os.environ['POMS_DIR']+'/webservice/static/samples/*')]
+        logit.log("from %s think we got sl of %s" % ( os.environ['POMS_DIR'] , ",".join(sl)))
         template = self.jinja_env.get_template('sample_workflows.html')
-        return template.render(help_page="Sample Workflows", sl = sl ))
+        return template.render(help_page="Sample Workflows", sl = sl )
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
