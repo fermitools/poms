@@ -1,0 +1,86 @@
+
+[campaign]
+experiment=sample
+tag= sample_mc
+campaign_stage_list= sample_gen sample_g4 sample_detsim sample_reco sample_anatree 
+
+[campaign_stage sample_gen]
+dataset=None
+software_version=v1_0
+vo_role=Production
+cs_split_type=None
+job_type=generic_fife_process
+launch_template=generic_fife_launch
+param_overrides=[["--stage=","gen"]]
+completion_type=complete
+completion_pct=95
+
+[campaign_stage sample_g4]
+dataset=from_parent
+software_version=v1_0
+vo_role=Production
+cs_split_type=None
+job_type=generic_fife_process
+launch_template=generic_fife_launch
+param_overrides=[["--stage=","g4"]]
+completion_type=complete
+completion_pct=95
+
+[campaign_stage sample_detsim]
+dataset=from_parent
+software_version=v1_0
+vo_role=Production
+cs_split_type=None
+job_type=generic_fife_process
+launch_template=generic_fife_launch
+param_overrides=[["--stage=","detsim"]]
+completion_type=complete
+completion_pct=95
+
+[campaign_stage sample_reco]
+dataset=from_parent
+software_version=v1_0
+vo_role=Production
+cs_split_type=None
+job_type=generic_fife_process
+launch_template=generic_fife_launch
+param_overrides=[["--stage=","reco"]]
+completion_type=complete
+completion_pct=95
+
+[campaign_stage sample_anatree]
+dataset=from_parent
+software_version=v1_0
+vo_role=Production
+cs_split_type=None
+job_type=generic_fife_process
+launch_template=generic_fife_launch
+param_overrides=[["--stage=","anatree"]]
+completion_type=complete
+completion_pct=95
+
+[dependencies sample_g4]
+campaign_stage_1 = sample_gen
+file_pattern_1 = gen%%.root
+
+[dependencies sample_detsim]
+campaign_stage_1 = sample_g4
+file_pattern_1 = g4%%.root
+
+[dependencies sample_reco]
+campaign_stage_1 = sample_detsim
+file_pattern_1 = detsim%%.root
+
+[dependencies sample_anatree]
+campaign_stage_1 = sample_reco
+file_pattern_1 = reco%%.root
+
+[launch_template generic_fife_launch]
+host=%{experiment}gpvm01.fnal.gov
+account=%{experiment}pro
+setup=export X509_USER_PROXY=/opt/%{experiment}pro/%{experiment}pro.Production.proxy; setup fife_utils, poms_client, poms_jobsub_wrapper
+
+[job_type generic_fife_process]
+launch_script=fife_launch -c $FIFE_UTILS_DIR/cfg/generic.cfg
+output_file_patterns=%%.root
+

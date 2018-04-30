@@ -258,12 +258,15 @@ gui_editor.new_name = function(before, from, to) {
 
 
 /* rename stages for a workflow clone */
-gui_editor.prototype.clone_rename = function(from, to) {
+gui_editor.prototype.clone_rename = function(from, to, experiment) {
     var sl, i, j, before, after, jstr, newsl; 
     sl = this.state['campaign']['campaign_stage_list'].split(/  */);
     console.log(["clone_rename: stage list", sl])
     this.state['campaign']['tag'] = gui_editor.new_name(this.state['campaign']['tag'],from, to)
     newsl = []
+    if (experiment != undefined) {
+        this.state['campaign']['experiment'] = experiment
+    }
     for (i in sl) {
          before = sl[i];
          console.log("fixing: " + before)
@@ -319,9 +322,9 @@ gui_editor.prototype.fix_dependencies = function(before, after) {
 /*
  * set the gui state from an ini-format dump
  */
-gui_editor.prototype.set_state_clone = function (ini_dump, from, to) {
+gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment) {
     this.state = JSON.parse(this.ini2json(ini_dump));
-    this.clone_rename(from, to);
+    this.clone_rename(from, to, experiment);
     this.defaultify_state();
     this.draw_state()
 }

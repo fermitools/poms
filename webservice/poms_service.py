@@ -2,6 +2,7 @@
 # pylint: disable=line-too-long,invalid-name,missing-docstring
 #
 import os
+import glob
 import pprint
 import socket
 
@@ -353,7 +354,12 @@ class PomsService(object):
     @logit.logstartstop
     def gui_wf_edit(self, *args, **kwargs):
         template = self.jinja_env.get_template('gui_wf_edit.html')
-        return template.render(help_page="CampaignEditHelp")
+        return template.render(help_page="GUI_Workflow_Editor_User_Guide", campaign=kwargs.get('campaign'))
+
+    def sample_workflows(self, *args, **kwargs):
+        sl = [x.replace('static/','') for x in glob.glob('static/samples/*')]
+        template = self.jinja_env.get_template('sample_workflows.html')
+        return template.render(help_page="Sample Workflows", sl = sl ))
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
