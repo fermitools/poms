@@ -665,8 +665,18 @@ class CampaignsPOMS:
         dbhandle.commit()
         return "Task=%d" % t.task_id
 
-    def campaign_deps_ini(self, dbhandle, config_get, tag=None, camp_id=None):
+    def campaign_deps_ini(self, dbhandle, config_get, tag=None, camp_id=None, launch_template=None, campaign_definition=None):
         res = []
+        cl = []
+        jts = set()
+        lts = set()
+
+        if campaign_definition is not None:
+           jts.add(campaign_definition)
+
+        if launch_template is not None:
+           lts.add(launch_template)
+
         if tag is not None:
             cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
                                                                           CampaignsTags.tag_id == Tag.tag_id,
@@ -714,8 +724,6 @@ class CampaignsPOMS:
         else:
             res.append("tag: %s" % tag)
 
-        jts = set()
-        lts = set()
 
         res.append("campaign_stage_list=%s" % " ".join(map(cnames.get,cidl)))
         res.append("")

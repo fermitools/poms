@@ -291,7 +291,7 @@ class PomsService(object):
         return template.render(data=data, help_page="LaunchTemplateEditHelp")
 
     @cherrypy.expose
-    def campaign_deps_ini( self, tag=None, camp_id=None):
+    def campaign_deps_ini( self, tag=None, camp_id=None, launch_template=None, campaign_definition=None):
         res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, cherrypy.config.get, tag, camp_id)
         cherrypy.response.headers['Content-Type'] = 'text/ini'
         return res
