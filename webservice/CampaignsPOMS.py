@@ -665,17 +665,23 @@ class CampaignsPOMS:
         dbhandle.commit()
         return "Task=%d" % t.task_id
 
-    def campaign_deps_ini(self, dbhandle, config_get, tag=None, camp_id=None, launch_template=None, campaign_definition=None):
+    def campaign_deps_ini(self, dbhandle, config_get, session_experiment, tag=None, camp_id=None, launch_template=None, campaign_definition=None):
         res = []
         cl = []
         jts = set()
         lts = set()
 
         if campaign_definition is not None:
-           jts.add(campaign_definition)
+           res.append("# with job_type %s" % campaign_definition)
+           cd = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name == campaign_definition, CampaignDefinition.experiment==session_experiment).first()
+           if cd:
+               jts.add(cd)
 
         if launch_template is not None:
-           lts.add(launch_template)
+           res.append("# with launch_template: %s" % launch_template)
+           lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.name == launch_template, LaunchTemplate.experiment==session_experiment).first()
+           if lt:
+               lts.add(lt)
 
         if tag is not None:
             cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
@@ -716,17 +722,18 @@ class CampaignsPOMS:
                 if cidl.index(dcid) < cidl.index(cid):
                     cidl[cidl.index(dcid)],cidl[cidl.index(cid)] = cidl[cidl.index(cid)],cidl[cidl.index(dcid)]
 
-        res.append("[campaign]")
-        res.append("experiment=%s" % cl[0].experiment)
-        res.append("poms_role=%s" % cl[0].creator_role)
-        if tag == None:
-            res.append("stage_id: %s" % camp_id)
-        else:
-            res.append("tag: %s" % tag)
+        if len(cl):
+            res.append("[campaign]")
+            res.append("experiment=%s" % cl[0].experiment)
+            res.append("poms_role=%s" % cl[0].creator_role)
+            if tag == None:
+                res.append("stage_id: %s" % camp_id)
+            else:
+                res.append("tag: %s" % tag)
 
 
-        res.append("campaign_stage_list=%s" % " ".join(map(cnames.get,cidl)))
-        res.append("")
+            res.append("campaign_stage_list=%s" % " ".join(map(cnames.get,cidl)))
+            res.append("")
 
         for c in cl:
             res.append("[campaign_stage %s]" % c.name)

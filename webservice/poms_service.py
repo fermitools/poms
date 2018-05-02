@@ -292,7 +292,8 @@ class PomsService(object):
 
     @cherrypy.expose
     def campaign_deps_ini( self, tag=None, camp_id=None, launch_template=None, campaign_definition=None):
-        res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, cherrypy.config.get, tag, camp_id)
+        experiment = cherrypy.session.get('experimenter').session_experiment
+        res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, cherrypy.config.get, experiment, tag, camp_id, launch_template, campaign_definition)
         cherrypy.response.headers['Content-Type'] = 'text/ini'
         return res
 
