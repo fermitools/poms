@@ -38,12 +38,21 @@ div.depbox1 {
    bottom: 0;
    left: 0;
    right: 0;
+}
+div.depbox1.uphill {
+   border-right: 0px solid white !important; 
    border-left: 2px solid red;
    border-bottom: 2px solid red;
 }
 
-div.depbox1.uphill {
+div.depbox1.downhill {
    border-left: 0px solid white !important; 
+   border-right: 2px solid red;
+   border-bottom: 2px solid red;
+}
+
+div.depbox1.circular {
+   border-left: 2px solid red;
    border-right: 2px solid red;
    border-bottom: 2px solid red;
 }
@@ -58,7 +67,8 @@ div.box.selected {
    position: relative;
 }
 
-.popup_form { 
+
+.popup_form, .popup_form_json { 
     display: block;
     background-color: white;
     position: absolute;

@@ -2,6 +2,7 @@
 # pylint: disable=line-too-long,invalid-name,missing-docstring
 #
 import os
+import glob
 import pprint
 import socket
 
@@ -349,6 +350,19 @@ class PomsService(object):
                                extra_edit_flag=kwargs.get("extra_edit_flag", None),
                                jump_to_campaign=kwargs.get("jump_to_campaign", None)
                                )
+    @cherrypy.expose
+    @logit.logstartstop
+    def gui_wf_edit(self, *args, **kwargs):
+        template = self.jinja_env.get_template('gui_wf_edit.html')
+        return template.render(help_page="GUI_Workflow_Editor_User_Guide", campaign=kwargs.get('campaign'))
+
+    @cherrypy.expose
+    @logit.logstartstop
+    def sample_workflows(self, *args, **kwargs):
+        sl = [x.replace(os.environ['POMS_DIR']+'/webservice/static/','') for x in glob.glob(os.environ['POMS_DIR']+'/webservice/static/samples/*')]
+        logit.log("from %s think we got sl of %s" % ( os.environ['POMS_DIR'] , ",".join(sl)))
+        template = self.jinja_env.get_template('sample_workflows.html')
+        return template.render(help_page="Sample Workflows", sl = sl )
 
     @cherrypy.expose
     @cherrypy.tools.json_out()

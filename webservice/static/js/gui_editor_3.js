@@ -17,7 +17,7 @@ mwm_utils.getSearchParams = function(){
 }
 
 mwm_utils.getBaseURL = function(){
- var p = location.href.replace(/\/static.*/,'');
+ var p = location.href.replace(/\/poms.*/,'/poms');
  return p;
 }
 
@@ -58,14 +58,14 @@ mwm_utils.trim_blanks = function (s) {
    if (s === undefined) {
       return '';
    }
-   j = s.length-1;
+   j = s.length;
    while(s[i]== ' '){
      i++;
    }
    while(s[j-1] == ' ') {
      j--;
    }
-   return s.slice(i,j+1);
+   return s.slice(i,j);
 }
 
 /* gui editor itself 
@@ -75,7 +75,8 @@ mwm_utils.trim_blanks = function (s) {
  * and add ourselves to our class static instance list
  */
 
-function gui_editor() {
+function gui_editor(toptag) {
+    gui_editor.body = document.getElementById(toptag)
     this.div = document.createElement("DIV");
     this.div.className = 'gui_editor_frame';
     this.div.id = 'gui_editor_' + gui_editor.instance_list.length;
@@ -88,16 +89,20 @@ function gui_editor() {
     this.stageboxes = [];
     this.miscboxes = [];
     this.depboxes = [];
-    document.body.appendChild(this.div);
+    gui_editor.body.appendChild(this.div);
     gui_editor.instance_list.push(this);
 }
 
+
 /* static vars */
+
+gui_editor.body = document.body
 
 /* aforementioned instance list */
 gui_editor.instance_list = [];
 
 /* static methods */
+
 
 /* redraw all dependencies 'cause something moved */
 /*  this is where we actually use the instance list */
@@ -121,107 +126,6 @@ gui_editor.toggle_form = function(id) {
     }
 }
 
-gui_editor.json_editor_start = function(id) {
-    var e, r,v, res, i, j, fid, istr, k;
-    e = document.getElementById(id);
-    r = e.getBoundingClientRect();
-    v = e.value;
-    j = JSON.parse(v);
-    fid = 'edit_form_'+id;
-    res = [];
-    res.push('<input type="hidden" id="'+fid+'_count" value="'+j.length.toString()+'">');
-    res.push('<table>');
-    res.push('<thead>');
-    res.push('<tr>');
-    res.push('<td>Key <a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Key" class="helpbutton">?</a></td>');
-    res.push('<td>Value <a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Value" class="helpbutton">?</a></td>');
-    res.push('<td>&nbsp;</td>');
-    res.push('</tr>');
-    res.push('</thead>');
-    res.push('<tbody>');
-    for (i in j) {
-        k = j[i][0];
-        v = j[i][1];
-        gui_editor.json_editor_addrow(res, fid, i, k, v);
-    }
-    res.push('</tbody>');
-    res.push('</table>');
-    res.push('<button type="button" onclick="gui_editor.json_editor_cancel(\''+fid+'\')" >Cancel</button>');
-    res.push('<button type="button" onclick="gui_editor.json_editor_save(\''+fid+'\')" >Accept</button>');
-    var myform =  document.createElement("FORM");
-    myform.className = "popup_form"
-    myform.style.top = r.bottom
-    myform.style.right = r.right
-    myform.id = fid
-    myform.innerHTML += res.join('\n');
-    document.body.appendChild(myform)
-}
-
-/*
- * add a row to the popup editor.  This is factored out so
- * the plus-button callback can share it..
- */
-gui_editor.json_editor_addrow= function(res, fid, i, k, v) {
-        var istr = i.toString();
-        res.push('<tr>');
-        res.push('<td><input id="'+fid+'k'+istr+'" value="'+k+'"></td>');
-        res.push('<td><input id="'+fid+'v'+istr+'" value="'+v+'"></td>');
-        res.push('<td>');
-        res.push('<button type="button" onclick="gui_editor.json_editor_plus(\''+ fid+'\','+istr+')" >+</button>');
-        res.push('<button type="button" onclick="gui_editor.json_editor_minus(\''+ fid+'\','+istr+')" >-</button>');
-        res.push('<button type="button" onclick="gui_editor.json_editor_up(\''+ fid+'\','+istr+')" >↑</button>');
-        res.push('<button type="button" onclick="gui_editor.json_editor_down(\''+ fid+'\','+istr+')" >↓</button>');
-        res.push('</tr>');
-}
-
-gui_editor.json_editor_plus= function(fid,i) {
-  alert('not implemented')
-}
-gui_editor.json_editor_minus= function(fid,i) {
-  alert('not implemented')
-}
-gui_editor.json_editor_up = function(fid,i) {
-  alert('not implemented')
-}
-gui_editor.json_editor_down = function(fid,i) {
-  alert('not implemented')
-}
-gui_editor.json_editor_save = function(fid) {
-    /*
-     * extract values from the form back in to destination input
-     */
-    var e,c, ke, ve, res, id, dest, i, istr;
-    e = document.getElementById(fid);
-    c = parseInt(document.getElementById(fid+'_count').value);
-    res = [];
-    console.log(["count", c])
-    for (i = 0 ; i < c ; i++ ) {
-        istr = i.toString();
-        ke = document.getElementById(fid + 'k' + istr);
-        ve = document.getElementById(fid + 'v' + istr);
-        if (ke != null && ve != null) {
-            var pair=[ ke.value, ve.value ]
-            res.push(pair);
-            console.log(["adding", pair])
-        } else {
-            console.log(['cannot find:', fid+'k'+istr, fid+'v'+istr]);
-        }
-    }
-    id = fid.replace('edit_form_','')
-    dest = document.getElementById(id)
-    dest.value = JSON.stringify(res)
-    console.log(["updating", id, dest, res])
-    gui_editor.json_editor_cancel(fid)
-}
-gui_editor.json_editor_cancel= function(fid) {
-    /*
-     * delete the form
-     */
-    var e = document.getElementById(fid);
-    document.body.removeChild(e)
-}
-
-
 /* make box selected... just use a CSS class */
 gui_editor.toggle_box_selected = function(id) {
    var x = document.getElementById(id)
@@ -243,12 +147,13 @@ gui_editor.toggle_box_selected = function(id) {
  * of the event so we can drop it later
  */
 gui_editor.drag_handler = function(ev) {
+   ev = ev || window.event;
    if (ev.target == null) {
        return;
    }
    var r = ev.target.getBoundingClientRect();
-   var x = ev.x - r.x;
-   var y = ev.y - r.y;
+   var x = ev.clientX - r.left;
+   var y = ev.clientY - r.top;
    ev.dataTransfer.setData("text",ev.target.id + "@" + x.toString() + "," + y.toString())
 }
 
@@ -257,22 +162,28 @@ gui_editor.drag_handler = function(ev) {
  * there's a little geometry arithmetic to leave it where you dropped it
  */
 gui_editor.drop_handler = function(ev) {
+    ev = ev || window.event;
     ev.preventDefault();
     var idatxy = ev.dataTransfer.getData("text")
     var idatxyl = idatxy.split(/[@,]/g)
     var id = idatxyl[0]
+    console.log("idatxy is " + idatxy)
+    console.log("clickx: " + idatxyl[1])
+    console.log("clicky: " + idatxyl[2])
     var clickx = parseInt(idatxyl[1])
     var clicky = parseInt(idatxyl[2])
     var d = document.getElementById(id)
     var f = document.getElementById('fields_'+id)
     var r = d.parentNode.getBoundingClientRect();
     if (d != null) {
-        d.style.left = (ev.x - clickx -r.x).toString() + "px"
-        d.style.top = (ev.y - clicky - r.y).toString() + "px"
+        console.log("found id")
+        d.style.left = (ev.clientX - clickx -r.left).toString() + "px"
+        d.style.top = (ev.clientY - clicky - r.top).toString() + "px"
     }
     if (f != null) {
-        f.style.left = (ev.x - clickx -r.x + 50).toString() + "px"
-        f.style.top = (ev.y - clicky - r.y + 50).toString() + "px"
+        console.log("found form")
+        f.style.left = (ev.clientX - clickx -r.left + 50).toString() + "px"
+        f.style.top = (ev.clientY - clicky - r.top + 50).toString() + "px"
     }
     gui_editor.redraw_all_deps();
 }
@@ -282,6 +193,7 @@ gui_editor.drop_handler = function(ev) {
  * apparently one needs this so dragging works.. cargo cult
  */
 gui_editor.dragover_handler = function(ev) {
+    ev = ev || window.event;
     ev.preventDefault();
 }
 
@@ -332,11 +244,96 @@ gui_editor.save = function(id) {
    e.gui_box.save_state()
 }
 
+/* pick names workflow clone (below)  */
+gui_editor.new_name = function(before, from, to) {
+    var after;
+    after = before.replace(from, to)
+    if (after == before) {
+        after = 'clone_of_'+before
+    }
+    return after
+}
+
 /* instance methods */
+
+
+/* rename stages for a workflow clone */
+gui_editor.prototype.clone_rename = function(from, to, experiment, role) {
+    console.log(["clone_rename:",from, to, experiment, role ])
+    var sl, i, j, before, after, jstr, newsl; 
+    sl = this.state['campaign']['campaign_stage_list'].split(/  */);
+    console.log(["clone_rename: stage list", sl])
+    this.state['campaign']['tag'] = gui_editor.new_name(this.state['campaign']['tag'],from, to)
+    newsl = []
+    if (experiment != undefined) {
+        this.state['campaign']['experiment'] = experiment
+    }
+    if (role != undefined) {
+        this.state['campaign']['poms_role'] = role
+    }
+    console.log(["clone_rename: campaign fields", this.state['campaign']])
+    for (i in sl) {
+         before = sl[i];
+         console.log("fixing: " + before)
+         after = gui_editor.new_name(before, from ,to);
+         this.rename_entity('campaign_stage ' + before ,'campaign_stage ' + after);
+         newsl.push(after)
+    }
+    this.state['campaign']['campaign_stage_list'] = newsl.join(' ')
+}
+
+
+gui_editor.prototype.rename_entity = function(before, after) {
+     var e, gb;
+     this.state[ after ] = this.state[before];
+     delete this.state[before];
+     if (before.indexOf('campaign_stage ')==0) {
+         this.fix_dependencies(before.substr(15), after.substr(15));
+         if (('dependencies ' + before.substr(15)) in this.state) {
+             this.rename_entity('dependencies ' + before.substr(15) ,'dependencies ' + after.substr(15));
+         }
+     }
+     e = document.getElementById(before);
+     if ( e ) {
+         gb = e.gui_box
+         e.innerHTML = e.innerHTML.replace(before,after)
+         e.id = after;
+         e.gui_box = gb
+     }
+}
+
+gui_editor.prototype.fix_dependencies = function(before, after) {
+     var k ,j, e; 
+     for (k in this.state) {
+         if (k.indexOf('dependencies ')==0){
+             for( j in this.state[k] ) {
+                 if (this.state[k][j] == before) {
+                     this.state[k][j] = after; 
+                 }
+             }
+             e = document.getElementById(k);
+             if (e && e.gui_box) {
+                 if (e.gui_box.stage1 == before) {
+                     e.gui_box.stage2 = after;
+                 }
+                 if (e.gui_box.stage2 == before) {
+                     e.gui_box.stage2 = after;
+                 }
+             }
+         }
+    }
+}
 
 /*
  * set the gui state from an ini-format dump
  */
+gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment, role) {
+    this.state = JSON.parse(this.ini2json(ini_dump));
+    this.clone_rename(from, to, experiment, role);
+    this.defaultify_state();
+    this.draw_state()
+}
+
 gui_editor.prototype.set_state = function (ini_dump) {
     this.state = JSON.parse(this.ini2json(ini_dump));
     this.defaultify_state();
@@ -349,7 +346,7 @@ gui_editor.prototype.defaultify_state = function() {
     this.mode = {}
     /* count frequency of occurance...*/
     for (k in this.state) {
-        if (k.startsWith('campaign_stage')) {
+        if (k.indexOf('campaign_stage')==0) {
            for (j in this.state[k]) {
                if (!(j in st)) {
                    st[j]={}
@@ -363,8 +360,8 @@ gui_editor.prototype.defaultify_state = function() {
     }
     /* pick the most popular answer for each slot */
     for( j in st ) {
-       max = 0;
-       maxslot = 0;
+       max = -1;
+       maxslot = -1;
        for (k in st[j]) {
            if (st[j][k] > max){
               max = st[j][k];
@@ -375,7 +372,7 @@ gui_editor.prototype.defaultify_state = function() {
     }
     /* now null out whatever is the default */
     for (k in this.state) {
-       if (k.startsWith('campaign_stage')) {
+       if (k.indexOf('campaign_stage')==0) {
            for (j in this.state[k]) {
                if (this.state[k][j] == this.mode[j]) {
                    this.state[k][j] = null
@@ -386,11 +383,12 @@ gui_editor.prototype.defaultify_state = function() {
 }
 
 gui_editor.prototype.undefaultify_state = function() {
+    var k, j;
     for (k in this.state) {
-       if (k.startsWith('campaign_stage')) {
-           for (j in k) {
-               if (state[k][j] == null ) {
-                   state[k][j] = this.mode[j]
+       if (k.indexOf('campaign_stage')==0) {
+           for (j in this.state[k]) {
+               if (this.state[k][j] == null ) {
+                   this.state[k][j] = this.mode[j]
                }
            } 
        }
@@ -403,7 +401,7 @@ gui_editor.prototype.undefaultify_state = function() {
  * XXX this should also take the actual box object and delete 
  * them from the stagelist, etc. in the gui state...
  */
-gui_editor.prototype.delete_key_if_empty = function (k) {
+gui_editor.prototype.delete_key_if_empty = function (k, box) {
     console.log("delete_key_if_empty:" + k )
     if (k[k.length - 2] == '_') {
        /* for a dependency, we get a name with _1 or _2 etc. on the end */
@@ -421,6 +419,17 @@ gui_editor.prototype.delete_key_if_empty = function (k) {
        if (mwm_utils.dict_size(this.state[k]) == 0) {
            delete this.state[k]
        }
+    }
+    /* clean it form our box lists... */
+    var bl, l, i,j ;
+    bl = [this.stageboxes, this.miscboxes, this.depboxes]
+    for (i in bl) {
+        for( j in bl[i] ) {
+            if( bl[i][j] == box) {
+               console.log("cleaning out" , i , j)
+               delete bl[i][j];
+            }
+        }
     }
 }
 
@@ -463,9 +472,12 @@ gui_editor.prototype.ini2json = function (s) {
           res.push('},');
           res.push('"' + l.slice(1,-1) + '": {');
       } else {
-          k_v = l.split('=');
-          k = mwm_utils.trim_blanks(k_v.shift());
-          v = mwm_utils.trim_blanks(k_v.join('=')).replace(/"/g,'\\"');
+          l = mwm_utils.trim_blanks(l)
+          l = l.replace(/%%/g,'%');
+          k_v = l.split(/ *[=:] */);
+          console.log(k_v)
+          k = k_v.shift();
+          v = k_v.join('=').replace(/"/g,'\\"');
           if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
               continue;
           }
@@ -494,7 +506,7 @@ gui_editor.prototype.tsort = function (dlist) {
    var n, i, j, k,  t;
    n = dlist.length;
    for(i = 0; i < n; i++) {
-       for(j = 0; j < n; j++ ) {
+       for(j = 0; j < i; j++ ) {
            if (this.checkdep(dlist[j],dlist[i])) {
                t = dlist[i];
                dlist[i] = dlist[j];
@@ -520,6 +532,9 @@ gui_editor.prototype.checkdep = function(s1, s2) {
    }
    var deps = this.state[k];
 
+   if( ! deps) {
+       return 0;
+   }
    if( !('campaign_stage_1' in deps)) {
        return 0;
    }
@@ -560,11 +575,11 @@ gui_editor.prototype.draw_state = function () {
    
 
    for (k in this.state) {
-       if (k.startsWith('campaign_stage')) {
+       if (k.indexOf('campaign_stage')==0) {
            stagelist.push(k.slice(15))
-       } else if (k.startsWith('job_type')) {
+       } else if (k.indexOf('job_type')==0) {
            jobtypelist.push(k.slice(9))
-       } else if (k.startsWith('launch_template')) {
+       } else if (k.indexOf('launch_template')==0) {
            launchtemplist.push(k.slice(16))
        }
    }
@@ -572,7 +587,7 @@ gui_editor.prototype.draw_state = function () {
    this.tsort(stagelist)
 
    cb = new label_box("Campaign: " + this.state['campaign']['tag'], this.div, x, y)
-   cb.innerHTML += '<button type="button" onclick="gui_editor.save(\'' + this.div.id + '\')">Save</button>';
+   cb.innerHTML += '<button type="button" onclick="gui_editor.save(\'' + this.div.id + '\')">Save</button> <span id="savebusy"></span>';
 
    y = y + 2 * labely
 
@@ -580,7 +595,7 @@ gui_editor.prototype.draw_state = function () {
    csb.innerHTML += '<button type="button" onclick="gui_editor.makedep(\'' + this.div.id + '\')">+ Connect Stages</button>';
    csb.innerHTML += '<button type="button" onclick="gui_editor.newstage(\'' + this.div.id + '\')">+ New Stage</button>';
 
-   var dfb = new misc_box("Default Values", this.mode, mwm_utils.dict_keys(this.mode), this.div, x + 240, y+10, this)
+   var dfb = new misc_box("Default Values", this.mode, mwm_utils.dict_keys(this.mode), this.div, x + 240, y, this)
 
    y = y + 2 * labely
 
@@ -636,7 +651,7 @@ gui_editor.prototype.draw_state = function () {
     }
 
     for (k in this.state) {
-        if (k.startsWith('dependencies')) {
+        if (k.indexOf('dependencies')==0) {
           for (i = 1; i <= mwm_utils.dict_size(this.state[k])/2; i++) {
               istr = i.toString()
               db = new dependency_box(k+"_"+istr, this.state[k], ["campaign_stage_"+istr,"file_pattern_"+istr], this.div, 0, 0, this);
@@ -728,8 +743,8 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
            placeholder="";
        }
        res.push('<label>' + k + '</label> <input id="' + this.get_input_tag(k) + '" value="' + this.escape_quotes(val) + '" placeholder="'+placeholder+'">');
-       if (k.startsWith('param') ) { 
-           res.push('<button type="button" onclick="gui_editor.json_editor_start(\'' + this.get_input_tag(k) + '\')">Edit</button>')
+       if (k.indexOf('param')==0 ) { 
+           res.push('<button type="button" onclick="json_field_editor.start(\'' + this.get_input_tag(k) + '\')">Edit</button>')
        }
        res.push('<br>')
     }
@@ -767,9 +782,9 @@ generic_box.prototype.delete_me = function() {
     for( i in this.klist) {
         delete this.dict[this.klist[i]]
     }
-    this.gui.delete_key_if_empty(name)
-    this.gui = null
-    delete this
+    this.gui.delete_key_if_empty(name, this);
+    this.gui = null;
+    delete this;
 }
 
 /*
@@ -839,7 +854,7 @@ stage_box.prototype = new generic_box()
 function dependency_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box = generic_box;
     this.generic_box(name, vdict, klist, top, x, y, gui) /* superclass init */;
-    this.stage1 = mwm_utils.trim_blanks(vdict[klist[0]]);
+    this.stage1 = mwm_utils.trim_blanks(this.dict[this.klist[0]]);
     this.stage2 = mwm_utils.trim_blanks(name.slice(13, -2)); /* has a _1 or _2 on the end AND a 'campaign_stage ' on the front */
     /* this.box.id = 'dep_' + this.stage1 + '_' + this.stage2 */
     this.box.className = 'depbox';
@@ -866,6 +881,7 @@ dependency_box.prototype = new generic_box()
  * dependency to be next to it (even while hidden)
  */
 dependency_box.prototype.set_bounds = function () {
+   console.log("set_bounds('"+ this.stage1+ "' , '" + this.stage2 + "')")
    var e1 = document.getElementById("campaign_stage " + this.stage1);
    var e2 = document.getElementById("campaign_stage " + this.stage2);
    if ( e1 == null) {
@@ -873,7 +889,7 @@ dependency_box.prototype.set_bounds = function () {
       return
    }
    if ( e2 == null) {
-      console.log("could not find campaign_stage: '" + this.stage1 + "'")
+      console.log("could not find campaign_stage: '" + this.stage2 + "'")
       return
    }
    var br = e1.parentNode.getBoundingClientRect();
@@ -881,6 +897,8 @@ dependency_box.prototype.set_bounds = function () {
    var e2r = e2.getBoundingClientRect();
    var x1, x2, y1, y2, midx, midy, ulx, uly, lrx, lry, w, h;
 
+   console.log(['e1r',e1r])
+   console.log(['e2r',e2r])
    /* just go from center of one box to the other */
    x1 = (e1r.left + e1r.right) / 2
    x2 = (e2r.left + e2r.right) / 2
@@ -899,24 +917,35 @@ dependency_box.prototype.set_bounds = function () {
    w = lrx - ulx
    h = lry - uly
 
+   var circular = (this.stage1 == this.stage2)
+
+   if (circular) {
+       w=30
+       h=70
+       lry += 70
+       lrx += 30
+   }
+
    var uphill = (y2 >= y1)
 
    /* make relative to bounding rectangle */
-   ulx = ulx - br.x
-   uly = uly - br.y
-   lrx = lrx - br.x
-   lry = lry - br.y
-   midx = midx - br.x
+   ulx = ulx - br.left
+   uly = uly - br.top
+   lrx = lrx - br.left
+   lry = lry - br.top
+   midx = midx - br.left
 
    this.box.style.top = uly.toString()+"px"
    this.box.style.left = ulx.toString()+"px"
    this.box.style.height = h.toString() + "px"
    this.box.style.width = w.toString()+"px"
 
-   if(  uphill ) {
-       this.db.className = 'depbox1';
-   } else {
+   if(  circular  ) {
+       this.db.className = 'depbox1 circular';
+   } else if (uphill)  {
        this.db.className = 'depbox1 uphill';
+   } else {
+       this.db.className = 'depbox1 downhill';
    }
    this.db2.style.left = (midx-10).toString()+"px"
    this.db2.style.top = lry.toString()+"px"
@@ -952,8 +981,15 @@ gui_editor.prototype.new_stage = function () {
 }
 
 gui_editor.prototype.new_dependency = function() {
-    var elist, k1, istr, db, s1, s2;
-    elist = this.div.getElementsByClassName('selected')
+    var elist1, elist, k1, istr, db, s1, s2, i;
+    elist1 = this.div.getElementsByClassName('selected')
+    elist = []
+    for (i = 0; i < elist1.length; i++) {
+        elist.push(elist1[i]);
+    }
+  
+    console.log(['selected', elist])
+    
     if (elist.length < 2 || elist.length > 2) {
         window.alert("Need exactly two Campagn Stages selected")
         return
@@ -980,16 +1016,22 @@ gui_editor.prototype.new_dependency = function() {
    console.log(elist)
 
    this.state[k1]['campaign_stage_' + istr] = s1
-   this.state[k1]['file_pattern_' + istr] = '%'
+   this.state[k1]['file_pattern_' + istr] = '%%'
    db = new dependency_box(k1+"_"+istr, this.state[k1], ["campaign_stage_"+istr,"file_pattern_"+istr], this.div, 0, 0, this);
    this.depboxes.push(db)
 }
 
 gui_editor.prototype.save_state = function() {
-   var wu = new wf_uploader( function(){ this.unbuzy()})
-   this.undefaultify_state()
-   wu.upload(this.state)
-   this.defaultify_state()
+   var sb = document.getElementById("savebusy")
+   sb.innerHTML="Saving..."
+   var x = this
+   window.setTimeout(function() {
+       var wu = new wf_uploader()
+       x.undefaultify_state()
+       wu.upload(x.state)
+       x.defaultify_state()
+       sb.innerHTML="Done."
+   },5);
 }
 
 
@@ -997,7 +1039,7 @@ gui_editor.prototype.save_state = function() {
  * ===================================================================
  * uploader -- translated from the upload_wf code in poms_client...
  */
-function wf_uploader(on_complete) {
+function wf_uploader() {
     var i, s, l, jt;
     this.cfg = null;
 }
@@ -1019,7 +1061,7 @@ wf_uploader.prototype.upload = function(state) {
         cfg_jobtypes[this.cfg['campaign_stage ' +s]['job_type']] = 1
         cfg_launches[this.cfg['campaign_stage ' +s]['launch_template']] = 1
     }
-    for( l in cfg_launches) {
+    for(l in cfg_launches) {
         this.upload_launch_template(l)
     }
     for(jt in cfg_jobtypes) {
@@ -1030,13 +1072,14 @@ wf_uploader.prototype.upload = function(state) {
         this.upload_stage(s)
     }
 
-    this.tag_em(this.cfg['campaign']['tag'],cfg_stages)
+    this.tag_em(this.cfg['campaign']['tag'],cfg_stages);
 }
 
 wf_uploader.prototype.tag_em =  function(tag, cfg_stages) {
-    var cids = cfg_stages.map(x => this.cname_id_map[x].toString());
-    /* have to re-fetch the list, if we added any campaigns... */
     this.cname_id_map = this.get_campaign_list();
+    var cim = this.cname_id_map
+    var cids = cfg_stages.map(function(x) {return (x in cim) ? cim[x].toString():''});
+    /* have to re-fetch the list, if we added any campaigns... */
     var args = { 'tag_name': tag, 'campaign_id': cids.join(','), 'experiment': this.cfg['campaign']['experiment'] };
     this.make_poms_call('link_tags',args);
 }
@@ -1184,7 +1227,7 @@ wf_uploader.prototype.make_poms_call = function(name, args) {
             var p, resp;
             p = result.responseText.indexOf('>Traceback');
             if (p > 0) {
-                resp = result.responseText.slice(p+6,);
+                resp = result.responseText.slice(p+6);
                 p = resp.indexOf('</label>')
                 if(p < 0) {
                     p = resp.indexOf('</pre>')
