@@ -587,7 +587,7 @@ gui_editor.prototype.draw_state = function () {
    this.tsort(stagelist)
 
    cb = new label_box("Campaign: " + this.state['campaign']['tag'], this.div, x, y)
-   cb.innerHTML += '<button type="button" onclick="gui_editor.save(\'' + this.div.id + '\')">Save</button>';
+   cb.innerHTML += '<button type="button" onclick="gui_editor.save(\'' + this.div.id + '\')">Save</button> <span id="savebusy"></span>';
 
    y = y + 2 * labely
 
@@ -1022,10 +1022,16 @@ gui_editor.prototype.new_dependency = function() {
 }
 
 gui_editor.prototype.save_state = function() {
-   var wu = new wf_uploader()
-   this.undefaultify_state()
-   wu.upload(this.state)
-   this.defaultify_state()
+   var sb = document.getElementById("savebusy")
+   sb.innerHTML="Saving..."
+   var x = this
+   window.setTimeout(function() {
+       var wu = new wf_uploader()
+       x.undefaultify_state()
+       wu.upload(x.state)
+       x.defaultify_state()
+       sb.innerHTML="Done."
+   },5);
 }
 
 
