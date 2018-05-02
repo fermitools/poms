@@ -472,9 +472,24 @@ function create_row(index, key, value) {
 var ep_parms = [];
 
 $("#edit_param_modal_btn").click(function() {
+  setup_modal("#ae_param_overrides");
+});
+
+$("#edit_param_test_modal_btn").click(function() {
+  setup_modal("#ae_param_overrides");
+});
+
+/*
+ * add this when we add the test params
+$("#edit_param_test_modal_btn").click(function() {
+  setup_modal("#ae_param_overrides_test");
+});
+*/
+
+function setup_modal(fieldid) {
   $("#ep_tbody").empty("");
   ep_parms = [];
-  var parms_str = $("#ae_param_overrides").val();
+  var parms_str = $(fieldid).val();
   if (parms_str != "") {
     ep_parms = JSON.parse(parms_str);
   }
@@ -484,8 +499,8 @@ $("#edit_param_modal_btn").click(function() {
     onApprove : function(){
       var data = ep_build_parms_string();
       if (data[0] == "") {
-        $("#ae_param_overrides_text").val(data[1]);
-        $("#ae_param_overrides").val(data[1]);
+        $(fieldid+"_text").val(data[1]);
+        $(fieldid).val(data[1]);
         $("#campaign_add_edit_modal").modal('show');
       } else {
           return false;
@@ -495,7 +510,7 @@ $("#edit_param_modal_btn").click(function() {
       $("#campaign_add_edit_modal").modal('show');
     },
     }).modal('show');
-});
+}
 
 $("input[name=state]").click(function() {
   // Trigger a form submit when an experiment is selected
@@ -684,6 +699,10 @@ function edit_campaign(index,clone) {
   $("#ae_split_type").val( $("#c_split_type_"+index).text() );
   $("#ae_param_overrides_text").val( $("#c_param_overrides_"+index).text() );
   $("#ae_param_overrides").val( $("#c_param_overrides_"+index).text() );
+/*
+  $("#ae_param_overrides_test_text").val( $("#c_param_overrides_test"+index).text() );
+  $("#ae_param_overrides_test").val( $("#c_param_overrides_test_"+index).text() );
+*/
   $("#ae_campaign_definition_id").val( $("#c_campaign_definition_id_"+index).text() );
   $("#ae_launch_id").val( $("#c_launch_id_"+index).text() );
   // Trigger the change function which will load associated fields

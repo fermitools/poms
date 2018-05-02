@@ -258,7 +258,8 @@ gui_editor.new_name = function(before, from, to) {
 
 
 /* rename stages for a workflow clone */
-gui_editor.prototype.clone_rename = function(from, to, experiment) {
+gui_editor.prototype.clone_rename = function(from, to, experiment, role) {
+    console.log(["clone_rename:",from, to, experiment, role ])
     var sl, i, j, before, after, jstr, newsl; 
     sl = this.state['campaign']['campaign_stage_list'].split(/  */);
     console.log(["clone_rename: stage list", sl])
@@ -267,6 +268,10 @@ gui_editor.prototype.clone_rename = function(from, to, experiment) {
     if (experiment != undefined) {
         this.state['campaign']['experiment'] = experiment
     }
+    if (role != undefined) {
+        this.state['campaign']['poms_role'] = role
+    }
+    console.log(["clone_rename: campaign fields", this.state['campaign']])
     for (i in sl) {
          before = sl[i];
          console.log("fixing: " + before)
@@ -322,9 +327,9 @@ gui_editor.prototype.fix_dependencies = function(before, after) {
 /*
  * set the gui state from an ini-format dump
  */
-gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment) {
+gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment, role) {
     this.state = JSON.parse(this.ini2json(ini_dump));
-    this.clone_rename(from, to, experiment);
+    this.clone_rename(from, to, experiment, role);
     this.defaultify_state();
     this.draw_state()
 }
@@ -1050,6 +1055,9 @@ wf_uploader.prototype.upload = function(state) {
         cfg_jobtypes[this.cfg['campaign_stage ' +s]['job_type']] = 1
         cfg_launches[this.cfg['campaign_stage ' +s]['launch_template']] = 1
     }
+    for(l in cfg_launches) {
+        this.upload_launch_template(l)
+    }
     for(jt in cfg_jobtypes) {
         this.upload_jobtype(jt)
     }
@@ -1062,9 +1070,10 @@ wf_uploader.prototype.upload = function(state) {
 }
 
 wf_uploader.prototype.tag_em =  function(tag, cfg_stages) {
-    var cids = cfg_stages.map(function(x) {return (x in this.cname_id_map) ? this.cname_id_map[x].toString():''});
-    /* have to re-fetch the list, if we added any campaigns... */
     this.cname_id_map = this.get_campaign_list();
+    var cim = this.cname_id_map
+    var cids = cfg_stages.map(function(x) {return (x in cim) ? cim[x].toString():''});
+    /* have to re-fetch the list, if we added any campaigns... */
     var args = { 'tag_name': tag, 'campaign_id': cids.join(','), 'experiment': this.cfg['campaign']['experiment'] };
     this.make_poms_call('link_tags',args);
 }
