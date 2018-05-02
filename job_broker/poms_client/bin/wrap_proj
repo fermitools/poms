@@ -18,7 +18,7 @@ import sys
 import os
 import re
 
-debug = 1
+debug = 0
 # filename for new and patched xml file
 newfname = "/tmp/xmlpatch%d" % os.getpid()
 
@@ -28,10 +28,11 @@ sys.argv = sys.argv[1:]
 # collect our -Oname=value args into a [ [name,value],[name,value]...]
 # worklist
 worklist = []
-while sys.argv[0].startswith('-O'):
-    field,val = sys.argv[0][2:].split('=')
-    worklist.append( [field, val] )
-    sys.argv = sys.argv[1:]
+for i in xrange(len(sys.argv)-1,-1, -1):
+    if sys.argv[i].startswith('-O'):
+        field,val = sys.argv[i][2:].split('=')
+        worklist.append( [field, val] )
+        del sys.argv[i]
 
 #
 # eat the double dash, so we have command to run in sys.argv
@@ -57,30 +58,59 @@ outf = open(newfname, "w")
 # in the xml file, but I think that's probalby okay
 #
 intags = []
+counts = {}
+
+for field, val in worklist:
+    m = re.match('(.*)\[([0-9]*)\]', field)
+    if ( m ):
+        field = m.group(1)
+    counts[field] = 0 
+
 for line in inf:
    # apply each rule as a regexp substitution
    for stag in re.findall("<\w+", line):
        intags.insert(0,stag[1:])
 
-
+   
    for field, val in worklist:
+
+       countmatch = None
+       m = re.match('(.*)\[([0-9]+)\]', field)
+       if ( m ):
+           field = m.group(1)
+           countmatch = int(m.group(2))
+
        plist = field.split('.')
        field = plist[-1]
        plist = plist[:-1]
        cmatch = True
+
        if debug: print( "checking for:" , plist, " in:" , intags)
        for p in plist:
            if not p in intags:
                cmatch = False
+
        if not cmatch:
            continue
+
+
        reg = '<%s>.*</%s>' % (field, field)
        sub = '<%s>%s</%s>' % (field, val, field)
+
+       if re.search(reg, line):
+            counts[field] = counts[field] + 1
+
+       if countmatch and countmatch != counts[field]:
+            continue
+
        if debug: print( "trying re.sub('%s', '%s', '%s')" % (reg, sub, line))
        line = re.sub(reg, sub, line)
 
    for etag in re.findall("</\w+", line):
-       intags.remove(etag[2:])
+       try:
+           intags.remove(etag[2:])
+       except:
+           pass
 
    outf.write(line)
 

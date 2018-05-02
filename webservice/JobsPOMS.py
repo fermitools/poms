@@ -741,6 +741,8 @@ class JobsPOMS(object):
                 "experimenter":  st.experimenter_creator_obj.username
                 }
 
+            launch_setup = launch_setup.replace("\n",";")
+
             cmd = """
                 exec 2>&1
                 export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s
