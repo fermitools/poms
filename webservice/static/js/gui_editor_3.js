@@ -1306,7 +1306,6 @@ wf_uploader.prototype.make_poms_call = function(name, args, completed) {
                 resp = result.responseText;
             }
             console.log(resp);
-            alert("Error in web callback; see javascript console");
         },
         async: true,
      });
