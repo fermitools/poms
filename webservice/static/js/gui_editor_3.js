@@ -1246,7 +1246,6 @@ wf_uploader.prototype.make_poms_call = function(name, args) {
         method: args ? 'POST':'GET',
         success: function(result) {
             res = result;
-            console.log('got :' , result)
         }, 
         error: function(result) {
             var p, resp;
