@@ -91,8 +91,13 @@ class CampaignsPOMS:
                 if isinstance(ae_launch_name, str):
                     ae_launch_name = ae_launch_name.strip()
                 name = ae_launch_name
-                experimenter_id = dbhandle.query(Experimenter).filter(
-                    Experimenter.username == pc_username).first().experimenter_id
+                experimenter = dbhandle.query(Experimenter).filter(
+                    Experimenter.username == pc_username).first()
+                if experimenter:
+                    experimenter_id = experimenter.experimenter_id
+                else:
+                    experimenter_id = 0
+
                 if action == 'edit':
                     ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment == exp).filter(
                         LaunchTemplate.name == name).first().launch_id
@@ -238,8 +243,13 @@ class CampaignsPOMS:
                 name = kwargs.pop('ae_definition_name')
                 if isinstance(name, str):
                     name = name.strip()
-                experimenter_id = dbhandle.query(Experimenter).filter(
-                    Experimenter.username == pc_username).first().experimenter_id
+
+                experimenter = dbhandle.query(Experimenter).filter( Experimenter.username == pc_username).first()
+                if experimenter:
+                    experimenter_id = experimenter.experimenter_id
+                else:
+                    experimenter_id = 0
+
                 if action == 'edit':
                     campaign_definition_id = dbhandle.query(CampaignDefinition).filter(
                         CampaignDefinition.name == name).first().campaign_definition_id  # Check here!
@@ -485,8 +495,14 @@ class CampaignsPOMS:
                 if isinstance(campaign_definition_name, str):
                     campaign_definition_name = campaign_definition_name.strip()
                 # all this variables depend on the arguments passed.
-                experimenter_id = dbhandle.query(Experimenter).filter(
-                    Experimenter.username == pc_username).first().experimenter_id
+                experimenter = dbhandle.query(Experimenter).filter(
+                    Experimenter.username == pc_username).first()
+
+                if experimenter:
+                    experimenter_id = experimenter.experimenter_id
+                else:
+                    experimenter_id = 0
+
                 launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment == exp).filter(
                     LaunchTemplate.name == launch_name).first().launch_id
                 campaign_definition_id = dbhandle.query(CampaignDefinition).filter(

@@ -103,6 +103,22 @@ gui_editor.instance_list = [];
 
 /* static methods */
 
+gui_editor.modified = function() {
+   /* we really ought to have a savebusy per instance, and make it a class but... */
+   var sb = document.getElementById("savebusy")
+   sb.innerHTML="Modified"
+
+   window.onbeforeunload = function(e) {
+      var msg ="Workflow has been changed, but not saved.  Are you sure you want to leave?";
+      e.returnValue = msg;
+      return msg;
+   }
+}
+gui_editor.unmodified = function() {
+   /* we really ought to have a savebusy per instance, and make it a class but... */
+
+   window.onbeforeunload = undefined
+}
 
 /* redraw all dependencies 'cause something moved */
 /*  this is where we actually use the instance list */
@@ -115,6 +131,7 @@ gui_editor.redraw_all_deps = function() {
 
 /* make form visible/invisible, save on invis */
 gui_editor.toggle_form = function(id) {
+    gui_editor.modified()
     var e = document.getElementById(id);
     if (e && e.style.display == 'block') {
         if (e.parentNode && e.parentNode.gui_box) {
@@ -222,6 +239,7 @@ gui_editor.delete_me = function(id) {
 }
 
 gui_editor.newstage = function(id) {
+   gui_editor.modified()
    var e = document.getElementById(id)
    if (e == null){  
        alert("cannot find: " + id)
@@ -230,6 +248,7 @@ gui_editor.newstage = function(id) {
 }
 
 gui_editor.makedep = function(id) {
+   gui_editor.modified()
    var e = document.getElementById(id)
    if (e == null){  
        alert("cannot find: " + id)
@@ -1027,10 +1046,12 @@ gui_editor.prototype.save_state = function() {
    var x = this
    window.setTimeout(function() {
        var wu = new wf_uploader()
+       console.log(["wu",wu])
        x.undefaultify_state()
        wu.upload(x.state)
        x.defaultify_state()
        sb.innerHTML="Done."
+       gui_editor.unmodified()
    },5);
 }
 
@@ -1048,6 +1069,9 @@ wf_uploader.prototype.upload = function(state) {
     this.cfg = state;
     var headers =this.get_headers()
     this.username = headers['X-Shib-Userid']
+    if (this.username == undefined) {
+       this.username = 'mengel';
+    }
     this.experiment = state['campaign']['experiment']
     var role = state['campaign']['poms_role'];
     this.update_session_role(role);
@@ -1094,10 +1118,10 @@ wf_uploader.prototype.upload_jobtype =  function(jt) {
     d = this.cfg['job_type ' + jt]
     args = {
         'pcl_call': '1',
-        'pc_username': this.username,
         'action': 'add',
         'ae_definition_name': jt,
         'experiment': this.cfg['campaign']['experiment'],
+        'pc_username': this.username,
     }
     for(k in d) {
          if (k in field_map) {
@@ -1222,6 +1246,7 @@ wf_uploader.prototype.make_poms_call = function(name, args) {
         method: args ? 'POST':'GET',
         success: function(result) {
             res = result;
+            console.log('got :' , result)
         }, 
         error: function(result) {
             var p, resp;
