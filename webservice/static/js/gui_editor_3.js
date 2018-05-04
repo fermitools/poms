@@ -526,7 +526,7 @@ gui_editor.prototype.tsort = function (dlist) {
    n = dlist.length;
    for(i = 0; i < n; i++) {
        for(j = 0; j < i; j++ ) {
-           if (this.checkdep(dlist[j],dlist[i])) {
+           if (this.checkdep(dlist[j],dlist[i]) || this.ndeps(dlist[j]) > this.ndeps(dlist[i])) {
                t = dlist[i];
                dlist[i] = dlist[j];
                dlist[j] = t;
