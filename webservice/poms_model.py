@@ -30,6 +30,7 @@ class Campaign(Base):
     active = Column(Boolean, nullable=False, server_default=text("true"))
     launch_id = Column(ForeignKey('launch_templates.launch_id'), nullable=False)
     param_overrides = Column(JSON)
+    test_param_overrides = Column(JSON)
     completion_type = Column(Text, nullable=False, server_default=text("located"))
     completion_pct = Column(Text, nullable=False, server_default="95")
     hold_experimenter_id = Column(ForeignKey('experimenters.experimenter_id'), nullable=True)
