@@ -509,7 +509,7 @@ class TaskPOMS:
         for cd in cdlist:
             if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
                 # self-reference, just do a normal launch
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator)
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, test_launch = t.task_params.get('test',false))
             else:
                 i = i + 1
                 if cd.file_patterns.find(' '):
@@ -522,7 +522,7 @@ class TaskPOMS:
                 dname = "poms_depends_%d_%d" % (t.task_id, i)
 
                 samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override=dname)
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override=dname test_launch = t.task_params.get('test_launch',false)))
         return 1
 
 
@@ -594,7 +594,7 @@ class TaskPOMS:
 
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
                                  err_res, t.campaign_snap_obj.campaign_id, t.creator,  dataset_override=rname,
-                                 parent_task_id=t.task_id, param_overrides=param_overrides)
+                                 parent_task_id=t.task_id, param_overrides=param_overrides, test_launch = t.task_params.get('test_launch',false))
                 return 1
 
         return 0
@@ -634,7 +634,7 @@ class TaskPOMS:
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
                     err_res, campaign_id, launcher, dataset_override=None, parent_task_id=None,
-                    param_overrides=None, test_launch_template=None, experiment=None):
+                    param_overrides=None, test_launch_template=None, experiment=None, test_launch = False):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
 
@@ -698,6 +698,7 @@ class TaskPOMS:
             # allocate task to set ownership
             tid = self.get_task_id_for(dbhandle, campaign_id, user=launcher_experimenter.username, experiment=experiment, parent_task_id=parent_task_id)
 
+
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
             exp = c.experiment
@@ -706,8 +707,17 @@ class TaskPOMS:
             cid = c.campaign_id
             cdid = c.campaign_definition_id
             definition_parameters = cd.definition_parameters
+
             c_param_overrides = c.param_overrides
 
+            # if it is a test launch, add in the test param overrides
+            # and flag the task as a test (secretly relies on poms_client
+            # v3_0_0) 
+
+            if test_launch:
+               dbhandle.query(Task).filter(Task.task_id == tid).({Task.task_parameters: {'test':1}});
+               c_param_overrides.update(c.test_param_overrides);
+         
         if not e and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
             err_res = "404 Permission Denied."
@@ -811,5 +821,6 @@ class TaskPOMS:
         lf.close()
         dn.close()
         pp.wait()
+
 
         return lcmd, c, campaign_id, outdir, outfile

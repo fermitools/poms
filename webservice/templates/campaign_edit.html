@@ -222,6 +222,13 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
       <div class="one field">
         <div class="field">
+            <label>Test Parameter Overrides<i class="large edit link blue icon" id="edit_param_test_modal_btn"></i></label>
+            <textarea rows="2" id="ae_test_param_overrides_text" disabled>[]</textarea>
+        </div>
+      </div>
+
+      <div class="one field">
+        <div class="field">
             <label>Depends On<i class="large edit link blue icon" id="edit_depends_modal_btn"></i></label>
             <textarea rows="2" id="ae_depends_text" disabled>[]</textarea>
         </div>
@@ -308,6 +315,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id|default('unknown')}}">
       <input type="hidden" id="ae_campaign_id" name="ae_campaign_id" value="0">
       <input type="hidden" id="ae_param_overrides" name="ae_param_overrides" value="[]">
+      <input type="hidden" id="ae_test_param_overrides" name="ae_test_param_overrides" value="[]">
       <input type="hidden" id="ae_depends" name="ae_depends" value="[]">
     </form>
   </div>
@@ -476,7 +484,7 @@ $("#edit_param_modal_btn").click(function() {
 });
 
 $("#edit_param_test_modal_btn").click(function() {
-  setup_modal("#ae_param_overrides");
+  setup_modal("#ae_test_param_overrides");
 });
 
 /*
@@ -700,8 +708,8 @@ function edit_campaign(index,clone) {
   $("#ae_param_overrides_text").val( $("#c_param_overrides_"+index).text() );
   $("#ae_param_overrides").val( $("#c_param_overrides_"+index).text() );
 /*
-  $("#ae_param_overrides_test_text").val( $("#c_param_overrides_test"+index).text() );
-  $("#ae_param_overrides_test").val( $("#c_param_overrides_test_"+index).text() );
+  $("#ae_test_param_overrides_text").val( $("#c_test_param_overrides_"+index).text() );
+  $("#ae_test_param_overrides").val( $("#c_test_param_overrides_"+index).text() );
 */
   $("#ae_campaign_definition_id").val( $("#c_campaign_definition_id_"+index).text() );
   $("#ae_launch_id").val( $("#c_launch_id_"+index).text() );

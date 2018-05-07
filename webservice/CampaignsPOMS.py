@@ -487,6 +487,10 @@ class CampaignsPOMS:
             if param_overrides:
                 param_overrides = json.loads(param_overrides)
 
+            test_param_overrides = kwargs.pop('ae_test_param_overrides', "[]")
+            if test_param_overrides:
+                test_param_overrides = json.loads(test_param_overrides)
+
             if pcl_call == 1:
                 launch_name = kwargs.pop('ae_launch_name')
                 if isinstance(launch_name, str):
@@ -531,6 +535,7 @@ class CampaignsPOMS:
                         c = Campaign(name=name, experiment=exp, vo_role=vo_role,
                                      active=active, cs_split_type=split_type,
                                      software_version=software_version, dataset=dataset,
+                                     test_param_overrides = test_param_overrides,
                                      param_overrides=param_overrides, launch_id=launch_id,
                                      campaign_definition_id=campaign_definition_id,
                                      completion_type=completion_type, completion_pct=completion_pct,
@@ -759,6 +764,7 @@ class CampaignsPOMS:
             res.append("cs_split_type=%s" % c.cs_split_type)
             res.append("job_type=%s" % c.campaign_definition_obj.name)
             res.append("param_overrides=%s" % json.dumps(c.param_overrides))
+            res.append("test_param_overrides=%s" % json.dumps(c.test_param_overrides))
             res.append("completion_type=%s" % c.completion_type)
             res.append("completion_pct=%s" % c.completion_pct)
             res.append("launch_template=%s" % c.launch_template_obj.name)
