@@ -66,6 +66,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         <th> Completion<br>Type {{ show_hint('#Completion-Type', '[complete|located|...]') }} </th>
         <th> Completion<br>Percent {{ show_hint('#Completion-Percent', 'Integer number') }} </th>
         <th> Parameter Overrides {{ show_hint('#Parameter-Overrides', 'List of key/value pairs') }} </th>
+        <th> Test Parameter Overrides {{ show_hint('#Test-Parameter-Overrides', 'List of key/value pairs for test launches') }} </th>
         <th> Depends On {{ show_hint('#Depends-On', 'List of key/value pairs') }} </th>
       </tr>
     </thead>
@@ -107,6 +108,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         {% else %}
             <td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|tojson|replace("null","")}}</td>
         {% endif %}
+        <td id="c_test_param_overrides_{{loop.index}}">{{row.test_param_overrides|tojson|replace("null","")}}</td>
         <td id="c_depends_{{loop.index}}">
         {% for key, value in data.depends.items() %}
             {% if key == row.campaign_id %}
@@ -487,12 +489,6 @@ $("#edit_param_test_modal_btn").click(function() {
   setup_modal("#ae_test_param_overrides");
 });
 
-/*
- * add this when we add the test params
-$("#edit_param_test_modal_btn").click(function() {
-  setup_modal("#ae_param_overrides_test");
-});
-*/
 
 function setup_modal(fieldid) {
   $("#ep_tbody").empty("");
@@ -707,10 +703,10 @@ function edit_campaign(index,clone) {
   $("#ae_split_type").val( $("#c_split_type_"+index).text() );
   $("#ae_param_overrides_text").val( $("#c_param_overrides_"+index).text() );
   $("#ae_param_overrides").val( $("#c_param_overrides_"+index).text() );
-/*
+
   $("#ae_test_param_overrides_text").val( $("#c_test_param_overrides_"+index).text() );
-  $("#ae_test_param_overrides").val( $("#c_test_param_overrides_"+index).text() );
-*/
+  $("#ae_test_param_overrides"     ).val( $("#c_test_param_overrides_"+index).text() );
+
   $("#ae_campaign_definition_id").val( $("#c_campaign_definition_id_"+index).text() );
   $("#ae_launch_id").val( $("#c_launch_id_"+index).text() );
   // Trigger the change function which will load associated fields

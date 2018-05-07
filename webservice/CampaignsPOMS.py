@@ -553,6 +553,7 @@ class CampaignsPOMS:
                         "software_version": software_version,
                         "dataset": dataset,
                         "param_overrides": param_overrides,
+                        "test_param_overrides": test_param_overrides,
                         "campaign_definition_id": campaign_definition_id,
                         "launch_id": launch_id,
                         "updated": datetime.now(utc),
@@ -763,8 +764,8 @@ class CampaignsPOMS:
             res.append("vo_role=%s" % c.vo_role)
             res.append("cs_split_type=%s" % c.cs_split_type)
             res.append("job_type=%s" % c.campaign_definition_obj.name)
-            res.append("param_overrides=%s" % json.dumps(c.param_overrides))
-            res.append("test_param_overrides=%s" % json.dumps(c.test_param_overrides))
+            res.append("param_overrides=%s" % json.dumps(c.param_overrides or []))
+            res.append("test_param_overrides=%s" % json.dumps(c.test_param_overrides or []))
             res.append("completion_type=%s" % c.completion_type)
             res.append("completion_pct=%s" % c.completion_pct)
             res.append("launch_template=%s" % c.launch_template_obj.name)

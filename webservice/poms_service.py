@@ -806,7 +806,7 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def launch_jobs(self, campaign_id, dataset_override=None, parent_task_id=None, test_launch_template=None,
-                    experiment=None, launcher=None):
+                    experiment=None, launcher=None, test_launch=False):
 
         if cherrypy.session.get('experimenter').username and ('poms' != cherrypy.session.get('experimenter').username or launcher == ''):
             launch_user = cherrypy.session.get('experimenter').experimenter_id
@@ -822,7 +822,8 @@ class PomsService(object):
                                          launch_user,
                                          dataset_override=dataset_override,
                                          parent_task_id=parent_task_id, test_launch_template=test_launch_template,
-                                         experiment=experiment)
+                                         experiment=experiment,
+                                         test_launch=test_launch)
         logit.log("Got vals: %s" % repr(vals))
         lcmd, c, campaign_id, outdir, outfile = vals
         if lcmd == "":

@@ -273,6 +273,15 @@ $( document ).ready(function() {
                   Launch Campaign Jobs Now
                </a>
               </div>
+              <div class=item>
+                <a href="{{pomspath}}/launch_jobs?test_launch=1&campaign_id={{Campaign.campaign_id}}" {{"disabled" if (session_role=="analysis" 
+                   and Campaign.creator!=current_experimenter.experimenter_id) or Campaign.experimenter_holder_obj}}
+                >
+                   <i class="external rocket icon" data-content="Immediately Launch Test Submissions for Campaign" data-variation="basic">
+                   </i>
+                  Launch Campaign Test Jobs Now
+               </a>
+              </div>
 
               <div class=item>
                 <a href="{{pomspath}}/kill_jobs?campaign_id={{Campaign.campaign_id}}&act=kill" {{"disabled" if (session_role=="analysis"
@@ -376,6 +385,9 @@ $( document ).ready(function() {
     <b>VO Role</b>: {{Campaign.vo_role}}<br>
     {% if Campaign.param_overrides %}
     <b>Param Overrides</b>: [{% for pair in Campaign.param_overrides %} <br>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
+    {% endif %}
+    {% if Campaign.test_param_overrides %}
+    <b>Test Param Overrides</b>: [{% for pair in Campaign.test_param_overrides %} <br>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
     {% endif %}
     <b>cs_split_type</b>: {{Campaign.cs_split_type}}<br>
     <b>cs_split_dimensions</b>: {{Campaign.cs_split_dimensions}}<br>

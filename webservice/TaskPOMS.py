@@ -522,7 +522,7 @@ class TaskPOMS:
                 dname = "poms_depends_%d_%d" % (t.task_id, i)
 
                 samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override=dname test_launch = t.task_params.get('test_launch',false)))
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override = dname, test_launch = t.task_params.get('test_launch',false))
         return 1
 
 
@@ -715,7 +715,7 @@ class TaskPOMS:
             # v3_0_0) 
 
             if test_launch:
-               dbhandle.query(Task).filter(Task.task_id == tid).({Task.task_parameters: {'test':1}});
+               dbhandle.query(Task).filter(Task.task_id == tid).update({Task.task_parameters: {'test':1}});
                c_param_overrides.update(c.test_param_overrides);
          
         if not e and not (ra == '127.0.0.1' and xff is None):
