@@ -509,7 +509,7 @@ class TaskPOMS:
         for cd in cdlist:
             if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
                 # self-reference, just do a normal launch
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, test_launch = t.task_params.get('test',false))
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, test_launch = t.task_parameters.get('test',false))
             else:
                 i = i + 1
                 if cd.file_patterns.find(' '):
@@ -522,7 +522,7 @@ class TaskPOMS:
                 dname = "poms_depends_%d_%d" % (t.task_id, i)
 
                 samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override = dname, test_launch = t.task_params.get('test_launch',false))
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override = dname, test_launch = t.task_parameters.get('test_launch',false))
         return 1
 
 
@@ -594,7 +594,7 @@ class TaskPOMS:
 
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
                                  err_res, t.campaign_snap_obj.campaign_id, t.creator,  dataset_override=rname,
-                                 parent_task_id=t.task_id, param_overrides=param_overrides, test_launch = t.task_params.get('test_launch',false))
+                                 parent_task_id=t.task_id, param_overrides=param_overrides, test_launch = t.task_parameters.get('test_launch',false))
                 return 1
 
         return 0
