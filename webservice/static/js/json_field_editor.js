@@ -104,13 +104,13 @@ json_field_editor.plus= function(fid,i) {
     ce.value = (c + 1).toString();
     console.log("after: count: " + ce.value)
 
-    tb.insertBefore(tr, tb.children[i])
+    tb.insertBefore(tr, tb.children[i-1])
     json_field_editor.renumber(fid,c+1);
 }
 
 json_field_editor.minus= function(fid,i) {
     var tb = document.getElementById(fid+'_tbody');
-    tb.removeChild(tb.children[i]);
+    tb.removeChild(tb.children[i-1]);
     var c = parseInt(document.getElementById(fid+'_count').value);
     document.getElementById(fid+'_count').value = (c - 1).toString();
     json_field_editor.renumber(fid,c);
