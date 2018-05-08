@@ -21,7 +21,7 @@ json_field_editor.start = function(id) {
     res.push('<thead>');
     res.push('<tr>');
     res.push('<td>Key <a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Key" class="helpbutton">?</a></td>');
-    res.push('<td>&nbsp;<a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Space" class="helpbutton">?</a></td>');
+    res.push('<td>Space<a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Space" class="helpbutton">?</a></td>');
     res.push('<td>Value <a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Value" class="helpbutton">?</a></td>');
     res.push('<td>&nbsp;</td>');
     res.push('</tr>');
@@ -36,8 +36,8 @@ json_field_editor.start = function(id) {
     }
     res.push('</tbody>');
     res.push('</table>');
-    res.push('<button type="button" onclick="json_field_editor.cancel(\''+fid+'\')" >Cancel</button>');
-    res.push('<button type="button" onclick="json_field_editor.save(\''+fid+'\')" >Accept</button>');
+    res.push('<button type="button" class="ui button deny red" onclick="json_field_editor.cancel(\''+fid+'\')" >Cancel</button>');
+    res.push('<button type="button" class="ui button approve teal" onclick="json_field_editor.save(\''+fid+'\')" >Accept</button>');
     var myform =  document.createElement("FORM");
     myform.className = "popup_form_json "
     myform.style.top = r.bottom
@@ -65,14 +65,14 @@ json_field_editor.addrow= function(res, fid, i, k, v) {
             ws = ''
         }
         res.push('<td><input id="'+fid+'_k_'+istr+'" value="'+k+'"></td>');
-        res.push('<td><input type="checkbox" id="'+fid+'_ws_'+istr+'" '+ws+' value=" "></td>')
+        res.push('<td><input style="padding: auto; width: 4em;" type="checkbox" id="'+fid+'_ws_'+istr+'" '+ws+' value=" "></td>')
 
         res.push('<td><input id="'+fid+'_v_'+istr+'" value="'+v+'"></td>');
         res.push('<td>');
-        res.push('<button type="button" onclick="json_field_editor.plus(\''+ fid+'\','+istr+')" >+</button>');
-        res.push('<button type="button" onclick="json_field_editor.minus(\''+ fid+'\','+istr+')" >-</button>');
-        res.push('<button type="button" onclick="json_field_editor.up(\''+ fid+'\','+istr+')" >↑</button>');
-        res.push('<button type="button" onclick="json_field_editor.down(\''+ fid+'\','+istr+')" >↓</button>');
+        res.push('<button type="button" onclick="json_field_editor.plus(\''+ fid+'\','+istr+')" ><i class="blue icon dlink plus square"></i></button>');
+        res.push('<button type="button" onclick="json_field_editor.minus(\''+ fid+'\','+istr+')" ><i class="blue icon dlink minus square"></i></button>');
+        res.push('<button type="button" onclick="json_field_editor.up(\''+ fid+'\','+istr+')" ><i class="blue icon dlink arrow square up"></i></button>');
+        res.push('<button type="button" onclick="json_field_editor.down(\''+ fid+'\','+istr+')" ><i class="blue icon dlink arrow square down"></i></button>');
 }
 json_field_editor.renumber= function(fid,c) {
     var i;
