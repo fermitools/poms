@@ -86,7 +86,7 @@ class TaskPOMS:
         # make jobs which completed with no *undeclared* output files have status "Located".
         #
         # lock Jobs in order first
-        dbhandle.query(Job.job_id).filter(Job.status == 'Completed').with_for_update().order_by(Job.jobsub_job_id).all()
+        dbhandle.query(Job.job_id).filter(Job.status == 'Completed').with_for_update(read=True).order_by(Job.jobsub_job_id).all()
 
         t = text("""update jobs set status = 'Located'
             where status = 'Completed'
@@ -131,7 +131,7 @@ class TaskPOMS:
         if len(need_joblogs) > 0:
             for i in range(4):
                 try:
-                    q = dbhandle.query(Task.task_id).filter(Task.task_id.in_(need_joblogs)).with_for_update().order_by(Task.task_id)
+                    q = dbhandle.query(Task.task_id).filter(Task.task_id.in_(need_joblogs)).with_for_update(read=True).order_by(Task.task_id)
                     q.all()
                     break
                 except QueryCanceledError:
@@ -185,10 +185,10 @@ class TaskPOMS:
 
         if len(mark_located) > 0:
             # lock tasks, jobs in order so we can update them
-            dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all()
+            dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update(read=True).order_by(Task.task_id).all()
             #
             # why mark the jobs? just fix the tasks!
-            #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all();
+            #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update(read=True).order_by(Job.jobsub_job_id).all();
             #q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True}, synchronize_session=False)
             q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
         dbhandle.commit()
@@ -223,7 +223,7 @@ class TaskPOMS:
         if len(mark_located) > 0:
             dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all()
             # why mark the jobs? just fix the tasks!
-            #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all()
+            #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update(read=True).order_by(Job.jobsub_job_id).all()
             #dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located', 'output_files_declared':True}, synchronize_session=False)
             dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
 
@@ -275,7 +275,7 @@ class TaskPOMS:
                     finish_up_tasks.append(task.task_id)
 
         if len(finish_up_tasks) > 0:
-            dbhandle.query(Job.job_id).filter(Job.task_id.in_(finish_up_tasks)).with_for_update().order_by(Job.jobsub_job_id).all()
+            dbhandle.query(Job.job_id).filter(Job.task_id.in_(finish_up_tasks)).with_for_update(read=True).order_by(Job.jobsub_job_id).all()
             q = dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
         dbhandle.commit()
 
@@ -603,7 +603,7 @@ class TaskPOMS:
         if hold not in ["hold", "allowed"]:
             return
 
-        s = dbhandle.query(Service).with_for_update().filter(Service.name == "job_launches").first()
+        s = dbhandle.query(Service).with_for_update(read=True).filter(Service.name == "job_launches").first()
         s.status = hold
         dbhandle.commit()
 
@@ -615,7 +615,7 @@ class TaskPOMS:
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
-        hl = dbhandle.query(HeldLaunch).with_for_update().order_by(HeldLaunch.created).first()
+        hl = dbhandle.query(HeldLaunch).with_for_update(read=True).order_by(HeldLaunch.created).first()
         launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == hl.launcher).first()
         if hl:
             dbhandle.delete(hl)
