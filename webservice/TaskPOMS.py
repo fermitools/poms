@@ -229,7 +229,7 @@ class TaskPOMS:
 
         dbhandle.commit()
 
-        for task in (dbhandle.query(Task).with_for_update(Task)
+        for task in (dbhandle.query(Task).with_for_update(of=Task,read=True)
                      .join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
                      .filter(Task.status == "Completed")
                      .filter(CampaignSnapshot.completion_type == "located").order_by(Task.task_id).all()):
