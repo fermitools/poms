@@ -769,7 +769,6 @@ class CampaignsPOMS:
             res.append("completion_type=%s" % c.completion_type)
             res.append("completion_pct=%s" % c.completion_pct)
             res.append("launch_template=%s" % c.launch_template_obj.name)
-            res.append("campaign_definition=%s" % c.campaign_definition_obj.name)
             jts.add(c.campaign_definition_obj)
             lts.add(c.launch_template_obj)
             res.append("")

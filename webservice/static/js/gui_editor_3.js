@@ -1087,8 +1087,11 @@ wf_uploader.prototype.upload = function(state, completed) {
         var i, l, jt, s;
         for( i in cfg_stages) {
             s = cfg_stages[i];
-            cfg_jobtypes[thisx.cfg['campaign_stage ' +s]['job_type']] = 1
-            cfg_launches[thisx.cfg['campaign_stage ' +s]['launch_template']] = 1
+            if (('campaign_stage '+s) in thisx.cfg) {
+                cfg_launches[thisx.cfg['campaign_stage ' +s]['launch_template']] = 1
+                cfg_jobtypes[thisx.cfg['campaign_stage ' +s]['job_type']] = 1
+            
+            }
         }
         for(l in cfg_launches) {
             thisx.upload_launch_template(l)
@@ -1123,16 +1126,17 @@ wf_uploader.prototype.upload2 = function(state, cfg_stages, completed) {
     });
 }
 
-wf_uploader.prototype.upload4 = function(state, cfg_stages, completed) {
-}
 
 wf_uploader.prototype.tag_em =  function(tag, cfg_stages, completed) {
     var thisx = this;
     /* have to re-fetch the list, if we added any campaigns... */
     console.log("tag_em calling get_campaign_list")
     this.get_campaign_list(function(){
+        console.log(["have campaign_id_map",thisx.cname_id_map,"stages:",cfg_stages])
         var cim = thisx.cname_id_map
-        var cids = cfg_stages.map(function(x) {return (x in cim) ? cim[x].toString():''});
+        var cids = cfg_stages.map(function(x) {return (x in cim) ? cim[x].toString():x});
+        console.log(["have campaign_list",thisx.cname_id_map])
+         
         var args = { 'tag_name': tag, 'campaign_id': cids.join(','), 'experiment': thisx.cfg['campaign']['experiment'] };
         thisx.make_poms_call('link_tags',args, completed);
     });
@@ -1140,6 +1144,9 @@ wf_uploader.prototype.tag_em =  function(tag, cfg_stages, completed) {
 
 wf_uploader.prototype.upload_jobtype =  function(jt) {
     var field_map, k, d, args;
+    if (!(('job_type ' + jt) in this.cfg)) {
+      return
+    }
     field_map = {
             'launch_script':'ae_launch_script',
             'parameters':'ae_definition_parameters',
@@ -1177,6 +1184,9 @@ wf_uploader.prototype.upload_launch_template =  function(l) {
             'account': 'ae_launch_account',
             'setup': 'ae_launch_setup',
     };
+    if (!(('launch_template ' + l) in this.cfg)) {
+      return
+    }
     d = this.cfg['launch_template ' + l]
     console.log(['d',d])
     args  = {
@@ -1249,9 +1259,9 @@ wf_uploader.prototype.get_campaign_list = function(completed) {
          res = {}
          console.log(["back from campaign_list_json, x is", x]);
          for( i in x) {
-             triple = x[i];
-             if (triple[2] == thisx.experiment) {
-                 res[triple[1]] = triple[0];
+             triple = x[i]
+             if (triple.experiment == thisx.experiment) {
+                 res[triple.name] = triple.campaign_id;
              }
          }
          thisx.cname_id_map = res;
