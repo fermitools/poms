@@ -522,9 +522,13 @@ class TaskPOMS:
                 dname = "poms_depends_%d_%d" % (t.task_id, i)
 
                 samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override = dname, test_launch = t.task_parameters.get('test_launch',false))
-        return 1
+                if isinstance(t.task_parameters, dict):
+                    test_launch = t.task_parameters.get('test_launch',False)
+                else:
+                    test_launch = False
 
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override = dname, test_launch = test_launch )
+        return 1
 
     def launch_recovery_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  t):
         logit.log("Entering launch_recovery_if_needed(%s)" % t.task_id)
