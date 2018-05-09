@@ -5,9 +5,17 @@ function json_field_editor() {
   ;
 }
 json_field_editor.start = function(id) {
-    var e, r,v, res, i, j, fid, istr, k;
+    var e, r,v, res, i, j, fid, istr, k, e_text;
+    var hang_onto;
     e = document.getElementById(id);
-    r = e.getBoundingClientRect();
+    e_text = document.getElementById(id+'_text');
+    if (e_text) {
+        r = e_text.getBoundingClientRect();
+        hang_onto = e_text.parentNode
+    } else {
+        r = e.getBoundingClientRect();
+        hang_onto = e.parentNode
+    }
     v = e.value;
     if ('' == v || '[]' == v) {
         j = [['','']]
@@ -35,19 +43,20 @@ json_field_editor.start = function(id) {
         json_field_editor.addrow(res, fid, i, k, v);
         res.push('</tr>');
     }
-    res.push('<tr><td colspan="3">')
-    res.push('<button type="button" class="ui button deny red" onclick="json_field_editor.cancel(\''+fid+'\')" >Cancel</button>');
-    res.push('<button type="button" class="ui button approve teal" onclick="json_field_editor.save(\''+fid+'\')" >Accept</button>');
-    res.push('</td></tr>')
     res.push('</tbody>');
     res.push('</table>');
+    res.push('&nbsp;&nbsp;&nbsp;');
+    res.push('<button type="button" class="ui button deny red" onclick="json_field_editor.cancel(\''+fid+'\')" >Cancel</button>');
+    res.push('<button type="button" class="ui button approve teal" onclick="json_field_editor.save(\''+fid+'\')" >Accept</button>');
     var myform =  document.createElement("FORM");
     myform.className = "popup_form_json "
     myform.style.top = r.bottom
     myform.style.right = r.right
+    myform.style.position = 'absolute'
     myform.id = fid
     myform.innerHTML += res.join('\n');
-    e.parentNode.parentNode.parentNode.appendChild(myform)
+    hang_onto.style.position = 'relative';
+    hang_onto.appendChild(myform)
 }
 
 /*
@@ -80,7 +89,7 @@ json_field_editor.addrow= function(res, fid, i, k, v) {
 json_field_editor.renumber= function(fid,c) {
     var i;
     var tb = document.getElementById(fid+'_tbody');
-    for(i = 0; i< c; i++ ) {
+    for(i = 0; i < c; i++ ) {
         istr = i.toString()
         tr = tb.children[i]
         tr.children[0].children[0].id = fid+"_k_"+istr
@@ -107,13 +116,13 @@ json_field_editor.plus= function(fid,i) {
     ce.value = (c + 1).toString();
     console.log("after: count: " + ce.value)
 
-    tb.insertBefore(tr, tb.children[i-1])
+    tb.insertBefore(tr, tb.children[i])
     json_field_editor.renumber(fid,c+1);
 }
 
 json_field_editor.minus= function(fid,i) {
     var tb = document.getElementById(fid+'_tbody');
-    tb.removeChild(tb.children[i-1]);
+    tb.removeChild(tb.children[i]);
     var c = parseInt(document.getElementById(fid+'_count').value);
     document.getElementById(fid+'_count').value = (c - 1).toString();
     json_field_editor.renumber(fid,c);
@@ -174,6 +183,7 @@ json_field_editor.save = function(fid) {
     }
     json_field_editor.cancel(fid)
 }
+
 json_field_editor.cancel= function(fid) {
     /*
      * delete the form
