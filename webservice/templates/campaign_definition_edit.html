@@ -705,7 +705,7 @@ function ep_down_button(current_row) {
     closable  : false,
     onApprove : function(){
       $("#action").val('delete');
-      $("<input>").attr({'type':'hidden','name': 'name', 'value': cdname}).appendTo("#campaign_definition_form");
+      $("<input>").attr({'type':'hidden','name': 'ae_definition_name', 'value': cdname}).appendTo("#campaign_definition_form");
       $("<input>").attr({'type':'hidden','name': 'campaign_definition_id', 'value': campaign_definition_id}).appendTo("#campaign_definition_form");
       $("#campaign_definition_form").submit();
     },

@@ -41,10 +41,10 @@ Launch Templates {{ show_hint('', 'Help page') }}
     <thead>
       <tr>
         <th></th>
-        <th> Name {{ show_hint('#Name', 'Campaign name') }}    </th>
+        <th> Name {{ show_hint('#Name', 'Launch template name') }}    </th>
         <th> Host {{ show_hint('#Host', 'Host name') }}    </th>
         <th> Account {{ show_hint('#Account', 'Account name') }} </th>
-        <th> Setup {{ show_hint('#Setup', 'Shell commands to set up campaign environment<br>') }}    </th>
+        <th> Setup {{ show_hint('#Setup', 'Shell commands to set up login environment for running campaign stage<br>') }}    </th>
       </tr>
     </thead>
     <tbody>
@@ -131,7 +131,7 @@ Launch Templates {{ show_hint('', 'Help page') }}
         <input type="text" id="ae_launch_host" name="ae_launch_host" placeholder="Launch Host">
       </div>
       <div class="field">
-        <label>Account {{ show_hint('#Host', 'Host name') }}</label>
+        <label>Account {{ show_hint('#Account', 'Account name') }}</label>
         <input type="text" id="ae_launch_account" name="ae_launch_account" placeholder="Launch Account">
       </div>
     </div>
