@@ -446,7 +446,7 @@ class TaskPOMS:
                  input_dataset=input_dataset,
                  output_dataset="",
                  status="New",
-                 task_parameters="{}",
+                 task_parameters={},
                  updater=4,
                  creator=4,
                  created=tim,
@@ -509,7 +509,7 @@ class TaskPOMS:
         for cd in cdlist:
             if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
                 # self-reference, just do a normal launch
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, test_launch = t.task_parameters.get('test',false))
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, test_launch = t.task_parameters.get('test',False))
             else:
                 i = i + 1
                 if cd.file_patterns.find(' '):
@@ -522,10 +522,12 @@ class TaskPOMS:
                 dname = "poms_depends_%d_%d" % (t.task_id, i)
 
                 samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-                if isinstance(t.task_parameters, dict):
-                    test_launch = t.task_parameters.get('test_launch',False)
+                if t.task_parameters and t.task_parameters.get('test',False):
+                    test_launch = t.task_parameters.get('test',False)
                 else:
                     test_launch = False
+
+                logit.log("About to launch jobs, test_launch = %s" % test_launch)
 
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override = dname, test_launch = test_launch )
         return 1
@@ -702,6 +704,9 @@ class TaskPOMS:
             # allocate task to set ownership
             tid = self.get_task_id_for(dbhandle, campaign_id, user=launcher_experimenter.username, experiment=experiment, parent_task_id=parent_task_id)
 
+            if test_launch: 
+                dbhandle.query(Task).filter(Task.task_id == tid).update({Task.task_parameters: {'test':1}});
+                dbhandle.commit()
 
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
@@ -793,7 +798,6 @@ class TaskPOMS:
                 params.update(c_param_overrides)
 
         if test_launch and c.test_param_overrides is not None:
-           dbhandle.query(Task).filter(Task.task_id == tid).update({Task.task_parameters: {'test':1}});
            params.update(c.test_param_overrides);
 
         if param_overrides is not None and param_overrides != "":
