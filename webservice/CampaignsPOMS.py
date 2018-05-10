@@ -590,6 +590,9 @@ class CampaignsPOMS:
             state = kwargs.pop('state', None)
             if state is None:
                 state = sesshandle.get('campaign_edit.state', 'state_active')
+
+            jumpto = kwargs.pop('jump_to_campaign', None)
+                
             sesshandle['campaign_edit.state'] = state
             data['state'] = state
             data['curr_experiment'] = exp
@@ -602,6 +605,16 @@ class CampaignsPOMS:
                 cquery = cquery.order_by(Campaign.name)
             if role in ('analysis', 'production'):
                 cquery = cquery.filter(Campaign.creator_role == role)
+            # this bit has to go onto cquery last 
+            # -- make sure if we're jumping to a given campaign id 
+            # that we *have* it in the list...
+            if jumpto != None:
+                c2 = dbhandle.query(Campaign).filter(Campaign.campaign_id == jumpto)
+                # we have to use union_all() and not union()to avoid 
+                # postgres whining about not knowing how to compare JSON 
+                # fields... sigh.  (It could just string compare them...) 
+                cquery = c2.union_all(cquery)
+
             data['campaigns'] = cquery
             data['definitions'] = dbhandle.query(CampaignDefinition).filter(
                 CampaignDefinition.experiment == exp).order_by(CampaignDefinition.name)
