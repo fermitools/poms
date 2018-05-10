@@ -33,6 +33,9 @@
     <div class="menu">
         <a class="item" href="{{exp_obj.snow_url if exp_obj else '#'}}" target="_blank">POMS ServiceNow Page</a>
     </div>
+    <div class="menu">
+        <a class="item" href="https://fermi.service-now.com/home.do?sysparm_view=scd_outage_calendar&sysparm_auto_request=true" target="_popup" >Downtime Calendar</a>
+    </div>
   </div>
 
   {% if current_experimenter and current_experimenter.is_root() %}
@@ -60,6 +63,9 @@
       </a>
       <a class="item" href="{{pomspath}}/show_campaigns">
         Campaign Stages
+      </a>
+      <a class="item" href="{{pomspath}}/sample_workflows">
+        Sample Workflows
       </a>
 <!--
       <a class="item" href="{{pomspath}}/show_campaigns?active=False">

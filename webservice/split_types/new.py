@@ -13,6 +13,7 @@ class new:
             fts=        time to assume fts takes to register new files
             localtime=  whether to use localtime or gmt
             firsttime=  first time to start with
+            lasttime=   stop when you hit this time
        all values can have suffixes from {wdhms} for week, day, hour, minutes,
        seconds.
        So if you just want to do new files, but at most 6 hours at at a time:
@@ -29,7 +30,8 @@ class new:
         self.twindow = 604800.0     # one week
         self.tround = 1             # one second
         self.tlocaltime = 0         # assume GMT
-        self.tfirsttime = None          # override start time
+        self.tfirsttime = None      # override start time
+        self.tlasttime = time.time()# override end time -- default now 
 
         if camp.cs_split_type[3:] == '_local':
             self.tlocaltime = 1
@@ -50,12 +52,13 @@ class new:
                 if p.startswith('fts='): self.tfts = float(p[4:]) * pmult
                 if p.startswith('localtime='): self.tlocaltime = float(p[10:]) * pmult
                 if p.startswith('firsttime='): self.tfirsttime = float(p[10:]) * pmult
+                if p.startswith('lasttime='): self.tlasttime = float(p[10:]) * pmult
 
         # make sure time-window is a multiple of rounding factor
         self.twindow = int(self.twindow) - (int(self.twindow) % int(self.tround))
 
     def peek(self):
-        bound_time = time.time() - self.tfts - self.twindow
+        bound_time = self.tlasttime - self.tfts - self.twindow
         bound_time = int(bound_time) - (int(bound_time) % int(self.tround))
 
         if not self.c.cs_last_split:
@@ -65,7 +68,7 @@ class new:
                 stime = bound_time
         else:
             if self.c.cs_last_split > bound_time:
-                raise RuntimeError
+                raise StopIteration
             stime = self.c.cs_last_split
 
         etime = stime + self.twindow

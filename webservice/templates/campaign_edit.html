@@ -6,6 +6,8 @@
 
 {%block title%}
 POMS
+<script src="{{pomspath}}/static/js/json_field_editor.js"></script>
+<link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/json_field_editor.css">
 {%endblock%}
 
 <style type="text/css">
@@ -66,6 +68,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         <th> Completion<br>Type {{ show_hint('#Completion-Type', '[complete|located|...]') }} </th>
         <th> Completion<br>Percent {{ show_hint('#Completion-Percent', 'Integer number') }} </th>
         <th> Parameter Overrides {{ show_hint('#Parameter-Overrides', 'List of key/value pairs') }} </th>
+        <th> Test Parameter Overrides {{ show_hint('#Test-Parameter-Overrides', 'List of key/value pairs for test launches') }} </th>
         <th> Depends On {{ show_hint('#Depends-On', 'List of key/value pairs') }} </th>
       </tr>
     </thead>
@@ -107,6 +110,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         {% else %}
             <td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|tojson|replace("null","")}}</td>
         {% endif %}
+        <td id="c_test_param_overrides_{{loop.index}}">{{row.test_param_overrides|tojson|replace("null","")}}</td>
         <td id="c_depends_{{loop.index}}">
         {% for key, value in data.depends.items() %}
             {% if key == row.campaign_id %}
@@ -222,6 +226,13 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
       <div class="one field">
         <div class="field">
+            <label>Test Parameter Overrides<i class="large edit link blue icon" id="edit_param_test_modal_btn"></i></label>
+            <textarea rows="2" id="ae_test_param_overrides_text" disabled>[]</textarea>
+        </div>
+      </div>
+
+      <div class="one field">
+        <div class="field">
             <label>Depends On<i class="large edit link blue icon" id="edit_depends_modal_btn"></i></label>
             <textarea rows="2" id="ae_depends_text" disabled>[]</textarea>
         </div>
@@ -308,6 +319,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id|default('unknown')}}">
       <input type="hidden" id="ae_campaign_id" name="ae_campaign_id" value="0">
       <input type="hidden" id="ae_param_overrides" name="ae_param_overrides" value="[]">
+      <input type="hidden" id="ae_test_param_overrides" name="ae_test_param_overrides" value="[]">
       <input type="hidden" id="ae_depends" name="ae_depends" value="[]">
     </form>
   </div>
@@ -471,10 +483,29 @@ function create_row(index, key, value) {
 
 var ep_parms = [];
 
+/* 
+ * was:
+ * $("#edit_param_modal_btn").click(function() {
+ *   setup_modal("#ae_param_overrides");
+ * });
+ * 
+ * $("#edit_param_test_modal_btn").click(function() {
+ *   setup_modal("#ae_test_param_overrides");
+ * });
+ */
+
 $("#edit_param_modal_btn").click(function() {
+   json_field_editor.start('ae_param_overrides');
+});
+
+$("#edit_param_test_modal_btn").click(function() {
+   json_field_editor.start('ae_test_param_overrides');
+});
+
+function setup_modal(fieldid) {
   $("#ep_tbody").empty("");
   ep_parms = [];
-  var parms_str = $("#ae_param_overrides").val();
+  var parms_str = $(fieldid).val();
   if (parms_str != "") {
     ep_parms = JSON.parse(parms_str);
   }
@@ -484,8 +515,8 @@ $("#edit_param_modal_btn").click(function() {
     onApprove : function(){
       var data = ep_build_parms_string();
       if (data[0] == "") {
-        $("#ae_param_overrides_text").val(data[1]);
-        $("#ae_param_overrides").val(data[1]);
+        $(fieldid+"_text").val(data[1]);
+        $(fieldid).val(data[1]);
         $("#campaign_add_edit_modal").modal('show');
       } else {
           return false;
@@ -495,7 +526,7 @@ $("#edit_param_modal_btn").click(function() {
       $("#campaign_add_edit_modal").modal('show');
     },
     }).modal('show');
-});
+}
 
 $("input[name=state]").click(function() {
   // Trigger a form submit when an experiment is selected
@@ -684,6 +715,10 @@ function edit_campaign(index,clone) {
   $("#ae_split_type").val( $("#c_split_type_"+index).text() );
   $("#ae_param_overrides_text").val( $("#c_param_overrides_"+index).text() );
   $("#ae_param_overrides").val( $("#c_param_overrides_"+index).text() );
+
+  $("#ae_test_param_overrides_text").val( $("#c_test_param_overrides_"+index).text() );
+  $("#ae_test_param_overrides"     ).val( $("#c_test_param_overrides_"+index).text() );
+
   $("#ae_campaign_definition_id").val( $("#c_campaign_definition_id_"+index).text() );
   $("#ae_launch_id").val( $("#c_launch_id_"+index).text() );
   // Trigger the change function which will load associated fields

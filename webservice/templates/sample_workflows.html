@@ -1,0 +1,34 @@
+{%extends "layout.html"%}
+
+{%block title%}
+    POMS: Sample Workflows
+{%endblock%}
+
+
+{%block header%}
+Workflows
+{%endblock%}
+
+{%block subheader%}
+&nbsp;
+{%endblock%}
+
+
+{%block content%}
+
+<div>
+Samples:
+<ul>
+{% for sample in sl %}
+<li style="margin-top: 0.5em;"> <span class="ui blue tag label">{{sample}}</span>
+  
+   <form style="border:1px solid black; margin: 5px; width: 50%;"  method="GET" action={{pomspath}}/gui_wf_edit?">
+      <input type="hidden" name="campaign" value="{{sample}}">
+      <input type="submit" name="clone" value="Clone">
+      replacing: <input name="from" value="sample">
+      with: <input name="to">
+    </form>
+{% endfor %}
+</ul>
+
+{%endblock%}
