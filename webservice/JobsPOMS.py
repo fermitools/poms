@@ -271,7 +271,7 @@ class JobsPOMS(object):
         else:
             tl2 = (dbhandle.query(Task)
                    .filter(Task.task_id.in_(tids_wanted))
-                   .with_for_update(of=Task)
+                   .with_for_update(of=Task, read=True)
                    .order_by(Task.task_id)
                    .all())
 
@@ -279,7 +279,7 @@ class JobsPOMS(object):
             have_jobids.update([x[0] for x in
                                 dbhandle.query(Job.jobsub_job_id)
                                .filter(Job.jobsub_job_id.in_(update_jobsub_job_ids))
-                               .with_for_update(of=Job)
+                               .with_for_update(of=Job, read=True)
                                .order_by(Job.jobsub_job_id)
                                .all()])
 
@@ -303,9 +303,21 @@ class JobsPOMS(object):
                                       )
         logit.log(" bulk_update_job: ldata5")
 
+        # commit and re-lock tasks to reduce how long we hold locks...
+        dbhandle.commit()
+
         # now update fields
 
         for field in job_updates.keys():
+            if len(tids_wanted) == 0:
+                tl2 = []
+            else:
+                tl2 = (dbhandle.query(Task)
+                       .filter(Task.task_id.in_(tids_wanted))
+                       .with_for_update(of=Task, read=True)
+                       .order_by(Task.task_id)
+                       .all())
+
             for value in job_updates[field].keys():
                 if not value: # don't clear things cause we didn't get data
                     continue
@@ -313,6 +325,9 @@ class JobsPOMS(object):
                     (dbhandle.query(Job)
                      .filter(Job.jobsub_job_id.in_(job_updates[field][value]))
                      .update({field: value}, synchronize_session=False))
+
+            dbhandle.commit()
+
 
         task_ids = set()
         task_ids.update([int(x) for x in jjid2tid.values()])
@@ -330,6 +345,16 @@ class JobsPOMS(object):
                             .all())
 
         logit.log(" bulk_update_job: ldata6")
+
+        # lock again -- long lock hold split
+        if len(tids_wanted) == 0:
+            tl2 = []
+        else:
+            tl2 = (dbhandle.query(Task)
+                   .filter(Task.task_id.in_(tids_wanted))
+                   .with_for_update(of=Task, read=True)
+                   .order_by(Task.task_id)
+                   .all())
 
         for field in task_updates.keys():
             for value in task_updates[field].keys():
@@ -390,6 +415,7 @@ class JobsPOMS(object):
                 # jobs make inactive campaigns active again...
                 if t.campaign_obj.active is not True:
                     t.campaign_obj.active = True
+
         dbhandle.commit()
 
         #
@@ -740,6 +766,8 @@ class JobsPOMS(object):
                 "group": group,
                 "experimenter":  st.experimenter_creator_obj.username
                 }
+
+            launch_setup = launch_setup.replace("\n",";")
 
             cmd = """
                 exec 2>&1

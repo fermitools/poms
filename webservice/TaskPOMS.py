@@ -86,7 +86,7 @@ class TaskPOMS:
         # make jobs which completed with no *undeclared* output files have status "Located".
         #
         # lock Jobs in order first
-        dbhandle.query(Job.job_id).filter(Job.status == 'Completed').with_for_update().order_by(Job.jobsub_job_id).all()
+        dbhandle.query(Job.job_id).filter(Job.status == 'Completed').with_for_update(read=True).order_by(Job.jobsub_job_id).all()
 
         t = text("""update jobs set status = 'Located'
             where status = 'Completed'
@@ -131,7 +131,7 @@ class TaskPOMS:
         if len(need_joblogs) > 0:
             for i in range(4):
                 try:
-                    q = dbhandle.query(Task.task_id).filter(Task.task_id.in_(need_joblogs)).with_for_update().order_by(Task.task_id)
+                    q = dbhandle.query(Task.task_id).filter(Task.task_id.in_(need_joblogs)).with_for_update(read=True).order_by(Task.task_id)
                     q.all()
                     break
                 except QueryCanceledError:
@@ -185,10 +185,10 @@ class TaskPOMS:
 
         if len(mark_located) > 0:
             # lock tasks, jobs in order so we can update them
-            dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all()
+            dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update(read=True).order_by(Task.task_id).all()
             #
             # why mark the jobs? just fix the tasks!
-            #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all();
+            #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update(read=True).order_by(Job.jobsub_job_id).all();
             #q = dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located','output_files_declared':True}, synchronize_session=False)
             q = dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
         dbhandle.commit()
@@ -223,13 +223,13 @@ class TaskPOMS:
         if len(mark_located) > 0:
             dbhandle.query(Task.task_id).filter(Task.task_id.in_(mark_located)).with_for_update().order_by(Task.task_id).all()
             # why mark the jobs? just fix the tasks!
-            #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update().order_by(Job.jobsub_job_id).all()
+            #dbhandle.query(Job.job_id).filter(Job.task_id.in_(mark_located)).with_for_update(read=True).order_by(Job.jobsub_job_id).all()
             #dbhandle.query(Job).filter(Job.task_id.in_(mark_located)).update({'status':'Located', 'output_files_declared':True}, synchronize_session=False)
             dbhandle.query(Task).filter(Task.task_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
 
         dbhandle.commit()
 
-        for task in (dbhandle.query(Task).with_for_update(Task)
+        for task in (dbhandle.query(Task).with_for_update(of=Task,read=True)
                      .join(CampaignSnapshot, Task.campaign_snapshot_id == CampaignSnapshot.campaign_snapshot_id)
                      .filter(Task.status == "Completed")
                      .filter(CampaignSnapshot.completion_type == "located").order_by(Task.task_id).all()):
@@ -275,7 +275,7 @@ class TaskPOMS:
                     finish_up_tasks.append(task.task_id)
 
         if len(finish_up_tasks) > 0:
-            dbhandle.query(Job.job_id).filter(Job.task_id.in_(finish_up_tasks)).with_for_update().order_by(Job.jobsub_job_id).all()
+            dbhandle.query(Job.job_id).filter(Job.task_id.in_(finish_up_tasks)).with_for_update(read=True).order_by(Job.jobsub_job_id).all()
             q = dbhandle.query(Task).filter(Task.task_id.in_(finish_up_tasks)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
         dbhandle.commit()
 
@@ -379,7 +379,7 @@ class TaskPOMS:
 ###
 #No expose methods.
     def compute_status(self, dbhandle, task):
-        st = self.poms_service.triagePOMS.job_counts(dbhandle, task_id=task.task_id)
+        st = self.poms_service.triagePOMS.job_counts_uncached(dbhandle, task_id=task.task_id)
 
         logit.log("in compute_status, counts are %s" % repr(st))
 
@@ -509,7 +509,7 @@ class TaskPOMS:
         for cd in cdlist:
             if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
                 # self-reference, just do a normal launch
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator)
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, test_launch = t.task_parameters.get('test',false))
             else:
                 i = i + 1
                 if cd.file_patterns.find(' '):
@@ -522,9 +522,13 @@ class TaskPOMS:
                 dname = "poms_depends_%d_%d" % (t.task_id, i)
 
                 samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override=dname)
-        return 1
+                if isinstance(t.task_parameters, dict):
+                    test_launch = t.task_parameters.get('test_launch',False)
+                else:
+                    test_launch = False
 
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override = dname, test_launch = test_launch )
+        return 1
 
     def launch_recovery_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  t):
         logit.log("Entering launch_recovery_if_needed(%s)" % t.task_id)
@@ -594,7 +598,7 @@ class TaskPOMS:
 
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
                                  err_res, t.campaign_snap_obj.campaign_id, t.creator,  dataset_override=rname,
-                                 parent_task_id=t.task_id, param_overrides=param_overrides)
+                                 parent_task_id=t.task_id, param_overrides=param_overrides, test_launch = t.task_parameters.get('test_launch',false))
                 return 1
 
         return 0
@@ -603,7 +607,7 @@ class TaskPOMS:
         if hold not in ["hold", "allowed"]:
             return
 
-        s = dbhandle.query(Service).with_for_update().filter(Service.name == "job_launches").first()
+        s = dbhandle.query(Service).with_for_update(read=True).filter(Service.name == "job_launches").first()
         s.status = hold
         dbhandle.commit()
 
@@ -615,7 +619,7 @@ class TaskPOMS:
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
-        hl = dbhandle.query(HeldLaunch).with_for_update().order_by(HeldLaunch.created).first()
+        hl = dbhandle.query(HeldLaunch).with_for_update(read=True).order_by(HeldLaunch.created).first()
         launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == hl.launcher).first()
         if hl:
             dbhandle.delete(hl)
@@ -634,7 +638,7 @@ class TaskPOMS:
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
                     err_res, campaign_id, launcher, dataset_override=None, parent_task_id=None,
-                    param_overrides=None, test_launch_template=None, experiment=None):
+                    param_overrides=None, test_launch_template=None, experiment=None, test_launch = False):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_id, dataset_override, parent_task_id))
 
@@ -698,6 +702,7 @@ class TaskPOMS:
             # allocate task to set ownership
             tid = self.get_task_id_for(dbhandle, campaign_id, user=launcher_experimenter.username, experiment=experiment, parent_task_id=parent_task_id)
 
+
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
             exp = c.experiment
@@ -706,8 +711,17 @@ class TaskPOMS:
             cid = c.campaign_id
             cdid = c.campaign_definition_id
             definition_parameters = cd.definition_parameters
+
             c_param_overrides = c.param_overrides
 
+            # if it is a test launch, add in the test param overrides
+            # and flag the task as a test (secretly relies on poms_client
+            # v3_0_0) 
+
+            if test_launch:
+               dbhandle.query(Task).filter(Task.task_id == tid).update({Task.task_parameters: {'test':1}});
+               c_param_overrides.update(c.test_param_overrides);
+         
         if not e and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
             err_res = "404 Permission Denied."
@@ -811,5 +825,6 @@ class TaskPOMS:
         lf.close()
         dn.close()
         pp.wait()
+
 
         return lcmd, c, campaign_id, outdir, outfile

@@ -103,6 +103,22 @@ gui_editor.instance_list = [];
 
 /* static methods */
 
+gui_editor.modified = function() {
+   /* we really ought to have a savebusy per instance, and make it a class but... */
+   var sb = document.getElementById("savebusy")
+   sb.innerHTML="Modified"
+
+   window.onbeforeunload = function(e) {
+      var msg ="Workflow has been changed, but not saved.  Are you sure you want to leave?";
+      e.returnValue = msg;
+      return msg;
+   }
+}
+gui_editor.unmodified = function() {
+   /* we really ought to have a savebusy per instance, and make it a class but... */
+
+   window.onbeforeunload = undefined
+}
 
 /* redraw all dependencies 'cause something moved */
 /*  this is where we actually use the instance list */
@@ -115,6 +131,7 @@ gui_editor.redraw_all_deps = function() {
 
 /* make form visible/invisible, save on invis */
 gui_editor.toggle_form = function(id) {
+    gui_editor.modified()
     var e = document.getElementById(id);
     if (e && e.style.display == 'block') {
         if (e.parentNode && e.parentNode.gui_box) {
@@ -222,6 +239,7 @@ gui_editor.delete_me = function(id) {
 }
 
 gui_editor.newstage = function(id) {
+   gui_editor.modified()
    var e = document.getElementById(id)
    if (e == null){  
        alert("cannot find: " + id)
@@ -230,6 +248,7 @@ gui_editor.newstage = function(id) {
 }
 
 gui_editor.makedep = function(id) {
+   gui_editor.modified()
    var e = document.getElementById(id)
    if (e == null){  
        alert("cannot find: " + id)
@@ -258,7 +277,8 @@ gui_editor.new_name = function(before, from, to) {
 
 
 /* rename stages for a workflow clone */
-gui_editor.prototype.clone_rename = function(from, to, experiment) {
+gui_editor.prototype.clone_rename = function(from, to, experiment, role) {
+    console.log(["clone_rename:",from, to, experiment, role ])
     var sl, i, j, before, after, jstr, newsl; 
     sl = this.state['campaign']['campaign_stage_list'].split(/  */);
     console.log(["clone_rename: stage list", sl])
@@ -267,6 +287,10 @@ gui_editor.prototype.clone_rename = function(from, to, experiment) {
     if (experiment != undefined) {
         this.state['campaign']['experiment'] = experiment
     }
+    if (role != undefined) {
+        this.state['campaign']['poms_role'] = role
+    }
+    console.log(["clone_rename: campaign fields", this.state['campaign']])
     for (i in sl) {
          before = sl[i];
          console.log("fixing: " + before)
@@ -322,9 +346,9 @@ gui_editor.prototype.fix_dependencies = function(before, after) {
 /*
  * set the gui state from an ini-format dump
  */
-gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment) {
+gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment, role) {
     this.state = JSON.parse(this.ini2json(ini_dump));
-    this.clone_rename(from, to, experiment);
+    this.clone_rename(from, to, experiment, role);
     this.defaultify_state();
     this.draw_state()
 }
@@ -582,7 +606,7 @@ gui_editor.prototype.draw_state = function () {
    this.tsort(stagelist)
 
    cb = new label_box("Campaign: " + this.state['campaign']['tag'], this.div, x, y)
-   cb.innerHTML += '<button type="button" onclick="gui_editor.save(\'' + this.div.id + '\')">Save</button>';
+   cb.innerHTML += '<button type="button" onclick="gui_editor.save(\'' + this.div.id + '\')">Save</button> <span id="savebusy"></span>';
 
    y = y + 2 * labely
 
@@ -738,7 +762,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
            placeholder="";
        }
        res.push('<label>' + k + '</label> <input id="' + this.get_input_tag(k) + '" value="' + this.escape_quotes(val) + '" placeholder="'+placeholder+'">');
-       if (k.indexOf('param')==0 ) { 
+       if (k.indexOf('param_')>=0 ) { 
            res.push('<button type="button" onclick="json_field_editor.start(\'' + this.get_input_tag(k) + '\')">Edit</button>')
        }
        res.push('<br>')
@@ -1017,10 +1041,22 @@ gui_editor.prototype.new_dependency = function() {
 }
 
 gui_editor.prototype.save_state = function() {
-   var wu = new wf_uploader()
-   this.undefaultify_state()
-   wu.upload(this.state)
-   this.defaultify_state()
+   var sb = document.getElementById("savebusy")
+   sb.innerHTML="Saving..."
+   var thisx = this
+   /* call with setTimeout to give Saving a chance to show up */
+   window.setTimeout(function() {
+       var wu = new wf_uploader()
+       console.log(["wu",wu])
+       thisx.undefaultify_state()
+       wu.upload(thisx.state, function() {
+           /* callback for when whole upload is done.. */
+           console.log("finally done uploading, whew")
+           thisx.defaultify_state()
+           sb.innerHTML="Done."
+           gui_editor.unmodified()
+       });
+   },5);
 }
 
 
@@ -1033,44 +1069,84 @@ function wf_uploader() {
     this.cfg = null;
 }
  
-wf_uploader.prototype.upload = function(state) {
+wf_uploader.prototype.upload = function(state, completed) {
     this.cfg = state;
-    var headers =this.get_headers()
-    this.username = headers['X-Shib-Userid']
-    this.experiment = state['campaign']['experiment']
-    var role = state['campaign']['poms_role'];
-    this.update_session_role(role);
-    var cfg_stages = this.cfg['campaign']['campaign_stage_list'].split(' ');
-    var cfg_jobtypes = {};
-    var cfg_launches = {};
-    var i, l, jt, s;
-    this.cname_id_map = this.get_campaign_list();
-    for( i in cfg_stages) {
-        s = cfg_stages[i];
-        cfg_jobtypes[this.cfg['campaign_stage ' +s]['job_type']] = 1
-        cfg_launches[this.cfg['campaign_stage ' +s]['launch_template']] = 1
-    }
-    for(jt in cfg_jobtypes) {
-        this.upload_jobtype(jt)
-    }
+    var thisx = this;
+    this.get_headers(function(headers){
+
+        thisx.username = headers['X-Shib-Userid']
+        if (thisx.username == undefined) {
+           thisx.username = 'mengel';
+        }
+        thisx.experiment = state['campaign']['experiment']
+        var role = state['campaign']['poms_role'];
+        thisx.update_session_role(role);
+        var cfg_stages = thisx.cfg['campaign']['campaign_stage_list'].split(' ');
+        var cfg_jobtypes = {};
+        var cfg_launches = {};
+        var i, l, jt, s;
+        for( i in cfg_stages) {
+            s = cfg_stages[i];
+            if (('campaign_stage '+s) in thisx.cfg) {
+                cfg_launches[thisx.cfg['campaign_stage ' +s]['launch_template']] = 1
+                cfg_jobtypes[thisx.cfg['campaign_stage ' +s]['job_type']] = 1
+            
+            }
+        }
+        for(l in cfg_launches) {
+            thisx.upload_launch_template(l)
+        }
+        for(jt in cfg_jobtypes) {
+            thisx.upload_jobtype(jt)
+        }
+        /* upload3 will call upload_stage which needs the existing stage map
+         * to decide whether to add or edit, so start an async fetch here.
+         */
+        console.log("upload get-headers callback calling get_campaign_list")
+        thisx.get_campaign_list();
+        $(document).ajaxStop(function(){
+           $(document).off("ajaxStop");
+           console.log("calling upload2...")
+           thisx.upload2(state,cfg_stages,completed);
+        });
+    });
+}
+
+wf_uploader.prototype.upload2 = function(state, cfg_stages, completed) {
+    var i, s;
     for( i in cfg_stages) {
         s = cfg_stages[i];
         this.upload_stage(s)
     }
-
-    this.tag_em(this.cfg['campaign']['tag'],cfg_stages);
+    var thisx = this;
+    $(document).ajaxStop(function() {
+       $(document).off("ajaxStop");
+       console.log("calling tage_em...")
+       thisx.tag_em(thisx.cfg['campaign']['tag'], cfg_stages, completed);
+    });
 }
 
-wf_uploader.prototype.tag_em =  function(tag, cfg_stages) {
-    var cids = cfg_stages.map(function(x) {return (x in this.cname_id_map) ? this.cname_id_map[x].toString():''});
+
+wf_uploader.prototype.tag_em =  function(tag, cfg_stages, completed) {
+    var thisx = this;
     /* have to re-fetch the list, if we added any campaigns... */
-    this.cname_id_map = this.get_campaign_list();
-    var args = { 'tag_name': tag, 'campaign_id': cids.join(','), 'experiment': this.cfg['campaign']['experiment'] };
-    this.make_poms_call('link_tags',args);
+    console.log("tag_em calling get_campaign_list")
+    this.get_campaign_list(function(){
+        console.log(["have campaign_id_map",thisx.cname_id_map,"stages:",cfg_stages])
+        var cim = thisx.cname_id_map
+        var cids = cfg_stages.map(function(x) {return (x in cim) ? cim[x].toString():x});
+        console.log(["have campaign_list",thisx.cname_id_map])
+         
+        var args = { 'tag_name': tag, 'campaign_id': cids.join(','), 'experiment': thisx.cfg['campaign']['experiment'] };
+        thisx.make_poms_call('link_tags',args, completed);
+    });
 }
 
 wf_uploader.prototype.upload_jobtype =  function(jt) {
     var field_map, k, d, args;
+    if (!(('job_type ' + jt) in this.cfg)) {
+      return
+    }
     field_map = {
             'launch_script':'ae_launch_script',
             'parameters':'ae_definition_parameters',
@@ -1079,10 +1155,10 @@ wf_uploader.prototype.upload_jobtype =  function(jt) {
     d = this.cfg['job_type ' + jt]
     args = {
         'pcl_call': '1',
-        'pc_username': this.username,
         'action': 'add',
         'ae_definition_name': jt,
         'experiment': this.cfg['campaign']['experiment'],
+        'pc_username': this.username,
     }
     for(k in d) {
          if (k in field_map) {
@@ -1094,9 +1170,11 @@ wf_uploader.prototype.upload_jobtype =  function(jt) {
      /* there are separate add/update calls; just do both, if it
       * exists already, the first will fail.. 
       */
-    this.make_poms_call('campaign_definition_edit', args)
-    args['action'] = 'edit'
-    this.make_poms_call('campaign_definition_edit', args)
+    var thisx = this;
+    this.make_poms_call('campaign_definition_edit', args, function() {
+        args['action'] = 'edit'
+        thisx.make_poms_call('campaign_definition_edit', args, null)
+   });
 }
 
 wf_uploader.prototype.upload_launch_template =  function(l) {
@@ -1106,6 +1184,9 @@ wf_uploader.prototype.upload_launch_template =  function(l) {
             'account': 'ae_launch_account',
             'setup': 'ae_launch_setup',
     };
+    if (!(('launch_template ' + l) in this.cfg)) {
+      return
+    }
     d = this.cfg['launch_template ' + l]
     console.log(['d',d])
     args  = {
@@ -1122,9 +1203,11 @@ wf_uploader.prototype.upload_launch_template =  function(l) {
             args[k] = d[k]
          }
      }
-     this.make_poms_call('launch_template_edit', args)
-     args['action'] = 'edit'
-     this.make_poms_call('launch_template_edit', args)
+     var thisx = this;
+     this.make_poms_call('launch_template_edit', args, function() {
+         args['action'] = 'edit';
+         thisx.make_poms_call('launch_template_edit', args);
+     });
 }
 
 wf_uploader.prototype.upload_stage =  function(st) {
@@ -1169,30 +1252,38 @@ wf_uploader.prototype.upload_stage =  function(st) {
      this.make_poms_call('campaign_edit', args)
 }
 
-wf_uploader.prototype.get_campaign_list = function() {
-     var x, res, i, pair;
-     x =  this.make_poms_call('campaign_list_json', {})
-     res = {}
-     for( i in x) {
-         pair = x[i];
-         if (pair.experiment == this.experiment) {
-             res[pair.name] = pair.campaign_id;
+wf_uploader.prototype.get_campaign_list = function(completed) {
+     var x, res, i, triple;
+     var thisx = this;
+     this.make_poms_call('campaign_list_json', {}, function(x){
+         res = {}
+         console.log(["back from campaign_list_json, x is", x]);
+         for( i in x) {
+             triple = x[i]
+             if (triple.experiment == thisx.experiment) {
+                 res[triple.name] = triple.campaign_id;
+             }
          }
-     }
-     return res;
+         thisx.cname_id_map = res;
+         console.log(["back from get_campaign_list, cname_id_map", res]);
+         if ( completed ) {
+             completed(res);
+         }
+     });
 }
 
 wf_uploader.prototype.update_session_role = function(role) {
      return this.make_poms_call('update_session_role', {'session_role': role})
 }
 
-wf_uploader.prototype.get_headers= function() {
-    var s = this.make_poms_call('headers', {});
-    s = s.replace(/\'/g,'"')
-    return JSON.parse(s);
+wf_uploader.prototype.get_headers= function(after) {
+    this.make_poms_call('headers', {}, function(s){
+        s = s.replace(/\'/g,'"')
+        after(JSON.parse(s));
+    });
 }
 
-wf_uploader.prototype.make_poms_call = function(name, args) {
+wf_uploader.prototype.make_poms_call = function(name, args, completed) {
      var k, res;
      var base = mwm_utils.getBaseURL()
      console.log(['make_poms_call',name,args])
@@ -1206,8 +1297,10 @@ wf_uploader.prototype.make_poms_call = function(name, args) {
         data: args,
         method: args ? 'POST':'GET',
         success: function(result) {
-            res = result;
-        }, 
+            if( completed ) {
+                completed(result);
+            }
+         },
         error: function(result) {
             var p, resp;
             p = result.responseText.indexOf('>Traceback');
@@ -1224,7 +1317,7 @@ wf_uploader.prototype.make_poms_call = function(name, args) {
             }
             console.log(resp);
         },
-        async: false
+        async: true,
      });
      return res;
 }

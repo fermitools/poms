@@ -5,9 +5,17 @@ function json_field_editor() {
   ;
 }
 json_field_editor.start = function(id) {
-    var e, r,v, res, i, j, fid, istr, k;
+    var e, r,v, res, i, j, fid, istr, k, e_text;
+    var hang_onto;
     e = document.getElementById(id);
-    r = e.getBoundingClientRect();
+    e_text = document.getElementById(id+'_text');
+    if (e_text) {
+        r = e_text.getBoundingClientRect();
+        hang_onto = e_text.parentNode
+    } else {
+        r = e.getBoundingClientRect();
+        hang_onto = e.parentNode
+    }
     v = e.value;
     if ('' == v || '[]' == v) {
         j = [['','']]
@@ -17,12 +25,13 @@ json_field_editor.start = function(id) {
     fid = 'edit_form_'+id;
     res = [];
     res.push('<input type="hidden" id="'+fid+'_count" value="'+j.length.toString()+'">');
-    res.push('<table>');
+    res.push('<h3 style="margin-top: 0">Param Editor</h3>')
+    res.push('<table style="border-spacing: 5px; border-collapse: separate; borer: 1px solid gray;">');
     res.push('<thead>');
     res.push('<tr>');
-    res.push('<td>Key <a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Key" class="helpbutton">?</a></td>');
-    res.push('<td>&nbsp;<a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Space" class="helpbutton">?</a></td>');
-    res.push('<td>Value <a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Value" class="helpbutton">?</a></td>');
+    res.push('<td>Key <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Key"><i class="icon help circle link"></i></a></td>');
+    res.push('<td>Space<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Space"><i class="icon help circle link"></i></a></td>');
+    res.push('<td>Value <a htarget="_blank" ref="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Value"><i class="icon help circle link"></i></a></td>');
     res.push('<td>&nbsp;</td>');
     res.push('</tr>');
     res.push('</thead>');
@@ -36,15 +45,18 @@ json_field_editor.start = function(id) {
     }
     res.push('</tbody>');
     res.push('</table>');
-    res.push('<button type="button" onclick="json_field_editor.cancel(\''+fid+'\')" >Cancel</button>');
-    res.push('<button type="button" onclick="json_field_editor.save(\''+fid+'\')" >Accept</button>');
+    res.push('&nbsp;&nbsp;&nbsp;');
+    res.push('<button type="button" class="ui button deny red" onclick="json_field_editor.cancel(\''+fid+'\')" >Cancel</button>');
+    res.push('<button type="button" class="ui button approve teal" onclick="json_field_editor.save(\''+fid+'\')" >Accept</button>');
     var myform =  document.createElement("FORM");
     myform.className = "popup_form_json "
     myform.style.top = r.bottom
     myform.style.right = r.right
+    myform.style.position = 'absolute'
     myform.id = fid
     myform.innerHTML += res.join('\n');
-    gui_editor.body.appendChild(myform)
+    hang_onto.style.position = 'relative';
+    hang_onto.appendChild(myform)
 }
 
 /*
@@ -65,19 +77,19 @@ json_field_editor.addrow= function(res, fid, i, k, v) {
             ws = ''
         }
         res.push('<td><input id="'+fid+'_k_'+istr+'" value="'+k+'"></td>');
-        res.push('<td><input type="checkbox" id="'+fid+'_ws_'+istr+'" '+ws+' value=" "></td>')
+        res.push('<td><input style="padding: auto; width: 4em;" type="checkbox" id="'+fid+'_ws_'+istr+'" '+ws+' value=" "></td>')
 
         res.push('<td><input id="'+fid+'_v_'+istr+'" value="'+v+'"></td>');
         res.push('<td>');
-        res.push('<button type="button" onclick="json_field_editor.plus(\''+ fid+'\','+istr+')" >+</button>');
-        res.push('<button type="button" onclick="json_field_editor.minus(\''+ fid+'\','+istr+')" >-</button>');
-        res.push('<button type="button" onclick="json_field_editor.up(\''+ fid+'\','+istr+')" >↑</button>');
-        res.push('<button type="button" onclick="json_field_editor.down(\''+ fid+'\','+istr+')" >↓</button>');
+        res.push('<i onclick="json_field_editor.plus(\''+ fid+'\','+istr+')" class="blue icon dlink plus square"></i>');
+        res.push('<i onclick="json_field_editor.minus(\''+ fid+'\','+istr+')" class="blue icon dlink minus square"></i>');
+        res.push('<i onclick="json_field_editor.up(\''+ fid+'\','+istr+')" class="blue icon dlink arrow square up"></i>');
+        res.push('<i onclick="json_field_editor.down(\''+ fid+'\','+istr+')" class="blue icon dlink arrow square down"></i>');
 }
 json_field_editor.renumber= function(fid,c) {
     var i;
     var tb = document.getElementById(fid+'_tbody');
-    for(i = 0; i< c; i++ ) {
+    for(i = 0; i < c; i++ ) {
         istr = i.toString()
         tr = tb.children[i]
         tr.children[0].children[0].id = fid+"_k_"+istr
@@ -162,13 +174,20 @@ json_field_editor.save = function(fid) {
     id = fid.replace('edit_form_','')
     dest = document.getElementById(id)
     dest.value = JSON.stringify(res)
+    /* also update xxx_text if there is one */
     console.log(["updating", id, dest, res])
+    dest = document.getElementById(id+'_text')
+    if (dest) {
+        dest.value = JSON.stringify(res)
+        console.log(["also updating", id+'_text', dest, res])
+    }
     json_field_editor.cancel(fid)
 }
+
 json_field_editor.cancel= function(fid) {
     /*
      * delete the form
      */
     var e = document.getElementById(fid);
-    gui_editor.body.removeChild(e)
+    e.parentNode.removeChild(e)
 }

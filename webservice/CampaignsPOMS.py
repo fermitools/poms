@@ -91,8 +91,13 @@ class CampaignsPOMS:
                 if isinstance(ae_launch_name, str):
                     ae_launch_name = ae_launch_name.strip()
                 name = ae_launch_name
-                experimenter_id = dbhandle.query(Experimenter).filter(
-                    Experimenter.username == pc_username).first().experimenter_id
+                experimenter = dbhandle.query(Experimenter).filter(
+                    Experimenter.username == pc_username).first()
+                if experimenter:
+                    experimenter_id = experimenter.experimenter_id
+                else:
+                    experimenter_id = 0
+
                 if action == 'edit':
                     ae_launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment == exp).filter(
                         LaunchTemplate.name == name).first().launch_id
@@ -238,8 +243,13 @@ class CampaignsPOMS:
                 name = kwargs.pop('ae_definition_name')
                 if isinstance(name, str):
                     name = name.strip()
-                experimenter_id = dbhandle.query(Experimenter).filter(
-                    Experimenter.username == pc_username).first().experimenter_id
+
+                experimenter = dbhandle.query(Experimenter).filter( Experimenter.username == pc_username).first()
+                if experimenter:
+                    experimenter_id = experimenter.experimenter_id
+                else:
+                    experimenter_id = 0
+
                 if action == 'edit':
                     campaign_definition_id = dbhandle.query(CampaignDefinition).filter(
                         CampaignDefinition.name == name).first().campaign_definition_id  # Check here!
@@ -477,6 +487,10 @@ class CampaignsPOMS:
             if param_overrides:
                 param_overrides = json.loads(param_overrides)
 
+            test_param_overrides = kwargs.pop('ae_test_param_overrides', "[]")
+            if test_param_overrides:
+                test_param_overrides = json.loads(test_param_overrides)
+
             if pcl_call == 1:
                 launch_name = kwargs.pop('ae_launch_name')
                 if isinstance(launch_name, str):
@@ -485,8 +499,14 @@ class CampaignsPOMS:
                 if isinstance(campaign_definition_name, str):
                     campaign_definition_name = campaign_definition_name.strip()
                 # all this variables depend on the arguments passed.
-                experimenter_id = dbhandle.query(Experimenter).filter(
-                    Experimenter.username == pc_username).first().experimenter_id
+                experimenter = dbhandle.query(Experimenter).filter(
+                    Experimenter.username == pc_username).first()
+
+                if experimenter:
+                    experimenter_id = experimenter.experimenter_id
+                else:
+                    experimenter_id = 0
+
                 launch_id = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.experiment == exp).filter(
                     LaunchTemplate.name == launch_name).first().launch_id
                 campaign_definition_id = dbhandle.query(CampaignDefinition).filter(
@@ -515,6 +535,7 @@ class CampaignsPOMS:
                         c = Campaign(name=name, experiment=exp, vo_role=vo_role,
                                      active=active, cs_split_type=split_type,
                                      software_version=software_version, dataset=dataset,
+                                     test_param_overrides = test_param_overrides,
                                      param_overrides=param_overrides, launch_id=launch_id,
                                      campaign_definition_id=campaign_definition_id,
                                      completion_type=completion_type, completion_pct=completion_pct,
@@ -532,6 +553,7 @@ class CampaignsPOMS:
                         "software_version": software_version,
                         "dataset": dataset,
                         "param_overrides": param_overrides,
+                        "test_param_overrides": test_param_overrides,
                         "campaign_definition_id": campaign_definition_id,
                         "launch_id": launch_id,
                         "updated": datetime.now(utc),
@@ -568,6 +590,9 @@ class CampaignsPOMS:
             state = kwargs.pop('state', None)
             if state is None:
                 state = sesshandle.get('campaign_edit.state', 'state_active')
+
+            jumpto = kwargs.pop('jump_to_campaign', None)
+                
             sesshandle['campaign_edit.state'] = state
             data['state'] = state
             data['curr_experiment'] = exp
@@ -580,6 +605,16 @@ class CampaignsPOMS:
                 cquery = cquery.order_by(Campaign.name)
             if role in ('analysis', 'production'):
                 cquery = cquery.filter(Campaign.creator_role == role)
+            # this bit has to go onto cquery last 
+            # -- make sure if we're jumping to a given campaign id 
+            # that we *have* it in the list...
+            if jumpto != None:
+                c2 = dbhandle.query(Campaign).filter(Campaign.campaign_id == jumpto)
+                # we have to use union_all() and not union()to avoid 
+                # postgres whining about not knowing how to compare JSON 
+                # fields... sigh.  (It could just string compare them...) 
+                cquery = c2.union_all(cquery)
+
             data['campaigns'] = cquery
             data['definitions'] = dbhandle.query(CampaignDefinition).filter(
                 CampaignDefinition.experiment == exp).order_by(CampaignDefinition.name)
@@ -665,8 +700,24 @@ class CampaignsPOMS:
         dbhandle.commit()
         return "Task=%d" % t.task_id
 
-    def campaign_deps_ini(self, dbhandle, config_get, tag=None, camp_id=None):
+    def campaign_deps_ini(self, dbhandle, config_get, session_experiment, tag=None, camp_id=None, launch_template=None, campaign_definition=None):
         res = []
+        cl = []
+        jts = set()
+        lts = set()
+
+        if campaign_definition is not None:
+           res.append("# with job_type %s" % campaign_definition)
+           cd = dbhandle.query(CampaignDefinition).filter(CampaignDefinition.name == campaign_definition, CampaignDefinition.experiment==session_experiment).first()
+           if cd:
+               jts.add(cd)
+
+        if launch_template is not None:
+           res.append("# with launch_template: %s" % launch_template)
+           lt = dbhandle.query(LaunchTemplate).filter(LaunchTemplate.name == launch_template, LaunchTemplate.experiment==session_experiment).first()
+           if lt:
+               lts.add(lt)
+
         if tag is not None:
             cl = dbhandle.query(Campaign).join(CampaignsTags, Tag).filter(Tag.tag_name == tag,
                                                                           CampaignsTags.tag_id == Tag.tag_id,
@@ -706,19 +757,18 @@ class CampaignsPOMS:
                 if cidl.index(dcid) < cidl.index(cid):
                     cidl[cidl.index(dcid)],cidl[cidl.index(cid)] = cidl[cidl.index(cid)],cidl[cidl.index(dcid)]
 
-        res.append("[campaign]")
-        res.append("experiment=%s" % cl[0].experiment)
-        res.append("poms_role=%s" % cl[0].creator_role)
-        if tag == None:
-            res.append("stage_id: %s" % camp_id)
-        else:
-            res.append("tag: %s" % tag)
+        if len(cl):
+            res.append("[campaign]")
+            res.append("experiment=%s" % cl[0].experiment)
+            res.append("poms_role=%s" % cl[0].creator_role)
+            if tag == None:
+                res.append("stage_id: %s" % camp_id)
+            else:
+                res.append("tag: %s" % tag)
 
-        jts = set()
-        lts = set()
 
-        res.append("campaign_stage_list=%s" % " ".join(map(cnames.get,cidl)))
-        res.append("")
+            res.append("campaign_stage_list=%s" % " ".join(map(cnames.get,cidl)))
+            res.append("")
 
         for c in cl:
             res.append("[campaign_stage %s]" % c.name)
@@ -727,11 +777,11 @@ class CampaignsPOMS:
             res.append("vo_role=%s" % c.vo_role)
             res.append("cs_split_type=%s" % c.cs_split_type)
             res.append("job_type=%s" % c.campaign_definition_obj.name)
-            res.append("param_overrides=%s" % json.dumps(c.param_overrides))
+            res.append("param_overrides=%s" % json.dumps(c.param_overrides or []))
+            res.append("test_param_overrides=%s" % json.dumps(c.test_param_overrides or []))
             res.append("completion_type=%s" % c.completion_type)
             res.append("completion_pct=%s" % c.completion_pct)
             res.append("launch_template=%s" % c.launch_template_obj.name)
-            res.append("campaign_definition=%s" % c.campaign_definition_obj.name)
             jts.add(c.campaign_definition_obj)
             lts.add(c.launch_template_obj)
             res.append("")

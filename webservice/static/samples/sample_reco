@@ -38,4 +38,5 @@ setup=export X509_USER_PROXY=/opt/%{experiment}pro/%{experiment}pro.Production.p
 [job_type generic_fife_process]
 launch_script=fife_launch -c $FIFE_UTILS_DIR/cfg/generic.cfg
 output_file_patterns=%%.root
+parameters=[]
 

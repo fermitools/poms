@@ -68,7 +68,7 @@ div.box.selected {
 }
 
 
-.popup_form, .popup_form_json { 
+.popup_form { 
     display: block;
     background-color: white;
     position: absolute;
@@ -80,8 +80,14 @@ div.box.selected {
     margin: 2px;
     padding: 1em;
     opacity: 1;
-    width: 30em;
+    width: 40em;
 }
+
+.helpbutton:before {
+    content: "\f059";
+    font-amily: "Icons";
+}
+
 
 .popup_form h3 {
    width: 100%;
