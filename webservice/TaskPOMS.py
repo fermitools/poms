@@ -718,10 +718,6 @@ class TaskPOMS:
             # and flag the task as a test (secretly relies on poms_client
             # v3_0_0) 
 
-            if test_launch:
-               dbhandle.query(Task).filter(Task.task_id == tid).update({Task.task_parameters: {'test':1}});
-               c_param_overrides.update(c.test_param_overrides);
-         
         if not e and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
             err_res = "404 Permission Denied."
@@ -795,6 +791,10 @@ class TaskPOMS:
                 params.update(json.loads(c_param_overrides))
             else:
                 params.update(c_param_overrides)
+
+        if test_launch and c.test_param_overrides is not None:
+           dbhandle.query(Task).filter(Task.task_id == tid).update({Task.task_parameters: {'test':1}});
+           params.update(c.test_param_overrides);
 
         if param_overrides is not None and param_overrides != "":
             if isinstance(param_overrides, str):
