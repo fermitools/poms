@@ -379,7 +379,7 @@ class TaskPOMS:
 ###
 #No expose methods.
     def compute_status(self, dbhandle, task):
-        st = self.poms_service.triagePOMS.job_counts(dbhandle, task_id=task.task_id)
+        st = self.poms_service.triagePOMS.job_counts_uncached(dbhandle, task_id=task.task_id)
 
         logit.log("in compute_status, counts are %s" % repr(st))
 
