@@ -299,17 +299,18 @@ def make_poms_call(**kwargs):
     config.read(cfgfile)
     method = kwargs.get("method")
     del kwargs["method"]
-    test_client=kwargs.get("test_client")
 
     if kwargs.get("test", None) and not kwargs.get("test_client"):
         kwargs["test_client"] = kwargs["test"]
         del kwargs["test"]
 
+    test_client=kwargs.get("test_client")
+
     if test_client:
-        if test_client == "dev" || test_client == True:
-            base=config.get('url','base_dev_ssl')
-        elif test_client == "int":
+        if test_client == "int":
             base=config.get('url','base_int_ssl')
+        else:
+            base=config.get('url','base_dev_ssl')
 
         logging.debug("base = " + base)
         del kwargs["test_client"]

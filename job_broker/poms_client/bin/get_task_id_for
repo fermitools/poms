@@ -3,6 +3,7 @@
 from poms_client import get_task_id_for,update_session_role
 import optparse
 import os
+import logging
 
 parser = optparse.OptionParser(usage="usage: %prog [options] \n get a task id")
 parser.add_option('--campaign', help="campaign name or id", default = None)
@@ -12,14 +13,18 @@ parser.add_option('--command_executed',  help="command name for job", default = 
 parser.add_option('--input_dataset',  help="dataset name for job", default = None)
 parser.add_option('--parent_task_id',  help="parent task id, if any", default = None)
 parser.add_option('--task_id',  help="task_id if we are updating it not just getting it", default = None)
-arser.add_option('--test',  help="use test server", default = None)
-parser.add_option('--dev', action='store_const', const='dev', dest='test' metavar='', type=str, help='use the dev/test instance of POMS', default = False)
-parser.add_option('--int', action='store_const', const='int', dest='test' metavar='', type=str, help='use the int/integration instance of POMS')
-parser.add_option('--poms_role', type=str, help='use to test the client URL query')
+parser.add_option('--verbose', action='store_true', help="be verbose", default = None)
+parser.add_option('--test',  help="use test server", default = None)
+parser.add_option('--dev', action='store_const', const='dev', dest='test', metavar='', help='use the dev/test instance of POMS', default = False)
+parser.add_option('--int', action='store_const', const='int', dest='test', metavar='', help='use the int/integration instance of POMS')
+parser.add_option('--poms_role', type=str, help='use to test the client URL query', default='production')
 
 (options, args ) = parser.parse_args()
 
-update_session_role(args.poms_role)
+if options.verbose:
+    logging.getLogger().setLevel(logging.DEBUG)
+
+update_session_role(options.poms_role)
 res = get_task_id_for(campaign = options.campaign, 
 	user = options.user,
 	experiment = options.experiment,
