@@ -20,6 +20,8 @@ parser.add_argument('--launch_script', metavar='the setup you do at your interac
 parser.add_argument('--def_parameter', metavar='parameters pass to the launch_script', type=str, nargs='*', help='The arguments your script (included in Launch script) use for the submission')
 parser.add_argument('--test_client', metavar='want to test the client URL query', type=str, help='use to test the client URL query', default = False)
 parser.add_argument('--poms_role', type=str, help='use to test the client URL query', default = 'production')
+parser.add_argument('--dev', action='store_const', const='dev', dest='test_client' metavar='', type=str, help='use the dev/test instance of POMS')
+parser.add_argument('--int', action='store_const', const='int', dest='test_client' metavar='', type=str, help='use the int/integration instance of POMS')
 args = parser.parse_args()
 if args.verbose:
     logging.getLogger().setLevel(logging.DEBUG)

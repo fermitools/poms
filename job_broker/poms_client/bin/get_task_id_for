@@ -12,8 +12,10 @@ parser.add_option('--command_executed',  help="command name for job", default = 
 parser.add_option('--input_dataset',  help="dataset name for job", default = None)
 parser.add_option('--parent_task_id',  help="parent task id, if any", default = None)
 parser.add_option('--task_id',  help="task_id if we are updating it not just getting it", default = None)
-parser.add_option('--test',  help="dataset name for job", default = None)
-parser.add_argument('--poms_role', type=str, help='use to test the client URL query', default = 'production')
+arser.add_option('--test',  help="use test server", default = None)
+parser.add_option('--dev', action='store_const', const='dev', dest='test' metavar='', type=str, help='use the dev/test instance of POMS', default = False)
+parser.add_option('--int', action='store_const', const='int', dest='test' metavar='', type=str, help='use the int/integration instance of POMS')
+parser.add_option('--poms_role', type=str, help='use to test the client URL query')
 
 (options, args ) = parser.parse_args()
 

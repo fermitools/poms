@@ -145,14 +145,15 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
 
     parser = argparse.ArgumentParser(description='Optional arguments edit campaign')
-    parser.add_argument('--test', type=bool, help='use test POMS ', default = 'False')
+    parser.add_argument('--test', help='use test POMS ', default = None)
     parser.add_argument('--poms_role', type=str, help='set role in poms session', default = 'production')
     parser.add_argument('--action', type=str, help='say whether to "add" new or "edit" (update) existing records', default = 'add')
+    parser.add_argument('--dev', action='store_const', const='dev', dest='test' metavar='', type=str, help='use the dev/test instance of POMS')
+    parser.add_argument('--int', action='store_const', const='int', dest='test' metavar='', type=str, help='use the int/integration instance of POMS')
     args = parser.parse_args()
 
     if args.test:
-        testflag = True
-        sys.argv.pop(1)
+        testflag = args.test
 
     u=uploader(sys.argv[1], args)
     u.upload_wf(testflag, args.action)
