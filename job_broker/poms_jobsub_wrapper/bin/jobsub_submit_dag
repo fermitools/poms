@@ -36,7 +36,7 @@ fi
 
 if [ "x$POMS_TEST" != "x" ]
 then
-    extra="$extra --test=1"
+    extra="$extra --test=POMS_TEST"
 fi
 
 result=`get_task_id_for --command="jobsub_submit $*" --campaign=$POMS_CAMPAIGN_ID $extra`
