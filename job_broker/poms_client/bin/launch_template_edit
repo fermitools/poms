@@ -25,6 +25,8 @@ help='Please provide your user name', default=os.environ.get('GRID_USER',os.envi
 parser.add_argument('--setup', metavar='the setup you do at your interactive node', type=str, nargs='*', help='provide the necessary comands for your submission node e.g. setup_nova', default = None)
 parser.add_argument('--test_client', metavar='want to test the client URL query', type=str, help='use to test the client URL query', default = False)
 parser.add_argument('--poms_role', type=str, help='use to test the client URL query', default = 'production')
+parser.add_argument('--dev', action='store_const', const='dev', dest='test_client' , metavar='',  help='use the dev/test instance of POMS')
+parser.add_argument('--int', action='store_const', const='int', dest='test_client' , metavar='',  help='use the int/integration instance of POMS')
 
 
 args = parser.parse_args()

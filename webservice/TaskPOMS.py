@@ -446,7 +446,7 @@ class TaskPOMS:
                  input_dataset=input_dataset,
                  output_dataset="",
                  status="New",
-                 task_parameters="{}",
+                 task_parameters={},
                  updater=4,
                  creator=4,
                  created=tim,
@@ -509,7 +509,7 @@ class TaskPOMS:
         for cd in cdlist:
             if cd.uses_camp_id == t.campaign_snap_obj.campaign_id:
                 # self-reference, just do a normal launch
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, test_launch = t.task_parameters.get('test',false))
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, test_launch = t.task_parameters.get('test',False))
             else:
                 i = i + 1
                 if cd.file_patterns.find(' '):
@@ -522,10 +522,12 @@ class TaskPOMS:
                 dname = "poms_depends_%d_%d" % (t.task_id, i)
 
                 samhandle.create_definition(t.campaign_snap_obj.experiment, dname, dims)
-                if isinstance(t.task_parameters, dict):
-                    test_launch = t.task_parameters.get('test_launch',False)
+                if t.task_parameters and t.task_parameters.get('test',False):
+                    test_launch = t.task_parameters.get('test',False)
                 else:
                     test_launch = False
+
+                logit.log("About to launch jobs, test_launch = %s" % test_launch)
 
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.uses_camp_id, t.creator, dataset_override = dname, test_launch = test_launch )
         return 1
@@ -702,6 +704,9 @@ class TaskPOMS:
             # allocate task to set ownership
             tid = self.get_task_id_for(dbhandle, campaign_id, user=launcher_experimenter.username, experiment=experiment, parent_task_id=parent_task_id)
 
+            if test_launch: 
+                dbhandle.query(Task).filter(Task.task_id == tid).update({Task.task_parameters: {'test':1}});
+                dbhandle.commit()
 
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
@@ -718,10 +723,6 @@ class TaskPOMS:
             # and flag the task as a test (secretly relies on poms_client
             # v3_0_0) 
 
-            if test_launch:
-               dbhandle.query(Task).filter(Task.task_id == tid).update({Task.task_parameters: {'test':1}});
-               c_param_overrides.update(c.test_param_overrides);
-         
         if not e and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
             err_res = "404 Permission Denied."
@@ -745,6 +746,13 @@ class TaskPOMS:
         group = exp
         if group == 'samdev':
             group = 'fermilab'
+
+        if "poms" in self.poms_service.hostname:
+            poms_test=""
+        elif "fermicloudmwm" in  self.poms_service.hostname:
+            poms_test="int"
+        else:
+            poms_test="1"
 
         cmdl = [
             "exec 2>&1",
@@ -778,7 +786,7 @@ class TaskPOMS:
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "export POMS_TASK_ID=%s" % tid,
             "export POMS_LAUNCHER=%s" % launcher_experimenter.username,
-            "export POMS_TEST=%s" % ("" if "poms" in self.poms_service.hostname else "1"),
+            "export POMS_TEST=%s" % poms_test,
             "export POMS_TASK_DEFINITION_ID=%s" % cdid,
             "export JOBSUB_GROUP=%s" % group,
         ]
@@ -795,6 +803,9 @@ class TaskPOMS:
                 params.update(json.loads(c_param_overrides))
             else:
                 params.update(c_param_overrides)
+
+        if test_launch and c.test_param_overrides is not None:
+           params.update(c.test_param_overrides);
 
         if param_overrides is not None and param_overrides != "":
             if isinstance(param_overrides, str):
