@@ -25,7 +25,7 @@ fi
 
 if [ "x$POMS_TEST" != "x" ]
 then
-    extra="$extra --test=1"
+    extra="$extra --test=$POMS_TEST"
 fi
 
 if [ "x$POMS_PARENT_TASK_ID" != "x" ]
