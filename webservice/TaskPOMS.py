@@ -746,6 +746,13 @@ class TaskPOMS:
         if group == 'samdev':
             group = 'fermilab'
 
+        if "poms" in self.poms_service.hostname:
+            poms_test=""
+        elif "fermicloudmwm" in  self.poms_service.hostname:
+            poms_test="int"
+        else:
+            poms_test="1"
+
         cmdl = [
             "exec 2>&1",
             "set -x",
@@ -778,7 +785,7 @@ class TaskPOMS:
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "export POMS_TASK_ID=%s" % tid,
             "export POMS_LAUNCHER=%s" % launcher_experimenter.username,
-            "export POMS_TEST=%s" % ("" if "poms" in self.poms_service.hostname else "1"),
+            "export POMS_TEST=%s" % poms_test,
             "export POMS_TASK_DEFINITION_ID=%s" % cdid,
             "export JOBSUB_GROUP=%s" % group,
         ]
