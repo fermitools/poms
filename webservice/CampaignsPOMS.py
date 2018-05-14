@@ -23,7 +23,7 @@ import cherrypy
 from crontab import CronTab
 from sqlalchemy import and_, distinct, func, or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, attributes
 
 from . import logit, time_grid
 from .poms_model import (Campaign,
@@ -197,7 +197,7 @@ class CampaignsPOMS:
             This is actually for Landscape to use.
         """
         data = dbhandle.query(Campaign.campaign_id, Campaign.name, Campaign.experiment).all()
-        return [sqlalchemy.orm.attributes.instance_dict(r) for r in data]
+        return [attributes.instance_dict(r) for r in data]
 
     def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
         """
