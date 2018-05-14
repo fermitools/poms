@@ -473,7 +473,7 @@ class CampaignsPOMS:
             name = kwargs.pop('ae_campaign_name')
             if isinstance(name, str):
                 name = name.strip()
-            active = kwargs.pop('ae_active')
+            active = (kwargs.pop('ae_active') in ('True','true','1'))
             split_type = kwargs.pop('ae_split_type', None)
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
