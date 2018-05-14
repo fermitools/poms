@@ -1239,7 +1239,7 @@ wf_uploader.prototype.upload_stage =  function(st) {
             'action': (st in this.cname_id_map)?'edit':'add',
             'ae_campaign_name': st,  
             'experiment': this.cfg['campaign']['experiment'], 
-            'ae_active': true, 
+            'ae_active': 'True', 
             'ae_depends': JSON.stringify(deps),
         }
     for(k in d) {
