@@ -17,7 +17,7 @@ mwm_utils.getSearchParams = function(){
 }
 
 mwm_utils.getBaseURL = function(){
- var p = location.href.replace(/\/poms.*/,'/poms');
+ var p = location.href.replace(/(.*:\/\/[^\/]*\/[^\/]*\/).*/,'$1')
  return p;
 }
 
