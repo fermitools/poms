@@ -762,7 +762,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
            placeholder="";
        }
        res.push('<label>' + k + '</label> <input id="' + this.get_input_tag(k) + '" value="' + this.escape_quotes(val) + '" placeholder="'+placeholder+'">');
-       if (k.indexOf('param_')>=0 ) { 
+       if (k.indexOf('param')>=0 ) { 
            res.push('<button type="button" onclick="json_field_editor.start(\'' + this.get_input_tag(k) + '\')">Edit</button>')
        }
        res.push('<br>')
