@@ -1,0 +1,20 @@
+
+.popup_form_json { 
+    display: block;
+    background-color: white;
+    position: absolute;
+    z-index: 3;
+    left: 0;
+    top: 2em;
+    border: 2px solid black;
+    outline: 2px solid grey;
+    margin: 2px;
+    padding: 1em;
+    opacity: 1;
+    width: 40em;
+}
+
+
+.popup_form_json h3 {
+    margin-top: 0;
+}
