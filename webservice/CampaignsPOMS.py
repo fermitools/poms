@@ -197,7 +197,7 @@ class CampaignsPOMS:
             This is actually for Landscape to use.
         """
         data = dbhandle.query(Campaign.campaign_id, Campaign.name, Campaign.experiment).all()
-        return data
+        return [sqlalchemy.orm.attributes.instance_dict(r) for r in data]
 
     def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
         """
