@@ -450,6 +450,14 @@ gui_editor.prototype.delete_key_if_empty = function (k, box) {
             }
         }
     }
+    /* if it is a campaign stage, remove it from the campaign stage list */
+    if (k.indexOf('campaign_stage ') == 0) {
+        var sl, stage;
+        stage = k.slice(15)
+        sl = this.state['campaign']['campaign_stage_list'].split(/  */);
+        sl = sl.filter(function(x){return x != stage && x != '';})
+        this.state['campaign']['campaign_stage_list'] = sl.join(' ')
+    }
 }
 
 /*
