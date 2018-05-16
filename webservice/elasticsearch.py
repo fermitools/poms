@@ -122,7 +122,6 @@ if __name__ == '__main__':
 
     #emample of searching by field
     query = {
-        "fields": ["jobid", "Owner"],
         "query": {
             "term": {"jobid": "9034906.0@fifebatch1.fnal.gov"}
         }
@@ -168,13 +167,6 @@ if __name__ == '__main__':
         }
     }
     response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
-    pprint.pprint(response)
-
-    print("*" * 80)
-
-    #example of sending a record where datetimes will be serialized
-    payload = {'timestamp': datetime.utcnow(), 'message': 'trying out elasticsearch with poms', 'user': 'mengel'}
-    response = es.index(index='poms-2016-09-02', doc_type='my-poms-type', body=payload)
     pprint.pprint(response)
 
     print("*" * 80)
