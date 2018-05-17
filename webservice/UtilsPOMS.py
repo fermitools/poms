@@ -89,16 +89,18 @@ class UtilsPOMS():
 
     def update_session_experiment(self, db, seshandle, *args, **kwargs):
         sess = seshandle('experimenter')
+        if kwargs.get('session_experiment',None) == sess.session_experiment:
+            return
         sess.session_experiment = kwargs.pop('session_experiment', None)
-        sess.session_role = 'analysis'
         fields = {'session_experiment':sess.session_experiment,
-                  'session_role': sess.session_role
                  }
         db.query(Experimenter).filter(Experimenter.experimenter_id == sess.experimenter_id).update(fields)
         db.commit()
 
     def update_session_role(self, db, seshandle, *args, **kwargs):
         sess = seshandle('experimenter')
+        if kwargs.get('session_role',None) == sess.session_role:
+            return
         sess.session_role = kwargs.pop('session_role', None)
         db.query(Experimenter).filter(Experimenter.experimenter_id == sess.experimenter_id).update({'session_role': sess.session_role})
         db.commit()
