@@ -563,7 +563,7 @@ class PomsService(object):
                 else:
                     raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
                 if auth:
-                    campaign.active = (is_active in ('True', 'Active'))
+                    campaign.active = (is_active in ('True', 'Active','true','1'))
                     cherrypy.request.db.add(campaign)
                     cherrypy.request.db.commit()
                 else:

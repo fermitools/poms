@@ -148,13 +148,7 @@ def test_output_pending_jobs(client):
     client.get('output_pending_jobs')
     print("got: %s" % client.text)
     assert client.code == 200
-    assert '[' in client.text
-
-def test_output_pending_jobs(client):
-    client.get('output_pending_jobs')
-    print("got: %s" % client.text)
-    assert client.code == 200
-    assert '[' in client.text
+    assert '{' in client.text
 
 def test_json_job_counts(client):
     client.get('json_job_counts?campaign_id=1&tmin={}&tmax={}'.format(
@@ -185,7 +179,7 @@ def test_json_efficiency_for_campaigns(client):
     assert '{' in client.text
 
 def test_json_project_summary_for_task(client):
-    client.get('json_project_summary_for_task?task_id=221')
+    client.get('json_project_summary_for_task?task_id=19')
     print("got: %s" % client.text)
     assert client.code == 200
     assert '{' in client.text

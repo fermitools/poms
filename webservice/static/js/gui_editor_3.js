@@ -450,6 +450,14 @@ gui_editor.prototype.delete_key_if_empty = function (k, box) {
             }
         }
     }
+    /* if it is a campaign stage, remove it from the campaign stage list */
+    if (k.indexOf('campaign_stage ') == 0) {
+        var sl, stage;
+        stage = k.slice(15)
+        sl = this.state['campaign']['campaign_stage_list'].split(/  */);
+        sl = sl.filter(function(x){return x != stage && x != '';})
+        this.state['campaign']['campaign_stage_list'] = sl.join(' ')
+    }
 }
 
 /*
@@ -1239,7 +1247,7 @@ wf_uploader.prototype.upload_stage =  function(st) {
             'action': (st in this.cname_id_map)?'edit':'add',
             'ae_campaign_name': st,  
             'experiment': this.cfg['campaign']['experiment'], 
-            'ae_active': true, 
+            'ae_active': 'True', 
             'ae_depends': JSON.stringify(deps),
         }
     for(k in d) {
