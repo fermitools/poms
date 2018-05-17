@@ -197,7 +197,7 @@ class CampaignsPOMS:
             This is actually for Landscape to use.
         """
         data = dbhandle.query(Campaign.campaign_id, Campaign.name, Campaign.experiment).all()
-        return [attributes.instance_dict(r) for r in data]
+        return [r._asdict() for r in data]
 
     def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
         """
@@ -473,7 +473,7 @@ class CampaignsPOMS:
             name = kwargs.pop('ae_campaign_name')
             if isinstance(name, str):
                 name = name.strip()
-            active = kwargs.pop('ae_active')
+            active = (kwargs.pop('ae_active') in ('True','true','1'))
             split_type = kwargs.pop('ae_split_type', None)
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
