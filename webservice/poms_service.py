@@ -240,13 +240,6 @@ class PomsService(object):
         return template.render(tlist=list(self.tablesPOMS.admin_map.keys()), help_page="RawTablesHelp")
 
     @cherrypy.expose
-    @logit.logstartstop
-    def user_edit(self, *args, **kwargs):
-        data = self.dbadminPOMS.user_edit(cherrypy.request.db, *args, **kwargs)
-        template = self.jinja_env.get_template('user_edit.html')
-        return template.render(data=data, help_page="EditUsersHelp")
-
-    @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def experiment_members(self, experiment, *args, **kwargs):
