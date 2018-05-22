@@ -394,7 +394,7 @@ class TriagePOMS(object):
             filtered_fields.update(filtered_fields_checkboxes)
 
         hidecolumns = ['task_id', 'campaign_id', 'created', 'creator', 'updated',
-                       'updater', 'command_executed', 'task_parameters', 'depends_on', 'depend_threshold', 'task_order']
+                       'updater', 'command_executed', 'task_parameters', 'depends_on', 'depend_threshold' ]
 
         #template = self.jinja_env.get_template('job_table.html')
         return jl, jobcolumns, taskcolumns, campcolumns, tmins, tmaxs, prevlink, nextlink, tdays, extra, hidecolumns, filtered_fields, time_range_string

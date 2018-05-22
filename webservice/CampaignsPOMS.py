@@ -685,9 +685,6 @@ class CampaignsPOMS:
         t = Task()
         t.campaign_id = c.campaign_id
         t.campaign_definition_id = c.campaign_definition_id
-        t.task_order = 0
-        t.input_dataset = "-"
-        t.output_dataset = "-"
         t.status = 'started'
         t.created = datetime.now(utc)
         t.updated = datetime.now(utc)

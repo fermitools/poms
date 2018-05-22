@@ -442,9 +442,6 @@ class TaskPOMS:
             t.updated = tim
         else:
             t = Task(campaign_id=c.campaign_id,
-                 task_order=0,
-                 input_dataset=input_dataset,
-                 output_dataset="",
                  status="New",
                  task_parameters={},
                  updater=4,
