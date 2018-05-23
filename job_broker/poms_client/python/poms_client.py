@@ -289,10 +289,14 @@ def auth_cert():
 def make_poms_call(**kwargs):
     #config = configparser.ConfigParser()
     config = ConfigParser.ConfigParser()
-    if kwargs.get('configfile', None):
-        cfgfile = kwargs['configfile']
-    else:
-        cfgfile = os.path.dirname(sys.argv[0])+'/client.cfg'
+    p0 = kwargs.get['configfile','']
+    p1 = os.path.dirname(sys.argv[0])+'/client.cfg'
+    p2 = os.environ.get('POMS_CLIENT_DIR','') +'/bin/client.cfg'
+    p3 = os.environ.get('POMS_CLIENT_DIR','') +'/etc/client.cfg'
+    for p in (p0, p1, p2, p3):
+        if p and os.access(p,os.R_OK):
+            cfgfile = p
+
     if kwargs.get('configfile', 'xx') != 'xx':
         del kwargs['configfile']
 
