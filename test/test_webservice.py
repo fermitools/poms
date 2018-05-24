@@ -57,11 +57,11 @@ def test_experiment_edit(client):
     assert 'Experiment Authorization' in client.text
 
 
-def test_user_edit(client):
-    client.get('user_edit')
-    print("got: %s" % client.text)
-    assert client.code == 200
-    assert 'User Authorization' in client.text
+#def test_user_edit(client):
+#    client.get('user_edit')
+#    print("got: %s" % client.text)
+#    assert client.code == 200
+#    assert 'User Authorization' in client.text
 
 
 def test_public_campaigns(client):
