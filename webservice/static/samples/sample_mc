@@ -76,9 +76,9 @@ campaign_stage_1 = sample_reco
 file_pattern_1 = reco%%.root
 
 [launch_template generic_fife_launch]
-host=%{experiment}gpvm01.fnal.gov
-account=%{experiment}pro
-setup=export X509_USER_PROXY=/opt/%{experiment}pro/%{experiment}pro.Production.proxy; setup fife_utils, poms_client, poms_jobsub_wrapper
+host=%(experiment)sgpvm01.fnal.gov
+account=%(experiment)spro
+setup=export X509_USER_PROXY=/opt/%(experiment)spro/%(experiment)spro.Production.proxy; setup fife_utils, poms_client, poms_jobsub_wrapper
 
 [job_type generic_fife_process]
 launch_script=fife_launch -c $FIFE_UTILS_DIR/cfg/generic.cfg

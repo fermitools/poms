@@ -736,7 +736,6 @@ class TaskPOMS:
             return lcmd, output, c, campaign_id, outdir, outfile    # FIXME: this returns more elements than in other places
 
         experimenter_login = e.username
-        lt.launch_account = lt.launch_account % {"experimenter": experimenter_login}
 
         if dataset_override:
             dataset = dataset_override
@@ -754,11 +753,20 @@ class TaskPOMS:
         else:
             poms_test="1"
 
+        if lt.launch_account.find("%") >= 0:
+            lt.launch_account = lt.launch_account % {
+                "dataset": dataset,
+                "experiment": exp,
+                "version": vers,
+                "group": group,
+                "experimenter": experimenter_login,
+            }
+
         cmdl = [
             "exec 2>&1",
             "set -x",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
-            "kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true" % self.poms_service.hostname,
+            "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true", 
             "ssh -tx %s@%s <<'EOF' &" % (lt.launch_account, lt.launch_host),
             #
             # This bit is a little tricky.  We want to do as little of our
@@ -772,15 +780,15 @@ class TaskPOMS:
             #    front of the path and can intercept calls to "jobsub_submit"
             #
             "source /grid/fermiapp/products/common/etc/setups",
-            "setup poms_client -t -z /grid/fermiapp/products/common/db",
             lt.launch_setup % {
                 "dataset": dataset,
+                "experiment": exp,
                 "version": vers,
                 "group": group,
                 "experimenter": experimenter_login,
             },
-            "setup -j poms_jobsub_wrapper -t -z /grid/fermiapp/products/common/db",
-            "setup poms_client -t -z /grid/fermiapp/products/common/db",
+            "UPS_OVERRIDE='' setup -j poms_jobsub_wrapper -t -z /grid/fermiapp/products/common/db",
+            "UPS_OVERRIDE='' setup -j poms_client -t -z /grid/fermiapp/products/common/db",
             "ups active",
             "export POMS_CAMPAIGN_ID=%s" % cid,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
