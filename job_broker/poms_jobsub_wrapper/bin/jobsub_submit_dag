@@ -11,7 +11,7 @@ export POMS_CAMPAIGN_ID=${POMS_CAMPAIGN_ID:-14}
 
 export POMS_CAMPAIGN_TAGS=${POMS_CAMPAIGN_TAGS:-}
 
-if [ "$POMS_CAMPAIGN_TAGS" != "" ] 
+if [ "$POMS_CAMPAIGN_TAGS" != "" ]
 then
    $POMS_CAMPAIGN_TAGS=",$POMS_CAMPAIGN_TAGS"
 fi
@@ -21,7 +21,7 @@ extra=""
 
 if [ "x$GROUP" != "x" ]
 then
-    extra="$extra --experiemnt $GROUP"
+    extra="$extra --experiment $GROUP"
 fi
 
 if [ "x$POMS_PARENT_TASK_ID" != "x" ]
@@ -29,7 +29,7 @@ then
    extra="$extra --parent_task_id=$POMS_PARENT_TASK_ID"
 fi
 if [ "x$POMS_TASK_ID" != "x" ]
-then 
+then
    # already have a task id, this is just an update...
    extra="$extra --task_id=$POMS_TASK_ID"
 fi
@@ -52,5 +52,6 @@ $JOBSUB_CLIENT_DIR/jobsub_submit_dag \
 	-l "+POMS_CAMPAIGN_ID=$POMS_CAMPAIGN_ID" \
 	-l "+FIFE_CATEGORIES='\\\"POMS_TASK_ID_$POMS_TASK_ID,POMS_CAMPAIGN_ID_$POMS_CAMPAIGN_ID$POMS_CAMPAIGN_TAGS\\\"'" \
 	-l "+POMS_LAUNCHER=$POMS_LAUNCHER" \
+	-l "+POMS_CAMPAIGN_NAME=$POMS_CAMPAIGN_NAME" \
         $POMS_JOBSUB_EXTRA \
         "$@"

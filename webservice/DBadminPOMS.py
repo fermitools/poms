@@ -2,7 +2,7 @@
 
 """
 This module contain the methods that allow to modify the raw database
-List of methods: user_edit, experiment_members, experiment edit, experiment_authorize.
+List of methods: experiment_members, experiment edit, experiment_authorize.
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py written by Stephen White.
 Date: September 30, 2016.
 """
@@ -17,70 +17,6 @@ from .poms_model import Experiment, Experimenter, ExperimentsExperimenters
 
 
 class DBadminPOMS:
-    def user_edit(self, dbhandle, *args, **kwargs):
-        """
-            callback from user edit page
-        """
-        message = None
-        data = {}
-        username = kwargs.pop('username', None)
-        action = kwargs.pop('action', None)
-
-        if action == 'membership':
-            # To update memberships set all the tags to false and then reset the needed ones to true.
-            e_id = kwargs.pop('experimenter_id', None)
-            dbhandle.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id == e_id).update({"active": False})
-            for key, exp in list(kwargs.items()):
-                updated = (dbhandle.query(ExperimentsExperimenters)
-                           .filter(ExperimentsExperimenters.experimenter_id == e_id)
-                           .filter(ExperimentsExperimenters.experiment == exp).update({"active": True})
-                           )
-                if updated == 0:
-                    EE = ExperimentsExperimenters()
-                    EE.experimenter_id = e_id
-                    EE.experiment = exp
-                    EE.active = True
-                    dbhandle.add(EE)
-            dbhandle.commit()
-
-        elif action == "add":
-            if dbhandle.query(Experimenter).filter(Experimenter.username==username).first():
-                message = "An experimenter with the username %s already exists" % username
-            else:
-                experimenter = Experimenter()
-                experimenter.first_name = kwargs.get('first_name')
-                experimenter.last_name = kwargs.get('last_name')
-                experimenter.username = username
-                experimenter.session_experiment = ''
-                experimenter.session_role = 'analysis'
-                dbhandle.add(experimenter)
-                dbhandle.commit()
-
-        elif action == "edit":
-            values = {"first_name": kwargs.get('first_name'),
-                      "last_name":  kwargs.get('last_name'),
-                      "username":   username}
-            dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == kwargs.get('experimenter_id')).update(values)
-            dbhandle.commit()
-
-        if username:
-            # experimenter = dbhandle.query(Experimenter).filter(Experimenter.username==username).first()
-            experimenter = dbhandle.query(Experimenter).filter(Experimenter.username.like("%{}%".format(username))).first()
-            if experimenter is None:
-                message = "There is no experimenter with the username %s" % username
-            else:
-                data['experimenter'] = experimenter
-                # Experiments that are members of an experiment can be active or inactive
-                data['member_of_exp'] = dbhandle.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
-                # Experimenters that were never a member of an experiment will not have an entry in the experiments_experimenters table for that experiment
-                subquery = dbhandle.query(ExperimentsExperimenters.experiment).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id)
-                data['not_member_of_exp'] = dbhandle.query(Experiment).filter(~Experiment.experiment.in_(subquery))
-
-        dbhandle.commit()
-        data['message'] = message
-        return data
-
-
     def experiment_members(self, dbhandle, experiment, *args, **kwargs):
         """
             return members of experiment

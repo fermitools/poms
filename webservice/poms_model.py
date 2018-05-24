@@ -180,9 +180,6 @@ class Task(Base):
 
     task_id = Column(Integer, primary_key=True, server_default=text("nextval('tasks_task_id_seq'::regclass)"))
     campaign_id = Column(ForeignKey('campaigns.campaign_id'), nullable=False, index=True, server_default=text("nextval('tasks_campaign_id_seq'::regclass)"))
-    task_order = Column(Integer, nullable=False)
-    input_dataset = Column(Text, nullable=False)
-    output_dataset = Column(Text, nullable=False)
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
     status = Column(Text, nullable=False)
