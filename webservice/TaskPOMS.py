@@ -653,6 +653,7 @@ class TaskPOMS:
             dataset_override = "fake_test_dataset"
             cdid = "-"
             cid = "-"
+            cname = "-"
             tid = "-"
             c = None
             c_param_overrides = []
@@ -714,6 +715,7 @@ class TaskPOMS:
             vers = c.software_version
             launch_script = cd.launch_script
             cid = c.campaign_id
+            cname = c.name
             cdid = c.campaign_definition_id
             definition_parameters = cd.definition_parameters
 
@@ -780,6 +782,7 @@ class TaskPOMS:
             #    front of the path and can intercept calls to "jobsub_submit"
             #
             "source /grid/fermiapp/products/common/etc/setups",
+            "setup poms_client -g poms31 -z /grid/fermiapp/products/common/db",
             lt.launch_setup % {
                 "dataset": dataset,
                 "experiment": exp,
@@ -787,10 +790,10 @@ class TaskPOMS:
                 "group": group,
                 "experimenter": experimenter_login,
             },
-            "UPS_OVERRIDE='' setup -j poms_jobsub_wrapper -t -z /grid/fermiapp/products/common/db",
-            "UPS_OVERRIDE='' setup -j poms_client -t -z /grid/fermiapp/products/common/db",
+            "UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms31 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db",
             "ups active",
             "export POMS_CAMPAIGN_ID=%s" % cid,
+            "export POMS_CAMPAIGN_NAME='%s'" % cname,
             "export POMS_PARENT_TASK_ID=%s" % (parent_task_id if parent_task_id else ""),
             "export POMS_TASK_ID=%s" % tid,
             "export POMS_LAUNCHER=%s" % launcher_experimenter.username,

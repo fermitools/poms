@@ -22,7 +22,7 @@ vo_role=Production
 cs_split_type=None
 job_type=generic_fife_process
 launch_template=generic_fife_launch
-param_overrides=[["--stage=","g4"],["--dataset=","%(dataset)s"]]
+param_overrides=[["--stage=","g4"],["-Oglobal.sam_dataset=","%(dataset)s"]]
 completion_type=complete
 completion_pct=95
 
@@ -33,7 +33,7 @@ vo_role=Production
 cs_split_type=None
 job_type=generic_fife_process
 launch_template=generic_fife_launch
-param_overrides=[["--stage=","detsim"],["--dataset=","%(dataset)s"]]
+param_overrides=[["--stage=","detsim"],["-Oglobal.sam_dataset=","%(dataset)s"]]
 completion_type=complete
 completion_pct=95
 
@@ -44,7 +44,7 @@ vo_role=Production
 cs_split_type=None
 job_type=generic_fife_process
 launch_template=generic_fife_launch
-param_overrides=[["--stage=","reco"],["--dataset=","%(dataset)s"]]
+param_overrides=[["--stage=","reco"],["-Oglobal.sam_dataset=","%(dataset)s"]]
 completion_type=complete
 completion_pct=95
 
@@ -55,7 +55,7 @@ vo_role=Production
 cs_split_type=None
 job_type=generic_fife_process
 launch_template=generic_fife_launch
-param_overrides=[["--stage=","anatree"],["--dataset=","%(dataset)s"]]
+param_overrides=[["--stage=","anatree"],["-Oglobal.sam_dataset=","%(dataset)s"]]
 completion_type=complete
 completion_pct=95
 
