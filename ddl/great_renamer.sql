@@ -15,3 +15,4 @@
  ALTER TABLE tags RENAME TO campaigns;
  ALTER TABLE campaigns RENAME COLUMN tag_id to campaign_id;
  ALTER TABLE campaigns_tags RENAME TO campaigns_campaign_stages;
+
