@@ -38,6 +38,7 @@ sub rename_em {
     s/\bTask\b/Submission/go;
     s/\btasks\b/submissions/go;
     s/\btask_id\b/submission_id/go;
+    s/\bparent_task_id\b/parent_submission_id/go;
     s/\btask_obj\b/submission_obj/go;
     s/\btask_params\b/submission_params/go;
     s/\bt\b/s/go;
