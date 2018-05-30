@@ -7,11 +7,18 @@
 #
 sub rename_em {
     $_ = $_[0];
+
+    s/\bLaunchTemplate\b/LoginSetup/go;
+    s/\blaunch_template_id\b/login_setup_id/go;
+    s/\blaunch_definitions\b/login_setups/go;
+    # ALTER TABLE launch_templates RENAME TO login_setups;
+    # ALTER TABLE login_setups RENAME COLUMN launch_template_id to login_setup_id;
+
     s/\bCampaignDefinition\b/JobType/go;
     s/\bcampaign_definition_id\b/job_type_id/go;
     s/\bcampaign_definitions\b/job_types/go;
     # ALTER TABLE campaign_definitions RENAME TO job_types;
-    # ALTER TABLE job_types RENAME COLUMN campaign_definition_id TO job_types_id;
+    # ALTER TABLE job_types RENAME COLUMN campaign_definition_id TO job_type_id;
     s/\bcampaign_definition_obj\b/job_type_obj/go;
 
     s/\bCampaignSnapshot\b/CampaignStageSnapshot/go;

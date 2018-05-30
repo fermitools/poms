@@ -5,7 +5,6 @@
 #
 # expects POMS_CAMPAIGN_ID in the environment
 #
-POMS_URI=${POMS_URI:-"http://pomsgpvm01.fnal.gov:8080/poms"}
 
 export POMS_CAMPAIGN_ID=${POMS_CAMPAIGN_ID:-14}
 

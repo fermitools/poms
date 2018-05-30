@@ -18,6 +18,7 @@ parser.add_option('--version',  help="software version for campaign", default = 
 parser.add_option('--campaign-definition',  help="software version for campaign", default = None)
 parser.add_option('--dataset',  help="dataset name for job", default = None)
 parser.add_option('--test',  help="use test server", default = None)
+parser.add_option('--test_client', dest='test', help="use test server", default = None)
 parser.add_option('--poms_role', type=str, help='set role in poms', default = 'production')
 parser.add_option('--dev', action='store_const', const='dev', dest='test',  metavar='',  help='use the dev/test instance of POMS')
 parser.add_option('--int', action='store_const', const='int', dest='test' , metavar='',  help='use the int/integration instance of POMS')
@@ -26,7 +27,7 @@ parser.add_option('--int', action='store_const', const='int', dest='test' , meta
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 
-update_session_role(options.poms_role)
+update_session_role(options.poms_role, test_client = options.test )
 res = register_poms_campaign(campaign_name = options.campaign, 
 	user = options.user,
 	experiment = options.experiment,

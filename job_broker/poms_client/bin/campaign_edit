@@ -58,8 +58,8 @@ logging.debug( 'completion='+ str( args.completion ))
 logging.debug( 'param_overrides='+ str( args.param_overrides ))
 logging.debug( 'depends_on='+ str( args.depends_on ))
 logging.debug( 'launch_name'+ str( args.launch_name ))
-logging.debug( 'job_type'+ str( args.job_type ))
-logging.debug( 'test_client'+ str( args.test_client ))
+logging.debug( 'job_type='+ str( args.job_type ))
+logging.debug( 'test_client='+ str( args.test_client ))
 
 #Calling the poms_client.campaign_definition_edit'
 if args.action in ['add','delete','edit']:
