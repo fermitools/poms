@@ -27,6 +27,7 @@ def register_poms_campaign(campaign_name, user=None, experiment=None, version=No
         campaign_definition=campaign_definition,
         test=test,
         configfile=configfile)
+    logging.debug("in register_poms_campaign test = " + repr(test))
     print("got data: %s" % data)
     data = data.replace('Campaign=', '')
     return int(data)
@@ -34,6 +35,7 @@ def register_poms_campaign(campaign_name, user=None, experiment=None, version=No
 
 def get_task_id_for(campaign, user=None, command_executed=None, input_dataset=None, parent_task_id=None,
                     task_id=None, test=None, experiment=None, configfile=None):
+    logging.debug("in get task_id_for test = " + repr(test))
     data, status = make_poms_call(
         method='get_task_id_for',
         campaign=campaign,
@@ -49,6 +51,7 @@ def get_task_id_for(campaign, user=None, command_executed=None, input_dataset=No
 
 
 def launch_jobs(campaign, test=None, experiment=None, configfile=None):
+    logging.debug("in get launch_jobs test = " + repr(test))
     data, status = make_poms_call(
         method='launch_jobs',
         campaign_id=campaign,
@@ -60,6 +63,7 @@ def launch_jobs(campaign, test=None, experiment=None, configfile=None):
 
 def launch_template_edit(action=None, launch_name=None, launch_host=None, user_account=None, launch_setup=None,
                          experiment=None, pc_username=None, test_client=False, configfile=None):
+    logging.debug("in get launch_jobs test_client = " + repr(test_client))
     method = 'launch_template_edit'
     action = action
     ae_launch_name = launch_name
@@ -154,7 +158,7 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
 def campaign_definition_edit(output_file_patterns, launch_script,
                              def_parameter=None, pc_username=None, action=None, name=None, experiment=None, test_client=False, configfile=None):
     # You can not modify the recovery_type from the poms_client (future feature)
-    test_client = test_client
+    logging.debug("in get launch_jobs test_client = " + repr(test_client))
     method = "campaign_definition_edit"
     pc_username = pc_username
     action = action
@@ -200,7 +204,8 @@ def campaign_definition_edit(output_file_patterns, launch_script,
 def campaign_edit(action, ae_campaign_name, pc_username, experiment, vo_role,
                   dataset, ae_active, ae_split_type, ae_software_version,
                   ae_completion_type, ae_completion_pct, ae_param_overrides,
-                  ae_depends, ae_launch_name, ae_campaign_definition, test_client, configfile=None):
+                  ae_depends, ae_launch_name, ae_campaign_definition, test_client = None, configfile=None):
+    logging.debug("in get campaign_edit test_client = " + repr(test_client))
     method = "campaign_edit"
     logging.debug("#" * 10)
     logging.debug(ae_param_overrides)
@@ -248,6 +253,7 @@ def campaign_edit(action, ae_campaign_name, pc_username, experiment, vo_role,
 
 
 def get_campaign_list(test_client=False):
+    logging.debug("in get get_campaign_list  test_client = " + repr(test_client))
     res, sc = make_poms_call(method='campaign_list_json', test_client=test_client)
     d = {}
     for nid in json.loads(res):
@@ -256,11 +262,13 @@ def get_campaign_list(test_client=False):
 
 
 def tag_campaigns(tag, cids, experiment, test_client=False):
+    logging.debug("in get get_campaign_list  test_client = " + repr(test_client))
     res, sc = make_poms_call(method='link_tags', campaign_id=cids, tag_name=tag, experiment=experiment, test_client=test_client)
     return sc == 200
 
 
 def update_session_role(role, test_client=False):
+    logging.debug("in update_session_role test_client = " + repr(test_client))
     res, sc = make_poms_call(method='update_session_role', session_role='production', test_client=test_client)
     return sc == 200
 
@@ -285,11 +293,13 @@ def auth_cert():
                           "If you have a proxy please provide the location at the enviroment variable X509_USER_PROXY")
     return cert
 
-
-def make_poms_call(**kwargs):
-    #config = configparser.ConfigParser()
+_foundconfig = None
+def getconfig(kwargs):
+    global _foundconfig
+    if _foundconfig:
+        return _foundconfig
     config = ConfigParser.ConfigParser()
-    p0 = kwargs.get['configfile','']
+    p0 = kwargs.get('configfile','')
     p1 = os.path.dirname(sys.argv[0])+'/client.cfg'
     p2 = os.environ.get('POMS_CLIENT_DIR','') +'/bin/client.cfg'
     p3 = os.environ.get('POMS_CLIENT_DIR','') +'/etc/client.cfg'
@@ -301,14 +311,25 @@ def make_poms_call(**kwargs):
         del kwargs['configfile']
 
     config.read(cfgfile)
+    _foundconfig = config
+    return config
+
+def make_poms_call(**kwargs):
+
+    config = getconfig(kwargs)
+
     method = kwargs.get("method")
     del kwargs["method"]
 
-    if kwargs.get("test", None) and not kwargs.get("test_client"):
+    if kwargs.get("test", None) and not kwargs.get("test_client",None):
         kwargs["test_client"] = kwargs["test"]
+
+    if kwargs.get("test", None):
         del kwargs["test"]
 
-    test_client=kwargs.get("test_client")
+    test_client=kwargs.get("test_client",None)
+
+    logging.debug("in make_poms_call test_client = " + repr(test_client))
 
     if test_client:
         if test_client == "int":
@@ -325,6 +346,7 @@ def make_poms_call(**kwargs):
     for k in list(kwargs.keys()):
         if kwargs[k] is None:
             del kwargs[k]
+
     cert = auth_cert()
     if os.environ.get("POMS_CLIENT_DEBUG", None):
         logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert))

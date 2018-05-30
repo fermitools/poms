@@ -31,7 +31,6 @@ parser.add_argument('--int', action='store_const', const='int', dest='test_clien
 
 args = parser.parse_args()
 
-print "verbose:" , args.verbose
 if args.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 
@@ -44,10 +43,10 @@ logging.debug( 'launch_account='+str(args.launch_account ))
 logging.debug( "launch_setup ="+ str(args.setup ))
 logging.debug( "experiment="+ str(args.experiment ))
 logging.debug( "user="+ str(args.user ))
-logging.debug( "test_client"+ str(args.test_client ))
+logging.debug( "test_client="+ str(args.test_client ))
 
+update_session_role(args.poms_role, test_client = args.test_client)
 
-update_session_role(args.poms_role)
 res = launch_template_edit(action = args.action,
                             launch_name = args.launch_name,
                             launch_host = args.host,
@@ -55,7 +54,8 @@ res = launch_template_edit(action = args.action,
                             launch_setup = args.setup,
                             experiment = args.experiment,
                             pc_username = args.user,
-                            test_client=args.test_client)
+                            test_client = str(args.test_client))
+
 if res[0] == 'status_code' and  res[1] == 200:
      logging.info("Succeeded.")
      exit(0)
