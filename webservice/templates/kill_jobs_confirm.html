@@ -22,7 +22,7 @@ Confirm {{act}} request {%include 'help_button.html'%}
 
    Are you sure you want to {{act}} the jobs for
      {% if campaign_stage_id is not none %}
-        CampaignStage Stage {{cs.name if cs}}, Submission(s) {{jjil|join(', ')}}
+        Campaign Stage {{cs.name if cs}}, Submission(s) {{jjil|join(', ')}}
      {% elif submission_id is not none %}
        Submissions(s) {{jjil|join(', ')}}
      {% elif job_id is not none %}
