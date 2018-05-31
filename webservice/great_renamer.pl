@@ -11,6 +11,8 @@ sub rename_em {
     s/\bLaunchTemplate\b/LoginSetup/go;
     s/\blaunch_id\b/login_setup_id/go;
     s/\blaunch_definitions\b/login_setups/go;
+    # forgot on first round
+    s/\blaunch_templates\b/login_setups/go;
 
     s/\bCampaignDefinition\b/JobType/go;
     s/\bcampaign_definition_id\b/job_type_id/go;
@@ -40,7 +42,7 @@ sub rename_em {
     s/\btask_id\b/submission_id/go;
     s/\bparent_task_id\b/parent_submission_id/go;
     s/\btask_obj\b/submission_obj/go;
-    s/\btask_params\b/submission_params/go;
+    s/\btask_parameters\b/submission_parameters/go;
     s/\bt\b/s/go;
     s/\btid\b/sid/go;
 
@@ -49,8 +51,8 @@ sub rename_em {
     s/\btags\b/campaigns/go;
     s/\btag_id\b/campaign_id/go;
 
-    s/\bCampaignsTags\b/CampaignsCampaignStages/go;
-    s/\bcampaigns_tags\b/campaigns_campaign_stages/go;
+    s/\bCampaignsTags\b/CampaignCampaignStages/go;
+    s/\bcampaigns_tags\b/campaign_campaign_stages/go;
 
     return $_;
 }

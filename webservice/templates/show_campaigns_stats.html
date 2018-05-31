@@ -1,11 +1,11 @@
 {%extends "layout.html"%}
 
 {%block title%}
-POMS:Selected Campaign Stages
+POMS:Selected CampaignStage Stages
 {%endblock%}
 
 {%block header%}
-Selected Campaign Stages{%include 'help_button.html'%}
+Selected CampaignStage Stages{%include 'help_button.html'%}
 {%endblock%}
 
 {%block content%}
@@ -20,8 +20,8 @@ Selected Campaign Stages{%include 'help_button.html'%}
        <th colspan = 4>Jobs in  {{time_range_string}}</th>
      </tr>
      <tr>
-       <th colspan=1 align="center"> Campaign Stage
-        <a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Campaign"><i style="float: none" class="grey help circle link icon"></i></a>
+       <th colspan=1 align="center"> CampaignStage Stage
+        <a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#CampaignStage"><i style="float: none" class="grey help circle link icon"></i></a>
       </th>
       <th>Total</th>
       <th colspan=3 align="center">Active Jobs </th>
@@ -45,34 +45,34 @@ Selected Campaign Stages{%include 'help_button.html'%}
         <th>Pending<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
      </tr>
 
-     {# for c in campaigns if not c.experiment_obj.restricted or current_experimenter.is_authorized(c.experiment) #}
-     {# for c in campaigns if not c.experiment_obj.restricted or c.experiment in current_experimenter.extra.selected #}
-     {# for c in campaigns if current_experimenter.extra and c.experiment in current_experimenter.extra.selected #}
-     {% for c in campaigns %}
+     {# for cs in campaign_stages if not cs.experiment_obj.restricted or current_experimenter.is_authorized(cs.experiment) #}
+     {# for cs in campaign_stages if not cs.experiment_obj.restricted or cs.experiment in current_experimenter.extra.selected #}
+     {# for cs in campaign_stages if current_experimenter.extra and cs.experiment in current_experimenter.extra.selected #}
+     {% for cs in campaign_stages %}
      {% set outer_loop = loop %}
             <tr>
-            <!-- <td>{{c.experiment}}</td> -->
-            <!-- c.experiment_obj.restricted: {{c.experiment_obj.restricted}} -->
-            <!-- current_experimenter.is_authorized(c.experiment): {{current_experimenter}} -->
-            {#<!-- c.experiment in current_experimenter.extra.selected {{c.experiment in current_experimenter.extra.selected}}-->#}
-            <td> <a href="{{pomspath}}/campaign_info?campaign_id={{c.campaign_id}}">{{c.name}}</a></td>
+            <!-- <td>{{cs.experiment}}</td> -->
+            <!-- cs.experiment_obj.restricted: {{cs.experiment_obj.restricted}} -->
+            <!-- current_experimenter.is_authorized(cs.experiment): {{current_experimenter}} -->
+            {#<!-- cs.experiment in current_experimenter.extra.selected {{cs.experiment in current_experimenter.extra.selected}}-->#}
+            <td> <a href="{{pomspath}}/campaign_info?campaign_stage_id={{cs.campaign_stage_id}}">{{cs.name}}</a></td>
             {% for k in column_heads  %}
 
               {% if k == "efficiency" %}
                 <td>
-                  <a href="{{pomspath}}/jobs_eff_histo?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{c.campaign_id}}_{{k}}">
+                  <a href="{{pomspath}}/jobs_eff_histo?campaign_stage_id={{cs.campaign_stage_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{cs.campaign_stage_id}}_{{k}}">
                       ...
                   </a>
                 </td>
               {% elif k == "pending" %}
                 <td>
-                  <a href="{{pomspath}}/actual_pending_files?campaign_id={{c.campaign_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{c.campaign_id}}_{{k}}">
+                  <a href="{{pomspath}}/actual_pending_files?campaign_stage_id={{cs.campaign_stage_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{cs.campaign_stage_id}}_{{k}}">
                      ...
                   </a>
                 </td>
               {% elif k %}
                 <td>
-                  <a href="{{pomspath}}/job_table?campaign_id={{c.campaign_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{c.campaign_id}}_{{k|replace(' ','_')}}">
+                  <a href="{{pomspath}}/job_table?campaign_stage_id={{cs.campaign_stage_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{cs.campaign_stage_id}}_{{k|replace(' ','_')}}">
                      ...
                   </a>
                  </td>
@@ -98,8 +98,8 @@ Selected Campaign Stages{%include 'help_button.html'%}
 
 <!-- now some JSON callbacks to get our
       * job counts for each campaign,
-      * efficiency for all the campaigns
-      * pending counts for all the campaigns
+      * efficiency for all the campaign_stages
+      * pending counts for all the campaign_stages
 -->
 
 <script>
@@ -110,23 +110,23 @@ Selected Campaign Stages{%include 'help_button.html'%}
         nows = nows - (nows % 300000)
         nows = nows.toString()
 
-        {% for campaign in campaigns %}
-        $.getJSON("/poms/json_job_counts?tmin={{tmins}}&tmax={{tmaxs}}&campaign_id={{campaign.campaign_id}}&uuid="+nows,function(data){
+        {% for campaign in campaign_stages %}
+        $.getJSON("/poms/json_job_counts?tmin={{tmins}}&tmax={{tmaxs}}&campaign_stage_id={{campaign.campaign_stage_id}}&uuid="+nows,function(data){
             for( var k in data ) {
-               id = "data_{{campaign.campaign_id}}_" + k.replace(" ","_")
+               id = "data_{{campaign.campaign_stage_id}}_" + k.replace(" ","_")
                console.log("trying to update a with id " + id )
                $("a#"+id).html(data[k])
             }
         })
         {% endfor %}
-        $.getJSON("/poms/json_efficiency_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{ campaigns | join(',', attribute='campaign_id') }}&uuid="+nows, function(data) {
+        $.getJSON("/poms/json_efficiency_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{ campaign_stages | join(',', attribute='campaign_stage_id') }}&uuid="+nows, function(data) {
             for (var k in data) {
                id = "data_"+k+"_efficiency"
                console.log("trying to update a with id " + id )
                $("a#"+id).html(data[k])
             }
         })
-        $.getJSON("/poms/json_pending_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{ campaigns | join(',', attribute='campaign_id') }}&uuid="+nows, function(data) {
+        $.getJSON("/poms/json_pending_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{ campaign_stages | join(',', attribute='campaign_stage_id') }}&uuid="+nows, function(data) {
             for (var k in data) {
                id = "data_"+k+"_pending"
                console.log("trying to update a with id " + id )

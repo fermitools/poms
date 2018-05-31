@@ -2,7 +2,7 @@ import DBHandle
 import datetime
 import time
 from poms.webservice.samweb_lite import samweb_lite
-from poms.webservice.poms_model import Campaign, Job
+from poms.webservice.poms_model import CampaignStage, Job
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -31,8 +31,8 @@ fetcher = jobsub_fetcher(config.get('global','elasticsearch_cert'), config.get('
 mj = mock_job()
 
 def test_triage_job():
-    c = dbhandle.query(Campaign).filter(Campaign.name == 'mwm_test_1').first()
-    mj.launch(str(c.campaign_id), n_jobs=3, exit_code = -1)
+    cs = dbhandle.query(CampaignStage).filter(CampaignStage.name == 'mwm_test_1').first()
+    mj.launch(str(cs.campaign_stage_id), n_jobs=3, exit_code = -1)
     mj.close()
     job = dbhandle.query(Job).filter(Job.jobsub_job_id == mj.jids[0]).first()
 
@@ -58,12 +58,12 @@ def test_job_table():
 
     # we should get a ( [(job,task,camp),...] , ['columns'], ['columns'], ...)
     # where we have one (job,task,camp) tuple (the one we asked for)
-    # and the column sets should be for jobs, tasks, and campaigns...
+    # and the column sets should be for jobs, submissions, and campaign_stages...
     assert(len(res[0]) == 1)
     assert(res[0][0][0].jobsub_job_id == mj.jids[0])
     assert(res[1][0] == 'job_id')
-    assert(res[2][0] == 'task_id')
-    assert(res[3][0] == 'campaign_id')
+    assert(res[2][0] == 'submission_id')
+    assert(res[3][0] == 'campaign_stage_id')
 
 def test_failed_jobs():
 

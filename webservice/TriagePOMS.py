@@ -9,7 +9,7 @@ from collections import deque
 import urllib.request, urllib.parse, urllib.error
 from . import logit
 
-from .poms_model import JobHistory, Job, Task, Campaign, CampaignDefinition, ServiceDowntime, Service
+from .poms_model import JobHistory, Job, Submission, CampaignStage, JobType, ServiceDowntime, Service
 from .elasticsearch import Elasticsearch
 from sqlalchemy import func, desc, not_, and_
 from collections import OrderedDict
@@ -24,10 +24,10 @@ class TriagePOMS(object):
 
 
     @pomscache.cache_on_arguments()
-    def job_counts(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=None):
-        return self.job_counts_uncached(dbhandle, task_id, campaign_id, tmin, tmax, tdays)
+    def job_counts(self, dbhandle, submission_id=None, campaign_stage_id=None, tmin=None, tmax=None, tdays=None):
+        return self.job_counts_uncached(dbhandle, submission_id, campaign_stage_id, tmin, tmax, tdays)
 
-    def job_counts_uncached(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=None):
+    def job_counts_uncached(self, dbhandle, submission_id=None, campaign_stage_id=None, tmin=None, tmax=None, tdays=None):
 
         (
          tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays
@@ -36,11 +36,11 @@ class TriagePOMS(object):
         if tmax is not None:
             q = q.filter(Job.updated <= tmax, Job.updated >= tmin)
 
-        if task_id:
-            q = q.filter(Job.task_id == task_id)
+        if submission_id:
+            q = q.filter(Job.submission_id == submission_id)
 
-        if campaign_id:
-            q = q.join(Task, Job.task_id == Task.task_id).filter(Task.campaign_id == campaign_id)
+        if campaign_stage_id:
+            q = q.join(Submission, Job.submission_id == Submission.submission_id).filter(Submission.campaign_stage_id == campaign_stage_id)
 
         out = OrderedDict([("All", 0), ("Idle", 0), ("Running", 0),
                            ("Held", 0), ("Total Completed", 0), ("Completed", 0), ("Located", 0), ("Removed", 0), ("Failed",0)])
@@ -61,17 +61,17 @@ class TriagePOMS(object):
 
     @pomscache.cache_on_arguments()
     def triage_job(self, dbhandle, jobsub_fetcher, config, job_id, tmin=None, tmax=None, tdays=None, force_reload=False):
-        # we don't really use these for anything but we might want to
+        # we don's really use these for anything but we might want to
         # pass them into a template to set time ranges...
         (tmin, tmax, tmins, tmaxs,
          nextlink, prevlink, time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
         job_file_list = self.poms_service.filesPOMS.job_file_list(dbhandle, jobsub_fetcher, job_id, force_reload)
         output_file_names_list = deque()
-        job_info = (dbhandle.query(Job, Task, CampaignDefinition, Campaign)
+        job_info = (dbhandle.query(Job, Submission, JobType, CampaignStage)
                     .filter(Job.job_id == job_id)
-                    .filter(Job.task_id == Task.task_id)
-                    .filter(Campaign.campaign_definition_id == CampaignDefinition.campaign_definition_id)
-                    .filter(Task.campaign_id == Campaign.campaign_id).first())
+                    .filter(Job.submission_id == Submission.submission_id)
+                    .filter(CampaignStage.job_type_id == JobType.job_type_id)
+                    .filter(Submission.campaign_stage_id == CampaignStage.campaign_stage_id).first())
         job_history = dbhandle.query(JobHistory).filter(JobHistory.job_id == job_id).order_by(JobHistory.created).all()
         output_file_names_list = [x.file_name for x in job_info[0].job_files if x.file_type == "output"]
 
@@ -141,7 +141,7 @@ class TriagePOMS(object):
 
         #ends get cpu efficiency
 
-        task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, job_info.Job.task_id)
+        task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, job_info.Job.submission_id)
         return job_file_list, job_info, job_history, downtimes, output_file_names_list, es_response, efficiency, tmin, task_jobsub_job_id
 
         # return template.render(job_id=job_id, job_file_list=job_file_list, job_info=job_info,
@@ -158,80 +158,80 @@ class TriagePOMS(object):
         extra = ""
         filtered_fields = {}
 
-        q = dbhandle.query(Job, Task, Campaign)
+        q = dbhandle.query(Job, Submission, CampaignStage)
         q = q.execution_options(stream_results=True)
-        q = q.filter(Job.task_id == Task.task_id, Task.campaign_id == Campaign.campaign_id, Campaign.experiment == session_experiment)
+        q = q.filter(Job.submission_id == Submission.submission_id, Submission.campaign_stage_id == CampaignStage.campaign_stage_id, CampaignStage.experiment == session_experiment)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax)
 
         keyword = kwargs.get('keyword')
         if keyword:
-            q = q.filter(Task.project.like("%{}%".format(keyword)))
+            q = q.filter(Submission.project.like("%{}%".format(keyword)))
             extra = extra + "with keyword %s" % keyword
             filtered_fields['keyword'] = keyword
 
-        task_id = kwargs.get('task_id')
-        if task_id:
-            q = q.filter(Task.task_id == int(task_id))
-            extra = extra + "in task id %s" % task_id
-            filtered_fields['task_id'] = task_id
+        submission_id = kwargs.get('submission_id')
+        if submission_id:
+            q = q.filter(Submission.submission_id == int(submission_id))
+            extra = extra + "in task id %s" % submission_id
+            filtered_fields['submission_id'] = submission_id
 
-        campaign_id = kwargs.get('campaign_id')
-        if campaign_id:
-            q = q.filter(Task.campaign_id == int(campaign_id))
-            extra = extra + "in campaign id %s" % campaign_id
-            filtered_fields['campaign_id'] = campaign_id
+        campaign_stage_id = kwargs.get('campaign_stage_id')
+        if campaign_stage_id:
+            q = q.filter(Submission.campaign_stage_id == int(campaign_stage_id))
+            extra = extra + "in campaign id %s" % campaign_stage_id
+            filtered_fields['campaign_stage_id'] = campaign_stage_id
 
         experiment = kwargs.get('experiment')
         if experiment:
-            q = q.filter(Campaign.experiment == experiment)
+            q = q.filter(CampaignStage.experiment == experiment)
             extra = extra + "in experiment %s" % experiment
             filtered_fields['experiment'] = experiment
 
         dataset = kwargs.get('dataset')
         if dataset:
-            q = q.filter(Campaign.dataset == dataset)
+            q = q.filter(CampaignStage.dataset == dataset)
             extra = extra + "in dataset %s" % dataset
             filtered_fields['dataset'] = dataset
 
         campaign_name = kwargs.get('campaign_name')
         if campaign_name:
-            q = q.filter(Campaign.name == campaign_name)
+            q = q.filter(CampaignStage.name == campaign_name)
             filtered_fields['campaign_name'] = campaign_name
 
         # alias for failed_jobs_by_whatever
         name = kwargs.get('name')
         if name:
-            q = q.filter(Campaign.name == name)
+            q = q.filter(CampaignStage.name == name)
             filtered_fields['campaign_name'] = name
 
         campaign_def_id = kwargs.get('campaign_def_id')
         if campaign_def_id:
-            q = q.filter(Campaign.campaign_definition_id == campaign_def_id)
+            q = q.filter(CampaignStage.job_type_id == campaign_def_id)
             filtered_fields['campaign_def_id'] = campaign_def_id
 
         vo_role = kwargs.get('vo_role')
         if vo_role:
-            q = q.filter(Campaign.vo_role == vo_role)
+            q = q.filter(CampaignStage.vo_role == vo_role)
             filtered_fields['vo_role'] = vo_role
 
         input_dataset = kwargs.get('input_dataset')
         if input_dataset:
-            q = q.filter(Task.input_dataset == input_dataset)
+            q = q.filter(Submission.input_dataset == input_dataset)
             filtered_fields['input_dataset'] = input_dataset
 
         output_dataset = kwargs.get('output_dataset')
         if output_dataset:
-            q = q.filter(Task.output_dataset == output_dataset)
+            q = q.filter(Submission.output_dataset == output_dataset)
             filtered_fields['output_dataset'] = output_dataset
 
         task_status = kwargs.get('task_status')
         if task_status and task_status != 'All' and task_status != 'Total Completed':
-            q = q.filter(Task.status == task_status)
+            q = q.filter(Submission.status == task_status)
             filtered_fields['task_status'] = task_status
 
         project = kwargs.get('project')
         if project:
-            q = q.filter(Task.project == project)
+            q = q.filter(Submission.project == project)
             filtered_fields['project'] = project
 
         #
@@ -279,26 +279,26 @@ class TriagePOMS(object):
                                                                        rows=(-1,0)
                                                                        ).label('end_t'))
                             .join(Job)
-                            .join(Task)
+                            .join(Submission)
                             .filter(JobHistory.status.in_([copy_start_status,'running','Running']))
                             .filter(JobHistory.job_id == Job.job_id)
-                            .filter(Job.task_id == Task.task_id)
-                            .filter(Task.campaign_id == campaign_id)
-                            .filter(Task.created < tmax, Task.created >= tmin)
+                            .filter(Job.submission_id == Submission.submission_id)
+                            .filter(Submission.campaign_stage_id == campaign_stage_id)
+                            .filter(Submission.created < tmax, Submission.created >= tmin)
                        ).subquery()
-                    sq2 = (dbhandle.query(sq1.c.job_id.label('job_id'), 
-                                     func.extract('epoch',func.sum(sq1.c.end_t - sq1.c.start_t)).label('copy_time'))
-                         .filter(sq1.c.status == copy_start_status)
-                         .group_by(sq1.c.job_id)
+                    sq2 = (dbhandle.query(sq1.cs.job_id.label('job_id'), 
+                                     func.extract('epoch',func.sum(sq1.cs.end_t - sq1.cs.start_t)).label('copy_time'))
+                         .filter(sq1.cs.status == copy_start_status)
+                         .group_by(sq1.cs.job_id)
                        ).subquery()
-                    sq3 = (dbhandle.query(sq2.c.job_id).filter(sq2.c.copy_time >= n * b, sq2.c.copy_time < (n+1)*b)).subquery()
+                    sq3 = (dbhandle.query(sq2.cs.job_id).filter(sq2.cs.copy_time >= n * b, sq2.cs.copy_time < (n+1)*b)).subquery()
                     q = q.filter(Job.job_id.in_(sq3))
 
         #
         # this one for our effeciency percentage decile...
         # i.e. if you want jobs in the 80..90% eficiency range
         # you ask for eff_d == 8...
-        # ... or with eff_d of -1, one where we don't have good cpu/wall time data
+        # ... or with eff_d of -1, one where we don's have good cpu/wall time data
         #
         eff_d = kwargs.get('eff_d')
         if eff_d:
@@ -393,8 +393,8 @@ class TriagePOMS(object):
                                           "job_checkbox": "checked"}  # setting this for initial page visit
             filtered_fields.update(filtered_fields_checkboxes)
 
-        hidecolumns = ['task_id', 'campaign_id', 'created', 'creator', 'updated',
-                       'updater', 'command_executed', 'task_parameters', 'depends_on', 'depend_threshold' ]
+        hidecolumns = ['submission_id', 'campaign_stage_id', 'created', 'creator', 'updated',
+                       'updater', 'command_executed', 'submission_params', 'depends_on', 'depend_threshold' ]
 
         #template = self.jinja_env.get_template('job_table.html')
         return jl, jobcolumns, taskcolumns, campcolumns, tmins, tmaxs, prevlink, nextlink, tdays, extra, hidecolumns, filtered_fields, time_range_string
@@ -431,9 +431,9 @@ class TriagePOMS(object):
             if hasattr(Job, field):
                 gbl.append(getattr(Job, field))
                 qargs.append(getattr(Job, field))
-            elif hasattr(Campaign, field):
-                gbl.append(getattr(Campaign, field))
-                qargs.append(getattr(Campaign, field))
+            elif hasattr(CampaignStage, field):
+                gbl.append(getattr(CampaignStage, field))
+                qargs.append(getattr(CampaignStage, field))
 
         possible_columns = [
                             # job fields
@@ -449,8 +449,8 @@ class TriagePOMS(object):
         #
         #
         q = dbhandle.query(*qargs)
-        q = q.join(Task, Campaign)
-        q = q.filter(Campaign.experiment == session_experiment)
+        q = q.join(Submission, CampaignStage)
+        q = q.filter(CampaignStage.experiment == session_experiment)
         q = q.filter(Job.updated >= tmin, Job.updated <= tmax, Job.user_exe_exit_code != 0)
         q = q.group_by(*gbl).order_by(desc(func.count(Job.job_id)))
 

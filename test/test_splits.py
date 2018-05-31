@@ -4,7 +4,7 @@ import time
 import sys
 import glob
 from poms.webservice.samweb_lite import samweb_lite
-from poms.webservice.poms_model import Campaign, Job
+from poms.webservice.poms_model import CampaignStage, Job
 from os.path import basename
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
@@ -47,23 +47,23 @@ config = utils.get_config()
 
 def make_split(ds, split,should_hit_end):
     def test_splits():
-         c = dbhandle.query(Campaign).filter(Campaign.name == 'mwm_test_splits').first()
-         c.dataset = ds
-         c.cs_split_type = split
+         cs = dbhandle.query(CampaignStage).filter(CampaignStage.name == 'mwm_test_splits').first()
+         cs.dataset = ds
+         cs.cs_split_type = split
          dbhandle.commit()
-         mps.campaignsPOMS.reset_campaign_split(dbhandle, samhandle, c.campaign_id)
+         mps.campaignsPOMS.reset_campaign_split(dbhandle, samhandle, cs.campaign_stage_id)
          #logger.debug("testing %s on %s" % (split, ds))
          print("testing %s on %s" % (split, ds))
          hit_end = 0
          for i in range(1,6):
              try:
-                 res = mps.campaignsPOMS.get_dataset_for(dbhandle, samhandle, RuntimeError, c)
+                 res = mps.campaignsPOMS.get_dataset_for(dbhandle, samhandle, RuntimeError, cs)
              except RuntimeError:
                  print("Hit end!")
                  hit_end = 1
                  break
 
-             n = samhandle.count_files(c.experiment, "defname:"+res)
+             n = samhandle.count_files(cs.experiment, "defname:"+res)
              print("got %s with %d files" % (res, n))
 
              assert(n > 0)

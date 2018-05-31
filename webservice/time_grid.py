@@ -7,7 +7,7 @@ from collections import deque
 class time_grid:
 
     def __init__(self):
-        # you can't see boxes less than 2% wide...
+        # you can's see boxes less than 2% wide...
         self.minwidth = 2
 
 
@@ -153,7 +153,7 @@ class time_grid:
             while i < len(dlist) and dlist[i]['time'] <= self.tmax:
                 if i == len(dlist) - 1:
                     # last item in row special case...
-                    # don't draw boxes past current time...
+                    # don's draw boxes past current time...
                     if self.tmax > justnow:
                         tend = justnow
                         width = self.pwidth(dlist[i]['time'], tend, tmin, tmax)

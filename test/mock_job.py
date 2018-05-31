@@ -40,7 +40,7 @@ class mock_job:
         self.pids = []
         self.jids = []
 
-    def launch(self, campaign_id, n_jobs, fileflag = False,dataset = None, exit_code = 0):
+    def launch(self, campaign_stage_id, n_jobs, fileflag = False,dataset = None, exit_code = 0):
 
         
         if dataset:
@@ -51,12 +51,12 @@ class mock_job:
            
         mps = mock_poms_service.mock_poms_service()
         dbh = DBHandle.DBHandle()
-        task_id = mps.taskPOMS.get_task_id_for(dbh.get(), campaign_id, experiment = "samdev", command_executed = 'fake_task')
+        submission_id = mps.taskPOMS.get_task_id_for(dbh.get(), campaign_stage_id, experiment = "samdev", command_executed = 'fake_task')
 
-        print("got POMS_TASK_ID=%s" % task_id)
+        print("got POMS_TASK_ID=%s" % submission_id)
 
         for i in range(n_jobs):
-           self.run(task_id, i, n_jobs, fileflag, dataset, projname, exit_code)
+           self.run(submission_id, i, n_jobs, fileflag, dataset, projname, exit_code)
 
     def close(self):
         for p in self.pids:
@@ -64,7 +64,7 @@ class mock_job:
             os.waitpid(p,0)
         self.pids = []
          
-    def run(self, task_id, i, n_jobs, fileflag = False, dataset = None, projname = None, exit_code = 0):
+    def run(self, submission_id, i, n_jobs, fileflag = False, dataset = None, projname = None, exit_code = 0):
 
         jid = str(int(time.time()) + i/10.0)+"@fakebatch1.fnal.gov"
         self.jids.append(jid)
@@ -88,13 +88,13 @@ class mock_job:
 
             if dataset and i == 0:
                 # pretend to be a dagman... wake up right away, wait for everyone else then exit.  We just sleep to wait for them.
-                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
                 time.sleep(0.5)
-                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
-                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, task_project = projname)
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, task_project = projname)
 
                 time.sleep(20)
-                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
                 os._exit(0)
 
             # handle start/end project jobs
@@ -113,11 +113,11 @@ class mock_job:
                                  break
                 # pretend to be a startproject/endproject job
                 print("start/end job: %d" % i)
-                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
 
                 time.sleep(0.5)
-                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
-                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, task_project = projname)
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, task_project = projname)
 
                 os.environ['EXPERIMENT'] = 'samdev'
 
@@ -135,7 +135,7 @@ class mock_job:
                     print("exception in start/end project")
                     print(sys.exc_info())
                    
-                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
                 os._exit(0)
       
             else:
@@ -152,14 +152,14 @@ class mock_job:
                 else:
                     time.sleep(2)
 
-                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
                 time.sleep(0.5)
-                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
 
-                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code', user_script = '/fake/job/script', node_name='fakenode', vendor_id = 'FakeCPU')
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code', user_script = '/fake/job/script', node_name='fakenode', vendor_id = 'FakeCPU')
                  
                 if dataset:
-                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, task_project = projname)
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, task_project = projname)
 
                     print("Trying to find project..." , time.asctime())
                     u = do_ifdh('findProject',projname, 'samdev')
@@ -173,26 +173,26 @@ class mock_job:
                     cid = do_ifdh('establishProcess', u, 'demo', version, hostname, os.environ['USER'], 'demo', jid, 1)
                     f = do_ifdh('getNextFile', u, cid)
                     inpf = os.path.basename(f)
-                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files in', input_file_names = os.path.basename(f))
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files in', input_file_names = os.path.basename(f))
                     time.sleep(0.5)
                     do_ifdh('updateFileStatus',u, cid, f, 'transferred')
-                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running')
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running')
                     time.sleep(0.5)
                     do_ifdh('updateFileStatus', u, cid, f, 'consumed')
                     do_ifdh('endProcess', u, cid)
                 else:
                     inpf = 'fake_input_%s' % jid
                     if fileflag:
-                        self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files in', input_file_names = inpf )
+                        self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files in', input_file_names = inpf )
                     time.sleep(2)
                 
                 if fileflag:
                     ofn = ('fake_output_%s' % jid).replace('@','_')
-                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files out', output_file_names = ofn )
-                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code completed', user_exe_exit_code = str(exit_code))
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: copying files out', output_file_names = ofn )
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code completed', user_exe_exit_code = str(exit_code))
                 else:
-                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = str(exit_code))
-                self.jp.update_job(dbh.get(),  rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
+                    self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'running: user code failed', user_exe_exit_code = str(exit_code))
+                self.jp.update_job(dbh.get(),  rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
             time.sleep(1)
 
             # have file appear with location...
@@ -234,7 +234,7 @@ class mock_job:
 if __name__ == '__main__':
     import sys
     n_jobs = 1
-    campaign_id = "14"
+    campaign_stage_id = "14"
     logger.setLevel(50)
     dataset = None
     fileflag = False
@@ -260,8 +260,8 @@ if __name__ == '__main__':
                dataset = None
            sys.argv = sys.argv[2:]
            continue
-        if sys.argv[1] == "--campaign_id":
-           campaign_id = sys.argv[2]
+        if sys.argv[1] == "--campaign_stage_id":
+           campaign_stage_id = sys.argv[2]
            sys.argv = sys.argv[2:]
            continue
         if sys.argv[1] == "--wait":
@@ -271,10 +271,10 @@ if __name__ == '__main__':
         print("unknown argument:" , sys.argv[1])
         break
 
-    print("n_jobs:", n_jobs, "campaign_id", campaign_id)
+    print("n_jobs:", n_jobs, "campaign_stage_id", campaign_stage_id)
 
     m = mock_job()
-    m.launch(campaign_id, n_jobs, fileflag, dataset)
+    m.launch(campaign_stage_id, n_jobs, fileflag, dataset)
 
     print("Fake jobids:", m.jids)
 

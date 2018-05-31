@@ -1,15 +1,15 @@
 {%extends "layout.html" %}
 
 {%block title%}
-POMS Tag Query Results
+POMS Campaign Query Results
 {%endblock%}
 
 {%block header%}
 <h1 class="ui header">
-         Tag Query Results {%include 'help_button.html'%}
+         Campaign Query Results {%include 'help_button.html'%}
 
           <div class="sub header">
-              view all Campaign Stages belonging to this Tag/Campaign
+              view all CampaignStage Stages belonging to this Campaign/CampaignStage
           </div>
 </h1>
 {%endblock%}
@@ -18,7 +18,7 @@ POMS Tag Query Results
 
 
 {%block subheader%}
-<h2 class="ui dividing header">Tag Query Results: {% for item in q_list %} <div class="ui blue label">{{item}}</div> {% endfor %}</h2>
+<h2 class="ui dividing header">Campaign Query Results: {% for item in q_list %} <div class="ui blue label">{{item}}</div> {% endfor %}</h2>
 {%endblock%}
 
 
@@ -27,7 +27,7 @@ POMS Tag Query Results
 <table class="ui sortable celled table">
   <thead>
     <tr>
-      <th class="">Campaign Stage Name</th>
+      <th class="">CampaignStage Stage Name</th>
       <th class="">Experiment</th>
     </tr>
   </thead>
@@ -38,7 +38,7 @@ POMS Tag Query Results
 
   {% for row in results %}
   <tr>
-      <td><a href="{{pomspath}}/campaign_info?campaign_id={{row.campaign_id}}">{{row.name}}</a></td>
+      <td><a href="{{pomspath}}/campaign_info?campaign_stage_id={{row.campaign_stage_id}}">{{row.name}}</a></td>
       <td>{{row.experiment}}</td>
   </tr>
   {% endfor %}

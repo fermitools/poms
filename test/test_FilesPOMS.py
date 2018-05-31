@@ -7,7 +7,7 @@ import socket
 from mock.mock import MagicMock
 from poms.webservice.utc import utc
 from poms.webservice.samweb_lite import samweb_lite
-from poms.webservice.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job, JobFile, Task
+from poms.webservice.poms_model import CampaignStage, JobType, LoginSetup, Job, JobFile, Submission
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -54,15 +54,15 @@ def test_list_task_logged_files():
 
     # setup a task, log some files...
     #
-    task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
+    submission_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
     jid = "%d@fakebatch1.fnal.gov" % time.time()
 
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running', output_file_names = ' '.join(flist))
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Running', output_file_names = ' '.join(flist))
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
     # ... now verify we got those files
 
-    fl, t, jobsub_job_id = mps.filesPOMS.list_task_logged_files(dbhandle,task_id)
+    fl, s, jobsub_job_id = mps.filesPOMS.list_task_logged_files(dbhandle,submission_id)
     for f in fl:
        assert(f.file_name in flist)
 
@@ -70,12 +70,12 @@ def test_list_task_logged_files():
 def test_get_inflight():
     dbhandle = DBHandle.DBHandle().get()
     samhandle = samweb_lite()
-    t = time.time()
-    tUTC=time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(t)) #time stamp for file creation
+    s = time.time()
+    tUTC=time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(s)) #time stamp for file creation
     campaign_id_test = '14' #test campaign
-    jid = "%d@fakebatch_test.fnal.gov" % t #fake jobsub_job_id
+    jid = "%d@fakebatch_test.fnal.gov" % s #fake jobsub_job_id
     task_id_test = mps.taskPOMS.get_task_id_for(dbhandle,campaign=campaign_id_test)
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id_test, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = task_id_test, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
     jobj = dbhandle.query(Job).filter(Job.jobsub_job_id==jid).first() #taking a job object from the job just included in the previous stage
     db_job_id=jobj.job_id #this is the job id in the database different from the jobsub_job_id
     fname="testFile_Felipe_%s_%s.root" % (tUTC,task_id_test)
@@ -91,10 +91,10 @@ def test_get_inflight():
     dbhandle.commit()
 
     #Verbosity
-    print("t", t)
+    print("s", s)
     print("UTC", tUTC)
     print("jid", jid)
-    print("task_id", task_id_test)
+    print("submission_id", task_id_test)
     print("job object id in the db", jobj.job_id)
     print("the jobsub_job_id", jobj.jobsub_job_id)
     print(jf)
@@ -102,16 +102,16 @@ def test_get_inflight():
 
     ''' 
     print "I want to emulate the same query done inside the method because is not working"
-    fobj=dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
-    q = dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
-    q = q.filter(Task.campaign_id == Campaign.campaign_id)
-    q = q.filter(Task.task_id == Job.task_id)
+    fobj=dbhandle.query(JobFile).join(Job).join(Submission).join(CampaignStage)
+    q = dbhandle.query(JobFile).join(Job).join(Submission).join(CampaignStage)
+    q = q.filter(Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
+    q = q.filter(Submission.submission_id == Job.submission_id)
     q = q.filter(Job.job_id == JobFile.job_id)
     q = q.filter(JobFile.file_type == 'output')
     q = q.filter(Job.job_id ==db_job_id)
     q = q.filter(JobFile.declared == None)
-    q = q.filter(Task.campaign_id == campaign_id_test)
-    q = q.filter(Job.task_id == task_id_test)
+    q = q.filter(Submission.campaign_stage_id == campaign_id_test)
+    q = q.filter(Job.submission_id == task_id_test)
     q = q.filter(Job.output_files_declared == False)
     print "q object", q.all()
     print "*"*10
@@ -122,7 +122,7 @@ def test_get_inflight():
         print "declare", x.declared
         #fn_list.append(x.file_name)
     '''
-    outlist = mps.filesPOMS.get_inflight(dbhandle, task_id=task_id_test)
+    outlist = mps.filesPOMS.get_inflight(dbhandle, submission_id=task_id_test)
     outlist.sort()
     fn_list.sort()
     print("the outlist is", outlist)

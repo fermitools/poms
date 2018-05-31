@@ -5,24 +5,24 @@ class list:
        of dataset names to work through in the dataset field, and will
        submit each one separately
     """
-    def __init__(self, c, samhandle, dbhandle):
-        self.c = c
-        self.list = c.dataset.split(',')
+    def __init__(self, cs, samhandle, dbhandle):
+        self.cs = cs
+        self.list = cs.dataset.split(',')
 
     def peek(self):
-        if self.c.cs_last_split == None:
-            self.c.cs_last_split = 0
-        if self.c.cs_last_split >= len(self.list):
+        if self.cs.cs_last_split == None:
+            self.cs.cs_last_split = 0
+        if self.cs.cs_last_split >= len(self.list):
             raise StopIteration
-        return self.list[self.c.cs_last_split]
+        return self.list[self.cs.cs_last_split]
 
     def next(self):
         res = self.peek()
-        self.c.cs_last_split = self.c.cs_last_split+1
+        self.cs.cs_last_split = self.cs.cs_last_split+1
         return res
 
     def prev(self):
-        self.c.cs_last_split = self.c.cs_last_split-1
+        self.cs.cs_last_split = self.cs.cs_last_split-1
         res = self.peek()
         return res
 

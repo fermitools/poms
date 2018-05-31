@@ -1,4 +1,16 @@
+do $$
+declare
+  rolename varchar;
+  begin
+    select current_database() into rolename;
+    execute 'set session role ' || rolename;
+  end;
+$$ language 'plpgsql';
+\set ECHO all
+show role;
+set client_min_messages to warning;
 
+-- begin
 ALTER TABLE launch_templates          RENAME COLUMN launch_id TO login_setup_id;
 ALTER TABLE campaigns                 RENAME COLUMN launch_id TO login_setup_id;
 ALTER TABLE campaign_snapshots        RENAME COLUMN launch_id TO login_setup_id;
@@ -9,6 +21,8 @@ ALTER TABLE campaign_definitions RENAME COLUMN campaign_definition_id TO job_typ
 ALTER TABLE campaigns            RENAME COLUMN campaign_definition_id TO job_type_id;
 ALTER TABLE campaign_snapshots   RENAME COLUMN campaign_definition_id TO job_type_id;
 ALTER TABLE campaign_recoveries  RENAME COLUMN campaign_definition_id TO job_type_id;
+-- overlooked on first pass
+ALTER TABLE campaign_definition_snapshots RENAME COLUMN campaign_definition_id TO job_type_id;
 
 
 ALTER TABLE campaign_snapshots RENAME COLUMN campaign_snapshot_id TO campaign_stage_snapshot_id;
@@ -22,8 +36,8 @@ ALTER TABLE tasks               RENAME COLUMN campaign_id to campaign_stage_id;
 ALTER TABLE campaigns_tags      RENAME COLUMN campaign_id to campaign_stage_id;
 ALTER TABLE campaign_snapshots  RENAME COLUMN campaign_id to campaign_stage_id;
 ALTER TABLE held_launches       RENAME COLUMN campaign_id to campaign_stage_id;
-ALTER TABLE campaign_dependency RENAME COLUMN needs_camp_id to needs_campaign_stage_id;
-ALTER TABLE campaign_dependency RENAME COLUMN uses_camp_id to provides_campaign_stage_id;
+ALTER TABLE campaign_dependencies RENAME COLUMN needs_camp_id to needs_campaign_stage_id;
+ALTER TABLE campaign_dependencies RENAME COLUMN uses_camp_id to provides_campaign_stage_id;
 
 ALTER TABLE tags           RENAME COLUMN tag_id to campaign_id;
 ALTER TABLE campaigns_tags RENAME COLUMN tag_id to campaign_id;
@@ -33,7 +47,7 @@ ALTER TABLE jobs                    RENAME COLUMN task_id TO submission_id;
 ALTER TABLE task_histories          RENAME COLUMN task_id TO submission_id;
 
 ALTER TABLE held_launches           RENAME column parent_task_id TO parent_submission_id;
-ALTER TABLE tasks                   RENAME COLUMN task_params TO submission_params;
+ALTER TABLE tasks                   RENAME COLUMN task_parameters TO submission_params;
 
 ALTER TABLE launch_templates              RENAME TO login_setups;
 ALTER TABLE campaign_definitions          RENAME TO job_types;
@@ -42,4 +56,25 @@ ALTER TABLE campaign_definition_snapshots RENAME TO job_type_snapshots;
 ALTER TABLE campaigns                     RENAME TO campaign_stages;
 ALTER TABLE tasks                         RENAME to submissions;
 ALTER TABLE tags                          RENAME TO campaigns;
-ALTER TABLE campaigns_tags                RENAME TO campaigns_campaign_stages;
+ALTER TABLE campaigns_tags                RENAME TO campaign_campaign_stages;
+
+-- missed on first pass
+DROP TRIGGER update_task_history on submissions;
+DROP FUNCTION update_task_history();
+
+ALTER TABLE task_histories                RENAME TO submission_histories;
+
+CREATE OR REPLACE FUNCTION update_submission_history()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF TG_OP = 'INSERT' or NEW.status != OLD.status THEN
+       INSERT INTO submission_histories SELECT NEW.submission_id, now(), NEW.status;
+    END IF;
+    RETURN NULL;
+END;
+$function$;
+
+CREATE TRIGGER update_submission_history AFTER INSERT OR UPDATE ON submissions FOR EACH ROW EXECUTE PROCEDURE update_submission_history();
+

@@ -98,8 +98,8 @@ class TablesPOMS(object):
         logit.log("update_for: found is now %s" % found)
         dbhandle.add(found)
         dbhandle.commit()
-        if classname == "Task":
-            self.poms_service.snapshot_parts(found. campaign_id)
+        if classname == "Submission":
+            self.poms_service.snapshot_parts(found. campaign_stage_id)
         return "%s=%s" % (classname, getattr(found, primkey))
 
 

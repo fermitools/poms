@@ -1,12 +1,12 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    POMS: Campaign Tags for {{experiment}}
+    POMS: CampaignStage Tags for {{experiment}}
 {%endblock%}
 
 
 {%block header%}
-Campaign Tags
+CampaignStage Tags
 {%endblock%}
 
 {%block subheader%}
@@ -17,36 +17,36 @@ Campaign Tags
 {%block content%}
 
 <div>
-Campaign Tags:
+CampaignStage Tags:
 <ul>
-{% for t in tl|sort(attribute='tag_name') %}
-<li style="margin-top: 0.5em;" id="li_tag_{{t.tag_id}}"> <span class="ui blue tag label">{{t.tag_name}}</span>
+{% for s in tl|sort(attribute='tag_name') %}
+<li style="margin-top: 0.5em;" id="li_tag_{{s.campaign_id}}"> <span class="ui blue tag label">{{s.tag_name}}</span>
     <button type="button">
-    <i class="trash blue icon poms_tag" id="tag_{{t.tag_id}}" style="border-radius: 5px;"></i>
+    <i class="trash blue icon poms_tag" id="tag_{{s.campaign_id}}" style="border-radius: 5px;"></i>
     </button>
   
-   <a href="{{pomspath}}/campaign_deps?tag={{t.tag_name}}">
+   <a href="{{pomspath}}/campaign_deps?tag={{s.tag_name}}">
    <button type="button">
     <i class="sitemap icon"></i>Dependencies 
     </button>
    </a>
-   <a href="{{pomspath}}/campaign_deps_ini?tag={{t.tag_name}}">
+   <a href="{{pomspath}}/campaign_deps_ini?tag={{s.tag_name}}">
    <button type="button">
    <i class="file icon"></i>Workflow_ini file
    </button>
    </a>
-   <a href="{{pomspath}}/campaign_time_bars?tag={{t.tag_name}}&tdays=7&tmax={{last_activity}}">
+   <a href="{{pomspath}}/campaign_time_bars?tag={{s.tag_name}}&tdays=7&tmax={{last_activity}}">
     <button type="button">
-    <i class="tasks icon"></i>Submissions
+    <i class="submissions icon"></i>Submissions
     </button>
    </a>
-   <a href="{{pomspath}}/gui_wf_edit?campaign={{t.tag_name}}">
+   <a href="{{pomspath}}/gui_wf_edit?campaign={{s.tag_name}}">
    <button type="button">
     <i class="pencil icon"></i>Edit Workflow
     </button>
    </a>
    <form style="border:1px solid black; margin: 5px; width: 50%;"  method="GET" action={{pomspath}}/gui_wf_edit?">
-      <input type="hidden" name="campaign" value="{{t.tag_name}}">
+      <input type="hidden" name="campaign" value="{{s.tag_name}}">
       <input type="submit" name="clone" value="Clone">
       replacing: <input name="from">
       with: <input name="to">
@@ -67,7 +67,7 @@ function add_click_handler() {
 
 function do_delete(item) {
     var t_id = item.id.split("_")[1];
-    $.post("delete_tag_entirely", {tag_id: t_id}, function(data) {
+    $.post("delete_tag_entirely", {campaign_id: t_id}, function(data) {
             if(data.msg == "OK") {
                 $('#response').html(data.msg);
                 $('#li_tag_'+t_id).remove();  //removes the line associated

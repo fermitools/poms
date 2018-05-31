@@ -18,11 +18,11 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
     jf = jobsub_fetcher.jobsub_fetcher(cert, key)
     log("DEBUG", "checking index" )
     files = jf.index( jobsub_job_id, experiment, role, True)
-    task = dbhandle.query(Job.task_id).filter(Job.jobsub_job_id == jobsub_job_id).first()
+    task = dbhandle.query(Job.submission_id).filter(Job.jobsub_job_id == jobsub_job_id).first()
     if task == None:
-        task_id = 14
+        submission_id = 14
     else:
-        task_id = task.task_id
+        submission_id = task.submission_id
     
     if files == None:
         return
@@ -34,7 +34,7 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
             # the individual job.logs in it.
             log("DEBUG", "checking file %s " %row[5] )
             lines = jf.contents(row[5], jobsub_job_id, experiment, role)
-            parse_condor_log(dbhandle, lines, jobsub_job_id[jobsub_job_id.find("@")+1:], task_id)
+            parse_condor_log(dbhandle, lines, jobsub_job_id[jobsub_job_id.find("@")+1:], submission_id)
             break
     del jf
 
@@ -75,7 +75,7 @@ def parse_date(date_time_str):
 
     return datetime.strptime(date_time_str, "%Y/%m/%d %H:%M:%S")
 
-def parse_condor_log(dbhandle, lines, batchhost, task_id):
+def parse_condor_log(dbhandle, lines, batchhost, submission_id):
     ''' read a condor log looking for start/end info '''
     in_termination = 0
     stimes = {}
@@ -126,7 +126,7 @@ def parse_condor_log(dbhandle, lines, batchhost, task_id):
             else:
                 # missing job, add it...
                 job = Job()
-                job.task_id = task_id
+                job.submission_id = submission_id
                 job.jobsub_job_id = jobsub_job_id
                 job.node_name = execute_hosts[jobsub_job_id]
                 job.cpu_type = 'unknown'
