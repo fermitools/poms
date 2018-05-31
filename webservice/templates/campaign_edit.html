@@ -238,11 +238,11 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         </div>
       </div>
 
-      <h4 class="ui horizontal divider">Launch Template</h4>
+      <h4 class="ui horizontal divider">Launch/Setup</h4>
 
       <div class="one field">
         <div class="field">
-          <label>Launch Template {{ show_hint('#Launch-Template', 'Select template name') }}</label>
+          <label>Launch/Setup Name {{ show_hint('#Launch-Template', 'Select template name') }}</label>
           <select class="ui dropdown" name="ae_launch_id" id="ae_launch_id">
             <option value=""></option>
             {% for row in data.templates %}
@@ -273,7 +273,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
       <div class="one field">
         <div class="field">
-          <label>Job Type {{ show_hint('#Job-Type', 'Select job type') }}</label>
+          <label>Job Type Name {{ show_hint('#Job-Type', 'Select job type') }}</label>
           <!--<br/>-->
           <select class="ui dropdown" name="ae_campaign_definition_id" id="ae_campaign_definition_id">
             <option value=""></option>
@@ -295,7 +295,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
       <div class="two fields">
         <div class="field">
-          <label>Launch Script {{ show_hint('#Launch-Script', 'Script name with arguments') }}</label>
+          <label>Launch/Setup Script {{ show_hint('#Launch-Script', 'Script name with arguments') }}</label>
           <textarea rows="3" id="ae_launch_script" disabled></textarea>
         </div>
         <div class="field">
@@ -483,12 +483,12 @@ function create_row(index, key, value) {
 
 var ep_parms = [];
 
-/* 
+/*
  * was:
  * $("#edit_param_modal_btn").click(function() {
  *   setup_modal("#ae_param_overrides");
  * });
- * 
+ *
  * $("#edit_param_test_modal_btn").click(function() {
  *   setup_modal("#ae_test_param_overrides");
  * });

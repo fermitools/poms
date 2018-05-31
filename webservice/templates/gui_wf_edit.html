@@ -2,7 +2,7 @@
 
 
 {%block title%}
-<title>POMS CampaignStage Dependencies</title>
+<title>POMS Workflow Editor</title>
 <script src="{{pomspath}}/static/js/gui_editor_3.js"></script>
 <script src="{{pomspath}}/static/js/json_field_editor.js"></script>
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/gui_editor_3.css">
@@ -51,7 +51,7 @@ function main() {
           var args = mwm_utils.getSearchParams()
           if ('clone' in args && 'Clone' == args['clone']) {
               ge.set_state_clone(data, args['from'], args['to'],'{{session_experiment}}','{{session_role}}')
-          } else {  
+          } else {
               ge.set_state(data)
           }
        })

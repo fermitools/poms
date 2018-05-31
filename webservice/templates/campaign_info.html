@@ -122,7 +122,7 @@ $( document ).ready(function() {
         <thead>
             <tr>
                 <th align="center">Total</th>
-                <th colspan=3 align="center">Active CampaignStage Jobs </th>
+                <th colspan=3 align="center">Active Campaign Stage Jobs </th>
                 <th colspan=3 align="center">Jobs in {{time_range_string}}</th>
                 <th colspan=3 align="center">Stats</th>
             </tr>
@@ -213,32 +213,32 @@ $( document ).ready(function() {
          <div class=menu>
               <div class=item>
                <a href="{{pomspath}}/jobs_eff_histo?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="CampaignStage Jobs Efficiency" data-variation="basic"></i>Job Efficiency Histogram (1 month)
+                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Job Efficiency Histogram (1 month)
                </a>
               </div>
               <div class=item>
                <a href="{{pomspath}}/jobs_time_histo?timetype=wall_time&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="CampaignStage Jobs Efficiency" data-variation="basic"></i>Job Wall Clock Time Histogram (1 month)
+                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Job Wall Clock Time Histogram (1 month)
                </a>
               </div>
               <div class=item>
                <a href="{{pomspath}}/jobs_time_histo?timetype=cpu_time&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="CampaignStage Jobs Efficiency" data-variation="basic"></i>Job CPU Time Histogram (1 month)
+                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Job CPU Time Histogram (1 month)
                </a>
               </div>
               <div class=item>
                <a href="{{pomspath}}/jobs_time_histo?timetype=copy_in_time&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="CampaignStage Jobs Efficiency" data-variation="basic"></i>Copy In Time Histogram (1 month)
+                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Copy In Time Histogram (1 month)
                </a>
               </div>
               <div class=item>
                <a href="{{pomspath}}/jobs_time_histo?timetype=copy_out_time&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="CampaignStage Jobs Efficiency" data-variation="basic"></i>Copy Out Time Histogram(1 month)
+                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Copy Out Time Histogram(1 month)
                </a>
               </div>
               <div class=item>
                <a href="{{pomspath}}/campaign_sheet?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tdays=7&tmax={{last_activity}}">
-                <i class="external table icon" data-content="CampaignStage Spreadsheet" data-variation="basic"></i>Day by Day Spreadsheet (1wk)
+                <i class="external table icon" data-content="Campaign Stage Spreadsheet" data-variation="basic"></i>Day by Day Spreadsheet (1wk)
                </a>
               </div>
               <div class=item>
@@ -247,11 +247,11 @@ $( document ).ready(function() {
               </a>
               </div>
               <div class=item>
-                <a href="{{pomspath}}/campaign_task_files?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}"><i class="external file icon" data-content="List file statistics for Submissions for CampaignStage" data-variation="basic"></i>CampaignStage Submission Files</a>
+                <a href="{{pomspath}}/campaign_task_files?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}"><i class="external file icon" data-content="List file statistics for Submissions for CampaignStage" data-variation="basic"></i>Campaign Stage Submission Files</a>
               </div>
               <div class=item>
                  <i class="external icon"></i>
-                 <a href="{{kibana_link}}" target='_blank'>Kibana Usage Info for CampaignStage</a>
+                 <a href="{{kibana_link}}" target='_blank'>Kibana Usage Info for Campaign Stage</a>
               </div>
           </div> <!-- class=menu -->
     </div>
@@ -261,34 +261,34 @@ $( document ).ready(function() {
               <div class=item>
                 <a href="{{pomspath}}/campaign_edit?jump_to_campaign={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
                          and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}>
-                <i class="external edit icon" data-content="Edit CampaignStage" data-variation="basic"></i>Edit CampaignStage</a>
+                <i class="external edit icon" data-content="Edit CampaignStage" data-variation="basic"></i>Edit Campaign Stage</a>
                </div>
 
               <div class=item>
-                <a href="{{pomspath}}/launch_jobs?campaign_stage_id={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis" 
+                <a href="{{pomspath}}/launch_jobs?campaign_stage_id={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
                    and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                    <i class="external rocket icon" data-content="Immediately Launch Submissions for CampaignStage" data-variation="basic">
                    </i>
-                  Launch CampaignStage Jobs Now
+                  Launch Campaign Stage Jobs Now
                </a>
               </div>
               <div class=item>
-                <a href="{{pomspath}}/launch_jobs?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis" 
+                <a href="{{pomspath}}/launch_jobs?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
                    and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                    <i class="external rocket icon" data-content="Immediately Launch Test Submissions for CampaignStage" data-variation="basic">
                    </i>
-                  Launch CampaignStage Test Jobs Now
+                  Launch Campaign Stage Test Jobs Now
                </a>
               </div>
 
               <div class=item>
                 <a href="{{pomspath}}/kill_jobs?campaign_stage_id={{CampaignStage.campaign_stage_id}}&act=kill" {{"disabled" if (session_role=="analysis"
-                         and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}  
+                         and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                    <i class="external trash icon" data-content="Kill running/idle jobs in CampaignStage" data-variation="basic">
-                   </i>Kill running/idle Jobs for CampaignStage
+                   </i>Kill running/idle Jobs for Campaign Stage
                 </a>
               </div>
 
@@ -297,7 +297,7 @@ $( document ).ready(function() {
                          and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                    <i class="external pause icon" data-content="Hold running/idle jobs in CampaignStage" data-variation="basic">
-                   </i>Hold running/idle Jobs for CampaignStage
+                   </i>Hold running/idle Jobs for Campaign Stage
                </a>
               </div>
 
@@ -306,7 +306,7 @@ $( document ).ready(function() {
                          and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
                  >
                     <i class="external play icon" data-content="Release held jobs in CampaignStage" data-variation="basic">
-                    </i>Release held  Jobs for CampaignStage
+                    </i>Release held  Jobs for Campaign Stage
                 </a>
               </div>
 
@@ -318,21 +318,21 @@ $( document ).ready(function() {
                     </i>Schedule Future Job Launches
                  </a>
             </div>
-              
+
              <div class=item>
               {% if CampaignStage.active %}
                  <a href="{{pomspath}}/mark_campaign_active?campaign_stage_id={{CampaignStage.campaign_stage_id}}&is_active=False" {{"disabled" if (session_role=="analysis"
                          and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
                  >
                     <i class="external hide icon" data-content="Mark CampaignStage Inactive" data-variation="basic">
-                   </i>Mark CampaignStage Inactive
+                   </i>Mark Campaign Stage Inactive
                  </a>
               {% else %}
                   <a href="{{pomspath}}/mark_campaign_active?campaign_stage_id={{CampaignStage.campaign_stage_id}}&is_active=True" {{"disabled" if (session_role=="analysis"
                          and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
                   >
-                    <i class="external unhide icon" data-content="Mark CampaignStage Active" data-variation="basic">
-                    </i>Mark CampaignStage Active
+                    <i class="external unhide icon" data-content="Mark Campaign Stage Active" data-variation="basic">
+                    </i>Mark Campaign Stage Active
                   </a>
               {% endif %}
              </div>
@@ -345,11 +345,11 @@ $( document ).ready(function() {
    </div>  <!-- class=ui segment raised -->
 
    <div class="ui segment raised ">
-        <h3>Tags</h3>
+        <h3>Campaigns stage is part of</h3>
 
         <div class="ui search">
             <div class="ui left icon input">
-               <input type="text" id="tag_field" name="tag" placeholder="Enter tag" class="prompt">
+               <input type="text" id="tag_field" name="tag" placeholder="Enter Campaign" class="prompt">
                <i class="tag icon"></i>
             </div>
 
@@ -377,7 +377,7 @@ $( document ).ready(function() {
   <div class="ui horizontal segments">
 
    <div class="ui segment raised">
-    <h3>CampaignStage</h3>
+    <h3>Campaign Stage</h3>
     <b>Name</b>: {{CampaignStage.name}}<br>
     <b>Experiment</b>: {{CampaignStage.experiment}}<br>
     <b>Dataset</b>: {{CampaignStage.dataset}}<br>
@@ -405,7 +405,7 @@ $( document ).ready(function() {
 
     <b>Name</b>: {{Campaign_definition_info.JobType.name}}<br>
     <!--<b>experiment</b>: {{Campaign_definition_info.JobType.experiment}}<br>-->
-    <b>Launch Script</b>: {{Campaign_definition_info.JobType.launch_script}}<br>
+    <b>Launch/Setup</b>: {{Campaign_definition_info.JobType.launch_script}}<br>
     <b>Definition Parameters</b>: [{% for pair in Campaign_definition_info.JobType.definition_parameters %} <br>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
     <b>Input Files Per Job</b>: {{Campaign_definition_info.JobType.input_files_per_job}}<br>
     <b>Output Files Per Job</b>: {{Campaign_definition_info.JobType.output_files_per_job}}<br>
@@ -418,7 +418,7 @@ $( document ).ready(function() {
     </div>
   </div>
     <div class="ui segment raised">
-    <h3>Launch Template</h3>
+    <h3>Launch/Setup</h3>
     <b>Name</b>: {{Launch_template_info.LoginSetup.name}}<br>
     <b>Experiment</b>: {{CampaignStage.experiment}}<br>
     <b>Launch Host</b>: {{Launch_template_info.LoginSetup.launch_host}}<br>
