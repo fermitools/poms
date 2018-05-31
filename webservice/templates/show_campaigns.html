@@ -1,11 +1,11 @@
 {%extends "layout.html"%}
 
 {%block title%}
-POMS: Campaign Stages
+POMS: CampaignStage Stages
 {%endblock%}
 
 {%block header%}
-Campaign Stages{%include 'help_button.html'%}
+CampaignStage Stages{%include 'help_button.html'%}
 <script>
     function do_checkall() {
         // console.log("In do_changeall");
@@ -33,7 +33,7 @@ Campaign Stages{%include 'help_button.html'%}
     }
 
     /* Hide the first column with IDs */
-    #campaigns th:nth-child(1), table td:nth-child(1) {
+    #campaign_stages th:nth-child(1), table td:nth-child(1) {
         display: none;
     }
 
@@ -42,10 +42,10 @@ Campaign Stages{%include 'help_button.html'%}
     }
 </style>
 <div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
-<div class="ui teal button" onclick="pop_tag_untag_modal();">Tag/Untag Campaigns</div>
-<div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Campaign Submission</div>
+<div class="ui teal button" onclick="pop_tag_untag_modal();">Campaign/Untag Campaigns</div>
+<div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release CampaignStage Submission</div>
 <div class="ui teal button" onclick="show_stats();">Show ALL Campaigns Statistics</div>
-{% if campaigns|length == 0 %}
+{% if campaign_stages|length == 0 %}
 <br>
 [No Campaigns Available]
 {% else %}
@@ -53,7 +53,7 @@ Campaign Stages{%include 'help_button.html'%}
     <!--
     <table class="ui celled table sortable">
     -->
-    <table id="campaigns" class="ui celled _table unstackable tablesorter tablesorter-ice">
+    <table id="campaign_stages" class="ui celled _table unstackable tablesorter tablesorter-ice">
         <thead>
             <tr>
                 <th data-sorter="false" data-filter="false">Id</th>
@@ -72,13 +72,13 @@ Campaign Stages{%include 'help_button.html'%}
         </thead>
 
         <tbody>
-            {% for campaign in campaigns %}
+            {% for campaign in campaign_stages %}
                 <tr id="c_tr_{{loop.index}}">
-                    <td id="c_id_{{loop.index}}">{{campaign.campaign_id}}</td>
+                    <td id="c_id_{{loop.index}}">{{campaign.campaign_stage_id}}</td>
                     <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}" {{ 'disabled' if data.authorized[loop.index-1]!=True }}></td>
-                    <td><a href="{{pomspath}}/campaign_info?campaign_id={{campaign.campaign_id}}">{{campaign.name}}</a></td>
+                    <td><a href="{{pomspath}}/campaign_info?campaign_stage_id={{campaign.campaign_stage_id}}">{{campaign.name}}</a></td>
                     <td>{{ 'Yes' if campaign.active else 'No' }}</td>
-                    <td>{{ campaign.campaigns_tags | join('<br>', attribute='tag_obj.tag_name') }}</td>
+                    <td>{{ campaign.campaign_campaign_stages | join('<br>', attribute='tag_obj.tag_name') }}</td>
                     <td>{{campaign.experimenter_holder_obj.username}}</td>
                     <td>{{campaign.experimenter_creator_obj.username}}</td>
                     <td>{{campaign.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>
@@ -89,9 +89,9 @@ Campaign Stages{%include 'help_button.html'%}
             {% endfor %}
         </tbody>
     </table>
-    <input type="hidden" id="c_table_max_rows" value="{{campaigns|length}}">
+    <input type="hidden" id="c_table_max_rows" value="{{campaign_stages|length}}">
     <script>
-        $("#campaigns th").attr("style", "padding: 0.3em; border-left: 1;");
+        $("#campaign_stages th").attr("style", "padding: 0.3em; border-left: 1;");
     </script>
 </div>
 {% endif %}
@@ -107,7 +107,7 @@ Campaign Stages{%include 'help_button.html'%}
             <input type="hidden" id="campaign_ids" name="cl">
         </div>
         <div class="field">
-            <div class="ui horizontal large label">Mark selected campaigns as</div>
+            <div class="ui horizontal large label">Mark selected campaign_stages as</div>
             <input type="submit" class="ui teal button" name="is_active" value="Active">
             <input type="submit" class="ui teal button" name="is_active" value="Inactive">
         </div>
@@ -126,7 +126,7 @@ Campaign Stages{%include 'help_button.html'%}
             <input type="hidden" id="campaign_ids2HR" name="ids2HR">
         </div>
         <div class="field">
-            <div class="ui horizontal large label">Mark selected campaigns as</div>
+            <div class="ui horizontal large label">Mark selected campaign_stages as</div>
             <input type="submit" class="ui teal button" name="is_hold" value="Hold">
             <input type="submit" class="ui teal button" name="is_hold" value="Release">
         </div>
@@ -143,7 +143,7 @@ Campaign Stages{%include 'help_button.html'%}
     <form class="ui form" action="" method="GET">
         <div class="field">
             <input type="hidden" id="tag_campaign_ids" name="cl" readonly>
-            <span style="font-size: 1.3em;">Tag/untag selected campaigns...</span>
+            <span style="font-size: 1.3em;">Campaign/untag selected campaign_stages...</span>
 
             <div class="ui segment raised ">
                 <h3>Tags</h3>
@@ -163,9 +163,9 @@ Campaign Stages{%include 'help_button.html'%}
                 </div>
 
                 <div id="tag_container">
-                    {% for tag in tags %}
-                        <i class="trash outline icon link poms_tag" id="{{Campaign.campaign_id}}_{{tag.tag_id}}"></i>
-                        <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label" id="{{Campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
+                    {% for tag in campaigns %}
+                        <i class="trash outline icon link poms_tag" id="{{CampaignStage.campaign_stage_id}}_{{tag.campaign_id}}"></i>
+                        <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label" id="{{CampaignStage.campaign_stage_id}}_{{tag.campaign_id}}_">{{tag.tag_name}}</a>
                     {% endfor %}
                 </div>
             </div>
@@ -191,9 +191,9 @@ Campaign Stages{%include 'help_button.html'%}
         var t_id = item.id.split("_")[1];
         var clicked_id = "#" + item.id;
         var experiment = "{{session_experiment}}";
-        c_id = c_id.replace(/c/g, ',')
+        c_id = c_id.replace(/cs/g, ',')
 
-        $.post('delete_campaigns_tags', { campaign_id: c_id, tag_id: t_id, experiment: experiment }, function (data) {
+        $.post('delete_campaigns_tags', { campaign_stage_id: c_id, campaign_id: t_id, experiment: experiment }, function (data) {
             if (data.msg == "OK") {
                 $('#response').html(data.msg);
                 $(clicked_id).remove();  //removes the trash can
@@ -232,12 +232,12 @@ Campaign Stages{%include 'help_button.html'%}
         tag = $('#tag_field').val()
         $.post('link_tags', {
                     tag_name: tag,
-                    campaign_id: $("#tag_campaign_ids").val(),
+                    campaign_stage_id: $("#tag_campaign_ids").val(),
                     experiment: "{{session_experiment}}"
                 }, function (data) {
 
             if (data.msg == "OK") {
-                const campaigns_tags_composite_key = data.campaign_id.toString().replace(/,/g, 'c') + "_" + data.tag_id.toString();
+                const campaigns_tags_composite_key = data.campaign_stage_id.toString().replace(/,/g, 'cs') + "_" + data.campaign_id.toString();
                 $('#response').html(data.msg);
 
                 const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${data.tag_name}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
@@ -272,11 +272,11 @@ Campaign Stages{%include 'help_button.html'%}
         }
         if (csv.length == 0) {
             mod_form= $("#display_message_modal").modal('show');
-            $("#poms_message_data").text("Please select one or more campaigns by using the appropriate check boxes.");
+            $("#poms_message_data").text("Please select one or more campaign_stages by using the appropriate check boxes.");
             return;
         }
         mod_form = $("#tag_untag_modal").modal('setting', 'closable', false).modal('show');
-        mod_form.find('span').html("Tag " + csv.length + " selected campaigns...");
+        mod_form.find('span').html("Campaign " + csv.length + " selected campaign_stages...");
         console.log("csv="+csv);
         $("#tag_campaign_ids").val(csv.join(','))
 
@@ -286,10 +286,10 @@ Campaign Stages{%include 'help_button.html'%}
                 $('#tag_container').html('');
                 // $('#response').html(data.result);
                 for (const tag of data.result) {
-                    const [tag_id, tag_name] = tag
-                    const cids = csv.join('c')
-                    const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${tag_name}" class="ui blue tag label" id="${cids}_${tag_id}_">${tag_name}</a>`;
-                    const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${cids}_${tag_id}" style="border-radius: 5px;"></i></span>`;
+                    const [campaign_id, tag_name] = tag
+                    const cids = csv.join('cs')
+                    const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${tag_name}" class="ui blue tag label" id="${cids}_${campaign_id}_">${tag_name}</a>`;
+                    const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${cids}_${campaign_id}" style="border-radius: 5px;"></i></span>`;
                     $('#tag_container').append(new_tag + new_trash_can);
                     //$('#tag_container').append(new_tag);
                     add_click_handler();
@@ -315,7 +315,7 @@ Campaign Stages{%include 'help_button.html'%}
         }
         if (names.length == 0) {
             mod_form= $("#display_message_modal").modal('show');
-            $("#poms_message_data").text("Please select one or more campaigns by using the appropriate check boxes.")
+            $("#poms_message_data").text("Please select one or more campaign_stages by using the appropriate check boxes.")
         }
         else {
             mod_form = $("#mark_inactive_modal").modal('show');
@@ -336,7 +336,7 @@ Campaign Stages{%include 'help_button.html'%}
         }
         if (names.length == 0) {
             mod_form= $("#display_message_modal").modal('show');
-            $("#poms_message_data").text("Please select one or more campaigns by using the appropriate check boxes.")
+            $("#poms_message_data").text("Please select one or more campaign_stages by using the appropriate check boxes.")
         }
         else {
             mod_form = $("#launch_holder_modal").modal('show');
@@ -415,14 +415,14 @@ Campaign Stages{%include 'help_button.html'%}
 
 <script>
     $(document).ready(function() {
-        $('#campaigns').tablesorter( {
+        $('#campaign_stages').tablesorter( {
             widgets : [ 'filter', 'saveSort' ],
             widgetOptions : {filter_reset: '.reset', saveSort: true},
             //dateFormat : "yyyymmdd"
             });
     });
 
-    $('#campaigns')
+    $('#campaign_stages')
     .bind('filterInit', function() {
         // check that storage ulility is loaded
         if ($.tablesorter.storage) {

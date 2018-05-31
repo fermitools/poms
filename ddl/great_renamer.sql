@@ -9,6 +9,8 @@ ALTER TABLE campaign_definitions RENAME COLUMN campaign_definition_id TO job_typ
 ALTER TABLE campaigns            RENAME COLUMN campaign_definition_id TO job_type_id;
 ALTER TABLE campaign_snapshots   RENAME COLUMN campaign_definition_id TO job_type_id;
 ALTER TABLE campaign_recoveries  RENAME COLUMN campaign_definition_id TO job_type_id;
+-- overlooked on first pass
+ALTER TABLE campaign_definition_snapshots RENAME COLUMN campaign_definition_id TO job_type_id;
 
 
 ALTER TABLE campaign_snapshots RENAME COLUMN campaign_snapshot_id TO campaign_stage_snapshot_id;
@@ -43,3 +45,24 @@ ALTER TABLE campaigns                     RENAME TO campaign_stages;
 ALTER TABLE tasks                         RENAME to submissions;
 ALTER TABLE tags                          RENAME TO campaigns;
 ALTER TABLE campaigns_tags                RENAME TO campaigns_campaign_stages;
+
+-- missed on first pass
+DROP TRIGGER update_task_history on submissions;
+DROP FUNCTION update_task_history();
+
+ALTER TABLE task_histories                RENAME TO submission_histories;
+
+CREATE OR REPLACE FUNCTION update_submission_history()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF TG_OP = 'INSERT' or NEW.status != OLD.status THEN
+       INSERT INTO submission_histories SELECT NEW.submission_id, now(), NEW.status;
+    END IF;
+    RETURN NULL;
+END;
+$function$;
+
+CREATE TRIGGER update_submission_history AFTER INSERT OR UPDATE ON submissions FOR EACH ROW EXECUTE PROCEDURE update_submission_history();
+

@@ -11,7 +11,7 @@ from collections import deque
 import json
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func, desc
-from .poms_model import Campaign, CampaignsTags, Tag, Task
+from .poms_model import CampaignStage, CampaignCampaignStages, Campaign, Submission
 from . import logit
 from datetime import datetime, tzinfo, timedelta
 from .utc import utc
@@ -24,10 +24,10 @@ class TagsPOMS(object):
 
 
     def show_tags(self, dbhandle, experiment):
-        tl = dbhandle.query(Tag).filter(Tag.experiment == experiment).all()
+        tl = dbhandle.query(Campaign).filter(Campaign.experiment == experiment).all()
         if len(tl) == 0:
             return tl,""
-        last_activity_l = dbhandle.query(func.max(Task.updated)).join(CampaignsTags,Task.campaign_id == CampaignsTags.campaign_id).join(Tag,CampaignsTags.tag_id == Tag.tag_id).filter(Tag.experiment == experiment).first()
+        last_activity_l = dbhandle.query(func.max(Submission.updated)).join(CampaignCampaignStages,Submission.campaign_stage_id == CampaignCampaignStages.campaign_stage_id).join(Campaign,CampaignCampaignStages.campaign_id == Campaign.campaign_id).filter(Campaign.experiment == experiment).first()
         logit.log("got last_activity_l %s" % repr(last_activity_l))
         last_activity = ""
         if last_activity_l and len(last_activity_l) and last_activity_l[0] :
@@ -37,28 +37,28 @@ class TagsPOMS(object):
         return tl, last_activity
 
 
-    def link_tags(self, dbhandle, ses_get, campaign_id, tag_name, experiment):
+    def link_tags(self, dbhandle, ses_get, campaign_stage_id, tag_name, experiment):
         # if ses_get('experimenter').is_authorized(experiment): #FIXME
-        # Fake it for now, we need to discuss who can manipulate tags.
+        # Fake it for now, we need to discuss who can manipulate campaigns.
         if ses_get('experimenter').session_experiment == experiment:
-            tag = dbhandle.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()
+            tag = dbhandle.query(Campaign).filter(Campaign.tag_name == tag_name, Campaign.experiment == experiment).first()
             if not tag:  # we do not have a tag in the db for this experiment so create the tag and then do the linking
-                t = Tag()
-                t.tag_name = tag_name
-                t.experiment = experiment
-                t.creator = ses_get('experimenter').experimenter_id
-                t.creator_role = ses_get('experimenter').session_role
-                dbhandle.add(t)
+                s = Campaign()
+                s.tag_name = tag_name
+                s.experiment = experiment
+                s.creator = ses_get('experimenter').experimenter_id
+                s.creator_role = ses_get('experimenter').session_role
+                dbhandle.add(s)
                 dbhandle.commit()
-                tag = t
+                tag = s
             # we have a tag in the db for this experiment so go ahead and do the linking
-            campaign_ids = str(campaign_id).split(',')
+            campaign_ids = str(campaign_stage_id).split(',')
             msg = "OK"
             for cid in campaign_ids:
                 try:
-                    ct = CampaignsTags()
-                    ct.campaign_id = cid
-                    ct.tag_id = tag.tag_id
+                    ct = CampaignCampaignStages()
+                    ct.campaign_stage_id = cid
+                    ct.campaign_id = tag.campaign_id
                     dbhandle.add(ct)
                     dbhandle.commit()
                 except IntegrityError:
@@ -66,70 +66,70 @@ class TagsPOMS(object):
                     msg = "This tag may already exist."
                     # response = {"msg": "Database error."}
                     # return response
-            response = {"campaign_id": campaign_id, "tag_id": ct.tag_id, "tag_name": tag.tag_name, "msg": msg}
+            response = {"campaign_stage_id": campaign_stage_id, "campaign_id": ct.campaign_id, "tag_name": tag.tag_name, "msg": msg}
             return response
         else:
-            response = {"msg": "You are not authorized to add tags."}
+            response = {"msg": "You are not authorized to add campaigns."}
             return response
 
-    def delete_tag_entirely(self, dbhandle, ses_get, tag_id):
-        tag = dbhandle.query(Tag).filter(Tag.tag_id == tag_id).first()
+    def delete_tag_entirely(self, dbhandle, ses_get, campaign_id):
+        tag = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
         if ses_get('experimenter').is_authorized(tag.experiment):
-            dbhandle.query(CampaignsTags).filter(CampaignsTags.tag_id == tag_id).delete(synchronize_session=False)
-            dbhandle.query(Tag).filter(Tag.tag_id == tag_id).delete(synchronize_session=False)
+            dbhandle.query(CampaignCampaignStages).filter(CampaignCampaignStages.campaign_id == campaign_id).delete(synchronize_session=False)
+            dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete(synchronize_session=False)
             dbhandle.commit()
             response = {"msg": "OK"} 
         else:
-            response = {"msg": "You are not authorized to delete tags."}
+            response = {"msg": "You are not authorized to delete campaigns."}
         return response
 
-    def delete_campaigns_tags(self, dbhandle, ses_get, campaign_id, tag_id, experiment):
+    def delete_campaigns_tags(self, dbhandle, ses_get, campaign_stage_id, campaign_id, experiment):
 
-        if ',' not in str(campaign_id):
+        if ',' not in str(campaign_stage_id):
             if ses_get('experimenter').is_authorized(experiment):
-                dbhandle.query(CampaignsTags).filter(CampaignsTags.campaign_id == campaign_id, CampaignsTags.tag_id == tag_id).delete(synchronize_session=False)
+                dbhandle.query(CampaignCampaignStages).filter(CampaignCampaignStages.campaign_stage_id == campaign_stage_id, CampaignCampaignStages.campaign_id == campaign_id).delete(synchronize_session=False)
                 dbhandle.commit()
                 response = {"msg": "OK"}
             else:
-                response = {"msg": "You are not authorized to delete tags."}
+                response = {"msg": "You are not authorized to delete campaigns."}
             return response
         else:
             # if ses_get('experimenter').is_authorized(experiment): FIXME
             if ses_get('experimenter').session_experiment == experiment:
-                campaign_ids = str(campaign_id).split(',')
+                campaign_ids = str(campaign_stage_id).split(',')
                 for cid in campaign_ids:
-                    dbhandle.query(CampaignsTags).filter(CampaignsTags.campaign_id == cid, CampaignsTags.tag_id == tag_id).delete(synchronize_session=False)
+                    dbhandle.query(CampaignCampaignStages).filter(CampaignCampaignStages.campaign_stage_id == cid, CampaignCampaignStages.campaign_id == campaign_id).delete(synchronize_session=False)
                     dbhandle.commit()
                 response = {"msg": "OK"}
             else:
-                response = {"msg": "You are not authorized to delete tags."}
+                response = {"msg": "You are not authorized to delete campaigns."}
             return response
 
 
     def search_tags(self, dbhandle, q):
 
         q_list = q.split(" ")
-        query = (dbhandle.query(Campaign)
-                 .filter(CampaignsTags.tag_id == Tag.tag_id, Tag.tag_name.in_(q_list), Campaign.campaign_id == CampaignsTags.campaign_id)
-                 .group_by(Campaign.campaign_id)
-                 .having(func.count(Campaign.campaign_id) == len(q_list)))
+        query = (dbhandle.query(CampaignStage)
+                 .filter(CampaignCampaignStages.campaign_id == Campaign.campaign_id, Campaign.tag_name.in_(q_list), CampaignStage.campaign_stage_id == CampaignCampaignStages.campaign_stage_id)
+                 .group_by(CampaignStage.campaign_stage_id)
+                 .having(func.count(CampaignStage.campaign_stage_id) == len(q_list)))
         results = query.all()
         return results, q_list
 
 
     def search_all_tags(self, dbhandle, cl):
 
-        cids = cl.split(',')        # Campaign IDs list
-        # result = dbhandle.query(CampaignsTags.tag_obj.tag_name).filter(CampaignsTags.campaign_id.in_(cids)).distinct()
+        cids = cl.split(',')        # CampaignStage IDs list
+        # result = dbhandle.query(CampaignCampaignStages.tag_obj.tag_name).filter(CampaignCampaignStages.campaign_stage_id.in_(cids)).distinct()
         #
-        # SELECT distinct(tags.tag_name)
-        # FROM campaigns_tags JOIN tags ON tags.tag_id=campaigns_tags.tag_id
-        # WHERE campaigns_tags.campaign_id in (513,514);
+        # SELECT distinct(campaigns.tag_name)
+        # FROM campaign_campaign_stages JOIN campaigns ON campaigns.campaign_id=campaign_campaign_stages.campaign_id
+        # WHERE campaign_campaign_stages.campaign_stage_id in (513,514);
         #
-        result = (dbhandle.query(Tag.tag_id, Tag.tag_name)
-                  .join(CampaignsTags)
-                  .filter(Tag.tag_id == CampaignsTags.tag_id)
-                  .filter(CampaignsTags.campaign_id.in_(cids))
+        result = (dbhandle.query(Campaign.campaign_id, Campaign.tag_name)
+                  .join(CampaignCampaignStages)
+                  .filter(Campaign.campaign_id == CampaignCampaignStages.campaign_id)
+                  .filter(CampaignCampaignStages.campaign_stage_id.in_(cids))
                   .distinct().all())
         # result = [(r[0], r[1]) for r in result]
         result = [tuple(r) for r in result]
@@ -140,7 +140,7 @@ class TagsPOMS(object):
     def auto_complete_tags_search(self, dbhandle, experiment, q):
         response = {}
         results = deque()
-        rows = dbhandle.query(Tag).filter(Tag.tag_name.like('%' + q + '%'), Tag.experiment == experiment).order_by(desc(Tag.tag_name)).all()
+        rows = dbhandle.query(Campaign).filter(Campaign.tag_name.like('%' + q + '%'), Campaign.experiment == experiment).order_by(desc(Campaign.tag_name)).all()
         for row in rows:
             results.append({"tag_name": row.tag_name})
         response["results"] = list(results)

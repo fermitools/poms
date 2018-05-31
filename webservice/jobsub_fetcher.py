@@ -43,7 +43,7 @@ class jobsub_fetcher():
 
 
         if fifebatch == "fakebatch1.fnal.gov":
-            # don't get confused by test suite...
+            # don's get confused by test suite...
             return
 
         url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/" % ( fifebatch, group, user, jobsubjobid)
@@ -58,7 +58,7 @@ class jobsub_fetcher():
             sys.stdout.flush()
             for line in r.text.split('\n'):
                 log("got line: " +  line)
-                # strip tags...
+                # strip campaigns...
                 line = re.sub('<[^>]*>','', line)
                 fields = line.strip().split()
                 if len(fields):
@@ -92,7 +92,7 @@ class jobsub_fetcher():
         fifebatch = jobsubjobid[jobsubjobid.find("@")+1:]
 
         if fifebatch == "fakebatch1.fnal.gov":
-            # don't get confused by test suite...
+            # don's get confused by test suite...
             return
 
         url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/%s/" % (fifebatch, group, user, jobsubjobid, filename)

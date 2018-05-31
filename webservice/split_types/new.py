@@ -23,7 +23,7 @@ class new:
            new(firsttime=1497934800, window=1w)
     """
     def __init__(self, camp, samhandle, dbhandle):
-        self.c = camp
+        self.cs = camp
         self.samhandle = samhandle
         # default parameters
         self.tfts = 1800.0 # half an hour
@@ -61,15 +61,15 @@ class new:
         bound_time = self.tlasttime - self.tfts - self.twindow
         bound_time = int(bound_time) - (int(bound_time) % int(self.tround))
 
-        if not self.c.cs_last_split:
+        if not self.cs.cs_last_split:
             if self.tfirsttime:
                 stime = self.tfirsttime
             else:
                 stime = bound_time
         else:
-            if self.c.cs_last_split > bound_time:
+            if self.cs.cs_last_split > bound_time:
                 raise StopIteration
-            stime = self.c.cs_last_split
+            stime = self.cs.cs_last_split
 
         etime = stime + self.twindow
 
@@ -82,13 +82,13 @@ class new:
 
         self.etime = etime
 
-        new = self.c.dataset + "_time_%s__%s" % (int(stime), int(etime))
+        new = self.cs.dataset + "_time_%s__%s" % (int(stime), int(etime))
 
         self.samhandle.create_definition(
-                self.c.campaign_definition_obj.experiment,
+                self.cs.job_type_obj.experiment,
                 new,
                 "defname: %s and end_time > '%s' and end_time <= '%s'" % (
-                      self.c.dataset, sstime, setime
+                      self.cs.dataset, sstime, setime
                 )
             )
 
@@ -96,13 +96,13 @@ class new:
 
 
     def prev(self):
-        self.c.cs_last_split = self.etime - self.twindow
+        self.cs.cs_last_split = self.etime - self.twindow
         res = self.peek()
         return res
 
     def next(self):
         res = self.peek()
-        self.c.cs_last_split = self.etime
+        self.cs.cs_last_split = self.etime
         return res
 
     def len(self):

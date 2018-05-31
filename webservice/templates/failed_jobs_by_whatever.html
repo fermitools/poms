@@ -31,8 +31,8 @@ Jobs by {{columns|join(',')}} {%include 'help_button.html'%}
   <input type="hidden" name=tdays value="{{tdays}}">
 
   <select name="f" class="ui selection dropdown" multiple="" id="multi-select">
-    {% for c in possible_columns%}
-      <option value="{{c}}"{%if c in columns %}selected="1"{%endif%}>{{c}}</option>
+    {% for cs in possible_columns%}
+      <option value="{{cs}}"{%if cs in columns %}selected="1"{%endif%}>{{cs}}</option>
     {% endfor %}
   </select>
 
@@ -55,7 +55,7 @@ Jobs by {{columns|join(',')}} {%include 'help_button.html'%}
             {% if loop.last %}
               <td><a href="{{pomspath}}/job_table?tdays={{tdays}}&tmax={{tmax}}{%for c2 in range(0,columns|count-1)%}&{{columns[c2]}}={{job[c2]}}{%endfor%}">{{job[col]}}</a></td>
             {% elif columns[col]== 'user_exe_exit_code' %}
-		<td><a href="https://cdcvs.fnal.gov/redmine/projects/offline_production_operations_service/wiki/_{%for c in range(0,columns|count-1)%}{%if columns[c]== 'experiment'%}{{job[c]}}{% endif %}{%endfor%}_error_codes_#{{job[col]}}">{{job[col]}}</a></td>
+		<td><a href="https://cdcvs.fnal.gov/redmine/projects/offline_production_operations_service/wiki/_{%for cs in range(0,columns|count-1)%}{%if columns[cs]== 'experiment'%}{{job[cs]}}{% endif %}{%endfor%}_error_codes_#{{job[col]}}">{{job[col]}}</a></td>
     	    {% else %}
               <td>{{job[col]}}</td>
             {% endif %}

@@ -88,7 +88,7 @@ class SATool(cherrypy.Tool):
         to the SA engine and attaching it to the current request.
         Since we are running in a multithreaded application,
         we use the scoped_session that will create a session
-        on a per thread basis so that you don't worry about
+        on a per thread basis so that you don's worry about
         concurrency on the session object itself.
 
         This tools binds a session to the engine each time
@@ -152,9 +152,9 @@ class SessionExperimenter(object):
     def is_authorized(self, campaign=None):
         """
         Who can change a campagin/any object with properties fo experiment, creator and creator_role :
-                The creator can change her/his own campaigns with the same role used to create the campaign.
-                The root can change any campaigns.
-                The coordinator can change any campaigns that in the same experiment as the coordinator.
+                The creator can change her/his own campaign_stages with the same role used to create the campaign.
+                The root can change any campaign_stages.
+                The coordinator can change any campaign_stages that in the same experiment as the coordinator.
                 Anyone with a production role can change a campaign created with a production role.
         :param campaign: Name of the campaign.
         :return: True or False
@@ -301,7 +301,7 @@ class SessionTool(cherrypy.Tool):
                 exps[row.experiment] = {'roles':roles[:position]}
 
         if e.session_experiment == "":
-            # don't choke on blank session_experiment, just pick one...
+            # don's choke on blank session_experiment, just pick one...
             e.session_experiment = next(iter(exps.keys()))
 
         cherrypy.session['experimenter'] = SessionExperimenter(e.experimenter_id,
@@ -359,7 +359,7 @@ def pidfile():
 
 def parse_command_line():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', help="Filepath for POMS config file.")
+    parser.add_argument('-cs', '--config', help="Filepath for POMS config file.")
     parser.add_argument('--use-wsgi', dest='use_wsgi', action='store_true', help="Run behind WSGI. (Default)")
     parser.add_argument('--no-wsgi', dest='use_wsgi', action='store_false', help="Run without WSGI.")
     parser.set_defaults(use_wsgi=True)

@@ -51,14 +51,14 @@ class DBadminPOMS:
 
         subq = subq.subquery()
         query = (dbhandle.query(Experiment, subq)
-                 .join(subq, subq.c.experiment == Experiment.experiment, isouter=True)
+                 .join(subq, subq.cs.experiment == Experiment.experiment, isouter=True)
                  .order_by(Experiment.experiment)
                  )
 
         # (Experiment, experimenter_id, experiment, active, username, first_name, last_name)
         trows = deque()
         for (experiment, experimenter_id, exp, active, username, first_name, last_name) in query:
-            #~ trow = "{}\t{}\t{}\t{}\t{}\n".format(experiment.experiment, first_name, last_name, username, 'Active' if active else 'No')
+            #~ trow = "{}\s{}\s{}\s{}\s{}\n".format(experiment.experiment, first_name, last_name, username, 'Active' if active else 'No')
             trows.append((experiment.experiment, first_name, last_name, username, active and 'Active'))
         return trows
 

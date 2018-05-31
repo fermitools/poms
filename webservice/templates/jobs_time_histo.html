@@ -1,12 +1,12 @@
 {%extends "layout.html"%}
 
 {%block title%}
-POMS:Job {{timetype}} Time Histogram for Campaign Stage {{c.name}}
+POMS:Job {{timetype}} Time Histogram for CampaignStage Stage {{cs.name}}
 {%endblock%}
 
 {%block header%}
 <h1 class="ui header">
-     Campaign {{c.name}} Job {{timetype}} Time Histogram {%include 'help_button.html'%}
+     CampaignStage {{cs.name}} Job {{timetype}} Time Histogram {%include 'help_button.html'%}
 </h1>
 {%endblock%}
 
@@ -30,7 +30,7 @@ POMS:Job {{timetype}} Time Histogram for Campaign Stage {{c.name}}
     <input type="hidden" name="timetype" value="{{timetype}}">
     <input type="hidden" name="tdays" value="{{tdays}}">
     <input type="hidden" name="tmax" value="{{tmaxs}}">
-    <input type="hidden" name="campaign_id" value="{{c.campaign_id}}">
+    <input type="hidden" name="campaign_stage_id" value="{{cs.campaign_stage_id}}">
     <input name="binsize" value="{{binsize}}">
     <input type="submit" name="submit" value="Rebin"> <br>
     </form>
@@ -55,7 +55,7 @@ POMS:Job {{timetype}} Time Histogram for Campaign Stage {{c.name}}
            {%else%}
            <div "postion: absolute; top: 0; left: 0; width:11em; text-align: right;">{{(row*binsize*10)|int/10.0}}-{{((row+0.999)* binsize * 10)|int/10.0}}</div>
            {%endif%}
-           <a href="job_table?{{timetype}}={{row}}&binsize={{binsize}}&campaign_id={{campaign_id}}&tmax={{tmaxs}}&tdays={{tdays}}"><div style="position: absolute; top:0; left: 11em;  background: #808080; width:{{0.6+vals.get(row,0) * 60 / maxv}}em;color: #ffffff;">{{vals.get(row,0)}}</div></a>
+           <a href="job_table?{{timetype}}={{row}}&binsize={{binsize}}&campaign_stage_id={{campaign_stage_id}}&tmax={{tmaxs}}&tdays={{tdays}}"><div style="position: absolute; top:0; left: 11em;  background: #808080; width:{{0.6+vals.get(row,0) * 60 / maxv}}em;color: #ffffff;">{{vals.get(row,0)}}</div></a>
        </div>
      {% endfor %}
      </div>

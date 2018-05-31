@@ -26,7 +26,7 @@ class TestJobsub_q_scraper:
 
         os.environ['TEST_JOBLOG'] = '%s/test/data/%s' % (os.environ['POMS_DIR'],fname)
 
-        jqs = subprocess.Popen(["%s/job_broker/joblog_scraper.py" % os.environ['POMS_DIR'], "-t"])
+        jqs = subprocess.Popen(["%s/job_broker/joblog_scraper.py" % os.environ['POMS_DIR'], "-s"])
         jqs.wait()
 
         time.sleep(1)

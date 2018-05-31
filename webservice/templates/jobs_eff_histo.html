@@ -1,12 +1,12 @@
 {%extends "layout.html"%}
 
 {%block title%}
-POMS:Job efficiency in Campaign Stage {{campaign_id}}
+POMS:Job efficiency in CampaignStage Stage {{campaign_stage_id}}
 {%endblock%}
 
 {%block header%}
 <h1 class="ui header">
-     Campagin {{c.name}} Job Efficiency{%include 'help_button.html'%}
+     Campagin {{cs.name}} Job Efficiency{%include 'help_button.html'%}
 </h1>
 {%endblock%}
 
@@ -40,7 +40,7 @@ POMS:Job efficiency in Campaign Stage {{campaign_id}}
            {%else%}
            <div "postion: absolute; top: 0; left: 0; width:4em; text-align: right;">{{row|int}}0-{{row|int}}9%</div>
            {%endif%}
-           <a href="job_table?eff_d={{row}}&campaign_id={{campaign_id}}&tmax={{tmaxs}}&tdays={{tdays}}"><div style="position: absolute; top:0; left: 4em;  background: #808080; width:{{0.6+vals.get(row,0) * 60 / maxv}}em;color: #ffffff;">{{vals.get(row,0)}}</div></a>
+           <a href="job_table?eff_d={{row}}&campaign_stage_id={{campaign_stage_id}}&tmax={{tmaxs}}&tdays={{tdays}}"><div style="position: absolute; top:0; left: 4em;  background: #808080; width:{{0.6+vals.get(row,0) * 60 / maxv}}em;color: #ffffff;">{{vals.get(row,0)}}</div></a>
        </div>
      {% endfor %}
      </div>

@@ -52,7 +52,7 @@ Job Types {%include 'help_button.html'%}
       {% if data.authorized[loop.index-1]==True %}
 	      <i class="large edit link blue icon"  onclick="edit_definition({{loop.index}});"></i>
 	      <i class="large copy icon link blue icon" onclick="edit_definition({{loop.index}},'CLONE');"></i>
-	      <i class="large trash link blue icon" onclick="delete_definition('{{row.CampaignDefinition.name}}','{{row.CampaignDefinition.campaign_definition_id}}');"></i>
+	      <i class="large trash link blue icon" onclick="delete_definition('{{row.JobType.name}}','{{row.JobType.job_type_id}}');"></i>
 	    {% else %}
 	      <i class="disabled large edit link blue icon"></i>
         <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
@@ -60,20 +60,20 @@ Job Types {%include 'help_button.html'%}
 	    {% endif %}
 	    </td>
       <td id="cdf_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
-	    <td id="cdf_id_{{loop.index}}" style="display:none;">{{row.CampaignDefinition.campaign_definition_id}}</td>
-	    <td id="cdf_name_{{loop.index}}">{{row.CampaignDefinition.name}}</td>
-	    <td id="cdf_input_{{loop.index}}">{{row.CampaignDefinition.input_files_per_job}}</td>
-	    <td id="cdf_output_{{loop.index}}">{{row.CampaignDefinition.output_files_per_job}}</td>
-	    <td id="cdf_outputpat_{{loop.index}}">{{row.CampaignDefinition.output_file_patterns|replace("None","%")}}</td>
-	    <td id="cdf_script_{{loop.index}}">{{row.CampaignDefinition.launch_script|replace("None","")}}</td>
-      {% if row.CampaignDefinition.definition_parameters is string %}
-	      <td id="cdf_definition_{{loop.index}}">{{row.CampaignDefinition.definition_parameters|replace("None","")}}</td>
+	    <td id="cdf_id_{{loop.index}}" style="display:none;">{{row.JobType.job_type_id}}</td>
+	    <td id="cdf_name_{{loop.index}}">{{row.JobType.name}}</td>
+	    <td id="cdf_input_{{loop.index}}">{{row.JobType.input_files_per_job}}</td>
+	    <td id="cdf_output_{{loop.index}}">{{row.JobType.output_files_per_job}}</td>
+	    <td id="cdf_outputpat_{{loop.index}}">{{row.JobType.output_file_patterns|replace("None","%")}}</td>
+	    <td id="cdf_script_{{loop.index}}">{{row.JobType.launch_script|replace("None","")}}</td>
+      {% if row.JobType.definition_parameters is string %}
+	      <td id="cdf_definition_{{loop.index}}">{{row.JobType.definition_parameters|replace("None","")}}</td>
       {% else %}
-	      <td id="cdf_definition_{{loop.index}}">{{row.CampaignDefinition.definition_parameters|tojson}}</td>
+	      <td id="cdf_definition_{{loop.index}}">{{row.JobType.definition_parameters|tojson}}</td>
       {% endif %}
 	    <td id="cdf_recovery_{{loop.index}}">
-	    {% if data.recoveries[row.CampaignDefinition.campaign_definition_id] is defined %}
-	      {{data.recoveries[row.CampaignDefinition.campaign_definition_id]}}
+	    {% if data.recoveries[row.JobType.job_type_id] is defined %}
+	      {{data.recoveries[row.JobType.job_type_id]}}
 	    {% else %}
 	      []
 	    {% endif %}
@@ -698,7 +698,7 @@ function ep_down_button(current_row) {
   }
 }
 
-  function delete_definition(name,campaign_definition_id) {
+  function delete_definition(name,job_type_id) {
     var cdname = name;
     $("#confirm_modal_message").text("Delete the campaign definition named " +name+" ?")
     mod_form = $("#confirm_modal").modal({
@@ -706,7 +706,7 @@ function ep_down_button(current_row) {
     onApprove : function(){
       $("#action").val('delete');
       $("<input>").attr({'type':'hidden','name': 'ae_definition_name', 'value': cdname}).appendTo("#campaign_definition_form");
-      $("<input>").attr({'type':'hidden','name': 'campaign_definition_id', 'value': campaign_definition_id}).appendTo("#campaign_definition_form");
+      $("<input>").attr({'type':'hidden','name': 'job_type_id', 'value': job_type_id}).appendTo("#campaign_definition_form");
       $("#campaign_definition_form").submit();
     },
     }).modal('show');
@@ -720,7 +720,7 @@ function ep_down_button(current_row) {
       $("#ae_definition_action").val("add");
       $("#ae_definition_name").val( "CLONE OF: " + $("#cdf_name_"+index).text() );
     }
-    $("#ae_experiment").text("Campaign Definition Editor  ({{ data.curr_experiment if data.curr_experiment is defined}})");
+    $("#ae_experiment").text("CampaignStage Definition Editor  ({{ data.curr_experiment if data.curr_experiment is defined}})");
     $("#ae_campaign_definition_id").val( $("#cdf_id_"+index).text()  );
     $("#ae_launch_script").val( $("#cdf_script_"+index).text() );
     $("#ae_definition_parameters_text").val( $("#cdf_definition_"+index).text() );

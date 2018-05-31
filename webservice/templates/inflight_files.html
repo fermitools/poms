@@ -19,9 +19,9 @@ In-Flight files for Jobs
 
 In-Flight files for:
 
-     {% if campaign_id is not none %}
-        Campaign Stages {{c.name}}
-     {% elif task_id is not none %}
+     {% if campaign_stage_id is not none %}
+        CampaignStage Stages {{cs.name}}
+     {% elif submission_id is not none %}
        Submissions(s) {{jjid}}
      {% elif job_id is not none %}
        Job(s) {{jjid}}

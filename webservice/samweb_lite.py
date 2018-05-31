@@ -96,10 +96,10 @@ class samweb_lite:
     def have_cache(self, experiment, projid):
         if not self.proj_cache_time or not self_proj_cache:
              return 0
-        t = self.proj_cache_time.get(experiment + projid, 0)
+        s = self.proj_cache_time.get(experiment + projid, 0)
         p = self.proj_cache.get(experiment + projid, None)
 
-        if p and (time.time() - t < self.valid or p['project_status'] == "completed"):
+        if p and (time.time() - s < self.valid or p['project_status'] == "completed"):
             return 1
 
         return 0
@@ -135,7 +135,7 @@ class samweb_lite:
         """
         #~ return [ {"tot_consumed": 0, "tot_unknown": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
         base = "http://samweb.fnal.gov:8480"
-        urls = ["%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base, t.campaign_snap_obj.experiment, t.project) for t in task_list]
+        urls = ["%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base, s.campaign_stage_snapshot_obj.experiment, s.project) for s in task_list]
         with requests.Session() as sess:
             with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                 # replies = executor.map(sess.get, urls)
@@ -188,7 +188,7 @@ class samweb_lite:
         info["tot_jobfails"] = tot_jobfails
         info["tot_delivered"] = tot_delivered
         info["tot_unknown"] = tot_unknown
-        # we don't need the individual process info, just the totals..
+        # we don's need the individual process info, just the totals..
         if "processes" in info:
             del info["processes"]
 
@@ -373,11 +373,11 @@ if __name__ == "__main__":
     print("got list:")
     pprint.pprint(l)
 
-    c = sl.count_files("nova",
+    cs = sl.count_files("nova",
                        "project_name 'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.e-neardet-20160210_1624',"
                        "'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.a-fardet-20160202_1814'")
 
-    print("got count:", c)
+    print("got count:", cs)
 
     l = sl.count_files_list("nova", ["defname:mwm_test_6", "defname:mwm_test_9", "defname:mwm_test_11"])
     print("got count list: ", l)

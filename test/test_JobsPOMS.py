@@ -6,7 +6,7 @@ import json
 import socket
 from poms.webservice.utc import utc
 from poms.webservice.samweb_lite import samweb_lite
-from poms.webservice.poms_model import Campaign, CampaignDefinition, LaunchTemplate, Job, Task
+from poms.webservice.poms_model import CampaignStage, JobType, LoginSetup, Job, Submission
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -32,12 +32,12 @@ def do_update_job(fielddict):
     dbhandle = DBHandle.DBHandle().get()
     samhandle = samweb_lite()
     #fielddict['status']
-    task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
+    submission_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
     jid = "%d@fakebatch1.fnal.gov" % time.time()
 
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
 
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid,  **fielddict )
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid,  **fielddict )
 
     j = dbhandle.query(Job).filter(Job.jobsub_job_id == jid).first()
 
@@ -46,14 +46,14 @@ def do_update_job(fielddict):
     for f,v in list(fielddict.items()):
         if f.startswith('task_'):
             f = f[5:]
-            assert(getattr(j.task_obj, f) == v)
+            assert(getattr(j.submission_obj, f) == v)
         elif f.endswith('file_names'):
             # should look it up on JobFiles but...
             pass
         else:
             assert(str(getattr(j,f)) == str(v))
 
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
 
 
 def test_active_update_jobs():
@@ -65,14 +65,14 @@ def test_active_update_jobs():
     jid = "%f@fakebatch1.fnal.gov" % time.time()
 
     # start up a fake job
-    task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
+    submission_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
 
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
 
     l2 = mps.jobsPOMS.active_jobs(dbhandle)
 
     # end fake job
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
 
     l3 = mps.jobsPOMS.active_jobs(dbhandle)
 
@@ -80,7 +80,7 @@ def test_active_update_jobs():
     # and jobid should be only in the middle list...
     assert(len(l2)  > len(l1))
     assert(len(l2)  > len(l3))
-    jpair = (jid,task_id)
+    jpair = (jid,submission_id)
     assert(jpair in l2)
     assert(not jpair in l3)
 
@@ -116,11 +116,11 @@ def test_bulk_update_job():
     jids.append("%.1f@fakebatch1.fnal.gov" % ft)
     jids.append("%.1f@fakebatch1.fnal.gov" % (ft + 0.1))
     jids.append("%.1f@fakebatch1.fnal.gov" % (ft + 0.2))
-    task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
+    submission_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
 
     data = []
     for jid in jids:
-        data.append({'jobsub_job_id': jid, 'task_id': task_id, 'status': 'Idle'})
+        data.append({'jobsub_job_id': jid, 'submission_id': submission_id, 'status': 'Idle'})
 
     mps.jobsPOMS.bulk_update_job(dbhandle, rpstatus, samhandle, json.dumps(data) )
 
@@ -160,26 +160,26 @@ def test_kill_jobs():
     dbhandle = DBHandle.DBHandle().get()
     samhandle = samweb_lite()
     #mock_rm=Mock_jobsub_rm.Mock_jobsub_rm()
-    #Two task_id for the same campaign
-    task_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a task_id for the fake campaign
-    task_id2 = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a task_id for the second task
+    #Two submission_id for the same campaign
+    submission_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a submission_id for the fake campaign
+    task_id2 = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a submission_id for the second task
 
     jid_n = time.time() * 10
-    #Create jobs in the same campaign, 2 in one task_id, one in another task_id but same campaign, and on job in the same task_id, campaign but market as completed.
-    jid1 = "%d.0@fakebatch1.fnal.gov" % jid_n  #1 Job in the first task_id
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid1, host_site = "fake_host", status = 'running')
-    jid2 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 1) #2Job in the first task_id
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid2, host_site = "fake_host", status = 'running')
-    jid3 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 2) #3Job in a new task_id but same campaign
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id2, jobsub_job_id = jid3, host_site = "fake_host", status = 'running')
+    #Create jobs in the same campaign, 2 in one submission_id, one in another submission_id but same campaign, and on job in the same submission_id, campaign but market as completed.
+    jid1 = "%d.0@fakebatch1.fnal.gov" % jid_n  #1 Job in the first submission_id
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid1, host_site = "fake_host", status = 'running')
+    jid2 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 1) #2Job in the first submission_id
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid2, host_site = "fake_host", status = 'running')
+    jid3 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 2) #3Job in a new submission_id but same campaign
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = task_id2, jobsub_job_id = jid3, host_site = "fake_host", status = 'running')
     jid4 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 3) 
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, task_id = task_id, jobsub_job_id = jid4, host_site = "fake_host", status = 'Completed')
+    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid4, host_site = "fake_host", status = 'Completed')
 
     #Control arguments
     c_arg="-G fermilab --role Analysis --jobid "
     c_output_killjob = jid1 #Control output
     c_output_killTask = [jid1.replace('.0','')] #Control output #it is going to kill the task just killing the first job without .0, cluster.
-    c_output_killCampaign =[jid1.replace('.0',''),jid3.replace('.0','')] #Control output it is going to kill the Campaign just killing the first job without of each task_id
+    c_output_killCampaign =[jid1.replace('.0',''),jid3.replace('.0','')] #Control output it is going to kill the CampaignStage just killing the first job without of each submission_id
 
     #Guetting the jid (key in database) that belong to the jobid in jobsub. They are different. The key db is used in the next code block
     job_obj1 = dbhandle.query(Job).filter(Job.jobsub_job_id == jid1).first()
@@ -189,8 +189,8 @@ def test_kill_jobs():
 
     #Calls to the rutine under test.
     output_killjob, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, job_id=job_obj1.job_id, confirm = "yes", act="kill") #single job
-    output_killTask, c_obje_T, c_idr_T, task_idr_T, job_idr_T = mps.jobsPOMS.kill_jobs(dbhandle, task_id=task_id, confirm = "yes", act="kill") #all task
-    output_killCampaign, c_obje_C, c_idr_C, task_idr_C, job_idr_C = mps.jobsPOMS.kill_jobs(dbhandle, campaign_id='14', confirm = "yes", act="kill") #all campaign
+    output_killTask, c_obje_T, c_idr_T, task_idr_T, job_idr_T = mps.jobsPOMS.kill_jobs(dbhandle, submission_id=submission_id, confirm = "yes", act="kill") #all task
+    output_killCampaign, c_obje_C, c_idr_C, task_idr_C, job_idr_C = mps.jobsPOMS.kill_jobs(dbhandle, campaign_stage_id='14', confirm = "yes", act="kill") #all campaign
     #output_killjob2, c_obje2, c_idr2, task_idr2, job_idr2 = mps.jobsPOMS.kill_jobs(dbhandle, job_id=job_obj2.job_id, confirm = "yes", act="kill")
 
     #Now the check the outputs, they need a bit of pre-processing.
@@ -219,7 +219,7 @@ def test_kill_jobs():
     for jid in c_output_killTask:
         assert(jid in jrm_idtl)
 
-    #Check kill all jobs in one Campaign,  that also prof that the job market as completed is not killed.
+    #Check kill all jobs in one CampaignStage,  that also prof that the job market as completed is not killed.
     sep=output_killCampaign.rfind('--jobid ')
     assert(sep!=-1) #--jobid option was in called in the command
     print("got output:", output_killCampaign)
@@ -258,11 +258,11 @@ def test_kill_jobs():
     print "job_idr", job_idr_C
     print "$$"*20
 
-    t_obj1=dbhandle.query(Task).filter(Task.task_id == task_id).first()
-    t_obj2=dbhandle.query(Task).filter(Task.task_id == task_id2).first()
-    job_obj_db = dbhandle.query(Job).filter(Job.task_id== task_id).all()  ####this is thing
+    t_obj1=dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
+    t_obj2=dbhandle.query(Submission).filter(Submission.submission_id == task_id2).first()
+    job_obj_db = dbhandle.query(Job).filter(Job.submission_id== submission_id).all()  ####this is thing
     print "*"*10
-    print "task_id1", task_id
+    print "task_id1", submission_id
     print "task_id2", task_id2
     print "Id of this test"
     print "job_id1 = ", job_obj1.job_id
@@ -273,7 +273,7 @@ def test_kill_jobs():
     print jid3
     print "job_id4 = ", job_obj4.job_id
     print jid4
-    print "jobs with task id", task_id
+    print "jobs with task id", submission_id
     for x in job_obj_db:
         print x.jobsub_job_id
     print "#"*10

@@ -43,7 +43,7 @@ class TestJobsub_q_scraper:
         print("_do_test: ", fname)
         self.mq.setoutput(fname)
 
-        jqs = subprocess.Popen(["%s/job_broker/jobsub_q_scraper.py" % os.environ['POMS_DIR'], "-t"])
+        jqs = subprocess.Popen(["%s/job_broker/jobsub_q_scraper.py" % os.environ['POMS_DIR'], "-s"])
         jqs.wait()
 
         time.sleep(1)
@@ -81,7 +81,7 @@ class TestJobsub_q_scraper:
             print("checking line_data: ", line_data)
 
             assert(bulk_data[i]['jobsub_job_id'].replace('%40','@') == line_data['JOBSUBJOBID'])
-            assert(bulk_data[i]['task_id'] == line_data['POMS_TASK_ID'])
+            assert(bulk_data[i]['submission_id'] == line_data['POMS_TASK_ID'])
             assert(bulk_data[i]['status'] == self.map[line_data['JOBSTATUS']])
             assert(bulk_data[i]['cpu_time'] == line_data['RemoteUserCpu'])
 

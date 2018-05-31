@@ -21,7 +21,7 @@ POMS
 </style>
 
 {%block header%}
-Campaign Stages {{ show_hint('', 'Help page') }}
+CampaignStage Stages {{ show_hint('', 'Help page') }}
 {%endblock%}
 
 {%block subheader%}
@@ -73,20 +73,20 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       </tr>
     </thead>
     <tbody>
-      {% for row in data.campaigns %}
+      {% for row in data.campaign_stages %}
       <tr>
         <td class="collapsing">
           {% if data.authorized[loop.index-1]==True %}
           <i class="large edit link blue icon"  onclick="edit_campaign({{loop.index}});"></i>
           <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i>
-          <i class="large trash link blue icon" onclick="delete_campaign('{{row.name}}',{{row.campaign_id}});"></i>
+          <i class="large trash link blue icon" onclick="delete_campaign('{{row.name}}',{{row.campaign_stage_id}});"></i>
           {% else %}
           <i class="large unhide link blue icon" onclick="edit_campaign({{loop.index}});"></i>
           <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i>
           {% endif %}
         </td>
-        <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.campaign_id}}</td>
-        {% if row.campaign_id|int == jump_to_campaign|default(-1)|int %}
+        <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.campaign_stage_id}}</td>
+        {% if row.campaign_stage_id|int == jump_to_campaign|default(-1)|int %}
         <script type="text/javascript">
          // jump directly to a particular campaign
          $(document).ready(function(){
@@ -95,8 +95,8 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         </script>
         {% endif %}
         <td id="c_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
-        <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.campaign_definition_id}}</td>
-        <td id="c_launch_id_{{loop.index}}" style="display:none">{{row.launch_id}}</td>
+        <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.job_type_id}}</td>
+        <td id="c_launch_id_{{loop.index}}" style="display:none">{{row.login_setup_id}}</td>
         <td id="c_name_{{loop.index}}">{{row.name}}</td>
         <td id="c_active_{{loop.index}}">{{row.active}}</td>
         <td id="c_vo_role_{{loop.index}}">{{row.vo_role}}</td>
@@ -113,7 +113,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         <td id="c_test_param_overrides_{{loop.index}}">{{row.test_param_overrides|tojson|replace("null","")}}</td>
         <td id="c_depends_{{loop.index}}">
         {% for key, value in data.depends.items() %}
-            {% if key == row.campaign_id %}
+            {% if key == row.campaign_stage_id %}
             {{ value }}
             {% endif %}
         {% endfor %}
@@ -140,7 +140,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 <div class="ui modal" id="confirm_modal">
   <i class="close icon"></i>
   <div class="header">
-    Delete Campaign Stage
+    Delete CampaignStage Stage
   </div>
   <div class="image content">
     <div class="image">
@@ -165,7 +165,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
 <div class="ui modal" id="campaign_add_edit_modal">
   <i class="close icon"></i>
-  <h3 class="block header"><span id="ae_experiment">Campaign Stage Editor {{ show_hint('', 'Help Page') }}</span></h3>
+  <h3 class="block header"><span id="ae_experiment">CampaignStage Stage Editor {{ show_hint('', 'Help Page') }}</span></h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
     <form id="campaign_add_edit_form" class="ui form" method="POST" action="campaign_edit">
@@ -173,7 +173,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       <div class="fields">
         <div class="field">
             <label>Name {{ show_hint('#Stage-Name', 'Stage name') }}</label>
-            <input type="text" id="ae_campaign_name" name="ae_campaign_name" placeholder="Campaign Stage Name">
+            <input type="text" id="ae_campaign_name" name="ae_campaign_name" placeholder="CampaignStage Stage Name">
         </div>
         <div class="field">
             <label>VO Role {{ show_hint('#VO-Role', 'Role name') }}</label>
@@ -246,7 +246,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
           <select class="ui dropdown" name="ae_launch_id" id="ae_launch_id">
             <option value=""></option>
             {% for row in data.templates %}
-            <option value={{row.launch_id}}>{{row.name}}</option>
+            <option value={{row.login_setup_id}}>{{row.name}}</option>
             {% endfor %}
           </select>
         </div>
@@ -278,7 +278,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
           <select class="ui dropdown" name="ae_campaign_definition_id" id="ae_campaign_definition_id">
             <option value=""></option>
             {% for row in data.definitions %}
-            <option value="{{row.campaign_definition_id}}">{{row.name}}</option>
+            <option value="{{row.job_type_id}}">{{row.name}}</option>
             {% endfor %}
           </select>
         </div>
@@ -362,14 +362,14 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 <div class="ui small modal" id="edit_depends_modal">
   <i class="close icon"></i>
   <div class="header">
-    Campaign Stage Dependency Editor
+    CampaignStage Stage Dependency Editor
   </div>
   <div class="ui text container">
     <div class="scrollable">
       <table class="ui celled table" id="ep_table">
         <thead>
           <tr>
-            <th>Campaign Stage</th>
+            <th>CampaignStage Stage</th>
             <th>File Pattern</th>
           </tr>
         </thead>
@@ -380,8 +380,8 @@ Campaign Stages {{ show_hint('', 'Help page') }}
                  {{i}}.
                     <select name="de_select_{{i}}" id="de_select_{{i}}">
                         <option value="">-</option>
-                        {% for c in data['campaigns'] %}
-                           <option value="{{c.name}}">{{c.name}}</option>
+                        {% for cs in data['campaign_stages'] %}
+                           <option value="{{cs.name}}">{{cs.name}}</option>
                         {% endfor %}
                     </select>
                 </td>
@@ -541,12 +541,12 @@ $("#edit_depends_modal_btn").click(function() {
   //mwm
   var depends = $("#ae_depends").val();
   if (depends == "[]") {
-    depends = '{"campaigns": [], "file_patterns": []}';
+    depends = '{"campaign_stages": [], "file_patterns": []}';
   }
   var dlists = JSON.parse(depends);
   var i;
-  for (i = 0 ; i < dlists['campaigns'].length; i++ ) {
-      var sel = "#de_select_" + i.toString()+ " option[value="+dlists['campaigns'][i]+"]";
+  for (i = 0 ; i < dlists['campaign_stages'].length; i++ ) {
+      var sel = "#de_select_" + i.toString()+ " option[value="+dlists['campaign_stages'][i]+"]";
       var dep = "#de_filepat_"+i.toString();
       $(sel).prop('selected','selected');
       $(dep).val(dlists['file_patterns'][i]);
@@ -554,14 +554,14 @@ $("#edit_depends_modal_btn").click(function() {
   $("#edit_depends_modal").modal({
     closable  : false,
     onApprove : function(){
-      var dlists = {'campaigns':[], 'file_patterns':[]};
+      var dlists = {'campaign_stages':[], 'file_patterns':[]};
       var i;
       var s;
       for (i = 0; i < 5 ; i++) {
          s=$("#de_select_"+i.toString()+" option:selected").val();
          p=$("#de_filepat_"+i.toString()).val();
          if (s) {
-             dlists['campaigns'].push(s);
+             dlists['campaign_stages'].push(s);
              dlists['file_patterns'].push(p)
          }
       }
@@ -678,14 +678,14 @@ function ep_down_button(current_row) {
   }
 }
 
-function delete_campaign(name,campaign_id) {
+function delete_campaign(name,campaign_stage_id) {
   var cname = name;
   $("#confirm_modal_message").text("Delete the campaign named " +name+" ?");
   $("#confirm_modal").modal({
   closable  : false,
   onApprove : function(){
     $("#action").val('delete');
-    $("<input>").attr({'type':'hidden','name': 'campaign_id', 'value': campaign_id}).appendTo("#campaign_form");
+    $("<input>").attr({'type':'hidden','name': 'campaign_stage_id', 'value': campaign_stage_id}).appendTo("#campaign_form");
     $("<input>").attr({'type':'hidden','name': 'name', 'value': cname}).appendTo("#campaign_form");
     $("#campaign_form").submit();
   },
@@ -704,10 +704,10 @@ function edit_campaign(index,clone) {
     $("#ae_definition_action").val("add");
     $("#ae_campaign_name").val( "CLONE OF: " + $("#c_name_"+index).text() );
     // campaign_depends records are NOT cloned.
-    $("#ae_depends").val( '{"campaigns": [], "file_patterns": []}' );
-    $("#ae_depends_text").val( '{"campaigns": [], "file_patterns": []}' );
+    $("#ae_depends").val( '{"campaign_stages": [], "file_patterns": []}' );
+    $("#ae_depends_text").val( '{"campaign_stages": [], "file_patterns": []}' );
   }
-  $("#ae_experiment").text("Campaign Stage Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
+  $("#ae_experiment").text("CampaignStage Stage Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
   $("#ae_active").val( $("#c_active_"+index).text() ).trigger('change');
   $("#ae_vo_role").val( $("#c_vo_role_"+index).text() );
   $("#ae_software_version").val( $("#c_software_version_"+index).text() );
@@ -747,7 +747,7 @@ function edit_campaign(index,clone) {
 
 function add_campaign() {
   $("#campaign_add_edit_modal").form('reset');
-  $("#ae_experiment").text("Campaign Stage Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
+  $("#ae_experiment").text("CampaignStage Stage Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
   $("#campaign_add_edit_modal").modal({}).modal('show');
 }
 

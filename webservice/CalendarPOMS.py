@@ -174,7 +174,7 @@ class CalendarPOMS(object):
             s = dbhandle.query(Service).filter(Service.name == name).first()
 
         if s.status != status and status == "bad" and s.service_id:
-            # start downtime, if we aren't in one
+            # start downtime, if we aren's in one
             d = (dbhandle.query(ServiceDowntime)
                  .filter(ServiceDowntime.service_id == s.service_id)
                  .order_by(desc(ServiceDowntime.downtime_started)).first())
