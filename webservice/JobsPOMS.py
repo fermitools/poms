@@ -121,6 +121,13 @@ class JobsPOMS(object):
         tids_present = set()
         for r in ldata:   # make field level dictionaries
             for field, value in r.items():
+
+                # great renaming...
+                if field == 'task_id' and value:
+                   r['submission_id'] = value
+                   del r['task_id']
+                   field = 'submission_id'
+
                 if field == 'submission_id' and value:
                    tids_wanted.add(int(value))
 
