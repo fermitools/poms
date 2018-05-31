@@ -21,7 +21,7 @@ POMS
 </style>
 
 {%block header%}
-CampaignStage Stages {{ show_hint('', 'Help page') }}
+Campaign Stages {{ show_hint('', 'Help page') }}
 {%endblock%}
 
 {%block subheader%}
@@ -140,7 +140,7 @@ CampaignStage Stages {{ show_hint('', 'Help page') }}
 <div class="ui modal" id="confirm_modal">
   <i class="close icon"></i>
   <div class="header">
-    Delete CampaignStage Stage
+    Delete Campaign Stage
   </div>
   <div class="image content">
     <div class="image">
@@ -165,7 +165,7 @@ CampaignStage Stages {{ show_hint('', 'Help page') }}
 
 <div class="ui modal" id="campaign_add_edit_modal">
   <i class="close icon"></i>
-  <h3 class="block header"><span id="ae_experiment">CampaignStage Stage Editor {{ show_hint('', 'Help Page') }}</span></h3>
+  <h3 class="block header"><span id="ae_experiment">Campaign Stage Editor {{ show_hint('', 'Help Page') }}</span></h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
     <form id="campaign_add_edit_form" class="ui form" method="POST" action="campaign_edit">
@@ -173,7 +173,7 @@ CampaignStage Stages {{ show_hint('', 'Help page') }}
       <div class="fields">
         <div class="field">
             <label>Name {{ show_hint('#Stage-Name', 'Stage name') }}</label>
-            <input type="text" id="ae_campaign_name" name="ae_campaign_name" placeholder="CampaignStage Stage Name">
+            <input type="text" id="ae_campaign_name" name="ae_campaign_name" placeholder="Campaign Stage Name">
         </div>
         <div class="field">
             <label>VO Role {{ show_hint('#VO-Role', 'Role name') }}</label>
@@ -238,11 +238,11 @@ CampaignStage Stages {{ show_hint('', 'Help page') }}
         </div>
       </div>
 
-      <h4 class="ui horizontal divider">Launch Template</h4>
+      <h4 class="ui horizontal divider">Launch/Setup</h4>
 
       <div class="one field">
         <div class="field">
-          <label>Launch Template {{ show_hint('#Launch-Template', 'Select template name') }}</label>
+          <label>Launch/Setup Name {{ show_hint('#Launch-Template', 'Select template name') }}</label>
           <select class="ui dropdown" name="ae_launch_id" id="ae_launch_id">
             <option value=""></option>
             {% for row in data.templates %}
@@ -273,7 +273,7 @@ CampaignStage Stages {{ show_hint('', 'Help page') }}
 
       <div class="one field">
         <div class="field">
-          <label>Job Type {{ show_hint('#Job-Type', 'Select job type') }}</label>
+          <label>Job Type Name {{ show_hint('#Job-Type', 'Select job type') }}</label>
           <!--<br/>-->
           <select class="ui dropdown" name="ae_campaign_definition_id" id="ae_campaign_definition_id">
             <option value=""></option>
@@ -295,7 +295,7 @@ CampaignStage Stages {{ show_hint('', 'Help page') }}
 
       <div class="two fields">
         <div class="field">
-          <label>Launch Script {{ show_hint('#Launch-Script', 'Script name with arguments') }}</label>
+          <label>Launch/Setup Script {{ show_hint('#Launch-Script', 'Script name with arguments') }}</label>
           <textarea rows="3" id="ae_launch_script" disabled></textarea>
         </div>
         <div class="field">
@@ -362,14 +362,14 @@ CampaignStage Stages {{ show_hint('', 'Help page') }}
 <div class="ui small modal" id="edit_depends_modal">
   <i class="close icon"></i>
   <div class="header">
-    CampaignStage Stage Dependency Editor
+    Campaign Stage Dependency Editor
   </div>
   <div class="ui text container">
     <div class="scrollable">
       <table class="ui celled table" id="ep_table">
         <thead>
           <tr>
-            <th>CampaignStage Stage</th>
+            <th>Campaign Stage</th>
             <th>File Pattern</th>
           </tr>
         </thead>
@@ -483,12 +483,12 @@ function create_row(index, key, value) {
 
 var ep_parms = [];
 
-/* 
+/*
  * was:
  * $("#edit_param_modal_btn").click(function() {
  *   setup_modal("#ae_param_overrides");
  * });
- * 
+ *
  * $("#edit_param_test_modal_btn").click(function() {
  *   setup_modal("#ae_test_param_overrides");
  * });
@@ -707,7 +707,7 @@ function edit_campaign(index,clone) {
     $("#ae_depends").val( '{"campaign_stages": [], "file_patterns": []}' );
     $("#ae_depends_text").val( '{"campaign_stages": [], "file_patterns": []}' );
   }
-  $("#ae_experiment").text("CampaignStage Stage Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
+  $("#ae_experiment").text("Campaign Stage Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
   $("#ae_active").val( $("#c_active_"+index).text() ).trigger('change');
   $("#ae_vo_role").val( $("#c_vo_role_"+index).text() );
   $("#ae_software_version").val( $("#c_software_version_"+index).text() );
@@ -747,7 +747,7 @@ function edit_campaign(index,clone) {
 
 function add_campaign() {
   $("#campaign_add_edit_modal").form('reset');
-  $("#ae_experiment").text("CampaignStage Stage Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
+  $("#ae_experiment").text("Campaign Stage Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
   $("#campaign_add_edit_modal").modal({}).modal('show');
 }
 

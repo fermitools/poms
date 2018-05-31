@@ -1,11 +1,11 @@
 {%extends "layout.html"%}
 
 {%block title%}
-POMS: CampaignStage Stages
+POMS: Campaign Stages
 {%endblock%}
 
 {%block header%}
-CampaignStage Stages{%include 'help_button.html'%}
+Campaign Stages{%include 'help_button.html'%}
 <script>
     function do_checkall() {
         // console.log("In do_changeall");
@@ -41,13 +41,13 @@ CampaignStage Stages{%include 'help_button.html'%}
         display:none;
     }
 </style>
-<div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Campaigns Active/Inactive</div>
-<div class="ui teal button" onclick="pop_tag_untag_modal();">Campaign/Untag Campaigns</div>
-<div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release CampaignStage Submission</div>
-<div class="ui teal button" onclick="show_stats();">Show ALL Campaigns Statistics</div>
+<div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Stages Active/Inactive</div>
+<div class="ui teal button" onclick="pop_tag_untag_modal();">Campaign/Untag Stages</div>
+<div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Stage Submission</div>
+<div class="ui teal button" onclick="show_stats();">Show ALL Stage Statistics</div>
 {% if campaign_stages|length == 0 %}
 <br>
-[No Campaigns Available]
+[No Campaign Stages Available]
 {% else %}
 <div id="double-scroll" class="ui _scrollable">
     <!--
@@ -99,7 +99,7 @@ CampaignStage Stages{%include 'help_button.html'%}
 <div class="ui modal small" id="mark_inactive_modal" style="padding: 0px 20px;">
     <i class="close icon"></i>
     <div class="header">
-        Campaigns to mark Active/Inactive
+        Campaign Stages to mark Active/Inactive
     </div>
     <form class="ui form" action="mark_campaign_active" method="GET">
         <div class="field">
@@ -107,7 +107,7 @@ CampaignStage Stages{%include 'help_button.html'%}
             <input type="hidden" id="campaign_ids" name="cl">
         </div>
         <div class="field">
-            <div class="ui horizontal large label">Mark selected campaign_stages as</div>
+            <div class="ui horizontal large label">Mark selected campaign stages as</div>
             <input type="submit" class="ui teal button" name="is_active" value="Active">
             <input type="submit" class="ui teal button" name="is_active" value="Inactive">
         </div>
@@ -118,7 +118,7 @@ CampaignStage Stages{%include 'help_button.html'%}
 <div class="ui modal small" id="launch_holder_modal" style="padding: 0px 20px;">
     <i class="close icon"></i>
     <div class="header">
-        Campaigns to Hold/Release:
+        Campaign Stages to Hold/Release:
     </div>
     <form class="ui form" action="mark_campaign_hold" method="GET">
         <div class="field">
@@ -126,7 +126,7 @@ CampaignStage Stages{%include 'help_button.html'%}
             <input type="hidden" id="campaign_ids2HR" name="ids2HR">
         </div>
         <div class="field">
-            <div class="ui horizontal large label">Mark selected campaign_stages as</div>
+            <div class="ui horizontal large label">Mark selected campaign stages as</div>
             <input type="submit" class="ui teal button" name="is_hold" value="Hold">
             <input type="submit" class="ui teal button" name="is_hold" value="Release">
         </div>
@@ -143,7 +143,7 @@ CampaignStage Stages{%include 'help_button.html'%}
     <form class="ui form" action="" method="GET">
         <div class="field">
             <input type="hidden" id="tag_campaign_ids" name="cl" readonly>
-            <span style="font-size: 1.3em;">Campaign/untag selected campaign_stages...</span>
+            <span style="font-size: 1.3em;">Campaign/untag selected campaign stages...</span>
 
             <div class="ui segment raised ">
                 <h3>Tags</h3>

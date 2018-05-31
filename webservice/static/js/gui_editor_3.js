@@ -667,7 +667,7 @@ gui_editor.prototype.draw_state = function () {
    y = y + gridy
    x = pad 
 
-   new label_box("Login Templates:", this.div, x, y)
+   new label_box("Login/Setup:", this.div, x, y)
    y = y + labely
 
    for (i in launchtemplist) {

@@ -1,12 +1,12 @@
 {%extends "layout.html"%}
 
 {%block title%}
-    POMS: CampaignStage Tags for {{experiment}}
+    POMS: Campaigns for {{experiment}}
 {%endblock%}
 
 
 {%block header%}
-CampaignStage Tags
+Campaigns
 {%endblock%}
 
 {%block subheader%}
@@ -17,17 +17,17 @@ CampaignStage Tags
 {%block content%}
 
 <div>
-CampaignStage Tags:
+
 <ul>
 {% for s in tl|sort(attribute='tag_name') %}
 <li style="margin-top: 0.5em;" id="li_tag_{{s.campaign_id}}"> <span class="ui blue tag label">{{s.tag_name}}</span>
     <button type="button">
     <i class="trash blue icon poms_tag" id="tag_{{s.campaign_id}}" style="border-radius: 5px;"></i>
     </button>
-  
+
    <a href="{{pomspath}}/campaign_deps?tag={{s.tag_name}}">
    <button type="button">
-    <i class="sitemap icon"></i>Dependencies 
+    <i class="sitemap icon"></i>Dependencies
     </button>
    </a>
    <a href="{{pomspath}}/campaign_deps_ini?tag={{s.tag_name}}">
