@@ -764,7 +764,8 @@ class JobsPOMS(object):
                 "dataset": cs.dataset,
                 "version": cs.software_version,
                 "group": group,
-                "experimenter":  st.experimenter_creator_obj.username
+                "experimenter":  st.experimenter_creator_obj.username,
+                "experiment": cs.experiment,
                 }
 
             launch_setup = launch_setup.replace("\n",";")
