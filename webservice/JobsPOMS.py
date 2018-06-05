@@ -772,7 +772,7 @@ class JobsPOMS(object):
                 "version": cs.software_version,
                 "group": group,
                 "experimenter":  st.experimenter_creator_obj.username,
-                "experiment":  cs.experiment
+                "experiment": cs.experiment,
                 }
 
             launch_setup = launch_setup.replace("\n",";")
