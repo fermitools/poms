@@ -240,12 +240,12 @@ class SessionTool(cherrypy.Tool):
         logit.log("establish_session startup -- mengel")
 
 
-        cherrypy.session['id']              = cherrypy.session.originalid  #The session ID from the users cookie.
+        cherrypy.session['id'] = cherrypy.session.originalid  #The session ID from the users cookie.
         cherrypy.session['X-Forwarded-For'] = cherrypy.request.headers.get('X-Forwarded-For', None)
         # someone had all these SHIB- headers mixed case, which is not
         # how they are on fermicloud045 or on pomsgpvm01...
-        cherrypy.session['Remote-Addr']     = cherrypy.request.headers.get('Remote-Addr', None)
-        cherrypy.session['X-Shib-Userid']   = cherrypy.request.headers.get('X-Shib-Userid', None)
+        cherrypy.session['Remote-Addr'] = cherrypy.request.headers.get('Remote-Addr', None)
+        cherrypy.session['X-Shib-Userid'] = cherrypy.request.headers.get('X-Shib-Userid', None)
 
         experimenter = None
         username = None

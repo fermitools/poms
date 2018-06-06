@@ -42,7 +42,8 @@ def error_response():
 
 class PomsService(object):
     _cp_config = {'request.error_response': error_response,
-                  'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), '/templates/page_not_found.html')
+                  'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), '/templates/page_not_found.html'),
+                  'error_page.401': "%s/%s" % (os.path.abspath(os.getcwd()), '/webservice/templates/unauthorized_user.html')
                   }
 
     def __init__(self):
