@@ -706,6 +706,7 @@ class JobsPOMS(object):
         jjil = deque()
         jql = None
         s = None
+        cs = None
         if campaign_stage_id is not None or submission_id is not None:
             if campaign_stage_id is not None:
                 tl = dbhandle.query(Submission).filter(Submission.campaign_stage_id == campaign_stage_id,
@@ -767,13 +768,7 @@ class JobsPOMS(object):
 
             # expand launch setup %{whatever}s campaigns...
 
-            launch_setup = lts.launch_setup % {
-                "dataset": cs.dataset,
-                "version": cs.software_version,
-                "group": group,
-                "experimenter":  st.experimenter_creator_obj.username,
-                "experiment": cs.experiment,
-                }
+            launch_setup = lts.launch_setup
 
             launch_setup = launch_setup.replace("\n",";")
             launch_setup = "source /grid/fermiapp/products/common/etc/setups;setup poms_client -g poms31 -z /grid/fermiapp/products/common/db;" + launch_setup
@@ -794,6 +789,14 @@ class JobsPOMS(object):
                 cs.vo_role,
                 ','.join(jjil)
             )
+
+            cmd = cmd % {
+                "dataset": cs.dataset,
+                "version": cs.software_version,
+                "group": group,
+                "experimenter":  st.experimenter_creator_obj.username,
+                "experiment": cs.experiment,
+                }
 
             f = os.popen(cmd, "r")
             output = f.read()
