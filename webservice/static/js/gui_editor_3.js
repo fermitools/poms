@@ -1231,12 +1231,12 @@ wf_uploader.prototype.upload_stage =  function(st) {
             'completion_type': 'ae_completion_type',
             'completion_pct': 'ae_completion_pct',
         };
-    deps = {"file_patterns":[], "campaigns":[]}
+    deps = {"file_patterns":[], "campaign_stages":[]}
     for (i = 0; i< 10; i++ ) {
         if ((('dependencies ' + st) in this.cfg) && ('campaign_stage_'+i.toString()) in this.cfg['dependencies ' + st]) {
             dst = this.cfg['dependencies ' + st]['campaign_stage_'+i.toString()]
             pat = this.cfg['dependencies ' + st]['file_pattern_'+i.toString()]
-            deps["campaigns"].push(dst)
+            deps["campaign_stages"].push(dst)
             deps["file_patterns"].push(pat)
         }
     }  
@@ -1269,7 +1269,7 @@ wf_uploader.prototype.get_campaign_list = function(completed) {
          for( i in x) {
              triple = x[i]
              if (triple.experiment == thisx.experiment) {
-                 res[triple.name] = triple.campaign_id;
+                 res[triple.name] = triple.campaign_stage_id;
              }
          }
          thisx.cname_id_map = res;
