@@ -44,7 +44,7 @@ Campaign Stages{%include 'help_button.html'%}
 <div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Stages Active/Inactive</div>
 <div class="ui teal button" onclick="pop_tag_untag_modal();">Campaign/Untag Stages</div>
 <div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Stage Submission</div>
-<div class="ui teal button" onclick="show_stats();">Show ALL Stage Statistics</div>
+<div class="ui teal button" onclick="show_stats();">Show Stage Statistics</div>
 {% if campaign_stages|length == 0 %}
 <br>
 [No Campaign Stages Available]
@@ -346,14 +346,23 @@ Campaign Stages{%include 'help_button.html'%}
     }
 
     function show_stats() {
+        // If any boxes are checked only use those, otherwise take all visible.
         var max_rows = $("#c_table_max_rows").val();
         var csv = [];
+        var csv_checked = [];
         for (var i = 1; i <= max_rows; i++) {
             if ( $("#c_tr_"+i).is(":visible") ) {
                 csv.push($("#c_id_"+i).html());
             }
+            if ( $("#c_cbox_"+i).is(":checked") ) {
+                csv_checked.push($("#c_id_"+i).html());
+            }
         }
-        location.href = "./show_campaigns?cl=" + csv.join(',');
+        if (csv_checked.length == 0) {
+            location.href = "./show_campaigns?cl=" + csv.join(',');
+        } else {
+            location.href = "./show_campaigns?cl=" + csv_checked.join(',');
+        }
     }
   </script>
 
