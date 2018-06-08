@@ -48,11 +48,11 @@ function main() {
           url: url
        }).done( function(data) {
           var ge = new gui_editor("outer_gui_editor_frame");
-          var args = mwm_utils.getSearchParams()
+          var args = mwm_utils.getSearchParams();
           if ('clone' in args && 'Clone' == args['clone']) {
-              ge.set_state_clone(data, args['from'], args['to'],'{{session_experiment}}','{{session_role}}')
+              ge.set_state_clone(data, args['from'], args['to'],'{{session_experiment}}','{{session_role}}');
           } else {
-              ge.set_state(data)
+              ge.set_state(data);
           }
        })
    }

@@ -694,7 +694,7 @@ gui_editor.prototype.draw_state = function () {
 }
 
 /*
- * redo the dependecny boxes on this gui_editor
+ * redo the dependency boxes on this gui_editor
  */
 gui_editor.prototype.redraw_deps = function () {
     var k;
@@ -755,6 +755,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     y = y + 50;
     stage = name.substr(name.indexOf(" ") + 1)
 
+    // Build the form...
     let res = [];
     res.push(`<form id="fields_${name}" class="popup_form" style="display: none; top: ${y}px; left: ${x}px;">`);
     var val, placeholder;
@@ -770,15 +771,19 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
             placeholder = "default";
         } else {
             val = vdict[k];
-            placeholder = "";
+            placeholder = "default";
         }
-        res.push(`<label>${k}</label> <input id="${this.get_input_tag(k)}" value="${this.escape_quotes(val)}" placeholder="${placeholder}">`);
+        if (k.includes("job_type"))
+            res.push(make_select());
+        else
+            res.push(`<label>${k}</label> <input id="${this.get_input_tag(k)}" value="${this.escape_quotes(val)}" placeholder="${placeholder}">`);
         if (k.indexOf('param') >= 0) {
             res.push(`<button type="button" onclick="json_field_editor.start('${this.get_input_tag(k)}')">Edit</button>`);
         }
         res.push('<br>');
     }
     res.push('</form>');
+    // Form is ready
     this.popup_parent.innerHTML = res.join('\n');
 
     top.appendChild(this.box);
@@ -855,6 +860,20 @@ generic_box.prototype.escape_quotes = function(s) {
    }
 }
 
+generic_box.prototype.make_select = function() {
+    /*
+        <select name="carlist" form="carform">
+            <option value="volvo">Volvo</option>
+            <option value="saab">Saab</option>
+            <option value="opel">Opel</option>
+            <option value="audi">Audi</option>
+        </select>
+     */
+        const res = jobtypelist.reduce((acc, val) => acc + `<option value="${val}">${val}</option>\n`);
+        return res;
+    }
+
+
 /*
  * non-draggable, non-dependency box class
  * for job_types, etc.  subclass of generic_box
@@ -862,7 +881,7 @@ generic_box.prototype.escape_quotes = function(s) {
 function misc_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box = generic_box; /* superclass init */
     this.generic_box(name, vdict, klist, top, x, y, gui);
-    this.box.innerHTML = name + '<br> <button type="button" onclick="gui_editor.toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"></span></button>' ;
+    this.box.innerHTML = `${name}<br> <button type="button" onclick="gui_editor.toggle_form('fields_${name}')" id="wake_fields_${name}"><span class="wakefields"></span></button>` ;
 }
 misc_box.prototype = new generic_box();
 
@@ -874,7 +893,7 @@ function stage_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box(name, vdict, klist, top, x, y, gui);
     this.box.draggable = true;
     this.box.addEventListener("dragstart", gui_editor.drag_handler);
-    this.box.innerHTML = name + '<br> <button type="button" onclick="gui_editor.toggle_form(\'fields_' + name + '\')" id="wake_fields_' + name + '"><span class="wakefields"></span></button>' ;
+    this.box.innerHTML = `${name}<br> <button type="button" onclick="gui_editor.toggle_form('fields_${name}')" id="wake_fields_${name}"><span class="wakefields"></span></button>` ;
 }
 stage_box.prototype = new generic_box();
 
@@ -1235,23 +1254,13 @@ wf_uploader.prototype.upload_stage =  function(st) {
             'completion_type': 'ae_completion_type',
             'completion_pct': 'ae_completion_pct',
         };
-<<<<<<< HEAD
-    deps = { "file_patterns": [], "campaigns": [] };
+    deps = { "file_patterns": [], "campaign_stages": [] }
     for (i = 0; i < 10; i++) {
         if ((('dependencies ' + st) in this.cfg) && ('campaign_stage_' + i.toString()) in this.cfg['dependencies ' + st]) {
             dst = this.cfg['dependencies ' + st]['campaign_stage_' + i.toString()];
             pat = this.cfg['dependencies ' + st]['file_pattern_' + i.toString()];
-            deps["campaigns"].push(dst);
+            deps["campaign_stages"].push(dst);
             deps["file_patterns"].push(pat);
-=======
-    deps = {"file_patterns":[], "campaign_stages":[]}
-    for (i = 0; i< 10; i++ ) {
-        if ((('dependencies ' + st) in this.cfg) && ('campaign_stage_'+i.toString()) in this.cfg['dependencies ' + st]) {
-            dst = this.cfg['dependencies ' + st]['campaign_stage_'+i.toString()]
-            pat = this.cfg['dependencies ' + st]['file_pattern_'+i.toString()]
-            deps["campaign_stages"].push(dst)
-            deps["file_patterns"].push(pat)
->>>>>>> develop
         }
     }
     d = this.cfg['campaign_stage ' + st];
@@ -1275,16 +1284,15 @@ wf_uploader.prototype.upload_stage =  function(st) {
 }
 
 wf_uploader.prototype.get_campaign_list = function(completed) {
-     var x, res, i, triple;
-     var thisx = this;
-<<<<<<< HEAD
+    var x, res, i, triple;
+    var thisx = this;
     this.make_poms_call('campaign_list_json', {}, function (x) {
         res = {};
         console.log(["back from campaign_list_json, x is", x]);
         for (i in x) {
             triple = x[i];
             if (triple.experiment == thisx.experiment) {
-                res[triple.name] = triple.campaign_id;
+                res[triple.name] = triple.campaign_stage_id;
             }
         }
         thisx.cname_id_map = res;
@@ -1293,23 +1301,6 @@ wf_uploader.prototype.get_campaign_list = function(completed) {
             completed(res);
         }
     });
-=======
-     this.make_poms_call('campaign_list_json', {}, function(x){
-         res = {}
-         console.log(["back from campaign_list_json, x is", x]);
-         for( i in x) {
-             triple = x[i]
-             if (triple.experiment == thisx.experiment) {
-                 res[triple.name] = triple.campaign_stage_id;
-             }
-         }
-         thisx.cname_id_map = res;
-         console.log(["back from get_campaign_list, cname_id_map", res]);
-         if ( completed ) {
-             completed(res);
-         }
-     });
->>>>>>> develop
 }
 
 wf_uploader.prototype.update_session_role = function (role) {
@@ -1318,7 +1309,7 @@ wf_uploader.prototype.update_session_role = function (role) {
 
 wf_uploader.prototype.get_headers = function (after) {
     this.make_poms_call('headers', {}, function (s) {
-        s = s.replace(/\'/g, '"')
+        s = s.replace(/\'/g, '"');
         after(JSON.parse(s));
     });
 }
