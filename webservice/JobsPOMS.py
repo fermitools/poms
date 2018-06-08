@@ -121,6 +121,13 @@ class JobsPOMS(object):
         tids_present = set()
         for r in ldata:   # make field level dictionaries
             for field, value in r.items():
+
+                # great renaming...
+                if field == 'task_id' and value:
+                   r['submission_id'] = value
+                   del r['task_id']
+                   field = 'submission_id'
+
                 if field == 'submission_id' and value:
                    tids_wanted.add(int(value))
 
@@ -699,6 +706,7 @@ class JobsPOMS(object):
         jjil = deque()
         jql = None
         s = None
+        cs = None
         if campaign_stage_id is not None or submission_id is not None:
             if campaign_stage_id is not None:
                 tl = dbhandle.query(Submission).filter(Submission.campaign_stage_id == campaign_stage_id,
@@ -760,14 +768,10 @@ class JobsPOMS(object):
 
             # expand launch setup %{whatever}s campaigns...
 
-            launch_setup = lts.launch_setup % {
-                "dataset": cs.dataset,
-                "version": cs.software_version,
-                "group": group,
-                "experimenter":  st.experimenter_creator_obj.username
-                }
+            launch_setup = lts.launch_setup
 
             launch_setup = launch_setup.replace("\n",";")
+            launch_setup = "source /grid/fermiapp/products/common/etc/setups;setup poms_client -g poms31 -z /grid/fermiapp/products/common/db;" + launch_setup
 
             cmd = """
                 exec 2>&1
@@ -785,6 +789,14 @@ class JobsPOMS(object):
                 cs.vo_role,
                 ','.join(jjil)
             )
+
+            cmd = cmd % {
+                "dataset": cs.dataset,
+                "version": cs.software_version,
+                "group": group,
+                "experimenter":  st.experimenter_creator_obj.username,
+                "experiment": cs.experiment,
+                }
 
             f = os.popen(cmd, "r")
             output = f.read()

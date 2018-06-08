@@ -1235,6 +1235,7 @@ wf_uploader.prototype.upload_stage =  function(st) {
             'completion_type': 'ae_completion_type',
             'completion_pct': 'ae_completion_pct',
         };
+<<<<<<< HEAD
     deps = { "file_patterns": [], "campaigns": [] };
     for (i = 0; i < 10; i++) {
         if ((('dependencies ' + st) in this.cfg) && ('campaign_stage_' + i.toString()) in this.cfg['dependencies ' + st]) {
@@ -1242,6 +1243,15 @@ wf_uploader.prototype.upload_stage =  function(st) {
             pat = this.cfg['dependencies ' + st]['file_pattern_' + i.toString()];
             deps["campaigns"].push(dst);
             deps["file_patterns"].push(pat);
+=======
+    deps = {"file_patterns":[], "campaign_stages":[]}
+    for (i = 0; i< 10; i++ ) {
+        if ((('dependencies ' + st) in this.cfg) && ('campaign_stage_'+i.toString()) in this.cfg['dependencies ' + st]) {
+            dst = this.cfg['dependencies ' + st]['campaign_stage_'+i.toString()]
+            pat = this.cfg['dependencies ' + st]['file_pattern_'+i.toString()]
+            deps["campaign_stages"].push(dst)
+            deps["file_patterns"].push(pat)
+>>>>>>> develop
         }
     }
     d = this.cfg['campaign_stage ' + st];
@@ -1267,6 +1277,7 @@ wf_uploader.prototype.upload_stage =  function(st) {
 wf_uploader.prototype.get_campaign_list = function(completed) {
      var x, res, i, triple;
      var thisx = this;
+<<<<<<< HEAD
     this.make_poms_call('campaign_list_json', {}, function (x) {
         res = {};
         console.log(["back from campaign_list_json, x is", x]);
@@ -1282,6 +1293,23 @@ wf_uploader.prototype.get_campaign_list = function(completed) {
             completed(res);
         }
     });
+=======
+     this.make_poms_call('campaign_list_json', {}, function(x){
+         res = {}
+         console.log(["back from campaign_list_json, x is", x]);
+         for( i in x) {
+             triple = x[i]
+             if (triple.experiment == thisx.experiment) {
+                 res[triple.name] = triple.campaign_stage_id;
+             }
+         }
+         thisx.cname_id_map = res;
+         console.log(["back from get_campaign_list, cname_id_map", res]);
+         if ( completed ) {
+             completed(res);
+         }
+     });
+>>>>>>> develop
 }
 
 wf_uploader.prototype.update_session_role = function (role) {

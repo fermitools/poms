@@ -845,3 +845,4 @@ class TaskPOMS:
 
 
         return lcmd, cs, campaign_stage_id, outdir, outfile
+
