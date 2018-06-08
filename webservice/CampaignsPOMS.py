@@ -592,7 +592,7 @@ class CampaignsPOMS:
                 state = sesshandle.get('campaign_edit.state', 'state_active')
 
             jumpto = kwargs.pop('jump_to_campaign', None)
-                
+
             sesshandle['campaign_edit.state'] = state
             data['state'] = state
             data['curr_experiment'] = exp
@@ -605,14 +605,14 @@ class CampaignsPOMS:
                 cquery = cquery.order_by(CampaignStage.name)
             if role in ('analysis', 'production'):
                 cquery = cquery.filter(CampaignStage.creator_role == role)
-            # this bit has to go onto cquery last 
-            # -- make sure if we're jumping to a given campaign id 
+            # this bit has to go onto cquery last
+            # -- make sure if we're jumping to a given campaign id
             # that we *have* it in the list...
             if jumpto != None:
                 c2 = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == jumpto)
-                # we have to use union_all() and not union()to avoid 
-                # postgres whining about not knowing how to compare JSON 
-                # fields... sigh.  (It could just string compare them...) 
+                # we have to use union_all() and not union()to avoid
+                # postgres whining about not knowing how to compare JSON
+                # fields... sigh.  (It could just string compare them...)
                 cquery = c2.union_all(cquery)
 
             data['campaign_stages'] = cquery
@@ -674,6 +674,7 @@ class CampaignsPOMS:
             data['definition'] = definition
         return json.dumps(data)
 
+
     def new_task_for_campaign(self, dbhandle, campaign_name, command_executed, experimenter_name, dataset_name=None):
         '''
             Get a new task-id for a given campaign
@@ -697,6 +698,7 @@ class CampaignsPOMS:
         dbhandle.commit()
         return "Submission=%d" % s.submission_id
 
+
     def campaign_deps_ini(self, dbhandle, config_get, session_experiment, tag=None, camp_id=None, launch_template=None, campaign_definition=None):
         res = []
         cl = []
@@ -704,21 +706,22 @@ class CampaignsPOMS:
         lts = set()
 
         if campaign_definition is not None:
-           res.append("# with job_type %s" % campaign_definition)
-           cd = dbhandle.query(JobType).filter(JobType.name == campaign_definition, JobType.experiment==session_experiment).first()
-           if cd:
-               jts.add(cd)
+            res.append("# with job_type %s" % campaign_definition)
+            cd = dbhandle.query(JobType).filter(JobType.name == campaign_definition, JobType.experiment == session_experiment).first()
+            if cd:
+                jts.add(cd)
 
         if launch_template is not None:
-           res.append("# with launch_template: %s" % launch_template)
-           lt = dbhandle.query(LoginSetup).filter(LoginSetup.name == launch_template, LoginSetup.experiment==session_experiment).first()
-           if lt:
-               lts.add(lt)
+            res.append("# with launch_template: %s" % launch_template)
+            lt = dbhandle.query(LoginSetup).filter(LoginSetup.name == launch_template, LoginSetup.experiment == session_experiment).first()
+            if lt:
+                lts.add(lt)
 
         if tag is not None:
-            cl = dbhandle.query(CampaignStage).join(CampaignCampaignStages, Campaign).filter(Campaign.tag_name == tag,
-                                                                          CampaignCampaignStages.campaign_id == Campaign.campaign_id,
-                                                                          CampaignCampaignStages.campaign_stage_id == CampaignStage.campaign_stage_id).all()
+            cl = (dbhandle.query(CampaignStage).join(CampaignCampaignStages, Campaign)
+                  .filter(Campaign.tag_name == tag,
+                          CampaignCampaignStages.campaign_id == Campaign.campaign_id,
+                          CampaignCampaignStages.campaign_stage_id == CampaignStage.campaign_stage_id).all())
         if camp_id is not None:
             cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(CampaignDependency.provides_campaign_stage_id == camp_id).all()
             cidl2 = dbhandle.query(CampaignDependency.provides_campaign_stage_id).filter(CampaignDependency.needs_campaign_stage_id == camp_id).all()
@@ -739,7 +742,9 @@ class CampaignsPOMS:
 
         fpmap = {}
         for cid in cnames.keys():
-            cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.provides_campaign_stage_id==cid).filter(CampaignDependency.needs_campaign_stage_id.in_(cnames.keys())).all()
+            cdl = (dbhandle.query(CampaignDependency)
+                   .filter(CampaignDependency.provides_campaign_stage_id == cid)
+                   .filter(CampaignDependency.needs_campaign_stage_id.in_(cnames.keys())).all())
             for cd in cdl:
                 if cd.needs_campaign_stage_id in cnames.keys():
                     dmap[cid].append(cd.needs_campaign_stage_id)
@@ -752,19 +757,19 @@ class CampaignsPOMS:
         for cid in cnames.keys():
             for dcid in dmap[cid]:
                 if cidl.index(dcid) < cidl.index(cid):
-                    cidl[cidl.index(dcid)],cidl[cidl.index(cid)] = cidl[cidl.index(cid)],cidl[cidl.index(dcid)]
+                    cidl[cidl.index(dcid)], cidl[cidl.index(cid)] = cidl[cidl.index(cid)], cidl[cidl.index(dcid)]
 
         if len(cl):
             res.append("[campaign]")
             res.append("experiment=%s" % cl[0].experiment)
             res.append("poms_role=%s" % cl[0].creator_role)
-            if tag == None:
+            if tag is None:
                 res.append("stage_id: %s" % camp_id)
             else:
                 res.append("tag: %s" % tag)
 
 
-            res.append("campaign_stage_list=%s" % " ".join(map(cnames.get,cidl)))
+            res.append("campaign_stage_list=%s" % " ".join(map(cnames.get, cidl)))
             res.append("")
 
         for cs in cl:
@@ -815,15 +820,17 @@ class CampaignsPOMS:
 
         return "\n".join(res).replace("%", "%%")
 
+
     def campaign_deps_svg(self, dbhandle, config_get, tag=None, camp_id=None):
         '''
             return campaign dependencies as an SVG graph
             uses "dot" to generate the drawing
         '''
         if tag is not None:
-            cl = dbhandle.query(CampaignStage).join(CampaignCampaignStages, Campaign).filter(Campaign.tag_name == tag,
-                                                                          CampaignCampaignStages.campaign_id == Campaign.campaign_id,
-                                                                          CampaignCampaignStages.campaign_stage_id == CampaignStage.campaign_stage_id).all()
+            cl = (dbhandle.query(CampaignStage).join(CampaignCampaignStages, Campaign)
+                  .filter(Campaign.tag_name == tag,
+                          CampaignCampaignStages.campaign_id == Campaign.campaign_id,
+                          CampaignCampaignStages.campaign_stage_id == CampaignStage.campaign_stage_id).all())
         if camp_id is not None:
             cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(
                 CampaignDependency.provides_campaign_stage_id == camp_id).all()
@@ -874,9 +881,9 @@ class CampaignsPOMS:
             text = ""
         return bytes(text, encoding="utf-8")
 
+
     def show_campaigns(self, dbhandle, samhandle, campaign_ids=None, tmin=None, tmax=None, tdays=7,
                        active=True, tag=None, holder=None, role_held_with=None, sesshandler=None):
-
         """
             give campaign information about campaign_stages with activity in the
             time window for a given experiment
