@@ -774,7 +774,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
             placeholder = "default";
         }
         if (k.includes("job_type"))
-            res.push(make_select());
+            res.push(this.make_select());
         else
             res.push(`<label>${k}</label> <input id="${this.get_input_tag(k)}" value="${this.escape_quotes(val)}" placeholder="${placeholder}">`);
         if (k.indexOf('param') >= 0) {
