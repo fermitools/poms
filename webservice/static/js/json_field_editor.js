@@ -30,7 +30,7 @@ json_field_editor.start = function(id) {
     res.push('<thead>');
     res.push('<tr>');
     res.push('<td>Key <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Key"><i class="icon help circle link"></i></a></td>');
-    res.push('<td>Space<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Space"><i class="icon help circle link"></i></a></td>');
+    res.push('<td align="center">Space<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Space"><i class="icon help circle link"></i></a></td>');
     res.push('<td>Value <a htarget="_blank" ref="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Value"><i class="icon help circle link"></i></a></td>');
     res.push('<td>&nbsp;</td>');
     res.push('</tr>');
@@ -83,7 +83,7 @@ json_field_editor.addrow= function(res, fid, i, k, v) {
         }
         res.push('<td><input id="'+fid+'_k_'+istr+'" value="'+k+'"></td>');
         res.push('<td><input style="padding: auto; width: 4em;" type="checkbox" id="'+fid+'_ws_'+istr+'" '+ws+' value=" ">')
-        res.push('    <input style="padding: auto; width: 4em;" type="checkbox" id="'+fid+'_wsr_'+istr+'" '+wsr+' value=" "></td>')
+        res.push('<input style="padding: auto; width: 4em;" type="checkbox" id="'+fid+'_wsr_'+istr+'" '+wsr+' value=" "></td>')
 
         res.push('<td><input id="'+fid+'_v_'+istr+'" value="'+v+'"></td>');
         res.push('<td>');
