@@ -882,7 +882,7 @@ class PomsService(object):
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def jobtype_list(self, *args, **kwargs):
-        data = self.jobsPOMS.jobtype_list(cherrypy.request.db)
+        data = self.jobsPOMS.jobtype_list(cherrypy.request.db, cherrypy.session.get)
         return data
 
 
