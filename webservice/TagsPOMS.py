@@ -78,10 +78,11 @@ class TagsPOMS(object):
             dbhandle.query(CampaignCampaignStages).filter(CampaignCampaignStages.campaign_id == campaign_id).delete(synchronize_session=False)
             dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete(synchronize_session=False)
             dbhandle.commit()
-            response = {"msg": "OK"} 
+            response = {"msg": "OK"}
         else:
             response = {"msg": "You are not authorized to delete campaigns."}
         return response
+
 
     def delete_campaigns_tags(self, dbhandle, ses_get, campaign_stage_id, campaign_id, experiment):
 

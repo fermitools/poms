@@ -191,6 +191,7 @@ class CampaignsPOMS:
         data['message'] = message
         return data
 
+
     def campaign_list(self, dbhandle):
         """
             Return list of all campaign_stage_id s and names. --
@@ -198,6 +199,7 @@ class CampaignsPOMS:
         """
         data = dbhandle.query(CampaignStage.campaign_stage_id, CampaignStage.name, CampaignStage.experiment).all()
         return [r._asdict() for r in data]
+
 
     def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
         """
@@ -244,7 +246,7 @@ class CampaignsPOMS:
                 if isinstance(name, str):
                     name = name.strip()
 
-                experimenter = dbhandle.query(Experimenter).filter( Experimenter.username == pc_username).first()
+                experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first()
                 if experimenter:
                     experimenter_id = experimenter.experimenter_id
                 else:
@@ -261,19 +263,19 @@ class CampaignsPOMS:
                 launch_script = kwargs.pop('ae_launch_script')
                 recoveries = kwargs.pop('ae_definition_recovery', "[]")
                 # Getting the info that was not passed by the poms_client arguments
-                if input_files_per_job in [None, ""]:
+                if input_files_per_job in (None, ""):
                     input_files_per_job = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).firts().input_files_per_job
-                if output_files_per_job in [None, ""]:
+                        JobType.job_type_id == job_type_id).first().input_files_per_job
+                if output_files_per_job in (None, ""):
                     output_files_per_job = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).firts().output_files_per_job
-                if output_file_patterns in [None, ""]:
+                        JobType.job_type_id == job_type_id).first().output_files_per_job
+                if output_file_patterns in (None, ""):
                     output_file_patterns = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).firts().output_file_patterns
-                if launch_script in [None, ""]:
+                        JobType.job_type_id == job_type_id).first().output_file_patterns
+                if launch_script in (None, ""):
                     launch_script = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).firts().launch_script
-                if definition_parameters in [None, ""]:
+                        JobType.job_type_id == job_type_id).first().launch_script
+                if definition_parameters in (None, ""):
                     definition_parameters = dbhandle.query(JobType).filter(
                         JobType.job_type_id == job_type_id).first().definition_parameters
             else:
@@ -294,12 +296,12 @@ class CampaignsPOMS:
                         raise cherrypy.HTTPError(401, 'You are not authorized to add campaign definition.')
                     else:
                         cd = JobType(name=name, experiment=exp,
-                                                input_files_per_job=input_files_per_job,
-                                                output_files_per_job=output_files_per_job,
-                                                output_file_patterns=output_file_patterns,
-                                                launch_script=launch_script,
-                                                definition_parameters=definition_parameters,
-                                                creator=experimenter_id, created=datetime.now(utc), creator_role=role)
+                                     input_files_per_job=input_files_per_job,
+                                     output_files_per_job=output_files_per_job,
+                                     output_file_patterns=output_file_patterns,
+                                     launch_script=launch_script,
+                                     definition_parameters=definition_parameters,
+                                     creator=experimenter_id, created=datetime.now(utc), creator_role=role)
 
                     dbhandle.add(cd)
                     dbhandle.flush()
@@ -409,7 +411,7 @@ class CampaignsPOMS:
             Build a test_campaign for a given campaign definition
         """
         cs = dbhandle.query(CampaignStage).filter(CampaignStage.job_type_id == campaign_def_id,
-                                            CampaignStage.name == "_test_%s" % campaign_def_name).first()
+                                                  CampaignStage.name == "_test_%s" % campaign_def_name).first()
         if not cs:
             lt = dbhandle.query(LoginSetup).filter(
                 LoginSetup.experiment == sesshandle.get('experimenter').session_experiment).first()
@@ -533,14 +535,14 @@ class CampaignsPOMS:
                         message = 'Your active role must be analysis or production to add a campaign.'
                     else:
                         cs = CampaignStage(name=name, experiment=exp, vo_role=vo_role,
-                                     active=active, cs_split_type=split_type,
-                                     software_version=software_version, dataset=dataset,
-                                     test_param_overrides = test_param_overrides,
-                                     param_overrides=param_overrides, login_setup_id=login_setup_id,
-                                     job_type_id=job_type_id,
-                                     completion_type=completion_type, completion_pct=completion_pct,
-                                     creator=experimenter_id, created=datetime.now(utc),
-                                     creator_role=role, campaign_type=campaign_type)
+                                           active=active, cs_split_type=split_type,
+                                           software_version=software_version, dataset=dataset,
+                                           test_param_overrides=test_param_overrides,
+                                           param_overrides=param_overrides, login_setup_id=login_setup_id,
+                                           job_type_id=job_type_id,
+                                           completion_type=completion_type, completion_pct=completion_pct,
+                                           creator=experimenter_id, created=datetime.now(utc),
+                                           creator_role=role, campaign_type=campaign_type)
                     dbhandle.add(cs)
                     dbhandle.commit()
                     campaign_stage_id = cs.campaign_stage_id
@@ -565,10 +567,10 @@ class CampaignsPOMS:
                     # now redo dependencies
                 dbhandle.query(CampaignDependency).filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
                 logit.log("depends for %s are: %s" % (campaign_stage_id, depends))
-                depcamps = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']),CampaignStage.experiment == exp).all()
-                for i in range(len(depcamps)):
-                    logit.log("trying to add dependency for: {}".format(depcamps[i].name))
-                    d = CampaignDependency(provides_campaign_stage_id=campaign_stage_id, needs_campaign_stage_id=depcamps[i].campaign_stage_id,
+                depcamps = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
+                for (i, dep) in enumerate(depcamps):
+                    logit.log("trying to add dependency for: {}".format(dep.name))
+                    d = CampaignDependency(provides_campaign_stage_id=campaign_stage_id, needs_campaign_stage_id=dep.campaign_stage_id,
                                            file_patterns=depends['file_patterns'][i])
                     dbhandle.add(d)
                 dbhandle.commit()
@@ -608,7 +610,7 @@ class CampaignsPOMS:
             # this bit has to go onto cquery last
             # -- make sure if we're jumping to a given campaign id
             # that we *have* it in the list...
-            if jumpto != None:
+            if jumpto is not None:
                 c2 = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == jumpto)
                 # we have to use union_all() and not union()to avoid
                 # postgres whining about not knowing how to compare JSON
@@ -616,8 +618,7 @@ class CampaignsPOMS:
                 cquery = c2.union_all(cquery)
 
             data['campaign_stages'] = cquery
-            data['definitions'] = dbhandle.query(JobType).filter(
-                JobType.experiment == exp).order_by(JobType.name)
+            data['definitions'] = dbhandle.query(JobType).filter(JobType.experiment == exp).order_by(JobType.name)
             data['templates'] = (dbhandle.query(LoginSetup)
                                  .filter(LoginSetup.experiment == exp).order_by(LoginSetup.name))
             cq = data['campaign_stages'].all()
@@ -665,8 +666,7 @@ class CampaignsPOMS:
 
         if ae_campaign_definition_id:
             definition = {}
-            cdef = dbhandle.query(JobType).filter(
-                JobType.job_type_id == ae_campaign_definition_id).first()
+            cdef = dbhandle.query(JobType).filter(JobType.job_type_id == ae_campaign_definition_id).first()
             definition['input_files_per_job'] = cdef.input_files_per_job
             definition['output_files_per_job'] = cdef.output_files_per_job
             definition['launch_script'] = cdef.launch_script
@@ -979,16 +979,15 @@ class CampaignsPOMS:
         logit.log("after: last_activity %s" % repr(last_activity))
 
         campaign_definition_info = (dbhandle.query(JobType, Experimenter)
-                                    .filter(
-            JobType.job_type_id == campaign_info.CampaignStage.job_type_id,
-            JobType.creator == Experimenter.experimenter_id)
+                                    .filter(JobType.job_type_id == campaign_info.CampaignStage.job_type_id,
+                                            JobType.creator == Experimenter.experimenter_id)
                                     .first())
         launch_template_info = (dbhandle.query(LoginSetup, Experimenter)
                                 .filter(LoginSetup.login_setup_id == campaign_info.CampaignStage.login_setup_id,
                                         LoginSetup.creator == Experimenter.experimenter_id)
                                 .first())
         campaigns = dbhandle.query(Campaign).filter(CampaignCampaignStages.campaign_stage_id == campaign_stage_id,
-                                          CampaignCampaignStages.campaign_id == Campaign.campaign_id).all()
+                                                    CampaignCampaignStages.campaign_id == Campaign.campaign_id).all()
 
         launched_campaigns = dbhandle.query(CampaignStageSnapshot).filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id).all()
 
@@ -1136,15 +1135,15 @@ class CampaignsPOMS:
             if u:
                 user = u.experimenter_id
 
-        if campaign_definition is not None and campaign_definition != "None":
+        if campaign_definition not in (None, "None"):
             cd = dbhandle.query(JobType).filter(JobType.name == campaign_definition,
-                                                           JobType.experiment == experiment).first()
+                                                JobType.experiment == experiment).first()
         else:
-            cd = dbhandle.query(JobType).filter(JobType.name.ilike("%generic%"),
-                                                           JobType.experiment == experiment).first()
+            cd = dbhandle.query(JobType).filter(JobType.name.ilike(r"%generic%"),
+                                                JobType.experiment == experiment).first()
 
-        ld = dbhandle.query(LoginSetup).filter(LoginSetup.name.ilike("%generic%"),
-                                                   LoginSetup.experiment == experiment).first()
+        ld = dbhandle.query(LoginSetup).filter(LoginSetup.name.ilike(r"%generic%"),
+                                               LoginSetup.experiment == experiment).first()
 
         logit.log("campaign_definition = {} ".format(cd))
 
@@ -1335,6 +1334,7 @@ class CampaignsPOMS:
 
         my_crontab.write()
 
+
     def get_recovery_list_for_campaign_def(self, dbhandle, campaign_def):
         '''
             return the recovery list for a given campaign_def
@@ -1351,6 +1351,7 @@ class CampaignsPOMS:
         rlist = l
 
         return rlist
+
 
     def make_stale_campaigns_inactive(self, dbhandle, err_res):
         '''

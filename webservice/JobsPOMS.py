@@ -28,11 +28,12 @@ class JobsPOMS(object):
         self.poms_service = poms_service
         self.junkre = re.compile('.*fcl|log.*|.*\.log$|ana_hist\.root$|.*\.sh$|.*\.tar$|.*\.json$|[-_0-9]*$')
 
+
     def active_jobs(self, dbhandle):
         res = deque()
         for jobsub_job_id, submission_id in (dbhandle.query(Job.jobsub_job_id, Job.submission_id)
-                                       .filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed", Job.status != "Failed")
-                                       .execution_options(stream_results=True).all()):
+                                             .filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed", Job.status != "Failed")
+                                             .execution_options(stream_results=True).all()):
             if jobsub_job_id == "unknown":
                 continue
             res.append((jobsub_job_id, submission_id))
@@ -52,24 +53,22 @@ class JobsPOMS(object):
         # but with a comma separated list of them, I don's think it works
         # directly -- we would have to convert comma to pipe...
         # for now, I'm just going to make it a regexp and filter them here.
-        for e, jobsub_job_id, fname in (dbhandle.query(
-                                 CampaignStage.experiment,
-                                 Job.jobsub_job_id,
-                                 JobFile.file_name)
-                  .join(Submission)
-                  .filter(
-                          Submission.status == "Completed",
-                          Submission.campaign_stage_id == CampaignStage.campaign_stage_id,
-                          Job.submission_id == Submission.submission_id,
-                          Job.job_id == JobFile.job_id,
-                          JobFile.file_type == 'output',
-                          JobFile.declared == None,
-                          Job.status == "Completed",
-                        )
-                  .order_by(CampaignStage.experiment, Job.jobsub_job_id)
-                  .offset(JobsPOMS.pending_files_offset)
-                  .limit(windowsize)
-                  .all()):
+        for e, jobsub_job_id, fname in (dbhandle.query(CampaignStage.experiment,
+                                                       Job.jobsub_job_id,
+                                                       JobFile.file_name)
+                                        .join(Submission)
+                                        .filter(
+                                            Submission.status == "Completed",
+                                            Submission.campaign_stage_id == CampaignStage.campaign_stage_id,
+                                            Job.submission_id == Submission.submission_id,
+                                            Job.job_id == JobFile.job_id,
+                                            JobFile.file_type == 'output',
+                                            JobFile.declared == None,
+                                            Job.status == "Completed")
+                                        .order_by(CampaignStage.experiment, Job.jobsub_job_id)
+                                        .offset(JobsPOMS.pending_files_offset)
+                                        .limit(windowsize)
+                                        .all()):
 
             if preve != e:
                 preve = e
@@ -124,12 +123,12 @@ class JobsPOMS(object):
 
                 # great renaming...
                 if field == 'task_id' and value:
-                   r['submission_id'] = value
-                   del r['task_id']
-                   field = 'submission_id'
+                    r['submission_id'] = value
+                    del r['task_id']
+                    field = 'submission_id'
 
                 if field == 'submission_id' and value:
-                   tids_wanted.add(int(value))
+                    tids_wanted.add(int(value))
 
         # build upt tids_present in loop below while getting regexes to
         # match output files, etc.
@@ -154,7 +153,7 @@ class JobsPOMS(object):
         for sid, ofp in tpl:
             tids_present.add(sid)
             if not ofp:
-               ofp = '%'
+                ofp = '%'
             of_res[sid] = ofp.replace(',', '|').replace('.', '\\.').replace('%', '.*')
 
         jjid2tid = {}
@@ -197,7 +196,7 @@ class JobsPOMS(object):
                     ftype = field.replace("_file_names", "")
                     for v in value.split(' '):
                         if len(v) < 2 or v[0] == '-':
-                           continue
+                            continue
                         if ftype == 'output' and self.junkre.match(v):
                             thisftype = 'log'
                         else:
@@ -334,7 +333,6 @@ class JobsPOMS(object):
                      .update({field: value}, synchronize_session=False))
 
             dbhandle.commit()
-
 
         submission_ids = set()
         submission_ids.update([int(x) for x in jjid2tid.values()])
@@ -1030,3 +1028,11 @@ class JobsPOMS(object):
 
         logit.log("got list: %s" % repr(efflist))
         return efflist
+
+
+    def jobtype_list(self, dbhandle):
+        """
+            Return list of all jobtypes for the experiment.
+        """
+        data = dbhandle.query(JobType).filter(JobType.experiment == session_experiment).order_by(JobType.name)
+        return [r._asdict() for r in data]
