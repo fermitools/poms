@@ -8,7 +8,7 @@ version of functions in poms_service.py written by Marc Mengel, Michael Gueith a
 
 from collections import deque
 import re
-from .poms_model import Job, Submission, CampaignStage, JobTypeSnapshot, JobFile, JobHistory
+from .poms_model import Job, Submission, CampaignStage, JobTypeSnapshot, JobFile, JobHistory, JobType
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func, not_, and_, or_, desc
