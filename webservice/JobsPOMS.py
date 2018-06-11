@@ -1030,9 +1030,10 @@ class JobsPOMS(object):
         return efflist
 
 
-    def jobtype_list(self, dbhandle):
+    def jobtype_list(self, dbhandle, seshandle):
         """
             Return list of all jobtypes for the experiment.
         """
-        data = dbhandle.query(JobType).filter(JobType.experiment == session_experiment).order_by(JobType.name)
+        exp = seshandle('experimenter').session_experiment
+        data = dbhandle.query(JobType).filter(JobType.experiment == exp).order_by(JobType.name)
         return [r._asdict() for r in data]
