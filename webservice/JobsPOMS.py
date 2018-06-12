@@ -1035,5 +1035,10 @@ class JobsPOMS(object):
             Return list of all jobtypes for the experiment.
         """
         exp = seshandle('experimenter').session_experiment
-        data = dbhandle.query(JobType).filter(JobType.experiment == exp).order_by(JobType.name)
+        #data = dbhandle.query(JobType).filter(JobType.experiment == exp).order_by(JobType.name).all()
+        #return ["%s" % r for r in data]
+        data = dbhandle.query(JobType.name,
+                              JobType.launch_script,
+                              JobType.definition_parameters,
+                              JobType.output_file_patterns).filter(JobType.experiment == exp).order_by(JobType.name).all()
         return [r._asdict() for r in data]

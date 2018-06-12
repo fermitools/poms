@@ -595,19 +595,19 @@ gui_editor.prototype.draw_state = function () {
     var x = pad;
     var y = 0;
     var i, prevstage, istr, b;
-    var stagelist, jobtypelist, launchtemplist, k;
+    var stagelist, launchtemplist, k;
     var db, istr, cb, csb;
     prevstage = "";
 
     stagelist = [];
-    jobtypelist = [];
+    this.jobtypelist = [];
     launchtemplist = [];
 
     for (k in this.state) {
         if (k.indexOf('campaign_stage') == 0) {
             stagelist.push(k.slice(15))
         } else if (k.indexOf('job_type') == 0) {
-            jobtypelist.push(k.slice(9))
+            this.jobtypelist.push(k.slice(9))
         } else if (k.indexOf('launch_template') == 0) {
             launchtemplist.push(k.slice(16))
         }
@@ -659,8 +659,8 @@ gui_editor.prototype.draw_state = function () {
     new label_box("Job Types:", this.div, x, y);
     y = y + labely;
 
-    for (i in jobtypelist) {
-        k = 'job_type ' + jobtypelist[i];
+    for (i in this.jobtypelist) {
+        k = 'job_type ' + this.jobtypelist[i];
         b = new misc_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y, this);
         this.miscboxes.push(b);
         x = x + gridx;
@@ -702,6 +702,24 @@ gui_editor.prototype.redraw_deps = function () {
         this.depboxes[k].set_bounds();
     }
 }
+
+gui_editor.prototype.make_select = function(sval) {
+    /*
+        <select name="carlist" form="carform">
+            <option value="volvo">Volvo</option>
+            <option value="saab">Saab</option>
+            <option value="opel">Opel</option>
+            <option value="audi">Audi</option>
+        </select>
+     */
+        const res = ["default", ...this.jobtypelist].reduce(
+            function (acc, val) {
+                const sel = (val == sval) ? ' selected' : '';
+                return acc + `<option value="${val}"${sel}>${val}</option>\n`;
+            },
+        "");
+        return `<select name="jtlist">\n${res}</select>\n`;
+    }
 
 /*
  * make a div with a label in it on the overall screen
@@ -773,10 +791,12 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
             val = vdict[k];
             placeholder = "default";
         }
-        if (k.includes("job_type"))
-            res.push(this.make_select());
-        else
-            res.push(`<label>${k}</label> <input id="${this.get_input_tag(k)}" value="${this.escape_quotes(val)}" placeholder="${placeholder}">`);
+        res.push(`<label>${k}</label>`);
+        if (k.includes("job_type")) {
+            res.push(this.gui.make_select(val));
+        } else {
+            res.push(`<input id="${this.get_input_tag(k)}" value="${this.escape_quotes(val)}" placeholder="${placeholder}">`);
+        }
         if (k.indexOf('param') >= 0) {
             res.push(`<button type="button" onclick="json_field_editor.start('${this.get_input_tag(k)}')">Edit</button>`);
         }
@@ -859,19 +879,6 @@ generic_box.prototype.escape_quotes = function(s) {
        return s;
    }
 }
-
-generic_box.prototype.make_select = function() {
-    /*
-        <select name="carlist" form="carform">
-            <option value="volvo">Volvo</option>
-            <option value="saab">Saab</option>
-            <option value="opel">Opel</option>
-            <option value="audi">Audi</option>
-        </select>
-     */
-        const res = jobtypelist.reduce((acc, val) => acc + `<option value="${val}">${val}</option>\n`);
-        return res;
-    }
 
 
 /*

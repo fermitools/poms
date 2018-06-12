@@ -92,7 +92,7 @@ div.box.selected {
 .popup_form h3 {
    width: 100%;
 }
-.popup_form input {
+.popup_form input, select {
     width: 60%;
 }
 .popup_form label {
