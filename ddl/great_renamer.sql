@@ -15,6 +15,8 @@ ALTER TABLE launch_templates          RENAME COLUMN launch_id TO login_setup_id;
 ALTER TABLE campaigns                 RENAME COLUMN launch_id TO login_setup_id;
 ALTER TABLE campaign_snapshots        RENAME COLUMN launch_id TO login_setup_id;
 ALTER TABLE launch_template_snapshots RENAME COLUMN launch_id TO login_setup_id;
+-- spw missed on 2nd
+ALTER TABLE launch_template_snapshots RENAME COLUMN launch_snapshot_id TO login_setup_snapshot_id;
 
 
 ALTER TABLE campaign_definitions RENAME COLUMN campaign_definition_id TO job_type_id;
@@ -50,6 +52,8 @@ ALTER TABLE held_launches           RENAME column parent_task_id TO parent_submi
 ALTER TABLE tasks                   RENAME COLUMN task_parameters TO submission_params;
 
 ALTER TABLE launch_templates              RENAME TO login_setups;
+-- spw missed on 2nd
+ALTER TABLE launch_template_snapshots     RENAME TO login_setup_snapshots;
 ALTER TABLE campaign_definitions          RENAME TO job_types;
 ALTER TABLE campaign_snapshots            RENAME TO campaign_stage_snapshots;
 ALTER TABLE campaign_definition_snapshots RENAME TO job_type_snapshots;
@@ -78,3 +82,13 @@ $function$;
 
 CREATE TRIGGER update_submission_history AFTER INSERT OR UPDATE ON submissions FOR EACH ROW EXECUTE PROCEDURE update_submission_history();
 
+
+-- spw sequences
+ALTER SEQUENCE launch_template_snapshots_launch_snapshot_id_seq RENAME TO login_setup_snapshots_login_setup_id_seq;
+ALTER SEQUENCE campaign_definition_snapshots_campaign_definition_snap_id_seq RENAME TO job_type_snapshots_job_type_snapshot_id_seq;
+ALTER SEQUENCE campaign_definitions_campaign_definition_id_seq RENAME TO job_types_job_type_id_seq;
+ALTER SEQUENCE campaigns_campaign_id_seq RENAME TO campaign_stages_campaign_stage_id_seq;
+ALTER SEQUENCE launch_templates_launch_id_seq RENAME TO login_setups_login_setup_id_seq;
+ALTER SEQUENCE tasks_task_id_seq RENAME TO submissions_submissions_id_seq;
+ALTER SEQUENCE tags_tag_id_seq RENAME TO campaigns_campaign_id_seq;
+ALTER SEQUENCE campaign_snapshots_campaign_snapshot_id_seq RENAME TO campaign_stage_snapshots_campaign_stage_snapshot_id_seq;
