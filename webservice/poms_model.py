@@ -206,7 +206,7 @@ class Submission(Base):
     jobs = relationship('Job', order_by="Job.job_id")
 
 
-class TaskHistory(Base):
+class SubmissionHistory(Base):
     __tablename__ = 'submission_histories'
 
     submission_id = Column(ForeignKey('submissions.submission_id'), primary_key=True, nullable=False)

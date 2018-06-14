@@ -31,7 +31,8 @@ from .poms_model import (CampaignStage,
                          LoginSetup,
                          LoginSetupSnapshot,
                          Service,
-                         Submission)
+                         Submission,
+                         SubmissionHistory)
 from .utc import utc
 
 
@@ -82,167 +83,27 @@ class TaskPOMS:
         now = datetime.now(utc)
         res = ["wrapping up:"]
 
-        #
-        # make jobs which completed with no *undeclared* output files have status "Located".
-        #
-        # lock Jobs in order first
-        dbhandle.query(Job.job_id).filter(Job.status == 'Completed').with_for_update(read=True).order_by(Job.jobsub_job_id).all()
-
-        s = text("""update jobs set status = 'Located'
-            where status = 'Completed'
-              and (select count(file_name) from job_files
-                    where job_files.job_id = jobs.job_id
-                      and job_files.file_type = 'output'
-                      and job_files.declared is null) = 0
-""")
-        dbhandle.execute(s)
-
-        #
-        # tried to do as below, but no such luck
-        # subq = dbhandle.query(func.count(JobFile.file_name)).filter(JobFile.job_id == Job.job_id, JobFile.file_type == 'output')
-        # dbhandle.query(Job).filter(Job.status.in_(["Completed","Removed"]), subq == 0).update({'status':'Located'}, synchronize_session='fetch')
-        #
-        dbhandle.commit()
-
-        need_joblogs = deque()
-        #
-        # check active submissions to see if they're completed/located
-        q = (dbhandle.query(Submission.submission_id, Submission.created, func.count(Job.job_id),
-                            func.sum(case([
-                                (Job.status == "Completed", 0),
-                                (Job.status == "Removed", 0),
-                                (Job.status == "Located", 0),
-                                (Job.status == "Failed", 0),
-                           ], else_=1)))
-             .filter(Job.submission_id == Submission.submission_id)
-             .filter(Submission.status != "Completed", Submission.status != "Located")
-             .group_by(Submission.submission_id)
-            )
-        for sid, tcreated, total, running in q.all():
-            res.append("Submission %d total %d running %d " % (sid, total, running))
-            if (total > 0 and running == 0) or (total == 0 and now - tcreated > timedelta(days=2)):
-                need_joblogs.append(sid)
-
-        #
-        # lock submissions in order so we can update them all
-        #
-        # try a couple of times...
-        #
-        if len(need_joblogs) > 0:
-            for i in range(4):
-                try:
-                    q = dbhandle.query(Submission.submission_id).filter(Submission.submission_id.in_(need_joblogs)).with_for_update(read=True).order_by(Submission.submission_id)
-                    q.all()
-                    break
-                except QueryCanceledError:
-                    dbhandle.rollback()
-                    continue
-
-            dbhandle.query(Submission).filter(Submission.submission_id.in_(need_joblogs)).update({'status': 'Completed', 'updated': datetime.now(utc)}, synchronize_session=False)
-
-        dbhandle.commit()
-
-
         lookup_task_list = deque()
         lookup_dims_list = deque()
         lookup_exp_list = deque()
-        #
-        # move launch stuff etc, to one place, so we can keep the table rows
-        # so we need a list...
-        #
         finish_up_tasks = deque()
         mark_located = deque()
-        n_completed = 0
-        n_stale = 0
-        n_project = 0
-        n_located = 0
-        # try with joinedload()...
+        #
+        # move launch stuff etc, to one place, so we can keep the table rows
+        sq = (dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label('latest')).group_by(SubmissionHistory.submission_id).subquery()
+        completed_sids = (dbhandle.query(SubmissionHistory.submission_id).join(sq,SubmissionHistory.submission_id == sq.c.submission_id , SubmissionHistory.created == sq.c.latest).filter(SubmissionHistory.status='Completed').all())
 
-        q = (dbhandle.query(Submission.submission_id, func.max(CampaignStageSnapshot.completion_pct), func.count(Job.job_id),
-                            func.sum(case([
-                                (Job.status == "Completed", 1),
-                                (Job.status == "Located", 1),
-                            ], else_=0)))
-             .filter(Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id)
-             .filter(Job.submission_id == Submission.submission_id)
-             .filter(Submission.status.in_(["Completed", "Running"]))
-             .filter(CampaignStageSnapshot.completion_type == "complete")
-             .group_by(Submission.submission_id)
-            )
+        for s in (dbhandle.query(Submission).join(CampaignStageSnapshot,Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id).filter(Submission.submission_id._in(completed_sids), CampaignStageSnapshot.completion_type = 'completed').all()):
+            finish_up_tasks.append(s.submission_id)
+            self.update_submission_status(s.submission_id, "Located")
 
-        for sid, cfrac, totcount, compcount in q.all():
+        for s in (dbhandle.query(Submission).join(CampaignStageSnapshot,Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id).filter(Submission.submission_id._in(completed_sids), CampaignStageSnapshot.completion_type = 'located').all()):
 
-            if totcount == 0:
-                # cannot be done with no jobs...
-                continue
-
-            res.append("completion_type: complete Submission %d cfrac %d pct %f " % (sid, cfrac, (compcount * 100) / totcount + 0.1))
-
-            if (compcount * 100.0) / totcount + 0.1 >= cfrac:
-                n_located = n_located + 1
-                mark_located.append(sid)
-                finish_up_tasks.append(sid)
-
-        if len(mark_located) > 0:
-            # lock submissions, jobs in order so we can update them
-            dbhandle.query(Submission.submission_id).filter(Submission.submission_id.in_(mark_located)).with_for_update(read=True).order_by(Submission.submission_id).all()
-            #
-            # why mark the jobs? just fix the submissions!
-            #dbhandle.query(Job.job_id).filter(Job.submission_id.in_(mark_located)).with_for_update(read=True).order_by(Job.jobsub_job_id).all();
-            #q = dbhandle.query(Job).filter(Job.submission_id.in_(mark_located)).update({'status':'Located','output_files_declared':True}, synchronize_session=False)
-            q = dbhandle.query(Submission).filter(Submission.submission_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
-        dbhandle.commit()
-
-
-        q = (dbhandle.query(Submission.submission_id, func.max(CampaignStageSnapshot.completion_pct), func.count(Job.job_id),
-                            func.sum(case([
-                                (Job.status == "Located", 1),
-                            ], else_=0)))
-             .join(CampaignStageSnapshot, Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id)
-             .filter(Job.submission_id == Submission.submission_id)
-             .filter(Submission.status.in_(["Completed", "Running"]))
-             .filter(CampaignStageSnapshot.completion_type == "located")
-             .group_by(Submission.submission_id)
-            )
-
-        mark_located = deque()
-        for sid, cfrac, totcount, compcount in q.all():
-
-            if totcount == 0:
-                # cannot be done with no jobs...
-                continue
-
-            res.append("completion_type: complete Submission %d cfrac %d pct %f " % (sid, cfrac, (compcount * 100) / totcount + 0.1))
-
-            if (compcount * 100.0) / totcount + 0.01 >= cfrac:
-                n_located = n_located + 1
-                mark_located.append(sid)
-                finish_up_tasks.append(sid)
-
-        # lock submissions, jobs in order so we can update them
-        if len(mark_located) > 0:
-            dbhandle.query(Submission.submission_id).filter(Submission.submission_id.in_(mark_located)).with_for_update().order_by(Submission.submission_id).all()
-            # why mark the jobs? just fix the submissions!
-            #dbhandle.query(Job.job_id).filter(Job.submission_id.in_(mark_located)).with_for_update(read=True).order_by(Job.jobsub_job_id).all()
-            #dbhandle.query(Job).filter(Job.submission_id.in_(mark_located)).update({'status':'Located', 'output_files_declared':True}, synchronize_session=False)
-            dbhandle.query(Submission).filter(Submission.submission_id.in_(mark_located)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
-
-        dbhandle.commit()
-
-        for task in (dbhandle.query(Submission).with_for_update(of=Submission,read=True)
-                     .join(CampaignStageSnapshot, Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id)
-                     .filter(Submission.status == "Completed")
-                     .filter(CampaignStageSnapshot.completion_type == "located").order_by(Submission.submission_id).all()):
-
+            # after two days, call it on time...
             if now - task.updated > timedelta(days=2):
-                n_located = n_located + 1
-                n_stale = n_stale + 1
-                task.status = "Located" # XXX check for Failed?
-                finish_up_tasks.append(task.submission_id)
-                task.updated = datetime.now(utc)
-                dbhandle.add(task)
+                self.update_submission_status(s.submission_id, "Located")
 
-            elif task.project:
+            elif s.project:
                 # task had a sam project, add to the list to look
                 # up in sam
                 n_project = n_project + 1
@@ -257,6 +118,7 @@ class TaskPOMS:
                 lookup_task_list.append(task)
                 lookup_dims_list.append(allkiddims)
 
+        dbhandle.commit()
 
         summary_list = samhandle.fetch_info_list(lookup_task_list, dbhandle=dbhandle)
         count_list = samhandle.count_files_list(lookup_exp_list, lookup_dims_list)
@@ -274,9 +136,9 @@ class TaskPOMS:
                 if task.status == "Completed":
                     finish_up_tasks.append(task.submission_id)
 
-        if len(finish_up_tasks) > 0:
-            dbhandle.query(Job.job_id).filter(Job.submission_id.in_(finish_up_tasks)).with_for_update(read=True).order_by(Job.jobsub_job_id).all()
-            q = dbhandle.query(Submission).filter(Submission.submission_id.in_(finish_up_tasks)).update({'status':'Located', 'updated':datetime.now(utc)}, synchronize_session=False)
+        for s in finish_up_tasks:
+            self.update_submission_status(s,"Located")
+
         dbhandle.commit()
 
         res.append("Counts: completed: %d stale: %d project %d: located %d" %
@@ -298,19 +160,6 @@ class TaskPOMS:
             njtl = []
         else:
             njtl = dbhandle.query(Submission).filter(Submission.submission_id.in_(need_joblogs)).all()
-
-        for task in njtl:
-            sid = task.submission_id
-            cid = task.campaign_stage_id
-            exp = task.campaign_stage_snapshot_obj.experiment
-            samhandle.update_project_description(exp, task.project, "POMS CampaignStage %s Submission %s" % (cid, sid))
-            condor_log_parser.get_joblogs(dbhandle,
-                                          self.task_min_job(dbhandle, sid),
-                                          getconfig('elasticsearch_cert'),
-                                          getconfig('elasticsearch_key'),
-                                          task.campaign_stage_snapshot_obj.experiment,
-                                          task.campaign_stage_snapshot_obj.vo_role)
-        logit.log("Starting finish_up_tasks loops, len %d" % len(finish_up_tasks))
 
         if len(finish_up_tasks) == 0:
             futl = []
@@ -419,6 +268,17 @@ class TaskPOMS:
         logit.log("get_task_id_for(user='%s',experiment='%s',command_executed='%s',input_dataset='%s',parent_submission_id='%s',submission_id='%s'" % (
              user, experiment, command_executed, input_dataset, parent_submission_id, submission_id
             ))
+  
+        #
+        # try to extract the project name from the launch command...
+        #
+        project = None
+        for projre in ('-e SAM_PROJECT=([^ ]*)','-e SAM_PROJECT_NAME=([^ ]*)','--sam_project ([^ ]*)') :
+            m = re.search(projre, command_executed)
+            if m:
+                project = m.group(1)
+                break
+
         if user is None:
             user = 4
         else:
@@ -444,6 +304,7 @@ class TaskPOMS:
             s = Submission(campaign_stage_id=cs.campaign_stage_id,
                  status="New",
                  submission_params={},
+                 project = project,
                  updater=4,
                  creator=4,
                  created=tim,
@@ -460,6 +321,22 @@ class TaskPOMS:
         logit.log("get_task_id_for: returning %s" % s.submission_id)
         return s.submission_id
 
+    def update_submission_status(self, dbhandle, submission_id, status):
+        sh = SubmissionHistory()
+        sh.submission_id = submission_id
+        sh.status = status
+        sh.created = datetime.now(utc)
+        dbhandle.add(sh)
+
+    def update_submission(self, dbhandle, submission_id, status = None, project = None):
+        if project s.project != project:
+            s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
+            if s.project != project:
+                s.project = project
+                dbhandle.add(s)
+        if status != None:
+            self.update_submission_status(dbhandle, submission_id_status)
+        dbhandle.commit()
 
     def snapshot_parts(self, dbhandle, s, campaign_stage_id): ###This function was removed from the main script
         cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
