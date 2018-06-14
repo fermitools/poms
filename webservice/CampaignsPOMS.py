@@ -38,7 +38,7 @@ from .poms_model import (CampaignStage,
                          RecoveryType,
                          Campaign,
                          Submission,
-                         TaskHistory)
+                         SubmissionHistory)
 from .pomscache import pomscache_10
 from .utc import utc
 
@@ -1071,12 +1071,12 @@ class CampaignsPOMS:
 
         job_counts = "<p></p>\n".join(job_counts_list)
 
-        qr = dbhandle.query(TaskHistory).join(Submission).filter(Submission.campaign_stage_id.in_(cidl),
-                                                           TaskHistory.submission_id == Submission.submission_id,
+        qr = dbhandle.query(SubmissionHistory).join(Submission).filter(Submission.campaign_stage_id.in_(cidl),
+                                                           SubmissionHistory.submission_id == Submission.submission_id,
                                                            or_(and_(Submission.created > tmin, Submission.created < tmax),
                                                                and_(Submission.updated > tmin,
-                                                                    Submission.updated < tmax))).order_by(TaskHistory.submission_id,
-                                                                                                    TaskHistory.created).all()
+                                                                    Submission.updated < tmax))).order_by(SubmissionHistory.submission_id,
+                                                                                                    SubmissionHistory.created).all()
         items = deque()
         extramap = OrderedDict()
         for th in qr:
