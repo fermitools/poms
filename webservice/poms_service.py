@@ -275,23 +275,32 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def launch_template_edit(self, *args, **kwargs):
-        data = self.campaignsPOMS.launch_template_edit(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+        #v3_2_0 backward compatabilty
+        login_setup_edit(args, kwargs)
+
+    @cherrypy.expose
+    @logit.logstartstop
+    def login_setup_edit(self, *args, **kwargs):
+        data = self.campaignsPOMS.login_setup_edit(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
 
         if kwargs.get('test_template'):
             raise cherrypy.HTTPRedirect(
-                "%s/launch_jobs?campaign_stage_id=None&test_launch_template=%s" % (self.path, data['launch_template_id']))
+                "%s/launch_jobs?campaign_stage_id=None&test_login_setup=%s" % (self.path, data['login_setup_id']))
 
-        template = self.jinja_env.get_template('launch_template_edit.html')
+        template = self.jinja_env.get_template('login_setup_edit.html')
         return template.render(data=data, help_page="LaunchTemplateEditHelp")
 
     @cherrypy.expose
-    def campaign_deps_ini( self, tag=None, camp_id=None, launch_template=None, campaign_definition=None):
+    @logit.logstartstop
+    def campaign_deps_ini(self, tag=None, camp_id=None, login_setup=None, campaign_definition=None, login_setup=None, launch_template=None):
+        if login_setup == None and launch_template != None: login_setup = launch_template
         experiment = cherrypy.session.get('experimenter').session_experiment
-        res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, cherrypy.config.get, experiment, tag, camp_id, launch_template, campaign_definition)
+        res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, cherrypy.config.get, experiment, tag, camp_id, login_setup, campaign_definition)
         cherrypy.response.headers['Content-Type'] = 'text/ini'
         return res
 
     @cherrypy.expose
+    @logit.logstartstop
     def campaign_deps(self, tag=None, camp_id=None):
         template = self.jinja_env.get_template('campaign_deps.html')
         svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config.get, tag, camp_id)
@@ -442,7 +451,7 @@ class PomsService(object):
         (campaign_info, time_range_string,
          tmins, tmaxs, tdays,
          campaign_definition_info,
-         launch_template_info, campaigns,
+         login_setup_info, campaigns,
          launched_campaigns, dimlist, campaign,
          counts_keys, counts,
          launch_flist,
@@ -458,7 +467,7 @@ class PomsService(object):
             tmins=tmins,
             tmaxs=tmaxs,
             Campaign_definition_info=campaign_definition_info,
-            Launch_template_info=launch_template_info,
+            login_setup_info=login_setup_info,
             campaigns=campaigns,
             launched_campaigns=launched_campaigns,
             dimlist=dimlist,
@@ -506,8 +515,10 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def list_launch_file(self, campaign_stage_id=None, fname=None, launch_template_id=None):
-        lines, refresh = self.campaignsPOMS.list_launch_file(campaign_stage_id, fname, launch_template_id)
+    @logit.logstartstop
+    def list_launch_file(self, campaign_stage_id=None, fname=None, login_setup_id=None, launch_template_id=None):
+        if login_setup_id == None and launch_template_id != None: login_setup_id = launch_template_id
+        lines, refresh = self.campaignsPOMS.list_launch_file(campaign_stage_id, fname, login_setup_id)
         output = "".join(lines)
         template = self.jinja_env.get_template('launch_jobs.html')
         res = template.render(command='', output=output, do_refresh=refresh,
@@ -807,9 +818,9 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def launch_jobs(self, campaign_stage_id, dataset_override=None, parent_submission_id=None, parent_task_id=None,  test_launch_template=None,
-                    experiment=None, launcher=None, test_launch=False):
-
+    def launch_jobs(self, campaign_stage_id, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
+                    experiment=None, launcher=None, test_launch=False, test_launch_template=None):
+        if test_login_setup == None and test_launch_template != None: test_login_setup = test_launch_template
         if parent_task_id != None and parent_submission_id == None:
             parent_submission_id = parent_task_id
         if cherrypy.session.get('experimenter').username and ('poms' != cherrypy.session.get('experimenter').username or launcher == ''):
@@ -825,7 +836,7 @@ class PomsService(object):
                                          cherrypy.response.status, campaign_stage_id,
                                          launch_user,
                                          dataset_override=dataset_override,
-                                         parent_submission_id=parent_submission_id, test_launch_template=test_launch_template,
+                                         parent_submission_id=parent_submission_id, test_login_setup=test_login_setup,
                                          experiment=experiment,
                                          test_launch=test_launch)
         logit.log("Got vals: %s" % repr(vals))
@@ -833,9 +844,9 @@ class PomsService(object):
         if lcmd == "":
             return "Launches held, job queued..."
         else:
-            if test_launch_template:
-                raise cherrypy.HTTPRedirect("%s/list_launch_file?launch_template_id=%s&fname=%s" % (
-                    self.path, test_launch_template, os.path.basename(outfile)))
+            if test_login_setup:
+                raise cherrypy.HTTPRedirect("%s/list_launch_file?login_setup_id=%s&fname=%s" % (
+                    self.path, test_login_setup, os.path.basename(outfile)))
             else:
                 raise cherrypy.HTTPRedirect(
                     "%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (self.path, campaign_stage_id, os.path.basename(outfile)))

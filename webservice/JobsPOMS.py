@@ -715,7 +715,7 @@ class JobsPOMS(object):
                 tl = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).all()
             if len(tl):
                 cs = tl[0].campaign_stage_snapshot_obj
-                lts = tl[0].launch_template_snap_obj
+                lts = tl[0].login_setup_snap_obj
                 st = tl[0]
             else:
                 cs = None
@@ -742,7 +742,7 @@ class JobsPOMS(object):
                 cs = st.campaign_stage_snapshot_obj
                 for j in jql:
                     jjil.append(j.jobsub_job_id)
-                lts = st.launch_template_snap_obj
+                lts = st.login_setup_snap_obj
 
         if confirm is None:
             jijatem = 'kill_jobs_confirm.html'

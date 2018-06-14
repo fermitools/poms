@@ -12,49 +12,39 @@ Selected Campaign Stages{%include 'help_button.html'%}
 
   {%set column_heads = ['All','Idle','Running','Held','Total Completed','Completed', 'Located', 'Removed', 'Failed', 'efficiency', 'pending'] %}
 
-  <div id="double-scroll" class="ui scrollable">
+  <div id="double-scroll" class="ui _scrollable">
 
-   <table class="ui celled table unstackable">
-     <tr>
-       <th colspan = 5></th>
-       <th colspan = 4>Jobs in  {{time_range_string}}</th>
-     </tr>
-     <tr>
-       <th colspan=1 align="center"> Campaign Stage
-        <a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#CampaignStage"><i style="float: none" class="grey help circle link icon"></i></a>
-      </th>
-      <th>Total</th>
-      <th colspan=3 align="center">Active Jobs </th>
-      <th colspan=4 align="center">Completed </th>
-      <th colspan=1 align="center"></th>
-      <th colspan=2 align="center">Stats</th>
-     </tr>
-     <tr>
-        <!-- <th>Experiment </th> -->
-        <th>Name </th>
-        <th>All</th>
-        <th>Idle<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-        <th>Running<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-        <th>Held<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-        <th>Total<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-        <th>Not&nbsp;Located<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-        <th>Located<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-        <th>Removed<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-        <th>Failed<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-        <th>%Efficiency<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-        <th>Pending<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-     </tr>
-
-     {# for cs in campaign_stages if not cs.experiment_obj.restricted or current_experimenter.is_authorized(cs.experiment) #}
-     {# for cs in campaign_stages if not cs.experiment_obj.restricted or cs.experiment in current_experimenter.extra.selected #}
-     {# for cs in campaign_stages if current_experimenter.extra and cs.experiment in current_experimenter.extra.selected #}
+   <table id="campaign_stages" class="ui celled _table unstackable tablesorter tablesorter-ice">
+    <thead>
+        <tr>
+            <th colspan=1 align="center" data-sorter="false" data-filter="false"> Campaign Stage
+                <a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#CampaignStage"><i style="float: none" class="grey help circle link icon"></i></a>
+            </th>
+            <th data-sorter="false" data-filter="false">Total</th>
+            <th colspan=3 align="center" data-sorter="false" data-filter="false">Active Jobs </th>
+            <th colspan=4 align="center" data-sorter="false" data-filter="false">Jobs Completed in {{time_range_string}}</th>
+            <th colspan=1 align="center" data-sorter="false" data-filter="false"></th>
+            <th colspan=2 align="center" data-sorter="false" data-filter="false">Stats</th>
+        </tr>
+        <tr>
+            <th>Name </th>
+            <th>All</th>
+            <th>Idle<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
+            <th>Running<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
+            <th>Held<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
+            <th>Total<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
+            <th>Not&nbsp;Located<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
+            <th>Located<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
+            <th>Removed<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
+            <th>Failed<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
+            <th>%Efficiency<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
+            <th>Pending<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
+        </tr>
+    </thead>
+    <tbody>
      {% for cs in campaign_stages %}
      {% set outer_loop = loop %}
             <tr>
-            <!-- <td>{{cs.experiment}}</td> -->
-            <!-- cs.experiment_obj.restricted: {{cs.experiment_obj.restricted}} -->
-            <!-- current_experimenter.is_authorized(cs.experiment): {{current_experimenter}} -->
-            {#<!-- cs.experiment in current_experimenter.extra.selected {{cs.experiment in current_experimenter.extra.selected}}-->#}
             <td> <a href="{{pomspath}}/campaign_info?campaign_stage_id={{cs.campaign_stage_id}}">{{cs.name}}</a></td>
             {% for k in column_heads  %}
 
@@ -81,7 +71,7 @@ Selected Campaign Stages{%include 'help_button.html'%}
          </tr>
 
      {% endfor %}
-
+    </tbody>
     </table>
   </div>
 
@@ -162,9 +152,34 @@ Selected Campaign Stages{%include 'help_button.html'%}
        $('#global_datepicker_container').show();
    });
 
-   $(document).ready(function(){
-     $('#double-scroll').doubleScroll();
-   });
+   $(document).ready(function() {
+    $('#double-scroll').doubleScroll();
+    $('#campaign_stages').tablesorter( {
+        widgets : [ 'filter', 'saveSort' ],
+        widgetOptions : {filter_reset: '.reset', saveSort: true},
+        //dateFormat : "yyyymmdd"
+        });
+});
+
+$('#campaign_stages')
+.bind('filterInit', function() {
+    // check that storage ulility is loaded
+    if ($.tablesorter.storage) {
+        // get saved filters
+        var f = $.tablesorter.storage(this, 'tablesorter-filters') || [];
+        $(this).trigger('search', [f]);
+    }
+})
+.bind('filterEnd', function(){
+    if ($.tablesorter.storage) {
+        // save current filters
+        var f = $(this).find('.tablesorter-filter').map(function() {
+            return $(this).val() || '';
+        }).get();
+        $.tablesorter.storage(this, 'tablesorter-filters', f);
+    }
+});
+
 </script>
 
 {%endblock%}

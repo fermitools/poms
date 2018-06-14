@@ -476,7 +476,7 @@ class TaskPOMS:
                 [LoginSetup, LaunchTemplateSnapshot,
                  LoginSetup.login_setup_id,
                  LaunchTemplateSnapshot.login_setup_id,
-                 cs.login_setup_id, 'launch_template_snap_obj'
+                 cs.login_setup_id, 'login_setup_snap_obj'
                 ]]:
 
             i = dbhandle.query(func.max(snaptable.updated)).filter(sfield == sid).first()
@@ -637,7 +637,7 @@ class TaskPOMS:
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
                     err_res, campaign_stage_id, launcher, dataset_override=None, parent_submission_id=None,
-                    param_overrides=None, test_launch_template=None, experiment=None, test_launch = False):
+                    param_overrides=None, test_login_setup=None, experiment=None, test_launch = False):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id))
 
@@ -645,8 +645,8 @@ class TaskPOMS:
         e = seshandle_get('experimenter')
         launcher_experimenter = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == launcher).first()
 
-        if test_launch_template:
-            lt = dbhandle.query(LoginSetup).filter(LoginSetup.login_setup_id == test_launch_template).first()
+        if test_login_setup:
+            lt = dbhandle.query(LoginSetup).filter(LoginSetup.login_setup_id == test_login_setup).first()
             dataset_override = "fake_test_dataset"
             cdid = "-"
             cid = "-"
@@ -658,8 +658,8 @@ class TaskPOMS:
             dataset = "-"
             definition_parameters = []
             exp = e.session_experiment
-            launch_script = """echo "Environment"; printenv; echo "jobsub is`which jobsub`;  echo "launch_template successful!"""
-            outdir = "%s/private/logs/poms/launches/template_tests_%d" % (os.environ["HOME"], int(test_launch_template))
+            launch_script = """echo "Environment"; printenv; echo "jobsub is`which jobsub`;  echo "login_setup successful!"""
+            outdir = "%s/private/logs/poms/launches/template_tests_%d" % (os.environ["HOME"], int(test_login_setup))
             outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
             logit.log("trying to record launch in %s" % outfile)
         else:
@@ -672,14 +672,14 @@ class TaskPOMS:
             else:
                 cq = dbhandle.query(CampaignStage).filter(CampaignStage.name == campaign_stage_id, CampaignStage.experiment == experiment)
 
-            cs = cq.options(joinedload(CampaignStage.launch_template_obj), joinedload(CampaignStage.job_type_obj)).first()
+            cs = cq.options(joinedload(CampaignStage.login_setup_obj), joinedload(CampaignStage.job_type_obj)).first()
 
             if not cs:
                 err_res = 404
                 raise KeyError("CampaignStage not found: " + str(campaign_stage_id))
 
             cd = cs.job_type_obj
-            lt = cs.launch_template_obj
+            lt = cs.login_setup_obj
 
             if self.get_job_launches(dbhandle) == "hold":
                 # fix me!!
@@ -702,7 +702,7 @@ class TaskPOMS:
             # allocate task to set ownership
             sid = self.get_task_id_for(dbhandle, campaign_stage_id, user=launcher_experimenter.username, experiment=experiment, parent_submission_id=parent_submission_id)
 
-            if test_launch: 
+            if test_launch:
                 dbhandle.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: {'test':1}});
                 dbhandle.commit()
 
@@ -720,7 +720,7 @@ class TaskPOMS:
 
             # if it is a test launch, add in the test param overrides
             # and flag the task as a test (secretly relies on poms_client
-            # v3_0_0) 
+            # v3_0_0)
 
         if not e and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
@@ -756,7 +756,7 @@ class TaskPOMS:
             "exec 2>&1",
             "set -x",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
-            "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true", 
+            "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true",
             ("ssh -tx %s@%s <<'EOF' &" % (lt.launch_account,lt.launch_host))%{
                 "dataset": dataset,
                 "experiment": exp,
@@ -845,4 +845,3 @@ class TaskPOMS:
 
 
         return lcmd, cs, campaign_stage_id, outdir, outfile
-
