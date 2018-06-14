@@ -32,7 +32,7 @@ Launch/Setup {{ show_hint('', 'Help page') }}
 {% endmacro %}
 
 
-<form id="launch_template_form" class="ui form" action="launch_template_edit" method="POST">
+<form id="login_setup_form" class="ui form" action="login_setup_edit" method="POST">
 
   {% if data.curr_experiment is defined %}
   <div id="double-scroll" class="ui scrollable">
@@ -121,7 +121,7 @@ Launch/Setup {{ show_hint('', 'Help page') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-  <form id="template_add_edit_form" class="ui form" method="POST" action="launch_template_edit">
+  <form id="template_add_edit_form" class="ui form" method="POST" action="login_setup_edit">
     <div class="three fields">
       <div class="field">
         <label>Name {{ show_hint('#Name', 'CampaignStage name') }}</label>
@@ -176,7 +176,7 @@ $('#template_add_edit_form')
 
 /*
 $("#experiment").change(function() {
-    $("#launch_template_form").submit();
+    $("#login_setup_form").submit();
   });
 */
 
@@ -186,8 +186,8 @@ $("#experiment").change(function() {
     closable  : false,
     onApprove : function(){
       $("#action").val('delete');
-      $("<input>").attr({'type':'hidden','name': 'ae_launch_name', 'value': template}).appendTo("#launch_template_form");
-      $("#launch_template_form").submit();
+      $("<input>").attr({'type':'hidden','name': 'ae_launch_name', 'value': template}).appendTo("#login_setup_form");
+      $("#login_setup_form").submit();
     },
     }).modal('show');
   }

@@ -1251,9 +1251,9 @@ wf_uploader.prototype.upload_launch_template = function (l) {
         }
     }
     var thisx = this;
-    this.make_poms_call('launch_template_edit', args, function () {
+    this.make_poms_call('login_setup_edit', args, function () {
         args['action'] = 'edit';
-        thisx.make_poms_call('launch_template_edit', args);
+        thisx.make_poms_call('login_setup_edit', args);
     });
 }
 

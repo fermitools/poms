@@ -64,19 +64,25 @@ def run_sql(conn, cursor, sql, commit=False):
     except psycopg2.Error as e:
         logging.debug("run_sql: EXCEPTION, SQL: %s", sql)
         logging.debug("run_sql:   Code: %s    Error: %s", e.pgcode, e.pgerror)
-        raise SystemExit
+        raise e
 
 def prune_jobs(conn, cursor, task_id):
+    retValue = True
     sql = "select job_id from jobs where task_id=%s" % task_id
-    run_sql(conn, cursor, sql, commit=False)
-    job_ids = cursor.fetchall()
-    for (job_id, ) in job_ids:
-        del_files = "delete from job_files where job_id = %s" % job_id
-        run_sql(conn, cursor, del_files, commit=True)
-        del_histories = "delete from job_histories where job_id = %s" % job_id
-        run_sql(conn, cursor, del_histories, commit=True)
-    del_jobs = "delete from jobs where task_id = %s" % task_id
-    run_sql(conn, cursor, del_jobs, commit=True)
+    try:
+        run_sql(conn, cursor, sql, commit=False)
+        job_ids = cursor.fetchall()
+        for (job_id, ) in job_ids:
+            del_files = "delete from job_files where job_id = %s" % job_id
+            run_sql(conn, cursor, del_files, commit=True)
+            del_histories = "delete from job_histories where job_id = %s" % job_id
+            run_sql(conn, cursor, del_histories, commit=True)
+        del_jobs = "delete from jobs where task_id = %s" % task_id
+        run_sql(conn, cursor, del_jobs, commit=True)
+    except psycopg2.Error as e:
+        logging.debug("prune_jobs: skipping task_id = %s, moving on...", task_id)
+        retValue = False
+    return retValue
 
 def main():
 
@@ -102,7 +108,14 @@ def main():
         logging.debug("Pruning %s tasks.  From task_id %s to task_id %s", tasktot, task_ids[0][0], task_ids[tasktot-1][0])
 
     for (task_id, ) in task_ids:
-        prune_jobs(conn, cursor, task_id)
+        status = prune_jobs(conn, cursor, task_id)
+        if not status:
+            cursor.close()
+            conn.close()
+            conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s %s" % (args.dbname, args.host, args.port, args.user, password))
+            cursor = conn.cursor()
+            taskcnt -= 1
+            logging.debug("main: skipped task_id: %s, reopened conn and cursor", task_id)
         taskcnt += 1
         prtcnt += 1
         if prtcnt == 10:
