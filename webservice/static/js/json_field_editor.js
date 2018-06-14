@@ -94,6 +94,7 @@ json_field_editor.addrow= function(res, fid, i, k, v) {
 }
 json_field_editor.renumber= function(fid,c) {
     var i;
+    var res;
     var tb = document.getElementById(fid+'_tbody');
     for(i = 0; i < c; i++ ) {
         istr = i.toString()
@@ -102,10 +103,12 @@ json_field_editor.renumber= function(fid,c) {
         tr.children[1].children[0].id = fid+"_ws_"+istr
         tr.children[1].children[1].id = fid+"_wsr_"+istr
         tr.children[2].children[0].id = fid+"_v_"+istr
-        tr.children[3].children[0].addEventListener("click",function(){json.field_editor.plus(fid,i)})
-        tr.children[3].children[1].addEventListener("click",function(){json.field_editor.minus(fid,i)})
-        tr.children[3].children[2].addEventListener("click",function(){json.field_editor.up(fid,i)})
-        tr.children[3].children[3].addEventListener("click",function(){json.field_editor.down(fid,i)})
+        res = []
+        res.push('<i onclick="json_field_editor.plus(\''+ fid+'\','+istr+')" class="blue icon dlink plus square"></i>');
+        res.push('<i onclick="json_field_editor.minus(\''+ fid+'\','+istr+')" class="blue icon dlink minus square"></i>');
+        res.push('<i onclick="json_field_editor.up(\''+ fid+'\','+istr+')" class="blue icon dlink arrow square up"></i>');
+        res.push('<i onclick="json_field_editor.down(\''+ fid+'\','+istr+')" class="blue icon dlink arrow square down"></i>');
+        tr.children[3].innerHTML = res.join("\n")
     }
 }
 
@@ -132,7 +135,7 @@ json_field_editor.minus= function(fid,i) {
     tb.removeChild(tb.children[i]);
     var c = parseInt(document.getElementById(fid+'_count').value);
     document.getElementById(fid+'_count').value = (c - 1).toString();
-    json_field_editor.renumber(fid,c);
+    json_field_editor.renumber(fid,c-1);
 }
 
 json_field_editor.up = function(fid,i) {

@@ -509,7 +509,7 @@ class TaskPOMS:
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.provides_campaign_stage_id, s.creator, test_launch = s.submission_params.get('test',False))
             else:
                 i = i + 1
-                if cd.file_patterns.find(' '):
+                if cd.file_patterns.find(' ') > 0:
                     # it is a dimension fragment, not just a file pattern
                     dim_bits = cd.file_patterns
                 else:
