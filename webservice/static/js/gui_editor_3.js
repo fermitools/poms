@@ -93,6 +93,8 @@ function gui_editor(toptag) {
     this.depboxes = [];
     gui_editor.body.appendChild(this.div);
     gui_editor.instance_list.push(this);
+    //
+    this.jobtypes = [];
 }
 
 
@@ -358,6 +360,12 @@ gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment,
 }
 
 gui_editor.prototype.set_state = function (ini_dump) {
+    const r = new wf_uploader().make_poms_call('jobtype_list', null, (data) => {
+        for (const val of data) {
+            console.log('val=', val.name);
+            this.jobtypes.push(val.name);
+        }
+    });
     this.state = JSON.parse(this.ini2json(ini_dump));
     this.defaultify_state();
     this.draw_state()
@@ -703,7 +711,7 @@ gui_editor.prototype.redraw_deps = function () {
     }
 }
 
-gui_editor.prototype.make_select = function(sval) {
+gui_editor.prototype.make_select = function(sval, eid) {
     /*
         <select name="carlist" form="carform">
             <option value="volvo">Volvo</option>
@@ -712,13 +720,14 @@ gui_editor.prototype.make_select = function(sval) {
             <option value="audi">Audi</option>
         </select>
      */
-        const res = ["default", ...this.jobtypelist].reduce(
+        const lst = this.jobtypes;
+        let res = ["default", ...lst].reduce(
             function (acc, val) {
                 const sel = (val == sval) ? ' selected' : '';
                 return acc + `<option value="${val}"${sel}>${val}</option>\n`;
             },
         "");
-        return `<select name="jtlist">\n${res}</select>\n`;
+        return `<select id="${eid}" name="jtlist">\n${res}</select>\n`;
     }
 
 /*
@@ -793,7 +802,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         }
         res.push(`<label>${k}</label>`);
         if (k.includes("job_type")) {
-            res.push(this.gui.make_select(val));
+            res.push(this.gui.make_select(val, `${this.get_input_tag(k)}`));
         } else {
             res.push(`<input id="${this.get_input_tag(k)}" value="${this.escape_quotes(val)}" placeholder="${placeholder}">`);
         }
@@ -1355,7 +1364,8 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
             }
             console.log(resp);
         },
-        async: true,
+        //async: true,
+        async: false,
     });
     return res;
 }
