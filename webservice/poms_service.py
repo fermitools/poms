@@ -292,7 +292,7 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_deps_ini(self, tag=None, camp_id=None, login_setup=None, campaign_definition=None, login_setup=None, launch_template=None):
+    def campaign_deps_ini(self, tag=None, camp_id=None, login_setup=None, campaign_definition=None, launch_template=None):
         if login_setup == None and launch_template != None: login_setup = launch_template
         experiment = cherrypy.session.get('experimenter').session_experiment
         res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, cherrypy.config.get, experiment, tag, camp_id, login_setup, campaign_definition)

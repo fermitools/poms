@@ -29,7 +29,7 @@ from .poms_model import (CampaignStage,
                          Job,
                          JobHistory,
                          LoginSetup,
-                         LaunchTemplateSnapshot,
+                         LoginSetupSnapshot,
                          Service,
                          Submission)
 from .utc import utc
@@ -473,9 +473,9 @@ class TaskPOMS:
                  JobTypeSnapshot.job_type_id,
                  cs.job_type_id, 'job_type_snapshot_obj'
                 ],
-                [LoginSetup, LaunchTemplateSnapshot,
+                [LoginSetup, LoginSetupSnapshot,
                  LoginSetup.login_setup_id,
-                 LaunchTemplateSnapshot.login_setup_id,
+                 LoginSetupSnapshot.login_setup_id,
                  cs.login_setup_id, 'login_setup_snap_obj'
                 ]]:
 
