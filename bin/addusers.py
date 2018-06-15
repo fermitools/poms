@@ -3,6 +3,8 @@
 import argparse
 import time
 import logging
+import smtplib
+
 import psycopg2
 import requests
 try:
@@ -27,9 +29,32 @@ def parse_command_line():
     parser.add_argument('-p', '--password', help="Password for the database user account. For testing only, for production use .pgpass .")
     parser.add_argument('-v', '--verbose', action="store_true", help='Output log data to screen')
     parser.add_argument('-l', '--log_dir', help="Output directory for log file.")
+    parser.add_argument('-L', '--list_owner', help="Name of a owner of poms_announce for listserv conformation emails.")
     args = parser.parse_args()
     return args
 
+def add_to_listserv(list_owner, new_users):
+
+    if not new_users or list_owner is None:
+        return
+
+    listval = 'poms_announce'
+    smtp_server = 'smpt.fnal.gov'
+    fromAddr = '%s' % list_owner
+    toAddr = 'listserv@listserv.fnal.gov'
+
+    subject = "Add new_users to %s" %(listval)
+
+    msg = ''
+    for username, user in new_users.items():
+        email = "%s@fnal.gov" % username
+        msg += "add %s %s %s\r\n" %(listval, email, user['commonname'])
+    message = "From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s\r\n" % (fromAddr, toAddr, subject, msg)
+
+    server = smtplib.SMTP(smtp_server)
+    server.sendmail(fromAddr, [toAddr], message)
+    server.quit()
+    logging.debug(msg)
 
 def get_experiments(cursor, experiment):
     exp_list = []
@@ -209,6 +234,7 @@ def main():
         if args.commit is True:
             conn.commit()
             logging.debug("main: %s database changes COMMITED!!", exp)
+            add_to_listserv(args.list_owner, new_users)
         else:
             conn.rollback()
             logging.debug("main: %s database changes ROLLED BACK!!", exp)
