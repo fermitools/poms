@@ -501,8 +501,9 @@ gui_editor.prototype.ini2json = function (s) {
       } else {
           l = mwm_utils.trim_blanks(l)
           l = l.replace(/%%/g,'%');
-          k_v = l.split(/ *[=:] */);
+          k_v = l.match(/([^ =:]*) *[=:] *(.*)/);
           console.log(k_v)
+          k_v.shift();
           k = k_v.shift();
           v = k_v.join('=').replace(/"/g,'\\"');
           if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
@@ -518,6 +519,7 @@ gui_editor.prototype.ini2json = function (s) {
    this.un_trailing_comma(res);
    res.push('}');
    res.push('}');
+   console.log({"result": res.join("\n")})
    return res.join('\n');
 }
 
