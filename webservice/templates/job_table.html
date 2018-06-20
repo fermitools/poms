@@ -319,7 +319,7 @@ $( "#search_button" ).click(function() {
               <td>
                 <span>{{jobloop.index+offset}}<a href="{{pomspath}}/triage_job?job_id={{job[col]}}&tmin={{tmin}}"><i class="level down icon"></i></a></span>
                     {% if job['status'] != "Completed" and job['status'] != "Located" and job['status'] != "Removed" %}
-                    <a href="kill_jobs?job_id={{job['job_id']}}&act=kil"><i class="ui trash icon"></i></a>
+                    <a href="kill_jobs?job_id={{job['job_id']}}&act=kill"><i class="ui trash icon"></i></a>
                     <a href="kill_jobs?job_id={{job['job_id']}}&act=hold"><i class="ui pause icon"></i></a>
                     <a href="kill_jobs?job_id={{job['job_id']}}&act=release"><i class="ui play icon"></i></a>
                     {% endif %}

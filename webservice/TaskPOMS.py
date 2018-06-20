@@ -328,15 +328,27 @@ class TaskPOMS:
         sh.created = datetime.now(utc)
         dbhandle.add(sh)
 
-    def update_submission(self, dbhandle, submission_id, status = None, project = None):
-        if project s.project != project:
-            s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
-            if s.project != project:
-                s.project = project
-                dbhandle.add(s)
+    def update_submission(self, dbhandle, submission_id, jobsub_job_id, pct_complete = None, status = None, project = None):
+        s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
+        if not s:
+            return "Fail."
+        if s.jobsub_job_id != jobsub_job_id:
+            s.jobsub_job_id = jobsub_job_id
+            dbhandle.add(s)
+
+        if s.project != project:
+            s.project = project
+            dbhandle.add(s)
+
+        # amend status for completion percent
+        if status == 'Running' and pct_complete and pct_complete >= s.campagin_stage_snapshot_obj.completion_pct and s.campagin_stage_snapshot_obj.completion_type == 'completed':
+            status = 'Completed'
+
         if status != None:
             self.update_submission_status(dbhandle, submission_id_status)
+
         dbhandle.commit()
+        return "Ok." 
 
     def snapshot_parts(self, dbhandle, s, campaign_stage_id): ###This function was removed from the main script
         cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
