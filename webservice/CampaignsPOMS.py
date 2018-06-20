@@ -994,7 +994,6 @@ class CampaignsPOMS:
         # cil = [cs.campaign_stage_id for cs in cl]
         # dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cil, tmin, tmax)
         # effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cil,tmin, tmax)
-        # counts[campaign_stage_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_stage_id = campaign_stage_id)
         # counts[campaign_stage_id]['efficiency'] = effs[0]
         # if pendings:
         #    counts[campaign_stage_id]['pending'] = pendings[0]
@@ -1043,7 +1042,6 @@ class CampaignsPOMS:
                 self.__dict__.update(kwargs)
 
         sl = deque()
-        # sl.append(self.filesPOMS.format_self.triagePOMS.job_counts(dbhandle,))
 
         if campaign_stage_id is not None:
             icampaign_id = int(campaign_stage_id)
@@ -1109,7 +1107,7 @@ class CampaignsPOMS:
         logit.log("campaign_time_bars: items: " + repr(items))
 
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id',
-                                    url_template=self.poms_service.path + '/show_task_jobs?submission_id=%(submission_id)s&tmin=%(tmin)19.19s&tdays=1',
+                                    url_template="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_host)s&from=now-2days&to=now&refresh=5m&orgId=1",
                                     extramap=extramap)
 
         return job_counts, blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap

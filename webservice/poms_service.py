@@ -56,7 +56,6 @@ class PomsService(object):
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
         global_version = self.version
-        self.calendarPOMS = CalendarPOMS.CalendarPOMS()
         self.dbadminPOMS = DBadminPOMS.DBadminPOMS()
         self.campaignsPOMS = CampaignsPOMS.CampaignsPOMS(self)
         self.jobsPOMS = JobsPOMS.JobsPOMS(self)
@@ -64,7 +63,6 @@ class PomsService(object):
         self.utilsPOMS = UtilsPOMS.UtilsPOMS(self)
         self.tagsPOMS = TagsPOMS.TagsPOMS(self)
         self.filesPOMS = FilesPOMS.Files_status(self)
-        self.triagePOMS = TriagePOMS.TriagePOMS(self)
         self.tablesPOMS = None
 
     def post_initialize(self):
@@ -87,7 +85,7 @@ class PomsService(object):
     @logit.logstartstop
     def index(self):
         template = self.jinja_env.get_template('index.html')
-        return template.render(services=self.service_status_hier('All'),
+        return template.render(services='',
                                launches=self.taskPOMS.get_job_launches(cherrypy.request.db),
                                do_refresh=1200, help_page="DashboardHelp")
 
@@ -127,108 +125,6 @@ class PomsService(object):
     def update_session_role(self, *args, **kwargs):
         return self.utilsPOMS.update_session_role(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
 
-    ##############################
-    ### CALENDAR
-    # Using CalendarPOMS.py module
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def calendar_json(self, start, end, timezone, _):
-        return list(self.calendarPOMS.calendar_json(cherrypy.request.db, start, end, timezone, _))
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def calendar(self):
-        template = self.jinja_env.get_template('calendar.html')
-        rows = self.calendarPOMS.calendar(dbhandle=cherrypy.request.db)
-        return template.render(rows=rows, help_page="CalendarHelp")
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def add_event(self, title, start, end):
-        # title should be something like minos_sam:27 DCache:12 All:11 ...
-        return self.calendarPOMS.add_event(cherrypy.request.db, title, start, end)
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def edit_event(self, title, start, new_start, end, s_id):
-        # even though we pass in the s_id we should not rely on it because they can and will change the service name
-        return self.calendarPOMS.edit_event(cherrypy.request.db, title, start, new_start, end, s_id)
-
-#    @cherrypy.expose
-#    @logit.logstartstop
-#    def service_downtimes(self):
-#        template = self.jinja_env.get_template('service_downtimes.html')
-#        rows = self.calendarPOMS.service_downtimes(cherrypy.request.db)
-#        return template.render(rows=rows, help_page="ServiceDowntimesHelp")
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def update_service(self, name, parent, status, host_site, total, failed, description):
-        return self.calendarPOMS.update_service(cherrypy.request.db, name, parent, status, host_site, total, failed,
-                                                description)
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def service_status(self, under='All'):
-        template = self.jinja_env.get_template('service_status.html')
-        list_ = self.calendarPOMS.service_status(cherrypy.request.db, under)
-        return template.render(list=list_, name=under, help_page="ServiceStatusHelp")
-
-    ######
-    # print "Check where should be this function."
-    '''
-    Apparently this function is not related with Calendar
-    '''
-
-    def service_status_hier(self, under='All', depth=0):
-        p = cherrypy.request.db.query(Service).filter(Service.name == under).first()
-        if depth == 0:
-            res = '<div class="ui accordion styled">\n'
-        else:
-            res = ''
-        active = ""
-
-        for s in cherrypy.request.db.query(Service).filter(Service.parent_service_id == p.service_id).order_by(
-                Service.name).all():
-            posneg = {"good": "positive", "degraded": "orange", "bad": "negative"}.get(s.status, "")
-            icon = {"good": "checkmark", "bad": "remove", "degraded": "warning sign"}.get(s.status, "help circle")
-            if s.host_site:
-                res = res + """
-                     <div class="title %s">
-                      <i class="dropdown icon"></i>
-                      <button class="ui button %s tbox_delayed" data-content="%s" data-variation="basic">
-                         %s (%d/%d)
-                         <i class="icon %s"></i>
-                       </button>
-                     </div>
-                     <div  class="content %s">
-                         <a target="_blank" href="%s">
-                         <i class="icon external"></i>
-                         source webpage
-                         </a>
-                     </div>
-                """ % (active, posneg, s.description, s.name, s.failed_items, s.items, icon, active, s.host_site)
-            else:
-                res = res + """
-                    <div class="title %s">
-                      <i class="dropdown icon"></i>
-                      <button class="ui button %s tbox_delayed" data-content="%s" data-variation="basic">
-                       %s (%d/%d)
-                      <i class="icon %s"></i>
-                      </button>
-                    </div>
-                    <div class="content %s">
-                      <p>components:</p>
-                      %s
-                    </div>
-                """ % (active, posneg, s.description, s.name, s.failed_items, s.items, icon, active,
-                       self.service_status_hier(s.name, depth + 1))
-            active = ""
-
-        if depth == 0:
-            res = res + "</div>"
-        return res
 
     #####
     ### DBadminPOMS
@@ -702,54 +598,10 @@ class PomsService(object):
         return res
 
     @cherrypy.expose
-    @logit.logstartstop
-    def bulk_update_job(self, data='{}'):
-        if not cherrypy.session.get('experimenter').is_root():
-            cherrypy.log("update_job: not allowed")
-            return "Not Allowed"
-        return self.jobsPOMS.bulk_update_job(cherrypy.request.db,
-                                             cherrypy.response.status, cherrypy.request.samweb_lite, data)
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def update_job(self, jobsub_job_id, submission_id=None, task_id=None, **kwargs):
-        if task_id != None and submission_id == None:
-            submission_id = task_id
-        cherrypy.log("update_job( submission_id %s, jobsub_job_id %s,  kwargs %s )" % (submission_id, jobsub_job_id, repr(kwargs)))
-        if not cherrypy.session.get('experimenter').is_root():
-            cherrypy.log("update_job: not allowed")
-            return "Not Allowed"
-        return self.jobsPOMS.update_job(cherrypy.request.db, cherrypy.response.status,
-                                        cherrypy.request.samweb_lite, submission_id, jobsub_job_id, **kwargs)
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def test_job_counts(self, submission_id=None, task_id=None, campaign_stage_id=None):
-        if task_id != None and submission_id == None:
-            submission_id = task_id
-        res = self.triagePOMS.job_counts(cherrypy.request.db, submission_id, campaign_stage_id)
-        return repr(res) + self.filesPOMS.format_job_counts(submission_id, campaign_stage_id)
-
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def json_job_counts(self, submission_id=None, task_id=None, campaign_stage_id=None, tmin=None, tmax=None, uuid=None):
-        if task_id != None and submission_id == None:
-            submission_id = task_id
-        return self.triagePOMS.job_counts(cherrypy.request.db, submission_id, campaign_stage_id, tmin=tmin, tmax=tmax, tdays=None)
-
-    @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def json_pending_for_campaigns(self, cl, tmin, tmax, uuid=None):
         res = self.filesPOMS.get_pending_dict_for_campaigns(cherrypy.request.db, cherrypy.request.samweb_lite, cl, tmin, tmax)
-        return res
-
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def json_efficiency_for_campaigns(self, cl, tmin, tmax, uuid=None):
-        res = self.jobsPOMS.get_efficiency_map(cherrypy.request.db, cl, tmin, tmax)
         return res
 
     @cherrypy.expose
@@ -773,40 +625,6 @@ class PomsService(object):
                                    cs=cs, campaign_stage_id=campaign_stage_id, submission_id=submission_id,
                                    job_id=job_id, act=act,
                                    help_page="KilledJobsHelp")
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def jobs_time_histo(self, campaign_stage_id, timetype, tmax=None, tmin=None, tdays=1, binsize=None, submit=None):
-        (cs, maxv, maxbucket, total, vals, binsize,
-         tmaxs, campaign_stage_id,
-         tdays, tmin, tmax,
-         nextlink, prevlink, tdays) = self.jobsPOMS.jobs_time_histo(cherrypy.request.db, campaign_stage_id, timetype, binsize,
-                                                                    tmax, tmin, tdays)
-        template = self.jinja_env.get_template('jobs_time_histo.html')
-        return template.render(cs=cs, maxv=maxv, total=total,
-                               timetype=timetype, binsize=binsize, maxbucket=maxbucket,
-                               maxtime=max(list(vals.keys())),
-                               vals=vals, tmaxs=tmaxs,
-                               campaign_stage_id=campaign_stage_id,
-                               tdays=tdays, tmin=tmin, tmax=tmax,
-                               do_refresh=1200, next=nextlink, prev=prevlink,
-                               help_page="JobTimeHistoHelp",anchor="#"+timetype)
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def jobs_eff_histo(self, campaign_stage_id, tmax=None, tmin=None, tdays=1):
-        (cs, maxv, total, vals,
-         tmaxs, campaign_stage_id,
-         tdays, tmin, tmax,
-         nextlink, prevlink, tdays) = self.jobsPOMS.jobs_eff_histo(cherrypy.request.db, campaign_stage_id, tmax, tmin, tdays)
-        template = self.jinja_env.get_template('jobs_eff_histo.html')
-        return template.render(cs=cs, maxv=maxv, total=total,
-                               maxeff=max(list(vals.keys()) + [10]),
-                               vals=vals, tmaxs=tmaxs,
-                               campaign_stage_id=campaign_stage_id,
-                               tdays=tdays, tmin=tmin, tmax=tmax,
-                               do_refresh=1200, next=nextlink, prev=prevlink,
-                               help_page="JobEfficiencyHistoHelp")
 
     @cherrypy.expose
     @logit.logstartstop
@@ -872,22 +690,6 @@ class PomsService(object):
                                                     cherrypy.session,
                                                     cherrypy.response.status))
 
-    @cherrypy.expose
-    @logit.logstartstop
-    def show_task_jobs(self, submission_id = None, task_id = None, tmax=None, tmin=None, tdays=1):
-        if task_id != None and submission_id == None:
-            submission_id = task_id
-        (blob, job_counts,
-         submission_id, tmin, tmax,
-         extramap, key, task_jobsub_id,
-         campaign_stage_id, cname) = self.taskPOMS.show_task_jobs(cherrypy.request.db, submission_id, tmax, tmin, tdays)
-        template = self.jinja_env.get_template('show_task_jobs.html')
-        return template.render(blob=blob, job_counts=job_counts,
-                               taskid=submission_id, tmin=tmin, tmax=tmax,
-                               extramap=extramap, do_refresh=1200, key=key,
-                               help_page="ShowTaskJobsHelp",
-                               task_jobsub_id=task_jobsub_id,
-                               campaign_stage_id=campaign_stage_id, cname=cname)
 
     @cherrypy.expose
     @logit.logstartstop
@@ -931,19 +733,6 @@ class PomsService(object):
     @logit.logstartstop
     def job_file_list(self, job_id, force_reload=False):
         return self.filesPOMS.job_file_list(cherrypy.request.db, cherrypy.request.jobsub_fetcher, job_id, force_reload)
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def job_file_contents(self, job_id, submission_id = None, task_id = None, file = None, tmin=None, tmax=None, tdays=None):
-        if task_id != None and submission_id == None:
-            submission_id = task_id
-        job_file_contents, tmin = self.filesPOMS.job_file_contents(cherrypy.request.db,
-                                                                   cherrypy.request.jobsub_fetcher,
-                                                                   job_id, submission_id, file, tmin, tmax, tdays)
-        template = self.jinja_env.get_template('job_file_contents.html')
-        return template.render(file=file, job_file_contents=job_file_contents,
-                               submission_id=submission_id, job_id=job_id, tmin=tmin,
-                               help_page="JobFileContentsHelp")
 
     @cherrypy.expose
     @logit.logstartstop
@@ -1019,91 +808,6 @@ class PomsService(object):
 
     def project_summary_for_tasks(self, task_list):
         return cherrypy.request.samweb_lite.fetch_info_list(task_list, dbhandle=cherrypy.request.db)
-        # ~ return [ {"tot_consumed": 0, "tot_failed": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
-
-    ###Im here
-    # ----------------------------
-    ##########
-    ### TriagePOMS
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def triage_job(self, job_id, tmin=None, tmax=None, tdays=None, force_reload=False):
-        (job_file_list, job_info, job_history,
-         downtimes, output_file_names_list,
-         es_response, efficiency,
-         tmin, task_jobsub_job_id) = self.triagePOMS.triage_job(cherrypy.request.db,
-                                                                cherrypy.request.jobsub_fetcher,
-                                                                cherrypy.config,
-                                                                job_id, tmin, tmax, tdays, force_reload)
-        template = self.jinja_env.get_template('triage_job.html')
-        return template.render(job_id=job_id,
-                               job_file_list=job_file_list,
-                               job_info=job_info,
-                               job_history=job_history,
-                               downtimes=downtimes,
-                               output_file_names_list=output_file_names_list,
-                               es_response=es_response,
-                               efficiency=efficiency,
-                               tmin=tmin,
-                               help_page="TriageJobHelp",
-                               task_jobsub_job_id=task_jobsub_job_id)
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def job_table(self, offset=0, **kwargs):
-        ###The pass of the arguments is ugly we will fix that later.
-        (jlist, jobcolumns, taskcolumns,
-         campcolumns, tmins, tmaxs,
-         prevlink, nextlink, tdays,
-         extra, hidecolumns, filtered_fields,
-         time_range_string) = self.triagePOMS.job_table(cherrypy.request.db, cherrypy.session, **kwargs)
-
-        template = self.jinja_env.get_template('job_table.html')
-
-        return template.render(joblist=jlist,
-                               jobcolumns=jobcolumns,
-                               taskcolumns=taskcolumns,
-                               campcolumns=campcolumns,
-                               tmin=tmins,
-                               tmax=tmaxs,
-                               prev=prevlink,
-                               next=nextlink,
-                               tdays=tdays,
-                               extra=extra,
-                               hidecolumns=hidecolumns,
-                               filtered_fields=filtered_fields,
-                               time_range_string=time_range_string,
-                               offset=int(offset),
-                               do_refresh=0,
-                               help_page="JobTableHelp")
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def jobs_by_exitcode(self, tmin=None, tmax=None, tdays=1):
-        raise cherrypy.HTTPRedirect("%s/failed_jobs_by_whatever?f=user_exe_exit_code&tdays=%s" % (self.path, tdays))
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def failed_jobs_by_whatever(self, tmin=None, tmax=None, tdays=1, f=[], go=None):
-        (jl, possible_columns, columns,
-         tmins, tmaxs, tdays,
-         prevlink, nextlink,
-         time_range_string, tdays) = self.triagePOMS.failed_jobs_by_whatever(cherrypy.request.db, cherrypy.session,
-                                                                             tmin, tmax, tdays, f, go)
-        template = self.jinja_env.get_template('failed_jobs_by_whatever.html')
-        return template.render(joblist=jl,
-                               possible_columns=possible_columns,
-                               columns=columns,
-                               do_refresh=0,
-                               tmin=tmins,
-                               tmax=tmaxs,
-                               tdays=tdays,
-                               prev=prevlink,
-                               next=nextlink,
-                               time_range_string=time_range_string,
-                               help_page="JobsByExitcodeHelp")
-
     ##############
     ### TagsPOMS
 

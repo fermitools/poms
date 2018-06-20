@@ -167,7 +167,7 @@ class Files_status(object):
             if task_jobsub_job_id is None:
                 task_jobsub_job_id = "s%s" % s.submission_id
             datarows.append([
-                            [task_jobsub_job_id.replace('@', '@<br>'), "show_task_jobs?submission_id=%d" % s.submission_id],
+                            [task_jobsub_job_id.replace('@', '@<br>'), "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%s&var-schedd=%s&from=now-2d&to=now&refresh=5m&orgId=1" % (task_jobsub_job_id[0:task_jobsub_job_id.find('@')],task_jobsub_job_id[task_jobsub_job_id.find('@')+1:]),
                             [s.project, "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s" % (cs.experiment, cs.experiment, s.project)],
                             [s.created.strftime("%Y-%m-%d %H:%M"), None],
                             [psummary.get('files_in_snapshot', 0), listfiles % base_dim_list[i]],
@@ -218,35 +218,6 @@ class Files_status(object):
         #DELETE template = self.jinja_env.get_template('job_file_contents.html')
         #DELETE return template.render(file=file, job_file_contents=job_file_contents, submission_id=submission_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version)
 
-
-    def format_job_counts(self, dbhandle, submission_id=None, campaign_stage_id=None, tmin=None, tmax=None, tdays=7, range_string=None, title_bits = ''): 
-        counts = self.poms_service.triagePOMS.job_counts(dbhandle, submission_id=submission_id, campaign_stage_id=campaign_stage_id,
-                                                         tmin=tmin, tmax=tmax, tdays=tdays)
-        ck = list(counts.keys())
-        res = ['<div><b>%s Job States</b><br>' % title_bits,
-               '<table class="ui celled table unstackable">',
-               '<tr><th>Total</th><th colspan=3>Active</th><th colspan=4>Completed In %s</th></tr>' % range_string,
-               '<tr>']
-        for k in ck:
-            if k == "Completed Total":
-                k = "Total"
-            if k == "Completed":
-                k = "Not Located"
-            res.append("<th>%s</th>" % k)
-        res.append("</tr>")
-        res.append("<tr>")
-        var = 'ignore_me'
-        val = ''
-        if campaign_stage_id is not None:
-            var = 'campaign_stage_id'
-            val = campaign_stage_id
-        if submission_id is not None:
-            var = 'submission_id'
-            val = submission_id
-        for k in ck:
-            res.append('<td><a href="job_table?job_status=%s&%s=%s">%d</a></td>' % (k, var, val, counts[k]))
-        res.append("</tr></table></div><br>")
-        return "".join(res)
 
 
     @staticmethod
