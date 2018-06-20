@@ -38,11 +38,11 @@ class Agent:
         logit.info("check_submissions:")
         r = self.ssess.get(self.submission_uri)
         d = r.json()
-        for e in d['running']:
-            if e['status'] == known_status.get(e['POMS_TASK_ID'],None):
+        for e in d['data']['submissions']:
+            if e['done'] == known_status.get(e['POMS_TASK_ID'],None):
                 report_status = None
             else:
-                report_status = e['status']
+                report_status = e['done'] ? 'Completed':'Running'
 
             if e.get('jobs',None):
                 ntot = int(e['jobs']['Running']) + int(e['jobs']['Completed']) + int(e['jobs']['Idle']) + int(e['jobs']['Held']) + int(e['jobs']['Removed']) 
@@ -63,11 +63,17 @@ class Agent:
             else:
                 report_project = self.get_project(e)
 
+            #
+            # actually report it if there's anything changed...
+            #
             if report_status or report_project or report_pct_completed:
-                self.update_submission(e['POMS_TASK_ID'], jobsub_job_id = e['jobsub_job_id'],pct_completed = report_pct_completed, project = report_project, status = report_status)
+                self.update_submission(e['POMS_TASK_ID'], jobsub_job_id = e['id'], pct_completed = report_pct_completed, project = report_project, status = report_status)
 
+            #
+            # now update our known status if available
+            #
             if e['POMS_TASK_ID'] not in known_status or report_status:
-                known_status[e['POMS_TASK_ID']] = e['status']
+                known_status[e['POMS_TASK_ID']] = report_status
 
             if e['POMS_TASK_ID'] not in known_project or report_project:
                 known_project[e['POMS_TASK_ID']] = report_project
@@ -75,8 +81,6 @@ class Agent:
             if e['POMS_TASK_ID'] not in known_pct or report_pct:
                 known_pct[e['POMS_TASK_ID']] = report_pct
 
-        for e in d['completed']:
-            self.update_submission(e['POMS_TASK_ID'
     def poll(self):
         while( 1 ):
            try:
