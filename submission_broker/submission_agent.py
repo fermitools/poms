@@ -36,7 +36,20 @@ class Agent:
 
     def check_submissions(self):
         logit.info("check_submissions:")
-        r = self.ssess.get(self.submission_uri)
+        r = self.ssess.post(self.submission_uri, data="""
+{
+  submissions(query: "POMS_TASK_ID: gt 1") {
+    id
+    POMS_TASK_ID
+    jobs {
+      counts
+    }
+    Args
+    Env
+    done
+  }
+}
+""")
         d = r.json()
         for e in d['data']['submissions']:
             if e['done'] == known_status.get(e['POMS_TASK_ID'],None):
@@ -73,7 +86,7 @@ class Agent:
             # now update our known status if available
             #
             if e['POMS_TASK_ID'] not in known_status or report_status:
-                known_status[e['POMS_TASK_ID']] = report_status
+                known_status[e['POMS_TASK_ID']] = e['done']
 
             if e['POMS_TASK_ID'] not in known_project or report_project:
                 known_project[e['POMS_TASK_ID']] = report_project
