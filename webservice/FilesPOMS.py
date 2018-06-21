@@ -16,7 +16,7 @@ from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy import distinct, func
 
 from . import logit
-from .poms_model import Job, Submission, CampaignStage, JobFile
+from .poms_model import  Submission, CampaignStage
 from .utc import utc
 from .pomscache import pomscache
 
@@ -31,7 +31,7 @@ class Files_status(object):
     def list_task_logged_files(self, dbhandle, submission_id):
         s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
         jobsub_job_id = s.jobsub_job_id
-        fl = dbhandle.query(JobFile).join(Job).filter(Job.submission_id == submission_id, JobFile.job_id == Job.job_id).all()
+        fl = []
         return fl, s, jobsub_job_id
         #DELETE: template = self.poms_service.jinja_env.get_template('list_task_logged_files.html')
         #return template.render(fl = fl, campaign = s.campaign_stage_snapshot_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)

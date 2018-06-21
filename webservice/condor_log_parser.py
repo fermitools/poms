@@ -5,7 +5,7 @@ from .logit import log
 
 from . import jobsub_fetcher
 from datetime import datetime, timedelta
-from .poms_model import Job
+from .poms_model import Submission
 import time
 
 def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
@@ -18,7 +18,7 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
     jf = jobsub_fetcher.jobsub_fetcher(cert, key)
     log("DEBUG", "checking index" )
     files = jf.index( jobsub_job_id, experiment, role, True)
-    task = dbhandle.query(Job.submission_id).filter(Job.jobsub_job_id == jobsub_job_id).first()
+    task = dbhandle.query(Submission.submission_id).filter(Submission.jobsub_job_id == jobsub_job_id).first()
     if task == None:
         submission_id = 14
     else:
@@ -111,40 +111,7 @@ def parse_condor_log(dbhandle, lines, batchhost, submission_id):
             continue
         if line[:3] == "..." and in_termination:
             log("DEBUG", "term record end %s" % line )
-            job = dbhandle.query(Job).with_for_update(read = True).filter(Job.jobsub_job_id == jobsub_job_id).first()
-            if job:
-                job.cpu_time = remote_cpu
-                job.wall_time = (finish_time - stimes[jobsub_job_id]).total_seconds()
-                if job.user_exe_exit_code in (None, 'None'): 
-                     job.user_exe_exit_code = job_exit
-                if job.node_name in (None, 'None','unknown'): 
-                     job.node_name = execute_hosts[jobsub_job_id]
-                if job.host_site in (None, 'None','unknown'): 
-                     job.host_site = job_sites[jobsub_job_id]
-
-                log("DEBUG", "start: %s end: %s wall_time %s "%( stimes[jobsub_job_id],  finish_time,  job.wall_time ))
-            else:
-                # missing job, add it...
-                job = Job()
-                job.submission_id = submission_id
-                job.jobsub_job_id = jobsub_job_id
-                job.node_name = execute_hosts[jobsub_job_id]
-                job.cpu_type = 'unknown'
-                job.host_site = job_sites[jobsub_job_id]
-                job.status = 'Running'
-                job.updated = stimes[jobsub_job_id]
-                job.created = stimes[jobsub_job_id]
-                job.output_files_declared = True
-                job.user_exe_exit_code = job_exit
-                dbhandle.add(job)
-                dbhandle.commit()
-
-                # workaround for job history constraint
-                time.sleep(0.1)
-                job.status = 'Completed'
-                job.updated = finish_time
-                dbhandle.add(job)
-                dbhandle.flush()
+            submission =  dbhandle.query(Submission).with_for_update(read = True).filter(Submission.jobsub_job_id == jobsub_job_id).first()
 
             in_termination = 0
             continue

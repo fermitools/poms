@@ -183,7 +183,6 @@ class Submission(Base):
     campaign_stage_snapshot_obj = relationship('CampaignStageSnapshot', foreign_keys=campaign_stage_snapshot_id)
     jobsub_job_id = Column(Text, nullable=False)
     job_type_snapshot_obj = relationship('JobTypeSnapshot', foreign_keys=job_type_snapshot_id)
-    jobs = relationship('Job', order_by="Job.job_id")
 
 
 class SubmissionHistory(Base):

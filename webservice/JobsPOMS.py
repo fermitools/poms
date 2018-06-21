@@ -8,7 +8,7 @@ version of functions in poms_service.py written by Marc Mengel, Michael Gueith a
 
 from collections import deque
 import re
-from .poms_model import Job, Submission, CampaignStage, JobTypeSnapshot, JobFile, JobHistory
+from .poms_model import Submission, CampaignStage, JobTypeSnapshot
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func, not_, and_, or_, desc
@@ -27,69 +27,6 @@ class JobsPOMS(object):
     def __init__(self, poms_service):
         self.poms_service = poms_service
         self.junkre = re.compile('.*fcl|log.*|.*\.log$|ana_hist\.root$|.*\.sh$|.*\.tar$|.*\.json$|[-_0-9]*$')
-
-    def active_jobs(self, dbhandle):
-        res = deque()
-        for jobsub_job_id, submission_id in (dbhandle.query(Job.jobsub_job_id, Job.submission_id)
-                                       .filter(Job.status != "Completed", Job.status != "Located", Job.status != "Removed", Job.status != "Failed")
-                                       .execution_options(stream_results=True).all()):
-            if jobsub_job_id == "unknown":
-                continue
-            res.append((jobsub_job_id, submission_id))
-        logit.log("active_jobs: returning %s" % res)
-        return res
-
-
-    def output_pending_jobs(self, dbhandle):
-        res = {}
-        windowsize = 1000
-        count = 0
-        preve = None
-        prevj = None
-        # it would be really cool if we could push the pattern match all the
-        # way down into the query:
-        #  JobFile.file_name like JobTypeSnapshot.output_file_patterns
-        # but with a comma separated list of them, I don's think it works
-        # directly -- we would have to convert comma to pipe...
-        # for now, I'm just going to make it a regexp and filter them here.
-        for e, jobsub_job_id, fname in (dbhandle.query(
-                                 CampaignStage.experiment,
-                                 Job.jobsub_job_id,
-                                 JobFile.file_name)
-                  .join(Submission)
-                  .filter(
-                          Submission.status == "Completed",
-                          Submission.campaign_stage_id == CampaignStage.campaign_stage_id,
-                          Job.submission_id == Submission.submission_id,
-                          Job.job_id == JobFile.job_id,
-                          JobFile.file_type == 'output',
-                          JobFile.declared == None,
-                          Job.status == "Completed",
-                        )
-                  .order_by(CampaignStage.experiment, Job.jobsub_job_id)
-                  .offset(JobsPOMS.pending_files_offset)
-                  .limit(windowsize)
-                  .all()):
-
-            if preve != e:
-                preve = e
-                res[e] = {}
-            if prevj != jobsub_job_id:
-                prevj = jobsub_job_id
-                res[e][jobsub_job_id] = []
-            if not self.junkre.match(fname):
-                logit.log("adding %s to exp %s jjid %s" % (fname, e, jobsub_job_id))
-                res[e][jobsub_job_id].append(fname)
-            count = count + 1
-
-        if count != 0:
-            JobsPOMS.pending_files_offset = JobsPOMS.pending_files_offset  + windowsize
-        else:
-            JobsPOMS.pending_files_offset = 0
-
-        logit.log("pending files offset now: %d" % JobsPOMS.pending_files_offset)
-
-        return res
 
 
     def update_SAM_project(self, samhandle, j, projname):
@@ -130,10 +67,6 @@ class JobsPOMS(object):
                 # the '.0'.
                 if tjid:
                     jjil.append(tjid.replace('.0', ''))
-        else:
-            jql = dbhandle.query(Job).filter(Job.job_id == job_id,
-                                             Job.status != 'Completed', Job.status != 'Removed',
-                                             Job.status != 'Located', Job.status != 'Failed').execution_options(stream_results=True).all()
 
             if len(jql) == 0:
                 jjil = ["(None Found)"]
