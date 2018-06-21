@@ -29,7 +29,7 @@ class Agent:
         self.full_query = """{"query":"{ submissions(query: \\"POMS_TASK_ID: gt 1\\") { id jobs { id } done } }","operationName":null}"""
 
     def update_submission(self, submission_id, jobsub_job_id, project = None, status = None):
-        r = self.psess.post(self.poms_uri, {'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status})
+        r = self.psess.post(self.poms_uri, {'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}, verify=False)
         if (r.text != "Ok."):
             logit.error("update_submission: Failed.");
 
