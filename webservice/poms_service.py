@@ -697,6 +697,12 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
+    def update_submission(self, submission_id, jobsub_job_id, pct_completed = None, status = None, project = None):
+        res = self.taskPOMS.update_submission(cherrypy.request.db, jobsub_job_id, submission_id, status = None, project = None)
+        return res
+
+    @cherrypy.expose
+    @logit.logstartstop
     def bulk_update_job(self, data='{}'):
         if not cherrypy.session.get('experimenter').is_root():
             cherrypy.log("update_job: not allowed")
