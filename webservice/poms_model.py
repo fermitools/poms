@@ -16,7 +16,7 @@ class CampaignStage(Base):
     experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
     name = Column(Text, nullable=False)
     job_type_id = Column(ForeignKey('job_types.job_type_id'), nullable=False, index=True,
-                                    server_default=text("nextval('campaigns_campaign_definition_id_seq'::regclass)"))
+                         server_default=text("nextval('campaigns_campaign_definition_id_seq'::regclass)"))
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey('experimenters.experimenter_id'), index=True)
@@ -79,28 +79,6 @@ class Experiment(Base):
     logbook = Column(Text, nullable=True)
     snow_url = Column(Text, nullable=True)
     restricted = Column(Boolean, nullable=False, server_default=text("false"))
-
-
-class Job(Base):
-    __tablename__ = 'jobs'
-
-    job_id = Column(BigInteger, primary_key=True, server_default=text("nextval('jobs_job_id_seq'::regclass)"))
-    submission_id = Column(ForeignKey('submissions.submission_id'), nullable=False, index=True)
-    jobsub_job_id = Column(Text, nullable=False)
-    node_name = Column(Text, nullable=False)
-    cpu_type = Column(Text, nullable=False)
-    host_site = Column(Text, nullable=False)
-    status = Column(Text, nullable=False)
-    updated = Column(DateTime(True), nullable=False)
-    output_files_declared = Column(Boolean, nullable=False)
-    user_exe_exit_code = Column(Integer)
-    input_file_names = Column(Text)
-    reason_held = Column(Text)
-    consumer_id = Column(Text)
-    cpu_time = Column(Float)
-    wall_time = Column(Float)
-
-    submission_obj = relationship('Submission')
 
 
 class ServiceDowntime(Base):
@@ -217,17 +195,6 @@ class SubmissionHistory(Base):
     submission_obj = relationship('Submission', backref='history')
 
 
-class JobHistory(Base):
-    __tablename__ = 'job_histories'
-
-
-    job_id = Column(ForeignKey('jobs.job_id'), primary_key=True, nullable=False)
-    created = Column(DateTime(True), primary_key=True, nullable=False)
-    status = Column(Text, nullable=False)
-
-    job_obj = relationship('Job', backref=backref('history', cascade="all,delete-orphan"))
-
-
 class Campaign(Base):
     __tablename__ = 'campaigns'
 
@@ -246,18 +213,6 @@ class CampaignCampaignStages(Base):
 
     campaign_stage_obj = relationship(CampaignStage, backref="campaign_campaign_stages")
     tag_obj = relationship(Campaign, backref="campaign_campaign_stages")
-
-
-class JobFile(Base):
-    __tablename__ = 'job_files'
-
-    job_id = Column(Integer, ForeignKey('jobs.job_id'), primary_key=True)
-    file_name = Column(Text, primary_key=True, nullable=False)
-    file_type = Column(Text, nullable=False)
-    created = Column(DateTime(True), nullable=False)
-    declared = Column(DateTime(True))
-
-    job_obj = relationship(Job, backref=backref('job_files', cascade="all,delete-orphan"))
 
 
 class CampaignStageSnapshot(Base):
