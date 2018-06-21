@@ -195,6 +195,7 @@ class Submission(Base):
     job_type_snapshot_id = Column(ForeignKey('job_type_snapshots.job_type_snapshot_id'), nullable=True, index=True)
     recovery_position = Column(Integer)
     recovery_tasks_parent = Column(ForeignKey('submissions.submission_id'), index=True)
+    jobsub_job_id = Column(Text)
 
     campaign_stage_obj = relationship('CampaignStage')
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='Submission.creator == Experimenter.experimenter_id')
