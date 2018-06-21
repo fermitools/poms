@@ -9,7 +9,7 @@ import socket
 import cherrypy
 from jinja2 import Environment, PackageLoader
 
-from . import (CalendarPOMS,
+from . import (
                CampaignsPOMS,
                DBadminPOMS,
                FilesPOMS,
@@ -17,7 +17,6 @@ from . import (CalendarPOMS,
                TablesPOMS,
                TagsPOMS,
                TaskPOMS,
-               TriagePOMS,
                UtilsPOMS,
                logit,
                version)
@@ -731,11 +730,6 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def job_file_list(self, job_id, force_reload=False):
-        return self.filesPOMS.job_file_list(cherrypy.request.db, cherrypy.request.jobsub_fetcher, job_id, force_reload)
-
-    @cherrypy.expose
-    @logit.logstartstop
     def inflight_files(self, campaign_stage_id=None, submission_id=None, task_id = None):
         if task_id != None and submission_id == None:
             submission_id = task_id
@@ -746,7 +740,7 @@ class PomsService(object):
         template = self.jinja_env.get_template('inflight_files.html')
         return template.render(flist=outlist,
                                statusmap=statusmap, cs=cs,
-                               jjid=self.taskPOMS.task_min_job(cherrypy.request.db, submission_id),
+                               jjid='fix_me',
                                campaign_stage_id=campaign_stage_id, submission_id=submission_id,
                                help_page="PendingFilesJobsHelp")
 

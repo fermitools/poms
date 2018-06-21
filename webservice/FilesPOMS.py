@@ -30,7 +30,7 @@ class Files_status(object):
 
     def list_task_logged_files(self, dbhandle, submission_id):
         s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
-        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, submission_id)
+        jobsub_job_id = s.jobsub_job_id
         fl = dbhandle.query(JobFile).join(Job).filter(Job.submission_id == submission_id, JobFile.job_id == Job.job_id).all()
         return fl, s, jobsub_job_id
         #DELETE: template = self.poms_service.jinja_env.get_template('list_task_logged_files.html')
@@ -163,11 +163,11 @@ class Files_status(object):
             logdelivered = tjifh.get(s.submission_id,0)
             logoutput = tjofh.get(s.submission_id,0)
 
-            task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, s.submission_id)
+            task_jobsub_job_id = s.jobsub_job_id
             if task_jobsub_job_id is None:
                 task_jobsub_job_id = "s%s" % s.submission_id
             datarows.append([
-                            [task_jobsub_job_id.replace('@', '@<br>'), "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%s&var-schedd=%s&from=now-2d&to=now&refresh=5m&orgId=1" % (task_jobsub_job_id[0:task_jobsub_job_id.find('@')],task_jobsub_job_id[task_jobsub_job_id.find('@')+1:]),
+                            [task_jobsub_job_id.replace('@', '@<br>'), "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%s&var-schedd=%s&from=now-2d&to=now&refresh=5m&orgId=1" % (task_jobsub_job_id[0:task_jobsub_job_id.find('@')],task_jobsub_job_id[task_jobsub_job_id.find('@')+1:])],
                             [s.project, "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s" % (cs.experiment, cs.experiment, s.project)],
                             [s.created.strftime("%Y-%m-%d %H:%M"), None],
                             [psummary.get('files_in_snapshot', 0), listfiles % base_dim_list[i]],
@@ -188,36 +188,6 @@ class Files_status(object):
                             [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                             ])
         return cs, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
-
-
-    def job_file_list(self, dbhandle, jobhandle, job_id, force_reload=False):   # Should this funcion be here or at the main script ????
-        j = dbhandle.query(Job).options(joinedload(Job.submission_obj).joinedload(Submission.campaign_stage_snapshot_obj)).filter(Job.job_id == job_id).first()
-        # find the job with the logs -- minimum jobsub_job_id for this task
-        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, j.submission_id)
-        role = j.submission_obj.campaign_stage_snapshot_obj.vo_role
-        return jobhandle.index(jobsub_job_id, j.submission_obj.campaign_stage_snapshot_obj.experiment, role, force_reload)
-
-
-    def job_file_contents(self, dbhandle, jobhandle, job_id, submission_id, file, tmin=None, tmax=None, tdays=None):
-        #jobhandle = cherrypy.request.jobsub_fetcher
-
-        # we don's really use these for anything but we might want to
-        # pass them into a template to set time ranges...
-        (tmin, tmax,
-         tmins, tmaxs,
-         nextlink, prevlink,
-         time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
-        ### You don's use many of those arguments, is just because you need one of them then you call the whole method ???????
-        j = dbhandle.query(Job).options(subqueryload(Job.submission_obj).subqueryload(Submission.campaign_stage_snapshot_obj)).filter(Job.job_id == job_id).first()
-        # find the job with the logs -- minimum jobsub_job_id for this task
-        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, j.submission_id)
-        logit.log("found job: %s " % jobsub_job_id)
-        role = j.submission_obj.campaign_stage_snapshot_obj.vo_role
-        job_file_contents = jobhandle.contents(file, jobsub_job_id, j.submission_obj.campaign_stage_snapshot_obj.experiment, role)
-        return job_file_contents, tmin
-        #DELETE template = self.jinja_env.get_template('job_file_contents.html')
-        #DELETE return template.render(file=file, job_file_contents=job_file_contents, submission_id=submission_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version)
-
 
 
     @staticmethod
@@ -258,9 +228,6 @@ class Files_status(object):
                         statusmap[f] = ''
                 fss.close()
         return outlist, statusmap, cs
-        #template = self.jinja_env.get_template('inflight_files.html')
-        #return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),   statusmap = statusmap, cs = cs, jjid= self.task_min_job(submission_id),campaign_stage_id = campaign_stage_id, submission_id = submission_id, pomspath=self.path,help_page="PendingFilesJobsHelp", version=self.version)
-
 
     def show_dimension_files(self, samhandle, experiment, dims, dbhandle=None):
 

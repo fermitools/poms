@@ -75,7 +75,6 @@ class TaskPOMS:
 
     def __init__(self, ps):
         self.poms_service = ps
-        self.task_min_job_cache = {}
 
 
     def wrapup_tasks(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res):
@@ -90,14 +89,28 @@ class TaskPOMS:
         mark_located = deque()
         #
         # move launch stuff etc, to one place, so we can keep the table rows
-        sq = (dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label('latest')).group_by(SubmissionHistory.submission_id).subquery()
-        completed_sids = (dbhandle.query(SubmissionHistory.submission_id).join(sq,SubmissionHistory.submission_id == sq.c.submission_id , SubmissionHistory.created == sq.c.latest).filter(SubmissionHistory.status='Completed').all())
+        sq = (dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label('latest')).group_by(SubmissionHistory.submission_id).subquery())
+        completed_sids = (dbhandle.query(SubmissionHistory.submission_id).join(sq,SubmissionHistory.submission_id == sq.c.submission_id , SubmissionHistory.created == sq.c.latest).filter(SubmissionHistory.status == 'Completed').all())
 
-        for s in (dbhandle.query(Submission).join(CampaignStageSnapshot,Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id).filter(Submission.submission_id._in(completed_sids), CampaignStageSnapshot.completion_type = 'completed').all()):
+        for s in (dbhandle
+                      .query(Submission)
+                      .join(CampaignStageSnapshot,
+                            Submission.campaign_stage_snapshot_id == 
+                              CampaignStageSnapshot.campaign_stage_snapshot_id)
+                      .filter(Submission.submission_id.in_(completed_sids), 
+                              CampaignStageSnapshot.completion_type == 
+                                'completed')
+                      .all()):
             finish_up_tasks.append(s.submission_id)
             self.update_submission_status(s.submission_id, "Located")
 
-        for s in (dbhandle.query(Submission).join(CampaignStageSnapshot,Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id).filter(Submission.submission_id._in(completed_sids), CampaignStageSnapshot.completion_type = 'located').all()):
+        for s in (dbhandle
+                      .query(Submission)
+                      .join(CampaignStageSnapshot,Submission.campaign_stage_snapshot_id == 
+                              CampaignStageSnapshot.campaign_stage_snapshot_id)
+                      .filter(Submission.submission_id.in_(completed_sids), 
+                              CampaignStageSnapshot.completion_type == 'located')
+                      .all()):
 
             # after two days, call it on time...
             if now - task.updated > timedelta(days=2):

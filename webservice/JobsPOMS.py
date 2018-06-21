@@ -123,7 +123,7 @@ class JobsPOMS(object):
 
 
             for s in tl:
-                tjid = self.poms_service.taskPOMS.task_min_job(dbhandle, s.submission_id)
+                tjid = s.jobsub_job_id
                 logit.log("kill_jobs: submission_id %s -> tjid %s" % (s.submission_id, tjid))
                 # for submissions/campaign_stages, kill the whole group of jobs
                 # by getting the leader's jobsub_job_id and taking off

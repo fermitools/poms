@@ -1078,7 +1078,7 @@ class CampaignsPOMS:
         items = deque()
         extramap = OrderedDict()
         for th in qr:
-            jjid = self.poms_service.taskPOMS.task_min_job(dbhandle, th.submission_id)
+            jjid = th.sumbission_obj.submission_id
             if not jjid:
                 jjid = 's' + str(th.submission_id)
             else:
