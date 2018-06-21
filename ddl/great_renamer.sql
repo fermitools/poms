@@ -93,3 +93,10 @@ ALTER SEQUENCE launch_templates_launch_id_seq RENAME TO login_setups_login_setup
 ALTER SEQUENCE tasks_task_id_seq RENAME TO submissions_submissions_id_seq;
 ALTER SEQUENCE tags_tag_id_seq RENAME TO campaigns_campaign_id_seq;
 ALTER SEQUENCE campaign_snapshots_campaign_snapshot_id_seq RENAME TO campaign_stage_snapshots_campaign_stage_snapshot_id_seq;
+
+-- Changes for moving jobs to fifemon
+ALTER TABLE submissions ADD jobsub_job_id text   ;
+
+DROP TABLE job_histories ;
+DROP TABLE job_files ;
+DROP TABLE jobs ;

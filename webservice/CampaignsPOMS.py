@@ -994,7 +994,6 @@ class CampaignsPOMS:
         # cil = [cs.campaign_stage_id for cs in cl]
         # dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cil, tmin, tmax)
         # effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cil,tmin, tmax)
-        # counts[campaign_stage_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_stage_id = campaign_stage_id)
         # counts[campaign_stage_id]['efficiency'] = effs[0]
         # if pendings:
         #    counts[campaign_stage_id]['pending'] = pendings[0]
@@ -1043,7 +1042,6 @@ class CampaignsPOMS:
                 self.__dict__.update(kwargs)
 
         sl = deque()
-        # sl.append(self.filesPOMS.format_self.triagePOMS.job_counts(dbhandle,))
 
         if campaign_stage_id is not None:
             icampaign_id = int(campaign_stage_id)
@@ -1062,14 +1060,6 @@ class CampaignsPOMS:
 
         job_counts_list = deque()
         cidl = deque()
-        for cp in cpl:
-            job_counts_list.append(
-                self.poms_service.filesPOMS.format_job_counts(dbhandle, campaign_stage_id=cp.campaign_stage_id, tmin=tmin,
-                                                              tmax=tmax, tdays=tdays, range_string=time_range_string,
-                                                              title_bits="CampaignStage %s" % cp.name))
-            cidl.append(cp.campaign_stage_id)
-
-        job_counts = "<p></p>\n".join(job_counts_list)
 
         qr = dbhandle.query(SubmissionHistory).join(Submission).filter(Submission.campaign_stage_id.in_(cidl),
                                                            SubmissionHistory.submission_id == Submission.submission_id,
@@ -1080,7 +1070,7 @@ class CampaignsPOMS:
         items = deque()
         extramap = OrderedDict()
         for th in qr:
-            jjid = self.poms_service.taskPOMS.task_min_job(dbhandle, th.submission_id)
+            jjid = th.sumbission_obj.submission_id
             if not jjid:
                 jjid = 's' + str(th.submission_id)
             else:
@@ -1109,10 +1099,10 @@ class CampaignsPOMS:
         logit.log("campaign_time_bars: items: " + repr(items))
 
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id',
-                                    url_template=self.poms_service.path + '/show_task_jobs?submission_id=%(submission_id)s&tmin=%(tmin)19.19s&tdays=1',
+                                    url_template="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_host)s&from=now-2days&to=now&refresh=5m&orgId=1",
                                     extramap=extramap)
 
-        return job_counts, blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
+        return "", blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
                                dataset="", role="Production", cr_role="production",  sesshandler=None, params=[]):

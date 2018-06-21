@@ -2,7 +2,7 @@
 
 
 ### This module contain the methods that handle the Calendar. (5 methods)
-### List of methods: handle_dates, quick_search, jump_to_job, test_job_counts, task_min_job
+### List of methods: handle_dates, quick_search, jump_to_job, 
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py
 ### written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.

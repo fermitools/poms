@@ -60,9 +60,9 @@ Campaign Stages{%include 'help_button.html'%}
                 <th data-sorter="false" data-filter="false" align="center">
                     Select All<br><input type="checkbox" id="c_cbox_all" onchange="do_checkall();">
                 </th>
-                <th>Name</th>
+                <th>Campaign Name</th>
+                <th>Campaign Stage</th>
                 <th>Active</th>
-                <th>Tags</th>
                 <th>Hold By</th>
                 <th>Creator</th>
                 <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
@@ -76,9 +76,9 @@ Campaign Stages{%include 'help_button.html'%}
                 <tr id="c_tr_{{loop.index}}">
                     <td id="c_id_{{loop.index}}">{{campaign.campaign_stage_id}}</td>
                     <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}" {{ 'disabled' if data.authorized[loop.index-1]!=True }}></td>
+                    <td>{{ campaign.campaign_campaign_stages | join('<br>', attribute='tag_obj.tag_name') }}</td>
                     <td><a href="{{pomspath}}/campaign_info?campaign_stage_id={{campaign.campaign_stage_id}}">{{campaign.name}}</a></td>
                     <td>{{ 'Yes' if campaign.active else 'No' }}</td>
-                    <td>{{ campaign.campaign_campaign_stages | join('<br>', attribute='tag_obj.tag_name') }}</td>
                     <td>{{campaign.experimenter_holder_obj.username}}</td>
                     <td>{{campaign.experimenter_creator_obj.username}}</td>
                     <td>{{campaign.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>
