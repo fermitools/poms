@@ -35,7 +35,11 @@ def parse_command_line():
 
 def add_to_listserv(list_owner, new_users):
 
-    if not new_users or list_owner is None:
+    if list_owner is None:
+        logging.debug("add_to_listserv - list_owner was not set")
+        return
+    if not new_users:
+        logging.debug("add_to_listserv: No new users.")
         return
 
     listval = 'poms_announce'
@@ -54,6 +58,7 @@ def add_to_listserv(list_owner, new_users):
     server = smtplib.SMTP(smtp_server)
     server.sendmail(fromAddr, [toAddr], message)
     server.quit()
+    logging.debug("add_to_listserv - %s new users, %s updated", len(new_users), listval)
     logging.debug(msg)
 
 def get_experiments(cursor, experiment):
