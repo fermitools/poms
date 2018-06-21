@@ -11,6 +11,7 @@ import os
 import select
 import subprocess
 import time
+import re
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta
 
@@ -209,6 +210,7 @@ class TaskPOMS:
             u = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
             if u:
                 user = u.experimenter_id
+
         q = dbhandle.query(CampaignStage)
         if str(campaign)[0] in "0123456789":
             q = q.filter(CampaignStage.campaign_stage_id == int(campaign))

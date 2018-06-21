@@ -3,6 +3,7 @@
 import requests
 import logging
 import sys
+import time
 from http.client import HTTPConnection
 HTTPConnection.debuglevel = 1
 
@@ -107,12 +108,13 @@ class Agent:
                self.check_submissions()
            except Exception as e:
                logit.error('Exception: %s" % e')
+           time.sleep(120)
 
-if sys.argv[1] == '-t':
+if len(sys.argv) > 1 and sys.argv[1] == '-t':
    logging.basicConfig(level=Debug)
    a = Agent(poms_uri="http://127.0.0.1:8080",submission_uri=getenv("SUBMISSION_INFO") )
    a.check_submissions()
-elif sys.argv[1] == '-T':
+elif len(sys.argv) > 1 and sys.argv[1] == '-T':
    logging.basicConfig(level=logging.DEBUG)
    a = Agent()
    a.check_submissions()
