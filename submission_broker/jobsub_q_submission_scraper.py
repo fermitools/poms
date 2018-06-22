@@ -37,10 +37,9 @@ class jobsub_q_scraper:
        could pass -format...  instead we call condor_q directly to look
        at the fifebatchhead nodes.
     """
-    def __init__(self, debug = 0, poms_uri = "http://127.0.0.1:80/poms/", submission_uri = 'https://landscapeitb.fnal.gov/api/query'):
+    def __init__(self, debug = 0, poms_uri = "http://127.0.0.1:80/poms/"):
 
         self.poms_uri = poms_uri
-        self.submission_uri = submission_uri
         gc.enable()
 
         self.statusmap = { 
@@ -190,6 +189,10 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "-d":
         debug=1
         sys.argv = [sys.argv[0]] + sys.argv[2:]
+        logging.basicConfig(level=logging.DEBUG)
+        sys.argv = [sys.argv[0]] + sys.argv[2:]
+    else:
+        logging.basicConfig(level=logging.INFO)
 
     server = "http://localhost:8080/poms"
     nthreads = 8

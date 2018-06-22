@@ -257,7 +257,7 @@ class TaskPOMS:
     def update_submission(self, dbhandle, submission_id, jobsub_job_id, pct_complete = None, status = None, project = None):
         s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
         if not s:
-            return "Fail."
+            return "Unknown."
         if s.jobsub_job_id != jobsub_job_id:
             s.jobsub_job_id = jobsub_job_id
             dbhandle.add(s)
@@ -591,7 +591,7 @@ class TaskPOMS:
             #    front of the path and can intercept calls to "jobsub_submit"
             #
             "source /grid/fermiapp/products/common/etc/setups",
-            "setup poms_client -g poms31 -z /grid/fermiapp/products/common/db",
+            "setup poms_jobsub_wrapper -g poms31 -z /grid/fermiapp/products/common/db",
             lt.launch_setup % {
                 "dataset": dataset,
                 "experiment": exp,

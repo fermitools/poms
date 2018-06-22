@@ -110,12 +110,16 @@ class Agent:
                logit.error('Exception: %s" % e')
            time.sleep(120)
 
+if len(sys.argv) > 1 and sys.argv[1] == '-d':
+   logging.basicConfig(level=logging.DEBUG)
+   sys.argv = [sys.argv[0]] + sys.argv[2:]
+else:
+   logging.basicConfig(level=logging.INFO)
+
 if len(sys.argv) > 1 and sys.argv[1] == '-t':
-   logging.basicConfig(level=Debug)
    a = Agent(poms_uri="http://127.0.0.1:8080",submission_uri=getenv("SUBMISSION_INFO") )
    a.check_submissions()
 elif len(sys.argv) > 1 and sys.argv[1] == '-T':
-   logging.basicConfig(level=logging.DEBUG)
    a = Agent()
    a.check_submissions()
 else:
