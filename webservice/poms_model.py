@@ -81,35 +81,6 @@ class Experiment(Base):
     restricted = Column(Boolean, nullable=False, server_default=text("false"))
 
 
-class ServiceDowntime(Base):
-    __tablename__ = 'service_downtimes'
-
-    service_id = Column(ForeignKey('services.service_id'), primary_key=True, nullable=False)
-    downtime_started = Column(DateTime(True), primary_key=True, nullable=False)
-    downtime_ended = Column(DateTime(True), nullable=True)
-    downtime_type = Column(Text, nullable=False)
-
-    service_obj = relationship('Service')
-
-
-class Service(Base):
-    __tablename__ = 'services'
-
-    service_id = Column(Integer, primary_key=True, server_default=text("nextval('services_service_id_seq'::regclass)"))
-    name = Column(Text, nullable=False)
-    host_site = Column(Text, nullable=False)
-    status = Column(Text, nullable=False)
-    updated = Column(DateTime(True), nullable=False)
-    active = Column(Boolean, nullable=False, server_default=text("true"))
-    parent_service_id = Column(ForeignKey('services.service_id'), index=True)
-    url = Column(Text)
-    items = Column(Integer)
-    failed_items = Column(Integer)
-    description = Column(Text)
-
-    parent_service_obj = relationship('Service', remote_side=[service_id])
-
-
 class LoginSetup(Base):
     __tablename__ = 'login_setups'
 
