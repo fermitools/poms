@@ -422,14 +422,13 @@ class TaskPOMS:
     def set_job_launches(self, dbhandle, hold):
         if hold not in ["hold", "allowed"]:
             return
+        #XXX where do we keep held jobs now?
+        return
 
-        s = dbhandle.query(Service).with_for_update(read=True).filter(Service.name == "job_launches").first()
-        s.status = hold
-        dbhandle.commit()
 
     def get_job_launches(self, dbhandle):
-        s = dbhandle.query(Service).filter(Service.name == "job_launches").first()
-        return s.status
+        #XXX where do we keep held jobs now?
+        return "allowed"
 
     def launch_queued_job(self, dbhandle, samhandle, getconfig, gethead, seshandle_get, err_res):
         if self.get_job_launches(dbhandle) == "hold":
@@ -498,7 +497,7 @@ class TaskPOMS:
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
 
-            if self.get_job_launches(dbhandle) == "hold":
+            if self.get_job_launches(dbhandle) == "hold" or cs.hold_experimenter_id:
                 # fix me!!
                 output = "Job launches currently held.... queuing this request"
                 logit.log("launch_jobs -- holding launch")
