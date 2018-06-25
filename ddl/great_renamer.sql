@@ -96,7 +96,14 @@ ALTER SEQUENCE campaign_snapshots_campaign_snapshot_id_seq RENAME TO campaign_st
 
 -- Changes for moving jobs to fifemon
 ALTER TABLE submissions ADD jobsub_job_id text   ;
+ALTER TABLE submissions DROP COLUMN status;
 
 DROP TABLE job_histories ;
 DROP TABLE job_files ;
 DROP TABLE jobs ;
+DROP TABLE services_downtimes;
+DROP TABLE services;
+DROP FUNCTION update_job_history();
+DROP FUNCTION update_task_history();
+
+

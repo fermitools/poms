@@ -160,7 +160,6 @@ class Submission(Base):
     campaign_stage_id = Column(ForeignKey('campaign_stages.campaign_stage_id'), nullable=False, index=True, server_default=text("nextval('tasks_campaign_id_seq'::regclass)"))
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
-    status = Column(Text, nullable=False)
     submission_params = Column(JSON)
     depends_on = Column(ForeignKey('submissions.submission_id'), index=True)
     depend_threshold = Column(Integer)
