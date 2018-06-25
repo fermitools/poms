@@ -863,7 +863,7 @@ generic_box.prototype.save_values = function () {
         if (e != null) {
             this.dict[k] = e.value;
         } else {
-            console.log('unable to find input ' + inp_id);
+            console.log('unable to find input ' + inp_id);      // FIXME: inp_id is not set
         }
     }
 }
@@ -1159,7 +1159,7 @@ wf_uploader.prototype.upload2 = function(state, cfg_stages, completed) {
     var thisx = this;
     $(document).ajaxStop(function() {
        $(document).off("ajaxStop");
-       console.log("calling tage_em...");
+       console.log("calling tag_em...");
        thisx.tag_em(thisx.cfg['campaign']['tag'], cfg_stages, completed);
     });
 }
