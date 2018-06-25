@@ -29,7 +29,6 @@ from .poms_model import (CampaignStage,
                          HeldLaunch,
                          LoginSetup,
                          LoginSetupSnapshot,
-                         Service,
                          Submission,
                          SubmissionHistory)
 from .utc import utc
