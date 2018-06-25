@@ -37,7 +37,7 @@ class jobsub_q_scraper:
        could pass -format...  instead we call condor_q directly to look
        at the fifebatchhead nodes.
     """
-    def __init__(self, debug = 0, poms_uri = "http://127.0.0.1:80/poms/"):
+    def __init__(self, debug = 0, poms_uri = "http://127.0.0.1:8080/poms/"):
 
         self.poms_uri = poms_uri
         gc.enable()
@@ -58,9 +58,15 @@ class jobsub_q_scraper:
 
     def update_submission(self, submission_id, jobsub_job_id, project = None, status = None):
         logit.info('update_submission: %s' % repr({'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}))
-        r = self.psess.post(self.poms_uri, {'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}, verify=False)
+        try:
+            r = self.psess.post("%s/update_submission"%self.poms_uri, {'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}, verify=False)
+        except requests.exceptions.ConnectionError:
+            logit.error("Connection Reset! Retrying once...")
+            time.sleep(1)
+            r = self.psess.post("%s/update_submission"%self.poms_uri, {'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}, verify=False)
         if (r.text != "Ok."):
             logit.error("update_submission: Failed.");
+            logit.error(r.text)
 
     def scan(self):
 
@@ -128,11 +134,15 @@ class jobsub_q_scraper:
         #
         # if we don't see it anymore, mark it completed
         #
+        dellist = []
         for submission_id in self.known_submissions:
             if not submission_id in pass_submissions:
                 d = self.known_submissions[submission_id]
                 self.update_submission(submission_id, d.get('jobsub_job_id',''), status='Completed')
-                del self.known_submissions[submission_id]
+                dellist.append(submission_id)
+
+        for submission_id in dellist:
+            del self.known_submissions[submission_id]
 
         #
         # report it if changed
@@ -174,7 +184,7 @@ class jobsub_q_scraper:
 
             sys.stderr.write("%s pausing...\n" % time.asctime())
             sys.stderr.flush()
-            time.sleep(120)
+            time.sleep(30)
             sys.stderr.write("%s done...\n" % time.asctime())
             sys.stderr.flush()
 

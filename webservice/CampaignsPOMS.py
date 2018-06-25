@@ -1020,7 +1020,7 @@ class CampaignsPOMS:
                 dep_svg, last_activity
                 )
 
-    @pomscache_10.cache_on_arguments()
+    # @pomscache_10.cache_on_arguments()
     def campaign_time_bars(self, dbhandle, campaign_stage_id=None, tag=None, tmin=None, tmax=None, tdays=1):
         """
             Give time-bars for Tasks for this campaign in a time window
@@ -1060,6 +1060,8 @@ class CampaignsPOMS:
 
         job_counts_list = deque()
         cidl = deque()
+        for cs in cpl:
+            cidl.append(cs.campaign_stage_id)
 
         qr = dbhandle.query(SubmissionHistory).join(Submission).filter(Submission.campaign_stage_id.in_(cidl),
                                                            SubmissionHistory.submission_id == Submission.submission_id,
@@ -1070,11 +1072,11 @@ class CampaignsPOMS:
         items = deque()
         extramap = OrderedDict()
         for th in qr:
-            jjid = th.sumbission_obj.submission_id
+            jjid = th.submission_obj.jobsub_job_id
             if not jjid:
                 jjid = 's' + str(th.submission_id)
             else:
-                jjid = jjid.replace('fifebatch', '').replace('.fnal.gov', '')
+                jjid = str(jjid).replace('fifebatch', '').replace('.fnal.gov', '')
 
             if tag is not None:
                 jjid += "<br>" + th.submission_obj.campaign_stage_obj.name
@@ -1094,14 +1096,16 @@ class CampaignsPOMS:
                                  tmin=th.submission_obj.created - timedelta(minutes=15),
                                  tmax=th.submission_obj.updated,
                                  status=th.status,
-                                 jobsub_job_id=jjid))
+                                 jobsub_job_id=jjid,
+                                 jobsub_cluster = jjid[:jjid.find('@')],
+                                 jobsub_host = jjid[jjid.find('@')+1:],
+                                   ))
 
         logit.log("campaign_time_bars: items: " + repr(items))
 
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id',
-                                    url_template="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_host)s&from=now-2days&to=now&refresh=5m&orgId=1",
+                                    url_template="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_host)s.fnal.gov&from=now-2days&to=now&refresh=5m&orgId=1",
                                     extramap=extramap)
-
         return "", blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
