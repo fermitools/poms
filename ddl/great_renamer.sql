@@ -105,5 +105,8 @@ DROP TABLE services_downtimes;
 DROP TABLE services;
 DROP FUNCTION update_job_history();
 DROP FUNCTION update_task_history();
+drop trigger update_submission_history on  submissions;
+drop function update_submission_history();
+
 
 

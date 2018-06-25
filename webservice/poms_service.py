@@ -285,21 +285,21 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_tags(self):
+    def show_campaigns(self):
         experiment = cherrypy.session.get('experimenter').session_experiment
-        tl, last_activity = self.tagsPOMS.show_tags(cherrypy.request.db, experiment)
+        tl, last_activity = self.tagsPOMS.show_campaigns(cherrypy.request.db, experiment)
         current_experimenter = cherrypy.session.get('experimenter')
-        template = self.jinja_env.get_template('show_tags.html')
+        template = self.jinja_env.get_template('show_campaigns.html')
 
         return template.render(tl=tl, last_activity=last_activity, help_page="ShowCampaignTagsHelp")
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaigns(self, tmin=None, tmax=None, tdays=7, active=True, tag=None, holder=None, role_held_with=None,
+    def show_campaign_stages(self, tmin=None, tmax=None, tdays=7, active=True, tag=None, holder=None, role_held_with=None,
                        se_role=None, cl=None, **kwargs):
         (
             campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
-        ) = self.campaignsPOMS.show_campaigns(cherrypy.request.db,
+        ) = self.campaignsPOMS.show_campaign_stages(cherrypy.request.db,
                                               cherrypy.request.samweb_lite,
                                               tmin=tmin, tmax=tmax, tdays=tdays, active=active, tag=tag,
                                               holder=holder, role_held_with=role_held_with,
@@ -317,9 +317,9 @@ class PomsService(object):
         # ~ logit.log("current_experimenter.extra after: "+str(current_experimenter.extra))      # DEBUG
 
         if cl is None:
-            template = self.jinja_env.get_template('show_campaigns.html')
+            template = self.jinja_env.get_template('show_campaign_stages.html')
         else:
-            template = self.jinja_env.get_template('show_campaigns_stats.html')
+            template = self.jinja_env.get_template('show_campaign_stages_stats.html')
 
         return template.render(limit_experiment=current_experimenter.session_experiment,
                                campaign_stages=campaign_stages, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[:16], tmax=str(tmax)[:16],
@@ -471,7 +471,7 @@ class PomsService(object):
         if campaign_stage_id:
             raise cherrypy.HTTPRedirect("campaign_info?campaign_stage_id=%s" % campaign_stage_id)
         elif cl:
-            raise cherrypy.HTTPRedirect("show_campaigns")
+            raise cherrypy.HTTPRedirect("show_campaign_stages")
 
     @cherrypy.expose
     @logit.logstartstop
@@ -522,7 +522,7 @@ class PomsService(object):
                 raise cherrypy.HTTPError(401, 'You are not authorized to hold or release this campaign_stages. ')
 
         if ids2HR:
-            raise cherrypy.HTTPRedirect("show_campaigns")
+            raise cherrypy.HTTPRedirect("show_campaign_stages")
 
     @cherrypy.expose
     @logit.logstartstop
