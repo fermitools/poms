@@ -360,15 +360,17 @@ gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment,
 }
 
 gui_editor.prototype.set_state = function (ini_dump) {
-    const r = new wf_uploader().make_poms_call('jobtype_list', null, (data) => {
+    const r = new wf_uploader().make_poms_call('jobtype_list', null).then((data) => {
         for (const val of data) {
-            console.log('val=', val.name);
+            console.log('jobtype=', val.name);
             this.jobtypes.push(val.name);
         }
-    });
-    this.state = JSON.parse(this.ini2json(ini_dump));
-    this.defaultify_state();
-    this.draw_state()
+    }).then(() => {
+            this.state = JSON.parse(this.ini2json(ini_dump));
+            this.defaultify_state();
+            this.draw_state();
+        }
+    )
 }
 
 gui_editor.prototype.defaultify_state = function() {
@@ -616,7 +618,7 @@ gui_editor.prototype.draw_state = function () {
             stagelist.push(k.slice(15))
         } else if (k.indexOf('job_type') == 0) {
             this.jobtypelist.push(k.slice(9))
-        } else if (k.indexOf('launch_template') == 0) {
+        } else if (k.indexOf('login_setup') == 0) {
             launchtemplist.push(k.slice(16))
         }
     }
@@ -681,7 +683,7 @@ gui_editor.prototype.draw_state = function () {
     y = y + labely;
 
     for (i in launchtemplist) {
-        k = 'launch_template ' + launchtemplist[i];
+        k = 'login_setup ' + launchtemplist[i];
         b = new misc_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y, this);
         this.miscboxes.push(b);
         x = x + gridx;
@@ -720,13 +722,12 @@ gui_editor.prototype.make_select = function(sval, eid) {
             <option value="audi">Audi</option>
         </select>
      */
-        const lst = this.jobtypes;
-        let res = ["default", ...lst].reduce(
+        let res = this.jobtypes.reduce(
             function (acc, val) {
                 const sel = (val == sval) ? ' selected' : '';
                 return acc + `<option value="${val}"${sel}>${val}</option>\n`;
             },
-        "");
+        '<option value="">default</option>\n');
         return `<select id="${eid}" name="jtlist">\n${res}</select>\n`;
     }
 
@@ -870,7 +871,7 @@ generic_box.prototype.save_values = function () {
         k = this.klist[i];
         e = document.getElementById(this.get_input_tag(k));
         if (e != null) {
-            this.dict[k] = e.value;
+            this.dict[k] = e.value ? e.value : null;
         } else {
             console.log('unable to find input ' + inp_id);
         }
@@ -1035,7 +1036,7 @@ gui_editor.prototype.new_stage = function () {
         'vo_role': null,
         'cs_split_type': null,
         'job_type': null,
-        'launch_template': null,
+        'login_setup': null,
         'param_overrides': null,
         'completion_type': null,
         'completion_pct': null
@@ -1135,13 +1136,13 @@ wf_uploader.prototype.upload = function(state, completed) {
         for (i in cfg_stages) {
             s = cfg_stages[i];
             if (('campaign_stage ' + s) in thisx.cfg) {
-                cfg_launches[thisx.cfg['campaign_stage ' + s]['launch_template']] = 1;
+                cfg_launches[thisx.cfg['campaign_stage ' + s]['login_setup']] = 1;
                 cfg_jobtypes[thisx.cfg['campaign_stage ' + s]['job_type']] = 1;
 
             }
         }
         for (l in cfg_launches) {
-            thisx.upload_launch_template(l);
+            thisx.upload_login_setup(l);
         }
         for (jt in cfg_jobtypes) {
             thisx.upload_jobtype(jt);
@@ -1149,7 +1150,7 @@ wf_uploader.prototype.upload = function(state, completed) {
         /* upload3 will call upload_stage which needs the existing stage map
          * to decide whether to add or edit, so start an async fetch here.
          */
-        console.log("upload get-headers callback calling get_campaign_list")
+        console.log("upload get-headers callback calling get_campaign_list");
         thisx.get_campaign_list();
         $(document).ajaxStop(function () {
             $(document).off("ajaxStop");
@@ -1224,17 +1225,17 @@ wf_uploader.prototype.upload_jobtype =  function(jt) {
    });
 }
 
-wf_uploader.prototype.upload_launch_template = function (l) {
+wf_uploader.prototype.upload_login_setup = function (l) {
     var field_map, d, args, k;
     field_map = {
         'host': 'ae_launch_host',
         'account': 'ae_launch_account',
         'setup': 'ae_launch_setup',
     };
-    if (!(('launch_template ' + l) in this.cfg)) {
+    if (!(('login_setup ' + l) in this.cfg)) {
         return;
     }
-    d = this.cfg['launch_template ' + l];
+    d = this.cfg['login_setup ' + l];
     console.log(['d', d])
     args = {
         'action': 'add',
@@ -1265,7 +1266,7 @@ wf_uploader.prototype.upload_stage =  function(st) {
             'vo_role': 'ae_vo_role',
             'cs_split_type': 'ae_split_type',
             'job_type': 'ae_campaign_definition',
-            'launch_template': 'ae_launch_name',
+            'login_setup': 'ae_launch_name',
             'param_overrides': 'ae_param_overrides',
             'completion_type': 'ae_completion_type',
             'completion_pct': 'ae_completion_pct',
@@ -1339,7 +1340,7 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
             delete args[k];
         }
     }
-    jQuery.ajax({
+    res = Promise.resolve(jQuery.ajax({
         url: base + '/' + name,
         data: args,
         method: args ? 'POST' : 'GET',
@@ -1364,9 +1365,8 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
             }
             console.log(resp);
         },
-        //async: true,
-        async: false,
-    });
+        async: true,
+    }));
     return res;
 }
 
