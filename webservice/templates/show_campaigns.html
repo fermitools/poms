@@ -57,9 +57,9 @@ Campaigns
                     </a>
                 </td>
                 <td>
-                        <button type="button">
-                            <i class="copy icon" onclick="clone_template(1, 'test');"></i>Clone Workflow
-                        </button>
+                    <button type="button" onclick="clone_template('{{s.tag_name}}');">
+                        <i class="copy icon"></i>Clone Workflow
+                    </button>
                 </td>
                 <td>
                     <a href="{{pomspath}}/campaign_deps_ini?tag={{s.tag_name}}">
@@ -82,21 +82,22 @@ Campaigns
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <form id="template_clone_form" class="ui form" method="POST" action="workflow_clone">
+    <form id="template_clone_form" class="ui form" method="GET" action="{{pomspath}}/gui_wf_edit?">
       <div class="two fields">
         <div class="field">
           <label>Existing Workflow Name</label>
-          <input type="text" id="cl_campaign_name" name="cl_campaign_name">
+          <input type="text" id="from" name="from" readonly>
         </div>
         <div class="field">
-          <label>New Workflow Name</label>
-          <input type="text" id="cl_new_campaign_name" name="cl_new_campaign_name">
+          <label>Clone Workflow Name</label>
+          <input type="text" id="to" name="to">
         </div>
+      </div>
       <div class="actions">
         <div class="ui button deny red">Cancel</div>
-        <input type="submit" value="Save" id="cl_submit" class="ui button teal" />
+        <input type="submit" id="clone" name="clone" value="Clone" class="ui button teal" />
       </div>
-      <input type="hidden" id="cl_campaign_id" name="cl_campaign_id" value="0">
+      <input type="hidden" id="campaign" name="campaign">
     </form>
   </div>
   <div class="ui hidden divider"></div>
@@ -130,12 +131,20 @@ $('#campaign_table')
     }
 });
 
-function clone_template(campaign_id, campaign_name) {
-    $("#cl_campaign_id").val(campaign_id);
-    $("#cl_campaign_name").val(campaign_name);
+function clone_template(campaign_name) {
+    $("#campaign").val(campaign_name);
+    $("#from").val(campaign_name)
     $("#template_clone_modal").modal({}).modal('show');
 }
 
+$('#template_clone_form')
+  .form({
+    inline: true,
+    fields: {
+      to      : {rules: [{type: 'empty',prompt: 'field cannot be blank'}]},
+    }
+  })
+;
 
 </script>
 
