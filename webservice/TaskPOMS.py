@@ -229,7 +229,6 @@ class TaskPOMS:
             s.updated = tim
         else:
             s = Submission(campaign_stage_id=cs.campaign_stage_id,
-                 status="New",
                  submission_params={},
                  project = project,
                  updater=4,
@@ -238,14 +237,21 @@ class TaskPOMS:
                  updated=tim,
                  command_executed=command_executed)
 
+
         if parent_submission_id is not None and parent_submission_id != "None":
             s.recovery_tasks_parent = int(parent_submission_id)
+
 
         self.snapshot_parts(dbhandle, s, s.campaign_stage_id)
 
         dbhandle.add(s)
-        dbhandle.commit()
+        dbhandle.flush()
+
+        if not submission_id:
+            sh = SubmissionHistory(submission_id = s.submission_id, status = "New", created=tim);
+            dbhandle.add(sh)
         logit.log("get_task_id_for: returning %s" % s.submission_id)
+        dbhandle.commit()
         return s.submission_id
 
     def update_submission_status(self, dbhandle, submission_id, status):
