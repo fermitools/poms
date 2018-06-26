@@ -4,8 +4,9 @@ import time
 import sys
 import glob
 from poms.webservice.samweb_lite import samweb_lite
-from poms.webservice.poms_model import CampaignStage, Job
+from poms.webservice.poms_model import CampaignStage
 from os.path import basename
+import os
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -23,7 +24,6 @@ from webservice.jobsub_fetcher import jobsub_fetcher
 logger = logging.getLogger('cherrypy.error')
 # when I get one...
 
-from mock_job import mock_job
 
 mps = mock_poms_service()
 config = utils.get_config()
@@ -47,8 +47,21 @@ config = utils.get_config()
 
 def make_split(ds, split,should_hit_end):
     def test_splits():
+
+         myds = ds
+         check_end = should_hit_end
+         if should_hit_end == 2:
+             # special case for staged_files which takes a project...
+             projname = "test_poms_%d" % time.time()
+             print("starting project %s" % projname)
+
+             os.system("samweb -e samdev prestage-dataset --name %s --defname %s" % (projname, ds))
+             time.sleep(5)
+             myds = projname
+             check_end = 1
+
          cs = dbhandle.query(CampaignStage).filter(CampaignStage.name == 'mwm_test_splits').first()
-         cs.dataset = ds
+         cs.dataset = myds
          cs.cs_split_type = split
          dbhandle.commit()
          mps.campaignsPOMS.reset_campaign_split(dbhandle, samhandle, cs.campaign_stage_id)
@@ -66,13 +79,19 @@ def make_split(ds, split,should_hit_end):
              n = samhandle.count_files(cs.experiment, "defname:"+res)
              print("got %s with %d files" % (res, n))
 
-             assert(n > 0)
-         assert(hit_end == should_hit_end)
+             if check_end:
+                 assert(n > 0)
+
+         if check_end:
+             assert(hit_end == check_end)
+         else:
+             assert(True)
+
     return test_splits
 
 split_table=[
-    ['gen_cfg','byrun(low=1,high=4)', 1],
-    ['gen_cfg','byrun( low=1, high=4 ) ', 1],
+    ['gen_cfg','byrun(low=1,high=4)', 0],
+    ['gen_cfg','byrun( low=1, high=4 ) ', 0],
     ['gen_cfg','draining', 0],
     ['gen_cfg','mod(3)', 1],
     ['gen_cfg','mod( 3 )', 1],
@@ -80,7 +99,9 @@ split_table=[
     ['gen_cfg_slice0_of_3, gen_cfg_slice1_of_3, gen_cfg_slice2_of_3','list', 1],
     ['gen_cfg','new(firsttime=1475280000,window=1d,lasttime=1475539200)', 1],
     ['gen_cfg','new( firsttime=1475280000, window=1d, lasttime=1475539200 )', 1],
-    ['gen_cfg','nfiles(2)', 1]
+    ['gen_cfg','nfiles(2)', 1],
+    ['gen_cfg','drainingn(2)', 1],
+    ['gen_cfg','stagedfiles(2)', 2],
 ]
 
 for ds,splitt,should_hit_end in split_table:
