@@ -509,8 +509,10 @@ class CampaignsPOMS:
                 else:
                     experimenter_id = 0
 
-                login_setup_id = dbhandle.query(LoginSetup).filter(LoginSetup.experiment == exp).filter(
-                    LoginSetup.name == launch_name).first().login_setup_id
+                # print("************* exp={}, launch_name={}, campaign_definition_name={}".format(exp, launch_name, campaign_definition_name))
+                login_setup_id = (dbhandle.query(LoginSetup)
+                        .filter(LoginSetup.experiment == exp)
+                        .filter(LoginSetup.name == launch_name).first().login_setup_id)
                 job_type_id = dbhandle.query(JobType).filter(
                     JobType.name == campaign_definition_name).first().job_type_id
                 if action == 'edit':
