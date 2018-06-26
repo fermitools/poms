@@ -38,7 +38,7 @@ from .poms_model import (CampaignStage,
                          RecoveryType,
                          Campaign,
                          Submission,
-                         TaskHistory)
+                         SubmissionHistory)
 from .pomscache import pomscache_10
 from .utc import utc
 
@@ -881,14 +881,14 @@ class CampaignsPOMS:
         return bytes(text, encoding="utf-8")
 
 
-    def show_campaigns(self, dbhandle, samhandle, campaign_ids=None, tmin=None, tmax=None, tdays=7,
-                       active=True, tag=None, holder=None, role_held_with=None, sesshandler=None):
+    def show_campaign_stages(self, dbhandle, samhandle, campaign_ids=None, tmin=None, tmax=None, tdays=7,
+                             active=True, tag=None, holder=None, role_held_with=None, sesshandler=None):
         """
             give campaign information about campaign_stages with activity in the
             time window for a given experiment
         :rtype: object
         """
-        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaign_stages?')
 
         experiment = sesshandler('experimenter').session_experiment
         se_role = sesshandler('experimenter').session_role
@@ -916,14 +916,14 @@ class CampaignsPOMS:
             cq = cq.join(Campaign).filter(Campaign.tag_name == tag)
 
             # for now we comment out it. When we have a lot of data, we may need to use these filters.
-            # We will let the client filter it in show_campaigns.html with tablesorter for now.
+            # We will let the client filter it in show_campaign_stages.html with tablesorter for now.
             # if holder:
             # cq = cq.filter(Campaingn.hold_experimenters_id == holder)
 
             # if creator_role:
             # cq = cq.filter(Campaingn.creator_role == creator_role)
         campaign_stages = cq.all()
-        logit.log(logit.DEBUG, "show_campaigns: back from query")
+        logit.log(logit.DEBUG, "show_campaign_stages: back from query")
         # check for authorization
         data = {}
         data['authorized'] = []
@@ -991,7 +991,7 @@ class CampaignsPOMS:
         launched_campaigns = dbhandle.query(CampaignStageSnapshot).filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id).all()
 
         #
-        # cloned from show_campaigns, but for a one row table..
+        # cloned from show_campaign_stages, but for a one row table..
         #
         campaign = campaign_info[0]
         counts = {}
@@ -999,7 +999,6 @@ class CampaignsPOMS:
         # cil = [cs.campaign_stage_id for cs in cl]
         # dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cil, tmin, tmax)
         # effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cil,tmin, tmax)
-        # counts[campaign_stage_id] = self.poms_service.triagePOMS.job_counts(dbhandle,tmax = tmax, tmin = tmin, tdays = tdays, campaign_stage_id = campaign_stage_id)
         # counts[campaign_stage_id]['efficiency'] = effs[0]
         # if pendings:
         #    counts[campaign_stage_id]['pending'] = pendings[0]
@@ -1026,7 +1025,7 @@ class CampaignsPOMS:
                 dep_svg, last_activity
                 )
 
-    @pomscache_10.cache_on_arguments()
+    # @pomscache_10.cache_on_arguments()
     def campaign_time_bars(self, dbhandle, campaign_stage_id=None, tag=None, tmin=None, tmax=None, tdays=1):
         """
             Give time-bars for Tasks for this campaign in a time window
@@ -1048,7 +1047,6 @@ class CampaignsPOMS:
                 self.__dict__.update(kwargs)
 
         sl = deque()
-        # sl.append(self.filesPOMS.format_self.triagePOMS.job_counts(dbhandle,))
 
         if campaign_stage_id is not None:
             icampaign_id = int(campaign_stage_id)
@@ -1067,29 +1065,23 @@ class CampaignsPOMS:
 
         job_counts_list = deque()
         cidl = deque()
-        for cp in cpl:
-            job_counts_list.append(
-                self.poms_service.filesPOMS.format_job_counts(dbhandle, campaign_stage_id=cp.campaign_stage_id, tmin=tmin,
-                                                              tmax=tmax, tdays=tdays, range_string=time_range_string,
-                                                              title_bits="CampaignStage %s" % cp.name))
-            cidl.append(cp.campaign_stage_id)
+        for cs in cpl:
+            cidl.append(cs.campaign_stage_id)
 
-        job_counts = "<p></p>\n".join(job_counts_list)
-
-        qr = dbhandle.query(TaskHistory).join(Submission).filter(Submission.campaign_stage_id.in_(cidl),
-                                                           TaskHistory.submission_id == Submission.submission_id,
+        qr = dbhandle.query(SubmissionHistory).join(Submission).filter(Submission.campaign_stage_id.in_(cidl),
+                                                           SubmissionHistory.submission_id == Submission.submission_id,
                                                            or_(and_(Submission.created > tmin, Submission.created < tmax),
                                                                and_(Submission.updated > tmin,
-                                                                    Submission.updated < tmax))).order_by(TaskHistory.submission_id,
-                                                                                                    TaskHistory.created).all()
+                                                                    Submission.updated < tmax))).order_by(SubmissionHistory.submission_id,
+                                                                                                    SubmissionHistory.created).all()
         items = deque()
         extramap = OrderedDict()
         for th in qr:
-            jjid = self.poms_service.taskPOMS.task_min_job(dbhandle, th.submission_id)
+            jjid = th.submission_obj.jobsub_job_id
             if not jjid:
                 jjid = 's' + str(th.submission_id)
             else:
-                jjid = jjid.replace('fifebatch', '').replace('.fnal.gov', '')
+                jjid = str(jjid).replace('fifebatch', '').replace('.fnal.gov', '')
 
             if tag is not None:
                 jjid += "<br>" + th.submission_obj.campaign_stage_obj.name
@@ -1109,15 +1101,17 @@ class CampaignsPOMS:
                                  tmin=th.submission_obj.created - timedelta(minutes=15),
                                  tmax=th.submission_obj.updated,
                                  status=th.status,
-                                 jobsub_job_id=jjid))
+                                 jobsub_job_id=jjid,
+                                 jobsub_cluster = jjid[:jjid.find('@')],
+                                 jobsub_host = jjid[jjid.find('@')+1:],
+                                   ))
 
         logit.log("campaign_time_bars: items: " + repr(items))
 
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id',
-                                    url_template=self.poms_service.path + '/show_task_jobs?submission_id=%(submission_id)s&tmin=%(tmin)19.19s&tdays=1',
+                                    url_template="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_host)s.fnal.gov&from=now-2days&to=now&refresh=5m&orgId=1",
                                     extramap=extramap)
-
-        return job_counts, blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
+        return "", blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
                                dataset="", role="Production", cr_role="production",  sesshandler=None, params=[]):

@@ -494,45 +494,47 @@ gui_editor.prototype.un_trailing_comma = function (res) {
  * builds a list of strings and joins them, python-style
  */
 gui_editor.prototype.ini2json = function (s) {
-    var res = [];
-    var lines = s.split('\n');
-    var l, k_v, k, v, i;
-    for (i = 0; i < lines.length; i++) {
-        if (lines[i] === undefined)
-            break;
-        l = mwm_utils.trim_blanks(lines[i]);
+   var res = [];
+   var lines = s.split('\n');
+   var l, k_v, k, v, i;
+   for (i = 0 ; i < lines.length; i++) {
+      if (lines[i] === undefined)
+          break;
+      l = mwm_utils.trim_blanks(lines[i]);
 
-        // skip blank lines and comments
-        if (l.length == 0)
-            continue;
-        if (l[0] == '#') {
-            continue;
+      // skip blank lines and comments
+      if (l.length == 0)
+          continue;
+      if (l[0] == '#') {
+          continue;
 
-        } else if (l[0] == '[' && l[l.length - 1] == ']') {
-            this.un_trailing_comma(res);
-            res.push('},');
-            res.push('"' + l.slice(1, -1) + '": {');
-        } else {
-            l = mwm_utils.trim_blanks(l);
-            l = l.replace(/%%/g, '%');
-            k_v = l.split(/ *[=:] */);
-            console.log(k_v);
-            k = k_v.shift();
-            v = k_v.join('=').replace(/"/g, '\\"');
-            if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
-                continue;
-            }
-            res.push('"' + k + '": "' + v + '",');
-        }
-    }
+      } else if (l[0] == '[' &&  l[l.length-1]  == ']') {
+          this.un_trailing_comma(res);
+          res.push('},');
+          res.push('"' + l.slice(1,-1) + '": {');
+      } else {
+          l = mwm_utils.trim_blanks(l)
+          l = l.replace(/%%/g,'%');
+          k_v = l.match(/([^ =:]*) *[=:] *(.*)/);
+          console.log(k_v)
+          k_v.shift();
+          k = k_v.shift();
+          v = k_v.join('=').replace(/"/g,'\\"');
+          if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
+              continue;
+          }
+          res.push('"' + k + '": "' + v + '",');
+      }
+   }
 
     // fix leading line wart
     res[0] = '{';
 
-    this.un_trailing_comma(res);
-    res.push('}');
-    res.push('}');
-    return res.join('\n');
+   this.un_trailing_comma(res);
+   res.push('}');
+   res.push('}');
+   console.log({"result": res.join("\n")})
+   return res.join('\n');
 }
 
 /*
