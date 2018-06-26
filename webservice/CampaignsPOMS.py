@@ -874,7 +874,7 @@ class CampaignsPOMS:
             text = ""
         return bytes(text, encoding="utf-8")
 
-    def show_campaigns(self, dbhandle, samhandle, campaign_ids=None, tmin=None, tmax=None, tdays=7,
+    def show_campaign_stages(self, dbhandle, samhandle, campaign_ids=None, tmin=None, tmax=None, tdays=7,
                        active=True, tag=None, holder=None, role_held_with=None, sesshandler=None):
 
         """
@@ -882,7 +882,7 @@ class CampaignsPOMS:
             time window for a given experiment
         :rtype: object
         """
-        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaign_stages?')
 
         experiment = sesshandler('experimenter').session_experiment
         se_role = sesshandler('experimenter').session_role
@@ -910,14 +910,14 @@ class CampaignsPOMS:
             cq = cq.join(Campaign).filter(Campaign.tag_name == tag)
 
             # for now we comment out it. When we have a lot of data, we may need to use these filters.
-            # We will let the client filter it in show_campaigns.html with tablesorter for now.
+            # We will let the client filter it in show_campaign_stages.html with tablesorter for now.
             # if holder:
             # cq = cq.filter(Campaingn.hold_experimenters_id == holder)
 
             # if creator_role:
             # cq = cq.filter(Campaingn.creator_role == creator_role)
         campaign_stages = cq.all()
-        logit.log(logit.DEBUG, "show_campaigns: back from query")
+        logit.log(logit.DEBUG, "show_campaign_stages: back from query")
         # check for authorization
         data = {}
         data['authorized'] = []
@@ -986,7 +986,7 @@ class CampaignsPOMS:
         launched_campaigns = dbhandle.query(CampaignStageSnapshot).filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id).all()
 
         #
-        # cloned from show_campaigns, but for a one row table..
+        # cloned from show_campaign_stages, but for a one row table..
         #
         campaign = campaign_info[0]
         counts = {}

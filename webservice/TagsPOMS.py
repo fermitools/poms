@@ -23,14 +23,14 @@ class TagsPOMS(object):
         self.poms_service = ps
 
 
-    def show_tags(self, dbhandle, experiment):
+    def show_campaigns(self, dbhandle, experiment):
         tl = dbhandle.query(Campaign).filter(Campaign.experiment == experiment).all()
-        if len(tl) == 0:
-            return tl,""
+        if not tl:
+            return tl, ""
         last_activity_l = dbhandle.query(func.max(Submission.updated)).join(CampaignCampaignStages,Submission.campaign_stage_id == CampaignCampaignStages.campaign_stage_id).join(Campaign,CampaignCampaignStages.campaign_id == Campaign.campaign_id).filter(Campaign.experiment == experiment).first()
         logit.log("got last_activity_l %s" % repr(last_activity_l))
         last_activity = ""
-        if last_activity_l and len(last_activity_l) and last_activity_l[0] :
+        if last_activity_l and last_activity_l and last_activity_l[0]:
             if datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
                 last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         logit.log("after: last_activity %s" % repr(last_activity))
@@ -78,7 +78,7 @@ class TagsPOMS(object):
             dbhandle.query(CampaignCampaignStages).filter(CampaignCampaignStages.campaign_id == campaign_id).delete(synchronize_session=False)
             dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete(synchronize_session=False)
             dbhandle.commit()
-            response = {"msg": "OK"} 
+            response = {"msg": "OK"}
         else:
             response = {"msg": "You are not authorized to delete campaigns."}
         return response
