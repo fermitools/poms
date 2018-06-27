@@ -104,6 +104,25 @@ class samweb_lite:
 
         return 0
 
+    def take_snapshot(self, experiment, defname):
+        """
+           basic samweb snapshot interface
+        """
+        if not experiment or not defname or  defname == "None":
+            return -1
+        
+        base = "https://samweb.fnal.gov:8483"
+        url = "%s/sam/%s/api/definitions/name/%s/snapshot" % (base, experiment, defname)
+       
+        with requests.Session() as sess:
+            res = sess.post(url,
+                            data={'group': experiment},
+                            verify=False,
+                            cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
+                                      "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"])))
+
+        return res.text
+
     def fetch_info(self, experiment, projid, dbhandle=None):
         """
         """
@@ -352,6 +371,8 @@ if __name__ == "__main__":
     print("got result:" , r1)
     i = sl.fetch_info("samdev", "mengel-fife_wrap_20170701_102228_3860387")
     print("got result:" , i)
+    res = sl.take_snapshot("nova", "mwm_test_6")
+    print("got snapshot id %s" % res)
     sys.exit(0)
 
     print(sl.create_definition("samdev", "mwm_test_%d" % os.getpid(), "(snapshot_for_project_name mwm_test_proj_1465918505)"))
@@ -381,3 +402,4 @@ if __name__ == "__main__":
 
     l = sl.count_files_list("nova", ["defname:mwm_test_6", "defname:mwm_test_9", "defname:mwm_test_11"])
     print("got count list: ", l)
+

@@ -17,6 +17,7 @@ ALTER TABLE campaign_snapshots        RENAME COLUMN launch_id TO login_setup_id;
 ALTER TABLE launch_template_snapshots RENAME COLUMN launch_id TO login_setup_id;
 -- spw missed on 2nd
 ALTER TABLE launch_template_snapshots RENAME COLUMN launch_snapshot_id TO login_setup_snapshot_id;
+ALTER TABLE submissions RENAME COLUMN launch_snapshot_id TO login_setup_snapshot_id;
 
 
 ALTER TABLE campaign_definitions RENAME COLUMN campaign_definition_id TO job_type_id;
@@ -92,3 +93,20 @@ ALTER SEQUENCE launch_templates_launch_id_seq RENAME TO login_setups_login_setup
 ALTER SEQUENCE tasks_task_id_seq RENAME TO submissions_submissions_id_seq;
 ALTER SEQUENCE tags_tag_id_seq RENAME TO campaigns_campaign_id_seq;
 ALTER SEQUENCE campaign_snapshots_campaign_snapshot_id_seq RENAME TO campaign_stage_snapshots_campaign_stage_snapshot_id_seq;
+
+-- Changes for moving jobs to fifemon
+ALTER TABLE submissions ADD jobsub_job_id text   ;
+ALTER TABLE submissions DROP COLUMN status;
+
+DROP TABLE job_histories ;
+DROP TABLE job_files ;
+DROP TABLE jobs ;
+DROP TABLE services_downtimes;
+DROP TABLE services;
+DROP FUNCTION update_job_history();
+DROP FUNCTION update_task_history();
+drop trigger update_submission_history on  submissions;
+drop function update_submission_history();
+
+
+

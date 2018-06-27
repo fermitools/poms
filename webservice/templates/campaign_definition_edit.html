@@ -720,7 +720,7 @@ function ep_down_button(current_row) {
       $("#ae_definition_action").val("add");
       $("#ae_definition_name").val( "CLONE OF: " + $("#cdf_name_"+index).text() );
     }
-    $("#ae_experiment").text("CampaignStage Definition Editor  ({{ data.curr_experiment if data.curr_experiment is defined}})");
+    $("#ae_experiment").text("Job Type Editor  ({{ data.curr_experiment if data.curr_experiment is defined}})");
     $("#ae_campaign_definition_id").val( $("#cdf_id_"+index).text()  );
     $("#ae_launch_script").val( $("#cdf_script_"+index).text() );
     $("#ae_definition_parameters_text").val( $("#cdf_definition_"+index).text() );

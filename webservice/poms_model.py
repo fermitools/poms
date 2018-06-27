@@ -16,7 +16,7 @@ class CampaignStage(Base):
     experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
     name = Column(Text, nullable=False)
     job_type_id = Column(ForeignKey('job_types.job_type_id'), nullable=False, index=True,
-                                    server_default=text("nextval('campaigns_campaign_definition_id_seq'::regclass)"))
+                         server_default=text("nextval('campaigns_campaign_definition_id_seq'::regclass)"))
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey('experimenters.experimenter_id'), index=True)
@@ -81,57 +81,6 @@ class Experiment(Base):
     restricted = Column(Boolean, nullable=False, server_default=text("false"))
 
 
-class Job(Base):
-    __tablename__ = 'jobs'
-
-    job_id = Column(BigInteger, primary_key=True, server_default=text("nextval('jobs_job_id_seq'::regclass)"))
-    submission_id = Column(ForeignKey('submissions.submission_id'), nullable=False, index=True)
-    jobsub_job_id = Column(Text, nullable=False)
-    node_name = Column(Text, nullable=False)
-    cpu_type = Column(Text, nullable=False)
-    host_site = Column(Text, nullable=False)
-    status = Column(Text, nullable=False)
-    updated = Column(DateTime(True), nullable=False)
-    output_files_declared = Column(Boolean, nullable=False)
-    user_exe_exit_code = Column(Integer)
-    input_file_names = Column(Text)
-    reason_held = Column(Text)
-    consumer_id = Column(Text)
-    cpu_time = Column(Float)
-    wall_time = Column(Float)
-
-    submission_obj = relationship('Submission')
-
-
-class ServiceDowntime(Base):
-    __tablename__ = 'service_downtimes'
-
-    service_id = Column(ForeignKey('services.service_id'), primary_key=True, nullable=False)
-    downtime_started = Column(DateTime(True), primary_key=True, nullable=False)
-    downtime_ended = Column(DateTime(True), nullable=True)
-    downtime_type = Column(Text, nullable=False)
-
-    service_obj = relationship('Service')
-
-
-class Service(Base):
-    __tablename__ = 'services'
-
-    service_id = Column(Integer, primary_key=True, server_default=text("nextval('services_service_id_seq'::regclass)"))
-    name = Column(Text, nullable=False)
-    host_site = Column(Text, nullable=False)
-    status = Column(Text, nullable=False)
-    updated = Column(DateTime(True), nullable=False)
-    active = Column(Boolean, nullable=False, server_default=text("true"))
-    parent_service_id = Column(ForeignKey('services.service_id'), index=True)
-    url = Column(Text)
-    items = Column(Integer)
-    failed_items = Column(Integer)
-    description = Column(Text)
-
-    parent_service_obj = relationship('Service', remote_side=[service_id])
-
-
 class LoginSetup(Base):
     __tablename__ = 'login_setups'
 
@@ -182,7 +131,6 @@ class Submission(Base):
     campaign_stage_id = Column(ForeignKey('campaign_stages.campaign_stage_id'), nullable=False, index=True, server_default=text("nextval('tasks_campaign_id_seq'::regclass)"))
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
-    status = Column(Text, nullable=False)
     submission_params = Column(JSON)
     depends_on = Column(ForeignKey('submissions.submission_id'), index=True)
     depend_threshold = Column(Integer)
@@ -195,6 +143,7 @@ class Submission(Base):
     job_type_snapshot_id = Column(ForeignKey('job_type_snapshots.job_type_snapshot_id'), nullable=True, index=True)
     recovery_position = Column(Integer)
     recovery_tasks_parent = Column(ForeignKey('submissions.submission_id'), index=True)
+    jobsub_job_id = Column(Text)
 
     campaign_stage_obj = relationship('CampaignStage')
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='Submission.creator == Experimenter.experimenter_id')
@@ -202,11 +151,11 @@ class Submission(Base):
     parent_obj = relationship('Submission', remote_side=[submission_id], foreign_keys=recovery_tasks_parent)
     login_setup_snap_obj = relationship('LoginSetupSnapshot', foreign_keys=login_setup_snapshot_id)
     campaign_stage_snapshot_obj = relationship('CampaignStageSnapshot', foreign_keys=campaign_stage_snapshot_id)
+    jobsub_job_id = Column(Text, nullable=False)
     job_type_snapshot_obj = relationship('JobTypeSnapshot', foreign_keys=job_type_snapshot_id)
-    jobs = relationship('Job', order_by="Job.job_id")
 
 
-class TaskHistory(Base):
+class SubmissionHistory(Base):
     __tablename__ = 'submission_histories'
 
     submission_id = Column(ForeignKey('submissions.submission_id'), primary_key=True, nullable=False)
@@ -214,17 +163,6 @@ class TaskHistory(Base):
     status = Column(Text, nullable=False)
 
     submission_obj = relationship('Submission', backref='history')
-
-
-class JobHistory(Base):
-    __tablename__ = 'job_histories'
-
-
-    job_id = Column(ForeignKey('jobs.job_id'), primary_key=True, nullable=False)
-    created = Column(DateTime(True), primary_key=True, nullable=False)
-    status = Column(Text, nullable=False)
-
-    job_obj = relationship('Job', backref=backref('history', cascade="all,delete-orphan"))
 
 
 class Campaign(Base):
@@ -245,18 +183,6 @@ class CampaignCampaignStages(Base):
 
     campaign_stage_obj = relationship(CampaignStage, backref="campaign_campaign_stages")
     tag_obj = relationship(Campaign, backref="campaign_campaign_stages")
-
-
-class JobFile(Base):
-    __tablename__ = 'job_files'
-
-    job_id = Column(Integer, ForeignKey('jobs.job_id'), primary_key=True)
-    file_name = Column(Text, primary_key=True, nullable=False)
-    file_type = Column(Text, nullable=False)
-    created = Column(DateTime(True), nullable=False)
-    declared = Column(DateTime(True))
-
-    job_obj = relationship(Job, backref=backref('job_files', cascade="all,delete-orphan"))
 
 
 class CampaignStageSnapshot(Base):

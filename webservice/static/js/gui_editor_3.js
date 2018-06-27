@@ -93,6 +93,8 @@ function gui_editor(toptag) {
     this.depboxes = [];
     gui_editor.body.appendChild(this.div);
     gui_editor.instance_list.push(this);
+    //
+    this.jobtypes = [];
 }
 
 
@@ -351,16 +353,32 @@ gui_editor.prototype.fix_dependencies = function (before, after) {
  * set the gui state from an ini-format dump
  */
 gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment, role) {
-    this.state = JSON.parse(this.ini2json(ini_dump));
-    this.clone_rename(from, to, experiment, role);
-    this.defaultify_state();
-    this.draw_state()
+    const r = new wf_uploader().make_poms_call('jobtype_list', null).then((data) => {
+        for (const val of data) {
+            console.log('jobtype=', val.name);
+            this.jobtypes.push(val.name);
+        }
+    }).then(() => {
+        this.state = JSON.parse(this.ini2json(ini_dump));
+        this.clone_rename(from, to, experiment, role);
+        this.defaultify_state();
+        this.draw_state()
+        }
+    )
 }
 
 gui_editor.prototype.set_state = function (ini_dump) {
-    this.state = JSON.parse(this.ini2json(ini_dump));
-    this.defaultify_state();
-    this.draw_state()
+    const r = new wf_uploader().make_poms_call('jobtype_list', null).then((data) => {
+        for (const val of data) {
+            console.log('jobtype=', val.name);
+            this.jobtypes.push(val.name);
+        }
+    }).then(() => {
+            this.state = JSON.parse(this.ini2json(ini_dump));
+            this.defaultify_state();
+            this.draw_state();
+        }
+    )
 }
 
 gui_editor.prototype.defaultify_state = function() {
@@ -484,45 +502,47 @@ gui_editor.prototype.un_trailing_comma = function (res) {
  * builds a list of strings and joins them, python-style
  */
 gui_editor.prototype.ini2json = function (s) {
-    var res = [];
-    var lines = s.split('\n');
-    var l, k_v, k, v, i;
-    for (i = 0; i < lines.length; i++) {
-        if (lines[i] === undefined)
-            break;
-        l = mwm_utils.trim_blanks(lines[i]);
+   var res = [];
+   var lines = s.split('\n');
+   var l, k_v, k, v, i;
+   for (i = 0 ; i < lines.length; i++) {
+      if (lines[i] === undefined)
+          break;
+      l = mwm_utils.trim_blanks(lines[i]);
 
-        // skip blank lines and comments
-        if (l.length == 0)
-            continue;
-        if (l[0] == '#') {
-            continue;
+      // skip blank lines and comments
+      if (l.length == 0)
+          continue;
+      if (l[0] == '#') {
+          continue;
 
-        } else if (l[0] == '[' && l[l.length - 1] == ']') {
-            this.un_trailing_comma(res);
-            res.push('},');
-            res.push('"' + l.slice(1, -1) + '": {');
-        } else {
-            l = mwm_utils.trim_blanks(l);
-            l = l.replace(/%%/g, '%');
-            k_v = l.split(/ *[=:] */);
-            console.log(k_v);
-            k = k_v.shift();
-            v = k_v.join('=').replace(/"/g, '\\"');
-            if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
-                continue;
-            }
-            res.push('"' + k + '": "' + v + '",');
-        }
-    }
+      } else if (l[0] == '[' &&  l[l.length-1]  == ']') {
+          this.un_trailing_comma(res);
+          res.push('},');
+          res.push('"' + l.slice(1,-1) + '": {');
+      } else {
+          l = mwm_utils.trim_blanks(l)
+          l = l.replace(/%%/g,'%');
+          k_v = l.match(/([^ =:]*) *[=:] *(.*)/);
+          console.log(k_v)
+          k_v.shift();
+          k = k_v.shift();
+          v = k_v.join('=').replace(/"/g,'\\"');
+          if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
+              continue;
+          }
+          res.push('"' + k + '": "' + v + '",');
+      }
+   }
 
     // fix leading line wart
     res[0] = '{';
 
-    this.un_trailing_comma(res);
-    res.push('}');
-    res.push('}');
-    return res.join('\n');
+   this.un_trailing_comma(res);
+   res.push('}');
+   res.push('}');
+   console.log({"result": res.join("\n")})
+   return res.join('\n');
 }
 
 /*
@@ -604,12 +624,16 @@ gui_editor.prototype.draw_state = function () {
     launchtemplist = [];
 
     for (k in this.state) {
+        const n = k.split(' ')[1];
         if (k.indexOf('campaign_stage') == 0) {
-            stagelist.push(k.slice(15))
+            //stagelist.push(k.slice(15));
+            stagelist.push(n);
         } else if (k.indexOf('job_type') == 0) {
-            this.jobtypelist.push(k.slice(9))
-        } else if (k.indexOf('launch_template') == 0) {
-            launchtemplist.push(k.slice(16))
+            //this.jobtypelist.push(k.slice(9));
+            this.jobtypelist.push(n);
+        } else if (k.indexOf('login_setup') == 0) {
+            //launchtemplist.push(k.slice(12));
+            launchtemplist.push(n);
         }
     }
 
@@ -673,7 +697,7 @@ gui_editor.prototype.draw_state = function () {
     y = y + labely;
 
     for (i in launchtemplist) {
-        k = 'launch_template ' + launchtemplist[i];
+        k = 'login_setup ' + launchtemplist[i];
         b = new misc_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y, this);
         this.miscboxes.push(b);
         x = x + gridx;
@@ -703,7 +727,7 @@ gui_editor.prototype.redraw_deps = function () {
     }
 }
 
-gui_editor.prototype.make_select = function(sval) {
+gui_editor.prototype.make_select = function(sval, eid) {
     /*
         <select name="carlist" form="carform">
             <option value="volvo">Volvo</option>
@@ -712,13 +736,13 @@ gui_editor.prototype.make_select = function(sval) {
             <option value="audi">Audi</option>
         </select>
      */
-        const res = ["default", ...this.jobtypelist].reduce(
+        let res = this.jobtypes.reduce(
             function (acc, val) {
                 const sel = (val == sval) ? ' selected' : '';
                 return acc + `<option value="${val}"${sel}>${val}</option>\n`;
             },
-        "");
-        return `<select name="jtlist">\n${res}</select>\n`;
+        '<option value="">default</option>\n');
+        return `<select id="${eid}" name="jtlist">\n${res}</select>\n`;
     }
 
 /*
@@ -758,11 +782,14 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     this.box.gui_box = this;
     this.box.className = "box";
     this.box.id = name;
-    if (name.length - name.indexOf(' ') > 20) {
-        this.box.style.width = "185px";
-    } else {
-        this.box.style.width = "120px";
-    }
+    //if (name.length - name.indexOf(' ') > 20) {
+        //this.box.style.width = "185px";
+    //} else {
+        //this.box.style.width = "120px";
+    //}
+    const w = Math.max(...(name.split(' ').map(v => v.length))) * 8;
+    this.box.style.width = Math.max(w, 128) + "px";
+
     this.box.style.left = x.toString() + "px";
     this.box.style.top = y.toString() + "px";
     this.box.addEventListener("click", function () { gui_editor.toggle_box_selected(name) });
@@ -793,7 +820,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         }
         res.push(`<label>${k}</label>`);
         if (k.includes("job_type")) {
-            res.push(this.gui.make_select(val));
+            res.push(this.gui.make_select(val, `${this.get_input_tag(k)}`));
         } else {
             res.push(`<input id="${this.get_input_tag(k)}" value="${this.escape_quotes(val)}" placeholder="${placeholder}">`);
         }
@@ -861,7 +888,7 @@ generic_box.prototype.save_values = function () {
         k = this.klist[i];
         e = document.getElementById(this.get_input_tag(k));
         if (e != null) {
-            this.dict[k] = e.value;
+            this.dict[k] = e.value ? e.value : null;
         } else {
             console.log('unable to find input ' + inp_id);      // FIXME: inp_id is not set
         }
@@ -1026,7 +1053,7 @@ gui_editor.prototype.new_stage = function () {
         'vo_role': null,
         'cs_split_type': null,
         'job_type': null,
-        'launch_template': null,
+        'login_setup': null,
         'param_overrides': null,
         'completion_type': null,
         'completion_pct': null
@@ -1126,13 +1153,13 @@ wf_uploader.prototype.upload = function(state, completed) {
         for (i in cfg_stages) {
             s = cfg_stages[i];
             if (('campaign_stage ' + s) in thisx.cfg) {
-                cfg_launches[thisx.cfg['campaign_stage ' + s]['launch_template']] = 1;
+                cfg_launches[thisx.cfg['campaign_stage ' + s]['login_setup']] = 1;
                 cfg_jobtypes[thisx.cfg['campaign_stage ' + s]['job_type']] = 1;
 
             }
         }
         for (l in cfg_launches) {
-            thisx.upload_launch_template(l);
+            thisx.upload_login_setup(l);
         }
         for (jt in cfg_jobtypes) {
             thisx.upload_jobtype(jt);
@@ -1140,7 +1167,7 @@ wf_uploader.prototype.upload = function(state, completed) {
         /* upload3 will call upload_stage which needs the existing stage map
          * to decide whether to add or edit, so start an async fetch here.
          */
-        console.log("upload get-headers callback calling get_campaign_list")
+        console.log("upload get-headers callback calling get_campaign_list");
         thisx.get_campaign_list();
         $(document).ajaxStop(function () {
             $(document).off("ajaxStop");
@@ -1215,17 +1242,17 @@ wf_uploader.prototype.upload_jobtype =  function(jt) {
    });
 }
 
-wf_uploader.prototype.upload_launch_template = function (l) {
+wf_uploader.prototype.upload_login_setup = function (l) {
     var field_map, d, args, k;
     field_map = {
         'host': 'ae_launch_host',
         'account': 'ae_launch_account',
         'setup': 'ae_launch_setup',
     };
-    if (!(('launch_template ' + l) in this.cfg)) {
+    if (!(('login_setup ' + l) in this.cfg)) {
         return;
     }
-    d = this.cfg['launch_template ' + l];
+    d = this.cfg['login_setup ' + l];
     console.log(['d', d])
     args = {
         'action': 'add',
@@ -1256,7 +1283,7 @@ wf_uploader.prototype.upload_stage =  function(st) {
             'vo_role': 'ae_vo_role',
             'cs_split_type': 'ae_split_type',
             'job_type': 'ae_campaign_definition',
-            'launch_template': 'ae_launch_name',
+            'login_setup': 'ae_launch_name',
             'param_overrides': 'ae_param_overrides',
             'completion_type': 'ae_completion_type',
             'completion_pct': 'ae_completion_pct',
@@ -1330,7 +1357,7 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
             delete args[k];
         }
     }
-    jQuery.ajax({
+    res = Promise.resolve(jQuery.ajax({
         url: base + '/' + name,
         data: args,
         method: args ? 'POST' : 'GET',
@@ -1356,7 +1383,7 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
             console.log(resp);
         },
         async: true,
-    });
+    }));
     return res;
 }
 
