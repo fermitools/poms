@@ -353,10 +353,18 @@ gui_editor.prototype.fix_dependencies = function (before, after) {
  * set the gui state from an ini-format dump
  */
 gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment, role) {
-    this.state = JSON.parse(this.ini2json(ini_dump));
-    this.clone_rename(from, to, experiment, role);
-    this.defaultify_state();
-    this.draw_state()
+    const r = new wf_uploader().make_poms_call('jobtype_list', null).then((data) => {
+        for (const val of data) {
+            console.log('jobtype=', val.name);
+            this.jobtypes.push(val.name);
+        }
+    }).then(() => {
+        this.state = JSON.parse(this.ini2json(ini_dump));
+        this.clone_rename(from, to, experiment, role);
+        this.defaultify_state();
+        this.draw_state()
+        }
+    )
 }
 
 gui_editor.prototype.set_state = function (ini_dump) {
@@ -616,12 +624,16 @@ gui_editor.prototype.draw_state = function () {
     launchtemplist = [];
 
     for (k in this.state) {
+        const n = k.split(' ')[1];
         if (k.indexOf('campaign_stage') == 0) {
-            stagelist.push(k.slice(15))
+            //stagelist.push(k.slice(15));
+            stagelist.push(n);
         } else if (k.indexOf('job_type') == 0) {
-            this.jobtypelist.push(k.slice(9))
+            //this.jobtypelist.push(k.slice(9));
+            this.jobtypelist.push(n);
         } else if (k.indexOf('login_setup') == 0) {
-            launchtemplist.push(k.slice(16))
+            //launchtemplist.push(k.slice(12));
+            launchtemplist.push(n);
         }
     }
 
@@ -770,11 +782,14 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     this.box.gui_box = this;
     this.box.className = "box";
     this.box.id = name;
-    if (name.length - name.indexOf(' ') > 20) {
-        this.box.style.width = "185px";
-    } else {
-        this.box.style.width = "120px";
-    }
+    //if (name.length - name.indexOf(' ') > 20) {
+        //this.box.style.width = "185px";
+    //} else {
+        //this.box.style.width = "120px";
+    //}
+    const w = Math.max(...(name.split(' ').map(v => v.length))) * 8;
+    this.box.style.width = Math.max(w, 128) + "px";
+
     this.box.style.left = x.toString() + "px";
     this.box.style.top = y.toString() + "px";
     this.box.addEventListener("click", function () { gui_editor.toggle_box_selected(name) });
