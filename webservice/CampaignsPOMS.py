@@ -533,7 +533,7 @@ class CampaignsPOMS:
                 if action == 'add':
                     if not completion_pct:
                         completion_pct = 95
-                    if role != 'analysis' and role != 'production':
+                    if role not in ('analysis', 'production'):
                         message = 'Your active role must be analysis or production to add a campaign.'
                     else:
                         cs = CampaignStage(name=name, experiment=exp, vo_role=vo_role,
@@ -568,7 +568,7 @@ class CampaignsPOMS:
                     cd = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).update(columns)
                     # now redo dependencies
                 dbhandle.query(CampaignDependency).filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
-                logit.log("depends for %s are: %s" % (campaign_stage_id, depends))
+                logit.log("depends for %s(%s) are: %s" % (campaign_stage_id, name, depends))
                 depcamps = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
                 for (i, dep) in enumerate(depcamps):
                     logit.log("trying to add dependency for: {}".format(dep.name))
