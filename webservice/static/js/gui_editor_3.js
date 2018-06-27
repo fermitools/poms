@@ -339,7 +339,8 @@ gui_editor.prototype.fix_dependencies = function (before, after) {
             e = document.getElementById(k);
             if (e && e.gui_box) {
                 if (e.gui_box.stage1 == before) {
-                    e.gui_box.stage2 = after;
+                    //e.gui_box.stage2 = after;
+                    e.gui_box.stage1 = after;
                 }
                 if (e.gui_box.stage2 == before) {
                     e.gui_box.stage2 = after;
@@ -353,27 +354,31 @@ gui_editor.prototype.fix_dependencies = function (before, after) {
  * set the gui state from an ini-format dump
  */
 gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment, role) {
-    const r = new wf_uploader().make_poms_call('jobtype_list', null).then((data) => {
-        for (const val of data) {
-            console.log('jobtype=', val.name);
-            this.jobtypes.push(val.name);
+    const r = new wf_uploader().make_poms_call('jobtype_list', null).then(
+        (data) => {
+            for (const val of data) {
+                console.log('jobtype=', val.name);
+                this.jobtypes.push(val.name);
+            }
+        }).then(
+        _ => {
+            this.state = JSON.parse(this.ini2json(ini_dump));
+            this.clone_rename(from, to, experiment, role);
+            this.defaultify_state();
+            this.draw_state();
         }
-    }).then(() => {
-        this.state = JSON.parse(this.ini2json(ini_dump));
-        this.clone_rename(from, to, experiment, role);
-        this.defaultify_state();
-        this.draw_state()
-        }
-    )
+    );
 }
 
 gui_editor.prototype.set_state = function (ini_dump) {
-    const r = new wf_uploader().make_poms_call('jobtype_list', null).then((data) => {
-        for (const val of data) {
-            console.log('jobtype=', val.name);
-            this.jobtypes.push(val.name);
-        }
-    }).then(() => {
+    const r = new wf_uploader().make_poms_call('jobtype_list', null).then(
+        (data) => {
+            for (const val of data) {
+                console.log('jobtype=', val.name);
+                this.jobtypes.push(val.name);
+            }
+        }).then(
+        _ => {
             this.state = JSON.parse(this.ini2json(ini_dump));
             this.defaultify_state();
             this.draw_state();
@@ -1168,31 +1173,37 @@ wf_uploader.prototype.upload = function(state, completed) {
          * to decide whether to add or edit, so start an async fetch here.
          */
         console.log("upload get-headers callback calling get_campaign_list");
-        thisx.get_campaign_list();
-        $(document).ajaxStop(function () {
-            $(document).off("ajaxStop");
-            console.log("calling upload2...")
-            thisx.upload2(state, cfg_stages, completed);
-        });
+        thisx.get_campaign_list().then(
+            _ => {
+                console.log("calling upload2...")
+                return thisx.upload2(state, cfg_stages, completed);
+            }
+        ).then(
+            _ => {
+                console.log("calling tag_em...");
+                thisx.tag_em(thisx.cfg['campaign']['tag'], cfg_stages, completed);
+            }
+        );
     });
 }
 
 wf_uploader.prototype.upload2 = function(state, cfg_stages, completed) {
-    var i, s;
-    for (i in cfg_stages) {
-        s = cfg_stages[i];
-        this.upload_stage(s);
+    let p = Promise.resolve();
+    for (const i in cfg_stages) {
+        const s = cfg_stages[i];
+        console.log("upload2: stage:", s);
+        p = p.then(_ => this.upload_stage(s));
     }
-    var thisx = this;
-    $(document).ajaxStop(function() {
-       $(document).off("ajaxStop");
-       console.log("calling tage_em...");
-       thisx.tag_em(thisx.cfg['campaign']['tag'], cfg_stages, completed);
-    });
+    //p.then(_ => {
+            //console.log("calling tag_em...");
+            //this.tag_em(this.cfg['campaign']['tag'], cfg_stages, completed);
+        //}
+    //);
+    return p;
 }
 
 
-wf_uploader.prototype.tag_em =  function(tag, cfg_stages, completed) {
+wf_uploader.prototype.tag_em = function(tag, cfg_stages, completed) {
     var thisx = this;
     /* have to re-fetch the list, if we added any campaigns... */
     console.log("tag_em calling get_campaign_list")
@@ -1314,13 +1325,13 @@ wf_uploader.prototype.upload_stage =  function(st) {
             args[k] = d[k];
         }
     }
-    this.make_poms_call('campaign_edit', args);
+    return this.make_poms_call('campaign_edit', args);
 }
 
 wf_uploader.prototype.get_campaign_list = function(completed) {
     var x, res, i, triple;
     var thisx = this;
-    this.make_poms_call('campaign_list_json', {}, function (x) {
+    return this.make_poms_call('campaign_list_json', {}, function (x) {
         res = {};
         console.log(["back from campaign_list_json, x is", x]);
         for (i in x) {
