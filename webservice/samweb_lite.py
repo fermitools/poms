@@ -114,13 +114,21 @@ class samweb_lite:
         base = "https://samweb.fnal.gov:8483"
         url = "%s/sam/%s/api/definitions/name/%s/snapshot" % (base, experiment, defname)
        
-        with requests.Session() as sess:
-            res = sess.post(url,
-                            data={'group': experiment},
-                            verify=False,
-                            cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
-                                      "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"])))
-
+        for i in xrange(3):
+            logit.info("take_snapshot try %d" % i)
+            try:
+                with requests.Session() as sess:
+                    res = sess.post(url,
+                                    data={'group': experiment},
+                                    verify=False,
+                                    cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
+                                              "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"])))
+                    res.raise_for_status()
+                break
+            except Exception as e:
+                logit.error("Exception taking snapshot: %s" % e)
+            time.sleep(1)
+            
         return res.text
 
     def fetch_info(self, experiment, projid, dbhandle=None):
@@ -345,21 +353,28 @@ class samweb_lite:
 
         pdict = {"defname": name, "dims": dims, "user": "sam", "group": experiment}
         logit.log("INFO","create_definition: calling: %s with %s " % (url, pdict))
-        try:
-            res = requests.post(url,
+        text = None
+        for i in xrange(3):
+            logit.info("create_defintition try %d" % i)
+            try:
+                with requests.Session() as sess:
+                    res = sess.post(url,
                                 data=pdict,
                                 verify=False,
                                 cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
                                       "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]))
                   )
-            text = res.content
-            logit.log("INFO","definitions/create returns: %s" % text)
-        except Exception as e:
-            logit.log("ERROR","Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
-            return "Fail."
-        finally:
-            if res:
-                res.close()
+                    res.raise_for_status()
+
+                    text = res.content
+                    logit.log("INFO","definitions/create returns: %s" % text)
+                    break
+            except Exception as e:
+                logit.log("ERROR","Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
+
+        if text == None:
+            text = "Fail."
+
         return text
 
 if __name__ == "__main__":
