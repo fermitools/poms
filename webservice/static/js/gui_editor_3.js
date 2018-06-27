@@ -1160,7 +1160,6 @@ wf_uploader.prototype.upload = function(state, completed) {
             if (('campaign_stage ' + s) in thisx.cfg) {
                 cfg_launches[thisx.cfg['campaign_stage ' + s]['login_setup']] = 1;
                 cfg_jobtypes[thisx.cfg['campaign_stage ' + s]['job_type']] = 1;
-
             }
         }
         for (l in cfg_launches) {
@@ -1188,32 +1187,13 @@ wf_uploader.prototype.upload = function(state, completed) {
 }
 
 wf_uploader.prototype.upload2 = function(state, cfg_stages, completed) {
-<<<<<<< HEAD
-    var i, s;
-    for (i in cfg_stages) {
-        s = cfg_stages[i];
-        this.upload_stage(s);
-    }
-    var thisx = this;
-    $(document).ajaxStop(function() {
-       $(document).off("ajaxStop");
-       console.log("calling tag_em...");
-       thisx.tag_em(thisx.cfg['campaign']['tag'], cfg_stages, completed);
-    });
-=======
     let p = Promise.resolve();
     for (const i in cfg_stages) {
         const s = cfg_stages[i];
         console.log("upload2: stage:", s);
         p = p.then(_ => this.upload_stage(s));
     }
-    //p.then(_ => {
-            //console.log("calling tag_em...");
-            //this.tag_em(this.cfg['campaign']['tag'], cfg_stages, completed);
-        //}
-    //);
     return p;
->>>>>>> f1a614b3bedb2a50c1e40be2d9c47db9bd2b140e
 }
 
 
