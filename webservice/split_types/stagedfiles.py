@@ -28,14 +28,15 @@ class stagedfiles:
 
     def next(self):
         res = self.peek()
+        snap1 = self.samhandle.take_snapshot(self.cs.job_type_obj.experiment,res)
         newfullname = res.replace('slice','full')
         if self.cs.cs_last_split:
             snapshotbit = "snapshot_id %s or" % self.cs.cs_last_split
+            self.samhandle.create_definition(self.cs.experiment, newfullname, 'snapshot_id %s or snapshot_id %s ' % (self.cs.cs_last_split, snap1))
+            snap = self.samhandle.take_snapshot(self.cs.job_type_obj.experiment, newfullname)
         else:
-            snapshotbit = ''
-        self.samhandle.create_definition(self.cs.experiment, newfullname, '%s defname:%s' %(snapshotbit, res))
-        
-        snap = self.samhandle.take_snapshot(self.cs.job_type_obj.experiment, newfullname)
+            snap = snap1
+
         logit.log("stagedfiles.next(): take_snaphot returns %s " % snap)
 
         self.cs.cs_last_split = snap
