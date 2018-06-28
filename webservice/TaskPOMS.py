@@ -103,7 +103,6 @@ class TaskPOMS:
                       .all()):
             res.append("completion type completed: %s" % s.submission_id)
             finish_up_tasks.append(s.submission_id)
-            self.update_submission_status(s.submission_id, "Located")
 
         n_project = 0
         for s in (dbhandle
@@ -117,7 +116,7 @@ class TaskPOMS:
             res.append("completion type located: %s" % s.submission_id)
             # after two days, call it on time...
             if now - s.updated > timedelta(days=2):
-                self.update_submission_status(s.submission_id, "Located")
+                finish_up_tasks.append(s.submission_id)
 
             elif s.project:
                 # task had a sam project, add to the list to look
@@ -132,7 +131,6 @@ class TaskPOMS:
 
                 lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
                 lookup_task_list.append(s)
-                lookup_base_list.append(basedims)
                 lookup_dims_list.append(allkiddims)
 
         dbhandle.commit()
@@ -154,7 +152,7 @@ class TaskPOMS:
                 finish_up_tasks.append(task.submission_id)
 
         for s in finish_up_tasks:
-            self.update_submission_status(s,"Located")
+            self.update_submission_status(dbhandle,s,"Located")
 
         dbhandle.commit()
 
@@ -178,6 +176,7 @@ class TaskPOMS:
             futl = []
         else:
             futl = dbhandle.query(Submission).filter(Submission.submission_id.in_(finish_up_tasks)).all()
+
         for task in futl:
             # get logs for job for final cpu values, etc.
             logit.log("Starting finish_up_tasks items for task %s" % task.submission_id)
@@ -186,7 +185,6 @@ class TaskPOMS:
                 self.launch_dependents_if_needed(dbhandle, samhandle, getconfig, gethead, seshandle, err_res, task)
 
         return res
-
 
 ###
 
@@ -265,11 +263,12 @@ class TaskPOMS:
         s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
         if not s:
             return "Unknown."
-        if s.jobsub_job_id != jobsub_job_id:
+
+        if jobsub_job_id and s.jobsub_job_id != jobsub_job_id:
             s.jobsub_job_id = jobsub_job_id
             dbhandle.add(s)
 
-        if s.project != project:
+        if project and s.project != project:
             s.project = project
             dbhandle.add(s)
 
