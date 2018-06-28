@@ -263,11 +263,12 @@ class TaskPOMS:
         s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
         if not s:
             return "Unknown."
-        if s.jobsub_job_id != jobsub_job_id:
+
+        if jobsub_job_id and s.jobsub_job_id != jobsub_job_id:
             s.jobsub_job_id = jobsub_job_id
             dbhandle.add(s)
 
-        if s.project != project:
+        if project and s.project != project:
             s.project = project
             dbhandle.add(s)
 
