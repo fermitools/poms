@@ -5,38 +5,15 @@
 {%endblock%}
 
 {%block header%}
-Dashboard{%include 'help_button.html'%}
+<img class="ui small image" src="{{pomspath}}/static/img/poms.jpg">
 {%endblock%}
-
-{%block header_desc%}
-&nbsp;&nbsp;&nbsp;&nbsp;See everything up and running in real time
-{%endblock%}
-
-{%block subheader%}
-Services
-{%endblock%}
-
 
 {%block content%}
 <div class="ui segment raised">
 Job launches: {{launches}}&nbsp;&nbsp;
- {% if (current_experimenter and current_experimenter.is_root()) %}
+ {% if (current_experimenter.is_root()) %}
  <a href="set_job_launches?hold=allowed"><button class="tiny ui left attached button"><i class="play icon"></i>Allow</button></a>
  <a href="set_job_launches?hold=hold"><button class="tiny ui right attached button" ><i class="stop icon"></i>Hold</button></a>
  {% endif %}
-</div>
-	   {{services}}
-<h3> Key:</h3>
-<div class="ui green label">
-  Good Component &nbsp; (0/total) <i class="link check icon"></i>
-</div>
-<div class="ui orange label">
-  Warn Component &nbsp; (num_failed/total) <i class="link warning sign icon"></i>
-</div>
-<div class="ui red label">
-  Failed Component &nbsp; (num_failed/total) <i class="link remove icon"></i>
-</div>
-<div class="ui label">
-  Unknown Component &nbsp; (0/total) <i class="link help circle icon"></i>
-</div>
+
 {%endblock%}

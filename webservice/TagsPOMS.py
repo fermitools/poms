@@ -23,18 +23,39 @@ class TagsPOMS(object):
         self.poms_service = ps
 
 
-    def show_campaigns(self, dbhandle, experiment):
-        tl = dbhandle.query(Campaign).filter(Campaign.experiment == experiment).all()
+    def show_campaigns(self, dbhandle, experimenter, *args, **kwargs):
+        logit.line()
+        logit.log("kwargs: %s" % str(kwargs))
+        logit.line()
+        logit.line()
+        action = kwargs.get('action', None)
+        msg = "OK"
+        if action == 'delete':
+            campaign_id = kwargs.get('del_campaign_id')
+            campaign = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+            if experimenter.is_authorized(campaign):
+                subs = dbhandle.query(Submission).join(CampaignCampaignStages, Submission.campaign_stage_id == CampaignCampaignStages.campaign_stage_id).filter(CampaignCampaignStages.campaign_id == campaign_id)
+                if subs.count() > 0:
+                    msg = "This campaign has been submitted.  It cannot be deleted."
+                else:
+                    dbhandle.query(CampaignCampaignStages).filter(CampaignCampaignStages.campaign_id == campaign_id).delete(synchronize_session=False)
+                    dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete(synchronize_session=False)
+                    dbhandle.commit()
+                    msg = "Campaign named %s with campaign_id %s was deleted ." % (kwargs.get('del_campaign_name'), campaign_id)
+            else:
+                msg = "You are not authorized to delete campaigns."
+
+        tl = dbhandle.query(Campaign).filter(Campaign.experiment == experimenter.session_experiment).all()
         if not tl:
-            return tl, ""
-        last_activity_l = dbhandle.query(func.max(Submission.updated)).join(CampaignCampaignStages,Submission.campaign_stage_id == CampaignCampaignStages.campaign_stage_id).join(Campaign,CampaignCampaignStages.campaign_id == Campaign.campaign_id).filter(Campaign.experiment == experiment).first()
+            return tl, "", msg
+        last_activity_l = dbhandle.query(func.max(Submission.updated)).join(CampaignCampaignStages,Submission.campaign_stage_id == CampaignCampaignStages.campaign_stage_id).join(Campaign,CampaignCampaignStages.campaign_id == Campaign.campaign_id).filter(Campaign.experiment == experimenter.session_experiment).first()
         logit.log("got last_activity_l %s" % repr(last_activity_l))
         last_activity = ""
         if last_activity_l and last_activity_l and last_activity_l[0]:
             if datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
                 last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         logit.log("after: last_activity %s" % repr(last_activity))
-        return tl, last_activity
+        return tl, last_activity, msg
 
 
     def link_tags(self, dbhandle, ses_get, campaign_stage_id, tag_name, experiment):
@@ -71,17 +92,6 @@ class TagsPOMS(object):
         else:
             response = {"msg": "You are not authorized to add campaigns."}
             return response
-
-    def delete_tag_entirely(self, dbhandle, ses_get, campaign_id):
-        tag = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-        if ses_get('experimenter').is_authorized(tag.experiment):
-            dbhandle.query(CampaignCampaignStages).filter(CampaignCampaignStages.campaign_id == campaign_id).delete(synchronize_session=False)
-            dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete(synchronize_session=False)
-            dbhandle.commit()
-            response = {"msg": "OK"}
-        else:
-            response = {"msg": "You are not authorized to delete campaigns."}
-        return response
 
     def delete_campaigns_tags(self, dbhandle, ses_get, campaign_stage_id, campaign_id, experiment):
 

@@ -31,7 +31,7 @@ def log(*args):
         __logmess(args[0],args[1])
 
 def line(char="*", length=80, *args):
-    log(who+char*lenth)
+    log(char*length)
 
 def setlevel(level="INFO", loggers=["cherrypy.error", "cherrypy.access", "sqlalchemy.engine"]):
     # loggers: cherrypy.error, cherrypy.access, sqlalchemy.engine (there are more for sqlalchemy)

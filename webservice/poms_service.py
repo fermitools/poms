@@ -285,13 +285,11 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaigns(self):
-        experiment = cherrypy.session.get('experimenter').session_experiment
-        tl, last_activity = self.tagsPOMS.show_campaigns(cherrypy.request.db, experiment)
-        current_experimenter = cherrypy.session.get('experimenter')
+    def show_campaigns(self, *args, **kwargs):
+        experimenter = cherrypy.session.get('experimenter')
+        tl, last_activity, msg = self.tagsPOMS.show_campaigns(cherrypy.request.db, experimenter, *args, **kwargs)
         template = self.jinja_env.get_template('show_campaigns.html')
-
-        return template.render(tl=tl, last_activity=last_activity, help_page="ShowCampaignTagsHelp")
+        return template.render(tl=tl, last_activity=last_activity, msg=msg, help_page="ShowCampaignTagsHelp")
 
     @cherrypy.expose
     @logit.logstartstop
@@ -812,12 +810,6 @@ class PomsService(object):
         if campaign_stage_id == None and campaign_id != None:
             campaign_stage_id = campaign_id
         return self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session.get, campaign_stage_id, tag_name, experiment)
-
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def delete_tag_entirely(self, campaign_id):
-        return self.tagsPOMS.delete_tag_entirely(cherrypy.request.db, cherrypy.session.get, campaign_id)
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
