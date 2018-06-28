@@ -24,10 +24,6 @@ class TagsPOMS(object):
 
 
     def show_campaigns(self, dbhandle, experimenter, *args, **kwargs):
-        logit.line()
-        logit.log("kwargs: %s" % str(kwargs))
-        logit.line()
-        logit.line()
         action = kwargs.get('action', None)
         msg = "OK"
         if action == 'delete':

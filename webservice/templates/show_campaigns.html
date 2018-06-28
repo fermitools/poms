@@ -149,13 +149,11 @@ $(document).ready(function() {
         widgetOptions : {filter_reset: '.reset', saveSort: true},
         //dateFormat : "yyyymmdd"
         });
-    });
 
-$(document).ready(function() {
-    {% if msg != 'OK' %}
-    $("#poms_message_data").text("{{msg}}");
-    $("#display_message_modal").modal('show');
-    {% endif %}
+    if ('{{msg}}' != 'OK') {
+        $("#poms_message_data").text('{{msg}}');
+        $("#display_message_modal").modal('show');
+    }
 });
 
 $('#campaign_table')
