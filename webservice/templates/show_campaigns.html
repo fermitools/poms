@@ -28,11 +28,12 @@ Campaigns
                 <th data-sorter="false" data-filter="false">Edit Workflow</th>
                 <th data-sorter="false" data-filter="false">Clone Workflow</th>
                 <th data-sorter="false" data-filter="false">Workflow .ini</th>
+                <th data-sorter="false" data-filter="false">Delete Campaign</th>
             </tr>
         </thead>
         <tbody>
         {% for s in tl|sort(attribute='tag_name') %}
-            <tr>
+            <tr id="row_{{s.campaign_id}}" name="row_{{s.campaign_id}}">
                 <td>{{s.tag_name}}</td>
                 <td>Submissions Running</td>
                 <td>
@@ -58,7 +59,7 @@ Campaigns
                 </td>
                 <td>
                     <button type="button" onclick="clone_template('{{s.tag_name}}');">
-                        <i class="copy icon"></i>Clone Workflow
+                        <i class="copy blue icon"></i>Clone Workflow
                     </button>
                 </td>
                 <td>
@@ -67,6 +68,11 @@ Campaigns
                             <i class="file icon"></i>Workflow ini
                         </button>
                     </a>
+                </td>
+                <td>
+                    <button type="button">
+                        <i class="trash blue icon" onclick="delete_campaign('{{s.tag_name}}', {{s.campaign_id}});"></i>
+                    </button>
                 </td>
             </tr>
 
@@ -103,6 +109,39 @@ Campaigns
   <div class="ui hidden divider"></div>
 </div> <!-- Ends template_clone_modal -->
 
+<div class="ui modal" id="delete_campaign_modal">
+    <i class="close icon"></i>
+    <h3 class="block header"><span id="template_header">
+        Delete Campaign </span> {{ show_hint('', 'Delete Campaign') }}
+    </h3>
+    <div class="ui hidden divider"></div>
+    <div class="ui text container">
+        <div class="ui ignored warning message">
+                    <p>
+                        This will delete all stages of the campaign shown below.
+                        It will not delete job types or login setups.
+                        Deletions will <b>not</b> occurr if the campaign has been submitted.
+                    </p>
+        </div>
+        <form id="delete_campaign_form" class="ui form" method="GET" action="{{pomspath}}/show_campaigns">
+            <div class="one field">
+                <div class="field">
+                    <label>Campaign to Delete</label>
+                    <input type="text" id="del_campaign_name" name="del_campaign_name" readonly>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui button deny green">Cancel</div>
+                <input type="submit" value="Delete" class="ui button red" />
+            </div>
+            <input type="hidden" id="del_campaign_id" name="del_campaign_id">
+            <input type="hidden" id="action" name="action" value="delete">
+        </form>
+    </div>
+    <div class="ui hidden divider"></div>
+  </div> <!-- Ends template_clone_modal -->
+
+
 <script>
 $(document).ready(function() {
     $('#campaign_table').tablesorter( {
@@ -110,6 +149,13 @@ $(document).ready(function() {
         widgetOptions : {filter_reset: '.reset', saveSort: true},
         //dateFormat : "yyyymmdd"
         });
+    });
+
+$(document).ready(function() {
+    {% if msg != 'OK' %}
+    $("#poms_message_data").text("{{msg}}");
+    $("#display_message_modal").modal('show');
+    {% endif %}
 });
 
 $('#campaign_table')
@@ -135,6 +181,12 @@ function clone_template(campaign_name) {
     $("#campaign").val(campaign_name);
     $("#from").val(campaign_name)
     $("#template_clone_modal").modal({}).modal('show');
+}
+
+function delete_campaign(del_campaign_name, del_campaign_id) {
+    $("#del_campaign_name").val(del_campaign_name);
+    $("#del_campaign_id").val(del_campaign_id);
+    $("#delete_campaign_modal").modal({}).modal('show');
 }
 
 $('#template_clone_form')
