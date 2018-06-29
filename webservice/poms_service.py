@@ -21,7 +21,7 @@ from . import (
                logit,
                version)
 from .elasticsearch import Elasticsearch
-from .poms_model import CampaignStage, Submission
+from .poms_model import Campaign, CampaignCampaignStages, CampaignStage, Submission
 
 
 def error_response():
@@ -589,7 +589,11 @@ class PomsService(object):
         return res
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     @logit.logstartstop
+    def running_submissions(self,campaign_id_list):
+        return self.taskPOMS.running_submissions(cherrypy.request.db, campaign_id_list)
+
     def update_submission(self, submission_id, jobsub_job_id, pct_complete = None, status = None, project = None):
         res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id, status  = status, project = project, pct_complete = pct_complete)
         return res
