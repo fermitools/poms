@@ -35,7 +35,7 @@ Campaigns
         {% for s in tl|sort(attribute='tag_name') %}
             <tr id="row_{{s.campaign_id}}" name="row_{{s.campaign_id}}">
                 <td>{{s.tag_name}}</td>
-                <td>Submissions Running</td>
+                <td id="running_{{s.campaign_id}}">...</td>
                 <td>
                     <a href="{{pomspath}}/campaign_time_bars?tag={{s.tag_name}}&tdays=7&tmax={{last_activity}}">
                         <button type="button">
@@ -154,6 +154,7 @@ $(document).ready(function() {
         $("#poms_message_data").text('{{msg}}');
         $("#display_message_modal").modal('show');
     }
+    get_running();
 });
 
 $('#campaign_table')
@@ -161,6 +162,7 @@ $('#campaign_table')
     // check that storage ulility is loaded
     if ($.tablesorter.storage) {
         // get saved filters
+
         var f = $.tablesorter.storage(this, 'tablesorter-filters') || [];
         $(this).trigger('search', [f]);
     }
@@ -174,6 +176,25 @@ $('#campaign_table')
         $.tablesorter.storage(this, 'tablesorter-filters', f);
     }
 });
+
+function get_running() {
+  $.ajax({
+      url: "{{pomspath}}/running_submissions?campaign_id_list={%for c in tl %}{{c.campaign_id}},{%endfor%}-1",
+      type: 'GET',
+      dataType: 'json',
+      success: update_running,
+  })
+}
+function update_running(data) {
+    var camp_id;
+    var name;
+    for (camp_id in data) {
+      console.log([camp_id, data[camp_id]])
+       if (camp_id != "-1") {
+          $("#running_"+camp_id).html( String(data[camp_id]))
+       }
+    }
+}
 
 function clone_template(campaign_name) {
     $("#campaign").val(campaign_name);

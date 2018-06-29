@@ -375,12 +375,15 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_time_bars(self, campaign_stage_id=None, tag=None, tmin=None, tmax=None, tdays=1):
+    def campaign_time_bars(self, campaign_stage_id=None, campaign=None, tag=None, tmin=None, tmax=None, tdays=1):
+        if tag != None and campaign == None:
+             campaign = tag
+
         (
             job_counts, blob, name, tmin, tmax, nextlink, prevlink, tdays, key, extramap
         ) = self.campaignsPOMS.campaign_time_bars(cherrypy.request.db,
                                                   campaign_stage_id=campaign_stage_id,
-                                                  tag=tag,
+                                                  campaign=campaign,
                                                   tmin=tmin, tmax=tmax, tdays=tdays)
         template = self.jinja_env.get_template('campaign_time_bars.html')
         return template.render(job_counts=job_counts, blob=blob, name=name, tmin=tmin, tmax=tmax,
