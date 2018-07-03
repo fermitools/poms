@@ -25,6 +25,8 @@ from .poms_model import (CampaignStage,
                          JobTypeSnapshot,
                          CampaignDependency,
                          CampaignStageSnapshot,
+                         CampaignCampaignStages,
+                         Campaign,
                          Experimenter,
                          HeldLaunch,
                          LoginSetup,
@@ -87,7 +89,7 @@ class TaskPOMS:
         mark_located = deque()
         #
         # move launch stuff etc, to one place, so we can keep the table rows
-        sq = (dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label('latest')).group_by(SubmissionHistory.submission_id).subquery())
+        sq = (dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label('latest')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id).subquery())
         completed_sids = (dbhandle.query(SubmissionHistory.submission_id).join(sq,SubmissionHistory.submission_id == sq.c.submission_id).filter(SubmissionHistory.status == 'Completed', SubmissionHistory.created == sq.c.latest).all())
 
         res.append("Completed submissions_ids: %s" % repr(list(completed_sids)))
@@ -258,6 +260,29 @@ class TaskPOMS:
         sh.status = status
         sh.created = datetime.now(utc)
         dbhandle.add(sh)
+
+    def running_submissions(self, dbhandle, campaign_id_list):
+        cl = list(map(int, campaign_id_list.split(',')))
+        logit.log("INFO", "running_submissions(%s)" % repr(cl))
+        sq = (dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label('latest')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id).subquery())
+        running_sids = (dbhandle.query(SubmissionHistory.submission_id).join(sq,SubmissionHistory.submission_id == sq.c.submission_id).filter(SubmissionHistory.status.in_(('New','Idle','Running')), SubmissionHistory.created == sq.c.latest).all())
+
+        ccl = (dbhandle.query(CampaignCampaignStages.campaign_id, func.count(Submission.submission_id))
+            .join(CampaignStage, CampaignCampaignStages.campaign_stage_id == CampaignStage.campaign_stage_id)
+            .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
+            .filter(CampaignCampaignStages.campaign_id.in_(cl), Submission.submission_id.in_(running_sids)).group_by(CampaignCampaignStages.campaign_id).all())
+
+        # the query never returns a 0 count, so initialize result with
+        # a zero count for everyone, then update with the nonzero counts
+        # from the query
+        res = {}
+        for c in cl:
+            res[c] = 0
+
+        for row in ccl:
+            res[row[0]] = row[1]           
+
+        return res
 
     def update_submission(self, dbhandle, submission_id, jobsub_job_id, pct_complete = None, status = None, project = None):
         s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()

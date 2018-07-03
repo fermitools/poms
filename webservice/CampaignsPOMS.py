@@ -1021,13 +1021,13 @@ class CampaignsPOMS:
                 )
 
     # @pomscache_10.cache_on_arguments()
-    def campaign_time_bars(self, dbhandle, campaign_stage_id=None, tag=None, tmin=None, tmax=None, tdays=1):
+    def campaign_time_bars(self, dbhandle, campaign_stage_id=None, campaign=None, tmin=None, tmax=None, tdays=1):
         """
             Give time-bars for Tasks for this campaign in a time window
             using the time_grid code
         """
         if campaign_stage_id == None:
-            base_link = 'campaign_time_bars?tag={}&'.format(tag)
+            base_link = 'campaign_time_bars?campaign={}&'.format(campaign)
         else:
             base_link = 'campaign_time_bars?campaign_stage_id={}&'.format(campaign_stage_id)
 
@@ -1048,12 +1048,12 @@ class CampaignsPOMS:
             q = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == icampaign_id)
             cpl = q.all()
             name = cpl[0].name
-        elif tag is not None and tag != "":
+        elif campaign is not None and campaign != "":
             q = dbhandle.query(CampaignStage).join(CampaignCampaignStages, Campaign).filter(
                 CampaignStage.campaign_stage_id == CampaignCampaignStages.campaign_stage_id, Campaign.campaign_id == CampaignCampaignStages.campaign_id,
-                Campaign.tag_name == tag)
+                Campaign.tag_name == campaign)
             cpl = q.all()
-            name = tag
+            name = campaign
         else:
             err_res = "404 Permission Denied."
             return "Neither CampaignStage nor Campaign found"
@@ -1078,7 +1078,7 @@ class CampaignsPOMS:
             else:
                 jjid = str(jjid).replace('fifebatch', '').replace('.fnal.gov', '')
 
-            if tag is not None:
+            if campaign is not None:
                 jjid += "<br>" + th.submission_obj.campaign_stage_obj.name
 
             if th.status not in ("Completed", "Located", "Failed", "Removed"):

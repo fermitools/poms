@@ -21,7 +21,7 @@ from . import (
                logit,
                version)
 from .elasticsearch import Elasticsearch
-from .poms_model import CampaignStage, Submission
+from .poms_model import Campaign, CampaignCampaignStages, CampaignStage, Submission
 
 
 def error_response():
@@ -375,12 +375,15 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_time_bars(self, campaign_stage_id=None, tag=None, tmin=None, tmax=None, tdays=1):
+    def campaign_time_bars(self, campaign_stage_id=None, campaign=None, tag=None, tmin=None, tmax=None, tdays=1):
+        if tag != None and campaign == None:
+             campaign = tag
+
         (
             job_counts, blob, name, tmin, tmax, nextlink, prevlink, tdays, key, extramap
         ) = self.campaignsPOMS.campaign_time_bars(cherrypy.request.db,
                                                   campaign_stage_id=campaign_stage_id,
-                                                  tag=tag,
+                                                  campaign=campaign,
                                                   tmin=tmin, tmax=tmax, tdays=tdays)
         template = self.jinja_env.get_template('campaign_time_bars.html')
         return template.render(job_counts=job_counts, blob=blob, name=name, tmin=tmin, tmax=tmax,
@@ -589,7 +592,11 @@ class PomsService(object):
         return res
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     @logit.logstartstop
+    def running_submissions(self,campaign_id_list):
+        return self.taskPOMS.running_submissions(cherrypy.request.db, campaign_id_list)
+
     def update_submission(self, submission_id, jobsub_job_id, pct_complete = None, status = None, project = None):
         res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id, status  = status, project = project, pct_complete = pct_complete)
         return res
