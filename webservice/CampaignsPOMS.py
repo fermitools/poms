@@ -843,25 +843,14 @@ class CampaignsPOMS:
             baseurl = "{}/campaign_info?campaign_stage_id=".format(config_get("pomspath"))
 
             for cs in cl:
-                tcl = dbhandle.query(func.count(Submission.status), Submission.status).group_by(Submission.status).filter(
-                    Submission.campaign_stage_id == cs.campaign_stage_id).all()
-                tot = 0
-                ltot = 0
-                for (count, status) in tcl:
-                    tot = tot + count
-                    if status == 'Located':
-                        ltot = count
                 c_ids.append(cs.campaign_stage_id)
                 pdot.stdin.write(
-                    'cs{:d} [URL="{}{:d}",label="{}\\nSubmissions {:d} Located {:d}",color={}];\n'.format(cs.campaign_stage_id,
+                    'cs{:d} [URL="{}{:d}",label="{}",color=black];\n'.format(cs.campaign_stage_id,
                                                                                                           baseurl,
                                                                                                           cs.campaign_stage_id,
-                                                                                                          cs.name,
-                                                                                                          tot,
-                                                                                                          ltot,
-                                                                                                          ("darkgreen" if ltot == tot else "black")))
+                                                                                                          cs.name))
 
-            cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
+            cdl = (dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all())
 
             for cd in cdl:
                 pdot.stdin.write('cs{:d} -> cs{:d};\n'.format(cd.needs_campaign_stage_id, cd.provides_campaign_stage_id))
@@ -871,6 +860,7 @@ class CampaignsPOMS:
             text = pdot.stdout.read()
             pdot.wait()
         except:
+            raise
             text = ""
         return bytes(text, encoding="utf-8")
 
@@ -1095,16 +1085,21 @@ class CampaignsPOMS:
                                  created=th.created.replace(tzinfo=utc),
                                  tmin=th.submission_obj.created - timedelta(minutes=15),
                                  tmax=th.submission_obj.updated,
+                                 tminsec = th.submission_obj.created.strftime("%s"),
                                  status=th.status,
                                  jobsub_job_id=jjid,
-                                 jobsub_cluster = jjid[:jjid.find('@')],
-                                 jobsub_host = jjid[jjid.find('@')+1:],
-                                   ))
+                                 jobsub_cluster = jjid[:jjid.find('.')],
+                                 jobsub_schedd = jjid[jjid.find('@')+1:],
+                               ))
 
         logit.log("campaign_time_bars: items: " + repr(items))
+        if cpl[0].dataset in (None, 'None','none'):
+             url_template= "https://fifemon.fnal.gov/monitor/d/000000118/dag-cluster-summary?var-cluster%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=5m&orgId=1"
+        else:
+             url_template= "https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=5m&orgId=1"
 
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id',
-                                    url_template="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_host)s.fnal.gov&from=now-2days&to=now&refresh=5m&orgId=1",
+                                    url_template=url_template,
                                     extramap=extramap)
         return "", blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
