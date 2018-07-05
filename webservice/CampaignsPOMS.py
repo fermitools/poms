@@ -863,7 +863,7 @@ class CampaignsPOMS:
                           ltot,
                           ("darkgreen" if ltot == tot else "black")))
 
-            cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
+            cdl = (dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all())
 
             for cd in cdl:
                 pdot.stdin.write('cs{:d} -> cs{:d};\n'.format(cd.needs_campaign_stage_id, cd.provides_campaign_stage_id))
@@ -873,6 +873,7 @@ class CampaignsPOMS:
             text = pdot.stdout.read()
             pdot.wait()
         except:
+            raise
             text = ""
             raise
         return bytes(text, encoding="utf-8")
@@ -1098,16 +1099,21 @@ class CampaignsPOMS:
                                  created=th.created.replace(tzinfo=utc),
                                  tmin=th.submission_obj.created - timedelta(minutes=15),
                                  tmax=th.submission_obj.updated,
+                                 tminsec = th.submission_obj.created.strftime("%s"),
                                  status=th.status,
                                  jobsub_job_id=jjid,
-                                 jobsub_cluster = jjid[:jjid.find('@')],
-                                 jobsub_host = jjid[jjid.find('@')+1:],
-                                   ))
+                                 jobsub_cluster = jjid[:jjid.find('.')],
+                                 jobsub_schedd = jjid[jjid.find('@')+1:],
+                               ))
 
         logit.log("campaign_time_bars: items: " + repr(items))
+        if cpl[0].dataset in (None, 'None','none'):
+             url_template= "https://fifemon.fnal.gov/monitor/d/000000118/dag-cluster-summary?var-cluster%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=5m&orgId=1"
+        else:
+             url_template= "https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=5m&orgId=1"
 
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id',
-                                    url_template="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_host)s.fnal.gov&from=now-2days&to=now&refresh=5m&orgId=1",
+                                    url_template=url_template,
                                     extramap=extramap)
         return "", blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
