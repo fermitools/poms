@@ -196,9 +196,14 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_deps(self, tag=None, camp_id=None):
+    def campaign_deps(self, campaign_name = None, campaign_stage_id = None, tag=None, camp_id=None):
+        if campaign_name == None and tag != None:
+            campaign_name = tag
+        if campaign_stage_id == None and camp_id != None:
+            campaign_stage_id = camp_id
+
         template = self.jinja_env.get_template('campaign_deps.html')
-        svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config.get, tag, camp_id)
+        svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config.get, campaign_name, campaign_stage_id)
         return template.render(tag=tag, svgdata=svgdata, help_page="CampaignDepsHelp")
 
     @cherrypy.expose
@@ -595,7 +600,8 @@ class PomsService(object):
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def running_submissions(self,campaign_id_list):
-        return self.taskPOMS.running_submissions(cherrypy.request.db, campaign_id_list)
+        cl = list(map(int, campaign_id_list.split(',')))
+        return self.taskPOMS.running_submissions(cherrypy.request.db, cl)
 
     def update_submission(self, submission_id, jobsub_job_id, pct_complete = None, status = None, project = None):
         res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id, status  = status, project = project, pct_complete = pct_complete)

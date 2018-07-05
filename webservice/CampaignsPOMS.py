@@ -815,51 +815,53 @@ class CampaignsPOMS:
 
         return "\n".join(res).replace("%", "%%")
 
-    def campaign_deps_svg(self, dbhandle, config_get, tag=None, camp_id=None):
+    def campaign_deps_svg(self, dbhandle, config_get, campaign_name=None,  campaign_stage_id = None):
         '''
             return campaign dependencies as an SVG graph
             uses "dot" to generate the drawing
         '''
-        if tag is not None:
-            cl = dbhandle.query(CampaignStage).join(CampaignCampaignStages, Campaign).filter(Campaign.tag_name == tag,
+        if campaign_name is not None:
+            cl = dbhandle.query(CampaignStage).join(CampaignCampaignStages, Campaign).filter(Campaign.tag_name == campaign_name,
                                                                                              CampaignCampaignStages.campaign_id == Campaign.campaign_id,
                                                                                              CampaignCampaignStages.campaign_stage_id == CampaignStage.campaign_stage_id).all()
-        if camp_id is not None:
+        if campaign_stage_id is not None:
             cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(
-                CampaignDependency.provides_campaign_stage_id == camp_id).all()
+                CampaignDependency.provides_campaign_stage_id == campaign_stage_id).all()
             cidl2 = dbhandle.query(CampaignDependency.provides_campaign_stage_id).filter(
-                CampaignDependency.needs_campaign_stage_id == camp_id).all()
-            s = set([camp_id])
+                CampaignDependency.needs_campaign_stage_id == campaign_stage_id).all()
+            s = set([campaign_stage_id])
             s.update(cidl1)
             s.update(cidl2)
             cl = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id.in_(s)).all()
 
         c_ids = deque()
+        for cs in cl:
+            c_ids.append(cs.campaign_stage_id)
+
+        logit.log(logit.INFO, "campaign_deps: c_ids=%s" % repr(c_ids))
+
         try:
             pdot = subprocess.Popen("tee /tmp/dotstuff | dot -Tsvg", shell=True, stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE, universal_newlines=True)
-            pdot.stdin.write('digraph {}Dependencies {{\n'.format(tag))
+            pdot.stdin.write('digraph {}Dependencies {{\n'.format(campaign_name))
             pdot.stdin.write('node [shape=box, style=rounded, color=lightgrey, fontcolor=black]\nrankdir = "LR";\n')
             baseurl = "{}/campaign_info?campaign_stage_id=".format(config_get("pomspath"))
 
+            locatedmap = self.poms_service.taskPOMS.running_submissions(dbhandle, c_ids, status_list=["Located"])
+
+            logit.log(logit.INFO, "campaign_deps: locatedmap=%s" % repr(locatedmap))
             for cs in cl:
-                tcl = dbhandle.query(func.count(Submission.status), Submission.status).group_by(Submission.status).filter(
-                    Submission.campaign_stage_id == cs.campaign_stage_id).all()
-                tot = 0
-                ltot = 0
-                for (count, status) in tcl:
-                    tot = tot + count
-                    if status == 'Located':
-                        ltot = count
-                c_ids.append(cs.campaign_stage_id)
+                tot = dbhandle.query(func.count(Submission.submission_id)).filter(Submission.campaign_stage_id == cs.campaign_stage_id).one()[0]
+                ltot = locatedmap[cs.campaign_stage_id]
+                logit.log(logit.INFO, "campaign_deps: tot=%s" % repr(tot))
                 pdot.stdin.write(
                     'cs{:d} [URL="{}{:d}",label="{}\\nSubmissions {:d} Located {:d}",color={}];\n'.format(cs.campaign_stage_id,
-                                                                                                          baseurl,
-                                                                                                          cs.campaign_stage_id,
-                                                                                                          cs.name,
-                                                                                                          tot,
-                                                                                                          ltot,
-                                                                                                          ("darkgreen" if ltot == tot else "black")))
+                          baseurl,
+                          cs.campaign_stage_id,
+                          cs.name,
+                          tot,
+                          ltot,
+                          ("darkgreen" if ltot == tot else "black")))
 
             cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
 
@@ -872,6 +874,7 @@ class CampaignsPOMS:
             pdot.wait()
         except:
             text = ""
+            raise
         return bytes(text, encoding="utf-8")
 
     def show_campaign_stages(self, dbhandle, samhandle, campaign_ids=None, tmin=None, tmax=None, tdays=7,
@@ -1010,7 +1013,7 @@ class CampaignsPOMS:
         logit.log("got format {}".format(campaign_kibana_link_format))
         kibana_link = campaign_kibana_link_format.format(campaign_stage_id)
 
-        dep_svg = self.campaign_deps_svg(dbhandle, config_get, camp_id=campaign_stage_id)
+        dep_svg = self.campaign_deps_svg(dbhandle, config_get, campaign_stage_id=campaign_stage_id)
         return (campaign_info,
                 time_range_string,
                 tmins, tmaxs, tdays,

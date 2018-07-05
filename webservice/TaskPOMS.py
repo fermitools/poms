@@ -261,11 +261,22 @@ class TaskPOMS:
         sh.created = datetime.now(utc)
         dbhandle.add(sh)
 
-    def running_submissions(self, dbhandle, campaign_id_list):
-        cl = list(map(int, campaign_id_list.split(',')))
+    def running_submissions(self, dbhandle, campaign_id_list, status_list=['New','Idle','Running']):
+
+        cl = campaign_id_list
+
         logit.log("INFO", "running_submissions(%s)" % repr(cl))
-        sq = (dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label('latest')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id).subquery())
-        running_sids = (dbhandle.query(SubmissionHistory.submission_id).join(sq,SubmissionHistory.submission_id == sq.c.submission_id).filter(SubmissionHistory.status.in_(('New','Idle','Running')), SubmissionHistory.created == sq.c.latest).all())
+        sq = (dbhandle.query(
+                SubmissionHistory.submission_id, 
+                func.max(SubmissionHistory.created).label('latest')
+              ).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
+               .group_by(SubmissionHistory.submission_id).subquery())
+
+        running_sids = (dbhandle.query(SubmissionHistory.submission_id)
+                        .join(sq,SubmissionHistory.submission_id == sq.c.submission_id)
+                        .filter(SubmissionHistory.status.in_(status_list),
+                                SubmissionHistory.created == sq.c.latest)
+                        .all())
 
         ccl = (dbhandle.query(CampaignCampaignStages.campaign_id, func.count(Submission.submission_id))
             .join(CampaignStage, CampaignCampaignStages.campaign_stage_id == CampaignStage.campaign_stage_id)
