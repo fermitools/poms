@@ -109,43 +109,13 @@ class Files_status(object):
         # all_kids_list = samhandle.count_files_list(cs.experiment, all_kids_needed)
         tids = [s.submission_id for s in tl]
 
-        if (len(tids) == 0):
-           tjifl = [] 
-           tjifh = {}
-           tjofl = []
-           tjofh = {}
-        else:
-            #
-            # get input/output file counts
-            #
-            tjifl = (dbhandle.query(Job.submission_id, func.count(JobFile.file_name))
-                     .filter(Job.submission_id.in_(tids))
-                     .filter(JobFile.job_id == Job.job_id)
-                     .filter(JobFile.file_type == "input")
-                     .group_by(Job.submission_id)
-                     .all())
-
-            tjifh = dict(tjifl)
-
-            tjofl = (dbhandle.query(Job.submission_id, func.count(JobFile.file_name))
-                     .filter(Job.submission_id.in_(tids))
-                     .filter(JobFile.job_id == Job.job_id)
-                     .filter(JobFile.file_type == "output")
-                     .group_by(Job.submission_id)
-                     .all())
-
-            tjofh = dict(tjofl)
-
 
         columns = ["jobsub_jobid", "project", "date", "submit-<br>ted",
                    "deliv-<br>ered<br>SAM",
                    "unknown<br>SAM",
-                   "deliv-<br>ered<br>logs",
-                   "out-<br>put<br>logs",
                    "con-<br>sumed", "failed", "skipped",
                    "w/some kids<br>declared",
                    "w/all kids<br>declared",
-                   "kids in<br>flight",
                    "w/kids<br>located",
                    "pending"]
 
@@ -160,8 +130,6 @@ class Files_status(object):
             partpending = psummary.get('files_in_snapshot', 0) - some_kids_list[i]
             #pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
             pending = partpending
-            logdelivered = tjifh.get(s.submission_id,0)
-            logoutput = tjofh.get(s.submission_id,0)
 
             task_jobsub_job_id = s.jobsub_job_id
             if task_jobsub_job_id is None:
@@ -175,59 +143,18 @@ class Files_status(object):
                              listfiles % base_dim_list[i] + " and consumed_status consumed,failed,skipped,delivered "],
                             ["%d" % psummary.get('tot_unknown', 0),
                              listfiles % base_dim_list[i] + " and consumed_status unknown"],
-                            ["%d" % logdelivered, "./list_task_logged_files?submission_id=%s" % s.submission_id],
-                            ["%d" % logoutput, "./list_task_logged_files?submission_id=%s" % s.submission_id],
                             [psummary.get('tot_consumed', 0), listfiles % base_dim_list[i] + " and consumed_status consumed"],
                             [psummary.get('tot_failed', 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
                             [psummary.get('tot_skipped', 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
                             [some_kids_decl_list[i], listfiles % some_kids_needed[i]],
                             [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                            [len(self.poms_service.filesPOMS.get_inflight(dbhandle, campaign_stage_id, submission_id=s.submission_id)),
-                             "./inflight_files?submission_id=%d" % s.submission_id],
                             [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
                             [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                             ])
         return cs, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
 
 
-    @staticmethod
-    def get_inflight(dbhandle, campaign_stage_id=None, submission_id=None):   # This method was deleted from the main script
-        q = dbhandle.query(JobFile).join(Job).join(Submission).join(CampaignStage)
-        q = q.filter(Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
-        q = q.filter(Submission.submission_id == Job.submission_id)
-        q = q.filter(Job.job_id == JobFile.job_id)
-        q = q.filter(JobFile.file_type == 'output')
-        q = q.filter(JobFile.declared == None)
-        if campaign_stage_id is not None:
-            q = q.filter(Submission.campaign_stage_id == campaign_stage_id)
-        if submission_id is not None:
-            q = q.filter(Job.submission_id == submission_id)
-        q = q.filter(Job.output_files_declared == False)
-        return [jf.file_name for jf in q.all()]
 
-
-    def inflight_files(self, dbhandle, status_response, getconfig, campaign_stage_id=None, submission_id=None):
-        #status_response = cherrypy.response.status
-        if campaign_stage_id:
-            cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
-        elif submission_id:
-            cs = dbhandle.query(CampaignStage).join(Submission).filter(CampaignStage.campaign_stage_id == Submission.campaign_stage_id, Submission.submission_id == submission_id).first()
-        else:
-            # status_response = "404 Permission Denied."
-            return "Neither CampaignStage nor Submission found"
-        outlist = self.poms_service.filesPOMS.get_inflight(dbhandle, campaign_stage_id=campaign_stage_id, submission_id=submission_id)
-        statusmap = {}
-        if cs:
-            fss_file = "%s/%s_files.db" % (getconfig("ftsscandir"), cs.experiment)
-            if os.path.exists(fss_file):
-                fss = shelve.open(fss_file, flag='r', protocol=3)
-                for f in outlist:
-                    try:
-                        statusmap[f] = fss.get(f, '')
-                    except KeyError:
-                        statusmap[f] = ''
-                fss.close()
-        return outlist, statusmap, cs
 
     def show_dimension_files(self, samhandle, experiment, dims, dbhandle=None):
 

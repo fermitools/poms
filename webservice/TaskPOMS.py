@@ -143,24 +143,26 @@ class TaskPOMS:
         logit.log("wrapup_tasks: summary_list: %s" % repr(summary_list))    # Check if that is working
         res.append("wrapup_tasks: summary_list: %s" % repr(summary_list))
 
+        res.append("count_list: %s" % count_list)
+        res.append("thresholds: %s" % thresholds)
+        res.append("lookup_dims_list: %s" % lookup_dims_list)
+
         for i in range(len(summary_list)):
             task = lookup_task_list[i]
             cfrac = task.campaign_stage_snapshot_obj.completion_pct / 100.0
             threshold = (summary_list[i].get('tot_consumed', 0) * cfrac)
             thresholds.append(threshold)
             val = float(count_list[i])
+            res.append("submission %s val %f threshold %f "%(task, val, threshold))
             if val >= threshold and threshold > 0:
-                n_located = n_located + 1
+                res.append("adding submission %s "%task)
                 finish_up_tasks.append(task.submission_id)
 
         for s in finish_up_tasks:
+            res.append("marking submission %s located "%s)
             self.update_submission_status(dbhandle,s,"Located")
 
         dbhandle.commit()
-
-        res.append("count_list: %s" % count_list)
-        res.append("thresholds: %s" % thresholds)
-        res.append("lookup_dims_list: %s" % lookup_dims_list)
 
         #
         # now, after committing to clear locks, we run through the
@@ -174,14 +176,19 @@ class TaskPOMS:
         #else:
         #    njtl = dbhandle.query(Submission).filter(Submission.submission_id.in_(need_joblogs)).all()
 
+        res.append("finish_up_tasks: %s "% repr(finish_up_tasks))
+
         if len(finish_up_tasks) == 0:
             futl = []
         else:
             futl = dbhandle.query(Submission).filter(Submission.submission_id.in_(finish_up_tasks)).all()
 
+        res.append(" got list... ")
+
         for task in futl:
             # get logs for job for final cpu values, etc.
             logit.log("Starting finish_up_tasks items for task %s" % task.submission_id)
+            res.append("Starting finish_up_tasks items for task %s" % task.submission_id)
 
             if not self.launch_recovery_if_needed(dbhandle, samhandle, getconfig, gethead, seshandle, err_res, task):
                 self.launch_dependents_if_needed(dbhandle, samhandle, getconfig, gethead, seshandle, err_res, task)

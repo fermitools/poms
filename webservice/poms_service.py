@@ -603,6 +603,8 @@ class PomsService(object):
         cl = list(map(int, campaign_id_list.split(',')))
         return self.taskPOMS.running_submissions(cherrypy.request.db, cl)
 
+    @cherrypy.expose
+    @logit.logstartstop
     def update_submission(self, submission_id, jobsub_job_id, pct_complete = None, status = None, project = None):
         res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id, status  = status, project = project, pct_complete = pct_complete)
         return res

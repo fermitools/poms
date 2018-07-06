@@ -129,35 +129,24 @@ $( document ).ready(function() {
          <h3>Reports/Status</h3>
          <div class=menu>
               <div class=item>
-               <a href="{{pomspath}}/jobs_eff_histo?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Job Efficiency Histogram (1 month)
+                 <i class="external icon"></i>
+                 <a href="https://landscape.fnal.gov/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{CampaignStage.experiment|replace('samdev','fermilab')}}" target='_blank'>Production Shifter Page (Landscape)</a>
+              </div>
+              <div class=item>
+                 <i class="external icon"></i>
+                 <a href="{{kibana_link}}" target='_blank'>POMS Campaign Stage(landscape)</a>
+              </div>
+              <div class=item>
+               <a href="https://fifemon.fnal.gov/monitor/d/000000212/poms-campaign-stats?orgId=1&var-Campaign={{CampaignStage.campaign_stage_id}}">
+                   <i class="external bar chart icon" data-content="Campaign Stats"></i>Campaign Stage Stats (Landscape)
                </a>
               </div>
               <div class=item>
-               <a href="{{pomspath}}/jobs_time_histo?timetype=wall_time&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Job Wall Clock Time Histogram (1 month)
+               <a href="https://fifemon.fnal.gov/monitor/d/000000213/poms-tasks?orgId=1&var-Experiment={{CampaignStage.experiment|replace('samdev','fermilab')}}&var-Campaign={{CampaignStage.campaign_stage_id}}&from=now-7d&to=now">
+                   <i class="external bar chart icon" data-content="Submissions"></i>Submissions (Landscape)
                </a>
               </div>
-              <div class=item>
-               <a href="{{pomspath}}/jobs_time_histo?timetype=cpu_time&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Job CPU Time Histogram (1 month)
-               </a>
-              </div>
-              <div class=item>
-               <a href="{{pomspath}}/jobs_time_histo?timetype=copy_in_time&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Copy In Time Histogram (1 month)
-               </a>
-              </div>
-              <div class=item>
-               <a href="{{pomspath}}/jobs_time_histo?timetype=copy_out_time&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Copy Out Time Histogram(1 month)
-               </a>
-              </div>
-              <div class=item>
-               <a href="{{pomspath}}/campaign_sheet?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tdays=7&tmax={{last_activity}}">
-                <i class="external table icon" data-content="Campaign Stage Spreadsheet" data-variation="basic"></i>Day by Day Spreadsheet (1wk)
-               </a>
-              </div>
+
               <div class=item>
               <a href="{{pomspath}}/campaign_time_bars?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tdays=7&tmax={{last_activity}}">
                 <i class="external submissions icon" data-content="Submissions for CampaignStage Time Bars (1wk)" data-variation="basic"></i>Submission Time Bars (1wk)
@@ -165,10 +154,6 @@ $( document ).ready(function() {
               </div>
               <div class=item>
                 <a href="{{pomspath}}/campaign_task_files?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}"><i class="external file icon" data-content="List file statistics for Submissions for CampaignStage" data-variation="basic"></i>Campaign Stage Submission Files</a>
-              </div>
-              <div class=item>
-                 <i class="external icon"></i>
-                 <a href="{{kibana_link}}" target='_blank'>Kibana Usage Info for Campaign Stage</a>
               </div>
           </div> <!-- class=menu -->
     </div>
@@ -348,12 +333,9 @@ $( document ).ready(function() {
     </div>
 
    <div class="ui segment raised">
-    Immediate Dependencies
-    <div style="width:95%; height: 20em; border: 1px solid grey; padding: 1em; overflow-x:scroll; overflow-y: scroll">
-      <svg style="width:200%; height: 300em ">
-      {{dep_svg}}
-      </svg>
-    </div>
+    <h3>Immediate Dependencies</h3>
+    <br>
+      {{dep_svg|safe}}
   </div>
 
 
