@@ -9,11 +9,292 @@
 {%endblock%}
 
 {%block content%}
-<div class="ui segment raised">
-Job launches: {{launches}}&nbsp;&nbsp;
- {% if (current_experimenter.is_root()) %}
- <a href="set_job_launches?hold=allowed"><button class="tiny ui left attached button"><i class="play icon"></i>Allow</button></a>
- <a href="set_job_launches?hold=hold"><button class="tiny ui right attached button" ><i class="stop icon"></i>Hold</button></a>
- {% endif %}
 
+ <div class="ui cards">
+        <div class="card">
+          <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+              Job Launches: {{launches}}
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+            </div>
+          </div>
+          {% if (current_experimenter.is_root()) %}
+          <div class="ui bottom attached button" href="set_job_launches?hold=allowed">
+            <i class="play icon"></i>
+              Allowed
+          </div>
+          <div class="ui bottom attached button" href="set_job_launches?hold=hold">
+            <i class="stop icon"></i>
+              Hold
+          </div>
+          {% endif %}
+        </div>
+ </div>
+
+ <div class="ui cards">
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated sun outline icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+              Obtaining a POMS Account
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                POMS Access is suppled through your FNAL services account.  The account  must be VOMS registered as production or coordinator. If
+                your account does not have access, contact your experiment coordinator.
+            </div>
+        </div>
+        <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Draft_POMS_Overview#POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="large question circle icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated sun outline icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+              Creating a Campaign
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                There are two general ways to create a campaign.  Using the workflow editor or the underlying forms.
+                We highly recommend using the workflow editor.
+            </div>
+        </div>
+        <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Draft_POMS_Overview#POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="large question circle icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+            <div class="content">
+                <i class="right floated folder icon teal" style="font-size: 30px;"></i>
+
+                <div class="header">
+                  Submissions
+                </div>
+                <div class="meta">
+                </div>
+                <div class="description">
+
+                </div>
+            </div>
+            <div class="extra content">
+            <div>
+                <i class="users icon"></i> All users
+            </div>
+            </div>
+            <!-- <div class="ui bottom attached button">
+                <i class="edit icon"></i>
+                    Edit
+            </div> -->
+        </div>
+
+        <div class="card">
+                <div class="content">
+                    <i class="right floated folder icon teal" style="font-size: 30px;"></i>
+
+                    <div class="header">
+                      Monitoring
+                    </div>
+                    <div class="meta">
+                    </div>
+                    <div class="description">
+
+                    </div>
+                </div>
+                <div class="extra content">
+                <div>
+                    <i class="users icon"></i> All users
+                </div>
+                </div>
+                <!-- <div class="ui bottom attached button">
+                    <i class="edit icon"></i>
+                        Edit
+                </div> -->
+            </div>
+
+                <div class="card">
+        <div class="content">
+            <i class="right floated folder icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+              Recoveries
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+
+            </div>
+        </div>
+        <div class="extra content">
+        <div>
+            <i class="users icon"></i> All users
+        </div>
+        </div>
+        <!-- <div class="ui bottom attached button">
+            <i class="edit icon"></i>
+                Edit
+        </div> -->
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated folder icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+              Debugging
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+
+            </div>
+        </div>
+        <div class="extra content">
+        <div>
+            <i class="users icon"></i> All users
+        </div>
+        </div>
+        <!-- <div class="ui bottom attached button">
+            <i class="edit icon"></i>
+                Edit
+        </div> -->
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated folder icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+                Bookkeeping
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+
+            </div>
+        </div>
+        <div class="extra content">
+        <div>
+            <i class="users icon"></i> All users
+        </div>
+        </div>
+        <!-- <div class="ui bottom attached button">
+            <i class="edit icon"></i>
+                Edit
+        </div> -->
+    </div>
+
+    <div class="card">
+            <div class="content">
+                <i class="right floated folder icon teal" style="font-size: 30px;"></i>
+
+                <div class="header">
+                    FifeMon
+                </div>
+                <div class="meta">
+                </div>
+                <div class="description">
+
+                </div>
+            </div>
+            <div class="extra content">
+            <div>
+                <i class="users icon"></i> All users
+            </div>
+            </div>
+            <!-- <div class="ui bottom attached button">
+                <i class="edit icon"></i>
+                    Edit
+            </div> -->
+        </div>
+
+        <div class="card">
+                <div class="content">
+                    <i class="right floated folder icon teal" style="font-size: 30px;"></i>
+
+                    <div class="header">
+                        SAM
+                    </div>
+                    <div class="meta">
+                    </div>
+                    <div class="description">
+
+                    </div>
+                </div>
+                <div class="extra content">
+                <div>
+                    <i class="users icon"></i> All users
+                </div>
+                </div>
+                <!-- <div class="ui bottom attached button">
+                    <i class="edit icon"></i>
+                        Edit
+                </div> -->
+            </div>
+
+                <div class="card">
+            <div class="content">
+                <i class="right floated folder icon teal" style="font-size: 30px;"></i>
+
+                <div class="header">
+                  Jobsub
+                </div>
+                <div class="meta">
+                </div>
+                <div class="description">
+
+                </div>
+            </div>
+            <div class="extra content">
+            <div>
+                <i class="users icon"></i> All users
+            </div>
+            </div>
+            <!-- <div class="ui bottom attached button">
+                <i class="edit icon"></i>
+                    Edit
+            </div> -->
+        </div>
+
+        <div class="card">
+                <div class="content">
+                    <i class="right floated folder icon teal" style="font-size: 30px;"></i>
+
+                    <div class="header">
+                      Decache
+                    </div>
+                    <div class="meta">
+                    </div>
+                    <div class="description">
+
+                    </div>
+                </div>
+                <div class="extra content">
+                <div>
+                    <i class="users icon"></i> All users
+                </div>
+                </div>
+                <!-- <div class="ui bottom attached button">
+                    <i class="edit icon"></i>
+                        Edit
+                </div> -->
+            </div>
+
+              </div>
 {%endblock%}
