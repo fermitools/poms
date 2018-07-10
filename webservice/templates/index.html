@@ -10,6 +10,8 @@
 
 {%block content%}
 
+{% set url = "https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Draft_POMS_Overview#" %}
+
  <div class="ui cards">
         <div class="card">
           <div class="content">
@@ -52,7 +54,7 @@
                 your account does not have access, contact your experiment coordinator.
             </div>
         </div>
-        <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Draft_POMS_Overview#POMS-Accounts-Users-and-Roles">
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
             <div class="ui bottom attached button">
                 <i class="large question circle icon"></i>
             </div>
@@ -61,7 +63,7 @@
 
     <div class="card">
         <div class="content">
-            <i class="right floated sun outline icon teal" style="font-size: 30px;"></i>
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
 
             <div class="header">
               Creating a Campaign
@@ -73,7 +75,7 @@
                 We highly recommend using the workflow editor.
             </div>
         </div>
-        <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Draft_POMS_Overview#POMS-Accounts-Users-and-Roles">
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
             <div class="ui bottom attached button">
                 <i class="large question circle icon"></i>
             </div>
@@ -81,59 +83,50 @@
     </div>
 
     <div class="card">
-            <div class="content">
-                <i class="right floated folder icon teal" style="font-size: 30px;"></i>
-
-                <div class="header">
-                  Submissions
-                </div>
-                <div class="meta">
-                </div>
-                <div class="description">
-
-                </div>
-            </div>
-            <div class="extra content">
-            <div>
-                <i class="users icon"></i> All users
-            </div>
-            </div>
-            <!-- <div class="ui bottom attached button">
-                <i class="edit icon"></i>
-                    Edit
-            </div> -->
-        </div>
-
-        <div class="card">
-                <div class="content">
-                    <i class="right floated folder icon teal" style="font-size: 30px;"></i>
-
-                    <div class="header">
-                      Monitoring
-                    </div>
-                    <div class="meta">
-                    </div>
-                    <div class="description">
-
-                    </div>
-                </div>
-                <div class="extra content">
-                <div>
-                    <i class="users icon"></i> All users
-                </div>
-                </div>
-                <!-- <div class="ui bottom attached button">
-                    <i class="edit icon"></i>
-                        Edit
-                </div> -->
-            </div>
-
-                <div class="card">
         <div class="content">
-            <i class="right floated folder icon teal" style="font-size: 30px;"></i>
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                Submissions
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+
+            </div>
+        </div>
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="large question circle icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
 
             <div class="header">
-              Recoveries
+                Monitoring
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+
+            </div>
+        </div>
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="large question circle icon"></i>
+            </div>
+        </a>
+
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                Recoveries
             </div>
             <div class="meta">
             </div>
@@ -146,15 +139,16 @@
             <i class="users icon"></i> All users
         </div>
         </div>
-        <!-- <div class="ui bottom attached button">
-            <i class="edit icon"></i>
-                Edit
-        </div> -->
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="large question circle icon"></i>
+            </div>
+        </a>
     </div>
 
     <div class="card">
         <div class="content">
-            <i class="right floated folder icon teal" style="font-size: 30px;"></i>
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
 
             <div class="header">
               Debugging
@@ -165,20 +159,16 @@
 
             </div>
         </div>
-        <div class="extra content">
-        <div>
-            <i class="users icon"></i> All users
-        </div>
-        </div>
-        <!-- <div class="ui bottom attached button">
-            <i class="edit icon"></i>
-                Edit
-        </div> -->
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="large question circle icon"></i>
+            </div>
+        </a>
     </div>
 
     <div class="card">
         <div class="content">
-            <i class="right floated folder icon teal" style="font-size: 30px;"></i>
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
 
             <div class="header">
                 Bookkeeping
@@ -189,112 +179,100 @@
 
             </div>
         </div>
-        <div class="extra content">
-        <div>
-            <i class="users icon"></i> All users
-        </div>
-        </div>
-        <!-- <div class="ui bottom attached button">
-            <i class="edit icon"></i>
-                Edit
-        </div> -->
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="large question circle icon"></i>
+            </div>
+        </a>
     </div>
 
     <div class="card">
-            <div class="content">
-                <i class="right floated folder icon teal" style="font-size: 30px;"></i>
-
-                <div class="header">
-                    FifeMon
-                </div>
-                <div class="meta">
-                </div>
-                <div class="description">
-
-                </div>
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                FifeMon
             </div>
-            <div class="extra content">
-            <div>
-                <i class="users icon"></i> All users
+            <div class="meta">
             </div>
+            <div class="description">
+                Fifemon gathers information from many different sources and graphs it on a common timeline
+                to help experiments understand their computing usage and identify problems.
             </div>
-            <!-- <div class="ui bottom attached button">
-                <i class="edit icon"></i>
-                    Edit
-            </div> -->
         </div>
-
-        <div class="card">
-                <div class="content">
-                    <i class="right floated folder icon teal" style="font-size: 30px;"></i>
-
-                    <div class="header">
-                        SAM
-                    </div>
-                    <div class="meta">
-                    </div>
-                    <div class="description">
-
-                    </div>
-                </div>
-                <div class="extra content">
-                <div>
-                    <i class="users icon"></i> All users
-                </div>
-                </div>
-                <!-- <div class="ui bottom attached button">
-                    <i class="edit icon"></i>
-                        Edit
-                </div> -->
-            </div>
-
-                <div class="card">
-            <div class="content">
-                <i class="right floated folder icon teal" style="font-size: 30px;"></i>
-
-                <div class="header">
-                  Jobsub
-                </div>
-                <div class="meta">
-                </div>
-                <div class="description">
-
-                </div>
-            </div>
-            <div class="extra content">
-            <div>
-                <i class="users icon"></i> All users
-            </div>
-            </div>
-            <!-- <div class="ui bottom attached button">
-                <i class="edit icon"></i>
-                    Edit
-            </div> -->
+        <a target="_blank" href="http://fifemon.fnal.gov/monitor">
+        <div class="ui bottom attached button">
+            <i class="large share icon"></i>
         </div>
+        </a>
+    </div>
 
-        <div class="card">
-                <div class="content">
-                    <i class="right floated folder icon teal" style="font-size: 30px;"></i>
-
-                    <div class="header">
-                      Decache
-                    </div>
-                    <div class="meta">
-                    </div>
-                    <div class="description">
-
-                    </div>
-                </div>
-                <div class="extra content">
-                <div>
-                    <i class="users icon"></i> All users
-                </div>
-                </div>
-                <!-- <div class="ui bottom attached button">
-                    <i class="edit icon"></i>
-                        Edit
-                </div> -->
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                SAM
             </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                SAM status for {{session_experiment}}.
+            </div>
+        </div>
+        <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000122/sam-by-experiment?from=now-24h&to=now-5m&orgId=1&var-experiment={{session_experiment}}">
+            <div class="ui bottom attached button">
+                Sam Status (Fifemon)
+                <i class="large share icon"></i>
+            </div>
+        </a>
+        <a target="_blank" href="http://samweb.fnal.gov:8480/sam_web_registry/{{session_experiment}}/prd/">
+            <div class="ui bottom attached button">
+                Sam Registry
+                <i class="large share icon"></i>
+            </div>
+        </a>
+    </div>
 
-              </div>
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                Jobsub
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                Jobsub status for {{session_experiment}}
+            </div>
+        </div>
+        <a target="_blank" href="https://landscape.fnal.gov/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{session_experiment}}">
+            <div class="ui bottom attached button">
+                <i class="large share icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                dCache
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                    dCache status for {{session_experiment}}
+            </div>
+        </div>
+        <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000177/dcache-io-rate-by-vo?orgId=1&var-vo={{session_experiment}}&var-PoolGroup=All">
+            <div class="ui bottom attached button">
+                <i class="large share icon"></i>
+            </div>
+        </a>
+    </div>
+
+
+
+
+
+    </div>
 {%endblock%}
