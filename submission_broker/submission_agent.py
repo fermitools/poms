@@ -18,6 +18,7 @@ class Agent:
         self.known_status = {}
         self.known_project = {}
         self.known_pct = {}
+        self.max_njobs = {}
         self.submission_headers = {
             'Accept-Encoding': 'gzip, deflate, br',
             'Content-Type': 'application/json',
@@ -26,7 +27,7 @@ class Agent:
             'Origin': 'https://landscapeitb.fnal.gov' 
         }
 
-        self.full_query = """{"query":"{ submissions(query: \\"POMS_TASK_ID: gt 10\\") { id pomsTaskID jobs { id } done } }","operationName":null}"""
+        self.full_query = """{"query":"{ submissions(user: "*pro") { id pomsTaskID done running idle held } }","operationName":null}"""
 
     def update_submission(self, submission_id, jobsub_job_id, project = None, status = None):
         logit.info('update_submission: %s' % repr({'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}))
@@ -55,6 +56,18 @@ class Agent:
                return e['Env']['SAM_PROJECT']
         return None
 
+    def sub_status(self, e) {
+        if e['done']:
+            return "Completed"
+        if e['held'] > 0: 
+            return "Held"
+        if e['running'] == 0 and e['idle'] != 0:
+            return "Idle"
+        if e['running'] > 0:
+            reurn "Running"
+        return "Unknown"
+    }
+
     def check_submissions(self):
         logit.info("check_submissions:")
         r = self.ssess.post(self.submission_uri, data=self.full_query, headers=self.submission_headers)
@@ -72,20 +85,22 @@ class Agent:
             if e['done'] == self.known_status.get(e['pomsTaskID'],None):
                 report_status = None
             else:
-                report_status = ('Completed' if e['done'] else 'Running')
+                report_status = self.get_status(e)
 
-            if e.get('jobs',None):
-                ntot = int(e['jobs']['Running']) + int(e['jobs']['Completed']) + int(e['jobs']['Idle']) + int(e['jobs']['Held']) + int(e['jobs']['Removed']) 
-                ncomp = int(e['jobs']['Completed']) 
-                if ntot > 0:
-                    report_pct_completd = ncomp * 100.0 / ntot
-                else:
-                    report_pct_completed = None
-
-                if report_pct_completed == self.known_pct[e['pomsTaskID']]:
-                    report_pct_completed = None
-
+            ntot = int(e['running']) + int(e['idle']) + int(e['held']) 
+            if ntot >= maxjobs.get(e['pomsTaskID'], 0):
+               maxjobs[e['pomsTaskID'] = ntot
             else:
+               ntot = maxjobs[e['pomsTaskID']]
+
+            ncomp = ntot - (e['running'] + e['held'] + e['idle'])
+          
+            if ntot > 0:
+                report_pct_completd = ncomp * 100.0 / ntot
+            else:
+                report_pct_completed = None
+
+            if report_pct_completed == self.known_pct[e['pomsTaskID']]:
                 report_pct_completed = None
 
             if self.get_project(e) == self.known_project.get(e['pomsTaskID'],None):
