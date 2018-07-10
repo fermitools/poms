@@ -117,91 +117,8 @@ $( document ).ready(function() {
   <div class="ui segment raised ">
 
     <!-- Campaign_info: {{Campaign_info}} -->
+    <iframe style="width: 99%; height: 27em;" src="https://fifemon.fnal.gov/monitor/d/otZRzhImk/poms-campaign?from=now-30d&to=now&var-campaign={{CampaignStage.campaign_stage_id}}&orgId=1"> </iframe>
 
-   <table id="campaign" class="ui celled table unstackable">
-        <thead>
-            <tr>
-                <th align="center">Total</th>
-                <th colspan=3 align="center">Active Campaign Stage Jobs </th>
-                <th colspan=3 align="center">Jobs in {{time_range_string}}</th>
-                <th colspan=3 align="center">Stats</th>
-            </tr>
-            <tr>
-                <th>All
-                  <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Total_All"><i style="float: none" class="grey help circle link icon"></i></a>
-                </th>
-                <th>Idle
-                  <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
-                </th>
-                <th>Running
-                <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
-                </th>
-                <th>Held
-                  <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
-                </th>
-                <th>Total Completed
-                  <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
-                </th>
-                <th>Not Located
-                  <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
-                </th>
-                <th>Located
-                  <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
-                </th>
-                <th>Removed
-                  <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
-                </th>
-                <th>Failed
-                  <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
-                </th>
-                <th>%Efficiency
-                  <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a>
-                </th>
-                <th>Pending
-                  <!-- <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job" data-tooltip="Pending"> -->
-                  <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job">
-                     <i style="float: none" class="grey help circle link icon"> </i>
-                  </a>
-                </th>
-            </tr>
-        </thead>
-        {%set column_heads = ['All','Idle','Running','Held','Total Completed','Completed', 'Located', 'Removed','Failed', 'efficiency', 'pending' ] %}
-        <tbody>
-            <tr>
-                {% for k in column_heads %}
-                    {% if k == "efficiency" %}
-                        <td>
-                          <a href="{{pomspath}}/jobs_eff_histo?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{CampaignStage.campaign_stage_id}}_{{k}}">
-                              ...
-                          </a>
-                        </td>
-                    {% elif k == "pending" %}
-                        <td>
-                          <a href="{{pomspath}}/actual_pending_files?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{CampaignStage.campaign_stage_id}}_{{k}}">
-                             ...
-                          </a>
-                        </td>
-                    {% elif k == "All" %}
-                        <td>
-                          <a href="{{pomspath}}/job_table?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{CampaignStage.campaign_stage_id}}_{{k}}">
-                            ...
-                          </a>
-                        </td>
-                    {% elif k %}
-                        <td>
-                          <a href="{{pomspath}}/job_table?campaign_stage_id={{CampaignStage.campaign_stage_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{CampaignStage.campaign_stage_id}}_{{k|replace(" ","_")}}">
-                             ...
-                          </a>
-                          {%if k == "Idle"%}
-                            &nbsp; &nbsp;
-                            <a href="https://fifemon.fnal.gov/monitor/dashboard/db/why-isnt-my-job-running?var-user={{CampaignStage.experiment}}pro"><i class="grey link treatment icon"></i></a>
-                          {%endif%}
-                         </td>
-                    {%endif%}
-                {% endfor %}
-            </tr>
-        </tbody>
-    </table>
     <script>
         $("#campaign th").attr("style", "padding: 0.3em; border-left: 1; text-align: center;");
     </script>
@@ -212,35 +129,24 @@ $( document ).ready(function() {
          <h3>Reports/Status</h3>
          <div class=menu>
               <div class=item>
-               <a href="{{pomspath}}/jobs_eff_histo?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Job Efficiency Histogram (1 month)
+                 <i class="external icon"></i>
+                 <a href="https://landscape.fnal.gov/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{CampaignStage.experiment|replace('samdev','fermilab')}}" target='_blank'>Production Shifter Page (Landscape)</a>
+              </div>
+              <div class=item>
+                 <i class="external icon"></i>
+                 <a href="{{kibana_link}}" target='_blank'>POMS Campaign Stage(landscape)</a>
+              </div>
+              <div class=item>
+               <a href="https://fifemon.fnal.gov/monitor/d/000000212/poms-campaign-stats?orgId=1&var-Campaign={{CampaignStage.campaign_stage_id}}">
+                   <i class="external bar chart icon" data-content="Campaign Stats"></i>Campaign Stage Stats (Landscape)
                </a>
               </div>
               <div class=item>
-               <a href="{{pomspath}}/jobs_time_histo?timetype=wall_time&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Job Wall Clock Time Histogram (1 month)
+               <a href="https://fifemon.fnal.gov/monitor/d/000000213/poms-tasks?orgId=1&var-Experiment={{CampaignStage.experiment|replace('samdev','fermilab')}}&var-Campaign={{CampaignStage.campaign_stage_id}}&from=now-7d&to=now">
+                   <i class="external bar chart icon" data-content="Submissions"></i>Submissions (Landscape)
                </a>
               </div>
-              <div class=item>
-               <a href="{{pomspath}}/jobs_time_histo?timetype=cpu_time&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Job CPU Time Histogram (1 month)
-               </a>
-              </div>
-              <div class=item>
-               <a href="{{pomspath}}/jobs_time_histo?timetype=copy_in_time&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Copy In Time Histogram (1 month)
-               </a>
-              </div>
-              <div class=item>
-               <a href="{{pomspath}}/jobs_time_histo?timetype=copy_out_time&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=30">
-                   <i class="external bar chart icon" data-content="Campaign Stage Jobs Efficiency" data-variation="basic"></i>Copy Out Time Histogram(1 month)
-               </a>
-              </div>
-              <div class=item>
-               <a href="{{pomspath}}/campaign_sheet?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tdays=7&tmax={{last_activity}}">
-                <i class="external table icon" data-content="Campaign Stage Spreadsheet" data-variation="basic"></i>Day by Day Spreadsheet (1wk)
-               </a>
-              </div>
+
               <div class=item>
               <a href="{{pomspath}}/campaign_time_bars?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tdays=7&tmax={{last_activity}}">
                 <i class="external submissions icon" data-content="Submissions for CampaignStage Time Bars (1wk)" data-variation="basic"></i>Submission Time Bars (1wk)
@@ -248,10 +154,6 @@ $( document ).ready(function() {
               </div>
               <div class=item>
                 <a href="{{pomspath}}/campaign_task_files?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}"><i class="external file icon" data-content="List file statistics for Submissions for CampaignStage" data-variation="basic"></i>Campaign Stage Submission Files</a>
-              </div>
-              <div class=item>
-                 <i class="external icon"></i>
-                 <a href="{{kibana_link}}" target='_blank'>Kibana Usage Info for Campaign Stage</a>
               </div>
           </div> <!-- class=menu -->
     </div>
@@ -431,12 +333,9 @@ $( document ).ready(function() {
     </div>
 
    <div class="ui segment raised">
-    Immediate Dependencies
-    <div style="width:95%; height: 20em; border: 1px solid grey; padding: 1em; overflow-x:scroll; overflow-y: scroll">
-      <svg style="width:200%; height: 300em ">
-      {{dep_svg}}
-      </svg>
-    </div>
+    <h3>Immediate Dependencies</h3>
+    <br>
+      {{dep_svg|safe}}
   </div>
 
 
