@@ -9,11 +9,251 @@
 {%endblock%}
 
 {%block content%}
-<div class="ui segment raised">
-Job launches: {{launches}}&nbsp;&nbsp;
- {% if (current_experimenter.is_root()) %}
- <a href="set_job_launches?hold=allowed"><button class="tiny ui left attached button"><i class="play icon"></i>Allow</button></a>
- <a href="set_job_launches?hold=hold"><button class="tiny ui right attached button" ><i class="stop icon"></i>Hold</button></a>
- {% endif %}
 
+{% set url = "https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Draft_POMS_Overview#" %}
+
+ <div class="ui cards">
+        <div class="card">
+          <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+              Job Launches: {{launches}}
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+            </div>
+          </div>
+          {% if (current_experimenter.is_root()) %}
+          <div class="ui bottom attached button" href="set_job_launches?hold=allowed">
+            <i class="play icon"></i>
+              Allowed
+          </div>
+          <div class="ui bottom attached button" href="set_job_launches?hold=hold">
+            <i class="stop icon"></i>
+              Hold
+          </div>
+          {% endif %}
+        </div>
+ </div>
+
+ <div class="ui cards">
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated sun outline icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+              Obtaining a POMS Account
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                POMS Access is suppled through your FNAL services account.  The account  must be VOMS registered as production or coordinator. If
+                your account does not have access, contact your experiment coordinator.
+            </div>
+        </div>
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="large question circle icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+              Creating a Campaign
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                There are two general ways to create a campaign.  Using the workflow editor or the underlying forms.
+                We highly recommend using the workflow editor.
+            </div>
+        </div>
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="large question circle icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+                Monitoring
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+
+            </div>
+        </div>
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="large question circle icon"></i>
+            </div>
+        </a>
+
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                Recoveries
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+
+            </div>
+        </div>
+        <div class="extra content">
+        <div>
+            <i class="users icon"></i> All users
+        </div>
+        </div>
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="large question circle icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+              Debugging
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+
+            </div>
+        </div>
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="large question circle icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+                Bookkeeping
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+
+            </div>
+        </div>
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="large question circle icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                FifeMon
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                Fifemon gathers information from many different sources and graphs it on a common timeline
+                to help experiments understand their computing usage and identify problems.
+            </div>
+        </div>
+        <a target="_blank" href="http://fifemon.fnal.gov/monitor">
+        <div class="ui bottom attached button">
+            <i class="large share icon"></i>
+        </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                SAM
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                SAM status for {{session_experiment}}.
+            </div>
+        </div>
+        <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000122/sam-by-experiment?from=now-24h&to=now-5m&orgId=1&var-experiment={{session_experiment}}">
+            <div class="ui bottom attached button">
+                Sam Status (Fifemon)
+                <i class="large share icon"></i>
+            </div>
+        </a>
+        <a target="_blank" href="http://samweb.fnal.gov:8480/sam_web_registry/{{session_experiment}}/prd/">
+            <div class="ui bottom attached button">
+                Sam Registry
+                <i class="large share icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                Jobsub
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                Jobsub status for {{session_experiment}}
+            </div>
+        </div>
+        <a target="_blank" href="https://landscape.fnal.gov/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{session_experiment}}">
+            <div class="ui bottom attached button">
+                <i class="large share icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                dCache
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                    dCache status for {{session_experiment}}
+            </div>
+        </div>
+        <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000177/dcache-io-rate-by-vo?orgId=1&var-vo={{session_experiment}}&var-PoolGroup=All">
+            <div class="ui bottom attached button">
+                <i class="large share icon"></i>
+            </div>
+        </a>
+    </div>
+
+
+
+
+
+    </div>
 {%endblock%}
