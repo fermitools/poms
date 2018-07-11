@@ -5,38 +5,23 @@
 {%endblock%}
 
 {%block header%}
-<img class="ui small image" src="{{pomspath}}/static/img/poms.jpg">
+Job Launches: {{launches}}
+{% if (current_experimenter.is_root()) %}
+<br>
+<div class="ui icon buttons">
+  <div class="ui button" href="set_job_launches?hold=hold">
+    <i class="pause icon"></i>
+  </div>
+  <div class="ui button">
+    <i class="play icon" href="set_job_launches?hold=allowed"></i>
+  </div>
+</div>
+{% endif %}
 {%endblock%}
 
 {%block content%}
 
 {% set url = "https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Draft_POMS_Overview#" %}
-
- <div class="ui cards">
-        <div class="card">
-          <div class="content">
-            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
-
-            <div class="header">
-              Job Launches: {{launches}}
-            </div>
-            <div class="meta">
-            </div>
-            <div class="description">
-            </div>
-          </div>
-          {% if (current_experimenter.is_root()) %}
-          <div class="ui bottom attached button" href="set_job_launches?hold=allowed">
-            <i class="play icon"></i>
-              Allowed
-          </div>
-          <div class="ui bottom attached button" href="set_job_launches?hold=hold">
-            <i class="stop icon"></i>
-              Hold
-          </div>
-          {% endif %}
-        </div>
- </div>
 
  <div class="ui cards">
 
@@ -114,11 +99,6 @@
             <div class="description">
 
             </div>
-        </div>
-        <div class="extra content">
-        <div>
-            <i class="users icon"></i> All users
-        </div>
         </div>
         <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
             <div class="ui bottom attached button">
@@ -256,4 +236,19 @@
 
 
     </div>
+{%endblock%}
+
+{%block final%}
+<div class="ui divider"  style="margin-top: 0px;"></div>
+
+<div class="ui right aligned grid" style="margin-right: 30px; margin-bottom: 15px">
+    <div class="left floated left aligned four wide column">
+        <div class="ui teal label">Version {{version}}</div>
+    </div>
+    <div class="right floated right align four wide column">
+        <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Release_Notes">
+            <div class="ui teal label">Release Notes</div>
+        </a>
+    </div>
+</div>
 {%endblock%}
