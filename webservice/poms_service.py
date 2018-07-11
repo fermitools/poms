@@ -85,6 +85,7 @@ class PomsService(object):
     def index(self):
         template = self.jinja_env.get_template('index.html')
         return template.render(services='',
+                               version= self.version,
                                launches=self.taskPOMS.get_job_launches(cherrypy.request.db),
                                do_refresh=1200, help_page="DashboardHelp")
 
