@@ -117,7 +117,9 @@ $( document ).ready(function() {
   <div class="ui segment raised ">
 
     <!-- Campaign_info: {{Campaign_info}} -->
-    <iframe style="width: 99%; height: 27em;" src="https://fifemon.fnal.gov/monitor/d/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{CampaignStage.campaign_stage_id}}&orgId=1"> </iframe>
+<iframe scrolling="no" style="width: 38%; min-width: 25em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821895839&to=1531413895839&var-campaign=1&orgId=1&panelId=2" frameborder="0"></iframe>
+<iframe scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;"  src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821927234&to=1531413927234&var-campaign=1&orgId=1&panelId=18"frameborder="0"></iframe>
+<iframe  scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821946299&to=1531413946300&var-campaign=1&orgId=1&panelId=12" frameborder="0"></iframe>
 
     <script>
         $("#campaign th").attr("style", "padding: 0.3em; border-left: 1; text-align: center;");
@@ -343,42 +345,5 @@ $( document ).ready(function() {
         });
 </script>
 
-<script>
-    $(function() {
-
-        var now = new Date()
-        var nows = now.getTime()
-        nows = nows - (nows % 300000)
-        nows = nows.toString()
-
-        $.getJSON("/poms/json_job_counts?tmin={{tmins}}&tmax={{tmaxs}}&campaign_stage_id={{CampaignStage.campaign_stage_id}}&uuid="+nows,function(data) {
-            for (var k in data) {
-               id = "data_{{CampaignStage.campaign_stage_id}}_" + k.replace(" ","_")
-               console.log("trying to update a with id " + id)
-               $("a#" + id).html(data[k])
-            }
-        })
-
-        $.getJSON("/poms/json_efficiency_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{CampaignStage.campaign_stage_id}}&uuid="+nows, function(data) {
-            for (var k in data) {
-               id = "data_" + k + "_efficiency"
-               console.log("trying to update a with id " + id)
-               $("a#" + id).html(data[k])
-            }
-        })
-
-        $.getJSON("/poms/json_pending_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{CampaignStage.campaign_stage_id}}&uuid="+nows, function(data) {
-            for (var k in data) {
-               id = "data_" + k + "_pending"
-               console.log("trying to update a with id " + id)
-               if (data[k] == -1) {
-                   $("a#" + id).html('N/A')
-               } else {
-                   $("a#" + id).html(data[k])
-               }
-            }
-        })
-    });
-</script>
 
 {%endblock%}
