@@ -137,12 +137,12 @@ $( document ).ready(function() {
                  <a href="{{kibana_link}}" target='_blank'>POMS Campaign Stage(landscape)</a>
               </div>
               <div class=item>
-               <a href="https://fifemon.fnal.gov/monitor/d/000000212/poms-campaign-stats?orgId=1&var-Campaign={{CampaignStage.campaign_stage_id}}">
+               <a href="https://fifemon.fnal.gov/monitor/d/000000212/poms-campaign-stats?orgId=1&var-Campaign={{CampaignStage.campaign_stage_id}}" target='_blank'>
                    <i class="external bar chart icon" data-content="Campaign Stats"></i>Campaign Stage Stats (Landscape)
                </a>
               </div>
               <div class=item>
-               <a href="https://fifemon.fnal.gov/monitor/d/000000213/poms-tasks?orgId=1&var-Experiment={{CampaignStage.experiment|replace('samdev','fermilab')}}&var-Campaign={{CampaignStage.campaign_stage_id}}&from=now-7d&to=now">
+               <a href="https://fifemon.fnal.gov/monitor/d/000000213/poms-tasks?orgId=1&var-Experiment={{CampaignStage.experiment|replace('samdev','fermilab')}}&var-Campaign={{CampaignStage.campaign_stage_id}}&from=now-7d&to=now" >
                    <i class="external bar chart icon" data-content="Submissions"></i>Submissions (Landscape)
                </a>
               </div>
@@ -246,36 +246,8 @@ $( document ).ready(function() {
           </div> <!-- class=menu -->
    </div>  <!-- class=ui segment raised -->
 
-   <div class="ui segment raised ">
-        <h3>Campaigns stage is part of</h3>
-
-        <div class="ui search">
-            <div class="ui left icon input">
-               <input type="text" id="tag_field" name="tag" placeholder="Enter Campaign" class="prompt">
-               <i class="tag icon"></i>
-            </div>
-
-            <button class="ui icon small blue button" id="add_button">
-              <i class="plus icon"></i>
-            </button>
-            <div id="response" style="display:inline; vertical-align: bottom; font-style: italic;"></div>
-
-            <div class="results"></div>
-        </div>
-
-
-        <div id="tag_container">
-    {% for tag in campaigns %}
-        <span>
-            <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label" id="{{CampaignStage.campaign_stage_id}}_{{tag.campaign_id}}_">{{tag.tag_name}}</a>
-            <i class="trash outline bordered inverted blue icon link poms_tag" id="{{CampaignStage.campaign_stage_id}}_{{tag.campaign_id}}" style="border-radius: 5px;"></i>
-        </span>
-        <br/>
-    {% endfor %}
-        </div>
-
-    </div>
   </div>
+
   <div class="ui horizontal segments">
 
    <div class="ui segment raised">

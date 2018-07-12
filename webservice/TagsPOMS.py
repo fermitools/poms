@@ -112,15 +112,14 @@ class TagsPOMS(object):
             return response
 
 
-    def search_tags(self, dbhandle, q):
-
-        q_list = q.split(" ")
-        query = (dbhandle.query(CampaignStage)
-                 .filter(CampaignCampaignStages.campaign_id == Campaign.campaign_id, Campaign.tag_name.in_(q_list), CampaignStage.campaign_stage_id == CampaignCampaignStages.campaign_stage_id)
-                 .group_by(CampaignStage.campaign_stage_id)
-                 .having(func.count(CampaignStage.campaign_stage_id) == len(q_list)))
+    def search_tags(self, dbhandle, search_term):
+        query = (dbhandle.query(Campaign, CampaignStage)
+                 .filter(CampaignCampaignStages.campaign_id == Campaign.campaign_id,
+                         Campaign.tag_name.like(search_term),
+                         CampaignStage.campaign_stage_id == CampaignCampaignStages.campaign_stage_id)
+                 .order_by(Campaign.campaign_id, CampaignStage.campaign_stage_id))
         results = query.all()
-        return results, q_list
+        return results
 
 
     def search_all_tags(self, dbhandle, cl):

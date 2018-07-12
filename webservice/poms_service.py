@@ -113,7 +113,7 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def quick_search(self, search_term):
-        self.utilsPOMS.quick_search(cherrypy.request.db, cherrypy.HTTPRedirect, search_term)
+        self.utilsPOMS.quick_search(cherrypy.HTTPRedirect, search_term)
 
     @cherrypy.expose
     @logit.logstartstop
@@ -836,10 +836,10 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def search_tags(self, q):
-        results, q_list = self.tagsPOMS.search_tags(cherrypy.request.db, q)
+    def search_tags(self, search_term):
+        results = self.tagsPOMS.search_tags(cherrypy.request.db, search_term)
         template = self.jinja_env.get_template('search_tags.html')
-        return template.render(results=results, q_list=q_list, do_refresh=0, help_page="SearchTagsHelp")
+        return template.render(results=results, search_term=search_term, do_refresh=0, help_page="SearchTagsHelp")
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
