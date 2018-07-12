@@ -23,19 +23,19 @@ Campaigns
             <tr>
                 <th>Campaign Name </th>
                 <th>Submissions Running</th>
-                <th data-sorter="false" data-filter="false">Submission History</th>
+                <th data-sorter="false" data-filter="false">Submission<br>History</th>
                 <th data-sorter="false" data-filter="false">Dependencies</th>
-                <th data-sorter="false" data-filter="false">Edit Workflow</th>
-                <th data-sorter="false" data-filter="false">Clone Workflow</th>
-                <th data-sorter="false" data-filter="false">Workflow .ini</th>
-                <th data-sorter="false" data-filter="false">Delete Campaign</th>
+                <th data-sorter="false" data-filter="false">Edit<br>Workflow</th>
+                <th data-sorter="false" data-filter="false">Clone<br> Workflow</th>
+                <th data-sorter="false" data-filter="false">Workflow<br>.ini</th>
+                <th data-sorter="false" data-filter="false">Delete<br>Campaign</th>
             </tr>
         </thead>
         <tbody>
         {% for s in tl|sort(attribute='tag_name') %}
             <tr id="row_{{s.campaign_id}}" name="row_{{s.campaign_id}}">
                 <td>{{s.tag_name}}</td>
-                <td id="running_{{s.campaign_id}}">...</td>
+                <td id="running_{{s.campaign_id}}" style="text-align:right; padding-right: 1em">...</td>
                 <td>
                     <a href="{{pomspath}}/campaign_time_bars?tag={{s.tag_name}}&tdays=7&tmax={{last_activity}}">
                         <button type="button">
