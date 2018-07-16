@@ -21,7 +21,7 @@ from . import (
                logit,
                version)
 from .elasticsearch import Elasticsearch
-from .poms_model import Campaign, CampaignCampaignStages, CampaignStage, Submission
+from .poms_model import Campaign, CampaignCampaignStages, CampaignStage, Submission, Experiment
 
 
 def error_response():
@@ -135,6 +135,12 @@ class PomsService(object):
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
         return template.render(tlist=list(self.tablesPOMS.admin_map.keys()), help_page="RawTablesHelp")
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def experiment_list(self):
+        return list(map((lambda x: x[0]),cherrypy.request.db.query(Experiment.experiment).all()))
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
