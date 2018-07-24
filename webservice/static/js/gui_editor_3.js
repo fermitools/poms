@@ -770,7 +770,7 @@ gui_editor.prototype.draw_state = function () {
     let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
     let edge_labels = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).map(x => x.split(' ')[1]);
     //let nodes = node_labels.map(x => ({id:(Math.random() * 1e7).toString(32), label:x, shape:'box'}));
-    let nodes = node_labels.map(x => ({id:x, label:x}));
+    let nodes = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 0)}));
     let vnodes = new vis.DataSet(nodes);
     let edges = edge_labels.map(x => ({from: depFrom(x), to: x}));
     let rr = [];
