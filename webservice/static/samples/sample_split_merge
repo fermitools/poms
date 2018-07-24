@@ -10,7 +10,7 @@ software_version=v1_0
 vo_role=Production
 cs_split_type=nfiles(10000)
 job_type=generic_fife_process
-launch_template=generic_fife_launch
+login_setup=generic_fife_launch
 param_overrides=[["--stage=","split"]]
 completion_type=complete
 completion_pct=95
@@ -21,7 +21,7 @@ software_version=v1_0
 vo_role=Production
 cs_split_type=none
 job_type=generic_fife_process
-launch_template=generic_fife_launch
+login_setup=generic_fife_launch
 param_overrides=[["--stage=","merge"]]
 completion_type=complete
 completion_pct=95
@@ -37,7 +37,7 @@ software_version=v1_0
 vo_role=Production
 cs_split_type=none
 job_type=generic_fife_process
-launch_template=generic_fife_launch
+login_setup=generic_fife_launch
 param_overrides=[["--stage=","merge"],["-Oglobal.sam_dataset=","%(dataset)s"]]
 completion_type=complete
 completion_pct=95
@@ -53,7 +53,7 @@ software_version=v1_0
 vo_role=Production
 cs_split_type=none
 job_type=generic_fife_process
-launch_template=generic_fife_launch
+login_setup=generic_fife_launch
 param_overrides=[["--stage=","merge"],["-Oglobal.sam_dataset=","%(dataset)s"]]
 completion_type=complete
 completion_pct=95
@@ -69,7 +69,7 @@ software_version=v1_0
 vo_role=Production
 cs_split_type=none
 job_type=generic_fife_process
-launch_template=generic_fife_launch
+login_setup=generic_fife_launch
 param_overrides=[["--stage=","merge"],["-Oglobal.sam_dataset=","%(dataset)s"]]
 completion_type=complete
 completion_pct=95
@@ -85,7 +85,7 @@ software_version=v1_0
 vo_role=Production
 cs_split_type=none
 job_type=generic_fife_process
-launch_template=generic_fife_launch
+login_setup=generic_fife_launch
 param_overrides=[["--stage=","merge"],["-Oglobal.sam_dataset=","%(dataset)s"]]
 completion_type=complete
 completion_pct=95
@@ -101,7 +101,7 @@ software_version=v1_0
 vo_role=Production
 cs_split_type=none
 job_type=generic_fife_process
-launch_template=generic_fife_launch
+login_setup=generic_fife_launch
 param_overrides=[["--stage=","merge"],["-Oglobal.sam_dataset=","%(dataset)s"]]
 completion_type=complete
 completion_pct=95
@@ -110,7 +110,7 @@ completion_pct=95
 campaign_stage_1=sample_split
 file_pattern_1=%%trigf%%
 
-[launch_template generic_fife_launch]
+[login_setup generic_fife_launch]
 host=%(experiment)sgpvm01.fnal.gov
 account=%(experiment)spro
 setup=export X509_USER_PROXY=/opt/%(experiment)spro/%(experiment)spro.Production.proxy; setup fife_utils, poms_client, poms_jobsub_wrapper
