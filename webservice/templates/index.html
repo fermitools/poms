@@ -56,13 +56,13 @@ Job Launches: {{launches}}
             <div class="meta">
             </div>
             <div class="description">
-                There are two general ways to create a campaign.  Using the workflow editor or the underlying forms.
-                We highly recommend using the workflow editor.
+                A campaign may be created by using the workflow editor, creating and uploading a .ini file, or
+                using the underlying forms.   We recommend starting with the workflow editor.
             </div>
         </div>
         <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
             <div class="ui bottom attached button">
-                <i class="large question circle icon"></i>
+                <i class="question circle icon"></i>
             </div>
         </a>
     </div>
@@ -77,15 +77,22 @@ Job Launches: {{launches}}
             <div class="meta">
             </div>
             <div class="description">
-
-            </div>
+                    Needs a description.
+                </div>
         </div>
-        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
-            <div class="ui bottom attached button">
-                <i class="large question circle icon"></i>
-            </div>
-        </a>
-
+        <div class="ui three bottom attached buttons">
+            <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+                <div class="ui button">
+                    <i class="question circle icon"></i>
+                </div>
+            </a>
+                <div class="ui button"></div>
+            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000206/poms-campaign-efficiency?from=now-24h&to=now&var-Experiment={{session_experiment}}&var-Campaign=All&orgId=1">
+                <div class="ui button">
+                    Efficency
+                </div>
+            </a>
+        </div>
     </div>
 
     <div class="card">
@@ -97,12 +104,12 @@ Job Launches: {{launches}}
             <div class="meta">
             </div>
             <div class="description">
-
+                Needs a description.
             </div>
         </div>
         <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
             <div class="ui bottom attached button">
-                <i class="large question circle icon"></i>
+                <i class="question circle icon"></i>
             </div>
         </a>
     </div>
@@ -117,12 +124,12 @@ Job Launches: {{launches}}
             <div class="meta">
             </div>
             <div class="description">
-
+                    Needs a description.
             </div>
         </div>
         <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
             <div class="ui bottom attached button">
-                <i class="large question circle icon"></i>
+                <i class="question circle icon"></i>
             </div>
         </a>
     </div>
@@ -137,12 +144,12 @@ Job Launches: {{launches}}
             <div class="meta">
             </div>
             <div class="description">
-
+                    Needs a description.
             </div>
         </div>
         <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
             <div class="ui bottom attached button">
-                <i class="large question circle icon"></i>
+                <i class="question circle icon"></i>
             </div>
         </a>
     </div>
@@ -160,11 +167,19 @@ Job Launches: {{launches}}
                 to help experiments understand their computing usage and identify problems.
             </div>
         </div>
-        <a target="_blank" href="http://fifemon.fnal.gov/monitor">
-        <div class="ui bottom attached button">
-            <i class="large share icon"></i>
+        <div class="ui three bottom attached buttons">
+            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000004/experiment-overview?orgId=1&var-experiment={{session_experiment}}">
+                <div class="ui button">
+                    Overview
+                </div>
+            </a>
+            <div class="ui button"></div>
+            <a target="_blank" href="https://landscape.fnal.gov/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{session_experiment}}">
+                <div class="ui button">
+                    Shifter
+                </div>
+            </a>
         </div>
-        </a>
     </div>
 
     <div class="card">
@@ -179,19 +194,20 @@ Job Launches: {{launches}}
                 SAM status for {{session_experiment}}.
             </div>
         </div>
-        <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000122/sam-by-experiment?from=now-24h&to=now-5m&orgId=1&var-experiment={{session_experiment}}">
-            <div class="ui bottom attached button">
-                Status
-                <i class="large share icon"></i>
+        <div class="ui three bottom attached buttons">
+                <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000122/sam-by-experiment?from=now-24h&to=now-5m&orgId=1&var-experiment={{session_experiment}}">
+                    <div class="ui button">
+                        Status
+                    </div>
+                </a>
+                    <div class="ui button"></div>
+                <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/sam-main/wiki">
+                    <div class="ui button">
+                        Wiki
+                    </div>
+                </a>
             </div>
-        </a>
-        <a target="_blank" href="http://samweb.fnal.gov:8480/sam_web_registry/{{session_experiment}}/prd/">
-            <div class="ui bottom attached button">
-                Registry
-                <i class="large share icon"></i>
-            </div>
-        </a>
-    </div>
+        </div>
 
     <div class="card">
         <div class="content">
@@ -205,9 +221,9 @@ Job Launches: {{launches}}
                 Jobsub status for {{session_experiment}}
             </div>
         </div>
-        <a target="_blank" href="https://landscape.fnal.gov/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{session_experiment}}">
+        <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000053/experiment-batch-details?orgId=1&from=now-7d&to=now-5m&var-experiment={{session_experiment}}">
             <div class="ui bottom attached button">
-                <i class="large share icon"></i>
+                Batch Details
             </div>
         </a>
     </div>
@@ -226,7 +242,7 @@ Job Launches: {{launches}}
         </div>
         <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000177/dcache-io-rate-by-vo?orgId=1&var-vo={{session_experiment}}&var-PoolGroup=All">
             <div class="ui bottom attached button">
-                <i class="large share icon"></i>
+                    (get new plot)
             </div>
         </a>
     </div>
