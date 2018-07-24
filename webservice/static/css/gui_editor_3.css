@@ -85,7 +85,7 @@ div.box.selected {
 
 .helpbutton:before {
     content: "\f059";
-    font-amily: "Icons";
+    font-family: "Icons";
 }
 
 
@@ -107,4 +107,4 @@ div.box.selected {
 
 .wakefields:before { content: "\25a6"; width: 1em; height 1em; font-size: larger; }
 .wakedeps:before { content: "\269f"; width: 1em; height 1em;  font-size: larger; }
-.deletebutton:before { content: "\267b"; width: 1em; height 1em;  font-size: largerl }
+.deletebutton:before { content: "\267b"; width: 1em; height 1em;  font-size: larger; }

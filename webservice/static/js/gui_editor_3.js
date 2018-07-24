@@ -79,6 +79,7 @@ mwm_utils.trim_blanks = function (s) {
 
 function gui_editor(toptag) {
     gui_editor.body = document.getElementById(toptag);
+    /*
     this.div = document.createElement("DIV");
     this.div.className = 'gui_editor_frame';
     this.div.id = 'gui_editor_' + gui_editor.instance_list.length;
@@ -93,6 +94,7 @@ function gui_editor(toptag) {
     this.depboxes = [];
     gui_editor.body.appendChild(this.div);
     gui_editor.instance_list.push(this);
+    */
     //
     this.jobtypes = [];
 }
@@ -100,10 +102,10 @@ function gui_editor(toptag) {
 
 /* static vars */
 
-gui_editor.body = document.body;
+// gui_editor.body = document.body;
 
 /* aforementioned instance list */
-gui_editor.instance_list = [];
+// gui_editor.instance_list = [];
 
 /* static methods */
 
@@ -583,12 +585,12 @@ gui_editor.prototype.checkdep = function (s1, s2) {
     if (s2 == '' || s1 == '') {
         return 0;
     }
-    var k = "dependencies " + s1;
+    var depname = "dependencies " + s1;
 
-    if (!(k in this.state)) {
+    if (!(depname in this.state)) {
         return 0;
     }
-    var deps = this.state[k];
+    var deps = this.state[depname];
 
     if (!deps) {
         //console.log("\tDeps empty...");
@@ -605,6 +607,7 @@ gui_editor.prototype.checkdep = function (s1, s2) {
         return this.checkdep(s1, deps['campaign_stage_1']);
     }
     //
+    // Check more parents
     if (!('campaign_stage_2' in deps)) {
         return 0;
     }
@@ -644,6 +647,7 @@ gui_editor.prototype.getdepth = function (s1, cnt) {
  * --  particularly stupid about long names/wide boxes
  */
 gui_editor.prototype.draw_state = function () {
+    /*
     var gridx = 220;
     var gridy = 100;
     var labely = 50;
@@ -696,7 +700,7 @@ gui_editor.prototype.draw_state = function () {
     * actually does depend on and move it one column
     * right of that, but close enough for a first pass
     */
-
+    /*
     var first = true;
     for (i in stagelist) {
         k = 'campaign_stage ' + stagelist[i];
@@ -756,6 +760,9 @@ gui_editor.prototype.draw_state = function () {
     y = y + 2 * gridy;
 
     this.div.style.height = y.toString() + "px";
+    */
+   let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage "));
+   let edge_labels = Object.keys(this.state).filter(x => x.startsWith("dependencies "));
 }
 
 /*
