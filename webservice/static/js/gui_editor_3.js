@@ -761,8 +761,66 @@ gui_editor.prototype.draw_state = function () {
 
     this.div.style.height = y.toString() + "px";
     */
-   let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage "));
-   let edge_labels = Object.keys(this.state).filter(x => x.startsWith("dependencies "));
+    const depFrom = (label) => {
+        const dep = this.state[`dependencies ${label}`];
+        const froms = Object.keys(dep).filter(x => x.startsWith("campaign_stage_")).map(x => dep[x]);
+        return froms;
+    };
+
+    let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
+    let edge_labels = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).map(x => x.split(' ')[1]);
+    //let nodes = node_labels.map(x => ({id:(Math.random() * 1e7).toString(32), label:x, shape:'box'}));
+    let nodes = node_labels.map(x => ({id:x, label:x}));
+    let vnodes = new vis.DataSet(nodes);
+    let edges = edge_labels.map(x => ({from: depFrom(x), to: x}));
+    let rr = [];
+    //for (const e of edges) {
+        //e.from.forEach(x => rr.push({from: x, to: e.to}));
+    //};
+    edges.forEach(e => e.from.forEach(x => rr.push({from: x, to: e.to})));
+    let vedges = new vis.DataSet(rr);
+
+    // create a network
+    let container = document.getElementById('outer_gui_editor_frame');
+
+    // provide the data in the vis format
+    let data = {
+        nodes: vnodes,
+        edges: vedges
+    };
+    const options = {
+        autoResize: true,
+        physics: false,
+        nodes: {
+            shadow: true,
+            shape: 'box'
+        },
+        layout: {
+          improvedLayout:true,
+          hierarchical: {
+            enabled: true,
+            levelSeparation: 150,
+            nodeSpacing: 50,
+            //treeSpacing: 20,
+            parentCentralization: true,
+            blockShifting: true,
+            edgeMinimization: true,
+            direction: "LR",
+            sortMethod: "directed"
+          }
+        },
+        edges: {
+          smooth: {
+            type: "dynamic",
+            //forceDirection: "vertical",
+            roundness: 0.7
+          },
+          arrows: {to : true},
+          shadow: true
+        }
+    };
+    // initialize your network!
+    var network = new vis.Network(container, data, options);
 }
 
 /*
