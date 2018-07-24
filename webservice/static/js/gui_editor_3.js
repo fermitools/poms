@@ -380,6 +380,7 @@ gui_editor.prototype.set_state = function (ini_dump) {
         }).then(
         _ => {
             this.state = JSON.parse(this.ini2json(ini_dump));
+            console.log("State:\n", this.state);    // DEBUG
             this.defaultify_state();
             this.draw_state();
         }
@@ -561,7 +562,7 @@ gui_editor.prototype.ini2json = function (s) {
 gui_editor.prototype.tsort = function (dlist) {
     var n, i, j, k, t;
     n = dlist.length;
-    for (i = 0; i < n; i++) {
+    for (i = 1; i < n; i++) {
         for (j = 0; j < i; j++) {
             if (this.checkdep(dlist[j], dlist[i])) {
                 t = dlist[i];
@@ -578,6 +579,7 @@ gui_editor.prototype.tsort = function (dlist) {
  * be a for loop 1..9 or so
  */
 gui_editor.prototype.checkdep = function (s1, s2) {
+    console.log("Testing...", s1, '->', s2);
     if (s2 == '' || s1 == '') {
         return 0;
     }
@@ -589,14 +591,20 @@ gui_editor.prototype.checkdep = function (s1, s2) {
     var deps = this.state[k];
 
     if (!deps) {
+        //console.log("\tDeps empty...");
         return 0;
     }
     if (!('campaign_stage_1' in deps)) {
+        //console.log("\tNo parent...");
         return 0;
     }
     if (deps['campaign_stage_1'] == s2) {
         return 1;
     }
+    else  {
+        return this.checkdep(s1, deps['campaign_stage_1']);
+    }
+    //
     if (!('campaign_stage_2' in deps)) {
         return 0;
     }
@@ -604,6 +612,29 @@ gui_editor.prototype.checkdep = function (s1, s2) {
         return 1;
     }
     return 0;
+}
+
+gui_editor.prototype.getdepth = function (s1, cnt) {
+    if (s1 == '') {
+        return cnt;
+    }
+    var k = "dependencies " + s1;
+
+    if (!(k in this.state)) {
+        return cnt;
+    }
+    var deps = this.state[k];
+
+    if (!deps) {
+        return cnt;
+    }
+    if (!('campaign_stage_1' in deps)) {
+        return cnt;
+    }
+    if (!(deps['campaign_stage_1'])) {
+        return cnt;
+    }
+    return this.getdepth(deps['campaign_stage_1'], cnt+1);
 }
 
 /*
@@ -642,16 +673,17 @@ gui_editor.prototype.draw_state = function () {
         }
     }
 
-    this.tsort(stagelist);
+    //this.tsort(stagelist);
+    stagelist.sort((a, b) => 1 - this.checkdep(a, b)).reverse();
 
     cb = new label_box("Campaign: " + this.state['campaign']['tag'], this.div, x, y);
-    cb.innerHTML += '<button type="button" onclick="gui_editor.save(\'' + this.div.id + '\')">Save</button> <span id="savebusy"></span>';
+    cb.innerHTML += `<button type="button" onclick="gui_editor.save('${this.div.id}')">Save</button> <span id="savebusy"></span>`;
 
     y = y + 2 * labely;
 
     csb = new label_box("Campaign Stages:", this.div, x, y);
-    csb.innerHTML += '<button type="button" onclick="gui_editor.makedep(\'' + this.div.id + '\')">+ Connect Stages</button>';
-    csb.innerHTML += '<button type="button" onclick="gui_editor.newstage(\'' + this.div.id + '\')">+ New Stage</button>';
+    csb.innerHTML += `<button type="button" onclick="gui_editor.makedep('${this.div.id}')">+ Connect Stages</button>`;
+    csb.innerHTML += `<button type="button" onclick="gui_editor.newstage('${this.div.id}')">+ New Stage</button>`;
 
     var dfb = new misc_box("Default Values", this.mode, mwm_utils.dict_keys(this.mode), this.div, x + 240, y, this);
 
@@ -670,9 +702,13 @@ gui_editor.prototype.draw_state = function () {
         k = 'campaign_stage ' + stagelist[i];
 
         if (!first) {
-            if (this.checkdep(stagelist[i], prevstage)) {
-                x = x + gridx;
-            } else {
+            //if (this.checkdep(stagelist[i], prevstage)) {
+                //x = x + gridx * this.getdepth(stagelist[i], 0);
+            if (this.getdepth(stagelist[i], 0) != this.getdepth(prevstage, 0)) {
+                x = gridx * this.getdepth(stagelist[i], 0);
+            }
+            else {
+                //x = gridx * this.getdepth(stagelist[i], 0);
                 y = y + gridy;
             }
         }
@@ -1212,7 +1248,7 @@ wf_uploader.prototype.tag_em = function(tag, cfg_stages, completed) {
     });
 }
 
-wf_uploader.prototype.upload_jobtype =  function(jt) {
+wf_uploader.prototype.upload_jobtype = function(jt) {
     var field_map, k, d, args;
     if (!(('job_type ' + jt) in this.cfg)) {
         return;
