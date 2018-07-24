@@ -895,7 +895,7 @@ gui_editor.prototype.draw_state = function () {
                 el.style.left = params.pointer.DOM.x;
                 el.style.top = params.pointer.DOM.y + 100;
                 const h3 = el.querySelector('h3');
-                const e = edge_list.get(edge);
+                const e = edges.get(edge);
                 h3.innerHTML = `dependency ${getLabel(e.from)} -> ${getLabel(e.to)}`;
             }
             params.event = "[original event]";
