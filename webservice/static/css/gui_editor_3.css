@@ -108,3 +108,84 @@ div.box.selected {
 .wakefields:before { content: "\25a6"; width: 1em; height 1em; font-size: larger; }
 .wakedeps:before { content: "\269f"; width: 1em; height 1em;  font-size: larger; }
 .deletebutton:before { content: "\267b"; width: 1em; height 1em;  font-size: larger; }
+
+#outer_gui_editor_frame {
+    width: 1000px;
+    height: 600px;
+    border: 1px solid lightgray;
+}
+
+#mydefaults, #myjobtypes {
+    width: 1000px;
+    height: 100px;
+    border: 1px solid lightgray;
+}
+
+#node-popUp {
+    display:none;
+    position:absolute;
+    top:350px;
+    left:170px;
+    z-index:299;
+    width:250px;
+    height:120px;
+    background-color: #f9f9f9;
+    border-style:solid;
+    border-width:3px;
+    border-color: #5394ed;
+    padding:10px;
+    text-align: center;
+    box-shadow: 10px 10px 20px grey;
+  }
+
+  #edge-popUp {
+    display:none;
+    position:absolute;
+    top:350px;
+    left:170px;
+    z-index:299;
+    width:250px;
+    height:90px;
+    background-color: #f9f9f9;
+    border-style:solid;
+    border-width:3px;
+    border-color: #5394ed;
+    padding:10px;
+    text-align: center;
+    box-shadow: 10px 10px 20px grey;
+  }
+
+  #popup_form, #popup_depform {
+      /* display: block; */
+      display: none;
+      background-color: white;
+      position: absolute;
+      z-index: 3;
+      left: 0px;
+      top: 2em;
+      opacity: 1;
+      width: 40em;
+      border-width: 1px;
+      border-style: solid;
+      border-color: black;
+      border-image: initial;
+      outline: grey solid 2px;
+      margin: 2px;
+      padding: 1em;
+      box-shadow: 10px 10px 20px grey;
+  }
+  #popup_form h3 {
+     width: 100%;
+  }
+  #popup_form input, select {
+      width: 60%;
+  }
+  #popup_form label {
+      display: inline-block;
+      width: 30%;
+  }
+
+  .rightbutton {
+    display: block;
+    float: right;
+  }
