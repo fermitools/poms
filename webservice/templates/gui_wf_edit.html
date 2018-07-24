@@ -60,6 +60,92 @@
     <input type="button" value="cancel" id="edge-cancelButton">
 </div>
 
+<form idd="fields_campaign_stage mvi_merge_triga" id="popup_form" __style="display: block; top: 350px; left: 270px;">
+    <h3>campaign_stage mvi_merge_triga
+        <!--
+          <button title="Close" class="rightbutton" type="button" onclick="document.getElementById('popup_form').style.display='none';"><span class="deletebutton"></span></button>
+          -->
+        <p></p>
+    </h3>
+    <label>dataset</label>
+    <input id="_inpcampaign_stage mvi_merge_triga_dataset" value="" placeholder="default">
+    <br>
+    <label>software_version</label>
+    <input id="_inpcampaign_stage mvi_merge_triga_software_version" value="" placeholder="default">
+    <br>
+    <label>vo_role</label>
+    <input id="_inpcampaign_stage mvi_merge_triga_vo_role" value="" placeholder="default">
+    <br>
+    <label>cs_split_type</label>
+    <input id="_inpcampaign_stage mvi_merge_triga_cs_split_type" value="" placeholder="default">
+    <br>
+    <label>job_type</label>
+    <select id="_inpcampaign_stage mvi_merge_triga_job_type" name="jtlist">
+        <option value="">default</option>
+        <option value="A-fakeeventgen-yg">A-fakeeventgen-yg</option>
+        <option value="Anna_test">Anna_test</option>
+        <option value="Definition_test_felipe1">Definition_test_felipe1</option>
+        <option value="Definition_test_felipe2">Definition_test_felipe2</option>
+        <option value="do_stuff">do_stuff</option>
+        <option value="drinkme">drinkme</option>
+        <option value="fakeeventgen">fakeeventgen</option>
+        <option value="fakereco">fakereco</option>
+        <option value="fakesim">fakesim</option>
+        <option value="fakesim_clone">fakesim_clone</option>
+        <option value="generic_fife_process">generic_fife_process</option>
+        <option value="hello">hello</option>
+        <option value="JoeFirstTest">JoeFirstTest</option>
+        <option value="jtmwm_tst_0910_01">jtmwm_tst_0910_01</option>
+        <option value="mvi_job_type_template_fife_process">mvi_job_type_template_fife_process</option>
+        <option value="mvi_test56">mvi_test56</option>
+        <option value="mwm test old">mwm test old</option>
+        <option value="NEXUS_test">NEXUS_test</option>
+        <option value="project_py_test1">project_py_test1</option>
+        <option value="project_py_test1_1">project_py_test1_1</option>
+        <option value="ssl_campaign">ssl_campaign</option>
+        <option value="t10_jt_eg">t10_jt_eg</option>
+        <option value="t11_jt_eg">t11_jt_eg</option>
+        <option value="t1_jt_eg">t1_jt_eg</option>
+        <option value="t2_jt_eg">t2_jt_eg</option>
+        <option value="t3_jt_eg">t3_jt_eg</option>
+        <option value="t4_jt_eg">t4_jt_eg</option>
+        <option value="t5_jt_eg">t5_jt_eg</option>
+        <option value="t6_jt_eg">t6_jt_eg</option>
+        <option value="t7_jt_eg">t7_jt_eg</option>
+        <option value="t8_jt_eg">t8_jt_eg</option>
+        <option value="t9_jt_eg">t9_jt_eg</option>
+        <option value="test">test</option>
+        <option value="test_launch_mock_job">test_launch_mock_job</option>
+        <option value="test_launch_mock_job_generic">test_launch_mock_job_generic</option>
+        <option value="test_launch_mock_job_generic_old">test_launch_mock_job_generic_old</option>
+        <option value="TestTask">TestTask</option>
+        <option value="uboone_process_fife_launch">uboone_process_fife_launch</option>
+        <option value="yuyi_dune">yuyi_dune</option>
+        <option value="yuyi_fife_process">yuyi_fife_process</option>
+    </select>
+
+    <br>
+    <label>param_overrides</label>
+    <input id="_inpcampaign_stage mvi_merge_triga_param_overrides" value="[[&quot;--stage=&quot;, &quot;merge&quot;]]" placeholder="default">
+    <button type="button" onclick="json_field_editor.start('_inpcampaign_stage mvi_merge_triga_param_overrides')">Edit</button>
+    <br>
+    <label>test_param_overrides</label>
+    <input id="_inpcampaign_stage mvi_merge_triga_test_param_overrides" value="" placeholder="default">
+    <button type="button" onclick="json_field_editor.start('_inpcampaign_stage mvi_merge_triga_test_param_overrides')">Edit</button>
+    <br>
+    <label>completion_type</label>
+    <input id="_inpcampaign_stage mvi_merge_triga_completion_type" value="" placeholder="default">
+    <br>
+    <label>completion_pct</label>
+    <input id="_inpcampaign_stage mvi_merge_triga_completion_pct" value="" placeholder="default">
+    <br>
+    <label>login_setup</label>
+    <input id="_inpcampaign_stage mvi_merge_triga_login_setup" value="" placeholder="default">
+    <br>
+    <input type="button" value="save" style="width: 8em;" onclick="document.getElementById('popup_form').style.display='none';">
+    <input type="button" value="cancel" style="width: 8em;" onclick="document.getElementById('popup_form').style.display='none';">
+</form>
+
 <form id="popup_depform" __style="display: block; top: 350px; left: 270px;">
     <h3>dependency for mvi_merge_triga</h3>
     <label>file_pattern</label>
