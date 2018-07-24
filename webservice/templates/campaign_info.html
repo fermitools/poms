@@ -22,97 +22,6 @@ Campaign Stage {{CampaignStage.name}}
 
 
 
-<script>
-$( document ).ready(function() {
-
-    function do_delete(item)
-    {
-        var c_id = item.id.split("_")[0];
-        var t_id = item.id.split("_")[1];
-        var clicked_id = "#"+item.id;
-        var experiment = "{{CampaignStage.experiment}}";
-
-        $.post('delete_campaigns_tags', {campaign_stage_id: c_id, campaign_id: t_id, experiment: experiment}, function(data) {
-            if(data.msg == "OK")
-            {
-                $('#response').html(data.msg);
-                $(clicked_id).remove();  //removes the trash can
-                $(clicked_id+"_").remove();  //removes the tag
-
-            }
-            else
-            {
-                $('#response').html(data.msg);
-            }
-        });
-    }
-
-
-
-    function add_click_handler()
-    {
-          $( ".poms_tag" ).off("click").on("click", function() {
-            if (confirm("Are you sure you want to delete this item?") == true)
-            {
-               do_delete(this);
-            }
-            else
-            {
-              return;
-            }
-        });
-    }
-
-    add_click_handler();
-
-
-
-    $('#add_button').on('click', function(e) {
-        e.preventDefault();
-        $('#response').html("");
-
-        if( !$('#tag_field').val() )
-        {
-            $('#response').html("Please enter a tag.");
-            return;
-        }
-
-        tag = $('#tag_field').val()
-        $.post('link_tags', {tag_name: tag, campaign_stage_id: '{{CampaignStage.campaign_stage_id}}', experiment: '{{CampaignStage.experiment}}'}, function(data) {
-
-            if(data.msg == "OK")
-            {
-                const campaigns_tags_composite_key = data.campaign_stage_id.toString() + "_" + data.campaign_id.toString();
-                $('#response').html(data.msg);
-
-                const new_tag = "<span><a href='{{pomspath}}/search_tags?q=" + data.tag_name + "' class='ui blue tag label' id=" + campaigns_tags_composite_key + "_>" + data.tag_name + "</a>";
-                const new_trash_can = "<i class='trash outline bordered inverted blue icon link poms_tag' id=" + campaigns_tags_composite_key + " style='border-radius: 5px;'></i></span>";
-                $('#tag_container').append(new_tag + new_trash_can);
-                //$('#tag_container').append(new_tag);
-                $('#tag_field').val("");
-                add_click_handler();
-            }
-            else
-            {
-                $('#response').html(data.msg);
-            }
-
-        });
-    });
-
-
-    $('#tag_field').keypress(function(event){
-        if(event.keyCode == 13)
-        {
-            $('#add_button').click();
-            $('#tag_field').val("");
-        }
-    });
-
-});
-
-
-</script>
 
   <div class="ui segment raised ">
 
@@ -322,28 +231,6 @@ $( document ).ready(function() {
    {%endfor%}
    </ul>
  </div>
-
-
-
-<script>
-    var protocol = window.location.protocol;
-    var hostname = window.location.hostname;
-    var appname = window.location.pathname.split("/")[1];
-    var querypath = protocol + "//" + hostname + "/" + appname + "/auto_complete_tags_search";
-
-
-    var experiment = "{{CampaignStage.experiment}}";
-    $('.ui.search')
-        .search({
-            apiSettings: {
-                url: querypath + "?q={query}&experiment=" + experiment
-            },
-            fields: {
-                title: 'tag_name'
-            },
-            //minCharacters : 3
-        });
-</script>
 
 
 {%endblock%}
