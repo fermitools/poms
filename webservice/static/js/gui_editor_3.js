@@ -796,31 +796,85 @@ gui_editor.prototype.draw_state = function () {
             shape: 'box'
         },
         layout: {
-          improvedLayout:true,
-          hierarchical: {
-            enabled: true,
-            levelSeparation: 150,
-            nodeSpacing: 50,
-            //treeSpacing: 20,
-            parentCentralization: true,
-            blockShifting: true,
-            edgeMinimization: true,
-            direction: "LR",
-            sortMethod: "directed"
-          }
+            improvedLayout: true,
+            hierarchical: {
+                enabled: true,
+                levelSeparation: 150,
+                nodeSpacing: 50,
+                //treeSpacing: 20,
+                parentCentralization: true,
+                blockShifting: true,
+                edgeMinimization: true,
+                direction: "LR",
+                sortMethod: "directed"
+            }
         },
         edges: {
-          smooth: {
-            type: "dynamic",
-            //forceDirection: "vertical",
-            roundness: 0.7
-          },
-          arrows: {to : true},
-          shadow: true
+            smooth: {
+                type: "dynamic",
+                //forceDirection: "vertical",
+                roundness: 0.7
+            },
+            arrows: {to : true},
+            shadow: true
+        },
+        manipulation: {
+            addNode: function (data, callback) {
+                // filling in the popup DOM elements
+                document.getElementById('node-operation').innerHTML = "Add Node";
+                editNode(data, clearNodePopUp, callback);
+            },
+            editNode: function (data, callback) {
+                // filling in the popup DOM elements
+                document.getElementById('node-operation').innerHTML = "Edit Node";
+                editNode(data, cancelNodeEdit, callback);
+            },
+            addEdge: function (data, callback) {
+                if (data.from == data.to) {
+                    var r = confirm("Do you want to connect the node to itself?");
+                    if (r != true) {
+                        callback(null);
+                        return;
+                    }
+                }
+                else {
+                    callback(data);
+                }
+            }
         }
     };
     // initialize your network!
     var network = new vis.Network(container, data, options);
+    var jobtypes = new vis.Network(document.getElementById('myjobtypes'),
+        {
+            nodes: [
+                { id: 1, label: "Login/Setup", shape: 'box', group: 0 },
+                { id: 2, label: "jobtype 1", shape: 'box', group: 0 },
+                { id: 3, label: "jobtype 2", shape: 'box', group: 0 },
+            ],
+            edges: []
+        },
+        {
+            autoResize: true,
+            physics: true,
+            nodes: {
+                shadow: true,
+                shape: 'box'
+            },
+            layout: {
+                improvedLayout: true,
+                hierarchical: {
+                    enabled: true,
+                    levelSeparation: 150,
+                    nodeSpacing: 50,
+                    parentCentralization: true,
+                    blockShifting: true,
+                    edgeMinimization: true,
+                    direction: "UD",
+                    sortMethod: "directed"
+                }
+            },
+        });
 }
 
 /*
