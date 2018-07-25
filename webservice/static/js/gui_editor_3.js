@@ -834,8 +834,9 @@ gui_editor.prototype.draw_state = function () {
             },
             addEdge: function (data, callback) {
                 if (data.from == data.to) {
-                    var r = confirm("Do you want to connect the node to itself?");
-                    if (r != true) {
+                    //var r = confirm("Do you want to connect the node to itself?");
+                    //if (r != true)
+                    {
                         callback(null);
                         return;
                     }
