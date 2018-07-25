@@ -34,17 +34,19 @@
     <span id="node-operation">node</span>
     <br>
     <table style="margin:auto;">
+<!--
         <tr>
             <td>id</td>
             <td> <input id="node-id" value="new value"> </td>
         </tr>
+-->
         <tr>
             <td>label</td>
             <td> <input id="node-label" value="new value"> </td>
         </tr>
     </table>
-    <input type="button" value="save" id="node-saveButton">
-    <input type="button" value="cancel" id="node-cancelButton">
+    <input type="button" value="OK" id="node-saveButton">
+    <input type="button" value="Cancel" id="node-cancelButton">
 </div>
 
 <div id="edge-popUp">
@@ -56,11 +58,11 @@
             <td> <input id="edge-label" value="new value"> </td>
         </tr>
     </table>
-    <input type="button" value="save" id="edge-saveButton">
-    <input type="button" value="cancel" id="edge-cancelButton">
+    <input type="button" value="OK" id="edge-saveButton">
+    <input type="button" value="Cancel" id="edge-cancelButton">
 </div>
 
-<form idd="fields_campaign_stage mvi_merge_triga" id="popup_form" __style="display: block; top: 350px; left: 270px;">
+<form id="popup_form">
     <h3>campaign_stage mvi_merge_triga
         <!--
           <button title="Close" class="rightbutton" type="button" onclick="document.getElementById('popup_form').style.display='none';"><span class="deletebutton"></span></button>
@@ -142,8 +144,8 @@
     <label>login_setup</label>
     <input id="_inpcampaign_stage mvi_merge_triga_login_setup" value="" placeholder="default">
     <br>
-    <input type="button" value="save" style="width: 8em;" onclick="document.getElementById('popup_form').style.display='none';">
-    <input type="button" value="cancel" style="width: 8em;" onclick="document.getElementById('popup_form').style.display='none';">
+    <input type="button" value="OK" style="width: 8em;" onclick="document.getElementById('popup_form').style.display='none';">
+    <input type="button" value="Cancel" style="width: 8em;" onclick="document.getElementById('popup_form').style.display='none';">
 </form>
 
 <form id="popup_depform" __style="display: block; top: 350px; left: 270px;">
@@ -151,16 +153,18 @@
     <label>file_pattern</label>
     <input value="" placeholder="default">
     <br>
-    <input type="button" value="save" style="width: 8em;" onclick="document.getElementById('popup_depform').style.display='none';">
-    <input type="button" value="cancel" style="width: 8em;" onclick="document.getElementById('popup_depform').style.display='none';">
+    <input type="button" value="OK" style="width: 8em;" onclick="document.getElementById('popup_depform').style.display='none';">
+    <input type="button" value="Cancel" style="width: 8em;" onclick="document.getElementById('popup_depform').style.display='none';">
 </form>
 
-<!-- <div id="outer_gui_editor_frame" style="width:100%; height: 40em; border: 1px solid grey; padding: 1em; overflow-x:scroll; overflow-y: scroll"> -->
-<h3>Campaign Default Values</h3>
+<h3>Campaign Stages
+    <button class="ui button" type="submit" value="save">Save</button>
+</h3>
 <div id="mydefaults" oncontextmenu='return false;' contextmenu=""></div>
-<h3>Campaign Stages</h3>
 <div id="outer_gui_editor_frame" oncontextmenu='return false;' contextmenu=""></div>
+<!--
 <h3>Campaign Login/Setup and Jobtypes</h3>
+-->
 <div id="myjobtypes" oncontextmenu='return false;' contextmenu=""></div>
 <pre id="eventSpan"></pre>
 

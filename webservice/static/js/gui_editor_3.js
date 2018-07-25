@@ -769,7 +769,10 @@ gui_editor.prototype.draw_state = function () {
 
     let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
     let edge_labels = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).map(x => x.split(' ')[1]);
-    //let node_list = node_labels.map(x => ({id:(Math.random() * 1e7).toString(32), label:x, shape:'box'}));
+    //// let node_list = node_labels.map(x => ({id:(Math.random() * 1e7).toString(32), label:x, shape:'box'}));
+    //let node_list = [
+        //{id:'default', label:'default', group:0, shape:'ellipse', x:250, y:0, fixed:true, size:35}
+    //].concat(node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 0)})));
     let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 0)}));
     let nodes = new vis.DataSet(node_list);
     let edge_list = edge_labels.map(x => ({from: depFrom(x), to: x}));
@@ -845,6 +848,35 @@ gui_editor.prototype.draw_state = function () {
     };
     // initialize your network!
     var network = new vis.Network(container, data, options);
+
+    var defaults = new vis.Network(document.getElementById('mydefaults'),
+        {
+            nodes: [{id:'default', label:'default', x:250, y:0, fixed:true, size:50}],
+            edges: []
+        },
+        {
+            autoResize: false,
+            physics: false,
+            nodes: {
+                shadow: true,
+                shape: 'ellipse'
+            },
+            //layout: {
+                //improvedLayout: true,
+                //hierarchical: {
+                    //enabled: true,
+                    //levelSeparation: 150,
+                    //nodeSpacing: 50,
+                    //parentCentralization: true,
+                    //blockShifting: true,
+                    //edgeMinimization: true,
+                    //direction: "UD",
+                    //sortMethod: "directed"
+            //}
+        //},
+        }
+        );
+
     var jobtypes = new vis.Network(document.getElementById('myjobtypes'),
         {
             nodes: [
@@ -884,16 +916,16 @@ gui_editor.prototype.draw_state = function () {
                 // alert("In double click handler");
                 const el = document.getElementById('popup_form');
                 el.style.display = 'block';
-                el.style.left = params.pointer.DOM.x;
-                el.style.top = params.pointer.DOM.y;
+                el.style.left = `${params.pointer.DOM.x}px`;
+                el.style.top = `${params.pointer.DOM.y}px`;
                 const h3 = el.querySelector('h3');
                 h3.innerHTML = 'campaign_stage ' + nodes.get(node).label;
             } else if (params.edges[0] !== undefined) {
                 const edge = params.edges[0];
                 const el = document.getElementById('popup_depform');
                 el.style.display = 'block';
-                el.style.left = params.pointer.DOM.x;
-                el.style.top = params.pointer.DOM.y + 100;
+                el.style.left = `${params.pointer.DOM.x}px`;
+                el.style.top = `${params.pointer.DOM.y + 100}px`;
                 const h3 = el.querySelector('h3');
                 const e = edges.get(edge);
                 h3.innerHTML = `dependency ${getLabel(e.from)} -> ${getLabel(e.to)}`;
@@ -941,9 +973,21 @@ gui_editor.prototype.draw_state = function () {
         function saveNodeData(data, callback) {
           //data.physics = false;
           //data.fixed = true;
-          data.label = document.getElementById('node-label').value;
+          //data.label = document.getElementById('node-label').value;
+          //clearNodePopUp();
+          //callback(data);
+          const label = document.getElementById('node-label').value;
           clearNodePopUp();
-          callback(data);
+          if (label.includes('*')) {
+              const nn = label.split('*');
+              for (let i = 0; i < nn[1]; i++) {
+                data.label = `${nn[0]}_${i}`;
+                callback(data);
+              }
+          } else {
+            data.label = label;
+            callback(data);
+          }
         }
 
         function clearEdgePopUp() {
