@@ -771,7 +771,7 @@ gui_editor.prototype.draw_state = function () {
     let edge_labels = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).map(x => x.split(' ')[1]);
     //// let node_list = node_labels.map(x => ({id:(Math.random() * 1e7).toString(32), label:x, shape:'box'}));
     //let node_list = [
-        //{id:'default', label:'default', group:0, shape:'ellipse', x:250, y:0, fixed:true, size:35}
+    //    {id:'default', label:'default', group:0, shape:'ellipse', x:250, y:0, fixed:true, size:35}
     //].concat(node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 0)})));
     let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 0)}));
     let nodes = new vis.DataSet(node_list);
@@ -846,7 +846,7 @@ gui_editor.prototype.draw_state = function () {
             }
         }
     };
-    // initialize your network!
+    // initialize network
     var network = new vis.Network(container, data, options);
 
     var defaults = new vis.Network(document.getElementById('mydefaults'),
