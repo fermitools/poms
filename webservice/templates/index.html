@@ -191,23 +191,25 @@ Job Launches: {{launches}}
             <div class="meta">
             </div>
             <div class="description">
-                SAM is a data handling system, to keep track of files, their meta-data and processing.
+                    SAM is a data handling system organized as a
+                    set of servers which work together to store and retrieve files and associated metadata,
+                    including a complete record of the processing which has used the files.
             </div>
         </div>
         <div class="ui three bottom attached buttons">
-                <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000122/sam-by-experiment?from=now-24h&to=now-5m&orgId=1&var-experiment={{session_experiment}}">
-                    <div class="ui button">
-                        Status
-                    </div>
-                </a>
-                    <div class="ui button"></div>
-                <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/sam-main/wiki">
-                    <div class="ui button">
-                        Wiki
-                    </div>
-                </a>
-            </div>
+            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000122/sam-by-experiment?from=now-24h&to=now-5m&orgId=1&var-experiment={{session_experiment}}">
+                <div class="ui button">
+                    Status
+                </div>
+            </a>
+            <div class="ui button"></div>
+            <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/sam-main/wiki/User_Guide_for_SAM">
+                <div class="ui button">
+                    Wiki
+                </div>
+            </a>
         </div>
+    </div>
 
     <div class="card">
         <div class="content">
@@ -218,14 +220,24 @@ Job Launches: {{launches}}
             <div class="meta">
             </div>
             <div class="description">
-                Jobsub status for {{session_experiment}}
+                    Jobsub is a suite of tools to manage batch/grid submission. These tools
+                    are designed to simplify the job submission process by defining interfaces for experiments,
+                    integrating grid tools, protecting shared resources.
             </div>
         </div>
-        <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000053/experiment-batch-details?orgId=1&from=now-7d&to=now-5m&var-experiment={{session_experiment}}">
-            <div class="ui bottom attached button">
-                Batch Details
-            </div>
-        </a>
+        <div class="ui three bottom attached buttons">
+            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000053/experiment-batch-details?orgId=1&from=now-7d&to=now-5m&var-experiment={{session_experiment}}">
+                <div class="ui button">
+                    Batch Detail
+                </div>
+            </a>
+            <div class="ui button"></div>
+            <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/jobsub/wiki">
+                <div class="ui button">
+                    Wiki
+                </div>
+            </a>
+        </div>
     </div>
 
     <div class="card">
@@ -237,18 +249,24 @@ Job Launches: {{launches}}
             <div class="meta">
             </div>
             <div class="description">
-                    dCache status for {{session_experiment}}
+                    dCache is disk caching software capable of massive data throughput.  It stores and retrieves large amounts of data,
+                    distributed among a large number of heterogeneous disk server nodes.
             </div>
         </div>
-        <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000177/dcache-io-rate-by-vo?orgId=1&var-vo={{session_experiment}}&var-PoolGroup=All">
-            <div class="ui bottom attached button">
-                    (get new plot)
-            </div>
-        </a>
+        <div class="ui three bottom attached buttons">
+            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000177/dcache-io-rate-by-vo?orgId=1&var-vo={{session_experiment}}&var-PoolGroup=All">
+                <div class="ui button">
+                    Joe?
+                </div>
+            </a>
+            <div class="ui button"></div>
+            <a target="_blank" href="http://www.dcache.org">
+                <div class="ui button">
+                    Wiki
+                </div>
+            </a>
+        </div>
     </div>
-
-
-
 
 
     </div>
