@@ -998,12 +998,11 @@ gui_editor.prototype.draw_state = function () {
         callback(data);
     }
 
-    function addNewNode(params) {
+    const addNewNode => (params) {
         var newId = (Math.random() * 1e7).toString(32);
         const parentId = params.nodes[0];
         nodes.add({id: newId, label: params.label, group: nodes.get(parentId).group+1, physics: true});
         edges.add({from: parentId, to: newId});
-        //// nodeIds.push(newId);
     }
 
     function exportNetwork() {
