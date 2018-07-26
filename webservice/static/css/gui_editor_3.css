@@ -111,7 +111,7 @@ div.box.selected {
 
 #outer_gui_editor_frame {
     width: 1000px;
-    height: 600px;
+    /* height: 600px; */
     border: 1px solid lightgray;
 }
 
