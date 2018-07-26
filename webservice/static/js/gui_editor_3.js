@@ -102,10 +102,10 @@ function gui_editor(toptag) {
 
 /* static vars */
 
-// gui_editor.body = document.body;
+    gui_editor.body = document.body;
 
 /* aforementioned instance list */
-// gui_editor.instance_list = [];
+    gui_editor.instance_list = [];
 
 /* static methods */
 
