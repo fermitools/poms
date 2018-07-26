@@ -79,7 +79,7 @@ mwm_utils.trim_blanks = function (s) {
 
 function gui_editor(toptag) {
     gui_editor.body = document.getElementById(toptag);
-    /*
+
     this.div = document.createElement("DIV");
     this.div.className = 'gui_editor_frame';
     this.div.id = 'gui_editor_' + gui_editor.instance_list.length;
@@ -94,7 +94,7 @@ function gui_editor(toptag) {
     this.depboxes = [];
     gui_editor.body.appendChild(this.div);
     gui_editor.instance_list.push(this);
-    */
+
     //
     this.jobtypes = [];
 }
