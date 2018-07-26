@@ -88,7 +88,7 @@ function gui_editor(toptag) {
     this.div.addEventListener("dragover", gui_editor.dragover_handler);
     this.div.addEventListener("drop", gui_editor.drop_handler);
     this.div.style.width = "100%";
-    this.div.style.height = "200em";
+    this.div.style.height = "220em";
     this.stageboxes = [];
     this.miscboxes = [];
     this.depboxes = [];
