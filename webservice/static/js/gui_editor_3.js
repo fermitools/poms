@@ -955,7 +955,7 @@ gui_editor.prototype.draw_state = function () {
         callback(null);
     }
 
-    function saveNodeData(data, callback) {
+    const saveNodeData = (data, callback) => {
         //data.physics = false;
         //data.fixed = true;
         //data.label = document.getElementById('node-label').value;
@@ -967,12 +967,12 @@ gui_editor.prototype.draw_state = function () {
             const nn = label.split('*');
             for (let i = 0; i < nn[1]; i++) {
                 data.label = `${nn[0]}_${i}`;
-                // this.new_stage(`campign_stage ${data.label}`);
+                this.new_stage(data.label);
                 callback(data);
             }
         } else {
             data.label = label;
-            // this.new_stage(`campign_stage ${data.label}`);
+            this.new_stage(data.label);
             callback(data);
         }
     }
@@ -981,7 +981,7 @@ gui_editor.prototype.draw_state = function () {
         document.getElementById('edge-saveButton').onclick = null;
         document.getElementById('edge-cancelButton').onclick = null;
         document.getElementById('edge-popUp').style.display = 'none';
-    }
+    };
 
     function cancelEdgeEdit(callback) {
         clearEdgePopUp();
