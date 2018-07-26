@@ -1412,6 +1412,23 @@ gui_editor.prototype.new_dependency = function() {
     this.depboxes.push(db);
 }
 
+
+gui_editor.prototype.add_dependency = function(frm, to) {
+    let dep_name = 'dependencies ' + to;
+    if (dep_name in this.state) {
+        var istr = ((Object.keys(this.state[dep_name]).length / 2) + 1).toString();
+    } else {
+        this.state[dep_name] = {};
+        istr = '1';
+    }
+
+    this.state[dep_name]['campaign_stage_' + istr] = frm;
+    this.state[dep_name]['file_pattern_' + istr] = '%%';
+    const db = new dependency_box(`${dep_name}_${istr}`, this.state[dep_name],
+            [`campaign_stage_${istr}`, `file_pattern_${istr}`], this.div, 0, 0, this);
+    this.depboxes.push(db);
+}
+
 gui_editor.prototype.save_state = function () {
     var sb = document.getElementById("savebusy");
     sb.innerHTML = "Saving...";
