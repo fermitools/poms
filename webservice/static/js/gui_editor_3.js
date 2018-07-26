@@ -853,44 +853,24 @@ gui_editor.prototype.draw_state = function () {
     // initialize network
     var network = new vis.Network(container, data, options);
 
-    var defaults = new vis.Network(document.getElementById('mydefaults'),
-        {
-            nodes: [{id:'default', label:'default', x:250, y:0, fixed:true, size:50}],
-            edges: []
-        },
-        {
-            autoResize: false,
-            physics: false,
-            nodes: {
-                shadow: true,
-                shape: 'ellipse'
-            },
-            //layout: {
-                //improvedLayout: true,
-                //hierarchical: {
-                    //enabled: true,
-                    //levelSeparation: 150,
-                    //nodeSpacing: 50,
-                    //parentCentralization: true,
-                    //blockShifting: true,
-                    //edgeMinimization: true,
-                    //direction: "UD",
-                    //sortMethod: "directed"
-            //}
-        //},
-        }
+    var defaults = new vis.Network(document.getElementById('mydefaults'), {
+                nodes: [{id:'default', label:'default', x:250, y:0, fixed:true, size:50}],
+                edges: []
+            }, {
+                autoResize: false,
+                physics: false,
+                nodes: { shadow: true, shape: 'ellipse' }
+            }
         );
 
-    var jobtypes = new vis.Network(document.getElementById('myjobtypes'),
-        {
+    var jobtypes = new vis.Network(document.getElementById('myjobtypes'), {
             nodes: [
                 { id: 1, label: "Login/Setup", shape: 'box', group: 0 },
                 { id: 2, label: "jobtype 1", shape: 'box', group: 0 },
                 { id: 3, label: "jobtype 2", shape: 'box', group: 0 },
             ],
             edges: []
-        },
-        {
+        }, {
             autoResize: true,
             physics: true,
             nodes: {
@@ -909,140 +889,141 @@ gui_editor.prototype.draw_state = function () {
                     direction: "UD",
                     sortMethod: "directed"
                 }
-            },
-        });
-
-        const getLabel = e => nodes.get(e).label;
-
-        network.on("doubleClick", function (params) {
-            if (params.nodes[0] !== undefined) {
-                const node = params.nodes[0];
-                // alert("In double click handler");
-                const el = document.getElementById('popup_form');
-                el.style.display = 'block';
-                el.style.left = `${params.pointer.DOM.x}px`;
-                el.style.top = `${params.pointer.DOM.y}px`;
-                const h3 = el.querySelector('h3');
-                h3.innerHTML = 'campaign_stage ' + nodes.get(node).label;
-            } else if (params.edges[0] !== undefined) {
-                const edge = params.edges[0];
-                const el = document.getElementById('popup_depform');
-                el.style.display = 'block';
-                el.style.left = `${params.pointer.DOM.x}px`;
-                el.style.top = `${params.pointer.DOM.y + 100}px`;
-                const h3 = el.querySelector('h3');
-                const e = edges.get(edge);
-                h3.innerHTML = `dependency ${getLabel(e.from)} -> ${getLabel(e.to)}`;
             }
-            params.event = "[original event]";
-            document.getElementById('eventSpan').innerHTML = '<h2>doubleClick event:</h2>' + JSON.stringify(params, null, 4);
-        });
-
-        network.on("oncontext", function (params) { // right click
-            this.unselectAll();
-            const node = [this.getNodeAt(params.pointer.DOM)];
-            if (node[0]) {
-                this.selectNodes(node);
-            }
-            params.nodes = node;
-            params.event = "[original event]";
-            document.getElementById('eventSpan').innerHTML = '<h2>oncontext (right click) event:</h2>' + JSON.stringify(params, null, 4);
-
-            if (params.nodes[0] !== undefined) {
-                document.getElementById('node-operation').innerHTML = "Add Node";
-                editNode(params, clearNodePopUp, addNewNode);
-            }
-        });
-
-
-        function editNode(data, cancelAction, callback) {
-          document.getElementById('node-label').value = data.label;
-          document.getElementById('node-saveButton').onclick = saveNodeData.bind(this, data, callback);
-          document.getElementById('node-cancelButton').onclick = cancelAction.bind(this, callback);
-          document.getElementById('node-popUp').style.display = 'block';
         }
+    );
 
-        // Callback passed as parameter is ignored
-        function clearNodePopUp() {
-          document.getElementById('node-saveButton').onclick = null;
-          document.getElementById('node-cancelButton').onclick = null;
-          document.getElementById('node-popUp').style.display = 'none';
+    const getLabel = e => nodes.get(e).label;
+
+    network.on("doubleClick", function (params) {
+        if (params.nodes[0] !== undefined) {
+            const node = params.nodes[0];
+            // alert("In double click handler");
+            const el = document.getElementById('popup_form');
+            el.style.display = 'block';
+            el.style.left = `${params.pointer.DOM.x}px`;
+            el.style.top = `${params.pointer.DOM.y}px`;
+            const h3 = el.querySelector('h3');
+            h3.innerHTML = 'campaign_stage ' + nodes.get(node).label;
+        } else if (params.edges[0] !== undefined) {
+            const edge = params.edges[0];
+            const el = document.getElementById('popup_depform');
+            el.style.display = 'block';
+            el.style.left = `${params.pointer.DOM.x}px`;
+            el.style.top = `${params.pointer.DOM.y + 100}px`;
+            const h3 = el.querySelector('h3');
+            const e = edges.get(edge);
+            h3.innerHTML = `dependency ${getLabel(e.from)} -> ${getLabel(e.to)}`;
         }
+        params.event = "[original event]";
+        document.getElementById('eventSpan').innerHTML = '<h2>doubleClick event:</h2>' + JSON.stringify(params, null, 4);
+    });
 
-        function cancelNodeEdit(callback) {
-          clearNodePopUp();
-          callback(null);
+    network.on("oncontext", function (params) { // right click
+        this.unselectAll();
+        const node = [this.getNodeAt(params.pointer.DOM)];
+        if (node[0]) {
+            this.selectNodes(node);
         }
+        params.nodes = node;
+        params.event = "[original event]";
+        document.getElementById('eventSpan').innerHTML = '<h2>oncontext (right click) event:</h2>' + JSON.stringify(params, null, 4);
 
-        function saveNodeData(data, callback) {
-          //data.physics = false;
-          //data.fixed = true;
-          //data.label = document.getElementById('node-label').value;
-          //clearNodePopUp();
-          //callback(data);
-          const label = document.getElementById('node-label').value;
-          clearNodePopUp();
-          if (label.includes('*')) {
-              const nn = label.split('*');
-              for (let i = 0; i < nn[1]; i++) {
+        if (params.nodes[0] !== undefined) {
+            document.getElementById('node-operation').innerHTML = "Add Node";
+            editNode(params, clearNodePopUp, addNewNode);
+        }
+    });
+
+
+    function editNode(data, cancelAction, callback) {
+        document.getElementById('node-label').value = data.label;
+        document.getElementById('node-saveButton').onclick = saveNodeData.bind(this, data, callback);
+        document.getElementById('node-cancelButton').onclick = cancelAction.bind(this, callback);
+        document.getElementById('node-popUp').style.display = 'block';
+    }
+
+    // Callback passed as parameter is ignored
+    function clearNodePopUp() {
+        document.getElementById('node-saveButton').onclick = null;
+        document.getElementById('node-cancelButton').onclick = null;
+        document.getElementById('node-popUp').style.display = 'none';
+    }
+
+    function cancelNodeEdit(callback) {
+        clearNodePopUp();
+        callback(null);
+    }
+
+    function saveNodeData(data, callback) {
+        //data.physics = false;
+        //data.fixed = true;
+        //data.label = document.getElementById('node-label').value;
+        //clearNodePopUp();
+        //callback(data);
+        const label = document.getElementById('node-label').value;
+        clearNodePopUp();
+        if (label.includes('*')) {
+            const nn = label.split('*');
+            for (let i = 0; i < nn[1]; i++) {
                 data.label = `${nn[0]}_${i}`;
                 // this.new_stage(`campign_stage ${data.label}`);
                 callback(data);
-              }
-          } else {
+            }
+        } else {
             data.label = label;
             // this.new_stage(`campign_stage ${data.label}`);
             callback(data);
-          }
-        }
-
-        function clearEdgePopUp() {
-          document.getElementById('edge-saveButton').onclick = null;
-          document.getElementById('edge-cancelButton').onclick = null;
-          document.getElementById('edge-popUp').style.display = 'none';
-        }
-
-        function cancelEdgeEdit(callback) {
-          clearEdgePopUp();
-          callback(null);
-        }
-
-        function saveEdgeData(data, callback) {
-          if (typeof data.to === 'object')
-            data.to = data.to.id
-          if (typeof data.from === 'object')
-            data.from = data.from.id
-          data.label = document.getElementById('edge-label').value;
-          clearEdgePopUp();
-          callback(data);
-        }
-
-        function addNewNode(params) {
-            var newId = (Math.random() * 1e7).toString(32);
-            const parentId = params.nodes[0];
-            nodes.add({id: newId, label: params.label, group: nodes.get(parentId).group+1, physics: true});
-            edges.add({from: parentId, to: newId});
-            //// nodeIds.push(newId);
-        }
-
-        function exportNetwork() {
-
-            // var nodes = objectToArray(network.getPositions());
-            var nodes = network.body.nodeIndices.map(x => ({id: x}));
-
-            nodes.forEach(addConnections);
-
-            // pretty print node data
-            var exportValue = JSON.stringify(nodes, undefined, 2);
-            console.log(exportValue);
-
-        }
-
-        function addConnections(elem, index) {
-            // elem.connections = network.getConnectedNodes(elem.id);
-            elem.connections = network.getConnectedEdges(elem.id).filter(x => network.body.edges[x].toId != elem.id).map(x => network.body.edges[x].toId);
         }
     }
+
+    function clearEdgePopUp() {
+        document.getElementById('edge-saveButton').onclick = null;
+        document.getElementById('edge-cancelButton').onclick = null;
+        document.getElementById('edge-popUp').style.display = 'none';
+    }
+
+    function cancelEdgeEdit(callback) {
+        clearEdgePopUp();
+        callback(null);
+    }
+
+    function saveEdgeData(data, callback) {
+        if (typeof data.to === 'object')
+        data.to = data.to.id
+        if (typeof data.from === 'object')
+        data.from = data.from.id
+        data.label = document.getElementById('edge-label').value;
+        clearEdgePopUp();
+        callback(data);
+    }
+
+    function addNewNode(params) {
+        var newId = (Math.random() * 1e7).toString(32);
+        const parentId = params.nodes[0];
+        nodes.add({id: newId, label: params.label, group: nodes.get(parentId).group+1, physics: true});
+        edges.add({from: parentId, to: newId});
+        //// nodeIds.push(newId);
+    }
+
+    function exportNetwork() {
+
+        // var nodes = objectToArray(network.getPositions());
+        var nodes = network.body.nodeIndices.map(x => ({id: x}));
+
+        nodes.forEach(addConnections);
+
+        // pretty print node data
+        var exportValue = JSON.stringify(nodes, undefined, 2);
+        console.log(exportValue);
+
+    }
+
+    function addConnections(elem, index) {
+        // elem.connections = network.getConnectedNodes(elem.id);
+        elem.connections = network.getConnectedEdges(elem.id).filter(x => network.body.edges[x].toId != elem.id).map(x => network.body.edges[x].toId);
+    }
+}
 
 /*
  * redo the dependency boxes on this gui_editor
