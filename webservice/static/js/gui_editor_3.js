@@ -986,10 +986,12 @@ gui_editor.prototype.draw_state = function () {
               const nn = label.split('*');
               for (let i = 0; i < nn[1]; i++) {
                 data.label = `${nn[0]}_${i}`;
+                new_stage(`campign_stage ${data.label}`);
                 callback(data);
               }
           } else {
             data.label = label;
+            new_stage(`campign_stage ${data.label}`);
             callback(data);
           }
         }
