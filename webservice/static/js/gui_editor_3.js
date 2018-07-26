@@ -647,7 +647,7 @@ gui_editor.prototype.getdepth = function (s1, cnt) {
  * --  particularly stupid about long names/wide boxes
  */
 gui_editor.prototype.draw_state = function () {
-    /*
+
     var gridx = 220;
     var gridy = 100;
     var labely = 50;
@@ -700,7 +700,7 @@ gui_editor.prototype.draw_state = function () {
     * actually does depend on and move it one column
     * right of that, but close enough for a first pass
     */
-    /*
+
     var first = true;
     for (i in stagelist) {
         k = 'campaign_stage ' + stagelist[i];
@@ -760,7 +760,10 @@ gui_editor.prototype.draw_state = function () {
     y = y + 2 * gridy;
 
     this.div.style.height = y.toString() + "px";
-    */
+
+    /*
+     * Vis.js stuff
+     */
     const depFrom = (label) => {
         const dep = this.state[`dependencies ${label}`];
         const froms = Object.keys(dep).filter(x => x.startsWith("campaign_stage_")).map(x => dep[x]);
@@ -784,7 +787,7 @@ gui_editor.prototype.draw_state = function () {
     let edges = new vis.DataSet(rr);
 
     // create a network
-    let container = document.getElementById('outer_gui_editor_frame');
+    let container = document.getElementById('mystages');
 
     // provide the data in the vis format
     let data = {
@@ -1364,8 +1367,8 @@ dependency_box.prototype.set_bounds = function () {
     }
 }
 
-gui_editor.prototype.new_stage = function () {
-    var k = window.prompt("New stage name:")
+gui_editor.prototype.new_stage = function (name) {
+    var k = name || window.prompt("New stage name:");
     var x, y, b;
     this.state['campaign']['campaign_stage_list'] += " " + k;
     k = 'campaign_stage ' + k;
