@@ -845,7 +845,7 @@ gui_editor.prototype.draw_state = function () {
                     }
                 }
                 else {
-                    callback(data);
+                    saveEdgeData(data, callback);
                 }
             }
         }
@@ -988,18 +988,20 @@ gui_editor.prototype.draw_state = function () {
         callback(null);
     }
 
-    function saveEdgeData(data, callback) {
+    const saveEdgeData = (data, callback) => {
         if (typeof data.to === 'object')
-        data.to = data.to.id
+            data.to = data.to.id;
         if (typeof data.from === 'object')
-        data.from = data.from.id
-        data.label = document.getElementById('edge-label').value;
-        clearEdgePopUp();
+            data.from = data.from.id;
+        //data.label = document.getElementById('edge-label').value;
+        //clearEdgePopUp();
+        this.add_dependency(data.from, data.to);
         callback(data);
     }
 
     const addNewNode = (params) => {
-        var newId = (Math.random() * 1e7).toString(32);
+        //var newId = (Math.random() * 1e7).toString(32);
+        let newId = params.label;
         const parentId = params.nodes[0];
         this.add_dependency(parentId, newId);
         nodes.add({id: newId, label: params.label, group: nodes.get(parentId).group+1, physics: true});
