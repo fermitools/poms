@@ -25,8 +25,8 @@ class CampaignsTag(Base):
     campaign_stage_id = Column(Integer, ForeignKey('campaign_stages.campaign_stage_id'), primary_key=True)
     tag_id = Column(Integer, ForeignKey('tags.tag_id'), primary_key=True)
 
-    tag_obj = relationship(Tag, backref="campaigns_tags")
-    campaign_obj = relationship('Campaign', backref="campaigns_tags")
+    tag_obj = relationship(Tag, backref="campaigns")
+    campaign_obj = relationship('Campaign', backref="tags")
 
 
 class Campaign(Base):
