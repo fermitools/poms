@@ -120,6 +120,7 @@ def get_voms_data(cert, exp):
             # build a dictionary to get rid of duplicates, make it the
             # same structure as get_ferry_data builds
             users[username] = {'commonname': commonname, 'role': 'production'}
+    logging.debug("voms data: %s" % str(users))
     return users
 
 def determine_changes(cursor, exp, users):
@@ -132,6 +133,10 @@ def determine_changes(cursor, exp, users):
     new_users = users.copy() # existing users will be popped off.
     active_status = {}
     role_changes = {}
+
+    if len(users) == 0:
+        logging.warning("deterimine_changes: Zero users returned for experiment!  Skipping this experiment.")
+        return {}, {}, {}
 
     cursor.execute(sql)
     for (username, experimenter_id, active, role,) in cursor.fetchall():

@@ -58,15 +58,20 @@ class jobsub_q_scraper:
 
     def update_submission(self, submission_id, jobsub_job_id, project = None, status = None):
         logit.info('update_submission: %s' % repr({'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}))
-        try:
-            r = self.psess.post("%s/update_submission"%self.poms_uri, {'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}, verify=False)
-        except requests.exceptions.ConnectionError:
-            logit.error("Connection Reset! Retrying once...")
-            time.sleep(1)
-            r = self.psess.post("%s/update_submission"%self.poms_uri, {'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}, verify=False)
+        for i in range(4):
+            try:
+                r = self.psess.post("%s/update_submission"%self.poms_uri, {'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}, verify=False)
+                r.raise_for_status()
+                break
+            except requests.exceptions.ConnectionError:
+                logit.error("Connection Reset!")
+            except Exception(e):
+                logit.error("Exception: %s" % e)
+                logit.error(r.text)
+            time.sleep(2**i)
+
         if (r.text != "Ok."):
             logit.error("update_submission: Failed.");
-            logit.error(r.text)
 
     def scan(self):
 

@@ -21,7 +21,7 @@ from . import (
                logit,
                version)
 from .elasticsearch import Elasticsearch
-from .poms_model import CampaignStage, Submission
+from .poms_model import Campaign, CampaignStage, Submission, Experiment
 
 
 def error_response():
@@ -85,6 +85,7 @@ class PomsService(object):
     def index(self):
         template = self.jinja_env.get_template('index.html')
         return template.render(services='',
+                               version= self.version,
                                launches=self.taskPOMS.get_job_launches(cherrypy.request.db),
                                do_refresh=1200, help_page="DashboardHelp")
 
@@ -112,7 +113,7 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def quick_search(self, search_term):
-        self.utilsPOMS.quick_search(cherrypy.request.db, cherrypy.HTTPRedirect, search_term)
+        self.utilsPOMS.quick_search(cherrypy.HTTPRedirect, search_term)
 
     @cherrypy.expose
     @logit.logstartstop
@@ -135,6 +136,12 @@ class PomsService(object):
         template = self.jinja_env.get_template('raw_tables.html')
         return template.render(tlist=list(self.tablesPOMS.admin_map.keys()), help_page="RawTablesHelp")
 
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def experiment_list(self):
+        return list(map((lambda x: x[0]),cherrypy.request.db.query(Experiment.experiment).all()))
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
@@ -203,9 +210,14 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_deps(self, tag=None, camp_id=None):
+    def campaign_deps(self, campaign_name = None, campaign_stage_id = None, tag=None, camp_id=None):
+        if campaign_name == None and tag != None:
+            campaign_name = tag
+        if campaign_stage_id == None and camp_id != None:
+            campaign_stage_id = camp_id
+
         template = self.jinja_env.get_template('campaign_deps.html')
-        svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config.get, tag, camp_id)
+        svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config.get, campaign_name, campaign_stage_id)
         return template.render(tag=tag, svgdata=svgdata, help_page="CampaignDepsHelp")
 
 
@@ -301,13 +313,11 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaigns(self):
-        experiment = cherrypy.session.get('experimenter').session_experiment
-        tl, last_activity = self.tagsPOMS.show_campaigns(cherrypy.request.db, experiment)
-        current_experimenter = cherrypy.session.get('experimenter')
+    def show_campaigns(self, *args, **kwargs):
+        experimenter = cherrypy.session.get('experimenter')
+        tl, last_activity, msg = self.tagsPOMS.show_campaigns(cherrypy.request.db, experimenter, *args, **kwargs)
         template = self.jinja_env.get_template('show_campaigns.html')
-
-        return template.render(tl=tl, last_activity=last_activity, help_page="ShowCampaignTagsHelp")
+        return template.render(tl=tl, last_activity=last_activity, msg=msg, help_page="ShowCampaignTagsHelp")
 
 
     @cherrypy.expose
@@ -397,12 +407,15 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_time_bars(self, campaign_stage_id=None, tag=None, tmin=None, tmax=None, tdays=1):
+    def campaign_time_bars(self, campaign_stage_id=None, campaign=None, tag=None, tmin=None, tmax=None, tdays=1):
+        if tag != None and campaign == None:
+             campaign = tag
+
         (
             job_counts, blob, name, tmin, tmax, nextlink, prevlink, tdays, key, extramap
         ) = self.campaignsPOMS.campaign_time_bars(cherrypy.request.db,
                                                   campaign_stage_id=campaign_stage_id,
-                                                  tag=tag,
+                                                  campaign=campaign,
                                                   tmin=tmin, tmax=tmax, tdays=tdays)
         template = self.jinja_env.get_template('campaign_time_bars.html')
         return template.render(job_counts=job_counts, blob=blob, name=name, tmin=tmin, tmax=tmax,
@@ -621,6 +634,13 @@ class PomsService(object):
         res = self.jobsPOMS.output_pending_jobs(cherrypy.request.db)
         return res
 
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def running_submissions(self,campaign_id_list):
+        cl = list(map(int, campaign_id_list.split(',')))
+        return self.taskPOMS.running_submissions(cherrypy.request.db, cl)
 
     @cherrypy.expose
     @logit.logstartstop
@@ -869,23 +889,16 @@ class PomsService(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def delete_tag_entirely(self, campaign_id):
-        return self.tagsPOMS.delete_tag_entirely(cherrypy.request.db, cherrypy.session.get, campaign_id)
-
-
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
     def delete_campaigns_tags(self, campaign_stage_id, campaign_id, experiment):
         return self.tagsPOMS.delete_campaigns_tags(cherrypy.request.db, cherrypy.session.get, campaign_stage_id, campaign_id,
                                                    experiment)
 
     @cherrypy.expose
     @logit.logstartstop
-    def search_tags(self, q):
-        results, q_list = self.tagsPOMS.search_tags(cherrypy.request.db, q)
+    def search_tags(self, search_term):
+        results = self.tagsPOMS.search_tags(cherrypy.request.db, search_term)
         template = self.jinja_env.get_template('search_tags.html')
-        return template.render(results=results, q_list=q_list, do_refresh=0, help_page="SearchTagsHelp")
+        return template.render(results=results, search_term=search_term, do_refresh=0, help_page="SearchTagsHelp")
 
 
     @cherrypy.expose

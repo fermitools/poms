@@ -20,11 +20,7 @@ POMS Campaign Stage Dependencies
 
 {%block content %}
 
-<div style="width:100%; height: 40em; border: 1px solid grey; padding: 1em; overflow-x:scroll; overflow-y: scroll">
-<svg style="width:200%; height: 300em ">
-   {{svgdata}}
-</svg>
-</div>
+      {{svgdata|safe}}
 
 {%endblock%}
 

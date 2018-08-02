@@ -18,6 +18,7 @@ class Agent:
         self.known_status = {}
         self.known_project = {}
         self.known_pct = {}
+        self.maxjobs = {}
         self.submission_headers = {
             'Accept-Encoding': 'gzip, deflate, br',
             'Content-Type': 'application/json',
@@ -26,12 +27,18 @@ class Agent:
             'Origin': 'https://landscapeitb.fnal.gov' 
         }
 
-        self.full_query = """{"query":"{ submissions(query: \\"POMS_TASK_ID: gt 10\\") { id pomsTaskID jobs { id } done } }","operationName":null}"""
+        self.full_query = '{"query":"{submissions(group: \\"%s\\"){  id   pomsTaskID   done   running   idle   held } }","operationName":null}'
 
-    def update_submission(self, submission_id, jobsub_job_id, project = None, status = None):
+        self.submission_query='{"query":"{submission(id:\\"%s\\"){  pomsTaskID  SAM_PROJECT:env(name:\\"SAM_PROJECT\\")  SAM_PROJECT_NAME:env(name:\\"SAM_PROJECT_NAME\\")  args}}","operationName":null}'
+
+        r = self.psess.get("http://127.0.0.1:8080/poms/experiment_list")
+        self.elist = r.json()
+        r.close()
+
+    def update_submission(self, submission_id, jobsub_job_id, pct_complete = None , project = None, status = None):
         logit.info('update_submission: %s' % repr({'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}))
         try:
-            r = self.psess.post("%s/update_submission"%self.poms_uri, {'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}, verify=False)
+            r = self.psess.post("%s/update_submission"%self.poms_uri, {'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status, 'pct_complete': pct_complete}, verify=False)
         except requests.exceptions.ConnectionError:
             logit.error("Connection Reset! Retrying once...")
             time.sleep(1)
@@ -41,24 +48,65 @@ class Agent:
             logit.error("update_submission: Failed.");
             logit.error(r.text)
 
+        r.close()
+       
 
     def get_project(self, e):
-        if e.get('Args',None):
-           p1 = e['Args'].find('--sam_project')
-           if p1 > 0:
-               p2 = e['Args'].find(' ',p1+15)
-               return e['Args'][p1+14:p2]
-        if e.get('Env',None):
-           if e['Env'].get('SAM_PROJECT_NAME'):
-               return e['Env']['SAM_PROJECT_NAME']
-           if e['Env'].get('SAM_PROJECT'):
-               return e['Env']['SAM_PROJECT']
-        return None
 
-    def check_submissions(self):
-        logit.info("check_submissions:")
-        r = self.ssess.post(self.submission_uri, data=self.full_query, headers=self.submission_headers)
+        # check if we already know it...
+
+        res =  self.known_project.get(e['pomsTaskID'], None)
+        if res:
+            logit.info("already knew project for %s: %s" % (e['pomsTaskID'], res))
+            return res
+
+        # otherwise look it up... in the submission info
+
+        r = self.ssess.post(self.submission_uri, 
+                            data=self.submission_query % e['id'], 
+                            headers=self.submission_headers)
         d = r.json()
+        d = d['data']['submission']
+        logit.info("data: %s" % repr(d))
+        r.close()
+
+        if d.get('args',None):
+           p1 = d['args'].find('--sam_project')
+           if p1 > 0:
+               logit.info("saw --sam_project in args")
+               p2 = d['args'].find(' ',p1+15)
+               res =  d['args'][p1+14:p2]
+               logit.info("got: %s" % res)
+        if not res and d.get('SAM_PROJECT_NAME', None):
+            res = d['SAM_PROJECT_NAME']
+        if not res and d.get('SAM_PROJECT', None):
+            res = d['SAM_PROJECT']
+
+        # it looks like we should do this, to update our cache, *but* we
+        # need to defer it for the logic in check_submissions() below, 
+        # otherwise we'll never report it...
+        # self.known_project[e['pomsTaskID']] = res
+        logit.info("found project for %s: %s" % (e['pomsTaskID'], res))
+        return res
+
+    def get_status(self, e):
+        if e['done']:
+            return "Completed"
+        if e['held'] > 0: 
+            return "Held"
+        if e['running'] == 0 and e['idle'] != 0:
+            return "Idle"
+        if e['running'] > 0:
+            return "Running"
+        return "Unknown"
+
+    def check_submissions(self, group):
+        logit.info("check_submissions: %s" % group)
+        if group == 'samdev':
+            group = 'fermilab'
+        r = self.ssess.post(self.submission_uri, data=self.full_query % group, headers=self.submission_headers)
+        d = r.json()
+        r.close()
         logit.info("data: %s" % repr(d))
         if not d.get('data',None) or not d['data'].get('submissions',None):
             return
@@ -72,21 +120,23 @@ class Agent:
             if e['done'] == self.known_status.get(e['pomsTaskID'],None):
                 report_status = None
             else:
-                report_status = ('Completed' if e['done'] else 'Running')
+                report_status = self.get_status(e)
 
-            if e.get('jobs',None):
-                ntot = int(e['jobs']['Running']) + int(e['jobs']['Completed']) + int(e['jobs']['Idle']) + int(e['jobs']['Held']) + int(e['jobs']['Removed']) 
-                ncomp = int(e['jobs']['Completed']) 
-                if ntot > 0:
-                    report_pct_completd = ncomp * 100.0 / ntot
-                else:
-                    report_pct_completed = None
-
-                if report_pct_completed == self.known_pct[e['pomsTaskID']]:
-                    report_pct_completed = None
-
+            ntot = int(e['running']) + int(e['idle']) + int(e['held']) 
+            if ntot >= self.maxjobs.get(e['pomsTaskID'], 0):
+               self.maxjobs[e['pomsTaskID']] = ntot
             else:
-                report_pct_completed = None
+               ntot = self.maxjobs[e['pomsTaskID']]
+
+            ncomp = ntot - (e['running'] + e['held'] + e['idle'])
+          
+            if ntot > 0:
+                report_pct_complete = ncomp * 100.0 / ntot
+            else:
+                report_pct_complete = None
+
+            if report_pct_complete == self.known_pct.get(e['pomsTaskID'],None):
+                report_pct_complete = None
 
             if self.get_project(e) == self.known_project.get(e['pomsTaskID'],None):
                 report_project = None
@@ -96,8 +146,8 @@ class Agent:
             #
             # actually report it if there's anything changed...
             #
-            if report_status or report_project or report_pct_completed:
-                self.update_submission(e['pomsTaskID'], jobsub_job_id = e['id'], pct_completed = report_pct_completed, project = report_project, status = report_status)
+            if report_status or report_project or report_pct_complete:
+                self.update_submission(e['pomsTaskID'], jobsub_job_id = e['id'], pct_complete = report_pct_complete, project = report_project, status = report_status)
 
             #
             # now update our known status if available
@@ -108,14 +158,16 @@ class Agent:
             if e['pomsTaskID'] not in self.known_project or report_project:
                 self.known_project[e['pomsTaskID']] = report_project
 
-            if e['pomsTaskID'] not in self.known_pct or report_pct:
-                self.known_pct[e['pomsTaskID']] = report_pct
+            if e['pomsTaskID'] not in self.known_pct or report_pct_complete:
+                self.known_pct[e['pomsTaskID']] = report_pct_complete
 
     def poll(self):
         while( 1 ):
            try:
-               self.check_submissions()
+               for exp in self.elist:
+                   self.check_submissions(exp)
            except Exception as e:
+               raise
                logit.error("Exception: %s" % e)
            time.sleep(30)
 
@@ -127,10 +179,12 @@ else:
 
 if len(sys.argv) > 1 and sys.argv[1] == '-t':
    a = Agent(poms_uri="http://127.0.0.1:8080",submission_uri=getenv("SUBMISSION_INFO") )
-   a.check_submissions()
+   for exp in a.elist:
+       a.check_submissions(exp)
 elif len(sys.argv) > 1 and sys.argv[1] == '-T':
    a = Agent()
-   a.check_submissions()
+   for exp in a.elist:
+       a.check_submissions(exp)
 else:
    a = Agent()
    a.poll()

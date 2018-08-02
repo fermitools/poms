@@ -31,7 +31,6 @@ from .poms_model import (CampaignStage,
                          CampaignDependency,
                          CampaignRecovery,
                          CampaignStageSnapshot,
-                         CampaignCampaignStages,
                          Experiment,
                          Experimenter,
                          LoginSetup,
@@ -719,9 +718,10 @@ class CampaignsPOMS:
                 lts.add(lt)
 
         if tag is not None:
-            cl = dbhandle.query(CampaignStage).join(CampaignCampaignStages, Campaign).filter(Campaign.tag_name == tag,
-                                                                                             CampaignCampaignStages.campaign_id == Campaign.campaign_id,
-                                                                                             CampaignCampaignStages.campaign_stage_id == CampaignStage.campaign_stage_id).all()
+            cl = dbhandle.query(CampaignStage).join(Campaign).filter(
+              Campaign.name == tag,
+              CampaignStage.campaign_id == Campaign.campaign_id).all()
+
         if camp_id is not None:
             cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(CampaignDependency.provides_campaign_stage_id == camp_id).all()
             cidl2 = dbhandle.query(CampaignDependency.provides_campaign_stage_id).filter(CampaignDependency.needs_campaign_stage_id == camp_id).all()
@@ -820,65 +820,70 @@ class CampaignsPOMS:
 
         return "\n".join(res).replace("%", "%%")
 
-
-    def campaign_deps_svg(self, dbhandle, config_get, tag=None, camp_id=None):
+    def campaign_deps_svg(self, dbhandle, config_get, campaign_name=None,  campaign_stage_id=None):
         '''
             return campaign dependencies as an SVG graph
             uses "dot" to generate the drawing
         '''
-        if tag is not None:
-            cl = dbhandle.query(CampaignStage).join(CampaignCampaignStages, Campaign).filter(Campaign.tag_name == tag,
-                                                                                             CampaignCampaignStages.campaign_id == Campaign.campaign_id,
-                                                                                             CampaignCampaignStages.campaign_stage_id == CampaignStage.campaign_stage_id).all()
-        if camp_id is not None:
+        if campaign_name is not None:
+            cl = dbhandle.query(CampaignStage).join(Campaign).filter(Campaign.tag_name == campaign_name,
+                                                                                             CampaignStage.campaign_id == Campaign.campaign_id).all()
+
+        if campaign_stage_id is not None:
             cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(
-                CampaignDependency.provides_campaign_stage_id == camp_id).all()
+                CampaignDependency.provides_campaign_stage_id == campaign_stage_id).all()
             cidl2 = dbhandle.query(CampaignDependency.provides_campaign_stage_id).filter(
-                CampaignDependency.needs_campaign_stage_id == camp_id).all()
-            s = set([camp_id])
+                CampaignDependency.needs_campaign_stage_id == campaign_stage_id).all()
+            s = set([campaign_stage_id])
             s.update(cidl1)
             s.update(cidl2)
             cl = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id.in_(s)).all()
 
         c_ids = deque()
+        for cs in cl:
+            c_ids.append(cs.campaign_stage_id)
+
+        logit.log(logit.INFO, "campaign_deps: c_ids=%s" % repr(c_ids))
+
         try:
             pdot = subprocess.Popen("tee /tmp/dotstuff | dot -Tsvg", shell=True, stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE, universal_newlines=True)
-            pdot.stdin.write('digraph {}Dependencies {{\n'.format(tag))
+            pdot.stdin.write('digraph {}Dependencies {{\n'.format(campaign_name))
             pdot.stdin.write('node [shape=box, style=rounded, color=lightgrey, fontcolor=black]\nrankdir = "LR";\n')
             baseurl = "{}/campaign_info?campaign_stage_id=".format(config_get("pomspath"))
 
+            locatedmap = self.poms_service.taskPOMS.running_submissions(dbhandle, c_ids, status_list=["Located"])
+
+            logit.log(logit.INFO, "campaign_deps: locatedmap=%s" % repr(locatedmap))
             for cs in cl:
-                tcl = dbhandle.query(func.count(Submission.status), Submission.status).group_by(Submission.status).filter(
-                    Submission.campaign_stage_id == cs.campaign_stage_id).all()
-                tot = 0
-                ltot = 0
-                for (count, status) in tcl:
-                    tot = tot + count
-                    if status == 'Located':
-                        ltot = count
-                c_ids.append(cs.campaign_stage_id)
+                tot = dbhandle.query(func.count(Submission.submission_id)).filter(Submission.campaign_stage_id == cs.campaign_stage_id).one()[0]
+                ltot = locatedmap[cs.campaign_stage_id]
+                logit.log(logit.INFO, "campaign_deps: tot=%s" % repr(tot))
                 pdot.stdin.write(
                     'cs{:d} [URL="{}{:d}",label="{}\\nSubmissions {:d} Located {:d}",color={}];\n'.format(cs.campaign_stage_id,
-                                                                                                          baseurl,
-                                                                                                          cs.campaign_stage_id,
-                                                                                                          cs.name,
-                                                                                                          tot,
-                                                                                                          ltot,
-                                                                                                          ("darkgreen" if ltot == tot else "black")))
+                          baseurl,
+                          cs.campaign_stage_id,
+                          cs.name,
+                          tot,
+                          ltot,
+                          ("darkgreen" if ltot == tot else "black")))
 
-            cdl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
+            cdl = (dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all())
 
             for cd in cdl:
-                pdot.stdin.write('cs{:d} -> cs{:d};\n'.format(cd.needs_campaign_stage_id, cd.provides_campaign_stage_id))
+                if cd.needs_campaign_stage_id in c_ids and cd.provides_campaign_stage_id in c_ids:
+                    pdot.stdin.write('cs{:d} -> cs{:d};\n'.format(cd.needs_campaign_stage_id, cd.provides_campaign_stage_id))
 
             pdot.stdin.write('}\n')
             pdot.stdin.close()
             text = pdot.stdout.read()
             pdot.wait()
         except:
+            raise
             text = ""
-        return bytes(text, encoding="utf-8")
+            raise
+        #return bytes(text, encoding="utf-8")
+        return text
 
 
     def show_campaign_stages(self, dbhandle, samhandle, campaign_ids=None, tmin=None, tmax=None, tdays=7,
@@ -894,8 +899,6 @@ class CampaignsPOMS:
         se_role = sesshandler('experimenter').session_role
 
         cq = (dbhandle.query(CampaignStage)
-              .outerjoin(CampaignCampaignStages)
-              .options(joinedload('campaign_campaign_stages'))
               .options(joinedload('experiment_obj'))
               .options(joinedload(CampaignStage.experimenter_holder_obj))
               .order_by(CampaignStage.experiment)
@@ -985,8 +988,7 @@ class CampaignsPOMS:
                                 .filter(LoginSetup.login_setup_id == campaign_info.CampaignStage.login_setup_id,
                                         LoginSetup.creator == Experimenter.experimenter_id)
                                 .first())
-        campaigns = dbhandle.query(Campaign).filter(CampaignCampaignStages.campaign_stage_id == campaign_stage_id,
-                                                    CampaignCampaignStages.campaign_id == Campaign.campaign_id).all()
+        campaigns = dbhandle.query(Campaign).join(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).all()
 
         launched_campaigns = dbhandle.query(CampaignStageSnapshot).filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id).all()
 
@@ -1015,7 +1017,7 @@ class CampaignsPOMS:
         logit.log("got format {}".format(campaign_kibana_link_format))
         kibana_link = campaign_kibana_link_format.format(campaign_stage_id)
 
-        dep_svg = self.campaign_deps_svg(dbhandle, config_get, camp_id=campaign_stage_id)
+        dep_svg = self.campaign_deps_svg(dbhandle, config_get, campaign_stage_id=campaign_stage_id)
         return (campaign_info,
                 time_range_string,
                 tmins, tmaxs, tdays,
@@ -1026,13 +1028,13 @@ class CampaignsPOMS:
                 )
 
     # @pomscache_10.cache_on_arguments()
-    def campaign_time_bars(self, dbhandle, campaign_stage_id=None, tag=None, tmin=None, tmax=None, tdays=1):
+    def campaign_time_bars(self, dbhandle, campaign_stage_id=None, campaign=None, tmin=None, tmax=None, tdays=1):
         """
             Give time-bars for Tasks for this campaign in a time window
             using the time_grid code
         """
         if campaign_stage_id == None:
-            base_link = 'campaign_time_bars?tag={}&'.format(tag)
+            base_link = 'campaign_time_bars?campaign={}&'.format(campaign)
         else:
             base_link = 'campaign_time_bars?campaign_stage_id={}&'.format(campaign_stage_id)
 
@@ -1053,12 +1055,12 @@ class CampaignsPOMS:
             q = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == icampaign_id)
             cpl = q.all()
             name = cpl[0].name
-        elif tag is not None and tag != "":
-            q = dbhandle.query(CampaignStage).join(CampaignCampaignStages, Campaign).filter(
-                CampaignStage.campaign_stage_id == CampaignCampaignStages.campaign_stage_id, Campaign.campaign_id == CampaignCampaignStages.campaign_id,
-                Campaign.tag_name == tag)
+        elif campaign is not None and campaign != "":
+            q = dbhandle.query(CampaignStage).join(Campaign).filter(
+                CampaignStage.campaign_id == Campaign.campaign_id,
+                Campaign.name == campaign)
             cpl = q.all()
-            name = tag
+            name = campaign
         else:
             err_res = "404 Permission Denied."
             return "Neither CampaignStage nor Campaign found"
@@ -1078,12 +1080,14 @@ class CampaignsPOMS:
         extramap = OrderedDict()
         for th in qr:
             jjid = th.submission_obj.jobsub_job_id
+            full_jjid = jjid
             if not jjid:
                 jjid = 's' + str(th.submission_id)
+                full_jjid="unknown.0@unknown.un.known"
             else:
                 jjid = str(jjid).replace('fifebatch', '').replace('.fnal.gov', '')
 
-            if tag is not None:
+            if campaign is not None:
                 jjid += "<br>" + th.submission_obj.campaign_stage_obj.name
 
             if th.status not in ("Completed", "Located", "Failed", "Removed"):
@@ -1100,16 +1104,21 @@ class CampaignsPOMS:
                                  created=th.created.replace(tzinfo=utc),
                                  tmin=th.submission_obj.created - timedelta(minutes=15),
                                  tmax=th.submission_obj.updated,
+                                 tminsec = tmin.strftime("%s"),
                                  status=th.status,
                                  jobsub_job_id=jjid,
-                                 jobsub_cluster = jjid[:jjid.find('@')],
-                                 jobsub_host = jjid[jjid.find('@')+1:],
-                                   ))
+                                 jobsub_cluster = full_jjid[:jjid.find('.')],
+                                 jobsub_schedd = full_jjid[jjid.find('@')+1:],
+                               ))
 
         logit.log("campaign_time_bars: items: " + repr(items))
+        if cpl[0].dataset in (None, 'None','none'):
+             url_template= "https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
+        else:
+             url_template= "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
 
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id',
-                                    url_template="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_host)s.fnal.gov&from=now-2days&to=now&refresh=5m&orgId=1",
+                                    url_template=url_template,
                                     extramap=extramap)
         return "", blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 

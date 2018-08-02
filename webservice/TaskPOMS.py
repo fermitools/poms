@@ -25,6 +25,7 @@ from .poms_model import (CampaignStage,
                          JobTypeSnapshot,
                          CampaignDependency,
                          CampaignStageSnapshot,
+                         Campaign,
                          Experimenter,
                          HeldLaunch,
                          LoginSetup,
@@ -87,7 +88,7 @@ class TaskPOMS:
         mark_located = deque()
         #
         # move launch stuff etc, to one place, so we can keep the table rows
-        sq = (dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label('latest')).group_by(SubmissionHistory.submission_id).subquery())
+        sq = (dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label('latest')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id).subquery())
         completed_sids = (dbhandle.query(SubmissionHistory.submission_id).join(sq,SubmissionHistory.submission_id == sq.c.submission_id).filter(SubmissionHistory.status == 'Completed', SubmissionHistory.created == sq.c.latest).all())
 
         res.append("Completed submissions_ids: %s" % repr(list(completed_sids)))
@@ -103,7 +104,6 @@ class TaskPOMS:
                       .all()):
             res.append("completion type completed: %s" % s.submission_id)
             finish_up_tasks.append(s.submission_id)
-            self.update_submission_status(s.submission_id, "Located")
 
         n_project = 0
         for s in (dbhandle
@@ -117,7 +117,7 @@ class TaskPOMS:
             res.append("completion type located: %s" % s.submission_id)
             # after two days, call it on time...
             if now - s.updated > timedelta(days=2):
-                self.update_submission_status(s.submission_id, "Located")
+                finish_up_tasks.append(s.submission_id)
 
             elif s.project:
                 # task had a sam project, add to the list to look
@@ -132,7 +132,6 @@ class TaskPOMS:
 
                 lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
                 lookup_task_list.append(s)
-                lookup_base_list.append(basedims)
                 lookup_dims_list.append(allkiddims)
 
         dbhandle.commit()
@@ -143,24 +142,26 @@ class TaskPOMS:
         logit.log("wrapup_tasks: summary_list: %s" % repr(summary_list))    # Check if that is working
         res.append("wrapup_tasks: summary_list: %s" % repr(summary_list))
 
+        res.append("count_list: %s" % count_list)
+        res.append("thresholds: %s" % thresholds)
+        res.append("lookup_dims_list: %s" % lookup_dims_list)
+
         for i in range(len(summary_list)):
             task = lookup_task_list[i]
             cfrac = task.campaign_stage_snapshot_obj.completion_pct / 100.0
             threshold = (summary_list[i].get('tot_consumed', 0) * cfrac)
             thresholds.append(threshold)
             val = float(count_list[i])
+            res.append("submission %s val %f threshold %f "%(task, val, threshold))
             if val >= threshold and threshold > 0:
-                n_located = n_located + 1
+                res.append("adding submission %s "%task)
                 finish_up_tasks.append(task.submission_id)
 
         for s in finish_up_tasks:
-            self.update_submission_status(s,"Located")
+            res.append("marking submission %s located "%s)
+            self.update_submission_status(dbhandle,s,"Located")
 
         dbhandle.commit()
-
-        res.append("count_list: %s" % count_list)
-        res.append("thresholds: %s" % thresholds)
-        res.append("lookup_dims_list: %s" % lookup_dims_list)
 
         #
         # now, after committing to clear locks, we run through the
@@ -174,19 +175,24 @@ class TaskPOMS:
         #else:
         #    njtl = dbhandle.query(Submission).filter(Submission.submission_id.in_(need_joblogs)).all()
 
+        res.append("finish_up_tasks: %s "% repr(finish_up_tasks))
+
         if len(finish_up_tasks) == 0:
             futl = []
         else:
             futl = dbhandle.query(Submission).filter(Submission.submission_id.in_(finish_up_tasks)).all()
+
+        res.append(" got list... ")
+
         for task in futl:
             # get logs for job for final cpu values, etc.
             logit.log("Starting finish_up_tasks items for task %s" % task.submission_id)
+            res.append("Starting finish_up_tasks items for task %s" % task.submission_id)
 
             if not self.launch_recovery_if_needed(dbhandle, samhandle, getconfig, gethead, seshandle, err_res, task):
                 self.launch_dependents_if_needed(dbhandle, samhandle, getconfig, gethead, seshandle, err_res, task)
 
         return res
-
 
 ###
 
@@ -261,15 +267,49 @@ class TaskPOMS:
         sh.created = datetime.now(utc)
         dbhandle.add(sh)
 
+    def running_submissions(self, dbhandle, campaign_id_list, status_list=['New','Idle','Running']):
+
+        cl = campaign_id_list
+
+        logit.log("INFO", "running_submissions(%s)" % repr(cl))
+        sq = (dbhandle.query(
+                SubmissionHistory.submission_id, 
+                func.max(SubmissionHistory.created).label('latest')
+              ).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
+               .group_by(SubmissionHistory.submission_id).subquery())
+
+        running_sids = (dbhandle.query(SubmissionHistory.submission_id)
+                        .join(sq,SubmissionHistory.submission_id == sq.c.submission_id)
+                        .filter(SubmissionHistory.status.in_(status_list),
+                                SubmissionHistory.created == sq.c.latest)
+                        .all())
+
+        ccl = (dbhandle.query(CampaignStage.campaign_id, func.count(Submission.submission_id))
+            .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
+            .filter(CampaignStage.campaign_id.in_(cl), Submission.submission_id.in_(running_sids)).group_by(CampaignStage.campaign_id).all())
+
+        # the query never returns a 0 count, so initialize result with
+        # a zero count for everyone, then update with the nonzero counts
+        # from the query
+        res = {}
+        for c in cl:
+            res[c] = 0
+
+        for row in ccl:
+            res[row[0]] = row[1]           
+
+        return res
+
     def update_submission(self, dbhandle, submission_id, jobsub_job_id, pct_complete = None, status = None, project = None):
         s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
         if not s:
             return "Unknown."
-        if s.jobsub_job_id != jobsub_job_id:
+
+        if jobsub_job_id and s.jobsub_job_id != jobsub_job_id:
             s.jobsub_job_id = jobsub_job_id
             dbhandle.add(s)
 
-        if s.project != project:
+        if project and s.project != project:
             s.project = project
             dbhandle.add(s)
 
