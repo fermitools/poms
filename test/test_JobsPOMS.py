@@ -6,7 +6,7 @@ import json
 import socket
 from poms.webservice.utc import utc
 from poms.webservice.samweb_lite import samweb_lite
-from poms.webservice.poms_model import CampaignStage, JobType, LoginSetup, Job, Submission
+from poms.webservice.poms_model import CampaignStage, JobType, LoginSetup, Submission
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -22,38 +22,6 @@ mock_rm=Mock_jobsub_rm.Mock_jobsub_rm()
 
 rpstatus = "200"
 ########
-
-#
-# ---------------------------------------
-# utilities to set up tests
-# test update_job with some set of fields
-#
-def do_update_job(fielddict):
-    dbhandle = DBHandle.DBHandle().get()
-    samhandle = samweb_lite()
-    #fielddict['status']
-    submission_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
-    jid = "%d@fakebatch1.fnal.gov" % time.time()
-
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
-
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid,  **fielddict )
-
-    j = dbhandle.query(Job).filter(Job.jobsub_job_id == jid).first()
-
-    assert(j != None)
-
-    for f,v in list(fielddict.items()):
-        if f.startswith('task_'):
-            f = f[5:]
-            assert(getattr(j.submission_obj, f) == v)
-        elif f.endswith('file_names'):
-            # should look it up on JobFiles but...
-            pass
-        else:
-            assert(str(getattr(j,f)) == str(v))
-
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
 
 
 def test_active_update_jobs():
@@ -88,71 +56,6 @@ def test_update_SAM_project():
     # stubbed out for now, until production SAM implements the call.
     assert(True)
 
-def test_update_job_1():
-    # try updating lots of parameters
-    fielddict = {
-        'cpu_type': 'Athalon',
-        'node_name': 'fake.some.domain',
-        'host_site': 'FAKESITE',
-        'status' : 'running: on empty',
-        'user_exe_exit_code': '17',
-        'task_project': 'mwm_demo_project',
-        # needs a reail task id...
-        # 'task_recovery_tasks_parent': '1234',
-        'cpu_time': '100.3',
-        'wall_time': '200.4',
-        'output_file_names': 'outfile1.root outfile2.root',
-        'input_file_names': 'infile1.root',
-    }
-    do_update_job(fielddict)
-
-def test_bulk_update_job():
-    dbhandle = DBHandle.DBHandle().get()
-    samhandle = samweb_lite()
-    l1 = mps.jobsPOMS.active_jobs(dbhandle)
-
-    ft = float(int(time.time()))
-    jids = []
-    jids.append("%.1f@fakebatch1.fnal.gov" % ft)
-    jids.append("%.1f@fakebatch1.fnal.gov" % (ft + 0.1))
-    jids.append("%.1f@fakebatch1.fnal.gov" % (ft + 0.2))
-    submission_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
-
-    data = []
-    for jid in jids:
-        data.append({'jobsub_job_id': jid, 'submission_id': submission_id, 'status': 'Idle'})
-
-    mps.jobsPOMS.bulk_update_job(dbhandle, rpstatus, samhandle, json.dumps(data) )
-
-    for jid in jids:
-        j = dbhandle.query(Job).filter(Job.jobsub_job_id == jid).first()
-        assert(jid != None)
-
-
-def test_update_job_2():
-    # try updating lots of parameters
-    fielddict = {
-        'status' : 'running: on full',
-    }
-    do_update_job(fielddict)
-
-    print("testing all the info that the jobscraper pass the job_log_scraper")
-    fielddict = {
-                'status': 'test_status' ,
-                 # 'slot':'finally_something_in_this_field', # -- ??? mengel
-                'output_file_names':'test_file_test_joblogscraper.txt' ,
-                'node_name': 'fake_node_test_joblogscraper',
-                'user_exe_exit_code':'10',
-                'cpu_type': 'Athalon',
-                }
-    do_update_job(fielddict)
-
-
-def test_update_job_q_scraper():
-
-    print("check this from the jobsub_q scrapper")
-    fielddict = {
-                }
 
 
 def test_kill_jobs():
@@ -181,11 +84,6 @@ def test_kill_jobs():
     c_output_killTask = [jid1.replace('.0','')] #Control output #it is going to kill the task just killing the first job without .0, cluster.
     c_output_killCampaign =[jid1.replace('.0',''),jid3.replace('.0','')] #Control output it is going to kill the CampaignStage just killing the first job without of each submission_id
 
-    #Guetting the jid (key in database) that belong to the jobid in jobsub. They are different. The key db is used in the next code block
-    job_obj1 = dbhandle.query(Job).filter(Job.jobsub_job_id == jid1).first()
-    job_obj2 = dbhandle.query(Job).filter(Job.jobsub_job_id == jid2).first()
-    #job_obj3 = dbhandle.query(Job).filter(Job.jobsub_job_id == jid3).first()
-    #job_obj4 = dbhandle.query(Job).filter(Job.jobsub_job_id == jid4).first()
 
     #Calls to the rutine under test.
     output_killjob, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, job_id=job_obj1.job_id, confirm = "yes", act="kill") #single job

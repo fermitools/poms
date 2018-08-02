@@ -7,7 +7,7 @@ import socket
 from mock.mock import MagicMock
 from poms.webservice.utc import utc
 from poms.webservice.samweb_lite import samweb_lite
-from poms.webservice.poms_model import CampaignStage, JobType, LoginSetup, Job, JobFile, Submission
+from poms.webservice.poms_model import CampaignStage, JobType, LoginSetup, Submission
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
 
@@ -75,19 +75,10 @@ def test_get_inflight():
     campaign_id_test = '14' #test campaign
     jid = "%d@fakebatch_test.fnal.gov" % s #fake jobsub_job_id
     task_id_test = mps.taskPOMS.get_task_id_for(dbhandle,campaign=campaign_id_test)
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = task_id_test, jobsub_job_id = jid, host_site = "fake_host", status = 'Running')
-    jobj = dbhandle.query(Job).filter(Job.jobsub_job_id==jid).first() #taking a job object from the job just included in the previous stage
-    db_job_id=jobj.job_id #this is the job id in the database different from the jobsub_job_id
-    fname="testFile_Felipe_%s_%s.root" % (tUTC,task_id_test)
-    fn_list.append(fname)
-    jf=JobFile(file_name = fname, file_type = "output", created = tUTC , job_obj = jobj) #including the file into the JobFile Table.
-    dbhandle.add(jf)
     t2= time.time()
     tUTC2=time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(t2)) #time stamp for file creation
     fname2="testFile2_Felipe_%s_%s.root" % (tUTC2,task_id_test)
     fn_list.append(fname2)
-    jf2=JobFile(file_name = fname2, file_type = "output", created = tUTC2, job_obj = jobj)
-    dbhandle.add(jf2)
     dbhandle.commit()
 
     #Verbosity

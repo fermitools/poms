@@ -70,7 +70,7 @@ class TagsPOMS(object):
             campaign_stage_ids = str(campaign_stage_id).split(',')
             msg = "OK"
             for cid in campaign_ids:
-                cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id = cid).first()
+                cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == cid).first()
                 cs.campaign_id = camp.campaign_id
                 dbhandle.add(cs)
             dbhandle.commit()
