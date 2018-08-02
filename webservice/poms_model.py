@@ -19,14 +19,14 @@ class Tag(Base):
     creator_role = Column(Text, nullable=False)
 
 
-#class CampaignsTag(Base):
-#    __tablename__ = 'campaigns_tags'
-#
-#    campaign_stage_id = Column(Integer, ForeignKey('campaign_stages.campaign_stage_id'), primary_key=True)
-#    tag_id = Column(Integer, ForeignKey('tags.tag_id'), primary_key=True)
-#
-#    tag_obj = relationship(Tag, backref="campaigns")
-#    campaign_obj = relationship('Campaign', backref="tags")
+class CampaignsTag(Base):
+    __tablename__ = 'campaigns_tags'
+
+    campaign_id = Column(Integer, ForeignKey('campaigns.campaign_id'), primary_key=True)
+    tag_id = Column(Integer, ForeignKey('tags.tag_id'), primary_key=True)
+
+    tag_obj = relationship(Tag, backref="campaigns")
+    campaign_obj = relationship('Campaign', backref="tags")
 
 
 class Campaign(Base):
