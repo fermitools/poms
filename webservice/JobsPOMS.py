@@ -8,7 +8,7 @@ version of functions in poms_service.py written by Marc Mengel, Michael Gueith a
 
 from collections import deque
 import re
-from .poms_model import Submission, CampaignStage, JobTypeSnapshot
+from .poms_model import Submission, CampaignStage, JobType
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func, not_, and_, or_, desc
@@ -38,7 +38,6 @@ class JobsPOMS(object):
         pass
 
 
-
     def kill_jobs(self, dbhandle, campaign_stage_id=None, submission_id=None, job_id=None, confirm=None, act='kill'):
         jjil = deque()
         jql = None
@@ -47,7 +46,7 @@ class JobsPOMS(object):
         if campaign_stage_id is not None or submission_id is not None:
             if campaign_stage_id is not None:
                 tl = dbhandle.query(Submission).filter(Submission.campaign_stage_id == campaign_stage_id,
-                                                 Submission.status != 'Completed', Submission.status != 'Located', Submission.status != 'Failed').all()
+                                                       Submission.status != 'Completed', Submission.status != 'Located', Submission.status != 'Failed').all()
             else:
                 tl = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).all()
             if len(tl):
@@ -153,3 +152,17 @@ class JobsPOMS(object):
 
         logit.log("got list: %s" % repr(efflist))
         return efflist
+
+
+    def jobtype_list(self, dbhandle, seshandle):
+        """
+            Return list of all jobtypes for the experiment.
+        """
+        exp = seshandle('experimenter').session_experiment
+        #data = dbhandle.query(JobType).filter(JobType.experiment == exp).order_by(JobType.name).all()
+        #return ["%s" % r for r in data]
+        data = dbhandle.query(JobType.name,
+                              JobType.launch_script,
+                              JobType.definition_parameters,
+                              JobType.output_file_patterns).filter(JobType.experiment == exp).order_by(JobType.name).all()
+        return [r._asdict() for r in data]

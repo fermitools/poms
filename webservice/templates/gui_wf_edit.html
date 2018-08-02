@@ -7,17 +7,20 @@
 <script src="{{pomspath}}/static/js/json_field_editor.js"></script>
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/gui_editor_3.css">
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/json_field_editor.css">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css">
+
 {%endblock%}
 
 {%block bodytags%} onload="main()" {%endblock%}
 
 {%block header%}
 <h1 class="ui header">
-          Workflow Editor for {{campaign}} {%include 'help_button.html'%}
+    Workflow Editor for {{campaign}} {%include 'help_button.html'%}
 
-          <div class="sub header">
-               Edit whole workflow
-          </div>
+    <div class="sub header">
+        Edit whole workflow
+    </div>
 </h1>
 {%endblock%}
 
@@ -27,9 +30,51 @@
 
 {%block content %}
 
-<!-- <div id="outer_gui_editor_frame" style="width:100%; height: 40em; border: 1px solid grey; padding: 1em; overflow-x:scroll; overflow-y: scroll"> -->
-<div id="outer_gui_editor_frame">
+<div id="node-popUp">
+    <span id="node-operation">node</span>
+    <br>
+    <table style="margin:auto;">
+<!--
+        <tr>
+            <td>id</td>
+            <td> <input id="node-id" value="new value"> </td>
+        </tr>
+-->
+        <tr>
+            <td>label</td>
+            <td> <input id="node-label" value="new value"> </td>
+        </tr>
+    </table>
+    <input type="button" value="OK" id="node-saveButton">
+    <input type="button" value="Cancel" id="node-cancelButton">
 </div>
+
+<div id="edge-popUp">
+    <span id="edge-operation">edge</span>
+    <br>
+    <table style="margin:auto;">
+        <tr>
+            <td>label</td>
+            <td> <input id="edge-label" value="new value"> </td>
+        </tr>
+    </table>
+    <input type="button" value="OK" id="edge-saveButton">
+    <input type="button" value="Cancel" id="edge-cancelButton">
+</div>
+
+
+<h3>Campaign Stages
+    <button class="ui button" onclick="gui_editor.save('gui_editor_0');">Save</button><span id="savebusy"></span>
+</h3>
+<div id="mydefaults" oncontextmenu='return false;' contextmenu=""></div>
+<div id="popups"></div>
+<div id="mystages" oncontextmenu='return false;' contextmenu=""></div>
+<!--
+<h3>Campaign Login/Setup and Jobtypes</h3>
+-->
+<div id="myjobtypes" oncontextmenu='return false;' contextmenu=""></div>
+<pre id="eventSpan"></pre>
+<div id="outer_gui_editor_frame" style="display: none;"></div>
 
 <script type="text/javascript">
 
@@ -48,11 +93,11 @@ function main() {
           url: url
        }).done( function(data) {
           var ge = new gui_editor("outer_gui_editor_frame");
-          var args = mwm_utils.getSearchParams()
+          var args = mwm_utils.getSearchParams();
           if ('clone' in args && 'Clone' == args['clone']) {
-              ge.set_state_clone(data, args['from'], args['to'],'{{session_experiment}}','{{session_role}}')
+              ge.set_state_clone(data, args['from'], args['to'],'{{session_experiment}}','{{session_role}}');
           } else {
-              ge.set_state(data)
+              ge.set_state(data);
           }
        })
    }

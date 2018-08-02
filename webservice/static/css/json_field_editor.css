@@ -1,17 +1,18 @@
 
-.popup_form_json { 
+.popup_form_json {
     display: block;
     background-color: white;
     position: absolute;
     z-index: 3;
     left: 0;
     top: 2em;
-    border: 2px solid black;
-    outline: 2px solid grey;
+    /* border: 2px solid black; */
+    outline: 1px solid grey;
     margin: 2px;
     padding: 1em;
     opacity: 1;
     width: 45em;
+    box-shadow: 10px 10px 20px grey;
 }
 
 

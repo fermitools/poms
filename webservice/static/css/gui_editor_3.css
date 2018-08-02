@@ -5,7 +5,7 @@ div.gui_editor_frame {
     border: 1px solid black;
     border-radius: 0.5em;
     /* try to force a stacking context... */
-    opacity: 0.99; 
+    opacity: 0.99;
 }
 
 
@@ -40,13 +40,13 @@ div.depbox1 {
    right: 0;
 }
 div.depbox1.uphill {
-   border-right: 0px solid white !important; 
+   border-right: 0px solid white !important;
    border-left: 2px solid red;
    border-bottom: 2px solid red;
 }
 
 div.depbox1.downhill {
-   border-left: 0px solid white !important; 
+   border-left: 0px solid white !important;
    border-right: 2px solid red;
    border-bottom: 2px solid red;
 }
@@ -68,31 +68,32 @@ div.box.selected {
 }
 
 
-.popup_form { 
+.popup_form {
     display: block;
     background-color: white;
     position: absolute;
     z-index: 3;
     left: 0;
     top: 2em;
-    border: 2px solid black;
-    outline: 2px solid grey;
+    /* border: 2px solid black; */
+    outline: 1px solid grey;
     margin: 2px;
     padding: 1em;
     opacity: 1;
     width: 40em;
+    box-shadow: 10px 10px 20px grey;
 }
 
 .helpbutton:before {
     content: "\f059";
-    font-amily: "Icons";
+    font-family: "Icons";
 }
 
 
 .popup_form h3 {
    width: 100%;
 }
-.popup_form input {
+.popup_form input, select {
     width: 60%;
 }
 .popup_form label {
@@ -100,11 +101,64 @@ div.box.selected {
     width: 30%;
 }
 
-.rightbutton { 
+.rightbutton {
   display: block;
   float: right;
 }
 
-.wakefields:before { content: "\25a6"; width: 1em; height 1em; font-size: larger }
-.wakedeps:before { content: "\269f"; width: 1em; height 1em;  font-size: larger}
-.deletebutton:before { content: "\267b"; width: 1em; height 1em;  font-size: larger}
+.wakefields:before { content: "\25a6"; width: 1em; height 1em; font-size: larger; }
+.wakedeps:before { content: "\269f"; width: 1em; height 1em;  font-size: larger; }
+.deletebutton:before { content: "\267b"; width: 1em; height 1em;  font-size: larger; }
+
+#outer_gui_editor_frame {
+    width: 1000px;
+    /* height: 600px; */
+    border: 1px solid lightgray;
+}
+
+#mystages {
+    width: 1000px;
+    height: 600px;
+    border: 1px solid lightgray;
+}
+
+#mydefaults, #myjobtypes {
+    width: 1000px;
+    height: 100px;
+    border: 1px solid lightgray;
+}
+
+#node-popUp {
+    display:none;
+    position:absolute;
+    top:350px;
+    left:170px;
+    z-index:299;
+    width:250px;
+    height:120px;
+    background-color: #f9f9f9;
+    border-style:solid;
+    border-width:3px;
+    border-color: #5394ed;
+    padding:10px;
+    text-align: center;
+    box-shadow: 10px 10px 20px grey;
+  }
+
+  #edge-popUp {
+    display:none;
+    position:absolute;
+    top:350px;
+    left:170px;
+    z-index:299;
+    width:250px;
+    height:90px;
+    background-color: #f9f9f9;
+    border-style:solid;
+    border-width:3px;
+    border-color: #5394ed;
+    padding:10px;
+    text-align: center;
+    box-shadow: 10px 10px 20px grey;
+  }
+
