@@ -21,7 +21,7 @@ from . import (
                logit,
                version)
 from .elasticsearch import Elasticsearch
-from .poms_model import Campaign, CampaignCampaignStages, CampaignStage, Submission, Experiment
+from .poms_model import Campaign, CampaignStage, Submission, Experiment
 
 
 def error_response():

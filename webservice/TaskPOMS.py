@@ -25,7 +25,6 @@ from .poms_model import (CampaignStage,
                          JobTypeSnapshot,
                          CampaignDependency,
                          CampaignStageSnapshot,
-                         CampaignCampaignStages,
                          Campaign,
                          Experimenter,
                          HeldLaunch,
@@ -285,10 +284,9 @@ class TaskPOMS:
                                 SubmissionHistory.created == sq.c.latest)
                         .all())
 
-        ccl = (dbhandle.query(CampaignCampaignStages.campaign_id, func.count(Submission.submission_id))
-            .join(CampaignStage, CampaignCampaignStages.campaign_stage_id == CampaignStage.campaign_stage_id)
+        ccl = (dbhandle.query(CampaignStage.campaign_id, func.count(Submission.submission_id))
             .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
-            .filter(CampaignCampaignStages.campaign_id.in_(cl), Submission.submission_id.in_(running_sids)).group_by(CampaignCampaignStages.campaign_id).all())
+            .filter(Campaign_stage.campaign_id.in_(cl), Submission.submission_id.in_(running_sids)).group_by(Campaign_stage.campaign_id).all())
 
         # the query never returns a 0 count, so initialize result with
         # a zero count for everyone, then update with the nonzero counts

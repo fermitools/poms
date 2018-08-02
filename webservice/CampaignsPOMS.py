@@ -31,7 +31,6 @@ from .poms_model import (CampaignStage,
                          CampaignDependency,
                          CampaignRecovery,
                          CampaignStageSnapshot,
-                         CampaignCampaignStages,
                          Experiment,
                          Experimenter,
                          LoginSetup,
@@ -716,9 +715,10 @@ class CampaignsPOMS:
                 lts.add(lt)
 
         if tag is not None:
-            cl = dbhandle.query(CampaignStage).join(CampaignCampaignStages, Campaign).filter(Campaign.tag_name == tag,
-                                                                                             CampaignCampaignStages.campaign_id == Campaign.campaign_id,
-                                                                                             CampaignCampaignStages.campaign_stage_id == CampaignStage.campaign_stage_id).all()
+            cl = dbhandle.query(CampaignStage).join(Campaign).filter(
+              Campaign.name == tag,
+              CampaignStage.campaign_id == Campaign.campaign_id).all()
+
         if camp_id is not None:
             cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(CampaignDependency.provides_campaign_stage_id == camp_id).all()
             cidl2 = dbhandle.query(CampaignDependency.provides_campaign_stage_id).filter(CampaignDependency.needs_campaign_stage_id == camp_id).all()
@@ -821,9 +821,9 @@ class CampaignsPOMS:
             uses "dot" to generate the drawing
         '''
         if campaign_name is not None:
-            cl = dbhandle.query(CampaignStage).join(CampaignCampaignStages, Campaign).filter(Campaign.tag_name == campaign_name,
-                                                                                             CampaignCampaignStages.campaign_id == Campaign.campaign_id,
-                                                                                             CampaignCampaignStages.campaign_stage_id == CampaignStage.campaign_stage_id).all()
+            cl = dbhandle.query(CampaignStage).join(Campaign).filter(Campaign.tag_name == campaign_name,
+                                                                                             CampaignStage.campaign_id == Campaign.campaign_id).all()
+
         if campaign_stage_id is not None:
             cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(
                 CampaignDependency.provides_campaign_stage_id == campaign_stage_id).all()
@@ -894,7 +894,6 @@ class CampaignsPOMS:
         se_role = sesshandler('experimenter').session_role
 
         cq = (dbhandle.query(CampaignStage)
-              .outerjoin(CampaignCampaignStages)
               .options(joinedload('campaign_campaign_stages'))
               .options(joinedload('experiment_obj'))
               .options(joinedload(CampaignStage.experimenter_holder_obj))
@@ -986,8 +985,7 @@ class CampaignsPOMS:
                                 .filter(LoginSetup.login_setup_id == campaign_info.CampaignStage.login_setup_id,
                                         LoginSetup.creator == Experimenter.experimenter_id)
                                 .first())
-        campaigns = dbhandle.query(Campaign).filter(CampaignCampaignStages.campaign_stage_id == campaign_stage_id,
-                                          CampaignCampaignStages.campaign_id == Campaign.campaign_id).all()
+        campaigns = dbhandle.query(Campaign).join(CampaignStage).filter(Campaign_stage.campaign_stage_id == campaign_stage_id).all()
 
         launched_campaigns = dbhandle.query(CampaignStageSnapshot).filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id).all()
 
@@ -1055,9 +1053,9 @@ class CampaignsPOMS:
             cpl = q.all()
             name = cpl[0].name
         elif campaign is not None and campaign != "":
-            q = dbhandle.query(CampaignStage).join(CampaignCampaignStages, Campaign).filter(
-                CampaignStage.campaign_stage_id == CampaignCampaignStages.campaign_stage_id, Campaign.campaign_id == CampaignCampaignStages.campaign_id,
-                Campaign.tag_name == campaign)
+            q = dbhandle.query(CampaignStage).join(Campaign).filter(
+                CampaignStage.campaign_id == Campaign.campaign_id,
+                Campaign.name == campaign)
             cpl = q.all()
             name = campaign
         else:
