@@ -28,38 +28,38 @@ Campaigns {%include 'help_button.html'%}
             </tr>
         </thead>
         <tbody>
-        {% for s in tl|sort(attribute='tag_name') %}
+        {% for s in tl|sort(attribute='name') %}
             <tr id="row_{{s.campaign_id}}" name="row_{{s.campaign_id}}">
-                <td>{{s.tag_name}}</td>
+                <td>{{s.name}}</td>
                 <td id="running_{{s.campaign_id}}" style="text-align:right; padding-right: 1em">...</td>
                 <td>
-                    <a href="{{pomspath}}/campaign_time_bars?tag={{s.tag_name}}&tdays=7&tmax={{last_activity}}">
+                    <a href="{{pomspath}}/campaign_time_bars?tag={{s.name}}&tdays=7&tmax={{last_activity}}">
                         <button type="button">
                         <i class="chart line icon"></i>
                         </button>
                     </a>
                 </td>
                 <td>
-                    <a href="{{pomspath}}/campaign_deps?tag={{s.tag_name}}">
+                    <a href="{{pomspath}}/campaign_deps?tag={{s.name}}">
                         <button type="button">
                             <i class="sitemap icon"></i>
                         </button>
                     </a>
                 </td>
                 <td>
-                    <a href="{{pomspath}}/gui_wf_edit?campaign={{s.tag_name}}">
+                    <a href="{{pomspath}}/gui_wf_edit?campaign={{s.name}}">
                         <button type="button">
                             <i class="edit icon"></i>
                         </button>
                     </a>
                 </td>
                 <td>
-                    <button type="button" onclick="clone_template('{{s.tag_name}}');">
+                    <button type="button" onclick="clone_template('{{s.name}}');">
                         <i class="copy blue icon"></i>
                     </button>
                 </td>
                 <td>
-                    <a href="{{pomspath}}/campaign_deps_ini?tag={{s.tag_name}}">
+                    <a href="{{pomspath}}/campaign_deps_ini?tag={{s.name}}">
                         <button type="button">
                             <i class="list icon"></i>
                         </button>
@@ -67,7 +67,7 @@ Campaigns {%include 'help_button.html'%}
                 </td>
                 <td>
                     <button type="button">
-                        <i class="trash blue icon" onclick="delete_campaign('{{s.tag_name}}', {{s.campaign_id}});"></i>
+                        <i class="trash blue icon" onclick="delete_campaign('{{s.name}}', '{{s.campaign_id}}');"></i>
                     </button>
                 </td>
             </tr>

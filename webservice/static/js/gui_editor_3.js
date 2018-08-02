@@ -1547,7 +1547,7 @@ wf_uploader.prototype.upload2 = function(state, cfg_stages, completed) {
 }
 
 
-wf_uploader.prototype.tag_em = function(tag, cfg_stages, completed) {
+wf_uploader.prototype.tag_em = function(tag, cfg_stages, completed) {   // FIXME: Might not needed as is.
     var thisx = this;
     /* have to re-fetch the list, if we added any campaigns... */
     console.log("tag_em calling get_campaign_list")

@@ -826,8 +826,8 @@ class CampaignsPOMS:
             uses "dot" to generate the drawing
         '''
         if campaign_name is not None:
-            cl = dbhandle.query(CampaignStage).join(Campaign).filter(Campaign.tag_name == campaign_name,
-                                                                                             CampaignStage.campaign_id == Campaign.campaign_id).all()
+            cl = dbhandle.query(CampaignStage).join(Campaign).filter(Campaign.name == campaign_name,
+                                                                     CampaignStage.campaign_id == Campaign.campaign_id).all()
 
         if campaign_stage_id is not None:
             cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(
@@ -916,7 +916,7 @@ class CampaignsPOMS:
             cq = cq.filter(CampaignStage.campaign_stage_id.in_(campaign_ids))
 
         if tag:
-            cq = cq.join(Campaign).filter(Campaign.tag_name == tag)
+            cq = cq.join(Campaign).filter(Campaign.name == tag)
 
             # for now we comment out it. When we have a lot of data, we may need to use these filters.
             # We will let the client filter it in show_campaign_stages.html with tablesorter for now.
@@ -938,6 +938,7 @@ class CampaignsPOMS:
             else:
                 data['authorized'].append(False)
         return campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
+
 
     def reset_campaign_split(self, dbhandle, samhandle, campaign_stage_id):
         """

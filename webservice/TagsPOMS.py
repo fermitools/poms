@@ -53,15 +53,15 @@ class TagsPOMS(object):
         logit.log("after: last_activity %s" % repr(last_activity))
         return tl, last_activity, msg
 
-
+    # FIXME: Might not needed as is.
     def link_tags(self, dbhandle, ses_get, campaign_stage_id, campaign_name, experiment):
         # if ses_get('experimenter').is_authorized(experiment): #FIXME
         # Fake it for now, we need to discuss who can manipulate campaigns.
         if ses_get('experimenter').session_experiment == experiment:
-            camp = dbhandle.query(Campaign).filter(Campaign.name == campaig_name, Campaign.experiment == experiment).first()
+            camp = dbhandle.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == experiment).first()
             if not camp:  # we do not have a campaign in the db for this experiment so create the campaign and then do the linking
                 camp = Campaign()
-                camp.name = tag_name
+                camp.name = campaign_name
                 camp.experiment = experiment
                 camp.creator = ses_get('experimenter').experimenter_id
                 camp.creator_role = ses_get('experimenter').session_role
@@ -69,21 +69,22 @@ class TagsPOMS(object):
             # we have a tag in the db for this experiment so go ahead and do the linking
             campaign_stage_ids = str(campaign_stage_id).split(',')
             msg = "OK"
-            for cid in campaign_ids:
-                cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == cid).first()
+            for sid in campaign_stage_ids:
+                cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == sid).first()
                 cs.campaign_id = camp.campaign_id
                 dbhandle.add(cs)
             dbhandle.commit()
-            response = {"campaign_stage_id": campaign_stage_id, "campaign_id": ct.campaign_id, "tag_name": tag.tag_name, "msg": msg}
+            response = {"campaign_stage_id": campaign_stage_id, "campaign_id": cs.campaign_id, "name": camp.name, "msg": msg}
             return response
         else:
             response = {"msg": "You are not authorized to add campaigns."}
             return response
 
+
     def search_tags(self, dbhandle, search_term):
         query = (dbhandle.query(Campaign, CampaignStage)
                  .filter(CampaignStage.campaign_id == Campaign.campaign_id,
-                         Campaign.tag_name.like(search_term),
+                         Campaign.name.like(search_term),
                          CampaignStage.campaign_stage_id == CampaignStage.campaign_stage_id)
                  .order_by(Campaign.campaign_id, CampaignStage.campaign_stage_id))
         results = query.all()
@@ -95,11 +96,11 @@ class TagsPOMS(object):
         cids = cl.split(',')        # CampaignStage IDs list
         # result = dbhandle.query(CampaignStage.campaign_obj.name).filter(Campaignstage.campaign_stage_id.in_(cids)).distinct()
         #
-        # SELECT distinct(campaigns.tag_name)
+        # SELECT distinct(campaigns.name)
         # FROM campaign_campaign_stages JOIN campaigns ON campaigns.campaign_id=campaign_campaign_stages.campaign_id
         # WHERE campaign_campaign_stages.campaign_stage_id in (513,514);
         #
-        result = (dbhandle.query(Campaign.campaign_id, Campaign.tag_name)
+        result = (dbhandle.query(Campaign.campaign_id, Campaign.name)
                   .join(CampaignStage)
                   .filter(Campaign.campaign_id == CampaignStage.campaign_id)
                   .filter(CampaignStage.campaign_stage_id.in_(cids))
@@ -113,8 +114,8 @@ class TagsPOMS(object):
     def auto_complete_tags_search(self, dbhandle, experiment, q):
         response = {}
         results = deque()
-        rows = dbhandle.query(Campaign).filter(Campaign.tag_name.like('%' + q + '%'), Campaign.experiment == experiment).order_by(desc(Campaign.tag_name)).all()
+        rows = dbhandle.query(Campaign).filter(Campaign.name.like('%' + q + '%'), Campaign.experiment == experiment).order_by(desc(Campaign.name)).all()
         for row in rows:
-            results.append({"tag_name": row.tag_name})
+            results.append({"name": row.name})
         response["results"] = list(results)
         return response

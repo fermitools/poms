@@ -26,7 +26,7 @@ Search Term: {{search_term}}
   <tbody>
   {% for row in results %}
   <tr>
-      <td>{{row.Campaign.tag_name}}</td>
+      <td>{{row.Campaign.name}}</td>
       <td><a href="{{pomspath}}/campaign_info?campaign_stage_id={{row.campaign_stage_id}}">{{row.CampaignStage.name}}</a></td>
   </tr>
   {% endfor %}
