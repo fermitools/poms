@@ -9,6 +9,38 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 metadata = Base.metadata
 
+class Tag(Base):
+    __tablename__ = 'tags'
+
+    tag_id = Column(Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)"))
+    experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
+    tag_name = Column(Text, nullable=False)
+    creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
+    creator_role = Column(Text, nullable=False)
+
+
+class CampaignsTag(Base):
+    __tablename__ = 'campaigns_tags'
+
+    campaign_stage_id = Column(Integer, ForeignKey('campaign_stages.campaign_stage_id'), primary_key=True)
+    tag_id = Column(Integer, ForeignKey('tags.tag_id'), primary_key=True)
+
+    campaign_obj = relationship('CampaignStage', backref="campaign_campaign_stages")
+    tag_obj = relationship('Campaign', backref="tags")
+
+
+class Campaign(Base):
+    __tablename__ = 'campaigns'
+
+    campaign_id = Column(Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)"))
+    experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
+    name = Column(Text, nullable=False)
+    creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
+    creator_role = Column(Text, nullable=False)
+
+    campaign_stage_obj = relationship('CampaignStage')
+
+
 class CampaignStage(Base):
     __tablename__ = 'campaign_stages'
 
@@ -37,6 +69,7 @@ class CampaignStage(Base):
     creator_role = Column(Text, nullable=False)
     role_held_with = Column(Text, nullable=True)
     campaign_type = Column(Text, nullable=False)
+    campaign_id = Column(ForeignKey('campaigns.campaign_id'), nullable=True, index=True)
 
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='CampaignStage.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship('Experimenter', primaryjoin='CampaignStage.updater == Experimenter.experimenter_id')
@@ -163,26 +196,6 @@ class SubmissionHistory(Base):
     status = Column(Text, nullable=False)
 
     submission_obj = relationship('Submission', backref='history')
-
-
-class Campaign(Base):
-    __tablename__ = 'campaigns'
-
-    campaign_id = Column(Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)"))
-    experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
-    tag_name = Column(Text, nullable=False)
-    creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
-    creator_role = Column(Text, nullable=False)
-
-
-class CampaignCampaignStages(Base):
-    __tablename__ = 'campaign_campaign_stages'
-
-    campaign_stage_id = Column(Integer, ForeignKey('campaign_stages.campaign_stage_id'), primary_key=True)
-    campaign_id = Column(Integer, ForeignKey('campaigns.campaign_id'), primary_key=True)
-
-    campaign_stage_obj = relationship(CampaignStage, backref="campaign_campaign_stages")
-    tag_obj = relationship(Campaign, backref="campaign_campaign_stages")
 
 
 class CampaignStageSnapshot(Base):
