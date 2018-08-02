@@ -286,7 +286,7 @@ class TaskPOMS:
 
         ccl = (dbhandle.query(CampaignStage.campaign_id, func.count(Submission.submission_id))
             .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
-            .filter(Campaign_stage.campaign_id.in_(cl), Submission.submission_id.in_(running_sids)).group_by(Campaign_stage.campaign_id).all())
+            .filter(CampaignStage.campaign_id.in_(cl), Submission.submission_id.in_(running_sids)).group_by(CampaignStage.campaign_id).all())
 
         # the query never returns a 0 count, so initialize result with
         # a zero count for everyone, then update with the nonzero counts

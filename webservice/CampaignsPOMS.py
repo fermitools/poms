@@ -894,7 +894,6 @@ class CampaignsPOMS:
         se_role = sesshandler('experimenter').session_role
 
         cq = (dbhandle.query(CampaignStage)
-              .options(joinedload('campaign_campaign_stages'))
               .options(joinedload('experiment_obj'))
               .options(joinedload(CampaignStage.experimenter_holder_obj))
               .order_by(CampaignStage.experiment)
@@ -985,7 +984,7 @@ class CampaignsPOMS:
                                 .filter(LoginSetup.login_setup_id == campaign_info.CampaignStage.login_setup_id,
                                         LoginSetup.creator == Experimenter.experimenter_id)
                                 .first())
-        campaigns = dbhandle.query(Campaign).join(CampaignStage).filter(Campaign_stage.campaign_stage_id == campaign_stage_id).all()
+        campaigns = dbhandle.query(Campaign).join(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).all()
 
         launched_campaigns = dbhandle.query(CampaignStageSnapshot).filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id).all()
 
