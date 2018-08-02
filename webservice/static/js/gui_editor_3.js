@@ -103,6 +103,7 @@ function gui_editor(toptag) {
 /* static vars */
 
     gui_editor.body = document.body;
+    gui_editor.network = null;
 
 /* aforementioned instance list */
     gui_editor.instance_list = [];
@@ -778,12 +779,13 @@ gui_editor.prototype.draw_state = function () {
     //].concat(node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 0)})));
     let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 0)}));
     let nodes = new vis.DataSet(node_list);
-    let edge_list = edge_labels.map(x => ({from: depFrom(x), to: x}));
-    let rr = [];
-    //for (const e of edges) {
-        //e.from.forEach(x => rr.push({from: x, to: e.to}));
-    //};
-    edge_list.forEach(e => e.from.forEach(x => rr.push({from: x, to: e.to})));
+    //let edge_list = edge_labels.map(x => ({from: depFrom(x), to: x}));
+    //let rr = [];
+    ////for (const e of edges) {
+        ////e.from.forEach(x => rr.push({from: x, to: e.to}));
+    ////};
+    //edge_list.forEach(e => e.from.forEach(x => rr.push({from: x, to: e.to})));
+    let rr = this.depboxes.map(x => ({id:x.box.id, from:x.stage1, to:x.stage2}));
     let edges = new vis.DataSet(rr);
 
     // create a network
@@ -807,7 +809,7 @@ gui_editor.prototype.draw_state = function () {
                 enabled: true,
                 levelSeparation: 150,
                 nodeSpacing: 50,
-                //treeSpacing: 20,
+                treeSpacing: 30,
                 parentCentralization: true,
                 blockShifting: true,
                 edgeMinimization: true,
@@ -821,6 +823,7 @@ gui_editor.prototype.draw_state = function () {
                 //forceDirection: "vertical",
                 roundness: 0.9
             },
+            width: 2,
             arrows: {to : true},
             shadow: true
         },
@@ -834,6 +837,18 @@ gui_editor.prototype.draw_state = function () {
                 // filling in the popup DOM elements
                 document.getElementById('node-operation').innerHTML = "Edit Node";
                 editNode(data, cancelNodeEdit, callback);
+            },
+            deleteNode: (data, callback) => {
+                const id = data.nodes[0];
+                console.log("Deleting ", id);
+                const l1 = Object.keys(this.state).filter(x => x.endsWith(id));
+                console.log("Main: ", l1);
+                const l2 = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).filter(x => this.state[x].campaign_stage_1==id);
+                console.log("Then: ", l2);
+                l1.forEach(x => delete this.state[x]);
+                l2.forEach(x => delete this.state[x]);
+                this.state.campaign.campaign_stage_list = this.state.campaign.campaign_stage_list.split(' ').filter(x => x != id).join(' ');
+                callback(data);
             },
             addEdge: function (data, callback) {
                 if (data.from == data.to) {
@@ -851,7 +866,8 @@ gui_editor.prototype.draw_state = function () {
         }
     };
     // initialize network
-    var network = new vis.Network(container, data, options);
+    //var network = new vis.Network(container, data, options);
+    gui_editor.network = new vis.Network(container, data, options);
 
     var defaults = new vis.Network(document.getElementById('mydefaults'), {
                 nodes: [{id:'default', label:'default', x:250, y:0, fixed:true, size:50}],
@@ -895,22 +911,25 @@ gui_editor.prototype.draw_state = function () {
 
     const getLabel = e => nodes.get(e).label;
 
-    network.on("doubleClick", function (params) {
+    gui_editor.network.on("doubleClick", function (params) {
         if (params.nodes[0] !== undefined) {
             const node = params.nodes[0];
             // alert("In double click handler");
-            const el = document.getElementById('popup_form');
+            //const el = document.getElementById('popup_form');
+            const el = document.getElementById(`fields_campaign_stage ${node}`);
             el.style.display = 'block';
             el.style.left = `${params.pointer.DOM.x}px`;
             el.style.top = `${params.pointer.DOM.y}px`;
-            const h3 = el.querySelector('h3');
-            h3.innerHTML = 'campaign_stage ' + nodes.get(node).label;
+            // const h3 = el.querySelector('h3');
+            // h3.innerHTML = 'campaign_stage ' + nodes.get(node).label;
         } else if (params.edges[0] !== undefined) {
+            // Not yet...
             const edge = params.edges[0];
-            const el = document.getElementById('popup_depform');
+            //const node = gui_editor.network.getConnectedNodes(edge)[0];
+            const el = document.getElementById(`fields_${edge}`);
             el.style.display = 'block';
             el.style.left = `${params.pointer.DOM.x}px`;
-            el.style.top = `${params.pointer.DOM.y + 100}px`;
+            el.style.top = `${params.pointer.DOM.y}px`;
             const h3 = el.querySelector('h3');
             const e = edges.get(edge);
             h3.innerHTML = `dependency ${getLabel(e.from)} -> ${getLabel(e.to)}`;
@@ -919,7 +938,7 @@ gui_editor.prototype.draw_state = function () {
         document.getElementById('eventSpan').innerHTML = '<h2>doubleClick event:</h2>' + JSON.stringify(params, null, 4);
     });
 
-    network.on("oncontext", function (params) { // right click
+    gui_editor.network.on("oncontext", function (params) { // right click
         this.unselectAll();
         const node = [this.getNodeAt(params.pointer.DOM)];
         if (node[0]) {
@@ -995,7 +1014,7 @@ gui_editor.prototype.draw_state = function () {
             data.from = data.from.id;
         //data.label = document.getElementById('edge-label').value;
         //clearEdgePopUp();
-        this.add_dependency(data.from, data.to);
+        data.id = this.add_dependency(data.from, data.to);
         callback(data);
     }
 
@@ -1003,15 +1022,15 @@ gui_editor.prototype.draw_state = function () {
         //var newId = (Math.random() * 1e7).toString(32);
         let newId = params.label;
         const parentId = params.nodes[0];
-        this.add_dependency(parentId, newId);
+        const eid = this.add_dependency(parentId, newId);
         nodes.add({id: newId, label: params.label, group: nodes.get(parentId).group+1, physics: true});
-        edges.add({from: parentId, to: newId});
+        edges.add({id: eid, from: parentId, to: newId});
     }
 
     function exportNetwork() {
 
         // var nodes = objectToArray(network.getPositions());
-        var nodes = network.body.nodeIndices.map(x => ({id: x}));
+        var nodes = gui_editor.network.body.nodeIndices.map(x => ({id: x}));
 
         nodes.forEach(addConnections);
 
@@ -1023,7 +1042,7 @@ gui_editor.prototype.draw_state = function () {
 
     function addConnections(elem, index) {
         // elem.connections = network.getConnectedNodes(elem.id);
-        elem.connections = network.getConnectedEdges(elem.id).filter(x => network.body.edges[x].toId != elem.id).map(x => network.body.edges[x].toId);
+        elem.connections = gui_editor.network.getConnectedEdges(elem.id).filter(x => gui_editor.network.body.edges[x].toId != elem.id).map(x => gui_editor.network.body.edges[x].toId);
     }
 }
 
@@ -1112,12 +1131,13 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
 
     // Build the form...
     let res = [];
-    res.push(`<form id="fields_${name}" class="popup_form" style="display: none; top: ${y}px; left: ${x}px;">`);
+    //res.push(`<form id="fields_${name}" class="popup_form" style="display: none; top: ${y}px; left: ${x}px;">`);
+    res.push(`<form id="fields_${name}" class="popup_form" style="display: none;">`);
     var val, placeholder;
     res.push('<h3>' + name);
-    if (name != 'Default Values') {
-        res.push(`<button title="Delete" class="rightbutton" type="button" onclick="gui_editor.delete_me('${name}')"><span class="deletebutton"></span></button><p>`);
-    }
+    //if (name != 'Default Values') {
+    //    res.push(`<button title="Delete" class="rightbutton" type="button" onclick="gui_editor.delete_me('${name}')"><span class="deletebutton"></span></button><p>`);
+    //}
     res.push('</h3>');
     for (i in klist) {
         k = klist[i];
@@ -1139,12 +1159,17 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         }
         res.push('<br>');
     }
+    //res.push(`<button class="rightbutton" type="button" onclick="this.parentElement.style.display='none';">OK</button>`);
+    res.push(`<button class="rightbutton" type="button" onclick="gui_editor.toggle_form('fields_${name}')">OK</button>`);
+    res.push(`<button type="reset" value="Reset">Reset</button>`);
     res.push('</form>');
     // Form is ready
     this.popup_parent.innerHTML = res.join('\n');
 
     top.appendChild(this.box);
-    top.appendChild(this.popup_parent);
+    //top.appendChild(this.popup_parent);
+    const pp = document.getElementById("popups");
+    pp.appendChild(this.popup_parent);
 }
 
 /*
@@ -1430,6 +1455,7 @@ gui_editor.prototype.add_dependency = function(frm, to) {
     const db = new dependency_box(`${dep_name}_${istr}`, this.state[dep_name],
             [`campaign_stage_${istr}`, `file_pattern_${istr}`], this.div, 0, 0, this);
     this.depboxes.push(db);
+    return db.box.id;
 }
 
 gui_editor.prototype.save_state = function () {
@@ -1473,7 +1499,9 @@ wf_uploader.prototype.upload = function(state, completed) {
         thisx.experiment = state['campaign']['experiment']
         var role = state['campaign']['poms_role'];
         thisx.update_session_role(role);
-        var cfg_stages = thisx.cfg['campaign']['campaign_stage_list'].split(' ');
+        //var cfg_stages = thisx.cfg['campaign']['campaign_stage_list'].split(' ');
+        var cfg_stages = Object.keys(thisx.cfg).filter(x => x.startsWith('campaign_stage '));
+        cfg_stages = cfg_stages.map(x => x.split(' ')[1]);
         var cfg_jobtypes = {};
         var cfg_launches = {};
         var i, l, jt, s;
@@ -1628,7 +1656,7 @@ wf_uploader.prototype.upload_stage =  function(st) {
     args = {
             'pcl_call': '1',
             'pc_username': this.username,
-            'action': (st in this.cname_id_map)?'edit':'add',
+            'action': (st in this.cname_id_map) ? 'edit' : 'add',
             'ae_campaign_name': st,
             'experiment': this.cfg['campaign']['experiment'],
             'ae_active': 'True',

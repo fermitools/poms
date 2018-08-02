@@ -75,12 +75,13 @@ div.box.selected {
     z-index: 3;
     left: 0;
     top: 2em;
-    border: 2px solid black;
-    outline: 2px solid grey;
+    /* border: 2px solid black; */
+    outline: 1px solid grey;
     margin: 2px;
     padding: 1em;
     opacity: 1;
     width: 40em;
+    box-shadow: 10px 10px 20px grey;
 }
 
 .helpbutton:before {
@@ -161,37 +162,3 @@ div.box.selected {
     box-shadow: 10px 10px 20px grey;
   }
 
-  #popup_form, #popup_depform {
-      /* display: block; */
-      display: none;
-      background-color: white;
-      position: absolute;
-      z-index: 3;
-      left: 0px;
-      top: 2em;
-      opacity: 1;
-      width: 40em;
-      border-width: 1px;
-      border-style: solid;
-      border-color: black;
-      border-image: initial;
-      outline: grey solid 2px;
-      margin: 2px;
-      padding: 1em;
-      box-shadow: 10px 10px 20px grey;
-  }
-  #popup_form h3 {
-     width: 100%;
-  }
-  #popup_form input, select {
-      width: 60%;
-  }
-  #popup_form label {
-      display: inline-block;
-      width: 30%;
-  }
-
-  .rightbutton {
-    display: block;
-    float: right;
-  }
