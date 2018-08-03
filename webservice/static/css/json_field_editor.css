@@ -19,3 +19,16 @@
 .popup_form_json h3 {
     margin-top: 0;
 }
+
+::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+  background-color: lightcyan;
+}
+::-moz-placeholder { /* Firefox 19+ */
+  background-color: lightcyan;
+}
+:-ms-input-placeholder { /* IE 10+ */
+  background-color: lightcyan;
+}
+:-moz-placeholder { /* Firefox 18- */
+  background-color: lightcyan;
+}
