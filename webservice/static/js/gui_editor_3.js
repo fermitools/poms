@@ -772,24 +772,11 @@ gui_editor.prototype.draw_state = function () {
     };
 
     let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
-    let edge_labels = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).map(x => x.split(' ')[1]);
-    //// let node_list = node_labels.map(x => ({id:(Math.random() * 1e7).toString(32), label:x, shape:'box'}));
-    //let node_list = [
-    //    {id:'default', label:'default', group:0, shape:'ellipse', x:250, y:0, fixed:true, size:35}
-    //].concat(node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 0)})));
     let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 0)}));
-    let nodes = new vis.DataSet(node_list);
-    //let edge_list = edge_labels.map(x => ({from: depFrom(x), to: x}));
-    //let rr = [];
-    ////for (const e of edges) {
-        ////e.from.forEach(x => rr.push({from: x, to: e.to}));
-    ////};
-    //edge_list.forEach(e => e.from.forEach(x => rr.push({from: x, to: e.to})));
-    let rr = this.depboxes.map(x => ({id:x.box.id, from:x.stage1, to:x.stage2}));
-    let edges = new vis.DataSet(rr);
+    let nodes = new vis.DataSet([{id:'Default Values', label:'Default Values', shape:'ellipse', fixed:true, size:50}, ...node_list]);
 
-    // create a network
-    let container = document.getElementById('mystages');
+    let edge_list = this.depboxes.map(x => ({id:x.box.id, from:x.stage1, to:x.stage2}));
+    let edges = new vis.DataSet(edge_list);
 
     // provide the data in the vis format
     let data = {
@@ -852,12 +839,7 @@ gui_editor.prototype.draw_state = function () {
             },
             addEdge: function (data, callback) {
                 if (data.from == data.to) {
-                    //var r = confirm("Do you want to connect the node to itself?");
-                    //if (r != true)
-                    {
-                        callback(null);
-                        return;
-                    }
+                    callback(null);
                 }
                 else {
                     saveEdgeData(data, callback);
@@ -865,67 +847,23 @@ gui_editor.prototype.draw_state = function () {
             }
         }
     };
+
+    let container = document.getElementById('mystages');
     // initialize network
-    //var network = new vis.Network(container, data, options);
     gui_editor.network = new vis.Network(container, data, options);
-
-    var defaults = new vis.Network(document.getElementById('mydefaults'), {
-                nodes: [{id:'default', label:'default', x:250, y:0, fixed:true, size:50}],
-                edges: []
-            }, {
-                autoResize: false,
-                physics: false,
-                nodes: { shadow: true, shape: 'ellipse' }
-            }
-        );
-
-    var jobtypes = new vis.Network(document.getElementById('myjobtypes'), {
-            nodes: [
-                { id: 1, label: "Login/Setup", shape: 'box', group: 0 },
-                { id: 2, label: "jobtype 1", shape: 'box', group: 0 },
-                { id: 3, label: "jobtype 2", shape: 'box', group: 0 },
-            ],
-            edges: []
-        }, {
-            autoResize: true,
-            physics: true,
-            nodes: {
-                shadow: true,
-                shape: 'box'
-            },
-            layout: {
-                improvedLayout: true,
-                hierarchical: {
-                    enabled: true,
-                    levelSeparation: 150,
-                    nodeSpacing: 50,
-                    parentCentralization: true,
-                    blockShifting: true,
-                    edgeMinimization: true,
-                    direction: "UD",
-                    sortMethod: "directed"
-                }
-            }
-        }
-    );
 
     const getLabel = e => nodes.get(e).label;
 
     gui_editor.network.on("doubleClick", function (params) {
         if (params.nodes[0] !== undefined) {
             const node = params.nodes[0];
-            // alert("In double click handler");
-            //const el = document.getElementById('popup_form');
-            const el = document.getElementById(`fields_campaign_stage ${node}`);
+            const ename = node.startsWith("Default") ? `fields_${node}` : `fields_campaign_stage ${node}`;
+            const el = document.getElementById(ename);
             el.style.display = 'block';
             el.style.left = `${params.pointer.DOM.x}px`;
             el.style.top = `${params.pointer.DOM.y}px`;
-            // const h3 = el.querySelector('h3');
-            // h3.innerHTML = 'campaign_stage ' + nodes.get(node).label;
         } else if (params.edges[0] !== undefined) {
-            // Not yet...
             const edge = params.edges[0];
-            //const node = gui_editor.network.getConnectedNodes(edge)[0];
             const el = document.getElementById(`fields_${edge}`);
             el.style.display = 'block';
             el.style.left = `${params.pointer.DOM.x}px`;
@@ -954,6 +892,46 @@ gui_editor.prototype.draw_state = function () {
         }
     });
 
+    let setup_nodes = launchtemplist.map(x => ({id:`login_setup ${x}`, label:x}));
+    let jtype_nodes = this.jobtypelist.map(x => ({id:`job_type ${x}`, label:x}));
+
+    var jobtypes = new vis.Network(document.getElementById('myjobtypes'), {
+            nodes: [...setup_nodes, ...jtype_nodes],
+            edges: []
+        }, {
+            autoResize: true,
+            physics: true,
+            nodes: {
+                shadow: true,
+                shape: 'box'
+            },
+            layout: {
+                improvedLayout: true,
+                hierarchical: {
+                    enabled: true,
+                    levelSeparation: 150,
+                    nodeSpacing: 50,
+                    parentCentralization: true,
+                    blockShifting: true,
+                    edgeMinimization: true,
+                    direction: "UD",
+                    sortMethod: "directed"
+                }
+            }
+        }
+    );
+
+    jobtypes.on("doubleClick", function (params) {
+        if (params.nodes[0] !== undefined) {
+            const node = params.nodes[0];
+            const el = document.getElementById(`fields_${node}`);
+            el.style.display = 'block';
+            el.style.left = `${params.pointer.DOM.x}px`;
+            el.style.top = `${params.pointer.DOM.y + 350}px`;
+        }
+        params.event = "[original event]";
+        document.getElementById('eventSpan').innerHTML = '<h2>doubleClick event:</h2>' + JSON.stringify(params, null, 4);
+    });
 
     function editNode(data, cancelAction, callback) {
         document.getElementById('node-label').value = data.label;
@@ -1143,7 +1121,8 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         k = klist[i];
         if (vdict[k] == null) {
             val = "";
-            placeholder = "default";
+            //VP~ placeholder = "default";
+            placeholder = (this.gui.mode[k]).toString();
         } else {
             val = vdict[k];
             placeholder = "default";
@@ -1152,7 +1131,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         if (k.includes("job_type")) {
             res.push(this.gui.make_select(val, `${this.get_input_tag(k)}`));
         } else {
-            res.push(`<input id="${this.get_input_tag(k)}" value="${this.escape_quotes(val)}" placeholder="${placeholder}">`);
+            res.push(`<input id="${this.get_input_tag(k)}" value="${this.escape_quotes(val)}" placeholder="${this.escape_quotes(placeholder)}">`);
         }
         if (k.indexOf('param') >= 0) {
             res.push(`<button type="button" onclick="json_field_editor.start('${this.get_input_tag(k)}')">Edit</button>`);
@@ -1557,7 +1536,7 @@ wf_uploader.prototype.tag_em = function(tag, cfg_stages, completed) {   // FIXME
         var cids = cfg_stages.map(function (x) { return (x in cim) ? cim[x].toString() : x });
         console.log(["have campaign_list", thisx.cname_id_map]);
 
-        var args = { 'tag_name': tag, 'campaign_id': cids.join(','), 'experiment': thisx.cfg['campaign']['experiment'] };
+        var args = { 'campaign_name': tag, 'campaign_stage_id': cids.join(','), 'experiment': thisx.cfg['campaign']['experiment'] };
         thisx.make_poms_call('link_tags', args, completed);
     });
 }
