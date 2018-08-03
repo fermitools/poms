@@ -53,7 +53,7 @@ class TagsPOMS(object):
         logit.log("after: last_activity %s" % repr(last_activity))
         return tl, last_activity, msg
 
-    # FIXME: Might not needed as is.
+
     def link_tags(self, dbhandle, ses_get, campaign_stage_id, campaign_name, experiment):
         # if ses_get('experimenter').is_authorized(experiment): #FIXME
         # Fake it for now, we need to discuss who can manipulate campaigns.
@@ -70,11 +70,11 @@ class TagsPOMS(object):
             campaign_stage_ids = str(campaign_stage_id).split(',')
             msg = "OK"
             for sid in campaign_stage_ids:
-                cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == sid).first()
-                cs.campaign_id = camp.campaign_id
-                dbhandle.add(cs)
+                stage = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == sid).first()
+                stage.campaign_id = camp.campaign_id
+                dbhandle.add(stage)
             dbhandle.commit()
-            response = {"campaign_stage_id": campaign_stage_id, "campaign_id": cs.campaign_id, "name": camp.name, "msg": msg}
+            response = {"campaign_stage_id": campaign_stage_id, "campaign_id": stage.campaign_id, "name": camp.name, "msg": msg}
             return response
         else:
             response = {"msg": "You are not authorized to add campaigns."}

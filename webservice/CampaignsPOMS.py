@@ -470,7 +470,7 @@ class CampaignsPOMS:
                 logit.log(' '.join(e.args))
                 dbhandle.rollback()
 
-        if action == 'add' or action == 'edit':
+        if action in ('add', 'edit'):
             name = kwargs.pop('ae_campaign_name')
             if isinstance(name, str):
                 name = name.strip()

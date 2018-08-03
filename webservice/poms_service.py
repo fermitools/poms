@@ -880,10 +880,10 @@ class PomsService(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def link_tags(self, campaign_stage_id=None, tag_name=None, experiment=None, campaign_id=None):  # FIXME: Is it necessary?
-        if campaign_stage_id is None and campaign_id is not None:
-            campaign_stage_id = campaign_id
-        return self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session.get, campaign_stage_id, campaign_name=tag_name, experiment=experiment)
+    def link_tags(self, campaign_stage_id=None, tag_name=None, campaign_name=None, experiment=None, campaign_id=None):
+        return self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session.get,
+                                       campaign_stage_id=campaign_stage_id or campaign_id,
+                                       campaign_name=campaign_name or tag_name, experiment=experiment)
 
 
     @cherrypy.expose
