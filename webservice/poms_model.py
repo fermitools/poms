@@ -77,6 +77,7 @@ class CampaignStage(Base):
     experiment_obj = relationship('Experiment')
     job_type_obj = relationship('JobType')
     login_setup_obj = relationship('LoginSetup')
+    campaign_obj = relationship('Campaign')
 
 
 class Experimenter(Base):
