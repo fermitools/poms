@@ -828,6 +828,8 @@ gui_editor.prototype.draw_state = function () {
             deleteNode: (data, callback) => {
                 const id = data.nodes[0];
                 console.log("Deleting ", id);
+                // Delete from DB
+                this.make_poms_call('campaign_edit', {'action': 'delete', 'pcl_call': '1', 'name': id}, none);
                 const l1 = Object.keys(this.state).filter(x => x.endsWith(id));
                 console.log("Main: ", l1);
                 const l2 = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).filter(x => this.state[x].campaign_stage_1==id);

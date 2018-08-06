@@ -461,12 +461,16 @@ class CampaignsPOMS:
             else:
                 campaign_stage_id = kwargs.pop('campaign_stage_id')
             try:
-                dbhandle.query(CampaignDependency).filter(or_(CampaignDependency.needs_campaign_stage_id == campaign_stage_id,
-                                                              CampaignDependency.provides_campaign_stage_id == campaign_stage_id)).delete(synchronize_session=False)
-                dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
+                (dbhandle.query(CampaignDependency)
+                 .filter(or_(CampaignDependency.needs_campaign_stage_id == campaign_stage_id,
+                             CampaignDependency.provides_campaign_stage_id == campaign_stage_id))
+                 .delete(synchronize_session=False))
+                # dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
+                cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+                cs.campaign_id = None
                 dbhandle.commit()
             except Exception as e:
-                message = "The campaign, {}, has been used and may not be deleted.".format(name)
+                message = "The campaign stage, {}, has been used and may not be deleted.".format(name)
                 logit.log(message)
                 logit.log(' '.join(e.args))
                 dbhandle.rollback()
@@ -544,7 +548,7 @@ class CampaignsPOMS:
                                            completion_type=completion_type, completion_pct=completion_pct,
                                            creator=experimenter_id, created=datetime.now(utc),
                                            creator_role=role, campaign_type=campaign_type)
-                    dbhandle.add(cs)
+                    dbhandle.add(cs)    # FIXME: 'cs' might be referenced before assignment!
                     dbhandle.commit()
                     campaign_stage_id = cs.campaign_stage_id
                 else:
@@ -701,9 +705,9 @@ class CampaignsPOMS:
         return "Submission=%d" % s.submission_id
 
 
-    def campaign_deps_ini(self, dbhandle, config_get, session_experiment, name=None, camp_id=None, login_setup=None, campaign_definition=None):
+    def campaign_deps_ini(self, dbhandle, config_get, session_experiment, name=None, stage_id=None, login_setup=None, campaign_definition=None):
         res = []
-        cl = []
+        campaign_stages = []
         jts = set()
         lts = set()
 
@@ -720,20 +724,20 @@ class CampaignsPOMS:
                 lts.add(lt)
 
         if name is not None:
-            cl = dbhandle.query(CampaignStage).join(Campaign).filter(
+            campaign_stages = dbhandle.query(CampaignStage).join(Campaign).filter(
                 Campaign.name == name,
                 CampaignStage.campaign_id == Campaign.campaign_id).all()
 
-        if camp_id is not None:
-            cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(CampaignDependency.provides_campaign_stage_id == camp_id).all()
-            cidl2 = dbhandle.query(CampaignDependency.provides_campaign_stage_id).filter(CampaignDependency.needs_campaign_stage_id == camp_id).all()
-            s = set([camp_id])
+        if stage_id is not None:
+            cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(CampaignDependency.provides_campaign_stage_id == stage_id).all()
+            cidl2 = dbhandle.query(CampaignDependency.provides_campaign_stage_id).filter(CampaignDependency.needs_campaign_stage_id == stage_id).all()
+            s = set([stage_id])
             s.update(cidl1)
             s.update(cidl2)
-            cl = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id.in_(s)).all()
+            campaign_stages = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id.in_(s)).all()
 
         cnames = {}
-        for cs in cl:
+        for cs in campaign_stages:
             cnames[cs.campaign_stage_id] = cs.name
 
         # lookup relevant dependencies
@@ -761,12 +765,12 @@ class CampaignsPOMS:
                 if cidl.index(dcid) < cidl.index(cid):
                     cidl[cidl.index(dcid)], cidl[cidl.index(cid)] = cidl[cidl.index(cid)], cidl[cidl.index(dcid)]
 
-        if len(cl):
+        if len(campaign_stages):
             res.append("[campaign]")
-            res.append("experiment=%s" % cl[0].experiment)
-            res.append("poms_role=%s" % cl[0].creator_role)
+            res.append("experiment=%s" % campaign_stages[0].experiment)
+            res.append("poms_role=%s" % campaign_stages[0].creator_role)
             if name is None:
-                res.append("stage_id: %s" % camp_id)
+                res.append("stage_id: %s" % stage_id)
             else:
                 res.append("name: %s" % name)
 
@@ -774,7 +778,7 @@ class CampaignsPOMS:
             res.append("campaign_stage_list=%s" % " ".join(map(cnames.get, cidl)))
             res.append("")
 
-        for cs in cl:
+        for cs in campaign_stages:
             res.append("[campaign_stage %s]" % cs.name)
             res.append("dataset=%s" % cs.dataset)
             res.append("software_version=%s" % cs.software_version)
@@ -951,8 +955,8 @@ class CampaignsPOMS:
         campaign_stage_id = int(campaign_stage_id)
 
         cs = (dbhandle.query(CampaignStage)
-             .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
-             .first())
+              .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
+              .first())
         cs.cs_last_split = None
         dbhandle.commit()
 
