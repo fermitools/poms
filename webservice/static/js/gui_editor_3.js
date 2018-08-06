@@ -291,7 +291,7 @@ gui_editor.prototype.clone_rename = function (from, to, experiment, role) {
     var sl, i, j, before, after, jstr, newsl;
     sl = this.state['campaign']['campaign_stage_list'].split(/  */);
     console.log(["clone_rename: stage list", sl]);
-    this.state['campaign']['tag'] = gui_editor.new_name(this.state['campaign']['tag'], from, to);
+    this.state['campaign']['name'] = gui_editor.new_name(this.state['campaign']['name'], from, to);
     newsl = [];
     if (experiment != undefined) {
         this.state['campaign']['experiment'] = experiment;
@@ -681,7 +681,7 @@ gui_editor.prototype.draw_state = function () {
     //this.tsort(stagelist);
     stagelist.sort((a, b) => 1 - this.checkdep(a, b)).reverse();
 
-    cb = new label_box("Campaign: " + this.state['campaign']['tag'], this.div, x, y);
+    cb = new label_box("Campaign: " + this.state['campaign']['name'], this.div, x, y);
     cb.innerHTML += `<button type="button" onclick="gui_editor.save('${this.div.id}')">Save</button> <span id="savebusy"></span>`;
 
     y = y + 2 * labely;
@@ -1509,7 +1509,7 @@ wf_uploader.prototype.upload = function(state, completed) {
         ).then(
             _ => {
                 console.log("calling tag_em...");
-                thisx.tag_em(thisx.cfg['campaign']['tag'], cfg_stages, completed);
+                thisx.tag_em(thisx.cfg['campaign']['name'], cfg_stages, completed);
             }
         );
     });
@@ -1526,7 +1526,7 @@ wf_uploader.prototype.upload2 = function(state, cfg_stages, completed) {
 }
 
 
-wf_uploader.prototype.tag_em = function(tag, cfg_stages, completed) {   // FIXME: Might not needed as is.
+wf_uploader.prototype.tag_em = function(name, cfg_stages, completed) {   // FIXME: Might not needed as is.
     var thisx = this;
     /* have to re-fetch the list, if we added any campaigns... */
     console.log("tag_em calling get_campaign_list")
@@ -1536,7 +1536,7 @@ wf_uploader.prototype.tag_em = function(tag, cfg_stages, completed) {   // FIXME
         var cids = cfg_stages.map(function (x) { return (x in cim) ? cim[x].toString() : x });
         console.log(["have campaign_list", thisx.cname_id_map]);
 
-        var args = { 'campaign_name': tag, 'campaign_stage_id': cids.join(','), 'experiment': thisx.cfg['campaign']['experiment'] };
+        var args = { 'campaign_name': name, 'campaign_stage_id': cids.join(','), 'experiment': thisx.cfg['campaign']['experiment'] };
         thisx.make_poms_call('link_tags', args, completed);
     });
 }

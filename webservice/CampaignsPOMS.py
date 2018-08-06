@@ -433,6 +433,7 @@ class CampaignsPOMS:
                                                       CampaignStage.name == "_test_%s" % campaign_def_name).first()
         return cs.campaign_stage_id
 
+
     def campaign_edit(self, dbhandle, sesshandle, *args, **kwargs):
         """
             callback for campaign edit screens to update campaign record
@@ -500,8 +501,7 @@ class CampaignsPOMS:
                 if isinstance(campaign_definition_name, str):
                     campaign_definition_name = campaign_definition_name.strip()
                 # all this variables depend on the arguments passed.
-                experimenter = dbhandle.query(Experimenter).filter(
-                    Experimenter.username == pc_username).first()
+                experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first()
 
                 if experimenter:
                     experimenter_id = experimenter.experimenter_id
@@ -510,8 +510,8 @@ class CampaignsPOMS:
 
                 # print("************* exp={}, launch_name={}, campaign_definition_name={}".format(exp, launch_name, campaign_definition_name))
                 login_setup_id = (dbhandle.query(LoginSetup)
-                        .filter(LoginSetup.experiment == exp)
-                        .filter(LoginSetup.name == launch_name).first().login_setup_id)
+                                  .filter(LoginSetup.experiment == exp)
+                                  .filter(LoginSetup.name == launch_name).first().login_setup_id)
                 job_type_id = dbhandle.query(JobType).filter(
                     JobType.name == campaign_definition_name).first().job_type_id
                 if action == 'edit':
@@ -648,6 +648,7 @@ class CampaignsPOMS:
         data['message'] = message
         return data
 
+
     def campaign_edit_query(self, dbhandle, *args, **kwargs):
         """
             return info needed by campaign edit page
@@ -699,7 +700,8 @@ class CampaignsPOMS:
         dbhandle.commit()
         return "Submission=%d" % s.submission_id
 
-    def campaign_deps_ini(self, dbhandle, config_get, session_experiment, tag=None, camp_id=None, login_setup=None, campaign_definition=None):
+
+    def campaign_deps_ini(self, dbhandle, config_get, session_experiment, name=None, camp_id=None, login_setup=None, campaign_definition=None):
         res = []
         cl = []
         jts = set()
@@ -717,10 +719,10 @@ class CampaignsPOMS:
             if lt:
                 lts.add(lt)
 
-        if tag is not None:
+        if name is not None:
             cl = dbhandle.query(CampaignStage).join(Campaign).filter(
-              Campaign.name == tag,
-              CampaignStage.campaign_id == Campaign.campaign_id).all()
+                Campaign.name == name,
+                CampaignStage.campaign_id == Campaign.campaign_id).all()
 
         if camp_id is not None:
             cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(CampaignDependency.provides_campaign_stage_id == camp_id).all()
@@ -734,7 +736,7 @@ class CampaignsPOMS:
         for cs in cl:
             cnames[cs.campaign_stage_id] = cs.name
 
-        # lookup relevent dependencies
+        # lookup relevant dependencies
         dmap = {}
         for cid in cnames.keys():
             dmap[cid] = []
@@ -763,10 +765,10 @@ class CampaignsPOMS:
             res.append("[campaign]")
             res.append("experiment=%s" % cl[0].experiment)
             res.append("poms_role=%s" % cl[0].creator_role)
-            if tag is None:
+            if name is None:
                 res.append("stage_id: %s" % camp_id)
             else:
-                res.append("tag: %s" % tag)
+                res.append("name: %s" % name)
 
 
             res.append("campaign_stage_list=%s" % " ".join(map(cnames.get, cidl)))
@@ -819,6 +821,7 @@ class CampaignsPOMS:
         res.append("")
 
         return "\n".join(res).replace("%", "%%")
+
 
     def campaign_deps_svg(self, dbhandle, config_get, campaign_name=None,  campaign_stage_id=None):
         '''

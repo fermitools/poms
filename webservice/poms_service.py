@@ -200,24 +200,23 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def campaign_deps_ini(self, tag=None, camp_id=None, login_setup=None, campaign_definition=None, launch_template=None):
-        if login_setup is None and launch_template is not None:
-            login_setup = launch_template
         experiment = cherrypy.session.get('experimenter').session_experiment
-        res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, cherrypy.config.get, experiment, tag, camp_id, login_setup, campaign_definition)
+        res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, cherrypy.config.get, experiment,
+                                                   name=tag, camp_id=camp_id,
+                                                   login_setup=login_setup or launch_template,
+                                                   campaign_definition=campaign_definition)
         cherrypy.response.headers['Content-Type'] = 'text/ini'
         return res
 
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_deps(self, campaign_name = None, campaign_stage_id = None, tag=None, camp_id=None):
-        if campaign_name == None and tag != None:
-            campaign_name = tag
-        if campaign_stage_id == None and camp_id != None:
-            campaign_stage_id = camp_id
+    def campaign_deps(self, campaign_name=None, campaign_stage_id=None, tag=None, camp_id=None):
 
         template = self.jinja_env.get_template('campaign_deps.html')
-        svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config.get, campaign_name, campaign_stage_id)
+        svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config.get,
+                                                       campaign_name=campaign_name or tag,
+                                                       campaign_stage_id=campaign_stage_id or camp_id)
         return template.render(tag=tag, svgdata=svgdata, help_page="CampaignDepsHelp")
 
 
