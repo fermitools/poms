@@ -469,8 +469,9 @@ class CampaignsPOMS:
                 if unlink is None:
                     dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
                 else:
-                    cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
-                    cs.campaign_id = None
+                    print "unlink: {}".format(unlink)
+                    # cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+                    # cs.campaign_id = None
                 dbhandle.commit()
             # except Exception as e:
             except SQLAlchemyError as e:
