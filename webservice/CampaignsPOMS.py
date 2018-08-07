@@ -457,19 +457,21 @@ class CampaignsPOMS:
             if isinstance(name, str):
                 name = name.strip()
             if pcl_call == 1:
-                campaign_stage_id = dbhandle.query(CampaignStage).filter(CampaignStage.name == name).first().campaign_stage_id
+                campaign_stage_id = dbhandle.query(CampaignStage).filter(CampaignStage.name == name).first().campaign_stage_id if name else None
             else:
                 campaign_stage_id = kwargs.pop('campaign_stage_id')
             try:
-                (dbhandle.query(CampaignDependency)
-                 .filter(or_(CampaignDependency.needs_campaign_stage_id == campaign_stage_id,
-                             CampaignDependency.provides_campaign_stage_id == campaign_stage_id))
-                 .delete(synchronize_session=False))
                 unlink = kwargs.pop('unlink', None)
+                print("unlink: {}".format(unlink))
+                if campaign_stage_id:
+                    (dbhandle.query(CampaignDependency)
+                    .filter(or_(CampaignDependency.needs_campaign_stage_id == campaign_stage_id,
+                                CampaignDependency.provides_campaign_stage_id == campaign_stage_id))
+                    .delete(synchronize_session=False))
                 if unlink is None:
                     dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
                 else:
-                    print("unlink: {}".format(unlink))
+                    print("about to unlink: {}".format(unlink))
                     # cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
                     # cs.campaign_id = None
                 dbhandle.commit()

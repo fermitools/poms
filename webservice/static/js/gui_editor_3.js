@@ -1010,7 +1010,7 @@ gui_editor.prototype.draw_state = function () {
         const id = data.edges[0];
         const el = gui_editor.network.body.edges[id];
         const link = [el.fromId, el.toId];
-        new wf_uploader().make_poms_call('campaign_edit', {'action': 'delete', 'pcl_call': '1', 'name': id, 'unlink': link}, null);
+        new wf_uploader().make_poms_call('campaign_edit', {'action': 'delete', 'pcl_call': '1', 'unlink': link}, null);
         callback(data);
     }
 
