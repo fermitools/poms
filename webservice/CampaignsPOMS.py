@@ -78,7 +78,7 @@ class CampaignsPOMS:
                 dbhandle.query(LoginSetup).filter(LoginSetup.experiment == exp).filter(
                     LoginSetup.name == name).delete(synchronize_session=False)
                 dbhandle.commit()
-            except Exception as e:
+            except SQLAlchemyError as e:
                 message = "The launch template, %s, has been used and may not be deleted." % name
                 logit.log(message)
                 logit.log(' '.join(e.args))
@@ -229,7 +229,7 @@ class CampaignsPOMS:
                 dbhandle.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == cid).delete(synchronize_session=False)
                 dbhandle.query(JobType).filter(JobType.job_type_id == cid).delete(synchronize_session=False)
                 dbhandle.commit()
-            except Exception as e:
+            except SQLAlchemyError as e:
                 message = 'The campaign definition, %s, has been used and may not be deleted.' % name
                 logit.log(message)
                 logit.log(' '.join(e.args))
@@ -472,7 +472,8 @@ class CampaignsPOMS:
                     cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
                     cs.campaign_id = None
                 dbhandle.commit()
-            except Exception as e:
+            # except Exception as e:
+            except SQLAlchemyError as e:
                 message = "The campaign stage, {}, has been used and may not be deleted.".format(name)
                 logit.log(message)
                 logit.log(' '.join(e.args))
