@@ -288,11 +288,12 @@ gui_editor.new_name = function (before, from, to) {
 /* rename stages for a workflow clone */
 gui_editor.prototype.clone_rename = function (from, to, experiment, role) {
     console.log(["clone_rename:", from, to, experiment, role]);
-    var sl, i, j, before, after, jstr, newsl;
-    sl = this.state['campaign']['campaign_stage_list'].split(/  */);
-    console.log(["clone_rename: stage list", sl]);
+    var stages, before, after;
+    stages = this.state['campaign']['campaign_stage_list'].split(/  */);
+    console.log(["clone_rename: stage list", stages]);
     this.state['campaign']['name'] = gui_editor.new_name(this.state['campaign']['name'], from, to);
-    newsl = [];
+
+    let new_stages = [];
     if (experiment != undefined) {
         this.state['campaign']['experiment'] = experiment;
     }
@@ -300,14 +301,14 @@ gui_editor.prototype.clone_rename = function (from, to, experiment, role) {
         this.state['campaign']['poms_role'] = role;
     }
     console.log(["clone_rename: campaign fields", this.state['campaign']]);
-    for (i in sl) {
-        before = sl[i];
+    for (let i in stages) {
+        before = stages[i];
         console.log("fixing: " + before);
         after = gui_editor.new_name(before, from, to);
         this.rename_entity('campaign_stage ' + before, 'campaign_stage ' + after);
-        newsl.push(after);
+        new_stages.push(after);
     }
-    this.state['campaign']['campaign_stage_list'] = newsl.join(' ');
+    this.state['campaign']['campaign_stage_list'] = new_stages.join(' ');
 }
 
 
@@ -483,7 +484,7 @@ gui_editor.prototype.delete_key_if_empty = function (k, box) {
     }
     /* if it is a campaign stage, remove it from the campaign stage list */
     if (k.indexOf('campaign_stage ') == 0) {
-        var sl, stage;
+        let sl, stage;
         stage = k.slice(15);
         sl = this.state['campaign']['campaign_stage_list'].split(/  */);
         sl = sl.filter(function (x) { return x != stage && x != ''; })
@@ -829,7 +830,7 @@ gui_editor.prototype.draw_state = function () {
                 const id = data.nodes[0];
                 console.log("Deleting ", id);
                 // Delete from DB
-                new wf_uploader().make_poms_call('campaign_edit', {'action': 'delete', 'pcl_call': '1', 'name': id}, null);
+                new wf_uploader().make_poms_call('campaign_edit', {'action': 'delete', 'pcl_call': '1', 'name': id, 'unlink': 0}, null);
                 const l1 = Object.keys(this.state).filter(x => x.endsWith(id));
                 console.log("Main: ", l1);
                 const l2 = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).filter(x => this.state[x].campaign_stage_1==id);
@@ -846,6 +847,10 @@ gui_editor.prototype.draw_state = function () {
                 else {
                     saveEdgeData(data, callback);
                 }
+            },
+            deleteEdge: function (data, callback) {
+                callback(data);
+                // deleteEdgeData(data, callback);
             }
         }
     };
@@ -1442,16 +1447,15 @@ gui_editor.prototype.add_dependency = function(frm, to) {
 gui_editor.prototype.save_state = function () {
     var sb = document.getElementById("savebusy");
     sb.innerHTML = "Saving...";
-    var thisx = this;
     /* call with setTimeout to give Saving a chance to show up */
-    window.setTimeout(function () {
+    window.setTimeout( () => {
         var wu = new wf_uploader();
         console.log(["wu", wu]);
-        thisx.undefaultify_state();
-        wu.upload(thisx.state, function () {
+        this.undefaultify_state();
+        wu.upload(this.state, () => {
             /* callback for when whole upload is done.. */
             console.log("finally done uploading, whew");
-            thisx.defaultify_state();
+            this.defaultify_state();
             sb.innerHTML = "Done.";
             gui_editor.unmodified();
         });
@@ -1486,6 +1490,7 @@ wf_uploader.prototype.upload = function(state, completed) {
         var cfg_jobtypes = {};
         var cfg_launches = {};
         var i, l, jt, s;
+        //
         for (i in cfg_stages) {
             s = cfg_stages[i];
             if (('campaign_stage ' + s) in thisx.cfg) {
@@ -1611,38 +1616,39 @@ wf_uploader.prototype.upload_login_setup = function (l) {
     });
 }
 
-wf_uploader.prototype.upload_stage =  function(st) {
-    var i, dst, field_map, deps, d, args, k, pat;
-    field_map = {
-            'dataset': 'ae_dataset',
-            'software_version': 'ae_software_version',
-            'vo_role': 'ae_vo_role',
-            'cs_split_type': 'ae_split_type',
-            'job_type': 'ae_campaign_definition',
-            'login_setup': 'ae_launch_name',
-            'param_overrides': 'ae_param_overrides',
-            'completion_type': 'ae_completion_type',
-            'completion_pct': 'ae_completion_pct',
-        };
+wf_uploader.prototype.upload_stage =  function(stage_name) {
+    var i, dst, deps, d, args, k, pat;
+    const depname = `dependencies ${stage_name}`;
+    const field_map = {
+        'dataset': 'ae_dataset',
+        'software_version': 'ae_software_version',
+        'vo_role': 'ae_vo_role',
+        'cs_split_type': 'ae_split_type',
+        'job_type': 'ae_campaign_definition',
+        'login_setup': 'ae_launch_name',
+        'param_overrides': 'ae_param_overrides',
+        'completion_type': 'ae_completion_type',
+        'completion_pct': 'ae_completion_pct',
+    };
     deps = { "file_patterns": [], "campaign_stages": [] }
     for (i = 0; i < 10; i++) {
-        if ((('dependencies ' + st) in this.cfg) && ('campaign_stage_' + i.toString()) in this.cfg['dependencies ' + st]) {
-            dst = this.cfg['dependencies ' + st]['campaign_stage_' + i.toString()];
-            pat = this.cfg['dependencies ' + st]['file_pattern_' + i.toString()];
+        if ((depname in this.cfg) && (`campaign_stage_${i}`) in this.cfg[depname]) {
+            dst = this.cfg[depname][`campaign_stage_${i}`];
+            pat = this.cfg[depname][`file_pattern_${i}`];
             deps["campaign_stages"].push(dst);
             deps["file_patterns"].push(pat);
         }
     }
-    d = this.cfg['campaign_stage ' + st];
+    d = this.cfg[`campaign_stage ${stage_name}`];
     args = {
-            'pcl_call': '1',
-            'pc_username': this.username,
-            'action': (st in this.cname_id_map) ? 'edit' : 'add',
-            'ae_campaign_name': st,
-            'experiment': this.cfg['campaign']['experiment'],
-            'ae_active': 'True',
-            'ae_depends': JSON.stringify(deps),
-        }
+        'pcl_call': '1',
+        'pc_username': this.username,
+        'action': (stage_name in this.cname_id_map) ? 'edit' : 'add',
+        'ae_campaign_name': stage_name,
+        'experiment': this.cfg['campaign']['experiment'],
+        'ae_active': 'True',
+        'ae_depends': JSON.stringify(deps),
+    }
     for (k in d) {
         if (k in field_map) {
             args[field_map[k]] = d[k];
