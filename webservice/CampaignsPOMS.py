@@ -465,9 +465,12 @@ class CampaignsPOMS:
                  .filter(or_(CampaignDependency.needs_campaign_stage_id == campaign_stage_id,
                              CampaignDependency.provides_campaign_stage_id == campaign_stage_id))
                  .delete(synchronize_session=False))
-                # dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
-                cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
-                cs.campaign_id = None
+                unlink = kwargs.pop('unlink', None)
+                if unlink is None:
+                    dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
+                else:
+                    cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+                    cs.campaign_id = None
                 dbhandle.commit()
             except Exception as e:
                 message = "The campaign stage, {}, has been used and may not be deleted.".format(name)
