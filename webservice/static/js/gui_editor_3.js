@@ -827,17 +827,21 @@ gui_editor.prototype.draw_state = function () {
                 editNode(data, cancelNodeEdit, callback);
             },
             deleteNode: (data, callback) => {
-                const id = data.nodes[0];
-                console.log("Deleting ", id);
+                const node_id = data.nodes[0];
+                console.log("Deleting ", node_id);
                 // Delete from DB
-                new wf_uploader().make_poms_call('campaign_edit', {'action': 'delete', 'pcl_call': '1', 'name': id, 'unlink': 0}, null);
-                const l1 = Object.keys(this.state).filter(x => x.endsWith(id));
+                new wf_uploader().make_poms_call('campaign_edit', {'action': 'delete', 'pcl_call': '1', 'name': node_id, 'unlink': 0}, null);
+                //
+                // Delete stages+dependencies from state
+                const l1 = Object.keys(this.state).filter(x => x.endsWith(node_id));
                 console.log("Main: ", l1);
-                const l2 = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).filter(x => this.state[x].campaign_stage_1==id);
-                console.log("Then: ", l2);
                 l1.forEach(x => delete this.state[x]);
+                // Delete referred dependencies
+                const l2 = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).filter(x => this.state[x].campaign_stage_1==node_id);
+                console.log("Then: ", l2);
                 l2.forEach(x => delete this.state[x]);
-                this.state.campaign.campaign_stage_list = this.state.campaign.campaign_stage_list.split(' ').filter(x => x != id).join(' ');
+                // Update stage list in state
+                this.state.campaign.campaign_stage_list = this.state.campaign.campaign_stage_list.split(' ').filter(x => x != node_id).join(' ');
                 callback(data);
             },
             addEdge: function (data, callback) {
@@ -849,14 +853,13 @@ gui_editor.prototype.draw_state = function () {
                 }
             },
             deleteEdge: function (data, callback) {
-                callback(data);
-                // deleteEdgeData(data, callback);
+                deleteEdge(data, callback);
             }
         }
     };
 
-    let container = document.getElementById('mystages');
     // initialize network
+    let container = document.getElementById('mystages');
     gui_editor.network = new vis.Network(container, data, options);
 
     const getLabel = e => nodes.get(e).label;
@@ -1000,6 +1003,10 @@ gui_editor.prototype.draw_state = function () {
         //data.label = document.getElementById('edge-label').value;
         //clearEdgePopUp();
         data.id = this.add_dependency(data.from, data.to);
+        callback(data);
+    }
+
+    const deleteEdge = (data, callback) => {
         callback(data);
     }
 
