@@ -293,8 +293,8 @@ class CampaignDependency(Base):
     provides_campaign_stage_id = Column(ForeignKey('campaign_stages.campaign_stage_id'), primary_key=True, nullable=False, index=True)
     file_patterns = Column(Text, nullable=False)
 
-    needs_camp = relationship('CampaignStage', foreign_keys=needs_campaign_stage_id)
-    uses_camp = relationship('CampaignStage', foreign_keys=provides_campaign_stage_id)
+    provider = relationship('CampaignStage', foreign_keys=needs_campaign_stage_id, backref='consumers')
+    consumer = relationship('CampaignStage', foreign_keys=provides_campaign_stage_id, backref='providers')
 
 
 class HeldLaunch(Base):
