@@ -315,20 +315,20 @@ class PomsService(object):
     @logit.logstartstop
     def show_campaigns(self, *args, **kwargs):
         experimenter = cherrypy.session.get('experimenter')
-        tl, last_activity, msg = self.tagsPOMS.show_campaigns(cherrypy.request.db, experimenter, *args, **kwargs)
+        tl, last_activity, msg = self.campaignsPOMS.show_campaigns(cherrypy.request.db, experimenter, *args, **kwargs)
         template = self.jinja_env.get_template('show_campaigns.html')
         return template.render(tl=tl, last_activity=last_activity, msg=msg, help_page="ShowCampaignTagsHelp")
 
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_campaign_stages(self, tmin=None, tmax=None, tdays=7, active=True, tag=None, holder=None, role_held_with=None,
+    def show_campaign_stages(self, tmin=None, tmax=None, tdays=7, active=True, campaign_name=None, holder=None, role_held_with=None,
                        se_role=None, cl=None, **kwargs):
         (
             campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
         ) = self.campaignsPOMS.show_campaign_stages(cherrypy.request.db,
                                               cherrypy.request.samweb_lite,
-                                              tmin=tmin, tmax=tmax, tdays=tdays, active=active, tag=tag,
+                                              tmin=tmin, tmax=tmax, tdays=tdays, active=active, campaign_name=campaign_name,
                                               holder=holder, role_held_with=role_held_with,
                                               campaign_ids=cl, sesshandler=cherrypy.session.get)
 
@@ -880,18 +880,16 @@ class PomsService(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def link_tags(self, campaign_stage_id=None, tag_name=None, experiment=None, campaign_id=None):  # FIXME: Is it necessary?
-        if campaign_stage_id is None and campaign_id is not None:
-            campaign_stage_id = campaign_id
-        return self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session.get, campaign_stage_id, campaign_name=tag_name, experiment=experiment)
+    def link_tags(self, campaign_id=None, tag_name=None, experiment=None):
+        return self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session.get, campaign_id, tag_name, experiment)
 
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def delete_campaigns_tags(self, campaign_stage_id, campaign_id, experiment):
-        return self.tagsPOMS.delete_campaigns_tags(cherrypy.request.db, cherrypy.session.get, campaign_stage_id, campaign_id,
-                                                   experiment)
+    def delete_campaigns_tags(self, campaign_id, tag_id, experiment, delete_unused_tag=False):
+        return self.tagsPOMS.delete_campaigns_tags(cherrypy.request.db, cherrypy.session.get, campaign_id, tag_id,
+                                                   experiment, delete_unused_tag)
 
     @cherrypy.expose
     @logit.logstartstop

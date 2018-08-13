@@ -885,9 +885,44 @@ class CampaignsPOMS:
         #return bytes(text, encoding="utf-8")
         return text
 
+    def show_campaigns(self, dbhandle, experimenter, *args, **kwargs):
+        action = kwargs.get('action', None)
+        msg = "OK"
+        se_role = experimenter.session_role
+        if action == 'delete':
+            campaign_id = kwargs.get('del_campaign_id')
+            campaign = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+            if experimenter.is_authorized(campaign):
+                subs = dbhandle.query(Submission).join(CampaignStage, Submission.campaign_stage_id == CampaignStage.campaign_stage_id).filter(CampaignStage.campaign_id == campaign_id)
+                if subs.count() > 0:
+                    msg = "This campaign has been submitted.  It cannot be deleted."
+                else:
+                    dbhandle.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).delete(synchronize_session=False)
+                    dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete(synchronize_session=False)
+                    dbhandle.commit()
+                    msg = "Campaign named %s with campaign_id %s and related CampagnStages were deleted ." % (kwargs.get('del_campaign_name'), campaign_id)
+            else:
+                msg = "You are not authorized to delete campaigns."
+
+        tl = (dbhandle.query(Campaign)
+              .filter(Campaign.experiment == experimenter.session_experiment)
+              .filter(Campaign.creator_role == se_role)
+              .order_by(Campaign.name)
+             ).all()
+        if not tl:
+            return tl, "", msg
+        last_activity_l = dbhandle.query(func.max(Submission.updated)).join(CampaignStage,Submission.campaign_stage_id == CampaignStage.campaign_stage_id).join(Campaign,CampaignStage.campaign_id == Campaign.campaign_id).filter(Campaign.experiment == experimenter.session_experiment).first()
+        logit.log("got last_activity_l %s" % repr(last_activity_l))
+        last_activity = ""
+        if last_activity_l and last_activity_l and last_activity_l[0]:
+            if datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
+                last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
+        logit.log("after: last_activity %s" % repr(last_activity))
+        return tl, last_activity, msg
+
 
     def show_campaign_stages(self, dbhandle, samhandle, campaign_ids=None, tmin=None, tmax=None, tdays=7,
-                             active=True, tag=None, holder=None, role_held_with=None, sesshandler=None):
+                             active=True, campaign_name=None, holder=None, role_held_with=None, sesshandler=None):
         """
             give campaign information about campaign_stages with activity in the
             time window for a given experiment
@@ -900,10 +935,11 @@ class CampaignsPOMS:
 
         cq = (dbhandle.query(CampaignStage)
               .options(joinedload('experiment_obj'))
+              .options(joinedload('campaign_obj'))
               .options(joinedload(CampaignStage.experimenter_holder_obj))
               .order_by(CampaignStage.experiment)
               .options(joinedload(CampaignStage.experimenter_creator_obj))
-              )
+             )
 
         if experiment:
             cq = cq.filter(CampaignStage.experiment == experiment)
@@ -915,8 +951,8 @@ class CampaignsPOMS:
             campaign_ids = campaign_ids.split(",")
             cq = cq.filter(CampaignStage.campaign_stage_id.in_(campaign_ids))
 
-        if tag:
-            cq = cq.join(Campaign).filter(Campaign.name == tag)
+        if campaign_name:
+            cq = cq.join(Campaign).filter(Campaign.name == campaign_name)
 
             # for now we comment out it. When we have a lot of data, we may need to use these filters.
             # We will let the client filter it in show_campaign_stages.html with tablesorter for now.
@@ -925,8 +961,12 @@ class CampaignsPOMS:
 
             # if creator_role:
             # cq = cq.filter(Campaingn.creator_role == creator_role)
+        print("*"*80)
+        print("*"*80)
         campaign_stages = cq.all()
         logit.log(logit.DEBUG, "show_campaign_stages: back from query")
+        print("*"*80)
+        print("*"*80)
         # check for authorization
         data = {}
         data['authorized'] = []

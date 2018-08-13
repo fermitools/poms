@@ -13,10 +13,14 @@ Campaigns {%include 'help_button.html'%}
 {%endblock%}
 
 {%block content%}
+<div class="tiny ui teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
 <div>
     <table id="campaign_table" class="ui celled _table unstackable tablesorter tablesorter-ice">
         <thead>
             <tr>
+                <th data-sorter="false" data-filter="false">Id</th>
+                <th data-sorter="false" data-filter="false" align="center">
+                        Select All<br><input type="checkbox" id="c_cbox_all" onchange="do_checkall();">
                 <th>Campaign Name </th>
                 <th>Submissions<br>Running</th>
                 <th data-sorter="false" data-filter="false">Submission<br>History</th>
@@ -24,13 +28,16 @@ Campaigns {%include 'help_button.html'%}
                 <th data-sorter="false" data-filter="false">Edit<br>Workflow</th>
                 <th data-sorter="false" data-filter="false">Clone<br> Workflow</th>
                 <th data-sorter="false" data-filter="false">Workflow<br>.ini</th>
+                <th>Tags</th>
                 <th data-sorter="false" data-filter="false">Delete<br>Campaign</th>
             </tr>
         </thead>
         <tbody>
         {% for s in tl|sort(attribute='name') %}
-            <tr id="row_{{s.campaign_id}}" name="row_{{s.campaign_id}}">
-                <td>{{s.name}}</td>
+            <tr id="c_tr_{{loop.index}}">
+                <td id="c_id_{{loop.index}}">{{s.campaign_id}}</td>
+                <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
+                <td><a href="{{pomspath}}/show_campaign_stages?campaign_name={{s.name}}">{{s.name}}</a></td>
                 <td id="running_{{s.campaign_id}}" style="text-align:right; padding-right: 1em">...</td>
                 <td>
                     <a href="{{pomspath}}/campaign_time_bars?tag={{s.name}}&tdays=7&tmax={{last_activity}}">
@@ -66,6 +73,11 @@ Campaigns {%include 'help_button.html'%}
                     </a>
                 </td>
                 <td>
+                    {% for tag in s.tags %}
+                        {{tag.tag_name}}
+                    {% endfor %}
+                </td>
+                <td>
                     <button type="button">
                         <i class="trash blue icon" onclick="delete_campaign('{{s.name}}', '{{s.campaign_id}}');"></i>
                     </button>
@@ -75,6 +87,7 @@ Campaigns {%include 'help_button.html'%}
         {% endfor %}
         </tbody>
     </table>
+    <input type="hidden" id="c_table_max_rows" value="{{tl|length}}">
 </div>
 
 <div class="ui modal" id="template_clone_modal">
@@ -137,6 +150,42 @@ Campaigns {%include 'help_button.html'%}
     <div class="ui hidden divider"></div>
   </div> <!-- Ends template_clone_modal -->
 
+  <div class="ui modal small" id="tag_untag_modal" style="padding: 0px 20px;">
+        <i class="close icon"></i>
+        <div class="header">
+        </div>
+        <form class="ui form" action="" method="GET">
+            <div class="field">
+                <input type="hidden" id="tag_campaign_ids" name="cl" readonly>
+                <span style="font-size: 1.3em;">Tag/untag selected campaigns...</span>
+                <div class="ui segment raised ">
+                    <h3>Tags</h3>
+                    <div class="ui search">
+                        <div class="ui left icon input">
+                            <input type="text" id="tag_field" name="tag" placeholder="Enter tag" class="prompt">
+                            <i class="tag icon"></i>
+                        </div>
+                        <button class="ui icon small blue button" id="add_button">
+                            <i class="plus icon"></i>
+                        </button>
+                        <div id="response" style="display:inline; vertical-align: bottom; font-style: italic;"></div>
+                        <div class="results"></div>
+                    </div>
+                    <div id="tag_container">
+                        {% for tag in tags %}
+                            <i class="trash outline icon link poms_tag" id="{{Campaign.campaign_id}}_{{tag.tag_id}}"></i>
+                            <a href="{{pomspath}}/search_tags?q={{tag.tag_name}}" class="ui blue tag label" id="{{Campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+          <div class="ui hidden divider"></div>
+        </form>
+        <div class="actions">
+            <input type="submit" class="ui teal button approve" value="Done" onclick="return location.reload();">
+        </div>
+    </div> <!-- Ends Modal -->
+
 
 <script>
 $(document).ready(function() {
@@ -185,7 +234,7 @@ function update_running(data) {
     var camp_id;
     var name;
     for (camp_id in data) {
-      console.log([camp_id, data[camp_id]])
+      // console.log([camp_id, data[camp_id]])
        if (camp_id != "-1") {
           $("#running_"+camp_id).html( String(data[camp_id]))
        }
@@ -212,6 +261,131 @@ $('#template_clone_form')
     }
   })
 ;
+
+function do_checkall() {
+    // console.log("In do_changeall");
+    const max_rows = $("#c_table_max_rows").val();
+    for (let i = 1; i <= max_rows; i++) {
+        let $cba = $("#c_cbox_all");
+        let $cb = $("#c_cbox_"+i);
+        if ($cb.is(":visible") && !$cb.is(":disabled")) {
+            $cb.prop("checked", $cba.prop("checked"));
+        }
+    }
+}
+
+function pop_tag_untag_modal() {
+    var csv = [];
+    var max_rows = $("#c_table_max_rows").val();
+    for (var i = 1; i <= max_rows; i++) {
+        if ( $("#c_cbox_"+i).is(":checked") ) {
+            csv.push($("#c_id_"+i).html());
+        }
+    }
+    if (csv.length == 0) {
+        mod_form= $("#display_message_modal").modal('show');
+        $("#poms_message_data").text("Please select one or more campaigns by using the appropriate check boxes.");
+        return;
+    }
+    mod_form = $("#tag_untag_modal").modal('setting', 'closable', false).modal('show');
+    mod_form.find('span').html("Tag " + csv.length + " selected campaigns...");
+    // console.log("csv="+csv);
+    $("#tag_campaign_ids").val(csv.join(','))
+
+    $('#tag_container').html('<i class="big spinner loading blue icon"></i>');
+    $.getJSON('search_all_tags?cl='+csv.join(','), function (data) {
+        if (data.msg == "OK") {
+            $('#tag_container').html('');
+            for (const tag of data.result) {
+                const [tag_id, tag_name] = tag
+                const cids = csv.join('c')
+                const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${tag_name}" class="ui blue tag label" id="${cids}_${tag_id}_">${tag_name}</a>`;
+                const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${cids}_${tag_id}" style="border-radius: 5px;"></i></span>`;
+                $('#tag_container').append(new_tag + new_trash_can);
+                add_click_handler();
+            }
+        }
+        else {
+            $('#response').html(data.msg);
+        }
+    });
+}
+
+$(document).ready(function () {
+    add_click_handler();
+});
+
+function add_click_handler() {
+    $(".poms_tag").off("click").on("click", function () {
+        if (confirm("Are you sure you want to delete this item?") == true) {
+            do_delete(this);
+        }
+        else {
+            return;
+        }
+    });
+}
+
+function do_delete(item) {
+    var c_id = item.id.split("_")[0];
+    var t_id = item.id.split("_")[1];
+    var clicked_id = "#" + item.id;
+    var experiment = "{{session_experiment}}";
+    c_id = c_id.replace(/c/g, ',')
+
+    $.post('delete_campaigns_tags', { campaign_id: c_id, tag_id: t_id, experiment: experiment, delete_unused_tag: true }, function (data) {
+        if (data.msg == "OK") {
+            $('#response').html(data.msg);
+            $(clicked_id).remove();  //removes the trash can
+            $(clicked_id + "_").remove();  //removes the tag
+        }
+        else {
+            $('#response').html(data.msg);
+        }
+    });
+}
+
+$('#add_button').on('click', function (e) {
+    e.preventDefault();
+    $('#response').html("");
+
+    if (!$('#tag_field').val()) {
+        $('#response').html("Please enter a tag.");
+        return;
+    }
+
+    tag = $('#tag_field').val()
+    console.log("tag " + tag)
+    $.post('link_tags', {
+                tag_name: tag,
+                campaign_id: $("#tag_campaign_ids").val(),
+                experiment: "{{session_experiment}}"
+            }, function (data) {
+
+        if (data.msg == "OK") {
+            const campaigns_tags_composite_key = data.campaign_id.toString().replace(/,/g, 'c') + "_" + data.tag_id.toString();
+            $('#response').html(data.msg);
+
+            const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${data.tag_name}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
+            const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${campaigns_tags_composite_key}" style="border-radius: 5px;"></i></span>`;
+            $('#tag_container').append(new_tag + new_trash_can);
+            //$('#tag_container').append(new_tag);
+            $('#tag_field').val("");
+            add_click_handler();
+        }
+        else {
+            $('#response').html(data.msg);
+        }
+
+    });
+});
+
+$('#tag_field').keypress(function (event) {
+    if (event.keyCode == 13) {
+        $('#add_button').click();
+        $('#tag_field').val("");
+    }
+});
 
 </script>
 

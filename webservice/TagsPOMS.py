@@ -11,7 +11,7 @@ from collections import deque
 import json
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func, desc
-from .poms_model import CampaignStage,  Campaign, Submission
+from .poms_model import CampaignStage,  Campaign, Submission, Tag, CampaignsTag
 from . import logit
 from datetime import datetime, tzinfo, timedelta
 from .utc import utc
@@ -22,59 +22,25 @@ class TagsPOMS(object):
     def __init__(self, ps):
         self.poms_service = ps
 
-
-    def show_campaigns(self, dbhandle, experimenter, *args, **kwargs):
-        action = kwargs.get('action', None)
-        msg = "OK"
-        if action == 'delete':
-            campaign_id = kwargs.get('del_campaign_id')
-            campaign = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-            if experimenter.is_authorized(campaign):
-                subs = dbhandle.query(Submission).join(CampaignStage, Submission.campaign_stage_id == CampaignStage.campaign_stage_id).filter(CampaignStage.campaign_id == campaign_id)
-                if subs.count() > 0:
-                    msg = "This campaign has been submitted.  It cannot be deleted."
-                else:
-                    dbhandle.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).delete(synchronize_session=False)
-                    dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete(synchronize_session=False)
-                    dbhandle.commit()
-                    msg = "Campaign named %s with campaign_id %s and related CampagnStages were deleted ." % (kwargs.get('del_campaign_name'), campaign_id)
-            else:
-                msg = "You are not authorized to delete campaigns."
-
-        tl = dbhandle.query(Campaign).filter(Campaign.experiment == experimenter.session_experiment).all()
-        if not tl:
-            return tl, "", msg
-        last_activity_l = dbhandle.query(func.max(Submission.updated)).join(CampaignStage,Submission.campaign_stage_id == CampaignStage.campaign_stage_id).join(Campaign,CampaignStage.campaign_id == Campaign.campaign_id).filter(Campaign.experiment == experimenter.session_experiment).first()
-        logit.log("got last_activity_l %s" % repr(last_activity_l))
-        last_activity = ""
-        if last_activity_l and last_activity_l and last_activity_l[0]:
-            if datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
-                last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
-        logit.log("after: last_activity %s" % repr(last_activity))
-        return tl, last_activity, msg
-
-    # FIXME: Might not needed as is.
-    def link_tags(self, dbhandle, ses_get, campaign_stage_id, campaign_name, experiment):
-        # if ses_get('experimenter').is_authorized(experiment): #FIXME
-        # Fake it for now, we need to discuss who can manipulate campaigns.
+    def link_tags(self, dbhandle, ses_get, campaign_id, tag_name, experiment):
         if ses_get('experimenter').session_experiment == experiment:
-            camp = dbhandle.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == experiment).first()
-            if not camp:  # we do not have a campaign in the db for this experiment so create the campaign and then do the linking
-                camp = Campaign()
-                camp.name = campaign_name
-                camp.experiment = experiment
-                camp.creator = ses_get('experimenter').experimenter_id
-                camp.creator_role = ses_get('experimenter').session_role
-                dbhandle.add(camp)
+            tag = dbhandle.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()
+            if not tag:  # we do not have a tag in the db for this experiment so create the tag and then do the linking
+                tag = Tag()
+                tag.tag_name = tag_name
+                tag.experiment = experiment
+                tag.creator = ses_get('experimenter').experimenter_id
+                tag.creator_role = ses_get('experimenter').session_role
+                dbhandle.add(tag)
             # we have a tag in the db for this experiment so go ahead and do the linking
-            campaign_stage_ids = str(campaign_stage_id).split(',')
+            campaign_ids = str(campaign_id).split(',')
             msg = "OK"
-            for sid in campaign_stage_ids:
-                cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == sid).first()
-                cs.campaign_id = camp.campaign_id
-                dbhandle.add(cs)
+            for cid in campaign_ids:
+                campaign = dbhandle.query(Campaign).filter(Campaign.campaign_id == cid).one()
+                campaign.tags.append(tag)
+                dbhandle.add(campaign)
             dbhandle.commit()
-            response = {"campaign_stage_id": campaign_stage_id, "campaign_id": cs.campaign_id, "name": camp.name, "msg": msg}
+            response = {"campaign_id": campaign_id, "tag_id": tag.tag_id, "tag_name": tag.tag_name, "msg": msg}
             return response
         else:
             response = {"msg": "You are not authorized to add campaigns."}
@@ -90,31 +56,64 @@ class TagsPOMS(object):
         results = query.all()
         return results
 
+    def delete_tag_entirely(self, dbhandle, ses_get, tag_id):
+        tag = dbhandle.query(Tag).filter(Tag.tag_id == tag_id).first()
+        if ses_get('experimenter').is_authorized(tag.experiment):
+            dbhandle.query(CampaignsTag).filter(CampaignsTag.tag_id == tag_id).delete(synchronize_session=False)
+            dbhandle.query(Tag).filter(Tag.tag_id == tag_id).delete(synchronize_session=False)
+            dbhandle.commit()
+            response = {"msg": "OK"}
+        else:
+            response = {"msg": "You are not authorized to delete tags."}
+        return response
+
+    def delete_campaigns_tags(self, dbhandle, ses_get, campaign_id, tag_id, experiment, delete_unused_tag=False):
+        response = {"msg": "OK"}
+        if ses_get('experimenter').session_experiment == experiment:
+            campaign_ids = str(campaign_id).split(',')
+            for cid in campaign_ids:
+                (dbhandle.query(CampaignsTag)
+                 .filter(CampaignsTag.campaign_id == cid, CampaignsTag.tag_id == tag_id)
+                ).delete(synchronize_session=False)
+                print("*"*80)
+                print("*"*80)
+                print("*"*80)
+                print("delete_unused_tag: %s" % delete_unused_tag)
+                if delete_unused_tag:
+                    # If the tag is not used, delete it.
+                    ct = dbhandle.query(CampaignsTag).filter(CampaignsTag.tag_id == tag_id).first()
+                    print("ct: %s" % type(ct))
+                    if ct is None:
+                        dbhandle.query(Tag).filter(Tag.tag_id == tag_id).delete(synchronize_session=False)
+                print("*"*80)
+                print("*"*80)
+                print("*"*80)
+            dbhandle.commit()
+        else:
+            response = {"msg": "You are not authorized to delete tags."}
+        return response
 
     def search_all_tags(self, dbhandle, cl):
-
         cids = cl.split(',')        # CampaignStage IDs list
-        # result = dbhandle.query(CampaignStage.campaign_obj.name).filter(Campaignstage.campaign_stage_id.in_(cids)).distinct()
-        #
-        # SELECT distinct(campaigns.name)
-        # FROM campaign_campaign_stages JOIN campaigns ON campaigns.campaign_id=campaign_campaign_stages.campaign_id
-        # WHERE campaign_campaign_stages.campaign_stage_id in (513,514);
-        #
-        result = (dbhandle.query(Campaign.campaign_id, Campaign.name)
-                  .join(CampaignStage)
-                  .filter(Campaign.campaign_id == CampaignStage.campaign_id)
-                  .filter(CampaignStage.campaign_stage_id.in_(cids))
-                  .distinct().all())
-        # result = [(r[0], r[1]) for r in result]
-        result = [tuple(r) for r in result]
-        response = {"result": result, "msg": "OK"}
+        result = (dbhandle.query(Tag)
+                  .filter(Tag.campaigns.any(Campaign.campaign_id.in_(cids)))
+                  .order_by(Tag.tag_name)
+                 ).all()
+        retval = []
+        for r in result:
+            retval.append([r.tag_id, r.tag_name])
+        response = {"result": retval, "msg": "OK"}
         return response
 
 
     def auto_complete_tags_search(self, dbhandle, experiment, q):
+        q.replace('*', '%')  #So the unix folks are happy
         response = {}
         results = deque()
-        rows = dbhandle.query(Campaign).filter(Campaign.name.like('%' + q + '%'), Campaign.experiment == experiment).order_by(desc(Campaign.name)).all()
+        rows = (dbhandle.query(Tag)
+                .filter(Tag.name.like('%' + q + '%'), Tag.experiment == experiment)
+                .order_by(desc(Tag.tag_name))
+               ).all()
         for row in rows:
             results.append({"name": row.name})
         response["results"] = list(results)

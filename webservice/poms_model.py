@@ -1,5 +1,5 @@
 # coding: utf-8
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text, Float
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text, Float, Table
 # from sqlalchemy import Table
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql.json import JSON
@@ -18,16 +18,13 @@ class Tag(Base):
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
 
+    campaigns = relationship('Campaign', secondary='campaigns_tags')
 
 class CampaignsTag(Base):
-    __tablename__ = 'campaigns_tags'
+    __tablename__ = "campaigns_tags"
 
-    campaign_id = Column(Integer, ForeignKey('campaigns.campaign_id'), primary_key=True)
     tag_id = Column(Integer, ForeignKey('tags.tag_id'), primary_key=True)
-
-    tag_obj = relationship(Tag, backref="campaigns")
-    campaign_obj = relationship('Campaign', backref="tags")
-
+    campaign_id = Column(Integer, ForeignKey('campaigns.campaign_id'), primary_key=True)
 
 class Campaign(Base):
     __tablename__ = 'campaigns'
@@ -38,7 +35,7 @@ class Campaign(Base):
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
 
-    campaign_stage_obj = relationship('CampaignStage')
+    tags = relationship(Tag, secondary='campaigns_tags')
 
 
 class CampaignStage(Base):
