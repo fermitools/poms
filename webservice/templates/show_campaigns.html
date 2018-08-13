@@ -13,6 +13,14 @@ Campaigns {%include 'help_button.html'%}
 {%endblock%}
 
 {%block content%}
+
+<style scoped>
+    /* Hide the first column with IDs */
+    #campaign_table th:nth-child(1), table td:nth-child(1) {
+        display: none;
+    }
+</style>
+
 <div class="tiny ui teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
 <div>
     <table id="campaign_table" class="ui celled _table unstackable tablesorter tablesorter-ice">
@@ -35,6 +43,7 @@ Campaigns {%include 'help_button.html'%}
         <tbody>
         {% for s in tl|sort(attribute='name') %}
             <tr id="c_tr_{{loop.index}}">
+                <!-- id is hidden by css look for #campaign_table above -->
                 <td id="c_id_{{loop.index}}">{{s.campaign_id}}</td>
                 <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
                 <td><a href="{{pomspath}}/show_campaign_stages?campaign_name={{s.name}}">{{s.name}}</a></td>

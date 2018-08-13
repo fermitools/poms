@@ -73,6 +73,7 @@ Campaign Stages{%include 'help_button.html'%}
         <tbody>
             {% for stage in campaign_stages %}
                 <tr id="c_tr_{{loop.index}}">
+                    <!-- id is hidden by css look for #campaign_stages above -->
                     <td id="c_id_{{loop.index}}">{{stage.campaign_stage_id}}</td>
                     <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}" {{ 'disabled' if data.authorized[loop.index-1]!=True }}></td>
                     <td>{{ stage.campaign_obj.name}}</td>
