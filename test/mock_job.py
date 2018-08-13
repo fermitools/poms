@@ -25,6 +25,48 @@ def do_ifdh(*args):
     p.wait()
     return so[:-1]
   
+class job_updater:
+    '''
+       since we don't really track jobs anymore, this instead tracks
+       submissions and updates them...
+    '''
+    def __init__(self):
+        self.submissions = {}
+        self.mps = mock_poms_service.mock_poms_service()
+
+    def update_job(self, dbh, rpstatus, samhandle, submission_id = None, jobsub_job_id=None, host_site=None, status=None, task_project = None, user_script=None, node_name=None, vendor_id = None, user_exe_exit_code = None):
+        if self.submissions.get(submission_id, None) == None:
+            self.submissions[submission_id] = {}      
+
+        self.submissions[submission_id][jobsub_job_id] = status
+
+        min_jobsub_job_id = "zzzz"
+        rcount = 0
+        icount = 0
+        ccount = 0
+        hcount = 0
+        total = 0
+        for jjid, status in self.submissions[submission_id].items():
+            if jjid < min_jobsub_job_id:
+                min_jobsub_job_id = jjid
+
+            total = total + 1
+            if status == 'Running':
+                rcount = rcount + 1
+            if status == 'Completed':
+                ccount = ccount + 1
+            if status == 'Idle':
+                icount = icount + 1
+
+            if ccount == total:
+                sub_status = 'Completed'
+            elif rcount > 0:
+                sub_status = 'Running'
+            else:
+                sub_status = 'Idle'
+
+
+        self.mps.taskPOMS.update_submission( dbh, submission_id, min_jobsub_job_id, ccount / total, sub_status, task_project )
 
 rpstatus = "200 Ok."
 
@@ -82,7 +124,7 @@ class mock_job:
             self.pids.append(n)
         else:
             mps = mock_poms_service.mock_poms_service()
-            self.jp = mps.jobsPOMS
+            self.jp = job_updater()
             dbh = DBHandle.DBHandle()
             samhandle = samweb_lite()
 

@@ -81,10 +81,10 @@ class TaskPOMS:
         now = datetime.now(utc)
         res = ["wrapping up:"]
 
-        lookup_task_list = deque()
+        lookup_submission_list = deque()
         lookup_dims_list = deque()
         lookup_exp_list = deque()
-        finish_up_tasks = deque()
+        finish_up_submissions = deque()
         mark_located = deque()
         #
         # move launch stuff etc, to one place, so we can keep the table rows
@@ -103,7 +103,7 @@ class TaskPOMS:
                                 'completed')
                       .all()):
             res.append("completion type completed: %s" % s.submission_id)
-            finish_up_tasks.append(s.submission_id)
+            finish_up_submissions.append(s.submission_id)
 
         n_project = 0
         for s in (dbhandle
@@ -117,10 +117,10 @@ class TaskPOMS:
             res.append("completion type located: %s" % s.submission_id)
             # after two days, call it on time...
             if now - s.updated > timedelta(days=2):
-                finish_up_tasks.append(s.submission_id)
+                finish_up_submissions.append(s.submission_id)
 
             elif s.project:
-                # task had a sam project, add to the list to look
+                # submission had a sam project, add to the list to look
                 # up in sam
                 n_project = n_project + 1
                 basedims = "snapshot_for_project_name %s " % s.project
@@ -131,12 +131,19 @@ class TaskPOMS:
                     allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
 
                 lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
-                lookup_task_list.append(s)
+                lookup_submission_list.append(s)
+                lookup_dims_list.append(allkiddims)
+            else:
+                # it's located but there's no project, so they are 
+                # defining the poms_depends_%(submission_id)s_1 dataset..
+                allkiddims = "defname:poms_depends_%s_1" % s.submission_id
+                lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
+                lookup_submission_list.append(s)
                 lookup_dims_list.append(allkiddims)
 
         dbhandle.commit()
 
-        summary_list = samhandle.fetch_info_list(lookup_task_list, dbhandle=dbhandle)
+        summary_list = samhandle.fetch_info_list(lookup_submission_list, dbhandle=dbhandle)
         count_list = samhandle.count_files_list(lookup_exp_list, lookup_dims_list)
         thresholds = deque()
         logit.log("wrapup_tasks: summary_list: %s" % repr(summary_list))    # Check if that is working
@@ -147,17 +154,17 @@ class TaskPOMS:
         res.append("lookup_dims_list: %s" % lookup_dims_list)
 
         for i in range(len(summary_list)):
-            task = lookup_task_list[i]
-            cfrac = task.campaign_stage_snapshot_obj.completion_pct / 100.0
+            submission = lookup_submission_list[i]
+            cfrac = submission.campaign_stage_snapshot_obj.completion_pct / 100.0
             threshold = (summary_list[i].get('tot_consumed', 0) * cfrac)
             thresholds.append(threshold)
             val = float(count_list[i])
-            res.append("submission %s val %f threshold %f "%(task, val, threshold))
+            res.append("submission %s val %f threshold %f "%(submission, val, threshold))
             if val >= threshold and threshold > 0:
-                res.append("adding submission %s "%task)
-                finish_up_tasks.append(task.submission_id)
+                res.append("adding submission %s "%submission)
+                finish_up_submissions.append(submission.submission_id)
 
-        for s in finish_up_tasks:
+        for s in finish_up_submissions:
             res.append("marking submission %s located "%s)
             self.update_submission_status(dbhandle,s,"Located")
 
@@ -169,28 +176,28 @@ class TaskPOMS:
         # launch any recovery jobs or jobs depending on us.
         # this way we don's keep the rows locked all day
         #
-        #logit.log("Starting need_joblogs loops, len %d" % len(finish_up_tasks))
+        #logit.log("Starting need_joblogs loops, len %d" % len(finish_up_submissions))
         #if len(need_joblogs) == 0:
         #    njtl = []
         #else:
         #    njtl = dbhandle.query(Submission).filter(Submission.submission_id.in_(need_joblogs)).all()
 
-        res.append("finish_up_tasks: %s "% repr(finish_up_tasks))
+        res.append("finish_up_submissions: %s "% repr(finish_up_submissions))
 
-        if len(finish_up_tasks) == 0:
+        if len(finish_up_submissions) == 0:
             futl = []
         else:
-            futl = dbhandle.query(Submission).filter(Submission.submission_id.in_(finish_up_tasks)).all()
+            futl = dbhandle.query(Submission).filter(Submission.submission_id.in_(finish_up_submissions)).all()
 
         res.append(" got list... ")
 
-        for task in futl:
+        for submission in futl:
             # get logs for job for final cpu values, etc.
-            logit.log("Starting finish_up_tasks items for task %s" % task.submission_id)
-            res.append("Starting finish_up_tasks items for task %s" % task.submission_id)
+            logit.log("Starting finish_up_submissions items for submission %s" % submission.submission_id)
+            res.append("Starting finish_up_submissions items for submission %s" % submission.submission_id)
 
-            if not self.launch_recovery_if_needed(dbhandle, samhandle, getconfig, gethead, seshandle, err_res, task):
-                self.launch_dependents_if_needed(dbhandle, samhandle, getconfig, gethead, seshandle, err_res, task)
+            if not self.launch_recovery_if_needed(dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission):
+                self.launch_dependents_if_needed(dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission)
 
         return res
 
