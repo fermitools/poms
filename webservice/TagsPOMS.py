@@ -75,19 +75,12 @@ class TagsPOMS(object):
                 (dbhandle.query(CampaignsTag)
                  .filter(CampaignsTag.campaign_id == cid, CampaignsTag.tag_id == tag_id)
                 ).delete(synchronize_session=False)
-                print("*"*80)
-                print("*"*80)
-                print("*"*80)
-                print("delete_unused_tag: %s" % delete_unused_tag)
                 if delete_unused_tag:
                     # If the tag is not used, delete it.
                     ct = dbhandle.query(CampaignsTag).filter(CampaignsTag.tag_id == tag_id).first()
                     print("ct: %s" % type(ct))
                     if ct is None:
                         dbhandle.query(Tag).filter(Tag.tag_id == tag_id).delete(synchronize_session=False)
-                print("*"*80)
-                print("*"*80)
-                print("*"*80)
             dbhandle.commit()
         else:
             response = {"msg": "You are not authorized to delete tags."}
