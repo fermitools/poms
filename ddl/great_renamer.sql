@@ -17,7 +17,7 @@ ALTER TABLE campaign_snapshots        RENAME COLUMN launch_id TO login_setup_id;
 ALTER TABLE launch_template_snapshots RENAME COLUMN launch_id TO login_setup_id;
 -- spw missed on 2nd
 ALTER TABLE launch_template_snapshots RENAME COLUMN launch_snapshot_id TO login_setup_snapshot_id;
-ALTER TABLE submissions RENAME COLUMN launch_snapshot_id TO login_setup_snapshot_id;
+ALTER TABLE tasks RENAME COLUMN launch_snapshot_id TO login_setup_snapshot_id;
 
 
 ALTER TABLE campaign_definitions RENAME COLUMN campaign_definition_id TO job_type_id;
@@ -101,10 +101,9 @@ ALTER TABLE submissions DROP COLUMN status;
 DROP TABLE job_histories ;
 DROP TABLE job_files ;
 DROP TABLE jobs ;
-DROP TABLE services_downtimes;
+DROP TABLE service_downtimes;
 DROP TABLE services;
 DROP FUNCTION update_job_history();
-DROP FUNCTION update_task_history();
 drop trigger update_submission_history on  submissions;
 drop function update_submission_history();
 
