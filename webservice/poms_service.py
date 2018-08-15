@@ -231,7 +231,7 @@ class PomsService(object):
                                                                       kwargs.get("ae_campaign_definition_id"),
                                                                       kwargs.get("ae_definition_name"))
             raise cherrypy.HTTPRedirect(
-                "%s/campaign_edit?jump_to_campaign=%d&extra_edit_flag=launch_test_job" % (self.path, test_campaign))
+                "%s/campaign_stage_edit?jump_to_campaign=%d&extra_edit_flag=launch_test_job" % (self.path, test_campaign))
 
         template = self.jinja_env.get_template('campaign_definition_edit.html')
         return template.render(data=data, help_page="CampaignDefinitionEditHelp")
@@ -243,22 +243,19 @@ class PomsService(object):
         cid = self.campaignsPOMS.make_test_campaign_for(cherrypy.request.db, cherrypy.session, campaign_def_id,
                                                         campaign_def_name)
         raise cherrypy.HTTPRedirect(
-            "%s/campaign_edit?campaign_stage_id=%d&extra_edit_flag=launch_test_job" % (self.path, cid))
+            "%s/campaign_stage_edit?campaign_stage_id=%d&extra_edit_flag=launch_test_job" % (self.path, cid))
 
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_edit(self, *args, **kwargs):
+    def campaign_stage_edit(self, *args, **kwargs):
         """
-
         :param args:
         :param kwargs:
         :return:
         """
-        # Note we have to use cherrypy.session here instead of cherrypy.session.get method
-        # because later need to access cherrypy.session[''] in campaignsPOMS.campaign_edit.
-        data = self.campaignsPOMS.campaign_edit(cherrypy.request.db, cherrypy.session, *args, **kwargs)
-        template = self.jinja_env.get_template('campaign_edit.html')
+        data = self.campaignsPOMS.campaign_stage_edit(cherrypy.request.db, cherrypy.session, *args, **kwargs)
+        template = self.jinja_env.get_template('campaign_stage_edit.html')
 
         if kwargs.get('pcl_call', '0') == '1':
             if data['message']:
@@ -300,8 +297,8 @@ class PomsService(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def campaign_edit_query(self, *args, **kwargs):
-        data = self.campaignsPOMS.campaign_edit_query(cherrypy.request.db, *args, **kwargs)
+    def campaign_stage_edit_query(self, *args, **kwargs):
+        data = self.campaignsPOMS.campaign_stage_edit_query(cherrypy.request.db, *args, **kwargs)
         return data
 
 

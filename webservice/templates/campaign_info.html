@@ -72,7 +72,7 @@ Campaign Stage {{CampaignStage.name}}
          <h3>Actions</h3>
          <div class=menu>
               <div class=item>
-                <a href="{{pomspath}}/campaign_edit?jump_to_campaign={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
+                <a href="{{pomspath}}/campaign_stage_edit?jump_to_campaign={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
                          and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}>
                 <i class="external edit icon" data-content="Edit CampaignStage" data-variation="basic"></i>Edit Campaign Stage</a>
                </div>

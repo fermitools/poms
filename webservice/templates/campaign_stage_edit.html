@@ -28,7 +28,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 {%endblock%}
 
 {%block content%}
-<form id="campaign_form" class="ui form" action="campaign_edit" method="POST">
+<form id="campaign_form" class="ui form" action="campaign_stage_edit" method="POST">
 
   <div class="inline fields">
     <div class="field">
@@ -59,7 +59,8 @@ Campaign Stages {{ show_hint('', 'Help page') }}
     <thead>
       <tr>
         <th></th>
-        <th> Name {{ show_hint('#Name', 'Name string') }} </th>
+        <th> Campaign Name</th>
+        <th> Stage Name {{ show_hint('#Name', 'Name string') }} </th>
         <th> Active {{ show_hint('#Active', 'True/False') }} </th>
         <th> VO Role {{ show_hint('#VO-Role', 'Role name') }} </th>
         <th> Software<br>Version {{ show_hint('#Software-Version', 'Version tag') }} </th>
@@ -78,15 +79,15 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         <td class="collapsing">
           {% if data.authorized[loop.index-1]==True %}
           <i class="large edit link blue icon"  onclick="edit_campaign({{loop.index}});"></i>
-          <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i>
-          <i class="large trash link blue icon" onclick="delete_campaign('{{row.name}}',{{row.campaign_stage_id}});"></i>
+          <!-- <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i> -->
+          <i class="large trash link blue icon" onclick="delete_campaign('{{row.CampaignStage.name}}',{{row.CampaignStage.campaign_stage_id}});"></i>
           {% else %}
           <i class="large unhide link blue icon" onclick="edit_campaign({{loop.index}});"></i>
-          <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i>
+          <!-- <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i> -->
           {% endif %}
         </td>
-        <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.campaign_stage_id}}</td>
-        {% if row.campaign_stage_id|int == jump_to_campaign|default(-1)|int %}
+        <td id="c_campaign_stage_id_{{loop.index}}" style="display:none">{{row.CampaignStage.campaign_stage_id}}</td>
+        {% if row.CampaignStage.campaign_stage_id|int == jump_to_campaign|default(-1)|int %}
         <script type="text/javascript">
          // jump directly to a particular campaign
          $(document).ready(function(){
@@ -95,25 +96,27 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         </script>
         {% endif %}
         <td id="c_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
-        <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.job_type_id}}</td>
-        <td id="c_launch_id_{{loop.index}}" style="display:none">{{row.login_setup_id}}</td>
-        <td id="c_name_{{loop.index}}">{{row.name}}</td>
-        <td id="c_active_{{loop.index}}">{{row.active}}</td>
-        <td id="c_vo_role_{{loop.index}}">{{row.vo_role}}</td>
-        <td id="c_software_version_{{loop.index}}">{{row.software_version}}</td>
-        <td id="c_dataset_{{loop.index}}">{{row.dataset}}</td>
-        <td id="c_split_type_{{loop.index}}">{{row.cs_split_type}}</td>
-        <td id="c_completion_type_{{loop.index}}">{{row.completion_type}}</td>
-        <td id="c_completion_pct_{{loop.index}}">{{row.completion_pct}}</td>
-        {% if row.param_overrides is string %}
-            <td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|replace("None","")}}</td>
+        <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.CampaignStage.job_type_id}}</td>
+        <td id="c_launch_id_{{loop.index}}" style="display:none">{{row.CampaignStage.login_setup_id}}</td>
+        <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.CampaignStage.campaign_id}}</td>
+        <td id="c_campaign_name_{{loop.index}}">{{row.Campaign.name}}</td>
+        <td id="c_name_{{loop.index}}">{{row.CampaignStage.name}}</td>
+        <td id="c_active_{{loop.index}}">{{row.CampaignStage.active}}</td>
+        <td id="c_vo_role_{{loop.index}}">{{row.CampaignStage.vo_role}}</td>
+        <td id="c_software_version_{{loop.index}}">{{row.CampaignStage.software_version}}</td>
+        <td id="c_dataset_{{loop.index}}">{{row.CampaignStage.dataset}}</td>
+        <td id="c_split_type_{{loop.index}}">{{row.CampaignStage.cs_split_type}}</td>
+        <td id="c_completion_type_{{loop.index}}">{{row.CampaignStage.completion_type}}</td>
+        <td id="c_completion_pct_{{loop.index}}">{{row.CampaignStage.completion_pct}}</td>
+        {% if row.CampaignStage.param_overrides is string %}
+            <td id="c_param_overrides_{{loop.index}}">{{row.CampaignStage.param_overrides|replace("None","")}}</td>
         {% else %}
-            <td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|tojson|replace("null","")}}</td>
+            <td id="c_param_overrides_{{loop.index}}">{{row.CampaignStage.param_overrides|tojson|replace("null","")}}</td>
         {% endif %}
-        <td id="c_test_param_overrides_{{loop.index}}">{{row.test_param_overrides|tojson|replace("null","")}}</td>
+        <td id="c_test_param_overrides_{{loop.index}}">{{row.CampaignStage.test_param_overrides|tojson|replace("null","")}}</td>
         <td id="c_depends_{{loop.index}}">
         {% for key, value in data.depends.items() %}
-            {% if key == row.campaign_stage_id %}
+            {% if key == row.CampaignStage.campaign_stage_id %}
             {{ value }}
             {% endif %}
         {% endfor %}
@@ -168,12 +171,22 @@ Campaign Stages {{ show_hint('', 'Help page') }}
   <h3 class="block header"><span id="ae_experiment">Campaign Stage Editor {{ show_hint('', 'Help Page') }}</span></h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <form id="campaign_add_edit_form" class="ui form" method="POST" action="campaign_edit">
+    <form id="campaign_add_edit_form" class="ui form" method="POST" action="campaign_stage_edit">
+
+      <div class="fields">
+        <label>Campaign Name</label>
+        <select name="ae_campaign_name" id="ae_campaign_name" class="ui fluid search dropdown">
+          <option value="">Campaign this stage is part of (select existing or enter new)</option>
+          {% for row in data.campaigns %}
+          <option value={{row.campaign_id}}>{{row.name}}</option>
+          {% endfor %}
+        </select>
+      </div>
 
       <div class="fields">
         <div class="field">
             <label>Name {{ show_hint('#Stage-Name', 'Stage name') }}</label>
-            <input type="text" id="ae_campaign_name" name="ae_campaign_name" placeholder="Campaign Stage Name">
+            <input type="text" id="ae_stage_name" name="ae_stage_name" placeholder="Campaign Stage Name">
         </div>
         <div class="field">
             <label>VO Role {{ show_hint('#VO-Role', 'Role name') }}</label>
@@ -317,7 +330,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
       <input type="hidden" name="action" id="ae_definition_action" value="add">
       <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id|default('unknown')}}">
-      <input type="hidden" id="ae_campaign_id" name="ae_campaign_id" value="0">
+      <input type="hidden" id="ae_campaign_stage_id" name="ae_campaign_stage_id" value="0">
       <input type="hidden" id="ae_param_overrides" name="ae_param_overrides" value="[]">
       <input type="hidden" id="ae_test_param_overrides" name="ae_test_param_overrides" value="[]">
       <input type="hidden" id="ae_depends" name="ae_depends" value="[]">
@@ -414,7 +427,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 $('#campaign_add_edit_form')
   .form({
     fields: {
-      ae_campaign_name :          'empty',
+      ae_stage_name :             'empty',
       ae_vo_role :                'empty',
       ae_active :                 'empty',
       ae_software_version :       'empty',
@@ -441,7 +454,7 @@ $("#c_experiment").change(function() {
 $("#ae_launch_id").change(function() {
   var formdata = {'ae_launch_id': $("#ae_launch_id").val()};
   $.ajax({
-      url: "{{pomspath}}/campaign_edit_query",
+      url: "{{pomspath}}/campaign_stage_edit_query",
       type: 'GET',
       data: formdata,
       success: function(dat){
@@ -456,7 +469,7 @@ $("#ae_launch_id").change(function() {
 $("#ae_campaign_definition_id").change(function() {
   var formdata = {'ae_campaign_definition_id': $("#ae_campaign_definition_id").val()};
   $.ajax({
-      url: "{{pomspath}}/campaign_edit_query",
+      url: "{{pomspath}}/campaign_stage_edit_query",
       type: 'GET',
       data: formdata,
       success: function(dat){
@@ -695,14 +708,14 @@ function delete_campaign(name,campaign_stage_id) {
 function edit_campaign(index,clone) {
   if (typeof clone === 'undefined') {
     $("#ae_definition_action").val("edit");
-    $("#ae_campaign_name").val( $("#c_name_"+index).text() );
+    $("#ae_stage_name").val( $("#c_name_"+index).text() );
     $("#ae_depends").val( $("#c_depends_"+index).text() );
     $("#ae_depends_text").val( $.trim( $("#c_depends_"+index).text() ));
-    $("#ae_campaign_id").val( $("#c_campaign_id_"+index).text()  );
+    $("#ae_campaign_stage_id").val( $("#c_campaign_stage_id_"+index).text()  );
   } else {
-    $("#ae_campaign_id").val(0);
+    $("#ae_campaign_stage_id").val(0);
     $("#ae_definition_action").val("add");
-    $("#ae_campaign_name").val( "CLONE OF: " + $("#c_name_"+index).text() );
+    $("#ae_stage_name").val( "CLONE OF: " + $("#c_name_"+index).text() );
     // campaign_depends records are NOT cloned.
     $("#ae_depends").val( '{"campaign_stages": [], "file_patterns": []}' );
     $("#ae_depends_text").val( '{"campaign_stages": [], "file_patterns": []}' );
@@ -729,6 +742,7 @@ function edit_campaign(index,clone) {
   $("#ae_completion_pct").val( $("#c_completion_pct_"+index).text() );
 
   $("#campaign_add_edit_modal").modal('show');
+  $("#ae_campaign_name").val( $("#c_campaign_id_"+index).text()  ).trigger('change');
 
   console.log("clone = : " + clone)
   if ( typeof clone === 'undefined' )
@@ -759,9 +773,11 @@ $(document).ready(function(){
   }
 });
 
-
-$('.ui.dropdown')
-  .dropdown()
+$('#ae_campaign_name')
+  .dropdown({
+    allowAdditions: true,
+    showOnFocus: false
+})
 ;
 
 

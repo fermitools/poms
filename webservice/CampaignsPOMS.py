@@ -3,7 +3,7 @@
 """
 This module contain the methods that allow to create campaign_stages, definitions and templates.
 List of methods:
-login_setup_edit, campaign_definition_edit, campaign_edit, campaign_edit_query.
+login_setup_edit, campaign_definition_edit, campaign_stage_edit, campaign_stage_edit_query.
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in
 poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
 Date: April 28th, 2017. (changes for the POMS_client)
@@ -26,7 +26,8 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes
 
 from . import logit, time_grid
-from .poms_model import (CampaignStage,
+from .poms_model import (Campaign,
+                         CampaignStage,
                          JobType,
                          CampaignDependency,
                          CampaignRecovery,
@@ -433,9 +434,9 @@ class CampaignsPOMS:
                                                       CampaignStage.name == "_test_%s" % campaign_def_name).first()
         return cs.campaign_stage_id
 
-    def campaign_edit(self, dbhandle, sesshandle, *args, **kwargs):
+    def campaign_stage_edit(self, dbhandle, sesshandle, *args, **kwargs):
         """
-            callback for campaign edit screens to update campaign record
+            callback for campaign stage edit screens to update campaign record
             takes action = 'edit'/'add'/ etc.
             sesshandle is the cherrypy.session instead of cherrypy.session.get method
         """
@@ -452,7 +453,7 @@ class CampaignsPOMS:
         pc_username = kwargs.pop('pc_username', None)  # email is the info we know about the user in POMS DB.
 
         if action == 'delete':
-            name = kwargs.get('ae_campaign_name', kwargs.get('name', None))
+            name = kwargs.get('ae_stage_name', kwargs.get('name', None))
             if isinstance(name, str):
                 name = name.strip()
             if pcl_call == 1:
@@ -471,7 +472,8 @@ class CampaignsPOMS:
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
-            name = kwargs.pop('ae_campaign_name')
+            campaign_id = kwargs.pop('ae_campaign_name')
+            name = kwargs.pop('ae_stage_name')
             if isinstance(name, str):
                 name = name.strip()
             active = (kwargs.pop('ae_active') in ('True', 'true', '1'))
@@ -519,7 +521,7 @@ class CampaignsPOMS:
                 else:
                     pass
             else:
-                campaign_stage_id = kwargs.pop('ae_campaign_id')
+                campaign_stage_id = kwargs.pop('ae_campaign_stage_id')
                 job_type_id = kwargs.pop('ae_campaign_definition_id')
                 login_setup_id = kwargs.pop('ae_launch_id')
                 experimenter_id = kwargs.pop('experimenter_id')
@@ -543,7 +545,7 @@ class CampaignsPOMS:
                                            job_type_id=job_type_id,
                                            completion_type=completion_type, completion_pct=completion_pct,
                                            creator=experimenter_id, created=datetime.now(utc),
-                                           creator_role=role, campaign_type=campaign_type)
+                                           creator_role=role, campaign_type=campaign_type, campaign_id=campaign_id)
                     dbhandle.add(cs)
                     dbhandle.commit()
                     campaign_stage_id = cs.campaign_stage_id
@@ -562,7 +564,8 @@ class CampaignsPOMS:
                         "updated": datetime.now(utc),
                         "updater": experimenter_id,
                         "completion_type": completion_type,
-                        "completion_pct": completion_pct
+                        "completion_pct": completion_pct,
+                        "campaign_id": campaign_id
                     }
                     cd = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).update(columns)
                     # now redo dependencies
@@ -600,14 +603,17 @@ class CampaignsPOMS:
             data['state'] = state
             data['curr_experiment'] = exp
             data['authorized'] = []
-            cquery = dbhandle.query(CampaignStage).filter(CampaignStage.experiment == exp)
+            cquery = (dbhandle.query(CampaignStage, Campaign)
+                      .outerjoin(Campaign)
+                      .filter(CampaignStage.experiment == exp)
+                     )
             if state == 'state_active':
                 cquery = cquery.filter(CampaignStage.active == True)
             elif state == 'state_inactive':
                 cquery = cquery.filter(CampaignStage.active == False)
-                cquery = cquery.order_by(CampaignStage.name)
             if role in ('analysis', 'production'):
                 cquery = cquery.filter(CampaignStage.creator_role == role)
+            cquery = cquery.order_by(Campaign.name, CampaignStage.name)
             # this bit has to go onto cquery last
             # -- make sure if we're jumping to a given campaign id
             # that we *have* it in the list...
@@ -625,12 +631,12 @@ class CampaignsPOMS:
             cq = data['campaign_stages'].all()
             cids = []
             for cs in cq:
-                cids.append(cs.campaign_stage_id)
+                cids.append(cs.CampaignStage.campaign_stage_id)
                 if role in ('root', 'coordinator'):
                     data['authorized'].append(True)
-                elif cs.creator_role == 'production' and sesshandle.get('experimenter').session_role == 'production':
+                elif cs.CampaignStage.creator_role == 'production' and sesshandle.get('experimenter').session_role == 'production':
                     data['authorized'].append(True)
-                elif cs.creator_role == role and cs.creator == sesshandle.get('experimenter').experimenter_id:
+                elif cs.CampaignStage.creator_role == role and cs.CampaignStage.creator == sesshandle.get('experimenter').experimenter_id:
                     data['authorized'].append(True)
                 else:
                     data['authorized'].append(False)
@@ -645,12 +651,22 @@ class CampaignsPOMS:
                 }
                 depends[cid] = json.dumps(deps)
             data['depends'] = depends
+
+            #Get the campain names
+            campquery = (dbhandle.query(Campaign)
+                         .filter(Campaign.experiment == sesshandle.get('experimenter').session_experiment)
+                         .order_by(Campaign.name)
+                        )
+            if sesshandle.get('experimenter').session_role != 'production':
+                campquery.filter(Campaign.creator == sesshandle.get('experimenter').experimenter_id)
+                campquery.filter(Campaign.creator_role == 'analysis')
+            data['campaigns'] = campquery.all()
         data['message'] = message
         return data
 
-    def campaign_edit_query(self, dbhandle, *args, **kwargs):
+    def campaign_stage_edit_query(self, dbhandle, *args, **kwargs):
         """
-            return info needed by campaign edit page
+            return data for a specific stage
         """
 
         data = {}
