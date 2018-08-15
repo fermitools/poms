@@ -10,7 +10,7 @@ HTTPConnection.debuglevel = 1
 logit = logging.getLogger()
 
 class Agent:
-    def __init__(self, poms_uri = "http://127.0.0.1:8080/poms/", submission_uri = 'https://landscapeitb.fnal.gov/api/query'):
+    def __init__(self, poms_uri = "http://127.0.0.1:8080/poms/", submission_uri = 'https://landscapeitb.fnal.gov/lens/query'):
         self.psess = requests.Session()
         self.ssess = requests.Session()
         self.poms_uri = poms_uri
