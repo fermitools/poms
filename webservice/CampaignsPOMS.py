@@ -1384,3 +1384,9 @@ class CampaignsPOMS:
         dbhandle.commit()
 
         return []
+
+
+    def echo(self, *args, **kwargs):
+        form = kwargs.pop('form', None)
+        print("Get the form: '{}'".format(form))
+        return form
