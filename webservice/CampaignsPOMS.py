@@ -462,18 +462,33 @@ class CampaignsPOMS:
                 campaign_stage_id = kwargs.pop('campaign_stage_id')
             try:
                 unlink = kwargs.pop('unlink', None)
-                print("unlink: {}".format(unlink))
+                print("######################### unlink: {}".format(unlink))
+                if unlink:
+                    unlink = json.loads(unlink)
                 if campaign_stage_id:
                     (dbhandle.query(CampaignDependency)
-                    .filter(or_(CampaignDependency.needs_campaign_stage_id == campaign_stage_id,
-                                CampaignDependency.provides_campaign_stage_id == campaign_stage_id))
-                    .delete(synchronize_session=False))
+                     .filter(or_(CampaignDependency.needs_campaign_stage_id == campaign_stage_id,
+                                 CampaignDependency.provides_campaign_stage_id == campaign_stage_id))
+                     .delete(synchronize_session=False))
                 if unlink is None:
                     dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
                 else:
-                    print("about to unlink: {}".format(unlink))
-                    # cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
-                    # cs.campaign_id = None
+                    print("############################## About to unlink: {}".format(unlink))
+                    if isinstance(unlink, (int, str)):
+                        cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+                        cs.campaign_id = None
+                    else:
+                        print("################## Preparing query:")
+                        #frm_id = dbhandle.query(CampaignStage.campaign_stage_id).filter(CampaignStage.name == unlink[0]).first().campaign_stage_id
+                        #to_id = dbhandle.query(CampaignStage.campaign_stage_id).filter(CampaignStage.name == unlink[1]).first().campaign_stage_id
+                        #qq = (dbhandle.query(CampaignDependency)
+                        #      .filter(CampaignDependency.needs_campaign_stage_id == frm_id,
+                        #              CampaignDependency.provides_campaign_stage_id == to_id)
+                        #      .delete(synchronize_session=False))
+                        qq = (dbhandle.query(CampaignDependency)
+                              .filter(CampaignDependency.provider.has(CampaignStage.name == unlink[0]))
+                              .filter(CampaignDependency.consumer.has(CampaignStage.name == unlink[1]))
+                              .delete(synchronize_session=False))
                 dbhandle.commit()
             # except Exception as e:
             except SQLAlchemyError as e:
@@ -481,8 +496,9 @@ class CampaignsPOMS:
                 logit.log(message)
                 logit.log(' '.join(e.args))
                 dbhandle.rollback()
+                raise
 
-        if action in ('add', 'edit'):
+        elif action in ('add', 'edit'):
             name = kwargs.pop('ae_campaign_name')
             if isinstance(name, str):
                 name = name.strip()
@@ -555,10 +571,10 @@ class CampaignsPOMS:
                                            completion_type=completion_type, completion_pct=completion_pct,
                                            creator=experimenter_id, created=datetime.now(utc),
                                            creator_role=role, campaign_type=campaign_type)
-                    dbhandle.add(cs)    # FIXME: 'cs' might be referenced before assignment!
-                    dbhandle.commit()
-                    campaign_stage_id = cs.campaign_stage_id
-                else:
+                        dbhandle.add(cs)
+                        dbhandle.commit()
+                        campaign_stage_id = cs.campaign_stage_id
+                elif action == 'edit':
                     columns = {
                         "name": name,
                         "vo_role": vo_role,
@@ -575,16 +591,17 @@ class CampaignsPOMS:
                         "completion_type": completion_type,
                         "completion_pct": completion_pct
                     }
-                    cd = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).update(columns)
-                    # now redo dependencies
+                    dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).update(columns)
+                # now redo dependencies
                 dbhandle.query(CampaignDependency).filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
                 logit.log("depends for %s(%s) are: %s" % (campaign_stage_id, name, depends))
-                depcamps = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
-                for (i, dep) in enumerate(depcamps):
-                    logit.log("trying to add dependency for: {}".format(dep.name))
-                    d = CampaignDependency(provides_campaign_stage_id=campaign_stage_id, needs_campaign_stage_id=dep.campaign_stage_id,
-                                           file_patterns=depends['file_patterns'][i])
-                    dbhandle.add(d)
+                dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
+                for (i, stage) in enumerate(dep_stages):
+                    logit.log("trying to add dependency for: {}".format(stage.name))
+                    dep = CampaignDependency(provides_campaign_stage_id=campaign_stage_id,
+                                             needs_campaign_stage_id=stage.campaign_stage_id,
+                                             file_patterns=depends['file_patterns'][i])
+                    dbhandle.add(dep)
                 dbhandle.commit()
             except IntegrityError as e:
                 message = "Integrity error - you are most likely using a name which already exists in database."
