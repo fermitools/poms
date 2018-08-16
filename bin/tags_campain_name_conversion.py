@@ -1,5 +1,6 @@
 import argparse
 import logging
+import time
 import psycopg2
 
 def parse_command_line():
@@ -124,6 +125,28 @@ def campaigns_with_many_tags():
                 from campaigns_tags_old
                 group by campaign_id
                 having count(*) > 1);
+
+        Update example with the above query:
+            pomsint=> select * from campaign_dependencies
+            where needs_campaign_stage_id=1406 or provides_campaign_stage_id=1406;
+            campaign_dep_id | needs_campaign_stage_id | provides_campaign_stage_id | file_patterns
+            -----------------+-------------------------+----------------------------+---------------
+            (0 rows)
+
+            pomsint=>
+            pomsint=> insert into campaigns (experiment, name, creator, creator_role)
+            values('dune', 'dc2_mc_keepup_no_poms', 5, 'production') returning campaign_id;
+            campaign_id
+            -------------
+                    1372
+            (1 row)
+
+            INSERT 0 1
+            pomsint=> update campaign_stages set campaign_id = 1372
+            where campaign_id is null and campaign_stage_id in(1406);
+            UPDATE 1
+            pomsint=>
+
         """
     logging.debug("\n%s", comment)
 
