@@ -644,8 +644,9 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def update_submission(self, submission_id, jobsub_job_id, pct_complete = None, status = None, project = None):
-        res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id, status  = status, project = project, pct_complete = pct_complete)
+    def update_submission(self, submission_id, jobsub_job_id, pct_complete=None, status=None, project=None):
+        res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id,
+                                              status=status, project=project, pct_complete=pct_complete)
         return res
 
 
@@ -915,5 +916,11 @@ class PomsService(object):
         cherrypy.response.headers['Content-Type'] = 'application/json'
         return self.tagsPOMS.auto_complete_tags_search(cherrypy.request.db, experiment, q)
 
-# -----------------------
-# debugging
+    # -----------------------
+    # debugging
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def echo(self, *args, **kwargs):
+        data = self.campaignsPOMS.echo(*args, **kwargs)
+        return data
