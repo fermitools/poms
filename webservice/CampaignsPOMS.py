@@ -1404,6 +1404,6 @@ class CampaignsPOMS:
 
 
     def echo(self, *args, **kwargs):
-        form = kwargs.pop('form', None)
-        print("Get the form: '{}'".format(form))
-        return form
+        form = kwargs.get('form', None)
+        print("******************* Get the form: '{}'".format(form))
+        return json.loads(form)
