@@ -7,8 +7,8 @@ from datetime import datetime
 from utc import utc
 import atexit
 from textwrap import dedent
-from io import StringIO
-import dowser
+import io
+#import dowser
 import poms.webservice.pomscache as pomscache
 
 #
@@ -388,7 +388,7 @@ if True:
     cf.close
 
     try:
-        cherrypy.config.update(StringIO(confs))
+        cherrypy.config.update(io.StringIO(confs))
         #cherrypy.config.update(configfile)
     except IOError as mess:
         print(mess, file=sys.stderr)
@@ -396,10 +396,10 @@ if True:
         raise SystemExit
 
     # add dowser in to monitor memory...
-    dapp = cherrypy.tree.mount(dowser.Root(), '/dowser')
+    # dapp = cherrypy.tree.mount(dowser.Root(), '/dowser')
 
     poms_instance = poms_service.PomsService()
-    app = cherrypy.tree.mount(poms_instance, poms_instance.path, StringIO(confs))
+    app = cherrypy.tree.mount(poms_instance, poms_instance.path, io.StringIO(confs))
     # app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, configfile)
 
 
