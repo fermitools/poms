@@ -294,13 +294,14 @@ gui_editor.exportNetwork = function () {
 
     const node2JSON = (e) => {
         //VP~ const ename = e[0].startsWith('Default') ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
-        const ename = e[0].startsWith('campaign ') ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
+        //VP~ const ename = e[0].startsWith('campaign ') ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
+        const ename = e[0].match(/campaign |job_type |login_setup /) ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
         const el = document.getElementById(ename);
         const ff = mwm_utils.formFields(el);
         const hval = mwm_utils.hashCode(JSON.stringify(ff));
         const oval = $(el).attr('data-hash');
         const response = {id: e[0],
-                          label: gui_editor.network.body.nodes[e[0]].options.label,
+                          label: network.body.nodes[e[0]].options.label,
                           position: e[1],
                           clean: hval === oval ? true : false,
                           form: ff
@@ -309,7 +310,9 @@ gui_editor.exportNetwork = function () {
         return response;
     };
 
+    let network = gui_editor.network;
     var nodes = Object.entries(gui_editor.network.getPositions()).map(node2JSON);
+    network = gui_editor.aux_network;
     var aux = Object.entries(gui_editor.aux_network.getPositions()).map(node2JSON);
 
     // nodes.forEach(addConnections);
@@ -970,8 +973,8 @@ gui_editor.prototype.draw_state = function () {
         }
     });
 
-    let setup_nodes = launchtemplist.map(x => ({id:`login_setup ${x}`, label:x}));
-    let jtype_nodes = this.jobtypelist.map(x => ({id:`job_type ${x}`, label:x}));
+    let setup_nodes = launchtemplist.map(x => ({id: `login_setup ${x}`, label: x, shape: 'ellipse', color: '#22efcc'}));
+    let jtype_nodes = this.jobtypelist.map(x => ({id: `job_type ${x}`, label: x}));
 
     gui_editor.aux_network = new vis.Network(document.getElementById('myjobtypes'), {
             nodes: [...setup_nodes, ...jtype_nodes],
