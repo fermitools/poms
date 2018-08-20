@@ -274,6 +274,33 @@ class TaskPOMS:
         sh.created = datetime.now(utc)
         dbhandle.add(sh)
 
+    def mark_failed_submissions(self, dbhandle):
+        '''
+            find all the recent submissions that are still "New" but more
+            than two hours old, and mark them "LaunchFailed"
+        '''
+        now = datetime.now(utc)
+        sq = (dbhandle.query(
+                SubmissionHistory.submission_id, 
+                func.max(SubmissionHistory.created).label('latest')
+              ).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=7))
+               .group_by(SubmissionHistory.submission_id).subquery())
+
+        failed_sids = (dbhandle.query(SubmissionHistory.submission_id)
+                        .join(sq,SubmissionHistory.submission_id == sq.c.submission_id)
+                        .filter(SubmissionHistory.status == 'New',
+                                SubmissionHistory.created == sq.c.latest,
+                                SubmissionHistory.created < 
+                                    (now - timedelta(hours=2)))
+                        .all())
+
+        res = []
+        for submission_id in failed_sids:
+            res.append("updating %s" % submission_id)
+            self.update_submission_status(dbhandle, submission_id,status = 'LaunchFailed')
+        dbhandle.commit()
+        return "\n".join(res)
+        
     def running_submissions(self, dbhandle, campaign_id_list, status_list=['New','Idle','Running']):
 
         cl = campaign_id_list

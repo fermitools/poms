@@ -1135,6 +1135,14 @@ class CampaignsPOMS:
                                                                                                     SubmissionHistory.created).all()
         items = deque()
         extramap = OrderedDict()
+
+        if cpl[0].dataset in (None, 'None','none'):
+             url_template= "https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
+        else:
+             url_template= "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
+
+        failedlaunch_url_template = self.poms_service.path + "/list_launch_file?campaign_stage_id=%(campaign_stage_id)s&fname=%(created_s)s_%(creator)s"
+
         for th in qr:
             jjid = th.submission_obj.jobsub_job_id
             full_jjid = jjid
@@ -1167,16 +1175,17 @@ class CampaignsPOMS:
                                  jobsub_job_id=jjid,
                                  jobsub_cluster = full_jjid[:jjid.find('.')],
                                  jobsub_schedd = full_jjid[jjid.find('@')+1:],
+                                 creator = th.submission_obj.experimenter_creator_obj.username,
+                                 campaign_stage_id = th.submission_obj.campaign_stage_id,
+                                 created_s = th.submission_obj.created.strftime("%Y%m%d_%H%M%S")
                                ))
+            if th.status == 'LaunchFailed':
+                items[-1].url = failedlaunch_url_template % items[-1].__dict__
+            else:
+                items[-1].url = url_template % items[-1].__dict__
 
         logit.log("campaign_time_bars: items: " + repr(items))
-        if cpl[0].dataset in (None, 'None','none'):
-             url_template= "https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
-        else:
-             url_template= "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
-
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id',
-                                    url_template=url_template,
                                     extramap=extramap)
         return "", blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 

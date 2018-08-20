@@ -633,6 +633,11 @@ class PomsService(object):
 
 
     @cherrypy.expose
+    @logit.logstartstop
+    def mark_failed_submissions(self):
+        return self.taskPOMS.mark_failed_submissions(cherrypy.request.db)
+
+    @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def running_submissions(self,campaign_id_list):
