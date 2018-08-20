@@ -292,24 +292,25 @@ gui_editor.new_name = function (before, from, to) {
 gui_editor.exportNetwork = function () {
     // var nodes = gui_editor.network.body.nodeIndices.map(x => ({id: x}));
 
-    var nodes = Object.entries(gui_editor.network.getPositions())
-            .map(e => {
-                        //VP~ const ename = e[0].startsWith('Default') ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
-                        const ename = e[0].startsWith('campaign ') ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
-                        const el = document.getElementById(ename);
-                        const ff = mwm_utils.formFields(el);
-                        const hval = mwm_utils.hashCode(JSON.stringify(ff));
-                        const oval = $(el).attr('data-hash');
-                        const response = {id: e[0],
-                                          label: gui_editor.network.body.nodes[e[0]].options.label,
-                                          position: e[1],
-                                          clean: hval === oval ? true : false,
-                                          form: ff
-                                };
-                        //VP~ return e[0].startsWith("campaign ") ? {campaign: this.state.campaign, ...response} : response;    // Not yet
-                        return response;
-                }
-            );
+    const node2JSON = (e) => {
+        //VP~ const ename = e[0].startsWith('Default') ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
+        const ename = e[0].startsWith('campaign ') ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
+        const el = document.getElementById(ename);
+        const ff = mwm_utils.formFields(el);
+        const hval = mwm_utils.hashCode(JSON.stringify(ff));
+        const oval = $(el).attr('data-hash');
+        const response = {id: e[0],
+                          label: gui_editor.network.body.nodes[e[0]].options.label,
+                          position: e[1],
+                          clean: hval === oval ? true : false,
+                          form: ff
+                };
+        //VP~ return e[0].startsWith("campaign ") ? {campaign: this.state.campaign, ...response} : response;    // Not yet
+        return response;
+    };
+
+    var nodes = Object.entries(gui_editor.network.getPositions()).map(node2JSON);
+    var aux = Object.entries(gui_editor.aux_network.getPositions()).map(node2JSON);
 
     // nodes.forEach(addConnections);
 
@@ -331,13 +332,13 @@ gui_editor.exportNetwork = function () {
                             }
                         );
     // pretty print node data
-    var exportValue = JSON.stringify({nodes, edges}, undefined, 2);
-
+    var exportValue = JSON.stringify({stages: nodes, dependencies: edges, misc: aux}, undefined, 2);
+    /*
     function addConnections(elem, index) {
         // elem.connections = network.getConnectedNodes(elem.id);
         elem.connections = gui_editor.network.getConnectedEdges(elem.id).filter(x => gui_editor.network.body.edges[x].toId != elem.id).map(x => gui_editor.network.body.edges[x].toId);
     }
-
+    */
     // console.log(exportValue);
     return exportValue;
 }
@@ -972,7 +973,7 @@ gui_editor.prototype.draw_state = function () {
     let setup_nodes = launchtemplist.map(x => ({id:`login_setup ${x}`, label:x}));
     let jtype_nodes = this.jobtypelist.map(x => ({id:`job_type ${x}`, label:x}));
 
-    var jobtypes = new vis.Network(document.getElementById('myjobtypes'), {
+    gui_editor.aux_network = new vis.Network(document.getElementById('myjobtypes'), {
             nodes: [...setup_nodes, ...jtype_nodes],
             edges: []
         }, {
@@ -998,7 +999,7 @@ gui_editor.prototype.draw_state = function () {
         }
     );
 
-    jobtypes.on("doubleClick", function (params) {
+    gui_editor.aux_network.on("doubleClick", function (params) {
         if (params.nodes[0] !== undefined) {
             const node = params.nodes[0];
             const el = document.getElementById(`fields_${node}`);
