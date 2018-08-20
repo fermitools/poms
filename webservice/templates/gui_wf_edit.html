@@ -16,7 +16,7 @@
 
 {%block header%}
 <h1 class="ui header">
-    Workflow Editor for {{campaign}} {%include 'help_button.html'%}
+    Workflow Editor for Campaign {{campaign}} {%include 'help_button.html'%}
 
     <div class="sub header">
         Edit whole workflow
@@ -63,7 +63,7 @@
 </div>
 
 
-<h3>Campaign Stages
+<h3>Campaign {{campaign}}
     <button class="ui button" onclick="gui_editor.save('gui_editor_0');">Save</button><span id="savebusy"></span>
 </h3>
 <!--
@@ -71,9 +71,7 @@
 -->
 <div id="popups"></div>
 <div id="mystages" oncontextmenu='return false;' contextmenu=""></div>
-<!--
-<h3>Campaign Login/Setup and Jobtypes</h3>
--->
+<h4 style="margin: 0px;">Campaign Login/Setups and Jobtypes</h4>
 <div id="myjobtypes" oncontextmenu='return false;' contextmenu=""></div>
 <pre id="eventSpan"></pre>
 <div id="outer_gui_editor_frame" style="display: none;"></div>
