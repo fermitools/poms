@@ -1145,7 +1145,8 @@ class CampaignsPOMS:
                 jjid = str(jjid).replace('fifebatch', '').replace('.fnal.gov', '')
 
             if campaign is not None:
-                jjid += "<br>" + th.submission_obj.campaign_stage_obj.name
+                jjid += "<br>%s" % th.submission_obj.campaign_stage_obj.name 
+
 
             if th.status not in ("Completed", "Located", "Failed", "Removed"):
                 extramap[jjid] = ('<a href="{}/kill_jobs?submission_id={:d}&act=hold"><i class="ui pause icon"></i></a>'
