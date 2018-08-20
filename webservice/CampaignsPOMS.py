@@ -479,12 +479,6 @@ class CampaignsPOMS:
                         cs.campaign_id = None
                     else:
                         print("################## Preparing query:")
-                        #frm_id = dbhandle.query(CampaignStage.campaign_stage_id).filter(CampaignStage.name == unlink[0]).first().campaign_stage_id
-                        #to_id = dbhandle.query(CampaignStage.campaign_stage_id).filter(CampaignStage.name == unlink[1]).first().campaign_stage_id
-                        #qq = (dbhandle.query(CampaignDependency)
-                        #      .filter(CampaignDependency.needs_campaign_stage_id == frm_id,
-                        #              CampaignDependency.provides_campaign_stage_id == to_id)
-                        #      .delete(synchronize_session=False))
                         qq = (dbhandle.query(CampaignDependency)
                               .filter(CampaignDependency.provider.has(CampaignStage.name == unlink[0]))
                               .filter(CampaignDependency.consumer.has(CampaignStage.name == unlink[1]))
