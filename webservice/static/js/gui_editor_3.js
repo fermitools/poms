@@ -70,6 +70,14 @@ mwm_utils.trim_blanks = function (s) {
     return (typeof s === 'undefined' ? '' : s.trim());
 }
 
+mwm_utils.formFields = function (el) {
+    return $(el).find('input,select').toArray().map(x => [x.name, x.value]).reduce((a, v) => ({...a, [v[0]]: v[1]}), {});
+}
+
+mwm_utils.hashCode = function (str) {
+    return str.split('').reduce((prevHash, currVal) => (((prevHash << 5) - prevHash) + currVal.charCodeAt(0))|0, 0).toString(16);
+};
+
 /* gui editor itself
  * We setup the <div> that it's all in
  * add drag/drop event handlers, and an initial size
@@ -281,6 +289,59 @@ gui_editor.new_name = function (before, from, to) {
     }
     return after;
 }
+gui_editor.exportNetwork = function () {
+    // var nodes = gui_editor.network.body.nodeIndices.map(x => ({id: x}));
+
+    var nodes = Object.entries(gui_editor.network.getPositions())
+            .map(e => {
+                        //VP~ const ename = e[0].startsWith('Default') ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
+                        const ename = e[0].startsWith('campaign ') ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
+                        const el = document.getElementById(ename);
+                        const ff = mwm_utils.formFields(el);
+                        const hval = mwm_utils.hashCode(JSON.stringify(ff));
+                        const oval = $(el).attr('data-hash');
+                        const response = {id: e[0],
+                                          label: gui_editor.network.body.nodes[e[0]].options.label,
+                                          position: e[1],
+                                          clean: hval === oval ? true : false,
+                                          form: ff
+                                };
+                        //VP~ return e[0].startsWith("campaign ") ? {campaign: this.state.campaign, ...response} : response;    // Not yet
+                        return response;
+                }
+            );
+
+    // nodes.forEach(addConnections);
+
+    var edges = Object.entries(gui_editor.network.body.edges)
+                        .map(e => {
+                                    const ename = `fields_${e[0]}`;
+                                    const el = document.getElementById(ename);
+                                    //VP~ const ff = $(el).find('input').toArray().map(x => [x.name, x.value]).reduce((a, v) => ({...a, [v[0]]: v[1]}), {});
+                                    const ff = mwm_utils.formFields(el);
+                                    const hval = mwm_utils.hashCode(JSON.stringify(ff));
+                                    const oval = $(el).attr('data-hash');
+                                    return {
+                                        id: e[0],
+                                        fromId:e[1].fromId,
+                                        toId:e[1].toId,
+                                        clean: hval === oval ? true : false,
+                                        form: ff
+                                    }
+                            }
+                        );
+    // pretty print node data
+    var exportValue = JSON.stringify({nodes, edges}, undefined, 2);
+
+    function addConnections(elem, index) {
+        // elem.connections = network.getConnectedNodes(elem.id);
+        elem.connections = gui_editor.network.getConnectedEdges(elem.id).filter(x => gui_editor.network.body.edges[x].toId != elem.id).map(x => gui_editor.network.body.edges[x].toId);
+    }
+
+    // console.log(exportValue);
+    return exportValue;
+}
+
 
 /* instance methods */
 
@@ -691,7 +752,8 @@ gui_editor.prototype.draw_state = function () {
     csb.innerHTML += `<button type="button" onclick="gui_editor.makedep('${this.div.id}')">+ Connect Stages</button>`;
     csb.innerHTML += `<button type="button" onclick="gui_editor.newstage('${this.div.id}')">+ New Stage</button>`;
 
-    var dfb = new misc_box("Default Values", this.mode, mwm_utils.dict_keys(this.mode), this.div, x + 240, y, this);
+    //VP~ var dfb = new misc_box("Default Values", this.mode, mwm_utils.dict_keys(this.mode), this.div, x + 240, y, this);
+    var dfb = new misc_box(`campaign ${this.state.campaign.name}`, this.mode, mwm_utils.dict_keys(this.mode), this.div, x + 240, y, this);
 
     y = y + 2 * labely;
 
@@ -773,15 +835,17 @@ gui_editor.prototype.draw_state = function () {
     };
 
     let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
-    let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 0)}));
-    let nodes = new vis.DataSet([{id:'Default Values', label:'Default Values', shape:'ellipse', fixed:true, size:50}, ...node_list]);
+    let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 1)}));
+    //VP~ this.nodes = new vis.DataSet([{id: 'Default Values', label: this.state.campaign.name,
+    this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`, label: this.state.campaign.name,
+                                  shape: 'ellipse', fixed: true, size: 50}, ...node_list]);
 
-    let edge_list = this.depboxes.map(x => ({id:x.box.id, from:x.stage1, to:x.stage2}));
+    let edge_list = this.depboxes.map(x => ({id: x.box.id, from: x.stage1, to: x.stage2}));
     let edges = new vis.DataSet(edge_list);
 
     // provide the data in the vis format
     let data = {
-        nodes: nodes,
+        nodes: this.nodes,
         edges: edges
     };
     const options = {
@@ -796,7 +860,7 @@ gui_editor.prototype.draw_state = function () {
             hierarchical: {
                 enabled: true,
                 levelSeparation: 150,
-                nodeSpacing: 50,
+                nodeSpacing: 80,
                 treeSpacing: 30,
                 parentCentralization: true,
                 blockShifting: true,
@@ -807,9 +871,10 @@ gui_editor.prototype.draw_state = function () {
         },
         edges: {
             smooth: {
-                type: "dynamic",
-                //forceDirection: "vertical",
-                roundness: 0.9
+                //VP~ type: "dynamic",
+                type: "discrete",
+                forceDirection: "horizontal",
+                roundness: 1
             },
             width: 2,
             arrows: {to : true},
@@ -852,7 +917,8 @@ gui_editor.prototype.draw_state = function () {
                     saveEdgeData(data, callback);
                 }
             },
-            deleteEdge: function (data, callback) {
+            deleteEdge: (data, callback) => {
+                data.state = this.state;
                 deleteEdge(data, callback);
             }
         }
@@ -862,12 +928,13 @@ gui_editor.prototype.draw_state = function () {
     let container = document.getElementById('mystages');
     gui_editor.network = new vis.Network(container, data, options);
 
-    const getLabel = e => nodes.get(e).label;
+    const getLabel = e => this.nodes.get(e).label;
 
     gui_editor.network.on("doubleClick", function (params) {
         if (params.nodes[0] !== undefined) {
             const node = params.nodes[0];
-            const ename = node.startsWith("Default") ? `fields_${node}` : `fields_campaign_stage ${node}`;
+            //VP~ const ename = node.startsWith("Default") ? `fields_${node}` : `fields_campaign_stage ${node}`;
+            const ename = node.startsWith("campaign ") ? `fields_${node}` : `fields_campaign_stage ${node}`;
             const el = document.getElementById(ename);
             el.style.display = 'block';
             el.style.left = `${params.pointer.DOM.x}px`;
@@ -963,24 +1030,29 @@ gui_editor.prototype.draw_state = function () {
     }
 
     const saveNodeData = (data, callback) => {
-        //data.physics = false;
-        //data.fixed = true;
-        //data.label = document.getElementById('node-label').value;
-        //clearNodePopUp();
-        //callback(data);
         const label = document.getElementById('node-label').value;
         clearNodePopUp();
         if (label.includes('*')) {
             const nn = label.split('*');
             for (let i = 0; i < nn[1]; i++) {
                 data.label = `${nn[0]}_${i}`;
-                this.new_stage(data.label);
-                callback(data);
+                //VP~ this.new_stage(data.label);     // FIXME: Id should be used, not label!
+                const reply = callback(data);
+                // Now handle our stuff
+                this.new_stage(reply[1]);
+                this.add_dependency(reply[0], reply[1], reply[2]);
             }
         } else {
             data.label = label;
-            this.new_stage(data.label);
-            callback(data);
+            //VP~ this.new_stage(data.label);
+            const reply = callback(data);
+            // Now handle our stuff
+            if (data.id) {
+                this.new_stage(data.id);
+            } else {
+                this.new_stage(reply[1]);
+                this.add_dependency(reply[0], reply[1], reply[2]);
+            }
         }
     }
 
@@ -1002,46 +1074,36 @@ gui_editor.prototype.draw_state = function () {
             data.from = data.from.id;
         //data.label = document.getElementById('edge-label').value;
         //clearEdgePopUp();
-        data.id = this.add_dependency(data.from, data.to);
-        callback(data);
+        const eid = edges.add({from: data.from, to: data.to})[0];
+        data.id = this.add_dependency(data.from, data.to, eid);
+        //VP~ callback(data);
+        callback(null);
     }
 
     const deleteEdge = (data, callback) => {
         const id = data.edges[0];
         const el = gui_editor.network.body.edges[id];
         const link = [el.fromId, el.toId];
-        new wf_uploader().make_poms_call('campaign_edit', {'action': 'delete', 'pcl_call': '1', 'unlink': JSON.stringify(link)}, null);
-        // delete this.state[id];
-        delete this.depboxes.find(x => x.box.id==id);
+        //new wf_uploader().make_poms_call('campaign_edit', {'action': 'delete', 'pcl_call': '1', 'unlink': JSON.stringify(link)}, null);
+        //// delete this.state[id];
+        //// this.depboxes = this.depboxes.filter(x => !(x.box.id==id));
         callback(data);
     }
 
     const addNewNode = (params) => {
-        //var newId = (Math.random() * 1e7).toString(32);
+        //// var newId = (Math.random() * 1e7).toString(32);
         let newId = params.label;
         const parentId = params.nodes[0];
-        const eid = this.add_dependency(parentId, newId);
-        nodes.add({id: newId, label: params.label, group: nodes.get(parentId).group+1, physics: true});
-        edges.add({id: eid, from: parentId, to: newId});
+        //VP~ const eid = this.add_dependency(parentId, newId);
+        //VP~ const nid = this.nodes.add({id: newId, label: params.label,
+        const nid = this.nodes.add({label: params.label,
+                                    group: this.nodes.get(parentId).group ? this.nodes.get(parentId).group + 1 : 0})[0];
+        //VP~ edges.add({id: eid, from: parentId, to: newId});
+        const eid = edges.add({from: parentId, to: nid})[0];
+        //VP~ this.add_dependency(parentId, nid);
+        return [parentId, nid, eid];
     }
 
-    function exportNetwork() {
-
-        // var nodes = objectToArray(network.getPositions());
-        var nodes = gui_editor.network.body.nodeIndices.map(x => ({id: x}));
-
-        nodes.forEach(addConnections);
-
-        // pretty print node data
-        var exportValue = JSON.stringify(nodes, undefined, 2);
-        console.log(exportValue);
-
-    }
-
-    function addConnections(elem, index) {
-        // elem.connections = network.getConnectedNodes(elem.id);
-        elem.connections = gui_editor.network.getConnectedEdges(elem.id).filter(x => gui_editor.network.body.edges[x].toId != elem.id).map(x => gui_editor.network.body.edges[x].toId);
-    }
 }
 
 /*
@@ -1054,7 +1116,7 @@ gui_editor.prototype.redraw_deps = function () {
     }
 }
 
-gui_editor.prototype.make_select = function(sval, eid) {
+gui_editor.prototype.make_select = function(sval, eid, placeholder) {
     /*
         <select name="carlist" form="carform">
             <option value="volvo">Volvo</option>
@@ -1068,8 +1130,8 @@ gui_editor.prototype.make_select = function(sval, eid) {
                 const sel = (val == sval) ? ' selected' : '';
                 return acc + `<option value="${val}"${sel}>${val}</option>\n`;
             },
-        '<option value="">default</option>\n');
-        return `<select id="${eid}" name="jtlist">\n${res}</select>\n`;
+        `<option value="" disabled selected hidden>${placeholder}</option>\n`);
+        return `<select id="${eid}" name="job_type"  required>\n${res}</select>\n`;
     }
 
 /*
@@ -1096,7 +1158,7 @@ function label_box(text, top, x, y) {
  *   other ini file boxes
  */
 function generic_box(name, vdict, klist, top, x, y, gui) {
-    var i, k, x, y, val, placeholder;
+    var i, k, x, y;
     var stage;
     if (name == undefined) {
         /* make prototype call work... */
@@ -1128,10 +1190,10 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     stage = name.substr(name.indexOf(" ") + 1)
 
     // Build the form...
+    var val, placeholder;
     let res = [];
     //res.push(`<form id="fields_${name}" class="popup_form" style="display: none; top: ${y}px; left: ${x}px;">`);
-    res.push(`<form id="fields_${name}" class="popup_form" style="display: none;">`);
-    var val, placeholder;
+    res.push(`<form id="fields_${name}" class="popup_form" style="display: none;" data-hash="" data-clean="1">`);
     res.push('<h3>' + name);
     //if (name != 'Default Values') {
     //    res.push(`<button title="Delete" class="rightbutton" type="button" onclick="gui_editor.delete_me('${name}')"><span class="deletebutton"></span></button><p>`);
@@ -1139,19 +1201,22 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     res.push('</h3>');
     for (i in klist) {
         k = klist[i];
+        if (k.startsWith('campaign_stage'))      // Hack to hide this from dependency form
+            continue;
         if (vdict[k] == null) {
             val = "";
             //VP~ placeholder = "default";
             placeholder = (this.gui.mode[k]).toString();
         } else {
             val = vdict[k];
-            placeholder = "default";
+            //VP~ placeholder = "default";
+            placeholder = (this.gui.mode[k]);
         }
         res.push(`<label>${k}</label>`);
         if (k.includes("job_type")) {
-            res.push(this.gui.make_select(val, `${this.get_input_tag(k)}`));
+            res.push(this.gui.make_select(val, `${this.get_input_tag(k)}`, placeholder));
         } else {
-            res.push(`<input id="${this.get_input_tag(k)}" value="${this.escape_quotes(val)}" placeholder="${this.escape_quotes(placeholder)}">`);
+            res.push(`<input id="${this.get_input_tag(k)}" name="${k}" value="${this.escape_quotes(val)}" placeholder="${this.escape_quotes(placeholder)}">`);
         }
         if (k.indexOf('param') >= 0) {
             res.push(`<button type="button" onclick="json_field_editor.start('${this.get_input_tag(k)}')">Edit</button>`);
@@ -1169,6 +1234,9 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     //top.appendChild(this.popup_parent);
     const pp = document.getElementById("popups");
     pp.appendChild(this.popup_parent);
+    // Now calculate and store a hash
+    const hval = mwm_utils.hashCode(JSON.stringify(mwm_utils.formFields(this.popup_parent)));
+    $(`form[id='fields_${name}']`).attr('data-hash', hval);
 }
 
 /*
@@ -1440,8 +1508,9 @@ gui_editor.prototype.new_dependency = function() {
 }
 
 
-gui_editor.prototype.add_dependency = function(frm, to) {
-    let dep_name = 'dependencies ' + to;
+gui_editor.prototype.add_dependency = function(frm, to, id) {
+    let dep_name = id;
+    //VP~ let dep_name = 'dependencies ' + to;
     if (dep_name in this.state) {
         var istr = ((Object.keys(this.state[dep_name]).length / 2) + 1).toString();
     } else {
@@ -1451,8 +1520,11 @@ gui_editor.prototype.add_dependency = function(frm, to) {
 
     this.state[dep_name]['campaign_stage_' + istr] = frm;
     this.state[dep_name]['file_pattern_' + istr] = '%%';
-    const db = new dependency_box(`${dep_name}_${istr}`, this.state[dep_name],
-            [`campaign_stage_${istr}`, `file_pattern_${istr}`], this.div, 0, 0, this);
+    //VP~ const db = new dependency_box(`${dep_name}_${istr}`,
+    const db = new dependency_box(dep_name,
+                                  this.state[dep_name],
+                                  [`campaign_stage_${istr}`, `file_pattern_${istr}`],
+                                  this.div, 0, 0, this);
     this.depboxes.push(db);
     return db.box.id;
 }
@@ -1465,8 +1537,10 @@ gui_editor.prototype.save_state = function () {
         var wu = new wf_uploader();
         console.log(["wu", wu]);
         this.undefaultify_state();
-        const deps = this.depboxes.map(d => [d.box.id, d.stage1, d.stage2]);
-        wu.upload(this.state, deps, () => {
+        //const deps = this.depboxes.map(d => [d.box.id, d.stage1, d.stage2]);
+        //VP~ let cfg_stages = this.nodes.map(x => [x.id, x.group]).filter(x => !x[0].startsWith("Default")).sort( (a, b) => b[1] - a[1] ).map(x => x[0]);
+        let cfg_stages = this.nodes.map(x => [x.id, x.group]).filter(x => !x[0].startsWith("campaign ")).sort( (a, b) => b[1] - a[1] ).map(x => x[0]);
+        wu.upload(this.state, cfg_stages, () => {
             /* callback for when whole upload is done.. */
             console.log("finally done uploading, whew");
             this.defaultify_state();
@@ -1486,9 +1560,8 @@ function wf_uploader() {
     this.cfg = null;
 }
 
-wf_uploader.prototype.upload = function(state, deps, completed) {
+wf_uploader.prototype.upload = function(state, cfg_stages, completed) {
     this.cfg = state;
-    this.deps = deps;
     var thisx = this;
     this.get_headers(function (headers) {
 
@@ -1500,8 +1573,8 @@ wf_uploader.prototype.upload = function(state, deps, completed) {
         var role = state['campaign']['poms_role'];
         thisx.update_session_role(role);
         //var cfg_stages = thisx.cfg['campaign']['campaign_stage_list'].split(' ');
-        var cfg_stages = Object.keys(thisx.cfg).filter(x => x.startsWith('campaign_stage '));
-        cfg_stages = cfg_stages.map(x => x.split(' ')[1]);
+        //var cfg_stages = Object.keys(thisx.cfg).filter(x => x.startsWith('campaign_stage '));
+        //cfg_stages = cfg_stages.map(x => x.split(' ')[1]);
         var cfg_jobtypes = {};
         var cfg_launches = {};
         var i, l, jt, s;
@@ -1544,10 +1617,12 @@ wf_uploader.prototype.upload2 = function(state, cfg_stages, completed) {
         console.log("upload2: stage:", s);
         p = p.then(_ => this.upload_stage(s));
     }
+    /*
     for (const d of this.deps) {
         console.log("upload2: dep:", d);
         p = p.then(_ => this.upload_dependency(d));
     }
+    */
     return p;
 }
 
@@ -1650,7 +1725,7 @@ wf_uploader.prototype.upload_stage = function(stage_name) {
         'completion_pct': 'ae_completion_pct',
     };
     deps = { "file_patterns": [], "campaign_stages": [] }
-    /* Disable dependencies building to decouple saving the stages from saving the dependencies
+    /* Disable dependencies building to decouple saving the stages from saving the dependencies */
     for (i = 0; i < 10; i++) {
         if ((depname in this.cfg) && (`campaign_stage_${i}`) in this.cfg[depname]) {
             dst = this.cfg[depname][`campaign_stage_${i}`];
@@ -1659,7 +1734,7 @@ wf_uploader.prototype.upload_stage = function(stage_name) {
             deps["file_patterns"].push(pat);
         }
     }
-    */
+
     d = this.cfg[`campaign_stage ${stage_name}`];
     args = {
         'pcl_call': '1',
@@ -1687,7 +1762,7 @@ wf_uploader.prototype.upload_dependency = function(dependency) {
     const args = {
         'pcl_call': '1',
         'pc_username': this.username,
-        'action': 'edit',
+        'action': 'add_dep',
         'ae_campaign_name': '',
         'experiment': this.cfg['campaign']['experiment'],
         'ae_active': 'True',
