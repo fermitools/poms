@@ -40,7 +40,7 @@ class Agent:
          '''
 
     submission_query = '''
-          {"query":"{submission(id:\\"%s\\"){  pomsTaskID  SAM_PROJECT:env(name:\\"SAM_PROJECT\\")  SAM_PROJECT_NAME:env(name:\\"SAM_PROJECT_NAME\\")  args}}","operationName":null}'
+          {"query":"{submission(id:\\"%s\\"){  pomsTaskID  SAM_PROJECT:env(name:\\"SAM_PROJECT\\")  SAM_PROJECT_NAME:env(name:\\"SAM_PROJECT_NAME\\")  args}}","operationName":null}
         '''
 
     def __init__(self, poms_uri="http://127.0.0.1:8080/poms/",
