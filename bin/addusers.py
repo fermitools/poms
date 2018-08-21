@@ -163,6 +163,8 @@ def add_users(cursor, exp, new_users):
             names = last_name.lstrip().split(" ", 1)
             if len(names) == 2:
                 (first_name, last_name) = last_name.lstrip().split(" ", 1)
+                first_name = first_name.replace("'","''")
+                last_name = last_name.replace("'","''")
             sql = """
                 insert into experimenters (last_name,first_name,username,session_experiment)
                     values ('%s','%s','%s','%s') returning experimenter_id
