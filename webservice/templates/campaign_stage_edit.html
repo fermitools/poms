@@ -29,28 +29,8 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
 {%block content%}
 <form id="campaign_form" class="ui form" action="campaign_stage_edit" method="POST">
-
-  <div class="inline fields">
-    <div class="field">
-      <div class="ui radio checkbox">
-        <input type="radio" name="state" id="state_active" value="state_active" {{ 'checked="checked"' if (data.state is not defined or data.state == "state_active")  }}>
-        <label>Active</label>
-      </div>
-    </div>
-    <div class="field">
-      <div class="ui radio checkbox">
-        <input type="radio" name="state" id="state_inactive" value="state_inactive" {{ 'checked="checked"' if (data.state == "state_inactive")  }}>
-        <label>Inactive</label>
-      </div>
-    </div>
-    <div class="field">
-      <div class="ui radio checkbox">
-        <input type="radio" name="state" id="state_all" value="state_all" {{ 'checked="checked"' if (data.state == "state_all")  }}>
-        <label>All</label>
-      </div>
-    </div>
-  </div>
-
+  {% set has_active=True %}
+  {%include "view_picker.html" %}
 
   {% if data.curr_experiment is defined %}
   <div id="double-scroll" class="scrollable">

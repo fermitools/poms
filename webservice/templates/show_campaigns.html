@@ -21,6 +21,10 @@ Campaigns {%include 'help_button.html'%}
     }
 </style>
 
+{% set has_active=True %}
+{% set data = data|default({}) %}
+{%include "view_picker.html" %}
+
 <div class="tiny ui teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
 <div>
     <table id="campaign_table" class="ui celled _table unstackable tablesorter tablesorter-ice">

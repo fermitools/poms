@@ -29,6 +29,9 @@ Job Types {%include 'help_button.html'%}
 
 <form id="campaign_definition_form" class="ui form" action="campaign_definition_edit" method="POST">
 
+  {% set data = data|default({}) %}
+  {%include "view_picker.html" %}
+
   {% if data.curr_experiment is defined %}
 <div id="double-scroll" class="ui scrollable">
 
