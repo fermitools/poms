@@ -67,6 +67,8 @@ class CampaignsPOMS:
                                   .order_by(Experiment.experiment))
         action = kwargs.pop('action', None)
         exp = seshandle('experimenter').session_experiment
+        experimenter = seshandle('experimenter')
+        se_role = experimenter.session_role
         pcl_call = int(kwargs.pop('pcl_call', 0))
         pc_username = kwargs.pop('pc_username', None)
         if isinstance(pc_username, str):
@@ -165,20 +167,53 @@ class CampaignsPOMS:
 
         # Find templates
         if exp:  # cuz the default is find
+            if kwargs.get('update_view',None) == None:
+                # view flags not specified, use defaults
+                data['view_active'] = 'view_active'
+                data['view_inactive'] = None
+                data['view_mine'] = experimenter.experimenter_id
+                data['view_others'] = experimenter.experimenter_id
+                data['view_analysis'] = 'view_analysis' if se_role in ('analysis','coordinator') else None
+                data['view_production'] =  'view_production' if se_role in ('production','coordinator') else None
+            else:
+                data['view_active'] = kwargs.get('view_active', None)
+                data['view_inactive'] = kwargs.get('view_inactive', None)
+                data['view_mine'] = kwargs.get('view_mine', None)
+                data['view_others'] = kwargs.get('view_others', None)
+                data['view_analysis'] = kwargs.get('view_analysis', None)
+                data['view_production'] = kwargs.get('view_production', None)
             data['curr_experiment'] = exp
             data['authorized'] = []
             se_role = seshandle('experimenter').session_role
-            if se_role in ('root', 'coordinator'):
-                # One has to execute the query here instead of sending to jinja to do it,
-                # because we need to know the LoginSetup detail to figure the authorization.
-                # Otherwise, we have to figure it out in the client/html.
-                data['templates'] = dbhandle.query(LoginSetup, Experiment).join(Experiment).filter(
-                    LoginSetup.experiment == exp).order_by(LoginSetup.name).all()
-            else:
-                data['templates'] = (dbhandle.query(LoginSetup, Experiment).join(Experiment)
-                                     .filter(LoginSetup.experiment == exp)
-                                     .filter(LoginSetup.creator_role == se_role)
-                                     .order_by(LoginSetup.name).all())
+
+            q = (dbhandle.query(LoginSetup, Experiment).join(Experiment)
+                                 .filter(LoginSetup.experiment == exp)
+                                 .order_by(LoginSetup.name))
+
+            if data['view_analysis'] and data['view_production']:
+                pass
+            elif data['view_analysis']:
+                q = q.filter(LoginSetup.creator_role == 'analysis')
+            elif data['view_production']:
+                q = q.filter(LoginSetup.creator_role == 'production')
+
+            if data['view_mine'] and data['view_others']:
+                pass
+            elif data['view_mine']:
+                q = q.filter(LoginSetup.creator == data['view_mine'] )
+            elif data['view_others']:
+                q = q.filter(LoginSetup.creator != data['view_others'] )
+
+            # LoginSetups don't have an active field(yet?)
+            if data['view_active'] and data['view_inactive']:
+                pass
+            elif data['view_active']:
+                pass
+            elif data['view_others']:
+                pass
+
+            data['templates'] = q.all()
+
             for lt in data['templates']:
                 if se_role in ('root', 'coordinator'):
                     data['authorized'].append(True)
@@ -190,6 +225,32 @@ class CampaignsPOMS:
                     data['authorized'].append(False)
         data['message'] = message
         return data
+
+
+    def campaign_add_name(self, dbhandle, seshandle, *args, **kwargs):
+        """
+            Add a new campaign name.
+        """
+        data = {}
+        name = kwargs.get('campaign_name')
+        data['message'] = "ok"
+        try:
+            camp = Campaign(name=name,
+                            experiment=seshandle('experimenter').session_experiment,
+                            creator=seshandle('experimenter').experimenter_id,
+                            creator_role=seshandle('experimenter').session_role)
+            dbhandle.add(camp)
+        except IntegrityError as e:
+            data['message'] = "Integrity error - you are most likely using a name which already exists in database."
+            logit.log(' '.join(e.args))
+            dbhandle.rollback()
+        except SQLAlchemyError as e:
+            data['message'] = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % ' '.join(e.args)
+            logit.log(' '.join(e.args))
+            dbhandle.rollback()
+        else:
+            dbhandle.commit()
+        return json.dumps(data)
 
 
     def campaign_list(self, dbhandle):
@@ -211,8 +272,10 @@ class CampaignsPOMS:
                                   .filter(~Experiment.experiment.in_(["root", "public"]))
                                   .order_by(Experiment.experiment))
         action = kwargs.pop('action', None)
+        experimenter  = seshandle('experimenter')
         exp = seshandle('experimenter').session_experiment
         r = seshandle('experimenter').session_role
+        data['curr_experiment'] = exp
         # added for poms_client
         pcl_call = int(kwargs.pop('pcl_call', 0))  # pcl_call == 1 means the method was access through the poms_client.
         pc_username = kwargs.pop('pc_username', None)  # email is the info we know about the user in POMS DB.
@@ -350,23 +413,54 @@ class CampaignsPOMS:
 
         # Find definitions
         if exp:  # cuz the default is find
-            data['curr_experiment'] = exp
+
+            if kwargs.get('update_view',None) == None:
+                # view flags not specified, use defaults
+                data['view_active'] = 'view_active'
+                data['view_inactive'] = None
+                data['view_mine'] = experimenter.experimenter_id
+                data['view_others'] = experimenter.experimenter_id
+                data['view_analysis'] = 'view_analysis' if r in ('analysis','coordinator') else None
+                data['view_production'] =  'view_production' if r in ('production','coordinator') else None
+            else:
+                data['view_active'] = kwargs.get('view_active', None)
+                data['view_inactive'] = kwargs.get('view_inactive', None)
+                data['view_mine'] = kwargs.get('view_mine', None)
+                data['view_others'] = kwargs.get('view_others', None)
+                data['view_analysis'] = kwargs.get('view_analysis', None)
+                data['view_production'] = kwargs.get('view_production', None)
+
             data['authorized'] = []
             # for testing ui...
             # data['authorized'] = True
-            if r in ['root', 'coordinator']:
-                data['definitions'] = (dbhandle.query(JobType, Experiment)
-                                       .join(Experiment)
-                                       .filter(JobType.experiment == exp)
-                                       .order_by(JobType.name)
-                                      ).all()
-            else:
-                data['definitions'] = (dbhandle.query(JobType, Experiment)
-                                       .join(Experiment)
-                                       .filter(JobType.experiment == exp)
-                                       .filter(JobType.creator_role == r)
-                                       .order_by(JobType.name)
-                                      ).all()
+            q = (dbhandle.query(JobType, Experiment)
+                  .join(Experiment)
+                  .filter(JobType.experiment == exp)
+                  .order_by(JobType.name))
+
+            if data['view_analysis'] and data['view_production']:
+                pass
+            elif data['view_analysis']:
+                q = q.filter(JobType.creator_role == 'analysis')
+            elif data['view_production']:
+                q = q.filter(JobType.creator_role == 'production')
+
+            if data['view_mine'] and data['view_others']:
+                pass
+            elif data['view_mine']:
+                q = q.filter(JobType.creator == data['view_mine'] )
+            elif data['view_others']:
+                q = q.filter(JobType.creator != data['view_others'] )
+
+            # JobTypes don't have an active field(yet?)
+            if data['view_active'] and data['view_inactive']:
+                pass
+            elif data['view_active']:
+                pass
+            elif data['view_others']:
+                pass
+
+            data['definitions'] = q.all()
             cids = []
             for df in data['definitions']:
                 cids.append(df.JobType.job_type_id)
@@ -441,6 +535,7 @@ class CampaignsPOMS:
             sesshandle is the cherrypy.session instead of cherrypy.session.get method
         """
         data = {}
+        experimenter = sesshandle.get('experimenter')
         role = sesshandle.get('experimenter').session_role or 'production'
         user_id = sesshandle.get('experimenter').experimenter_id
         message = None
@@ -591,6 +686,21 @@ class CampaignsPOMS:
 
         # Find campaign_stages
         if exp:  # cuz the default is find
+            if kwargs.get('update_view',None) == None:
+                # view flags not specified, use defaults
+                data['view_active'] = 'view_active'
+                data['view_inactive'] = None
+                data['view_mine'] = experimenter.experimenter_id
+                data['view_others'] = experimenter.experimenter_id
+                data['view_analysis'] = 'view_analysis' if role in ('analysis','coordinator') else None
+                data['view_production'] =  'view_production' if role in ('production','coordinator') else None
+            else:
+                data['view_active'] = kwargs.get('view_active', None)
+                data['view_inactive'] = kwargs.get('view_inactive', None)
+                data['view_mine'] = kwargs.get('view_mine', None)
+                data['view_others'] = kwargs.get('view_others', None)
+                data['view_analysis'] = kwargs.get('view_analysis', None)
+                data['view_production'] = kwargs.get('view_production', None)
             # for testing ui...
             # data['authorized'] = True
             state = kwargs.pop('state', None)
@@ -607,12 +717,27 @@ class CampaignsPOMS:
                       .outerjoin(Campaign)
                       .filter(CampaignStage.experiment == exp)
                      )
-            if state == 'state_active':
+            if data['view_analysis'] and data['view_production']:
+                pass
+            elif data['view_analysis']:
+                cquery = cquery.filter(CampaignStage.creator_role == 'analysis')
+            elif data['view_production']:
+                cquery = cquery.filter(CampaignStage.creator_role == 'production')
+
+            if data['view_mine'] and data['view_others']:
+                pass
+            elif data['view_mine']:
+                cquery = cquery.filter(CampaignStage.creator == data['view_mine'] )
+            elif data['view_others']:
+                cquery = cquery.filter(CampaignStage.creator != data['view_others'] )
+
+            if data['view_active'] and data['view_inactive']:
+                pass
+            elif data['view_active']:
                 cquery = cquery.filter(CampaignStage.active == True)
-            elif state == 'state_inactive':
+            elif data['view_inactive']:
                 cquery = cquery.filter(CampaignStage.active == False)
-            if role in ('analysis', 'production'):
-                cquery = cquery.filter(CampaignStage.creator_role == role)
+
             cquery = cquery.order_by(Campaign.name, CampaignStage.name)
             # this bit has to go onto cquery last
             # -- make sure if we're jumping to a given campaign id
@@ -920,11 +1045,51 @@ class CampaignsPOMS:
             else:
                 msg = "You are not authorized to delete campaigns."
 
-        tl = (dbhandle.query(Campaign)
+        data = {}
+        q = (dbhandle.query(Campaign)
               .filter(Campaign.experiment == experimenter.session_experiment)
-              .filter(Campaign.creator_role == se_role)
-              .order_by(Campaign.name)
-             ).all()
+              .order_by(Campaign.name))
+
+        if kwargs.get('update_view',None) == None:
+            # view flags not specified, use defaults
+            data['view_active'] = 'view_active'
+            data['view_inactive'] = None
+            data['view_mine'] = experimenter.experimenter_id
+            data['view_others'] = experimenter.experimenter_id
+            data['view_analysis'] = 'view_analysis' if se_role in ('analysis','coordinator') else None
+            data['view_production'] =  'view_production' if se_role in ('production','coordinator') else None
+        else:
+            data['view_active'] = kwargs.get('view_active', None)
+            data['view_inactive'] = kwargs.get('view_inactive', None)
+            data['view_mine'] = kwargs.get('view_mine', None)
+            data['view_others'] = kwargs.get('view_others', None)
+            data['view_analysis'] = kwargs.get('view_analysis', None)
+            data['view_production'] = kwargs.get('view_production', None)
+
+        if data['view_analysis'] and data['view_production']:
+            pass
+        elif data['view_analysis']:
+            q = q.filter(Campaign.creator_role == 'analysis')
+        elif data['view_production']:
+            q = q.filter(Campaign.creator_role == 'production')
+
+        if data['view_mine'] and data['view_others']:
+            pass
+        elif data['view_mine']:
+            q = q.filter(Campaign.creator == data['view_mine'] )
+        elif data['view_others']:
+            q = q.filter(Campaign.creator != data['view_others'] )
+
+        # Campaigns don't have an active field(yet?)
+        if data['view_active'] and data['view_inactive']:
+            pass
+        elif data['view_active']:
+            pass
+        elif data['view_others']:
+            pass
+
+        tl = q.all()
+
         if not tl:
             return tl, "", msg
         last_activity_l = dbhandle.query(func.max(Submission.updated)).join(CampaignStage,Submission.campaign_stage_id == CampaignStage.campaign_stage_id).join(Campaign,CampaignStage.campaign_id == Campaign.campaign_id).filter(Campaign.experiment == experimenter.session_experiment).first()
@@ -934,11 +1099,11 @@ class CampaignsPOMS:
             if datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
                 last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         logit.log("after: last_activity %s" % repr(last_activity))
-        return tl, last_activity, msg
+        return tl, last_activity, msg, data
 
 
     def show_campaign_stages(self, dbhandle, samhandle, campaign_ids=None, tmin=None, tmax=None, tdays=7,
-                             active=True, campaign_name=None, holder=None, role_held_with=None, sesshandler=None):
+                             active=True, campaign_name=None, holder=None, role_held_with=None, sesshandler=None, **kwargs):
         """
             give campaign information about campaign_stages with activity in the
             time window for a given experiment
@@ -946,8 +1111,9 @@ class CampaignsPOMS:
         """
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaign_stages?')
 
-        experiment = sesshandler('experimenter').session_experiment
-        se_role = sesshandler('experimenter').session_role
+        experimenter = sesshandler('experimenter')
+        experiment = experimenter.session_experiment
+        se_role = experimenter.session_role
 
         cq = (dbhandle.query(CampaignStage)
               .options(joinedload('experiment_obj'))
@@ -960,8 +1126,44 @@ class CampaignsPOMS:
         if experiment:
             cq = cq.filter(CampaignStage.experiment == experiment)
 
-        if se_role in ('production', 'analysis'):
-            cq = cq.filter(CampaignStage.creator_role == se_role)
+        data = {}
+        if kwargs.get('update_view',None) == None:
+            # view flags not specified, use defaults
+            data['view_active'] = 'view_active'
+            data['view_inactive'] = None
+            data['view_mine'] = experimenter.experimenter_id
+            data['view_others'] = experimenter.experimenter_id
+            data['view_analysis'] = 'view_analysis' if se_role in ('analysis','coordinator') else None
+            data['view_production'] =  'view_production' if se_role in ('production','coordinator') else None
+        else:
+            data['view_active'] = kwargs.get('view_active', None)
+            data['view_inactive'] = kwargs.get('view_inactive', None)
+            data['view_mine'] = kwargs.get('view_mine', None)
+            data['view_others'] = kwargs.get('view_others', None)
+            data['view_analysis'] = kwargs.get('view_analysis', None)
+            data['view_production'] = kwargs.get('view_production', None)
+
+        if data['view_analysis'] and data['view_production']:
+            pass
+        elif data['view_analysis']:
+            cq = cq.filter(CampaignStage.creator_role == 'analysis')
+        elif data['view_production']:
+            cq = cq.filter(CampaignStage.creator_role == 'production')
+
+        if data['view_mine'] and data['view_others']:
+            pass
+        elif data['view_mine']:
+            cq = cq.filter(CampaignStage.creator == data['view_mine'])
+        elif data['view_others']:
+            cq = cq.filter(CampaignStage.creator != data['view_others'])
+
+        if data['view_active'] and data['view_inactive']:
+            pass
+        elif data['view_active']:
+            cq = cq.filter(CampaignStage.active == True)
+        elif data['view_inactive']:
+            cq = cq.filter(CampaignStage.active == False)
+
 
         if campaign_ids:
             campaign_ids = campaign_ids.split(",")
@@ -977,14 +1179,9 @@ class CampaignsPOMS:
 
             # if creator_role:
             # cq = cq.filter(Campaingn.creator_role == creator_role)
-        print("*"*80)
-        print("*"*80)
         campaign_stages = cq.all()
         logit.log(logit.DEBUG, "show_campaign_stages: back from query")
-        print("*"*80)
-        print("*"*80)
         # check for authorization
-        data = {}
         data['authorized'] = []
         for cs in campaign_stages:
             if se_role != 'analysis':

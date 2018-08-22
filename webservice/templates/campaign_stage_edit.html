@@ -29,8 +29,14 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
 {%block content%}
 <form id="campaign_form" class="ui form" action="campaign_stage_edit" method="POST">
+<<<<<<< HEAD
 
   <div class="inline fields">
+    <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (session_role=='coordinator') }}>
+      <i class="icon add square"></i>
+      Add
+    </button>
+    &nbsp;&nbsp;
     <div class="field">
       <div class="ui radio checkbox">
         <input type="radio" name="state" id="state_active" value="state_active" {{ 'checked="checked"' if (data.state is not defined or data.state == "state_active")  }}>
@@ -51,6 +57,10 @@ Campaign Stages {{ show_hint('', 'Help page') }}
     </div>
   </div>
 
+=======
+  {% set has_active=True %}
+  {%include "view_picker.html" %}
+>>>>>>> 5a98b6f522b6de4e772ad2e99ce9729f0b642896
 
   {% if data.curr_experiment is defined %}
   <div id="double-scroll" class="scrollable">
@@ -176,7 +186,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       <div class="fields">
         <label>Campaign Name</label>
         <select name="ae_campaign_name" id="ae_campaign_name" class="ui fluid search dropdown">
-          <option value="">Campaign this stage is part of (select existing or enter new)</option>
+          <option value=""></option>
           {% for row in data.campaigns %}
           <option value={{row.campaign_id}}>{{row.name}}</option>
           {% endfor %}
@@ -189,7 +199,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
             <input type="text" id="ae_stage_name" name="ae_stage_name" placeholder="Campaign Stage Name">
         </div>
         <div class="field">
-            <label>VO Role {{ show_hint('#VO-Role', 'Role name') }}</label>
+            <label>Jobsub VO Role {{ show_hint('#VO-Role', 'Role name') }}</label>
             <input type="text" id="ae_vo_role" name="ae_vo_role">
         </div>
         <div class="field">
@@ -427,6 +437,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 $('#campaign_add_edit_form')
   .form({
     fields: {
+      ae_campaign_name :          'empty',
       ae_stage_name :             'empty',
       ae_vo_role :                'empty',
       ae_active :                 'empty',
@@ -443,13 +454,6 @@ $('#campaign_add_edit_form')
 //    dropdown: {
 //      ae_active_hello :           'dropdown',
 //    }
-
-
-/*
-$("#c_experiment").change(function() {
-    $("#campaign_form").submit();
-});
-*/
 
 $("#ae_launch_id").change(function() {
   var formdata = {'ae_launch_id': $("#ae_launch_id").val()};
@@ -775,7 +779,7 @@ $(document).ready(function(){
 
 $('#ae_campaign_name')
   .dropdown({
-    allowAdditions: true,
+    allowAdditions: false,
     showOnFocus: false
 })
 ;

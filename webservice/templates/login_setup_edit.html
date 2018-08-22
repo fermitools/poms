@@ -35,6 +35,10 @@ Login/Setup {{ show_hint('', 'Help page') }}
 <form id="login_setup_form" class="ui form" action="login_setup_edit" method="POST">
 
   {% if data.curr_experiment is defined %}
+
+  {% set data = data|default({}) %}
+  {%include "view_picker.html" %}
+
   <div id="double-scroll" class="ui scrollable">
 
   <table class="ui sortable single line celled table" style="margin-top: 3em;">

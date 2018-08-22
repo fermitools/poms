@@ -22,23 +22,7 @@ Selected Campaign Stages{%include 'help_button.html'%}
             </th>
             <th data-sorter="false" data-filter="false">Total</th>
             <th colspan=3 align="center" data-sorter="false" data-filter="false">Active Jobs </th>
-            <th colspan=4 align="center" data-sorter="false" data-filter="false">Jobs Completed in {{time_range_string}}</th>
-            <th colspan=1 align="center" data-sorter="false" data-filter="false"></th>
             <th colspan=2 align="center" data-sorter="false" data-filter="false">Stats</th>
-        </tr>
-        <tr>
-            <th>Name </th>
-            <th>All</th>
-            <th>Idle<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-            <th>Running<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-            <th>Held<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-            <th>Total<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-            <th>Not&nbsp;Located<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-            <th>Located<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-            <th>Removed<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-            <th>Failed<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-            <th>%Efficiency<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
-            <th>Pending<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#Job"><i style="float: none" class="grey help circle link icon"></i></a> </th>
         </tr>
     </thead>
     <tbody>
@@ -46,30 +30,18 @@ Selected Campaign Stages{%include 'help_button.html'%}
      {% set outer_loop = loop %}
             <tr>
             <td> <a href="{{pomspath}}/campaign_info?campaign_stage_id={{cs.campaign_stage_id}}">{{cs.name}}</a></td>
-            {% for k in column_heads  %}
 
-              {% if k == "efficiency" %}
-                <td>
-                  <a href="{{pomspath}}/jobs_eff_histo?campaign_stage_id={{cs.campaign_stage_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{cs.campaign_stage_id}}_{{k}}">
-                      ...
-                  </a>
-                </td>
-              {% elif k == "pending" %}
-                <td>
-                  <a href="{{pomspath}}/actual_pending_files?campaign_stage_id={{cs.campaign_stage_id}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{cs.campaign_stage_id}}_{{k}}">
-                     ...
-                  </a>
-                </td>
-              {% elif k %}
-                <td>
-                  <a href="{{pomspath}}/job_table?campaign_stage_id={{cs.campaign_stage_id}}&job_status={{k}}&tmin={{tmins}}&tmax={{tmaxs}}&tdays={{tdays}}" id="data_{{cs.campaign_stage_id}}_{{k|replace(' ','_')}}">
-                     ...
-                  </a>
-                 </td>
-               {%endif%}
-            {% endfor %}
+            <td>
+
+<iframe scrolling="no" style="width: 38%; min-width: 25em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821895839&to=1531413895839&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=2" frameborder="0"></iframe>
+            </td>
+            <td>
+<iframe scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;"  src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821927234&to=1531413927234&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=18"frameborder="0"></iframe>
+            </td>
+            <td>
+<iframe  scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821946299&to=1531413946300&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=12" frameborder="0"></iframe>
+            </td>
          </tr>
-
      {% endfor %}
     </tbody>
     </table>

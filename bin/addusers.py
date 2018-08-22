@@ -43,7 +43,7 @@ def add_to_listserv(list_owner, new_users):
         return
 
     listval = 'poms_announce'
-    smtp_server = 'smpt.fnal.gov'
+    smtp_server = 'smtp.fnal.gov'
     fromAddr = '%s' % list_owner
     toAddr = 'listserv@listserv.fnal.gov'
 
@@ -55,11 +55,12 @@ def add_to_listserv(list_owner, new_users):
         msg += "add %s %s %s\r\n" %(listval, email, user['commonname'])
     message = "From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s\r\n" % (fromAddr, toAddr, subject, msg)
 
+    logging.debug("add_to_listserv - %s new users, updating %s", len(new_users), listval)
+    logging.debug(message)
+    logging.debug(msg)
     server = smtplib.SMTP(smtp_server)
     server.sendmail(fromAddr, [toAddr], message)
     server.quit()
-    logging.debug("add_to_listserv - %s new users, %s updated", len(new_users), listval)
-    logging.debug(msg)
 
 def get_experiments(cursor, experiment):
     exp_list = []
@@ -163,6 +164,8 @@ def add_users(cursor, exp, new_users):
             names = last_name.lstrip().split(" ", 1)
             if len(names) == 2:
                 (first_name, last_name) = last_name.lstrip().split(" ", 1)
+                first_name = first_name.replace("'","''")
+                last_name = last_name.replace("'","''")
             sql = """
                 insert into experimenters (last_name,first_name,username,session_experiment)
                     values ('%s','%s','%s','%s') returning experimenter_id
