@@ -1091,7 +1091,7 @@ class CampaignsPOMS:
         tl = q.all()
 
         if not tl:
-            return tl, "", msg
+            return tl, "", msg, {}
         last_activity_l = dbhandle.query(func.max(Submission.updated)).join(CampaignStage,Submission.campaign_stage_id == CampaignStage.campaign_stage_id).join(Campaign,CampaignStage.campaign_id == Campaign.campaign_id).filter(Campaign.experiment == experimenter.session_experiment).first()
         logit.log("got last_activity_l %s" % repr(last_activity_l))
         last_activity = ""
