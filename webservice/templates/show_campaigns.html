@@ -21,9 +21,11 @@ Campaigns {%include 'help_button.html'%}
     }
 </style>
 
+<form method="GET" action="show_campaigns">
 {% set has_active=True %}
 {% set data = data|default({}) %}
 {%include "view_picker.html" %}
+</form>
 
 <div class="tiny ui teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
 <div>

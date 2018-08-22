@@ -165,12 +165,21 @@ class CampaignsPOMS:
 
         # Find templates
         if exp:  # cuz the default is find
-            data['view_active'] = kwargs.get('view_active','view_active')
-            data['view_inactive'] = kwargs.get('view_inactive',None)
-            data['view_mine'] = kwargs.get('view_mine',experimenter.experimenter_id)
-            data['view_others'] = kwargs.get('view_others',experimenter.experimenter_id)
-            data['view_analysis'] = kwargs.get('view_analysis','view_analysis' if se_role in ('analysis','coordinator') else None)
-            data['view_production'] = kwargs.get('view_production', 'view_production' if se_role in ('production','coordinator') else None)
+            if kwargs.get('update_view',None) == None:
+                # view flags not specified, use defaults
+                data['view_active'] = 'view_active'
+                data['view_inactive'] = None
+                data['view_mine'] = experimenter.experimenter_id
+                data['view_others'] = experimenter.experimenter_id
+                data['view_analysis'] = 'view_analysis' if se_role in ('analysis','coordinator') else None
+                data['view_production'] =  'view_production' if se_role in ('production','coordinator') else None
+            else:
+                data['view_active'] = kwargs.get('view_active', None)
+                data['view_inactive'] = kwargs.get('view_inactive', None)
+                data['view_mine'] = kwargs.get('view_mine', None)
+                data['view_others'] = kwargs.get('view_others', None)
+                data['view_analysis'] = kwargs.get('view_analysis', None)
+                data['view_production'] = kwargs.get('view_production', None)
             data['curr_experiment'] = exp
             data['authorized'] = []
             se_role = seshandle('experimenter').session_role
@@ -235,8 +244,10 @@ class CampaignsPOMS:
                                   .filter(~Experiment.experiment.in_(["root", "public"]))
                                   .order_by(Experiment.experiment))
         action = kwargs.pop('action', None)
+        experimenter  = seshandle('experimenter')
         exp = seshandle('experimenter').session_experiment
         r = seshandle('experimenter').session_role
+        data['curr_experiment'] = exp
         # added for poms_client
         pcl_call = int(kwargs.pop('pcl_call', 0))  # pcl_call == 1 means the method was access through the poms_client.
         pc_username = kwargs.pop('pc_username', None)  # email is the info we know about the user in POMS DB.
@@ -375,12 +386,22 @@ class CampaignsPOMS:
         # Find definitions
         if exp:  # cuz the default is find
 
-            data['view_active'] = kwargs.get('view_active','view_active')
-            data['view_inactive'] = kwargs.get('view_inactive',None)
-            data['view_mine'] = kwargs.get('view_mine',experimenter.experimenter_id)
-            data['view_others'] = kwargs.get('view_others',experimenter.experimenter_id)
-            data['view_analysis'] = kwargs.get('view_analysis','view_analysis' if se_role in ('analysis','coordinator') else None)
-            data['view_production'] = kwargs.get('view_production', 'view_production' if se_role in ('production','coordinator') else None)
+            if kwargs.get('update_view',None) == None:
+                # view flags not specified, use defaults
+                data['view_active'] = 'view_active'
+                data['view_inactive'] = None
+                data['view_mine'] = experimenter.experimenter_id
+                data['view_others'] = experimenter.experimenter_id
+                data['view_analysis'] = 'view_analysis' if r in ('analysis','coordinator') else None
+                data['view_production'] =  'view_production' if r in ('production','coordinator') else None
+            else:
+                data['view_active'] = kwargs.get('view_active', None)
+                data['view_inactive'] = kwargs.get('view_inactive', None)
+                data['view_mine'] = kwargs.get('view_mine', None)
+                data['view_others'] = kwargs.get('view_others', None)
+                data['view_analysis'] = kwargs.get('view_analysis', None)
+                data['view_production'] = kwargs.get('view_production', None)
+
             data['authorized'] = []
             # for testing ui...
             # data['authorized'] = True
@@ -486,6 +507,7 @@ class CampaignsPOMS:
             sesshandle is the cherrypy.session instead of cherrypy.session.get method
         """
         data = {}
+        experimenter = sesshandle.get('experimenter')
         role = sesshandle.get('experimenter').session_role or 'production'
         user_id = sesshandle.get('experimenter').experimenter_id
         message = None
@@ -636,12 +658,21 @@ class CampaignsPOMS:
 
         # Find campaign_stages
         if exp:  # cuz the default is find
-            data['view_active'] = kwargs.get('view_active','view_active')
-            data['view_inactive'] = kwargs.get('view_inactive',None)
-            data['view_mine'] = kwargs.get('view_mine',experimenter.experimenter_id)
-            data['view_others'] = kwargs.get('view_others',experimenter.experimenter_id)
-            data['view_analysis'] = kwargs.get('view_analysis','view_analysis' if se_role in ('analysis','coordinator') else None)
-            data['view_production'] = kwargs.get('view_production', 'view_production' if se_role in ('production','coordinator') else None)
+            if kwargs.get('update_view',None) == None:
+                # view flags not specified, use defaults
+                data['view_active'] = 'view_active'
+                data['view_inactive'] = None
+                data['view_mine'] = experimenter.experimenter_id
+                data['view_others'] = experimenter.experimenter_id
+                data['view_analysis'] = 'view_analysis' if role in ('analysis','coordinator') else None
+                data['view_production'] =  'view_production' if role in ('production','coordinator') else None
+            else:
+                data['view_active'] = kwargs.get('view_active', None)
+                data['view_inactive'] = kwargs.get('view_inactive', None)
+                data['view_mine'] = kwargs.get('view_mine', None)
+                data['view_others'] = kwargs.get('view_others', None)
+                data['view_analysis'] = kwargs.get('view_analysis', None)
+                data['view_production'] = kwargs.get('view_production', None)
             # for testing ui...
             # data['authorized'] = True
             state = kwargs.pop('state', None)
@@ -654,12 +685,6 @@ class CampaignsPOMS:
             data['state'] = state
             data['curr_experiment'] = exp
             data['authorized'] = []
-            data['view_active'] = kwargs.get('view_active','view_active')
-            data['view_inactive'] = kwargs.get('view_inactive',None)
-            data['view_mine'] = kwargs.get('view_mine',experimenter.experimenter_id)
-            data['view_others'] = kwargs.get('view_others',experimenter.experimenter_id)
-            data['view_analysis'] = kwargs.get('view_analysis','view_analysis' if se_role in ('analysis','coordinator') else None)
-            data['view_production'] = kwargs.get('view_production', 'view_production' if se_role in ('production','coordinator') else None)
             cquery = (dbhandle.query(CampaignStage, Campaign)
                       .outerjoin(Campaign)
                       .filter(CampaignStage.experiment == exp)
@@ -997,12 +1022,21 @@ class CampaignsPOMS:
               .filter(Campaign.experiment == experimenter.session_experiment)
               .order_by(Campaign.name))
 
-        data['view_active'] = kwargs.get('view_active','view_active')
-        data['view_inactive'] = kwargs.get('view_inactive',None)
-        data['view_mine'] = kwargs.get('view_mine',experimenter.experimenter_id)
-        data['view_others'] = kwargs.get('view_others',experimenter.experimenter_id)
-        data['view_analysis'] = kwargs.get('view_analysis','view_analysis' if se_role in ('analysis','coordinator') else None)
-        data['view_production'] = kwargs.get('view_production', 'view_production' if se_role in ('production','coordinator') else None)
+        if kwargs.get('update_view',None) == None:
+            # view flags not specified, use defaults
+            data['view_active'] = 'view_active'
+            data['view_inactive'] = None
+            data['view_mine'] = experimenter.experimenter_id
+            data['view_others'] = experimenter.experimenter_id
+            data['view_analysis'] = 'view_analysis' if se_role in ('analysis','coordinator') else None
+            data['view_production'] =  'view_production' if se_role in ('production','coordinator') else None
+        else:
+            data['view_active'] = kwargs.get('view_active', None)
+            data['view_inactive'] = kwargs.get('view_inactive', None)
+            data['view_mine'] = kwargs.get('view_mine', None)
+            data['view_others'] = kwargs.get('view_others', None)
+            data['view_analysis'] = kwargs.get('view_analysis', None)
+            data['view_production'] = kwargs.get('view_production', None)
 
         if data['view_analysis'] and data['view_production']:
             pass
@@ -1049,8 +1083,9 @@ class CampaignsPOMS:
         """
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaign_stages?')
 
-        experiment = sesshandler('experimenter').session_experiment
-        se_role = sesshandler('experimenter').session_role
+        experimenter = sesshandler('experimenter')
+        experiment = experimenter.session_experiment
+        se_role = experimenter.session_role
 
         cq = (dbhandle.query(CampaignStage)
               .options(joinedload('experiment_obj'))
@@ -1064,12 +1099,21 @@ class CampaignsPOMS:
             cq = cq.filter(CampaignStage.experiment == experiment)
 
         data = {}
-        data['view_active'] = kwargs.get('view_active','view_active')
-        data['view_inactive'] = kwargs.get('view_inactive',None)
-        data['view_mine'] = kwargs.get('view_mine',experimenter.experimenter_id)
-        data['view_others'] = kwargs.get('view_others',experimenter.experimenter_id)
-        data['view_analysis'] = kwargs.get('view_analysis','view_analysis' if se_role in ('analysis','coordinator') else None)
-        data['view_production'] = kwargs.get('view_production', 'view_production' if se_role in ('production','coordinator') else None)
+        if kwargs.get('update_view',None) == None:
+            # view flags not specified, use defaults
+            data['view_active'] = 'view_active'
+            data['view_inactive'] = None
+            data['view_mine'] = experimenter.experimenter_id
+            data['view_others'] = experimenter.experimenter_id
+            data['view_analysis'] = 'view_analysis' if se_role in ('analysis','coordinator') else None
+            data['view_production'] =  'view_production' if se_role in ('production','coordinator') else None
+        else:
+            data['view_active'] = kwargs.get('view_active', None)
+            data['view_inactive'] = kwargs.get('view_inactive', None)
+            data['view_mine'] = kwargs.get('view_mine', None)
+            data['view_others'] = kwargs.get('view_others', None)
+            data['view_analysis'] = kwargs.get('view_analysis', None)
+            data['view_production'] = kwargs.get('view_production', None)
 
         if data['view_analysis'] and data['view_production']:
             pass
