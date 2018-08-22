@@ -227,6 +227,32 @@ class CampaignsPOMS:
         return data
 
 
+    def campaign_add_name(self, dbhandle, seshandle, *args, **kwargs):
+        """
+            Add a new campaign name.
+        """
+        data = {}
+        name = kwargs.get('campaign_name')
+        data['message'] = "ok"
+        try:
+            camp = Campaign(name=name,
+                            experiment=seshandle('experimenter').session_experiment,
+                            creator=seshandle('experimenter').experimenter_id,
+                            creator_role=seshandle('experimenter').session_role)
+            dbhandle.add(camp)
+        except IntegrityError as e:
+            data['message'] = "Integrity error - you are most likely using a name which already exists in database."
+            logit.log(' '.join(e.args))
+            dbhandle.rollback()
+        except SQLAlchemyError as e:
+            data['message'] = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % ' '.join(e.args)
+            logit.log(' '.join(e.args))
+            dbhandle.rollback()
+        else:
+            dbhandle.commit()
+        return json.dumps(data)
+
+
     def campaign_list(self, dbhandle):
         """
             Return list of all campaign_stage_id s and names. --

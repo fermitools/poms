@@ -26,8 +26,15 @@ Campaigns {%include 'help_button.html'%}
 {% set data = data|default({}) %}
 {%include "view_picker.html" %}
 </form>
+<div class="tiny ui teal button" onclick="pop_tag_untag_modal();">
+    <i class="icon tags"></i>
+    Tag/untag Campaigns
+</div>
+<button class="tiny ui labled teal icon button" onclick="pop_add_campaign_modal();" {{ 'disabled' if (session_role=='coordinator') }}>
+    <i class="icon add square"></i>
+    Add
+</button>
 
-<div class="tiny ui teal button" onclick="pop_tag_untag_modal();">Tag/untag Campaigns</div>
 <div>
     <table id="campaign_table" class="ui celled _table unstackable tablesorter tablesorter-ice">
         <thead>
@@ -43,6 +50,7 @@ Campaigns {%include 'help_button.html'%}
                 <th data-sorter="false" data-filter="false">Clone<br> Workflow</th>
                 <th data-sorter="false" data-filter="false">Workflow<br>.ini</th>
                 <th>Tags</th>
+                <th data-sorter="false" data-filter="false">Rename<br>Campaign</th>
                 <th data-sorter="false" data-filter="false">Delete<br>Campaign</th>
             </tr>
         </thead>
@@ -91,6 +99,11 @@ Campaigns {%include 'help_button.html'%}
                     {% for tag in s.tags %}
                         {{tag.tag_name}}
                     {% endfor %}
+                </td>
+                <td>
+                    <button type="button">
+                        <i class="exchange blue icon" onclick="rename_campaign('{{s.name}}', '{{s.campaign_id}}');"></i>
+                    </button>
                 </td>
                 <td>
                     <button type="button">
@@ -144,7 +157,7 @@ Campaigns {%include 'help_button.html'%}
                     <p>
                         This will delete all stages of the campaign shown below.
                         It will not delete job types or login setups.
-                        Deletions will <b>not</b> occurr if the campaign has been submitted.
+                        Deletions will <b>not</b> occur if the campaign has been submitted.
                     </p>
         </div>
         <form id="delete_campaign_form" class="ui form" method="GET" action="{{pomspath}}/show_campaigns">
@@ -201,6 +214,22 @@ Campaigns {%include 'help_button.html'%}
         </div>
     </div> <!-- Ends Modal -->
 
+    <div class="ui modal small" id="add_campaign_modal" style="padding: 0px 20px;">
+        <i class="close icon"></i>
+        <div class="header">
+            <span style="font-size: 1.3em;">Create a new campaign.</span>
+        </div>
+        <form class="ui form" action="" method="GET">
+            <div class="field">
+                <input type="text" id="add_campaign_name" name="add_campaign_name" placeholder="Enter new campaign name" class="prompt">
+            </div>
+            <div class="ui hidden divider"></div>
+        </form>
+        <div class="actions">
+            <div class="ui button deny red">Cancel</div>
+            <div class="ui button approve teal">Save</div>
+        </div>
+    </div> <!-- Ends Modal -->
 
 <script>
 $(document).ready(function() {
@@ -288,6 +317,33 @@ function do_checkall() {
         }
     }
 }
+
+function pop_add_campaign_modal() {
+  $('#add_campaign_name').val("");
+  $('#add_campaign_modal')
+    .modal({
+      closable  : false,
+      onApprove : function() {
+        var formdata = {'campaign_name': $("#add_campaign_name").val()};
+        $.ajax({
+            url: "{{pomspath}}/campaign_add_name",
+            type: 'GET',
+            data: formdata,
+            success: function(data){
+              data = JSON.parse(data);
+              if (data.message != "ok") {
+                mod_form= $("#display_message_modal").modal('show');
+                $("#poms_message_data").text(data.message);
+              } else {
+                location.reload(true);
+              }
+            }
+          });
+        }
+      })
+    .modal('show');
+  }
+
 
 function pop_tag_untag_modal() {
     var csv = [];
