@@ -245,6 +245,12 @@ class PomsService(object):
         raise cherrypy.HTTPRedirect(
             "%s/campaign_stage_edit?campaign_stage_id=%d&extra_edit_flag=launch_test_job" % (self.path, cid))
 
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def campaign_add_name(self, *args, **kwargs):
+        data = self.campaignsPOMS.campaign_add_name(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+        return data
 
     @cherrypy.expose
     @logit.logstartstop
