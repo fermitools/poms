@@ -1412,17 +1412,18 @@ class CampaignsPOMS:
         form = kwargs.get('form', None)
 
         everything = json.loads(form)
+
         stages = everything['stages']
-        print("############## {}".format([s.get('id') for s in stages]))
+        print("############## stages: {}".format([s.get('id') for s in stages]))
 
         role = sesshandle.get('experimenter').session_role or 'production'
         user_id = sesshandle.get('experimenter').experimenter_id
         exp = sesshandle.get('experimenter').session_experiment
 
         campaign = tuple(filter(lambda s: s.get('id').startswith('campaign '), stages))[0]
-        cid = campaign.get('id').split(' ')[1]
+        c_old_name = campaign.get('id').split(' ')[1]
 
-        old_stages = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_obj.has(Campaign.name == cid)).all()
+        old_stages = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_obj.has(Campaign.name == c_old_name)).all()
         old_stage_names = set([s.name for s in old_stages])
 
         new_stages = tuple(filter(lambda s: not s.get('id').startswith('campaign '), stages))
@@ -1432,31 +1433,27 @@ class CampaignsPOMS:
         if deleted_stages:
             dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(deleted_stages)).delete(synchronize_session=False)
 
-        label = campaign.get('label')
+        c_new_name = campaign.get('label')
         clean = campaign.get('clean')
         defaults = campaign.get('form')
         position = campaign.get('position')
-        print("i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(cid, label, clean, defaults, position))
-        #VP~ obj = dbhandle.query(Campaign).filter(Campaign.name == cid).first()
-        campaign_obj = dbhandle.query(Campaign).filter(Campaign.name == cid).scalar()
-        print("############## result: '{}'".format(campaign_obj))
-        #VP~ obj.update.({Campaign.defaults: defaults}, synchronize_session=False)
-        #VP~ obj.update({Campaign.defaults: defaults})
+        print("############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(c_old_name, c_new_name, clean, defaults, position))
+        campaign_obj = dbhandle.query(Campaign).filter(Campaign.name == c_old_name).scalar()
         campaign_obj.defaults = defaults
-        if label != cid:
-            campaign_obj.name = label
+        if c_new_name != c_old_name:
+            campaign_obj.name = c_new_name
         dbhandle.commit()
 
         for stage in new_stages:
-            sid = stage.get('id')
-            label = stage.get('label')
+            old_name = stage.get('id')
+            new_name = stage.get('label')
             position = stage.get('position')    # Ignore for now
             clean = stage.get('clean')
             form = stage.get('form')
-            form = {k:(form[k] or defaults[k]) for k in form}
-            print("############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(sid, label, clean, form, position))
+            form = {k: (form[k] or defaults[k]) for k in form}   # Use the field if provided otherwise use defaults
+            print("############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(old_name, new_name, clean, form, position))
 
-            active = (kwargs.pop('active') in ('True', 'true', '1', 'Active'))
+            active = (kwargs.pop('sate') in ('True', 'true', '1', 'Active'))
             completion_pct = form.pop('completion_pct')
             completion_type = form.pop('completion_type')
             split_type = form.pop('split_type', None)
@@ -1474,20 +1471,19 @@ class CampaignsPOMS:
                 test_param_overrides = json.loads(test_param_overrides)
             vo_role = form.pop('vo_role')
 
-            stage_type = form.pop('stage_type', 'test')   # FIXME: Column name is confusing!
+            stage_type = form.pop('stage_type', 'test')
 
             login_setup_id = (dbhandle.query(LoginSetup.login_setup_id)
                               .filter(LoginSetup.experiment == exp)
                               .filter(LoginSetup.name == login_setup).scalar())
-            job_type_id = (dbhandle.query(JobType)
+            job_type_id = (dbhandle.query(JobType.job_type_id)
                            .filter(JobType.experiment == exp)
-                           .filter(JobType.name == job_type).scalar().job_type_id)
+                           .filter(JobType.name == job_type).scalar())
 
-            if sid in old_stage_names:
-                obj = dbhandle.query(CampaignStage).filter(CampaignStage.name == sid).scalar()
-                obj.name = label
-                if not clean:
-                    # Update all fields from the form
+            if old_name in old_stage_names:
+                obj = dbhandle.query(CampaignStage).filter(CampaignStage.name == old_name).scalar()  # Get stage by the old name
+                obj.name = new_name     # Update the name using provided new_name
+                if not clean:           # Update all fields from the form
                     obj.completion_pct = completion_pct
                     obj.completion_type = completion_type
                     obj.cs_split_type = split_type
@@ -1500,8 +1496,8 @@ class CampaignsPOMS:
                     obj.vo_role = vo_role
                     obj.campaign_type = stage_type
                     obj.active = active
-            else:
-                cs = CampaignStage(name=label, experiment=exp,
+            else:       # If this is a new stage then create and store it
+                cs = CampaignStage(name=new_name, experiment=exp,
                                    campaign_id=campaign_obj.campaign_id,
                                    active=active,
                                    #
@@ -1520,4 +1516,7 @@ class CampaignsPOMS:
                                    creator_role=role, campaign_type=stage_type)
                 dbhandle.add(cs)
             dbhandle.commit()
-        return stages
+        dependencies = everything['dependencies']
+        for dependency in dependencies:
+            pass
+        return dependencies
