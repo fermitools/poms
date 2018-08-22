@@ -35,6 +35,7 @@ class Campaign(Base):
     campaign_id = Column(Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)"))
     experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
     name = Column(Text, nullable=False)
+    defaults = Column(JSON)
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
 
