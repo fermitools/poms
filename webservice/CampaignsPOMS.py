@@ -788,9 +788,9 @@ class CampaignsPOMS:
             res.append("experiment=%s" % campaign_stages[0].experiment)
             res.append("poms_role=%s" % campaign_stages[0].creator_role)
             if name is None:
-                res.append("stage_id: %s" % stage_id)
+                res.append("stage_id=%s" % stage_id)
             else:
-                res.append("name: %s" % name)
+                res.append("name=%s" % name)
 
 
             res.append("campaign_stage_list=%s" % " ".join(map(cnames.get, cidl)))
@@ -798,16 +798,18 @@ class CampaignsPOMS:
 
         for cs in campaign_stages:
             res.append("[campaign_stage %s]" % cs.name)
-            res.append("dataset=%s" % cs.dataset)
-            res.append("software_version=%s" % cs.software_version)
+            # res.append("name=%s" % cs.name)
             res.append("vo_role=%s" % cs.vo_role)
+            res.append("state=%s" % "Active" if cs.active else "Inactive")
+            res.append("software_version=%s" % cs.software_version)
+            res.append("dataset=%s" % cs.dataset)
             res.append("cs_split_type=%s" % cs.cs_split_type)
-            res.append("job_type=%s" % cs.job_type_obj.name)
-            res.append("param_overrides=%s" % json.dumps(cs.param_overrides or []))
-            res.append("test_param_overrides=%s" % json.dumps(cs.test_param_overrides or []))
             res.append("completion_type=%s" % cs.completion_type)
             res.append("completion_pct=%s" % cs.completion_pct)
+            res.append("param_overrides=%s" % json.dumps(cs.param_overrides or []))
+            res.append("test_param_overrides=%s" % json.dumps(cs.test_param_overrides or []))
             res.append("login_setup=%s" % cs.login_setup_obj.name)
+            res.append("job_type=%s" % cs.job_type_obj.name)
             jts.add(cs.job_type_obj)
             lts.add(cs.login_setup_obj)
             res.append("")
@@ -1397,7 +1399,125 @@ class CampaignsPOMS:
         return []
 
 
-    def echo(self, *args, **kwargs):
+    def echo(self, dbhandle, sesshandle, *args, **kwargs):
         form = kwargs.get('form', None)
-        print("******************* Get the form: '{}'".format(form))
-        return json.loads(form)
+        #VP~ print("******************* Get the form: '{}'".format(form))
+        everything = json.loads(form)
+        stages = everything['stages']
+        print("############## {}".format([s.get('id') for s in stages]))
+        return stages
+
+
+    def save_campaign(self, dbhandle, sesshandle, *args, **kwargs):
+        form = kwargs.get('form', None)
+
+        everything = json.loads(form)
+        stages = everything['stages']
+        print("############## {}".format([s.get('id') for s in stages]))
+
+        role = sesshandle.get('experimenter').session_role or 'production'
+        user_id = sesshandle.get('experimenter').experimenter_id
+        exp = sesshandle.get('experimenter').session_experiment
+
+        campaign = tuple(filter(lambda s: s.get('id').startswith('campaign '), stages))[0]
+        cid = campaign.get('id').split(' ')[1]
+
+        old_stages = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_obj.has(Campaign.name == cid)).all()
+        old_stage_names = set([s.name for s in old_stages])
+
+        new_stages = tuple(filter(lambda s: not s.get('id').startswith('campaign '), stages))
+        new_stage_names = set([s.get('id') for s in new_stages])
+
+        deleted_stages = old_stage_names - new_stage_names
+        if deleted_stages:
+            dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(deleted_stages)).delete(synchronize_session=False)
+
+        label = campaign.get('label')
+        clean = campaign.get('clean')
+        defaults = campaign.get('form')
+        position = campaign.get('position')
+        print("i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(cid, label, clean, defaults, position))
+        #VP~ obj = dbhandle.query(Campaign).filter(Campaign.name == cid).first()
+        campaign_obj = dbhandle.query(Campaign).filter(Campaign.name == cid).scalar()
+        print("############## result: '{}'".format(campaign_obj))
+        #VP~ obj.update.({Campaign.defaults: defaults}, synchronize_session=False)
+        #VP~ obj.update({Campaign.defaults: defaults})
+        campaign_obj.defaults = defaults
+        if label != cid:
+            campaign_obj.name = label
+        dbhandle.commit()
+
+        for stage in new_stages:
+            sid = stage.get('id')
+            label = stage.get('label')
+            position = stage.get('position')    # Ignore for now
+            clean = stage.get('clean')
+            form = stage.get('form')
+            form = {k:(form[k] or defaults[k]) for k in form}
+            print("############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(sid, label, clean, form, position))
+
+            active = (kwargs.pop('active') in ('True', 'true', '1', 'Active'))
+            completion_pct = form.pop('completion_pct')
+            completion_type = form.pop('completion_type')
+            split_type = form.pop('split_type', None)
+            dataset = form.pop('dataset')
+            job_type = form.pop('job_type')
+            login_setup = form.pop('login_setup')
+            print("################ login_setup: '{}'".format(login_setup))
+            param_overrides = form.pop('param_overrides', "[]")
+            print("################ param_overrides: '{}'".format(param_overrides))
+            if param_overrides:
+                param_overrides = json.loads(param_overrides)
+            software_version = form.pop('software_version')
+            test_param_overrides = form.pop('test_param_overrides', "[]")
+            if test_param_overrides:
+                test_param_overrides = json.loads(test_param_overrides)
+            vo_role = form.pop('vo_role')
+
+            stage_type = form.pop('stage_type', 'test')   # FIXME: Column name is confusing!
+
+            login_setup_id = (dbhandle.query(LoginSetup.login_setup_id)
+                              .filter(LoginSetup.experiment == exp)
+                              .filter(LoginSetup.name == login_setup).scalar())
+            job_type_id = (dbhandle.query(JobType)
+                           .filter(JobType.experiment == exp)
+                           .filter(JobType.name == job_type).scalar().job_type_id)
+
+            if sid in old_stage_names:
+                obj = dbhandle.query(CampaignStage).filter(CampaignStage.name == sid).scalar()
+                obj.name = label
+                if not clean:
+                    # Update all fields from the form
+                    obj.completion_pct = completion_pct
+                    obj.completion_type = completion_type
+                    obj.cs_split_type = split_type
+                    obj.dataset = dataset
+                    obj.job_type_id = job_type_id
+                    obj.login_setup_id = login_setup_id
+                    obj.param_overrides = param_overrides
+                    obj.software_version = software_version
+                    obj.test_param_overrides = test_param_overrides
+                    obj.vo_role = vo_role
+                    obj.campaign_type = stage_type
+                    obj.active = active
+            else:
+                cs = CampaignStage(name=label, experiment=exp,
+                                   campaign_id=campaign_obj.campaign_id,
+                                   active=active,
+                                   #
+                                   completion_pct=completion_pct,
+                                   completion_type=completion_type,
+                                   cs_split_type=split_type,
+                                   dataset=dataset,
+                                   job_type_id=job_type_id,
+                                   login_setup_id=login_setup_id,
+                                   param_overrides=param_overrides,
+                                   software_version=software_version,
+                                   test_param_overrides=test_param_overrides,
+                                   vo_role=vo_role,
+                                   #
+                                   creator=user_id, created=datetime.now(utc),
+                                   creator_role=role, campaign_type=stage_type)
+                dbhandle.add(cs)
+            dbhandle.commit()
+        return stages
