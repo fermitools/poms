@@ -253,6 +253,13 @@ class PomsService(object):
         return data
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def campaign_rename_name(self, *args, **kwargs):
+        data = self.campaignsPOMS.campaign_rename_name(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+        return data
+
+    @cherrypy.expose
     @logit.logstartstop
     def campaign_stage_edit(self, *args, **kwargs):
         """

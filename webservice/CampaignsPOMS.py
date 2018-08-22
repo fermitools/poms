@@ -252,6 +252,29 @@ class CampaignsPOMS:
             dbhandle.commit()
         return json.dumps(data)
 
+    def campaign_rename_name(self, dbhandle, seshandle, *args, **kwargs):
+        data = {}
+        data['message'] = "ok"
+        try:
+            campaign_id = kwargs.get('campaign_id')
+            new_name = kwargs.get('new_campaign_name')
+            new_name = new_name.strip()
+            if new_name == "":
+                data['message'] = "Please supply a new name."
+            else:
+                columns = {
+                    "name": new_name,
+                }
+                dbhandle.query(Campaign).filter(Campaign.campaign_id==campaign_id).update(columns)
+                dbhandle.commit()
+        except SQLAlchemyError as e:
+            data['message'] = "SQLAlchemyError.  Please report this to the administrator.   Message: %s" % ' '.join(e.args)
+            logit.log(' '.join(e.args))
+            dbhandle.rollback()
+        else:
+            dbhandle.commit()
+        return json.dumps(data)
+
 
     def campaign_list(self, dbhandle):
         """
