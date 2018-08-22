@@ -41,6 +41,11 @@ Campaign Stages{%include 'help_button.html'%}
         display:none;
     }
 </style>
+<form method="GET" action="{{pomspath}}/show_campaign_stages">
+  {% set has_active=True %}
+  {%include "view_picker.html" %}
+</form>
+  <br>
 <div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Stages Active/Inactive</div>
 <div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Stage Submission</div>
 <div class="ui teal button" onclick="show_stats();">Show Stage Statistics</div>

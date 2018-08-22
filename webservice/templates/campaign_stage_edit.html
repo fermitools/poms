@@ -29,6 +29,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
 {%block content%}
 <form id="campaign_form" class="ui form" action="campaign_stage_edit" method="POST">
+<<<<<<< HEAD
 
   <div class="inline fields">
     <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (session_role=='coordinator') }}>
@@ -56,6 +57,10 @@ Campaign Stages {{ show_hint('', 'Help page') }}
     </div>
   </div>
 
+=======
+  {% set has_active=True %}
+  {%include "view_picker.html" %}
+>>>>>>> 5a98b6f522b6de4e772ad2e99ce9729f0b642896
 
   {% if data.curr_experiment is defined %}
   <div id="double-scroll" class="scrollable">

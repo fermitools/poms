@@ -318,9 +318,9 @@ class PomsService(object):
     @logit.logstartstop
     def show_campaigns(self, *args, **kwargs):
         experimenter = cherrypy.session.get('experimenter')
-        tl, last_activity, msg = self.campaignsPOMS.show_campaigns(cherrypy.request.db, experimenter, *args, **kwargs)
+        tl, last_activity, msg, data = self.campaignsPOMS.show_campaigns(cherrypy.request.db, experimenter, *args, **kwargs)
         template = self.jinja_env.get_template('show_campaigns.html')
-        return template.render(tl=tl, last_activity=last_activity, msg=msg, help_page="ShowCampaignTagsHelp")
+        return template.render(tl=tl, last_activity=last_activity, msg=msg, data= data, help_page="ShowCampaignTagsHelp")
 
 
     @cherrypy.expose
@@ -333,7 +333,7 @@ class PomsService(object):
                                               cherrypy.request.samweb_lite,
                                               tmin=tmin, tmax=tmax, tdays=tdays, active=active, campaign_name=campaign_name,
                                               holder=holder, role_held_with=role_held_with,
-                                              campaign_ids=cl, sesshandler=cherrypy.session.get)
+                                              campaign_ids=cl, sesshandler=cherrypy.session.get, **kwargs)
 
         current_experimenter = cherrypy.session.get('experimenter')
         # ~ logit.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
