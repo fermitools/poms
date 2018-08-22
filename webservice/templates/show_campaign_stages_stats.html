@@ -21,8 +21,8 @@ Selected Campaign Stages{%include 'help_button.html'%}
                 <a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#CampaignStage"><i style="float: none" class="grey help circle link icon"></i></a>
             </th>
             <th data-sorter="false" data-filter="false">Total</th>
-            <th colspan=3 align="center" data-sorter="false" data-filter="false">Active Jobs </th>
-            <th colspan=2 align="center" data-sorter="false" data-filter="false">Stats</th>
+            <th align="center" data-sorter="false" data-filter="false">Active Jobs </th>
+            <th align="center" data-sorter="false" data-filter="false">Stats</th>
         </tr>
     </thead>
     <tbody>
@@ -33,13 +33,13 @@ Selected Campaign Stages{%include 'help_button.html'%}
 
             <td>
 
-<iframe scrolling="no" style="width: 38%; min-width: 25em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821895839&to=1531413895839&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=2" frameborder="0"></iframe>
+<iframe scrolling="no" style="width: 100%; min-width: 25em; height: 10em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=2" frameborder="0"></iframe>
             </td>
             <td>
-<iframe scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;"  src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821927234&to=1531413927234&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=18"frameborder="0"></iframe>
+<iframe scrolling="no" style="width: 100%; min-width: 10em; height: 10em; overflow: hidden !important;"  src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=18"frameborder="0"></iframe>
             </td>
             <td>
-<iframe  scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821946299&to=1531413946300&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=12" frameborder="0"></iframe>
+<iframe  scrolling="no" style="width: 100%; min-width: 10em; height: 10em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=12" frameborder="0"></iframe>
             </td>
          </tr>
      {% endfor %}
@@ -58,50 +58,6 @@ Selected Campaign Stages{%include 'help_button.html'%}
 
 </script>
 
-<!-- now some JSON callbacks to get our
-      * job counts for each campaign,
-      * efficiency for all the campaign_stages
-      * pending counts for all the campaign_stages
--->
-
-<script>
-    $(function() {
-
-        var now = new Date()
-        var nows = now.getTime()
-        nows = nows - (nows % 300000)
-        nows = nows.toString()
-
-        {% for campaign in campaign_stages %}
-        $.getJSON("/poms/json_job_counts?tmin={{tmins}}&tmax={{tmaxs}}&campaign_stage_id={{campaign.campaign_stage_id}}&uuid="+nows,function(data){
-            for( var k in data ) {
-               id = "data_{{campaign.campaign_stage_id}}_" + k.replace(" ","_")
-               console.log("trying to update a with id " + id )
-               $("a#"+id).html(data[k])
-            }
-        })
-        {% endfor %}
-        $.getJSON("/poms/json_efficiency_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{ campaign_stages | join(',', attribute='campaign_stage_id') }}&uuid="+nows, function(data) {
-            for (var k in data) {
-               id = "data_"+k+"_efficiency"
-               console.log("trying to update a with id " + id )
-               $("a#"+id).html(data[k])
-            }
-        })
-        $.getJSON("/poms/json_pending_for_campaigns?tmin={{tmins}}&tmax={{tmaxs}}&cl={{ campaign_stages | join(',', attribute='campaign_stage_id') }}&uuid="+nows, function(data) {
-            for (var k in data) {
-               id = "data_"+k+"_pending"
-               console.log("trying to update a with id " + id )
-               if (data[k] == -1) {
-                   $("a#"+id).html('N/A')
-               } else {
-                   $("a#"+id).html(data[k])
-               }
-            }
-        })
-    });
-</script>
-
 <script>
     $('.external')
       .popup({
@@ -116,42 +72,6 @@ Selected Campaign Stages{%include 'help_button.html'%}
     $('.ui.dropdown')
       .dropdown()
     ;
-</script>
-
-
-<script>
-   $(function() {
-       $('#global_datepicker_container').show();
-   });
-
-   $(document).ready(function() {
-    $('#double-scroll').doubleScroll();
-    $('#campaign_stages').tablesorter( {
-        widgets : [ 'filter', 'saveSort' ],
-        widgetOptions : {filter_reset: '.reset', saveSort: true},
-        //dateFormat : "yyyymmdd"
-        });
-});
-
-$('#campaign_stages')
-.bind('filterInit', function() {
-    // check that storage ulility is loaded
-    if ($.tablesorter.storage) {
-        // get saved filters
-        var f = $.tablesorter.storage(this, 'tablesorter-filters') || [];
-        $(this).trigger('search', [f]);
-    }
-})
-.bind('filterEnd', function(){
-    if ($.tablesorter.storage) {
-        // save current filters
-        var f = $(this).find('.tablesorter-filter').map(function() {
-            return $(this).val() || '';
-        }).get();
-        $.tablesorter.storage(this, 'tablesorter-filters', f);
-    }
-});
-
 </script>
 
 {%endblock%}
