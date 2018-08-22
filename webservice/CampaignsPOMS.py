@@ -67,6 +67,8 @@ class CampaignsPOMS:
                                   .order_by(Experiment.experiment))
         action = kwargs.pop('action', None)
         exp = seshandle('experimenter').session_experiment
+        experimenter = seshandle('experimenter')
+        se_role = experimenter.session_role
         pcl_call = int(kwargs.pop('pcl_call', 0))
         pc_username = kwargs.pop('pc_username', None)
         if isinstance(pc_username, str):
@@ -186,7 +188,7 @@ class CampaignsPOMS:
 
             q = (dbhandle.query(LoginSetup, Experiment).join(Experiment)
                                  .filter(LoginSetup.experiment == exp)
-                                 .order_by(LoginSetup.name).all())
+                                 .order_by(LoginSetup.name))
 
             if data['view_analysis'] and data['view_production']:
                 pass

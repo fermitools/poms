@@ -197,9 +197,9 @@ Campaign Stages{%include 'help_button.html'%}
             }
         }
         if (csv_checked.length == 0) {
-            location.href = "./show_campaigns?cl=" + csv.join(',');
+            location.href = "./show_campaign_stages?cl=" + csv.join(',');
         } else {
-            location.href = "./show_campaigns?cl=" + csv_checked.join(',');
+            location.href = "./show_campaign_stages?cl=" + csv_checked.join(',');
         }
     }
   </script>
