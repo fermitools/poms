@@ -309,7 +309,7 @@ gui_editor.exportNetwork = function () {
                           clean: hval === oval ? true : false,
                           form: ff
                 };
-        //VP~ return e[0].startsWith("campaign ") ? {campaign: this.state.campaign, ...response} : response;    // Not yet
+        //VP~ return e[0].startsWith("campaign ") ? {campaign: this.state.campaign, ...response} : response;    // Not yet, 'this' is not available here
         return response;
     };
 
