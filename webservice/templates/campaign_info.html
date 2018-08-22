@@ -26,9 +26,9 @@ Campaign Stage {{CampaignStage.name}}
   <div class="ui segment raised ">
 
     <!-- Campaign_info: {{Campaign_info}} -->
-<iframe scrolling="no" style="width: 38%; min-width: 25em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821895839&to=1531413895839&var-campaign=1&orgId=1&panelId=2" frameborder="0"></iframe>
-<iframe scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;"  src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821927234&to=1531413927234&var-campaign=1&orgId=1&panelId=18"frameborder="0"></iframe>
-<iframe  scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821946299&to=1531413946300&var-campaign=1&orgId=1&panelId=12" frameborder="0"></iframe>
+<iframe scrolling="no" style="width: 38%; min-width: 25em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821895839&to=1531413895839&var-campaign={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=2" frameborder="0"></iframe>
+<iframe scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;"  src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821927234&to=1531413927234&var-campaign={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=18"frameborder="0"></iframe>
+<iframe  scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=1528821946299&to=1531413946300&var-campaign={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=12" frameborder="0"></iframe>
 
     <script>
         $("#campaign th").attr("style", "padding: 0.3em; border-left: 1; text-align: center;");
