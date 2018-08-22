@@ -277,7 +277,8 @@ gui_editor.save = function (id) {
     if (e == null) {
         alert("cannot find: " + id);
     }
-    e.gui_box.save_state();
+    //VP~ e.gui_box.save_state();
+    gui_editor.exportNetwork();
 }
 
 /* pick names workflow clone (below)  */
@@ -289,6 +290,8 @@ gui_editor.new_name = function (before, from, to) {
     }
     return after;
 }
+
+
 gui_editor.exportNetwork = function () {
     // var nodes = gui_editor.network.body.nodeIndices.map(x => ({id: x}));
 
@@ -343,7 +346,9 @@ gui_editor.exportNetwork = function () {
     }
     */
     // console.log(exportValue);
-    return exportValue;
+    //VP~ return exportValue;
+    //VP~ new wf_uploader().make_poms_call('echo', {form: exportValue});     // Send to the server
+    new wf_uploader().make_poms_call('save_campaign', {form: exportValue});     // Send to the server
 }
 
 

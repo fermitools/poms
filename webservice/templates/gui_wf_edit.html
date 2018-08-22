@@ -2,7 +2,7 @@
 
 
 {%block title%}
-<title>POMS Workflow Editor</title>
+<title>POMS Campaign Editor</title>
 <script src="{{pomspath}}/static/js/gui_editor_3.js"></script>
 <script src="{{pomspath}}/static/js/json_field_editor.js"></script>
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/gui_editor_3.css">
@@ -16,11 +16,12 @@
 
 {%block header%}
 <h1 class="ui header">
-    Workflow Editor for Campaign {{campaign}} {%include 'help_button.html'%}
-
+    Campaign Editor for {{campaign}} {%include 'help_button.html'%}
+    <!--
     <div class="sub header">
         Edit whole workflow
     </div>
+    -->
 </h1>
 {%endblock%}
 
