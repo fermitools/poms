@@ -1409,6 +1409,8 @@ class CampaignsPOMS:
 
 
     def save_campaign(self, dbhandle, sesshandle, *args, **kwargs):
+        """
+        """
         form = kwargs.get('form', None)
 
         everything = json.loads(form)
@@ -1519,6 +1521,18 @@ class CampaignsPOMS:
                 dbhandle.add(cs)
             dbhandle.commit()
         dependencies = everything['dependencies']
+        dbhandle.query(CampaignDependency).filter(
+            or_(
+                CampaignDependency.provider.has(CampaignStage.campaign_id == campaign_obj.campaign_id),
+                CampaignDependency.consumer.has(CampaignStage.campaign_id == campaign_obj.campaign_id))
+        ).delete(synchronize_session=False)
+
         for dependency in dependencies:
-            pass
+            form = dependency.get('form')
+            file_pattern = form.values()[0]
+            dep = CampaignDependency(provides_campaign_stage_id=dependency['toId'],
+                                     needs_campaign_stage_id=dependency['fromId'],
+                                     file_patterns=file_pattern)
+            dbhandle.add(dep)
+        dbhandle.commit()
         return dependencies
