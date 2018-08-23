@@ -1528,10 +1528,19 @@ class CampaignsPOMS:
         ).delete(synchronize_session=False)
 
         for dependency in dependencies:
+            from_name = dependency['fromId']
+            to_name = dependency['toId']
             form = dependency.get('form')
-            file_pattern = form.values()[0]
-            dep = CampaignDependency(provides_campaign_stage_id=dependency['toId'],
-                                     needs_campaign_stage_id=dependency['fromId'],
+            from_id = (dbhandle.query(CampaignStage.campaign_stage_id)
+                       .filter(CampaignStage.experiment == exp)
+                       .filter(CampaignStage.name == from_name).scalar())
+            to_id = (dbhandle.query(CampaignStage.campaign_stage_id)
+                     .filter(CampaignStage.experiment == exp)
+                     .filter(CampaignStage.name == to_name).scalar())
+
+            file_pattern = list(form.values())[0]
+            dep = CampaignDependency(provides_campaign_stage_id=to_id,
+                                     needs_campaign_stage_id=from_id,
                                      file_patterns=file_pattern)
             dbhandle.add(dep)
         dbhandle.commit()
