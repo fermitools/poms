@@ -330,8 +330,10 @@ gui_editor.exportNetwork = function () {
                                     const oval = $(el).attr('data-hash');
                                     return {
                                         id: e[0],
-                                        fromId:e[1].fromId,
-                                        toId:e[1].toId,
+                                        //fromId:e[1].fromId,
+                                        //toId:e[1].toId,
+                                        fromId:e[1].from.options.label,
+                                        toId:e[1].to.options.label,
                                         clean: hval === oval ? true : false,
                                         form: ff
                                     }
