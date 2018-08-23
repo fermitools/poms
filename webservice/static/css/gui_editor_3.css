@@ -143,9 +143,9 @@ div.box.selected {
     padding:10px;
     text-align: center;
     box-shadow: 10px 10px 20px grey;
-  }
+}
 
-  #edge-popUp {
+#edge-popUp {
     display:none;
     position:absolute;
     top:350px;
@@ -160,5 +160,10 @@ div.box.selected {
     padding:10px;
     text-align: center;
     box-shadow: 10px 10px 20px grey;
-  }
+}
 
+select:invalid  {
+    /* background-color: #CCE2FF; */
+    /* color: grey; */
+    background-color: lightcyan;
+}
