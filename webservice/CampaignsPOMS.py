@@ -1420,13 +1420,15 @@ class CampaignsPOMS:
         user_id = sesshandle.get('experimenter').experimenter_id
         exp = sesshandle.get('experimenter').session_experiment
 
-        campaign = tuple(filter(lambda s: s.get('id').startswith('campaign '), stages))[0]
+        # campaign = tuple(filter(lambda s: s.get('id').startswith('campaign '), stages))[0]
+        campaign = [s for s in stages if s.get('id').startswith('campaign ')][0]
         c_old_name = campaign.get('id').split(' ')[1]
 
         old_stages = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_obj.has(Campaign.name == c_old_name)).all()
         old_stage_names = set([s.name for s in old_stages])
 
-        new_stages = tuple(filter(lambda s: not s.get('id').startswith('campaign '), stages))
+        # new_stages = tuple(filter(lambda s: not s.get('id').startswith('campaign '), stages))
+        new_stages = [s for s in stages if not s.get('id').startswith('campaign ')]
         new_stage_names = set([s.get('id') for s in new_stages])
 
         deleted_stages = old_stage_names - new_stage_names
