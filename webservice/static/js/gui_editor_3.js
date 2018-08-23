@@ -1459,15 +1459,17 @@ gui_editor.prototype.new_stage = function (name) {
     this.state['campaign']['campaign_stage_list'] += " " + k;
     k = 'campaign_stage ' + k;
     this.state[k] = {
-        'dataset': null,
-        'software_version': null,
         'vo_role': null,
+        'state': null,
+        'software_version': null,
+        'dataset': null,
         'cs_split_type': null,
-        'job_type': null,
-        'login_setup': null,
-        'param_overrides': null,
         'completion_type': null,
-        'completion_pct': null
+        'completion_pct': null,
+        'param_overrides': null,
+        'test_param_overrides': null,
+        'login_setup': null,
+        'job_type': null,
     };
     x = 500;
     y = 150;
