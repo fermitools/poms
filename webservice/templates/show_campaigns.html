@@ -46,9 +46,9 @@ Campaigns {%include 'help_button.html'%}
                 <th>Submissions<br>Running</th>
                 <th data-sorter="false" data-filter="false">Submission<br>History</th>
                 <th data-sorter="false" data-filter="false">Dependencies</th>
-                <th data-sorter="false" data-filter="false">Edit<br>Workflow</th>
-                <th data-sorter="false" data-filter="false">Clone<br> Workflow</th>
-                <th data-sorter="false" data-filter="false">Workflow<br>.ini</th>
+                <th data-sorter="false" data-filter="false">GUI Editor</th>
+                <th data-sorter="false" data-filter="false">Clone<br>Campaign</th>
+                <th data-sorter="false" data-filter="false">.ini File</th>
                 <th>Tags</th>
                 <th data-sorter="false" data-filter="false">Rename<br>Campaign</th>
                 <th data-sorter="false" data-filter="false">Delete<br>Campaign</th>
@@ -78,7 +78,7 @@ Campaigns {%include 'help_button.html'%}
                 </td>
                 <td>
                     <a href="{{pomspath}}/gui_wf_edit?campaign={{s.name}}">
-                        <button type="button">
+                        <button {{ 'class="ui disabled button"' if (data.authorized[loop.index] == false) }}>
                             <i class="edit icon"></i>
                         </button>
                     </a>
@@ -101,12 +101,12 @@ Campaigns {%include 'help_button.html'%}
                     {% endfor %}
                 </td>
                 <td>
-                    <button type="button">
+                    <button {{ 'class="ui disabled button"' if (data.authorized[loop.index] == false) }}>
                         <i class="exchange blue icon" onclick="rename_campaign('{{s.name}}', '{{s.campaign_id}}');"></i>
                     </button>
                 </td>
                 <td>
-                    <button type="button">
+                    <button {{ 'class="ui disabled button"' if (data.authorized[loop.index] == false) }}>
                         <i class="trash blue icon" onclick="delete_campaign('{{s.name}}', '{{s.campaign_id}}');"></i>
                     </button>
                 </td>

@@ -777,9 +777,8 @@ class CampaignsPOMS:
             data['templates'] = (dbhandle.query(LoginSetup)
                                  .filter(LoginSetup.experiment == exp).order_by(LoginSetup.name))
             cq = data['campaign_stages'].all()
-            cids = []
+
             for cs in cq:
-                cids.append(cs.CampaignStage.campaign_stage_id)
                 if role in ('root', 'coordinator'):
                     data['authorized'].append(True)
                 elif cs.CampaignStage.creator_role == 'production' and sesshandle.get('experimenter').session_role == 'production':
@@ -788,8 +787,10 @@ class CampaignsPOMS:
                     data['authorized'].append(True)
                 else:
                     data['authorized'].append(False)
+
             depends = {}
-            for cid in cids:
+            for c in cq:
+                cid = c.CampaignStage.campaign_stage_id
                 sql = (dbhandle.query(CampaignDependency.provides_campaign_stage_id, CampaignStage.name, CampaignDependency.file_patterns)
                        .filter(CampaignDependency.provides_campaign_stage_id == cid,
                                CampaignStage.campaign_stage_id == CampaignDependency.needs_campaign_stage_id))
@@ -1049,7 +1050,7 @@ class CampaignsPOMS:
         #return bytes(text, encoding="utf-8")
         return text
 
-    def show_campaigns(self, dbhandle, experimenter, *args, **kwargs):
+    def show_campaigns(self, dbhandle, sesshandle, experimenter, *args, **kwargs):
         action = kwargs.get('action', None)
         msg = "OK"
         se_role = experimenter.session_role
@@ -1068,7 +1069,9 @@ class CampaignsPOMS:
             else:
                 msg = "You are not authorized to delete campaigns."
 
-        data = {}
+        data = {
+            'authorized' : []
+        }
         q = (dbhandle.query(Campaign)
               .filter(Campaign.experiment == experimenter.session_experiment)
               .order_by(Campaign.name))
@@ -1115,13 +1118,22 @@ class CampaignsPOMS:
 
         if not tl:
             return tl, "", msg, data
+        role = sesshandle.get('experimenter').session_role
+        for cs in tl:
+            if role == 'coordinator':
+                data['authorized'].append(True)
+            elif cs.creator_role == 'production' and role == 'production':
+                data['authorized'].append(True)
+            elif cs.creator_role == role and cs.creator == sesshandle.get('experimenter').experimenter_id:
+                data['authorized'].append(True)
+            else:
+                data['authorized'].append(False)
+
         last_activity_l = dbhandle.query(func.max(Submission.updated)).join(CampaignStage,Submission.campaign_stage_id == CampaignStage.campaign_stage_id).join(Campaign,CampaignStage.campaign_id == Campaign.campaign_id).filter(Campaign.experiment == experimenter.session_experiment).first()
-        logit.log("got last_activity_l %s" % repr(last_activity_l))
         last_activity = ""
         if last_activity_l and last_activity_l and last_activity_l[0]:
             if datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
                 last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
-        logit.log("after: last_activity %s" % repr(last_activity))
         return tl, last_activity, msg, data
 
 
@@ -1373,7 +1385,7 @@ class CampaignsPOMS:
                 jjid = str(jjid).replace('fifebatch', '').replace('.fnal.gov', '')
 
             if campaign is not None:
-                jjid += "<br>%s" % th.submission_obj.campaign_stage_obj.name 
+                jjid += "<br>%s" % th.submission_obj.campaign_stage_obj.name
 
 
             if th.status not in ("Completed", "Located", "Failed", "Removed"):
