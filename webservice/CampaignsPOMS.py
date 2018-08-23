@@ -1453,7 +1453,7 @@ class CampaignsPOMS:
             form = {k: (form[k] or defaults[k]) for k in form}   # Use the field if provided otherwise use defaults
             print("############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(old_name, new_name, clean, form, position))
 
-            active = (kwargs.pop('sate') in ('True', 'true', '1', 'Active'))
+            active = (form.pop('state') in ('True', 'true', '1', 'Active'))
             completion_pct = form.pop('completion_pct')
             completion_type = form.pop('completion_type')
             split_type = form.pop('split_type', None)
