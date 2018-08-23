@@ -1411,20 +1411,38 @@ class CampaignsPOMS:
     def save_campaign(self, dbhandle, sesshandle, *args, **kwargs):
         """
         """
-        form = kwargs.get('form', None)
-
-        everything = json.loads(form)
-
-        stages = everything['stages']
-        print("############## stages: {}".format([s.get('id') for s in stages]))
-
         role = sesshandle.get('experimenter').session_role or 'production'
         user_id = sesshandle.get('experimenter').experimenter_id
         exp = sesshandle.get('experimenter').session_experiment
 
-        # campaign = tuple(filter(lambda s: s.get('id').startswith('campaign '), stages))[0]
+        data = kwargs.get('form', None)
+        everything = json.loads(data)
+
+        stages = everything['stages']
+        print("############## stages: {}".format([s.get('id') for s in stages]))
+
         campaign = [s for s in stages if s.get('id').startswith('campaign ')][0]
         c_old_name = campaign.get('id').split(' ')[1]
+        c_new_name = campaign.get('label')
+        clean = campaign.get('clean')
+        defaults = campaign.get('form')
+        position = campaign.get('position')
+        print("############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(c_old_name, c_new_name, clean, defaults, position))
+
+        the_campaign = dbhandle.query(Campaign).filter(Campaign.name == c_old_name, Campaign.experiment == exp).scalar()
+        if the_campaign:
+            the_campaign.defaults = defaults
+            if c_new_name != c_old_name:
+                the_campaign.name = c_new_name
+        else:   # we do not have a campaign in the db for this experiment so create the campaign and then do the linking
+            camp = Campaign()
+            camp.name = c_new_name
+            camp.defaults = defaults
+            camp.experiment = exp
+            camp.creator = user_id
+            camp.creator_role = role
+            dbhandle.add(camp)
+        dbhandle.commit()
 
         old_stages = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_obj.has(Campaign.name == c_old_name)).all()
         old_stage_names = set([s.name for s in old_stages])
@@ -1436,17 +1454,6 @@ class CampaignsPOMS:
         deleted_stages = old_stage_names - new_stage_names
         if deleted_stages:
             dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(deleted_stages)).delete(synchronize_session=False)
-
-        c_new_name = campaign.get('label')
-        clean = campaign.get('clean')
-        defaults = campaign.get('form')
-        position = campaign.get('position')
-        print("############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(c_old_name, c_new_name, clean, defaults, position))
-        campaign_obj = dbhandle.query(Campaign).filter(Campaign.name == c_old_name).scalar()
-        campaign_obj.defaults = defaults
-        if c_new_name != c_old_name:
-            campaign_obj.name = c_new_name
-        dbhandle.commit()
 
         for stage in new_stages:
             old_name = stage.get('id')
@@ -1502,7 +1509,7 @@ class CampaignsPOMS:
                     obj.active = active
             else:       # If this is a new stage then create and store it
                 cs = CampaignStage(name=new_name, experiment=exp,
-                                   campaign_id=campaign_obj.campaign_id,
+                                   campaign_id=the_campaign.campaign_id,
                                    active=active,
                                    #
                                    completion_pct=completion_pct,
@@ -1523,8 +1530,8 @@ class CampaignsPOMS:
         dependencies = everything['dependencies']
         dbhandle.query(CampaignDependency).filter(
             or_(
-                CampaignDependency.provider.has(CampaignStage.campaign_id == campaign_obj.campaign_id),
-                CampaignDependency.consumer.has(CampaignStage.campaign_id == campaign_obj.campaign_id))
+                CampaignDependency.provider.has(CampaignStage.campaign_id == the_campaign.campaign_id),
+                CampaignDependency.consumer.has(CampaignStage.campaign_id == the_campaign.campaign_id))
         ).delete(synchronize_session=False)
 
         for dependency in dependencies:
