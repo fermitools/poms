@@ -604,7 +604,7 @@ gui_editor.prototype.ini2json = function (s) {
           res.push('},');
           res.push('"' + s + '": {');
           if (sn) {
-            res.push('"name": "${sn}",');                   // Add section name as a value
+            res.push(`"name": "${sn}",`);                   // Add section name as a value
           }
       } else {                                              // Section body
           l = mwm_utils.trim_blanks(l)
