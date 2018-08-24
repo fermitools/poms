@@ -152,6 +152,9 @@ gui_editor.toggle_form = function(id) {
     if (e && e.style.display == 'block') {
         if (e.parentNode && e.parentNode.gui_box) {
             e.parentNode.gui_box.save_values();
+            const nm = id.split(' ')[1];        // component name
+            const nname = id.includes('_stage') ? nm : `campaign ${nm}`;            // build node name
+            gui_editor.network.body.data.nodes.get(nname).label = e.name.value;     // update label
         }
         e.style.display = 'none';
     } else if ( e ) {
