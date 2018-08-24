@@ -85,7 +85,7 @@ function main() {
    console.log(["args:", args, "base:", base ])
    if (args['campaign'] != undefined) {
        var url;
-       if (args['campaign'].indexOf('samples%2F') == 0) {
+       if (args['campaign'].indexOf('samples/') == 0) {
           url = base + '/static/' + args['campaign'].replace('%2F','/')
        } else {
           url = base +'/campaign_deps_ini?tag=' + args['campaign']
