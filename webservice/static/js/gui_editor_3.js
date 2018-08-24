@@ -493,6 +493,7 @@ gui_editor.prototype.defaultify_state = function() {
         }
         this.mode[j] = maxslot;
     }
+    this.mode.name = this.state.campaign.name;  // 'Name' is special case - store the campaign name!
     /* now null out whatever is the default */
     for (k in this.state) {
         if (k.indexOf('campaign_stage') == 0) {
