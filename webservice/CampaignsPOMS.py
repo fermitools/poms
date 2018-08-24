@@ -1741,7 +1741,7 @@ class CampaignsPOMS:
             dbhandle.add(the_campaign)
         dbhandle.commit()
 
-        old_stages = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_obj.has(Campaign.name == c_old_name)).all()
+        old_stages = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_obj.has(Campaign.name == c_new_name)).all()
         old_stage_names = set([s.name for s in old_stages])
 
         # new_stages = tuple(filter(lambda s: not s.get('id').startswith('campaign '), stages))
