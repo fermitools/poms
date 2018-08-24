@@ -595,14 +595,18 @@ gui_editor.prototype.ini2json = function (s) {
       // skip blank lines and comments
       if (l.length == 0)
           continue;
-      if (l[0] == '#') {
+      if (l[0] == '#') {                                    // Comment line
           continue;
-
-      } else if (l[0] == '[' &&  l[l.length-1]  == ']') {
+      } else if (l[0] == '[' &&  l[l.length-1]  == ']') {   // Section
+          const s = l.slice(1, -1);
+          const sn = s.split(' ')[1];
           this.un_trailing_comma(res);
           res.push('},');
-          res.push('"' + l.slice(1,-1) + '": {');
-      } else {
+          res.push('"' + s + '": {');
+          if (sn) {
+            res.push('"name": "${sn}",');                   // Add section name as a value
+          }
+      } else {                                              // Section body
           l = mwm_utils.trim_blanks(l)
           l = l.replace(/%%/g,'%');
           k_v = l.match(/([^ =:]*) *[=:] *(.*)/);
