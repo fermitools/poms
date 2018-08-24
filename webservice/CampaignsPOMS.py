@@ -1732,13 +1732,13 @@ class CampaignsPOMS:
             if c_new_name != c_old_name:
                 the_campaign.name = c_new_name
         else:   # we do not have a campaign in the db for this experiment so create the campaign and then do the linking
-            camp = Campaign()
-            camp.name = c_new_name
-            camp.defaults = defaults
-            camp.experiment = exp
-            camp.creator = user_id
-            camp.creator_role = role
-            dbhandle.add(camp)
+            the_campaign = Campaign()
+            the_campaign.name = c_new_name
+            the_campaign.defaults = defaults
+            the_campaign.experiment = exp
+            the_campaign.creator = user_id
+            the_campaign.creator_role = role
+            dbhandle.add(the_campaign)
         dbhandle.commit()
 
         old_stages = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_obj.has(Campaign.name == c_old_name)).all()
