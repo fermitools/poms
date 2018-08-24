@@ -152,9 +152,12 @@ gui_editor.toggle_form = function(id) {
     if (e && e.style.display == 'block') {
         if (e.parentNode && e.parentNode.gui_box) {
             e.parentNode.gui_box.save_values();
-            const nm = id.split(' ')[1];        // component name
-            const nname = id.includes('_stage') ? nm : `campaign ${nm}`;            // build node name
-            gui_editor.network.body.data.nodes.get(nname).label = e.name.value;     // update label
+            if (id.includes('campaign')) {
+                const nm = id.split(' ')[1];        // component name
+                const nname = id.includes('_stage') ? nm : `campaign ${nm}`;                    // build node name
+                //VP~ this.nodes.update([{id: nname, label: e.name.value}]);
+                gui_editor.network.body.data.nodes.update({id: nname, label: e.name.value});    // update label
+            }
         }
         e.style.display = 'none';
     } else if ( e ) {
@@ -350,7 +353,7 @@ gui_editor.exportNetwork = function () {
         elem.connections = gui_editor.network.getConnectedEdges(elem.id).filter(x => gui_editor.network.body.edges[x].toId != elem.id).map(x => gui_editor.network.body.edges[x].toId);
     }
     */
-    // console.log(exportValue);
+    console.log(exportValue);
     //VP~ return exportValue;
     //VP~ new wf_uploader().make_poms_call('echo', {form: exportValue});     // Send to the server
     new wf_uploader().make_poms_call('save_campaign', {form: exportValue});     // Send to the server
@@ -857,7 +860,7 @@ gui_editor.prototype.draw_state = function () {
     let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 1)}));
     //VP~ this.nodes = new vis.DataSet([{id: 'Default Values', label: this.state.campaign.name,
     this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`, label: this.state.campaign.name,
-                                  shape: 'ellipse', fixed: true, size: 50}, ...node_list]);
+                                         shape: 'ellipse', fixed: true, size: 50}, ...node_list]);
 
     let edge_list = this.depboxes.map(x => ({id: x.box.id, from: x.stage1, to: x.stage2}));
     let edges = new vis.DataSet(edge_list);
@@ -905,11 +908,11 @@ gui_editor.prototype.draw_state = function () {
                 document.getElementById('node-operation').innerHTML = "Add Node";
                 editNode(data, clearNodePopUp, callback);
             },
-            editNode: function (data, callback) {
-                // filling in the popup DOM elements
-                document.getElementById('node-operation').innerHTML = "Edit Node";
-                editNode(data, cancelNodeEdit, callback);
-            },
+            //editNode: function (data, callback) {
+                //// filling in the popup DOM elements
+                //document.getElementById('node-operation').innerHTML = "Edit Node";
+                //editNode(data, cancelNodeEdit, callback);
+            //},
             deleteNode: (data, callback) => {
                 const node_id = data.nodes[0];
                 console.log("Deleting ", node_id);
@@ -1213,7 +1216,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     let res = [];
     //res.push(`<form id="fields_${name}" class="popup_form" style="display: none; top: ${y}px; left: ${x}px;">`);
     res.push(`<form id="fields_${name}" class="popup_form" style="display: none;" data-hash="" data-clean="1">`);
-    res.push('<h3>' + name);
+    res.push('<h3>' + name.split(' ')[0]);
     //if (name != 'Default Values') {
     //    res.push(`<button title="Delete" class="rightbutton" type="button" onclick="gui_editor.delete_me('${name}')"><span class="deletebutton"></span></button><p>`);
     //}
