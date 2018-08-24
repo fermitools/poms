@@ -1,7 +1,7 @@
 
 [campaign]
 experiment=sample
-tag= sample_mc
+name=sample_mc
 campaign_stage_list= sample_gen sample_g4 sample_detsim sample_reco sample_anatree 
 
 [campaign_stage sample_gen]
