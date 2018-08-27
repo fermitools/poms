@@ -1058,21 +1058,19 @@ gui_editor.prototype.draw_state = function () {
             const nn = label.split('*');
             for (let i = 0; i < nn[1]; i++) {
                 data.label = `${nn[0]}_${i}`;
-                //VP~ this.new_stage(data.label);     // FIXME: Id should be used, not label!
                 const reply = callback(data);
                 // Now handle our stuff
-                this.new_stage(reply[1]);
+                this.new_stage(reply[1], data.label);
                 this.add_dependency(reply[0], reply[1], reply[2]);
             }
         } else {
             data.label = label;
-            //VP~ this.new_stage(data.label);
             const reply = callback(data);
             // Now handle our stuff
             if (data.id) {
-                this.new_stage(data.id);
+                this.new_stage(data.id, data.label);
             } else {
-                this.new_stage(reply[1]);
+                this.new_stage(reply[1], data.label);
                 this.add_dependency(reply[0], reply[1], reply[2]);
             }
         }
@@ -1466,12 +1464,13 @@ dependency_box.prototype.set_bounds = function () {
     }
 }
 
-gui_editor.prototype.new_stage = function (name) {
+gui_editor.prototype.new_stage = function (name, label) {
     var k = name || window.prompt("New stage name:");
     var x, y, b;
     this.state['campaign']['campaign_stage_list'] += " " + k;
     k = 'campaign_stage ' + k;
     this.state[k] = {
+        'name': label,
         'vo_role': null,
         'state': null,
         'software_version': null,
