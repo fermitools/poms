@@ -117,13 +117,15 @@ div.box.selected {
 }
 
 #mystages {
-    width: 1000px;
+    /* width: 1000px;   */
+    width: 90%;
     height: 600px;
     border: 1px solid lightgray;
 }
 
 #mydefaults, #myjobtypes {
-    width: 1000px;
+    /* width: 1000px;   */
+    width: 90%;
     height: 100px;
     border: 1px solid lightgray;
 }
