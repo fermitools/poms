@@ -543,7 +543,7 @@ $("#edit_depends_modal_btn").click(function() {
   var i;
   for (i = 0 ; i < dlists['campaign_stages'].length; i++ ) {
       var sel = "#de_select_" + i.toString()+ " option[value="+dlists['campaign_stages'][i]+"]";
-      var dep = "#de_filepat_"+i.toString();
+      var dep = "#de_filepat_"+i.toString()
       $(sel).prop('selected','selected');
       $(dep).val(dlists['file_patterns'][i]);
   }

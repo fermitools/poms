@@ -766,7 +766,8 @@ class CampaignsPOMS:
             # -- make sure if we're jumping to a given campaign id
             # that we *have* it in the list...
             if jumpto is not None:
-                c2 = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == jumpto)
+                c2 = (dbhandle.query(CampaignStage,Campaign).filter(CampaignStage.campaign_stage_id == jumpto)
+                      .filter(CampaignStage.campaign_id == Campaign.campaign_id))
                 # we have to use union_all() and not union()to avoid
                 # postgres whining about not knowing how to compare JSON
                 # fields... sigh.  (It could just string compare them...)
