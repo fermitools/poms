@@ -16,7 +16,7 @@
 
 {%block header%}
 <h1 class="ui header">
-    Campaign Editor for {{campaign}} {%include 'help_button.html'%}
+    Campaign Editor for <span id="camp_header1">{{campaign}}</span> {%include 'help_button.html'%}
     <!--
     <div class="sub header">
         Edit whole workflow
@@ -64,7 +64,7 @@
 </div>
 
 
-<h3>Campaign {{campaign}}
+<h3>Campaign <span id="camp_header2">{{campaign}}</span>
     <button class="ui button" onclick="gui_editor.save('gui_editor_0');">Save</button><span id="savebusy"></span>
 </h3>
 <!--
@@ -82,10 +82,11 @@
 function main() {
    var args = mwm_utils.getSearchParams()
    var base = mwm_utils.getBaseURL()
-   console.log(["args:", args, "base:", base ])
+   console.log(["args:", args, "base:", base])
    if (args['campaign'] != undefined) {
        var url;
-       if (args['campaign'].indexOf('samples/') == 0) {
+       //VP~ if (args['campaign'].indexOf('samples/') == 0) {
+       if (args['campaign'].startsWith('samples')) {
           url = base + '/static/' + args['campaign'].replace('%2F','/')
        } else {
           url = base +'/campaign_deps_ini?tag=' + args['campaign']
@@ -97,6 +98,8 @@ function main() {
           var args = mwm_utils.getSearchParams();
           if ('clone' in args && 'Clone' == args['clone']) {
               ge.set_state_clone(data, args['from'], args['to'],'{{session_experiment}}','{{session_role}}');
+              $("#camp_header1").html(`${args['to']}`);
+              $("#camp_header2").html(`${args['to']}`);
           } else {
               ge.set_state(data);
           }
