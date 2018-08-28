@@ -32,6 +32,7 @@ class Campaign(Base):
     campaign_id = Column(Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)"))
     experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
     name = Column(Text, nullable=False)
+    defaults = Column(JSON)
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
 
@@ -290,8 +291,8 @@ class CampaignDependency(Base):
     provides_campaign_stage_id = Column(ForeignKey('campaign_stages.campaign_stage_id'), primary_key=True, nullable=False, index=True)
     file_patterns = Column(Text, nullable=False)
 
-    needs_camp = relationship('CampaignStage', foreign_keys=needs_campaign_stage_id)
-    uses_camp = relationship('CampaignStage', foreign_keys=provides_campaign_stage_id)
+    provider = relationship('CampaignStage', foreign_keys=needs_campaign_stage_id, backref='consumers')
+    consumer = relationship('CampaignStage', foreign_keys=provides_campaign_stage_id, backref='providers')
 
 
 class HeldLaunch(Base):

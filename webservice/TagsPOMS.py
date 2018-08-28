@@ -22,7 +22,7 @@ class TagsPOMS(object):
     def __init__(self, ps):
         self.poms_service = ps
 
-    def link_tags(self, dbhandle, ses_get, campaign_id, tag_name, experiment):
+    def link_tags(self, dbhandle, ses_get, campaign_stage_id, campaign_name, experiment):
         if ses_get('experimenter').session_experiment == experiment:
             tag = dbhandle.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()
             if not tag:  # we do not have a tag in the db for this experiment so create the tag and then do the linking
@@ -35,12 +35,12 @@ class TagsPOMS(object):
             # we have a tag in the db for this experiment so go ahead and do the linking
             campaign_ids = str(campaign_id).split(',')
             msg = "OK"
-            for cid in campaign_ids:
-                campaign = dbhandle.query(Campaign).filter(Campaign.campaign_id == cid).one()
-                campaign.tags.append(tag)
-                dbhandle.add(campaign)
+            for sid in campaign_stage_ids:
+                stage = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == sid).first()
+                stage.campaign_id = camp.campaign_id
+                dbhandle.add(stage)
             dbhandle.commit()
-            response = {"campaign_id": campaign_id, "tag_id": tag.tag_id, "tag_name": tag.tag_name, "msg": msg}
+            response = {"campaign_stage_id": campaign_stage_id, "campaign_id": stage.campaign_id, "name": camp.name, "msg": msg}
             return response
         else:
             response = {"msg": "You are not authorized to add campaigns."}
