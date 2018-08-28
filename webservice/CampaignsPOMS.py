@@ -964,7 +964,7 @@ class CampaignsPOMS:
             res.append("[campaign_stage %s]" % cs.name)
             # res.append("name=%s" % cs.name)
             res.append("vo_role=%s" % cs.vo_role)
-            res.append("state=%s" % "Active" if cs.active else "Inactive")
+            res.append("state=%s" % ("Active" if cs.active else "Inactive"))
             res.append("software_version=%s" % cs.software_version)
             res.append("dataset=%s" % cs.dataset)
             res.append("cs_split_type=%s" % cs.cs_split_type)
@@ -1750,7 +1750,18 @@ class CampaignsPOMS:
 
         deleted_stages = old_stage_names - new_stage_names
         if deleted_stages:
-            dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(deleted_stages)).delete(synchronize_session=False)
+            # (dbhandle.query(CampaignStage)                    # We DON'T delete the stages
+            #  .filter(CampaignStage.name.in_(deleted_stages))
+            #  .delete(synchronize_session=False))
+            cs_list = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(deleted_stages))  # Get the stage list
+            for cs in cs_list:
+                cs.campaign_id = None                   # Detach the stage from campaign
+            dbhandle.query(CampaignDependency).filter(
+                or_(
+                    CampaignDependency.provider.has(CampaignStage.name.in_(deleted_stages)),
+                    CampaignDependency.consumer.has(CampaignStage.name.in_(deleted_stages)))
+            ).delete(synchronize_session=False)         # Delete the stage dependencies if any
+            dbhandle.commit()
 
         for stage in new_stages:
             old_name = stage.get('id')
@@ -1789,7 +1800,10 @@ class CampaignsPOMS:
                            .filter(JobType.name == job_type).scalar())
 
             if old_name in old_stage_names:
-                obj = dbhandle.query(CampaignStage).filter(CampaignStage.name == old_name).scalar()  # Get stage by the old name
+                #VP~ obj = dbhandle.query(CampaignStage).filter(CampaignStage.name == old_name).scalar()  # Get stage by the old name
+                obj = (dbhandle.query(CampaignStage)
+                       .filter(CampaignStage.campaign_id == the_campaign.campaign_id)
+                       .filter(CampaignStage.name == old_name).scalar())  # Get stage by the old name
                 obj.name = new_name     # Update the name using provided new_name
                 if not clean:           # Update all fields from the form
                     obj.completion_pct = completion_pct
@@ -1824,6 +1838,7 @@ class CampaignsPOMS:
                                    creator_role=role, campaign_type=stage_type)
                 dbhandle.add(cs)
             dbhandle.commit()
+
         dependencies = everything['dependencies']
         dbhandle.query(CampaignDependency).filter(
             or_(
@@ -1836,9 +1851,13 @@ class CampaignsPOMS:
             to_name = dependency['toId']
             form = dependency.get('form')
             from_id = (dbhandle.query(CampaignStage.campaign_stage_id)
+                       #VP~ .filter(CampaignStage.campaign_id != None)
+                       .filter(CampaignStage.campaign_id == the_campaign.campaign_id)
                        .filter(CampaignStage.experiment == exp)
                        .filter(CampaignStage.name == from_name).scalar())
             to_id = (dbhandle.query(CampaignStage.campaign_stage_id)
+                     #VP~ .filter(CampaignStage.campaign_id != None)
+                     .filter(CampaignStage.campaign_id == the_campaign.campaign_id)
                      .filter(CampaignStage.experiment == exp)
                      .filter(CampaignStage.name == to_name).scalar())
 
