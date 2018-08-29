@@ -1089,6 +1089,11 @@ class CampaignsPOMS:
                 if subs.count() > 0:
                     msg = "This campaign has been submitted.  It cannot be deleted."
                 else:
+                    dbhandle.query(CampaignDependency).filter(
+                        or_(
+                            CampaignDependency.provider.has(CampaignStage.campaign_id == campaign_id),
+                            CampaignDependency.consumer.has(CampaignStage.campaign_id == campaign_id))
+                    ).delete(synchronize_session=False)
                     dbhandle.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).delete(synchronize_session=False)
                     dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete(synchronize_session=False)
                     dbhandle.commit()
@@ -1100,10 +1105,10 @@ class CampaignsPOMS:
             'authorized' : []
         }
         q = (dbhandle.query(Campaign)
-              .filter(Campaign.experiment == experimenter.session_experiment)
-              .order_by(Campaign.name))
+             .filter(Campaign.experiment == experimenter.session_experiment)
+             .order_by(Campaign.name))
 
-        if kwargs.get('update_view',None) == None:
+        if kwargs.get('update_view', None) is None:
             # view flags not specified, use defaults
             data['view_active'] = 'view_active'
             data['view_inactive'] = None
