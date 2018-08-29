@@ -235,11 +235,37 @@ class CampaignsPOMS:
         name = kwargs.get('campaign_name')
         data['message'] = "ok"
         try:
+            experiment = seshandle('experimenter').session_experiment
             camp = Campaign(name=name,
-                            experiment=seshandle('experimenter').session_experiment,
+                            experiment=experiment,
                             creator=seshandle('experimenter').experimenter_id,
                             creator_role=seshandle('experimenter').session_role)
             dbhandle.add(camp)
+            dbhandle.commit()
+            cs = CampaignStage(name="stage0", experiment=experiment,
+                               campaign_id=camp.campaign_id,
+                               active=False,
+                               #
+                               completion_pct="95",
+                               completion_type="complete",
+                               cs_split_type="None",
+                               dataset="from_parent",
+                               job_type_id=(dbhandle.query(JobType.job_type_id)
+                                            .filter(JobType.name == "generic_fife_process", JobType.experiment == experiment)
+                                            .scalar()),
+                               login_setup_id=(dbhandle.query(LoginSetup.login_setup_id)
+                                               .filter(LoginSetup.name == "generic_fife_launch", LoginSetup.experiment == experiment)
+                                               .scalar()),
+                               param_overrides="[]",
+                               software_version="v1_0",
+                               test_param_overrides="[]",
+                               vo_role="Production",
+                               #
+                               creator=seshandle('experimenter').experimenter_id,
+                               creator_role=seshandle('experimenter').session_role,
+                               created=datetime.now(utc),
+                               campaign_type="regular")
+            dbhandle.add(cs)
         except IntegrityError as e:
             data['message'] = "Integrity error - you are most likely using a name which already exists in database."
             logit.log(' '.join(e.args))
@@ -893,6 +919,7 @@ class CampaignsPOMS:
         campaign_stages = []
         jts = set()
         lts = set()
+        the_campaign = None
 
         if campaign_definition is not None:
             res.append("# with job_type %s" % campaign_definition)
@@ -907,6 +934,8 @@ class CampaignsPOMS:
                 lts.add(lt)
 
         if name is not None:
+            the_campaign = dbhandle.query(Campaign).filter(Campaign.name == name).scalar()
+            #
             campaign_stages = dbhandle.query(CampaignStage).join(Campaign).filter(
                 Campaign.name == name,
                 CampaignStage.campaign_id == Campaign.campaign_id).all()
@@ -948,15 +977,11 @@ class CampaignsPOMS:
                 if cidl.index(dcid) < cidl.index(cid):
                     cidl[cidl.index(dcid)], cidl[cidl.index(cid)] = cidl[cidl.index(cid)], cidl[cidl.index(dcid)]
 
-        if len(campaign_stages):
+        if the_campaign:
             res.append("[campaign]")
-            res.append("experiment=%s" % campaign_stages[0].experiment)
-            res.append("poms_role=%s" % campaign_stages[0].creator_role)
-            if name is None:
-                res.append("stage_id=%s" % stage_id)
-            else:
-                res.append("name=%s" % name)
-
+            res.append("experiment=%s" % the_campaign.experiment)
+            res.append("poms_role=%s" % the_campaign.creator_role)
+            res.append("name=%s" % the_campaign.name)
 
             res.append("campaign_stage_list=%s" % " ".join(map(cnames.get, cidl)))
             res.append("")
