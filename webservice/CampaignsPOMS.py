@@ -794,11 +794,11 @@ class CampaignsPOMS:
                 # fields... sigh.  (It could just string compare them...)
                 cquery = c2.union_all(cquery)
 
-            data['campaign_stages'] = cquery
+            data['campaign_stages'] = cquery.all()
             data['definitions'] = dbhandle.query(JobType).filter(JobType.experiment == exp).order_by(JobType.name)
             data['templates'] = (dbhandle.query(LoginSetup)
                                  .filter(LoginSetup.experiment == exp).order_by(LoginSetup.name))
-            cq = data['campaign_stages'].all()
+            cq = data['campaign_stages']
 
             for cs in cq:
                 if role in ('root', 'coordinator'):
