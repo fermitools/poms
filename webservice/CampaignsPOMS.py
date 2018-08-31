@@ -617,12 +617,10 @@ class CampaignsPOMS:
                 if unlink is None:
                     dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
                 else:
-                    print("############################## About to unlink: {}".format(unlink))
                     if isinstance(unlink, (int, str)):
                         cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
                         cs.campaign_id = None
                     else:
-                        print("################## Preparing query:")
                         qq = (dbhandle.query(CampaignDependency)
                               .filter(CampaignDependency.provider.has(CampaignStage.name == unlink[0]))
                               .filter(CampaignDependency.consumer.has(CampaignStage.name == unlink[1]))
@@ -1037,7 +1035,7 @@ class CampaignsPOMS:
         return "\n".join(res).replace("%", "%%")
 
 
-    def campaign_deps_svg(self, dbhandle, config_get, campaign_name=None,  campaign_stage_id=None):
+    def campaign_deps_svg(self, dbhandle, config_get, campaign_name=None, campaign_stage_id=None):
         '''
             return campaign dependencies as an SVG graph
             uses "dot" to generate the drawing
