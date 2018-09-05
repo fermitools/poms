@@ -912,16 +912,16 @@ class CampaignsPOMS:
         return "Submission=%d" % s.submission_id
 
 
-    def campaign_deps_ini(self, dbhandle, config_get, session_experiment, name=None, stage_id=None, login_setup=None, campaign_definition=None):
+    def campaign_deps_ini(self, dbhandle, config_get, session_experiment, name=None, stage_id=None, login_setup=None, job_type=None):
         res = []
         campaign_stages = []
         jts = set()
         lts = set()
         the_campaign = None
 
-        if campaign_definition is not None:
-            res.append("# with job_type %s" % campaign_definition)
-            cd = dbhandle.query(JobType).filter(JobType.name == campaign_definition, JobType.experiment == session_experiment).first()
+        if job_type is not None:
+            res.append("# with job_type %s" % job_type)
+            cd = dbhandle.query(JobType).filter(JobType.name == job_type, JobType.experiment == session_experiment).first()
             if cd:
                 jts.add(cd)
 
@@ -1457,15 +1457,15 @@ class CampaignsPOMS:
                                  created=th.created.replace(tzinfo=utc),
                                  tmin=th.submission_obj.created - timedelta(minutes=15),
                                  tmax=th.submission_obj.updated,
-                                 tminsec = tmin.strftime("%s"),
+                                 tminsec=tmin.strftime("%s"),
                                  status=th.status,
                                  jobsub_job_id=jjid,
-                                 jobsub_cluster = full_jjid[:jjid.find('.')],
-                                 jobsub_schedd = full_jjid[jjid.find('@')+1:],
-                                 creator = th.submission_obj.experimenter_creator_obj.username,
-                                 campaign_stage_id = th.submission_obj.campaign_stage_id,
-                                 created_s = th.submission_obj.created.strftime("%Y%m%d_%H%M%S")
-                               ))
+                                 jobsub_cluster=full_jjid[:jjid.find('.')],
+                                 jobsub_schedd=full_jjid[jjid.find('@') + 1:],
+                                 creator=th.submission_obj.experimenter_creator_obj.username,
+                                 campaign_stage_id=th.submission_obj.campaign_stage_id,
+                                 created_s=th.submission_obj.created.strftime("%Y%m%d_%H%M%S")
+                                 ))
             if th.status == 'LaunchFailed':
                 items[-1].url = failedlaunch_url_template % items[-1].__dict__
             else:
@@ -1476,8 +1476,9 @@ class CampaignsPOMS:
                                     extramap=extramap)
         return "", blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
+
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
-                               dataset="", role="Production", cr_role="production",  sesshandler=None, params=[]):
+                               dataset="", role="Production", cr_role="production", sesshandler=None, params=[]):
         """
             update or add a campaign by experiment and name...
         """
@@ -1508,9 +1509,9 @@ class CampaignsPOMS:
             changed = False
         else:
             cs = CampaignStage(experiment=experiment, name=campaign_name, creator=user, created=datetime.now(utc),
-                         software_version=version, job_type_id=cd.job_type_id,
-                         login_setup_id=ld.login_setup_id, vo_role=role, dataset='',
-                         creator_role=cr_role, campaign_type='regular')
+                               software_version=version, job_type_id=cd.job_type_id,
+                               login_setup_id=ld.login_setup_id, vo_role=role, dataset='',
+                               creator_role=cr_role, campaign_type='regular')
 
         if version:
             cs.software_verison = version
@@ -1533,6 +1534,7 @@ class CampaignsPOMS:
             dbhandle.commit()
 
         return cs.campaign_stage_id
+
 
     def get_dataset_for(self, dbhandle, samhandle, err_res, camp):
         '''
