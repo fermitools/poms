@@ -70,6 +70,14 @@ mwm_utils.trim_blanks = function (s) {
     return (typeof s === 'undefined' ? '' : s.trim());
 }
 
+mwm_utils.formFields = function (el) {
+    return $(el).find('input,select').toArray().map(x => [x.name, x.value]).reduce((a, v) => ({...a, [v[0]]: v[1]}), {});
+}
+
+mwm_utils.hashCode = function (str) {
+    return str.split('').reduce((prevHash, currVal) => (((prevHash << 5) - prevHash) + currVal.charCodeAt(0))|0, 0).toString(16);
+};
+
 /* gui editor itself
  * We setup the <div> that it's all in
  * add drag/drop event handlers, and an initial size
@@ -144,6 +152,12 @@ gui_editor.toggle_form = function(id) {
     if (e && e.style.display == 'block') {
         if (e.parentNode && e.parentNode.gui_box) {
             e.parentNode.gui_box.save_values();
+            if (id.includes('campaign')) {
+                const nm = id.split(' ')[1];        // component name
+                const nname = id.includes('_stage') ? nm : `campaign ${nm}`;                    // build node name
+                //VP~ this.nodes.update([{id: nname, label: e.name.value}]);
+                gui_editor.network.body.data.nodes.update({id: nname, label: e.name.value});    // update label
+            }
         }
         e.style.display = 'none';
     } else if ( e ) {
@@ -270,6 +284,7 @@ gui_editor.save = function (id) {
         alert("cannot find: " + id);
     }
     e.gui_box.save_state();
+    //VP~ gui_editor.exportNetwork();
 }
 
 /* pick names workflow clone (below)  */
@@ -282,17 +297,81 @@ gui_editor.new_name = function (before, from, to) {
     return after;
 }
 
+
+gui_editor.exportNetwork = function () {
+    // var nodes = gui_editor.network.body.nodeIndices.map(x => ({id: x}));
+
+    const node2JSON = (e) => {
+        //VP~ const ename = e[0].startsWith('Default') ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
+        //VP~ const ename = e[0].startsWith('campaign ') ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
+        const ename = e[0].match(/campaign |job_type |login_setup /) ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
+        const el = document.getElementById(ename);
+        const ff = mwm_utils.formFields(el);
+        const hval = mwm_utils.hashCode(JSON.stringify(ff));
+        const oval = $(el).attr('data-hash');
+        const response = {id: e[0],
+                          label: network.body.nodes[e[0]].options.label,
+                          position: e[1],
+                          clean: hval === oval ? true : false,
+                          form: ff
+                };
+        //VP~ return e[0].startsWith("campaign ") ? {campaign: this.state.campaign, ...response} : response;    // Not yet, 'this' is not available here
+        return response;
+    };
+
+    let network = gui_editor.network;
+    var nodes = Object.entries(gui_editor.network.getPositions()).map(node2JSON);
+    network = gui_editor.aux_network;
+    var aux = Object.entries(gui_editor.aux_network.getPositions()).map(node2JSON);
+
+    // nodes.forEach(addConnections);
+
+    var edges = Object.entries(gui_editor.network.body.edges)
+                        .map(e => {
+                                    const ename = `fields_${e[0]}`;
+                                    const el = document.getElementById(ename);
+                                    //VP~ const ff = $(el).find('input').toArray().map(x => [x.name, x.value]).reduce((a, v) => ({...a, [v[0]]: v[1]}), {});
+                                    const ff = mwm_utils.formFields(el);
+                                    const hval = mwm_utils.hashCode(JSON.stringify(ff));
+                                    const oval = $(el).attr('data-hash');
+                                    return {
+                                        id: e[0],
+                                        //fromId:e[1].fromId,
+                                        //toId:e[1].toId,
+                                        fromId:e[1].from.options.label,
+                                        toId:e[1].to.options.label,
+                                        clean: hval === oval ? true : false,
+                                        form: ff
+                                    }
+                            }
+                        );
+    // pretty print node data
+    var exportValue = JSON.stringify({stages: nodes, dependencies: edges, misc: aux}, undefined, 2);
+    /*
+    function addConnections(elem, index) {
+        // elem.connections = network.getConnectedNodes(elem.id);
+        elem.connections = gui_editor.network.getConnectedEdges(elem.id).filter(x => gui_editor.network.body.edges[x].toId != elem.id).map(x => gui_editor.network.body.edges[x].toId);
+    }
+    */
+    console.log(exportValue);
+    //VP~ return exportValue;
+    //VP~ new wf_uploader().make_poms_call('echo', {form: exportValue});     // Send to the server
+    new wf_uploader().make_poms_call('save_campaign', {form: exportValue});     // Send to the server
+}
+
+
 /* instance methods */
 
 
 /* rename stages for a workflow clone */
 gui_editor.prototype.clone_rename = function (from, to, experiment, role) {
     console.log(["clone_rename:", from, to, experiment, role]);
-    var sl, i, j, before, after, jstr, newsl;
-    sl = this.state['campaign']['campaign_stage_list'].split(/  */);
-    console.log(["clone_rename: stage list", sl]);
-    this.state['campaign']['tag'] = gui_editor.new_name(this.state['campaign']['tag'], from, to);
-    newsl = [];
+    var stages, before, after;
+    stages = this.state['campaign']['campaign_stage_list'].split(/  */);
+    console.log(["clone_rename: stage list", stages]);
+    this.state['campaign']['name'] = gui_editor.new_name(this.state['campaign']['name'], from, to);
+
+    let new_stages = [];
     if (experiment != undefined) {
         this.state['campaign']['experiment'] = experiment;
     }
@@ -300,14 +379,14 @@ gui_editor.prototype.clone_rename = function (from, to, experiment, role) {
         this.state['campaign']['poms_role'] = role;
     }
     console.log(["clone_rename: campaign fields", this.state['campaign']]);
-    for (i in sl) {
-        before = sl[i];
+    for (let i in stages) {
+        before = stages[i];
         console.log("fixing: " + before);
         after = gui_editor.new_name(before, from, to);
         this.rename_entity('campaign_stage ' + before, 'campaign_stage ' + after);
-        newsl.push(after);
+        new_stages.push(after);
     }
-    this.state['campaign']['campaign_stage_list'] = newsl.join(' ');
+    this.state['campaign']['campaign_stage_list'] = new_stages.join(' ');
 }
 
 
@@ -420,6 +499,7 @@ gui_editor.prototype.defaultify_state = function() {
         }
         this.mode[j] = maxslot;
     }
+    this.mode.name = this.state.campaign.name;  // 'Name' is special case - store the campaign name!
     /* now null out whatever is the default */
     for (k in this.state) {
         if (k.indexOf('campaign_stage') == 0) {
@@ -483,7 +563,7 @@ gui_editor.prototype.delete_key_if_empty = function (k, box) {
     }
     /* if it is a campaign stage, remove it from the campaign stage list */
     if (k.indexOf('campaign_stage ') == 0) {
-        var sl, stage;
+        let sl, stage;
         stage = k.slice(15);
         sl = this.state['campaign']['campaign_stage_list'].split(/  */);
         sl = sl.filter(function (x) { return x != stage && x != ''; })
@@ -522,14 +602,18 @@ gui_editor.prototype.ini2json = function (s) {
       // skip blank lines and comments
       if (l.length == 0)
           continue;
-      if (l[0] == '#') {
+      if (l[0] == '#') {                                    // Comment line
           continue;
-
-      } else if (l[0] == '[' &&  l[l.length-1]  == ']') {
+      } else if (l[0] == '[' &&  l[l.length-1]  == ']') {   // Section
+          const s = l.slice(1, -1);
+          const sn = s.split(' ')[1];
           this.un_trailing_comma(res);
           res.push('},');
-          res.push('"' + l.slice(1,-1) + '": {');
-      } else {
+          res.push('"' + s + '": {');
+          if (sn) {
+            res.push(`"name": "${sn}",`);                   // Add section name as a value
+          }
+      } else {                                              // Section body
           l = mwm_utils.trim_blanks(l)
           l = l.replace(/%%/g,'%');
           k_v = l.match(/([^ =:]*) *[=:] *(.*)/);
@@ -681,7 +765,7 @@ gui_editor.prototype.draw_state = function () {
     //this.tsort(stagelist);
     stagelist.sort((a, b) => 1 - this.checkdep(a, b)).reverse();
 
-    cb = new label_box("Campaign: " + this.state['campaign']['tag'], this.div, x, y);
+    cb = new label_box("Campaign: " + this.state['campaign']['name'], this.div, x, y);
     cb.innerHTML += `<button type="button" onclick="gui_editor.save('${this.div.id}')">Save</button> <span id="savebusy"></span>`;
 
     y = y + 2 * labely;
@@ -690,7 +774,8 @@ gui_editor.prototype.draw_state = function () {
     csb.innerHTML += `<button type="button" onclick="gui_editor.makedep('${this.div.id}')">+ Connect Stages</button>`;
     csb.innerHTML += `<button type="button" onclick="gui_editor.newstage('${this.div.id}')">+ New Stage</button>`;
 
-    var dfb = new misc_box("Default Values", this.mode, mwm_utils.dict_keys(this.mode), this.div, x + 240, y, this);
+    //VP~ var dfb = new misc_box("Default Values", this.mode, mwm_utils.dict_keys(this.mode), this.div, x + 240, y, this);
+    var dfb = new misc_box(`campaign ${this.state.campaign.name}`, this.mode, mwm_utils.dict_keys(this.mode), this.div, x + 240, y, this);
 
     y = y + 2 * labely;
 
@@ -772,28 +857,17 @@ gui_editor.prototype.draw_state = function () {
     };
 
     let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
-    let edge_labels = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).map(x => x.split(' ')[1]);
-    //// let node_list = node_labels.map(x => ({id:(Math.random() * 1e7).toString(32), label:x, shape:'box'}));
-    //let node_list = [
-    //    {id:'default', label:'default', group:0, shape:'ellipse', x:250, y:0, fixed:true, size:35}
-    //].concat(node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 0)})));
-    let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 0)}));
-    let nodes = new vis.DataSet(node_list);
-    //let edge_list = edge_labels.map(x => ({from: depFrom(x), to: x}));
-    //let rr = [];
-    ////for (const e of edges) {
-        ////e.from.forEach(x => rr.push({from: x, to: e.to}));
-    ////};
-    //edge_list.forEach(e => e.from.forEach(x => rr.push({from: x, to: e.to})));
-    let rr = this.depboxes.map(x => ({id:x.box.id, from:x.stage1, to:x.stage2}));
-    let edges = new vis.DataSet(rr);
+    let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 1)}));
+    //VP~ this.nodes = new vis.DataSet([{id: 'Default Values', label: this.state.campaign.name,
+    this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`, label: this.state.campaign.name,
+                                         shape: 'ellipse', fixed: false, size: 50}, ...node_list]);
 
-    // create a network
-    let container = document.getElementById('mystages');
+    let edge_list = this.depboxes.map(x => ({id: x.box.id, from: x.stage1, to: x.stage2}));
+    let edges = new vis.DataSet(edge_list);
 
     // provide the data in the vis format
     let data = {
-        nodes: nodes,
+        nodes: this.nodes,
         edges: edges
     };
     const options = {
@@ -808,7 +882,7 @@ gui_editor.prototype.draw_state = function () {
             hierarchical: {
                 enabled: true,
                 levelSeparation: 150,
-                nodeSpacing: 50,
+                nodeSpacing: 80,
                 treeSpacing: 30,
                 parentCentralization: true,
                 blockShifting: true,
@@ -819,9 +893,10 @@ gui_editor.prototype.draw_state = function () {
         },
         edges: {
             smooth: {
-                type: "dynamic",
-                //forceDirection: "vertical",
-                roundness: 0.9
+                //VP~ type: "dynamic",
+                type: "discrete",
+                forceDirection: "horizontal",
+                roundness: 1
             },
             width: 2,
             arrows: {to : true},
@@ -833,103 +908,65 @@ gui_editor.prototype.draw_state = function () {
                 document.getElementById('node-operation').innerHTML = "Add Node";
                 editNode(data, clearNodePopUp, callback);
             },
-            editNode: function (data, callback) {
-                // filling in the popup DOM elements
-                document.getElementById('node-operation').innerHTML = "Edit Node";
-                editNode(data, cancelNodeEdit, callback);
-            },
+            //editNode: function (data, callback) {
+                //// filling in the popup DOM elements
+                //document.getElementById('node-operation').innerHTML = "Edit Node";
+                //editNode(data, cancelNodeEdit, callback);
+            //},
             deleteNode: (data, callback) => {
-                const id = data.nodes[0];
-                console.log("Deleting ", id);
-                const l1 = Object.keys(this.state).filter(x => x.endsWith(id));
+                const node_id = data.nodes[0];
+                console.log("Deleting ", node_id);
+                // Delete from DB
+                //VP~ new wf_uploader().make_poms_call('campaign_edit', {'action': 'delete', 'pcl_call': '1', 'name': node_id, 'unlink': 0}, null);
+                //
+                // Delete stages+dependencies from state
+                const l1 = Object.keys(this.state).filter(x => x.endsWith(node_id));
                 console.log("Main: ", l1);
-                const l2 = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).filter(x => this.state[x].campaign_stage_1==id);
-                console.log("Then: ", l2);
                 l1.forEach(x => delete this.state[x]);
+                // Delete referred dependencies
+                const l2 = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).filter(x => this.state[x].campaign_stage_1==node_id);
+                console.log("Then: ", l2);
                 l2.forEach(x => delete this.state[x]);
-                this.state.campaign.campaign_stage_list = this.state.campaign.campaign_stage_list.split(' ').filter(x => x != id).join(' ');
+                // Update stage list in state
+                this.state.campaign.campaign_stage_list = this.state.campaign.campaign_stage_list.split(' ').filter(x => x != node_id).join(' ');
                 callback(data);
             },
             addEdge: function (data, callback) {
                 if (data.from == data.to) {
-                    //var r = confirm("Do you want to connect the node to itself?");
-                    //if (r != true)
-                    {
-                        callback(null);
-                        return;
-                    }
+                    callback(null);
                 }
                 else {
                     saveEdgeData(data, callback);
                 }
+            },
+            deleteEdge: (data, callback) => {
+                data.state = this.state;
+                deleteEdge(data, callback);
             }
         }
     };
+
     // initialize network
-    //var network = new vis.Network(container, data, options);
+    let container = document.getElementById('mystages');
     gui_editor.network = new vis.Network(container, data, options);
 
-    var defaults = new vis.Network(document.getElementById('mydefaults'), {
-                nodes: [{id:'default', label:'default', x:250, y:0, fixed:true, size:50}],
-                edges: []
-            }, {
-                autoResize: false,
-                physics: false,
-                nodes: { shadow: true, shape: 'ellipse' }
-            }
-        );
-
-    var jobtypes = new vis.Network(document.getElementById('myjobtypes'), {
-            nodes: [
-                { id: 1, label: "Login/Setup", shape: 'box', group: 0 },
-                { id: 2, label: "jobtype 1", shape: 'box', group: 0 },
-                { id: 3, label: "jobtype 2", shape: 'box', group: 0 },
-            ],
-            edges: []
-        }, {
-            autoResize: true,
-            physics: true,
-            nodes: {
-                shadow: true,
-                shape: 'box'
-            },
-            layout: {
-                improvedLayout: true,
-                hierarchical: {
-                    enabled: true,
-                    levelSeparation: 150,
-                    nodeSpacing: 50,
-                    parentCentralization: true,
-                    blockShifting: true,
-                    edgeMinimization: true,
-                    direction: "UD",
-                    sortMethod: "directed"
-                }
-            }
-        }
-    );
-
-    const getLabel = e => nodes.get(e).label;
+    const getLabel = e => this.nodes.get(e).label;
 
     gui_editor.network.on("doubleClick", function (params) {
         if (params.nodes[0] !== undefined) {
             const node = params.nodes[0];
-            // alert("In double click handler");
-            //const el = document.getElementById('popup_form');
-            const el = document.getElementById(`fields_campaign_stage ${node}`);
+            //VP~ const ename = node.startsWith("Default") ? `fields_${node}` : `fields_campaign_stage ${node}`;
+            const ename = node.startsWith("campaign ") ? `fields_${node}` : `fields_campaign_stage ${node}`;
+            const el = document.getElementById(ename);
             el.style.display = 'block';
             el.style.left = `${params.pointer.DOM.x}px`;
-            el.style.top = `${params.pointer.DOM.y}px`;
-            // const h3 = el.querySelector('h3');
-            // h3.innerHTML = 'campaign_stage ' + nodes.get(node).label;
+            el.style.top = `${params.pointer.DOM.y+20}px`;
         } else if (params.edges[0] !== undefined) {
-            // Not yet...
             const edge = params.edges[0];
-            //const node = gui_editor.network.getConnectedNodes(edge)[0];
             const el = document.getElementById(`fields_${edge}`);
             el.style.display = 'block';
             el.style.left = `${params.pointer.DOM.x}px`;
-            el.style.top = `${params.pointer.DOM.y}px`;
+            el.style.top = `${params.pointer.DOM.y+20}px`;
             const h3 = el.querySelector('h3');
             const e = edges.get(edge);
             h3.innerHTML = `dependency ${getLabel(e.from)} -> ${getLabel(e.to)}`;
@@ -954,6 +991,46 @@ gui_editor.prototype.draw_state = function () {
         }
     });
 
+    let setup_nodes = launchtemplist.map(x => ({id: `login_setup ${x}`, label: x, shape: 'ellipse', color: '#22efcc'}));
+    let jtype_nodes = this.jobtypelist.map(x => ({id: `job_type ${x}`, label: x}));
+
+    gui_editor.aux_network = new vis.Network(document.getElementById('myjobtypes'), {
+            nodes: [...setup_nodes, ...jtype_nodes],
+            edges: []
+        }, {
+            autoResize: true,
+            physics: true,
+            nodes: {
+                shadow: true,
+                shape: 'box'
+            },
+            layout: {
+                improvedLayout: true,
+                hierarchical: {
+                    enabled: true,
+                    levelSeparation: 150,
+                    nodeSpacing: 50,
+                    parentCentralization: true,
+                    blockShifting: true,
+                    edgeMinimization: true,
+                    direction: "UD",
+                    sortMethod: "directed"
+                }
+            }
+        }
+    );
+
+    gui_editor.aux_network.on("doubleClick", function (params) {
+        if (params.nodes[0] !== undefined) {
+            const node = params.nodes[0];
+            const el = document.getElementById(`fields_${node}`);
+            el.style.display = 'block';
+            el.style.left = `${params.pointer.DOM.x}px`;
+            el.style.top = `${params.pointer.DOM.y + 400}px`;
+        }
+        params.event = "[original event]";
+        document.getElementById('eventSpan').innerHTML = '<h2>doubleClick event:</h2>' + JSON.stringify(params, null, 4);
+    });
 
     function editNode(data, cancelAction, callback) {
         document.getElementById('node-label').value = data.label;
@@ -975,24 +1052,27 @@ gui_editor.prototype.draw_state = function () {
     }
 
     const saveNodeData = (data, callback) => {
-        //data.physics = false;
-        //data.fixed = true;
-        //data.label = document.getElementById('node-label').value;
-        //clearNodePopUp();
-        //callback(data);
         const label = document.getElementById('node-label').value;
         clearNodePopUp();
         if (label.includes('*')) {
             const nn = label.split('*');
             for (let i = 0; i < nn[1]; i++) {
                 data.label = `${nn[0]}_${i}`;
-                this.new_stage(data.label);
-                callback(data);
+                const reply = callback(data);
+                // Now handle our stuff
+                this.new_stage(reply[1], data.label);
+                this.add_dependency(reply[0], reply[1], reply[2]);
             }
         } else {
             data.label = label;
-            this.new_stage(data.label);
-            callback(data);
+            const reply = callback(data);
+            // Now handle our stuff
+            if (data.id) {
+                this.new_stage(data.id, data.label);
+            } else {
+                this.new_stage(reply[1], data.label);
+                this.add_dependency(reply[0], reply[1], reply[2]);
+            }
         }
     }
 
@@ -1014,36 +1094,36 @@ gui_editor.prototype.draw_state = function () {
             data.from = data.from.id;
         //data.label = document.getElementById('edge-label').value;
         //clearEdgePopUp();
-        data.id = this.add_dependency(data.from, data.to);
+        const eid = edges.add({from: data.from, to: data.to})[0];
+        data.id = this.add_dependency(data.from, data.to, eid);
+        //VP~ callback(data);
+        callback(null);
+    }
+
+    const deleteEdge = (data, callback) => {
+        const id = data.edges[0];
+        const el = gui_editor.network.body.edges[id];
+        const link = [el.fromId, el.toId];
+        //new wf_uploader().make_poms_call('campaign_edit', {'action': 'delete', 'pcl_call': '1', 'unlink': JSON.stringify(link)}, null);
+        //// delete this.state[id];
+        //// this.depboxes = this.depboxes.filter(x => !(x.box.id==id));
         callback(data);
     }
 
     const addNewNode = (params) => {
-        //var newId = (Math.random() * 1e7).toString(32);
+        //// var newId = (Math.random() * 1e7).toString(32);
         let newId = params.label;
         const parentId = params.nodes[0];
-        const eid = this.add_dependency(parentId, newId);
-        nodes.add({id: newId, label: params.label, group: nodes.get(parentId).group+1, physics: true});
-        edges.add({id: eid, from: parentId, to: newId});
+        //VP~ const eid = this.add_dependency(parentId, newId);
+        //VP~ const nid = this.nodes.add({id: newId, label: params.label,
+        const nid = this.nodes.add({label: params.label,
+                                    group: this.nodes.get(parentId).group ? this.nodes.get(parentId).group + 1 : 0})[0];
+        //VP~ edges.add({id: eid, from: parentId, to: newId});
+        const eid = edges.add({from: parentId, to: nid})[0];
+        //VP~ this.add_dependency(parentId, nid);
+        return [parentId, nid, eid];
     }
 
-    function exportNetwork() {
-
-        // var nodes = objectToArray(network.getPositions());
-        var nodes = gui_editor.network.body.nodeIndices.map(x => ({id: x}));
-
-        nodes.forEach(addConnections);
-
-        // pretty print node data
-        var exportValue = JSON.stringify(nodes, undefined, 2);
-        console.log(exportValue);
-
-    }
-
-    function addConnections(elem, index) {
-        // elem.connections = network.getConnectedNodes(elem.id);
-        elem.connections = gui_editor.network.getConnectedEdges(elem.id).filter(x => gui_editor.network.body.edges[x].toId != elem.id).map(x => gui_editor.network.body.edges[x].toId);
-    }
 }
 
 /*
@@ -1056,7 +1136,7 @@ gui_editor.prototype.redraw_deps = function () {
     }
 }
 
-gui_editor.prototype.make_select = function(sval, eid) {
+gui_editor.prototype.make_select = function(sval, eid, placeholder) {
     /*
         <select name="carlist" form="carform">
             <option value="volvo">Volvo</option>
@@ -1070,8 +1150,8 @@ gui_editor.prototype.make_select = function(sval, eid) {
                 const sel = (val == sval) ? ' selected' : '';
                 return acc + `<option value="${val}"${sel}>${val}</option>\n`;
             },
-        '<option value="">default</option>\n');
-        return `<select id="${eid}" name="jtlist">\n${res}</select>\n`;
+        `<option value="" disabled selected hidden>${placeholder}</option>\n`);
+        return `<select id="${eid}" name="job_type"  required>\n${res}</select>\n`;
     }
 
 /*
@@ -1098,7 +1178,7 @@ function label_box(text, top, x, y) {
  *   other ini file boxes
  */
 function generic_box(name, vdict, klist, top, x, y, gui) {
-    var i, k, x, y, val, placeholder;
+    var i, k, x, y;
     var stage;
     if (name == undefined) {
         /* make prototype call work... */
@@ -1130,29 +1210,34 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     stage = name.substr(name.indexOf(" ") + 1)
 
     // Build the form...
+    var val, placeholder;
+    const ro = name.match(/job_type|login_setup/) ? "disabled" : "";
     let res = [];
     //res.push(`<form id="fields_${name}" class="popup_form" style="display: none; top: ${y}px; left: ${x}px;">`);
-    res.push(`<form id="fields_${name}" class="popup_form" style="display: none;">`);
-    var val, placeholder;
-    res.push('<h3>' + name);
+    res.push(`<form id="fields_${name}" class="popup_form" style="display: none;" data-hash="" data-clean="1">`);
+    res.push('<h3>' + name.split(' ')[0]);
     //if (name != 'Default Values') {
     //    res.push(`<button title="Delete" class="rightbutton" type="button" onclick="gui_editor.delete_me('${name}')"><span class="deletebutton"></span></button><p>`);
     //}
     res.push('</h3>');
     for (i in klist) {
         k = klist[i];
+        if (k.startsWith('campaign_stage'))      // Hack to hide this from dependency form
+            continue;
         if (vdict[k] == null) {
             val = "";
-            placeholder = "default";
+            //VP~ placeholder = "default";
+            placeholder = (this.gui.mode[k]).toString();
         } else {
             val = vdict[k];
-            placeholder = "default";
+            //VP~ placeholder = "default";
+            placeholder = (this.gui.mode[k]);
         }
         res.push(`<label>${k}</label>`);
         if (k.includes("job_type")) {
-            res.push(this.gui.make_select(val, `${this.get_input_tag(k)}`));
+            res.push(this.gui.make_select(val, `${this.get_input_tag(k)}`, placeholder));
         } else {
-            res.push(`<input id="${this.get_input_tag(k)}" value="${this.escape_quotes(val)}" placeholder="${placeholder}">`);
+            res.push(`<input id="${this.get_input_tag(k)}" name="${k}" value="${this.escape_quotes(val)}" placeholder="${this.escape_quotes(placeholder)}" ${ro}>`);
         }
         if (k.indexOf('param') >= 0) {
             res.push(`<button type="button" onclick="json_field_editor.start('${this.get_input_tag(k)}')">Edit</button>`);
@@ -1170,6 +1255,9 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     //top.appendChild(this.popup_parent);
     const pp = document.getElementById("popups");
     pp.appendChild(this.popup_parent);
+    // Now calculate and store a hash
+    const hval = mwm_utils.hashCode(JSON.stringify(mwm_utils.formFields(this.popup_parent)));
+    $(`form[id='fields_${name}']`).attr('data-hash', hval);
 }
 
 /*
@@ -1377,21 +1465,24 @@ dependency_box.prototype.set_bounds = function () {
     }
 }
 
-gui_editor.prototype.new_stage = function (name) {
+gui_editor.prototype.new_stage = function (name, label) {
     var k = name || window.prompt("New stage name:");
     var x, y, b;
     this.state['campaign']['campaign_stage_list'] += " " + k;
     k = 'campaign_stage ' + k;
     this.state[k] = {
-        'dataset': null,
-        'software_version': null,
+        'name': label,
         'vo_role': null,
+        'state': null,
+        'software_version': null,
+        'dataset': null,
         'cs_split_type': null,
-        'job_type': null,
-        'login_setup': null,
-        'param_overrides': null,
         'completion_type': null,
-        'completion_pct': null
+        'completion_pct': null,
+        'param_overrides': null,
+        'test_param_overrides': null,
+        'login_setup': null,
+        'job_type': null,
     };
     x = 500;
     y = 150;
@@ -1441,8 +1532,9 @@ gui_editor.prototype.new_dependency = function() {
 }
 
 
-gui_editor.prototype.add_dependency = function(frm, to) {
-    let dep_name = 'dependencies ' + to;
+gui_editor.prototype.add_dependency = function(frm, to, id) {
+    let dep_name = id;
+    //VP~ let dep_name = 'dependencies ' + to;
     if (dep_name in this.state) {
         var istr = ((Object.keys(this.state[dep_name]).length / 2) + 1).toString();
     } else {
@@ -1452,8 +1544,11 @@ gui_editor.prototype.add_dependency = function(frm, to) {
 
     this.state[dep_name]['campaign_stage_' + istr] = frm;
     this.state[dep_name]['file_pattern_' + istr] = '%%';
-    const db = new dependency_box(`${dep_name}_${istr}`, this.state[dep_name],
-            [`campaign_stage_${istr}`, `file_pattern_${istr}`], this.div, 0, 0, this);
+    //VP~ const db = new dependency_box(`${dep_name}_${istr}`,
+    const db = new dependency_box(dep_name,
+                                  this.state[dep_name],
+                                  [`campaign_stage_${istr}`, `file_pattern_${istr}`],
+                                  this.div, 0, 0, this);
     this.depboxes.push(db);
     return db.box.id;
 }
@@ -1461,20 +1556,39 @@ gui_editor.prototype.add_dependency = function(frm, to) {
 gui_editor.prototype.save_state = function () {
     var sb = document.getElementById("savebusy");
     sb.innerHTML = "Saving...";
-    var thisx = this;
     /* call with setTimeout to give Saving a chance to show up */
-    window.setTimeout(function () {
+    //VP~ window.setTimeout( () => {
+        gui_editor.exportNetwork();
+        sb.innerHTML = "Done.";
+        gui_editor.unmodified();
+
+        const args = mwm_utils.getSearchParams()
+        const base = mwm_utils.getBaseURL()
+        console.log(["args:", args, "base:", base ])
+        if (args['clone'] != undefined) {
+            const campaign = args['to'];
+            location.href = `${base}gui_wf_edit?campaign=${campaign}`;
+        } else {
+            location.reload();
+        }
+    //VP~ }, 200);
+    /*
+    window.setTimeout( () => {
         var wu = new wf_uploader();
         console.log(["wu", wu]);
-        thisx.undefaultify_state();
-        wu.upload(thisx.state, function () {
-            /* callback for when whole upload is done.. */
+        this.undefaultify_state();
+        //const deps = this.depboxes.map(d => [d.box.id, d.stage1, d.stage2]);
+        //VP~ let cfg_stages = this.nodes.map(x => [x.id, x.group]).filter(x => !x[0].startsWith("Default")).sort( (a, b) => b[1] - a[1] ).map(x => x[0]);
+        let cfg_stages = this.nodes.map(x => [x.id, x.group]).filter(x => !x[0].startsWith("campaign ")).sort( (a, b) => b[1] - a[1] ).map(x => x[0]);
+        wu.upload(this.state, cfg_stages, () => {
+            // callback for when whole upload is done..
             console.log("finally done uploading, whew");
-            thisx.defaultify_state();
+            this.defaultify_state();
             sb.innerHTML = "Done.";
             gui_editor.unmodified();
         });
     }, 5);
+    */
 }
 
 
@@ -1487,7 +1601,7 @@ function wf_uploader() {
     this.cfg = null;
 }
 
-wf_uploader.prototype.upload = function(state, completed) {
+wf_uploader.prototype.upload = function(state, cfg_stages, completed) {
     this.cfg = state;
     var thisx = this;
     this.get_headers(function (headers) {
@@ -1500,11 +1614,12 @@ wf_uploader.prototype.upload = function(state, completed) {
         var role = state['campaign']['poms_role'];
         thisx.update_session_role(role);
         //var cfg_stages = thisx.cfg['campaign']['campaign_stage_list'].split(' ');
-        var cfg_stages = Object.keys(thisx.cfg).filter(x => x.startsWith('campaign_stage '));
-        cfg_stages = cfg_stages.map(x => x.split(' ')[1]);
+        //var cfg_stages = Object.keys(thisx.cfg).filter(x => x.startsWith('campaign_stage '));
+        //cfg_stages = cfg_stages.map(x => x.split(' ')[1]);
         var cfg_jobtypes = {};
         var cfg_launches = {};
         var i, l, jt, s;
+        //
         for (i in cfg_stages) {
             s = cfg_stages[i];
             if (('campaign_stage ' + s) in thisx.cfg) {
@@ -1530,7 +1645,7 @@ wf_uploader.prototype.upload = function(state, completed) {
         ).then(
             _ => {
                 console.log("calling tag_em...");
-                thisx.tag_em(thisx.cfg['campaign']['tag'], cfg_stages, completed);
+                thisx.tag_em(thisx.cfg['campaign']['name'], cfg_stages, completed);
             }
         );
     });
@@ -1543,11 +1658,17 @@ wf_uploader.prototype.upload2 = function(state, cfg_stages, completed) {
         console.log("upload2: stage:", s);
         p = p.then(_ => this.upload_stage(s));
     }
+    /*
+    for (const d of this.deps) {
+        console.log("upload2: dep:", d);
+        p = p.then(_ => this.upload_dependency(d));
+    }
+    */
     return p;
 }
 
 
-wf_uploader.prototype.tag_em = function(tag, cfg_stages, completed) {   // FIXME: Might not needed as is.
+wf_uploader.prototype.tag_em = function(name, cfg_stages, completed) {   // FIXME: Might not needed as is.
     var thisx = this;
     /* have to re-fetch the list, if we added any campaigns... */
     console.log("tag_em calling get_campaign_list")
@@ -1557,7 +1678,7 @@ wf_uploader.prototype.tag_em = function(tag, cfg_stages, completed) {   // FIXME
         var cids = cfg_stages.map(function (x) { return (x in cim) ? cim[x].toString() : x });
         console.log(["have campaign_list", thisx.cname_id_map]);
 
-        var args = { 'tag_name': tag, 'campaign_id': cids.join(','), 'experiment': thisx.cfg['campaign']['experiment'] };
+        var args = { 'campaign_name': name, 'campaign_stage_id': cids.join(','), 'experiment': thisx.cfg['campaign']['experiment'] };
         thisx.make_poms_call('link_tags', args, completed);
     });
 }
@@ -1630,38 +1751,41 @@ wf_uploader.prototype.upload_login_setup = function (l) {
     });
 }
 
-wf_uploader.prototype.upload_stage =  function(st) {
-    var i, dst, field_map, deps, d, args, k, pat;
-    field_map = {
-            'dataset': 'ae_dataset',
-            'software_version': 'ae_software_version',
-            'vo_role': 'ae_vo_role',
-            'cs_split_type': 'ae_split_type',
-            'job_type': 'ae_campaign_definition',
-            'login_setup': 'ae_launch_name',
-            'param_overrides': 'ae_param_overrides',
-            'completion_type': 'ae_completion_type',
-            'completion_pct': 'ae_completion_pct',
-        };
+wf_uploader.prototype.upload_stage = function(stage_name) {
+    var i, dst, deps, d, args, k, pat;
+    const depname = `dependencies ${stage_name}`;
+    const field_map = {
+        'dataset': 'ae_dataset',
+        'software_version': 'ae_software_version',
+        'vo_role': 'ae_vo_role',
+        'cs_split_type': 'ae_split_type',
+        'job_type': 'ae_campaign_definition',
+        'login_setup': 'ae_launch_name',
+        'param_overrides': 'ae_param_overrides',
+        'completion_type': 'ae_completion_type',
+        'completion_pct': 'ae_completion_pct',
+    };
     deps = { "file_patterns": [], "campaign_stages": [] }
+    /* Disable dependencies building to decouple saving the stages from saving the dependencies */
     for (i = 0; i < 10; i++) {
-        if ((('dependencies ' + st) in this.cfg) && ('campaign_stage_' + i.toString()) in this.cfg['dependencies ' + st]) {
-            dst = this.cfg['dependencies ' + st]['campaign_stage_' + i.toString()];
-            pat = this.cfg['dependencies ' + st]['file_pattern_' + i.toString()];
+        if ((depname in this.cfg) && (`campaign_stage_${i}`) in this.cfg[depname]) {
+            dst = this.cfg[depname][`campaign_stage_${i}`];
+            pat = this.cfg[depname][`file_pattern_${i}`];
             deps["campaign_stages"].push(dst);
             deps["file_patterns"].push(pat);
         }
     }
-    d = this.cfg['campaign_stage ' + st];
+
+    d = this.cfg[`campaign_stage ${stage_name}`];
     args = {
-            'pcl_call': '1',
-            'pc_username': this.username,
-            'action': (st in this.cname_id_map) ? 'edit' : 'add',
-            'ae_campaign_name': st,
-            'experiment': this.cfg['campaign']['experiment'],
-            'ae_active': 'True',
-            'ae_depends': JSON.stringify(deps),
-        }
+        'pcl_call': '1',
+        'pc_username': this.username,
+        'action': (stage_name in this.cname_id_map) ? 'edit' : 'add',
+        'ae_campaign_name': stage_name,
+        'experiment': this.cfg['campaign']['experiment'],
+        'ae_active': 'True',
+        'ae_depends': JSON.stringify(deps),
+    }
     for (k in d) {
         if (k in field_map) {
             args[field_map[k]] = d[k];
@@ -1671,6 +1795,23 @@ wf_uploader.prototype.upload_stage =  function(st) {
     }
     return this.make_poms_call('campaign_edit', args);
 }
+
+
+wf_uploader.prototype.upload_dependency = function(dependency) {
+    const link = dependency.slice(1);
+
+    const args = {
+        'pcl_call': '1',
+        'pc_username': this.username,
+        'action': 'add_dep',
+        'ae_campaign_name': '',
+        'experiment': this.cfg['campaign']['experiment'],
+        'ae_active': 'True',
+        'link': JSON.stringify(link),
+    }
+    // return this.make_poms_call('campaign_edit', args);
+}
+
 
 wf_uploader.prototype.get_campaign_list = function(completed) {
     var x, res, i, triple;

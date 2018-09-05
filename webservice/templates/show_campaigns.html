@@ -125,18 +125,18 @@ Campaigns {%include 'help_button.html'%}
 <div class="ui modal" id="template_clone_modal">
   <i class="close icon"></i>
   <h3 class="block header"><span id="template_header">
-      Clone Workflow </span> {{ show_hint('', 'Clone Workflow') }}
+      Clone Campaign </span> {{ show_hint('', 'Clone Campaign') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
     <form id="template_clone_form" class="ui form" method="GET" action="{{pomspath}}/gui_wf_edit?">
       <div class="two fields">
         <div class="field">
-          <label>Existing Workflow Name</label>
+          <label>Existing Campaign Name</label>
           <input type="text" id="from" name="from" readonly>
         </div>
         <div class="field">
-          <label>Clone Workflow Name</label>
+          <label>Clone Campaign Name</label>
           <input type="text" id="to" name="to">
         </div>
       </div>

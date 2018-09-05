@@ -117,13 +117,15 @@ div.box.selected {
 }
 
 #mystages {
-    width: 1000px;
+    /* width: 1000px;   */
+    width: 90%;
     height: 600px;
     border: 1px solid lightgray;
 }
 
 #mydefaults, #myjobtypes {
-    width: 1000px;
+    /* width: 1000px;   */
+    width: 90%;
     height: 100px;
     border: 1px solid lightgray;
 }
@@ -143,9 +145,9 @@ div.box.selected {
     padding:10px;
     text-align: center;
     box-shadow: 10px 10px 20px grey;
-  }
+}
 
-  #edge-popUp {
+#edge-popUp {
     display:none;
     position:absolute;
     top:350px;
@@ -160,5 +162,10 @@ div.box.selected {
     padding:10px;
     text-align: center;
     box-shadow: 10px 10px 20px grey;
-  }
+}
 
+select:invalid  {
+    /* background-color: #CCE2FF; */
+    /* color: grey; */
+    background-color: lightcyan;
+}
