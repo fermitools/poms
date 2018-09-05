@@ -1073,6 +1073,7 @@ class CampaignsPOMS:
             'authorized' : []
         }
         q = (dbhandle.query(Campaign)
+              .options(joinedload(Campaign.experimenter_creator_obj))
               .filter(Campaign.experiment == experimenter.session_experiment)
               .order_by(Campaign.name))
 
