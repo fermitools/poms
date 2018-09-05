@@ -639,7 +639,8 @@ class CampaignsPOMS:
                 else:
                     pass
             else:
-                campaign_stage_id = kwargs.pop('ae_campaign_stage_id')
+                if kwargs.has_key('ae_campaign_stage_id'):
+                    campaign_stage_id = kwargs.pop('ae_campaign_stage_id')
                 job_type_id = kwargs.pop('ae_campaign_definition_id')
                 login_setup_id = kwargs.pop('ae_launch_id')
                 experimenter_id = kwargs.pop('experimenter_id')

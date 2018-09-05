@@ -14,14 +14,17 @@ class uploader:
         self.cfg = ConfigParser.SafeConfigParser()
         self.cfg.optionxform = str
         self.cfg.read(cfgfile)
+        print("DEBUG: config file %s read:\n-------" % cfgfile)
+        self.cfg.write(sys.stdout)
+        print("-----")
         if self.cfg.has_section('global'):
             self.cfg_globals = dict(self.cfg.items('global'))
         else:
             self.cfg_globals = dict()
 
         role = args.poms_role
-        if self.cfg_get('global','poms_role'):
-            role = self.cfg_get('global','poms_role') 
+        if self.cfg_get('campaign','poms_role'):
+            role = self.cfg_get('campaign','poms_role') 
 
         poms_client.update_session_role(role)
 
@@ -40,10 +43,10 @@ class uploader:
         print("here")
         for s in cfg_stages:
             cfg_jobtypes.add(self.cfg_get('campaign_stage %s'%s, 'job_type'))
-            cfg_launches.add(self.cfg_get('campaign_stage %s'%s, 'launch_template'))
+            cfg_launches.add(self.cfg_get('campaign_stage %s'%s, 'login_setup'))
             
         for l in cfg_launches:
-            self.upload_launch_template(l, testflag, action)
+            self.upload_login_setup(l, testflag, action)
         for jt in cfg_jobtypes:
             self.upload_jobtype(jt, testflag, action)
         for s in cfg_stages:
@@ -82,13 +85,13 @@ class uploader:
         print("args:%s" % repr(args))
         poms_client.campaign_definition_edit(**args)
 
-    def upload_launch_template(self,lt, testflag = None, action = 'add'):
+    def upload_login_setup(self,lt, testflag = None, action = 'add'):
         field_map = {
             'host': 'launch_host',
             'account': 'user_account',
             'setup': 'launch_setup',
         }
-        d = dict(self.cfg.items('launch_template %s' % lt))
+        d = dict(self.cfg.items('login_setup %s' % lt))
         print( "I should upload lt %s" % lt)
         print( repr(d))
         args = {
@@ -111,10 +114,12 @@ class uploader:
             'vo_role': 'vo_role',
             'cs_split_type': 'ae_split_type',
             'job_type': 'ae_campaign_definition',
-            'launch_template': 'ae_launch_name',
+            'login_setup': 'ae_launch_name',
             'param_overrides': 'ae_param_overrides',
             'completion_type': 'ae_completion_type',
             'completion_pct': 'ae_completion_pct',
+            'test_param_overrides': 'ae_test_param_overrides',
+            'state': 'ae_active',
         }
         deps = {"file_patterns":[], "campaigns":[]}
         for i in range(1,10):
@@ -129,7 +134,7 @@ class uploader:
         print( "deps: %s" % repr(deps))
         args = {
             'action': action, 
-            'ae_campaign_name': st,  
+            'ae_stage_name': st,  
             'experiment': self.cfg_get('campaign','experiment'), 
             'ae_active': True, 
             'ae_depends': json.dumps(deps),
@@ -139,7 +144,7 @@ class uploader:
         for k in d.keys():
             args[field_map.get(k,k)] = d[k]
         print("args:%s" % repr(args))
-        poms_client.campaign_edit(**args)
+        poms_client.campaign_stage_edit(**args)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
@@ -155,6 +160,6 @@ if __name__ == '__main__':
     if args.test:
         testflag = args.test
 
-    u=uploader(sys.argv[1], args)
+    u=uploader(sys.argv[-1], args)
     u.upload_wf(testflag, args.action)
 
