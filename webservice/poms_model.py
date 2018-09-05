@@ -81,11 +81,11 @@ class CampaignStage(Base):
     campaign_obj = relationship('Campaign')
 
     providers = relationship("CampaignStage",
-                        secondary="campaign_dependencies",
-                        primaryjoin="CampaignStage.campaign_stage_id==CampaignDependency.provides_campaign_stage_id",
-                        secondaryjoin="CampaignStage.campaign_stage_id==CampaignDependency.needs_campaign_stage_id",
-                        backref="consumers"
-    )
+                             secondary="campaign_dependencies",
+                             primaryjoin="CampaignStage.campaign_stage_id==CampaignDependency.provides_campaign_stage_id",
+                             secondaryjoin="CampaignStage.campaign_stage_id==CampaignDependency.needs_campaign_stage_id",
+                             backref="consumers"
+                             )
 
 class Experimenter(Base):
     __tablename__ = 'experimenters'
