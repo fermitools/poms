@@ -383,7 +383,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
                     <select name="de_select_{{i}}" id="de_select_{{i}}">
                         <option value="">-</option>
                         {% for cs in data['campaign_stages'] %}
-                           <option value="{{cs.name}}">{{cs.name}}</option>
+                           <option value="{{cs[0].name}}">{{cs[0].name}}</option>
                         {% endfor %}
                     </select>
                 </td>
@@ -542,8 +542,8 @@ $("#edit_depends_modal_btn").click(function() {
   var dlists = JSON.parse(depends);
   var i;
   for (i = 0 ; i < dlists['campaign_stages'].length; i++ ) {
-      var sel = "#de_select_" + i.toString()+ " option[value="+dlists['campaign_stages'][i]+"]";
-      var dep = "#de_filepat_"+i.toString();
+      var sel = "#de_select_" + i.toString()+ " option[value=\""+dlists['campaign_stages'][i]+"\"]";
+      var dep = "#de_filepat_"+i.toString()
       $(sel).prop('selected','selected');
       $(dep).val(dlists['file_patterns'][i]);
   }

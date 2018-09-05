@@ -2,7 +2,7 @@
 
 
 {%block title%}
-<title>POMS Workflow Editor</title>
+<title>POMS Campaign Editor</title>
 <script src="{{pomspath}}/static/js/gui_editor_3.js"></script>
 <script src="{{pomspath}}/static/js/json_field_editor.js"></script>
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/gui_editor_3.css">
@@ -16,11 +16,12 @@
 
 {%block header%}
 <h1 class="ui header">
-    Workflow Editor for {{campaign}} {%include 'help_button.html'%}
-
+    Campaign Editor for <span id="camp_header1">{{campaign}}</span> {%include 'help_button.html'%}
+    <!--
     <div class="sub header">
         Edit whole workflow
     </div>
+    -->
 </h1>
 {%endblock%}
 
@@ -63,17 +64,17 @@
 </div>
 
 
-<h3>Campaign Stages
+<h3>Campaign <span id="camp_header2">{{campaign}}</span>
     <button class="ui button" onclick="gui_editor.save('gui_editor_0');">Save</button><span id="savebusy"></span>
 </h3>
+<!--
 <div id="mydefaults" oncontextmenu='return false;' contextmenu=""></div>
+-->
 <div id="popups"></div>
 <div id="mystages" oncontextmenu='return false;' contextmenu=""></div>
-<!--
-<h3>Campaign Login/Setup and Jobtypes</h3>
--->
+<h4 style="margin: 1px;">Campaign Login/Setups and Jobtypes</h4>
 <div id="myjobtypes" oncontextmenu='return false;' contextmenu=""></div>
-<pre id="eventSpan"></pre>
+<pre id="eventSpan" style="display: none;"></pre>
 <div id="outer_gui_editor_frame" style="display: none;"></div>
 
 <script type="text/javascript">
@@ -81,13 +82,14 @@
 function main() {
    var args = mwm_utils.getSearchParams()
    var base = mwm_utils.getBaseURL()
-   console.log(["args:", args, "base:", base ])
+   console.log(["args:", args, "base:", base])
    if (args['campaign'] != undefined) {
        var url;
-       if (args['campaign'].indexOf('samples%2F') == 0) {
+       //VP~ if (args['campaign'].indexOf('samples/') == 0) {
+       if (args['campaign'].startsWith('samples')) {
           url = base + '/static/' + args['campaign'].replace('%2F','/')
        } else {
-          url = base +'/campaign_deps_ini?tag=' + args['campaign']
+          url = base +'/campaign_deps_ini?name=' + args['campaign']
        }
        $.ajax( {
           url: url
@@ -96,6 +98,8 @@ function main() {
           var args = mwm_utils.getSearchParams();
           if ('clone' in args && 'Clone' == args['clone']) {
               ge.set_state_clone(data, args['from'], args['to'],'{{session_experiment}}','{{session_role}}');
+              $("#camp_header1").html(`${args['to']}`);
+              $("#camp_header2").html(`${args['to']}`);
           } else {
               ge.set_state(data);
           }

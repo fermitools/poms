@@ -1,6 +1,6 @@
 [campaign]
 experiment=sample
-tag=sample_split_merge
+name=sample_split_merge
 campaign_stage_list=sample_split sample_merge_triga sample_merge_trigb sample_merge_trigc sample_merge_trigd sample_merge_trige sample_merge_trigf
 
 

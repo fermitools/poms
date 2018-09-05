@@ -32,10 +32,12 @@ class Campaign(Base):
     campaign_id = Column(Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)"))
     experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
     name = Column(Text, nullable=False)
+    defaults = Column(JSON)
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
 
     tags = relationship(Tag, secondary='campaigns_tags')
+    experimenter_creator_obj = relationship('Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
 
 
 class CampaignStage(Base):
@@ -46,10 +48,12 @@ class CampaignStage(Base):
     name = Column(Text, nullable=False)
     job_type_id = Column(ForeignKey('job_types.job_type_id'), nullable=False, index=True,
                          server_default=text("nextval('campaigns_campaign_definition_id_seq'::regclass)"))
+
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
     updater = Column(ForeignKey('experimenters.experimenter_id'), index=True)
     updated = Column(DateTime(True))
+
     vo_role = Column(Text, nullable=False)
     cs_last_split = Column(Integer, nullable=True)
     cs_split_type = Column(Text, nullable=True)
@@ -66,6 +70,7 @@ class CampaignStage(Base):
     creator_role = Column(Text, nullable=False)
     role_held_with = Column(Text, nullable=True)
     campaign_type = Column(Text, nullable=False)
+
     campaign_id = Column(ForeignKey('campaigns.campaign_id'), nullable=True, index=True)
 
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='CampaignStage.creator == Experimenter.experimenter_id')
@@ -76,6 +81,12 @@ class CampaignStage(Base):
     login_setup_obj = relationship('LoginSetup')
     campaign_obj = relationship('Campaign')
 
+    providers = relationship("CampaignStage",
+                             secondary="campaign_dependencies",
+                             primaryjoin="CampaignStage.campaign_stage_id==CampaignDependency.provides_campaign_stage_id",
+                             secondaryjoin="CampaignStage.campaign_stage_id==CampaignDependency.needs_campaign_stage_id",
+                             backref="consumers"
+                             )
 
 class Experimenter(Base):
     __tablename__ = 'experimenters'
@@ -220,7 +231,7 @@ class CampaignStageSnapshot(Base):
     completion_type = Column(Text, nullable=False, server_default=text("located"))
     completion_pct = Column(Text, nullable=False, server_default="95")
 
-    campaign = relationship('CampaignStage')
+    campaign = relationship('CampaignStage')    # FIXME: Should it be campaign_stage?
 
 
 class JobTypeSnapshot(Base):
@@ -241,7 +252,7 @@ class JobTypeSnapshot(Base):
     updater = Column(Integer)
     updated = Column(DateTime(True))
 
-    campaign_definition = relationship('JobType')
+    campaign_definition = relationship('JobType')   # FIXME: Should it be job_type?
 
 
 class LoginSetupSnapshot(Base):
@@ -259,7 +270,7 @@ class LoginSetupSnapshot(Base):
     updated = Column(DateTime(True))
     name = Column(Text, nullable=False)
 
-    launch = relationship('LoginSetup')
+    launch = relationship('LoginSetup')     # FIXME: Should it be login_setup?
 
 
 class RecoveryType(Base):
@@ -278,7 +289,7 @@ class CampaignRecovery(Base):
     recovery_order = Column(Integer, nullable=False)
     param_overrides = Column(JSON)
 
-    campaign_definition = relationship('JobType')
+    campaign_definition = relationship('JobType')   # FIXME: Should it be job_type?
     recovery_type = relationship('RecoveryType')
 
 
@@ -290,8 +301,8 @@ class CampaignDependency(Base):
     provides_campaign_stage_id = Column(ForeignKey('campaign_stages.campaign_stage_id'), primary_key=True, nullable=False, index=True)
     file_patterns = Column(Text, nullable=False)
 
-    needs_camp = relationship('CampaignStage', foreign_keys=needs_campaign_stage_id)
-    uses_camp = relationship('CampaignStage', foreign_keys=provides_campaign_stage_id)
+    provider = relationship('CampaignStage', foreign_keys=needs_campaign_stage_id, backref='consumer_associations')
+    consumer = relationship('CampaignStage', foreign_keys=provides_campaign_stage_id, backref='provider_associations')
 
 
 class HeldLaunch(Base):

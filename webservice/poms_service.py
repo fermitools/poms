@@ -199,25 +199,26 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_deps_ini(self, tag=None, camp_id=None, login_setup=None, campaign_definition=None, launch_template=None):
-        if login_setup is None and launch_template is not None:
-            login_setup = launch_template
+    def campaign_deps_ini(self, tag=None, camp_id=None, login_setup=None,
+                          campaign_definition=None, launch_template=None, name=None, stage_id=None, job_type=None):
         experiment = cherrypy.session.get('experimenter').session_experiment
-        res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, cherrypy.config.get, experiment, tag, camp_id, login_setup, campaign_definition)
+        res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, cherrypy.config.get, experiment,
+                                                   name=name or tag,
+                                                   stage_id=stage_id or camp_id,
+                                                   login_setup=login_setup or launch_template,
+                                                   job_type=job_type or campaign_definition)
         cherrypy.response.headers['Content-Type'] = 'text/ini'
         return res
 
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_deps(self, campaign_name = None, campaign_stage_id = None, tag=None, camp_id=None):
-        if campaign_name == None and tag != None:
-            campaign_name = tag
-        if campaign_stage_id == None and camp_id != None:
-            campaign_stage_id = camp_id
+    def campaign_deps(self, campaign_name=None, campaign_stage_id=None, tag=None, camp_id=None):
 
         template = self.jinja_env.get_template('campaign_deps.html')
-        svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config.get, campaign_name, campaign_stage_id)
+        svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config.get,
+                                                       campaign_name=campaign_name or tag,
+                                                       campaign_stage_id=campaign_stage_id or camp_id)
         return template.render(tag=tag, svgdata=svgdata, help_page="CampaignDepsHelp")
 
 
@@ -325,7 +326,7 @@ class PomsService(object):
     @logit.logstartstop
     def show_campaigns(self, *args, **kwargs):
         experimenter = cherrypy.session.get('experimenter')
-        tl, last_activity, msg, data = self.campaignsPOMS.show_campaigns(cherrypy.request.db, experimenter, *args, **kwargs)
+        tl, last_activity, msg, data = self.campaignsPOMS.show_campaigns(cherrypy.request.db, cherrypy.session, experimenter, *args, **kwargs)
         template = self.jinja_env.get_template('show_campaigns.html')
         return template.render(tl=tl, last_activity=last_activity, msg=msg, data= data, help_page="ShowCampaignTagsHelp")
 
@@ -659,8 +660,9 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def update_submission(self, submission_id, jobsub_job_id, pct_complete = None, status = None, project = None):
-        res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id, status  = status, project = project, pct_complete = pct_complete)
+    def update_submission(self, submission_id, jobsub_job_id, pct_complete=None, status=None, project=None):
+        res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id,
+                                              status=status, project=project, pct_complete=pct_complete)
         return res
 
 
@@ -895,8 +897,10 @@ class PomsService(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def link_tags(self, campaign_id=None, tag_name=None, experiment=None):
-        return self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session.get, campaign_id, tag_name, experiment)
+    def link_tags(self, campaign_stage_id=None, tag_name=None, campaign_name=None, experiment=None, campaign_id=None):
+        return self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session.get,
+                                       campaign_stage_id=campaign_stage_id or campaign_id,
+                                       campaign_name=campaign_name or tag_name, experiment=experiment)
 
 
     @cherrypy.expose
@@ -928,5 +932,17 @@ class PomsService(object):
         cherrypy.response.headers['Content-Type'] = 'application/json'
         return self.tagsPOMS.auto_complete_tags_search(cherrypy.request.db, experiment, q)
 
-# -----------------------
-# debugging
+    # -----------------------
+    # debugging
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def echo(self, *args, **kwargs):
+        data = self.campaignsPOMS.echo(cherrypy.request.db, cherrypy.session, *args, **kwargs)
+        return data
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def save_campaign(self, *args, **kwargs):
+        data = self.campaignsPOMS.save_campaign(cherrypy.request.db, cherrypy.session, *args, **kwargs)
+        return data
