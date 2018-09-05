@@ -36,7 +36,7 @@ class Agent:
         recent submissions and reports them to POMS
     '''
     full_query = '''
-         {"query":"{submissions(group: \\"%s\\"){id pomsTaskID done running idle   held } }","operationName":null}
+         {"query":"{submissions(group: \\"%s\\" %s){id pomsTaskID done running idle   held } }","operationName":null}
          '''
 
     submission_query = '''
@@ -164,28 +164,46 @@ class Agent:
         return res
 
 
-    def check_submissions(self, group):
+    def check_submissions(self, group, since = ''):
         '''
             get submission info from Landscape for a given group
             update various known bits of info
         '''
+
         LOGIT.info("check_submissions: %s", group)
+
+        if since:
+           LOGIT.info("check_submissions: since %s", since)
+           since = ', from: "%s%"' % since
+
         if group == 'samdev':
             group = 'fermilab'
-        htr = self.ssess.post(self.submission_uri,
-                              data=Agent.full_query % group,
-                              headers=self.submission_headers)
-        ddict = htr.json()
-        htr.close()
+        try:
+            htr = self.ssess.post(self.submission_uri,
+                                  data=Agent.full_query % (group, since),
+                                  headers=self.submission_headers)
+            ddict = htr.json()
+            htr.close()
+        except requests.exceptions.RequestException as r:
+            LOGIT.info("connection error for group %s: %s" , group, r)
+            ddict={}
+            pass
+
         LOGIT.info("data: %s", repr(ddict))
         if not ddict.get('data', None) or not ddict['data'].get('submissions', None):
             return
 
+        thispass = set()
         for entry in ddict['data']['submissions']:
 
             # skip if we don't have a pomsTaskID...
             if not entry.get('pomsTaskID', None):
                 continue
+
+            # don't get confused by duplicate listings
+            if entry.get('id', None) in thispass:
+                continue
+            thispass.add(entry.get('id',None))
 
             if entry['done'] == self.known['status'].get(entry['pomsTaskID'], None):
                 report_status = None
@@ -235,40 +253,49 @@ class Agent:
             if entry['pomsTaskID'] not in self.known['pct'] or report_pct_complete:
                 self.known['pct'][entry['pomsTaskID']] = report_pct_complete
 
-    def poll(self):
+    def poll(self, since = ''):
         '''
            Operate as a daemon, poll service and update every 30 sec or so
         '''
         while 1:
             try:
                 for exp in self.elist:
-                    self.check_submissions(exp)
+                    self.check_submissions(exp, since = since)
             except:
-                LOGIT.exception("Excpeition in check_submissions")
+                LOGIT.exception("Exception in check_submissions")
             time.sleep(30)
+            since = '' 
 
 def main():
     '''
        mainline --handle command line parameters and
            instantiate an Agent object.
     '''
+
+    if len(sys.argv) > 1 and sys.argv[1] == '--since':
+        since = sys.argv[2]
+        sys.argv = [sys.argv[0]] + sys.argv[3:]
+    else:
+        since = ''
+
     if len(sys.argv) > 1 and sys.argv[1] == '-d':
         logging.basicConfig(level=logging.DEBUG)
         sys.argv = [sys.argv[0]] + sys.argv[2:]
     else:
         logging.basicConfig(level=logging.INFO)
 
+
     if len(sys.argv) > 1 and sys.argv[1] == '-t':
         agent = Agent(poms_uri="http://127.0.0.1:8080",
                       submission_uri=os.environ["SUBMISSION_INFO"])
         for exp in agent.elist:
-            agent.check_submissions(exp)
+            agent.check_submissions(exp, since=since)
     elif len(sys.argv) > 1 and sys.argv[1] == '-T':
         agent = Agent()
         for exp in agent.elist:
-            agent.check_submissions(exp)
+            agent.check_submissions(exp,since = since)
     else:
         agent = Agent()
-        agent.poll()
+        agent.poll(since)
 
 main()
