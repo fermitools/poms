@@ -706,7 +706,7 @@ gui_editor.prototype.getdepth = function (s1, cnt) {
     if (s1 == '') {
         return cnt;
     }
-    var k = "dependencies " + s1;
+    const k = "dependencies " + s1;
 
     if (!(k in this.state)) {
         return cnt;
@@ -720,6 +720,9 @@ gui_editor.prototype.getdepth = function (s1, cnt) {
         return cnt;
     }
     if (!(deps['campaign_stage_1'])) {
+        return cnt;
+    }
+    if (deps['campaign_stage_1'] == s1) {
         return cnt;
     }
     return this.getdepth(deps['campaign_stage_1'], cnt+1);
@@ -933,11 +936,13 @@ gui_editor.prototype.draw_state = function () {
             },
             addEdge: function (data, callback) {
                 if (data.from == data.to) {
-                    callback(null);
+                    const r = confirm("Do you want to connect the node to itself?");
+                    if (r != true) {
+                        callback(null);
+                        return;
+                    }
                 }
-                else {
-                    saveEdgeData(data, callback);
-                }
+                saveEdgeData(data, callback);
             },
             deleteEdge: (data, callback) => {
                 data.state = this.state;
