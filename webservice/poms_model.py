@@ -37,6 +37,7 @@ class Campaign(Base):
     creator_role = Column(Text, nullable=False)
 
     tags = relationship(Tag, secondary='campaigns_tags')
+    experimenter_creator_obj = relationship('Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
 
 
 class CampaignStage(Base):

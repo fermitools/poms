@@ -52,6 +52,7 @@ Campaigns {%include 'help_button.html'%}
                 <th>Tags</th>
                 <th data-sorter="false" data-filter="false">Rename<br>Campaign</th>
                 <th data-sorter="false" data-filter="false">Delete<br>Campaign</th>
+                <th>Creator</th>
             </tr>
         </thead>
         <tbody>
@@ -109,6 +110,9 @@ Campaigns {%include 'help_button.html'%}
                     <button {{ 'class="ui disabled button"' if (data.authorized[loop.index] == false) }}>
                         <i class="trash blue icon" onclick="delete_campaign('{{s.name}}', '{{s.campaign_id}}');"></i>
                     </button>
+                </td>
+                <td>
+                    {{s.experimenter_creator_obj.username}}
                 </td>
             </tr>
 
