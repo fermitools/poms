@@ -37,10 +37,13 @@ class uploader:
             return None
 
     def upload_wf(self, testflag = None, action = 'add'):
+        campaign_name = self.cfg.get('campaign', 'name')
         cfg_stages = self.cfg_get('campaign','campaign_stage_list').split()
         cfg_jobtypes = set()
         cfg_launches = set()
-        print("here")
+
+        campaign_id = poms_client.get_campaign_id(campaign_name = campaign_name, test = testflag)
+
         for s in cfg_stages:
             cfg_jobtypes.add(self.cfg_get('campaign_stage %s'%s, 'job_type'))
             cfg_launches.add(self.cfg_get('campaign_stage %s'%s, 'login_setup'))
@@ -50,9 +53,7 @@ class uploader:
         for jt in cfg_jobtypes:
             self.upload_jobtype(jt, testflag, action)
         for s in cfg_stages:
-            self.upload_stage(s, testflag, action)
-
-        self.tag_em(self.cfg_get('campaign','tag'), cfg_stages, testflag)
+            self.upload_stage(s, testflag, action, campaign_id)
 
 
     def tag_em(self, tag, cfg_stages, testflag = False):
@@ -107,7 +108,7 @@ class uploader:
         args['launch_setup'] = [ args['launch_setup'] ]
         poms_client.launch_template_edit(**args)
         
-    def upload_stage(self,st, testflag = None, action = 'add'):
+    def upload_stage(self,st, testflag = None, action = 'add', campaign_id = None):
         field_map = {
             'dataset': 'dataset',
             'software_version': 'ae_software_version',
@@ -138,6 +139,7 @@ class uploader:
             'experiment': self.cfg_get('campaign','experiment'), 
             'ae_active': True, 
             'ae_depends': json.dumps(deps),
+            'campaign_id': campaign_id,
             'pc_username' : os.environ['USER']
         }
         args['test_client'] = testflag
@@ -155,6 +157,7 @@ if __name__ == '__main__':
     parser.add_argument('--action', type=str, help='say whether to "add" new or "edit" (update) existing records', default = 'add')
     parser.add_argument('--dev', action='store_const', const='dev', dest='test' , metavar='',  help='use the dev/test instance of POMS')
     parser.add_argument('--int', action='store_const', const='int', dest='test' , metavar='',  help='use the int/integration instance of POMS')
+    parser.add_argument('ini_file',help='.ini file containing campaign description')
     args = parser.parse_args()
 
     if args.test:

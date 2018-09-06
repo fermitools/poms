@@ -750,6 +750,9 @@ class CampaignsPOMS:
                 logit.log("depends for %s(%s) are: %s" % (campaign_stage_id, name, depends))
                 if 'campaign_stages' in depends:
                     dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
+                elif 'campaigns' in depends:
+                    # backwards combatability
+                    dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaigns']), CampaignStage.experiment == exp).all()
                 else:
                     dep_stages = {}
                 for (i, stage) in enumerate(dep_stages):
