@@ -226,6 +226,19 @@ class CampaignsPOMS:
         data['message'] = message
         return data
 
+    def get_campaign_id(self, dbhandle, seshandle, campaign_name):
+        c = dbhandle.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == seshandle('experimenter').session_experiment).first()
+        if not c:
+            c = Campaign(name=campaign_name,
+                            experiment=seshandle('experimenter').session_experiment,
+                            creator=seshandle('experimenter').experimenter_id,
+                            creator_role=seshandle('experimenter').session_role)
+            dbhandle.add(c)
+            dbhandle.commit()
+
+        return c.campaign_id
+       
+           
 
     def campaign_add_name(self, dbhandle, seshandle, *args, **kwargs):
         """
@@ -577,6 +590,7 @@ class CampaignsPOMS:
                                                       CampaignStage.name == "_test_%s" % campaign_def_name).first()
         return cs.campaign_stage_id
 
+
     def campaign_stage_edit(self, dbhandle, sesshandle, *args, **kwargs):
         """
             callback for campaign stage edit screens to update campaign record
@@ -617,12 +631,10 @@ class CampaignsPOMS:
                 if unlink is None:
                     dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
                 else:
-                    print("############################## About to unlink: {}".format(unlink))
                     if isinstance(unlink, (int, str)):
                         cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
                         cs.campaign_id = None
                     else:
-                        print("################## Preparing query:")
                         qq = (dbhandle.query(CampaignDependency)
                               .filter(CampaignDependency.provider.has(CampaignStage.name == unlink[0]))
                               .filter(CampaignDependency.consumer.has(CampaignStage.name == unlink[1]))
@@ -637,7 +649,10 @@ class CampaignsPOMS:
                 raise
 
         elif action in ('add', 'edit'):
-            campaign_id = kwargs.pop('ae_campaign_name')
+            if 'ae_campaign_name' in kwargs:
+                campaign_id = kwargs.pop('ae_campaign_name')
+            else:
+                campaign_id = None
             name = kwargs.pop('ae_stage_name')
             if isinstance(name, str):
                 name = name.strip()
@@ -685,7 +700,8 @@ class CampaignsPOMS:
                 else:
                     pass
             else:
-                campaign_stage_id = kwargs.pop('ae_campaign_stage_id')
+                if 'ae_campaign_stage_id' in kwargs:
+                    campaign_stage_id = kwargs.pop('ae_campaign_stage_id')
                 job_type_id = kwargs.pop('ae_campaign_definition_id')
                 login_setup_id = kwargs.pop('ae_launch_id')
                 experimenter_id = kwargs.pop('experimenter_id')
@@ -735,7 +751,13 @@ class CampaignsPOMS:
                 # now redo dependencies
                 dbhandle.query(CampaignDependency).filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
                 logit.log("depends for %s(%s) are: %s" % (campaign_stage_id, name, depends))
-                dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
+                if 'campaign_stages' in depends:
+                    dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
+                elif 'campaigns' in depends:
+                    # backwards combatability
+                    dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaigns']), CampaignStage.experiment == exp).all()
+                else:
+                    dep_stages = {}
                 for (i, stage) in enumerate(dep_stages):
                     logit.log("trying to add dependency for: {}".format(stage.name))
                     dep = CampaignDependency(provides_campaign_stage_id=campaign_stage_id,
@@ -914,16 +936,16 @@ class CampaignsPOMS:
         return "Submission=%d" % s.submission_id
 
 
-    def campaign_deps_ini(self, dbhandle, config_get, session_experiment, name=None, stage_id=None, login_setup=None, campaign_definition=None):
+    def campaign_deps_ini(self, dbhandle, config_get, session_experiment, name=None, stage_id=None, login_setup=None, job_type=None):
         res = []
         campaign_stages = []
         jts = set()
         lts = set()
         the_campaign = None
 
-        if campaign_definition is not None:
-            res.append("# with job_type %s" % campaign_definition)
-            cd = dbhandle.query(JobType).filter(JobType.name == campaign_definition, JobType.experiment == session_experiment).first()
+        if job_type is not None:
+            res.append("# with job_type %s" % job_type)
+            cd = dbhandle.query(JobType).filter(JobType.name == job_type, JobType.experiment == session_experiment).first()
             if cd:
                 jts.add(cd)
 
@@ -1037,7 +1059,7 @@ class CampaignsPOMS:
         return "\n".join(res).replace("%", "%%")
 
 
-    def campaign_deps_svg(self, dbhandle, config_get, campaign_name=None,  campaign_stage_id=None):
+    def campaign_deps_svg(self, dbhandle, config_get, campaign_name=None, campaign_stage_id=None):
         '''
             return campaign dependencies as an SVG graph
             uses "dot" to generate the drawing
@@ -1460,15 +1482,15 @@ class CampaignsPOMS:
                                  created=th.created.replace(tzinfo=utc),
                                  tmin=th.submission_obj.created - timedelta(minutes=15),
                                  tmax=th.submission_obj.updated,
-                                 tminsec = tmin.strftime("%s"),
+                                 tminsec=tmin.strftime("%s"),
                                  status=th.status,
                                  jobsub_job_id=jjid,
-                                 jobsub_cluster = full_jjid[:jjid.find('.')],
-                                 jobsub_schedd = full_jjid[jjid.find('@')+1:],
-                                 creator = th.submission_obj.experimenter_creator_obj.username,
-                                 campaign_stage_id = th.submission_obj.campaign_stage_id,
-                                 created_s = th.submission_obj.created.strftime("%Y%m%d_%H%M%S")
-                               ))
+                                 jobsub_cluster=full_jjid[:jjid.find('.')],
+                                 jobsub_schedd=full_jjid[jjid.find('@') + 1:],
+                                 creator=th.submission_obj.experimenter_creator_obj.username,
+                                 campaign_stage_id=th.submission_obj.campaign_stage_id,
+                                 created_s=th.submission_obj.created.strftime("%Y%m%d_%H%M%S")
+                                 ))
             if th.status == 'LaunchFailed':
                 items[-1].url = failedlaunch_url_template % items[-1].__dict__
             else:
@@ -1479,8 +1501,9 @@ class CampaignsPOMS:
                                     extramap=extramap)
         return "", blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
+
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
-                               dataset="", role="Production", cr_role="production",  sesshandler=None, params=[]):
+                               dataset="", role="Production", cr_role="production", sesshandler=None, params=[]):
         """
             update or add a campaign by experiment and name...
         """
@@ -1511,9 +1534,9 @@ class CampaignsPOMS:
             changed = False
         else:
             cs = CampaignStage(experiment=experiment, name=campaign_name, creator=user, created=datetime.now(utc),
-                         software_version=version, job_type_id=cd.job_type_id,
-                         login_setup_id=ld.login_setup_id, vo_role=role, dataset='',
-                         creator_role=cr_role, campaign_type='regular')
+                               software_version=version, job_type_id=cd.job_type_id,
+                               login_setup_id=ld.login_setup_id, vo_role=role, dataset='',
+                               creator_role=cr_role, campaign_type='regular')
 
         if version:
             cs.software_verison = version
@@ -1536,6 +1559,7 @@ class CampaignsPOMS:
             dbhandle.commit()
 
         return cs.campaign_stage_id
+
 
     def get_dataset_for(self, dbhandle, samhandle, err_res, camp):
         '''

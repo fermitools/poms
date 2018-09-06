@@ -199,13 +199,14 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_deps_ini(self, tag=None, camp_id=None, login_setup=None, campaign_definition=None, launch_template=None, name=None, stage_id=None):
+    def campaign_deps_ini(self, tag=None, camp_id=None, login_setup=None,
+                          campaign_definition=None, launch_template=None, name=None, stage_id=None, job_type=None):
         experiment = cherrypy.session.get('experimenter').session_experiment
         res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, cherrypy.config.get, experiment,
                                                    name=name or tag,
                                                    stage_id=stage_id or camp_id,
                                                    login_setup=login_setup or launch_template,
-                                                   campaign_definition=campaign_definition)
+                                                   job_type=job_type or campaign_definition)
         cherrypy.response.headers['Content-Type'] = 'text/ini'
         return res
 
@@ -245,6 +246,13 @@ class PomsService(object):
         raise cherrypy.HTTPRedirect(
             "%s/campaign_stage_edit?campaign_stage_id=%d&extra_edit_flag=launch_test_job" % (self.path, cid))
 
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def get_campaign_id(self, campaign_name):
+        cid = self.campaignsPOMS.get_campaign_id( cherrypy.request.db, cherrypy.session.get, campaign_name)
+        return cid
+ 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop

@@ -89,7 +89,7 @@ function main() {
        if (args['campaign'].startsWith('samples')) {
           url = base + '/static/' + args['campaign'].replace('%2F','/')
        } else {
-          url = base +'/campaign_deps_ini?tag=' + args['campaign']
+          url = base +'/campaign_deps_ini?name=' + args['campaign']
        }
        $.ajax( {
           url: url
