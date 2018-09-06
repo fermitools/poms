@@ -270,7 +270,7 @@ class TaskPOMS:
     def update_submission_status(self, dbhandle, submission_id, status):
 
         # don't update status if we're already Located...
-        maxstatus = (dbhandle.query(func.max(SubmissionHistorystatus))
+        maxstatus = (dbhandle.query(func.max(SubmissionHistory.status))
                .filter(SubmissionHistory.status != "New",
                        SubmissionHistory.status != "Running", 
                        Submissionhistory.submission_id == submission_id)
