@@ -649,14 +649,11 @@ class CampaignsPOMS:
                 raise
 
         elif action in ('add', 'edit'):
-            if 'ae_campaign_name' in kwargs:
-                campaign_id = kwargs.pop('ae_campaign_name')
-            else:
-                campaign_id = None
+            campaign_id = kwargs.pop('ae_campaign_name')
             name = kwargs.pop('ae_stage_name')
             if isinstance(name, str):
                 name = name.strip()
-            active = (kwargs.pop('ae_active') in ('True', 'true', '1'))
+            active = (kwargs.pop('ae_active') in ('True', 'true', '1', 'Active', True, 1))
             split_type = kwargs.pop('ae_split_type', None)
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
@@ -696,7 +693,7 @@ class CampaignsPOMS:
                 job_type_id = dbhandle.query(JobType).filter(
                     JobType.name == campaign_definition_name).first().job_type_id
                 if action == 'edit':
-                    campaign_stage_id = dbhandle.query(CampaignStage).filter(CampaignStage.name == name).first().campaign_stage_id
+                    campaign_stage_id = dbhandle.query(CampaignStage).filter(CampaignStage.name == name , CampaignStage.experiment == exp).first().campaign_stage_id
                 else:
                     pass
             else:
