@@ -1,5 +1,5 @@
 # coding: utf-8
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text, Float, Table
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text
 # from sqlalchemy import Table
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql.json import JSON
@@ -160,7 +160,6 @@ class JobType(Base):
     updated = Column(DateTime(True))
     creator_role = Column(Text, nullable=False)
 
-
     experiment_obj = relationship('Experiment')
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='JobType.creator == Experimenter.experimenter_id')
     experimenter_updater_obj = relationship('Experimenter', primaryjoin='JobType.updater == Experimenter.experimenter_id')
@@ -185,7 +184,7 @@ class Submission(Base):
     job_type_snapshot_id = Column(ForeignKey('job_type_snapshots.job_type_snapshot_id'), nullable=True, index=True)
     recovery_position = Column(Integer)
     recovery_tasks_parent = Column(ForeignKey('submissions.submission_id'), index=True)
-    jobsub_job_id = Column(Text)
+    jobsub_job_id = Column(Text, nullable=False)
 
     campaign_stage_obj = relationship('CampaignStage')
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='Submission.creator == Experimenter.experimenter_id')
@@ -193,7 +192,6 @@ class Submission(Base):
     parent_obj = relationship('Submission', remote_side=[submission_id], foreign_keys=recovery_tasks_parent)
     login_setup_snap_obj = relationship('LoginSetupSnapshot', foreign_keys=login_setup_snapshot_id)
     campaign_stage_snapshot_obj = relationship('CampaignStageSnapshot', foreign_keys=campaign_stage_snapshot_id)
-    jobsub_job_id = Column(Text, nullable=False)
     job_type_snapshot_obj = relationship('JobTypeSnapshot', foreign_keys=job_type_snapshot_id)
 
 
