@@ -201,9 +201,9 @@ class Agent:
                 continue
 
             # don't get confused by duplicate listings
-            if entry.get('id', None) in thispass:
+            if entry.get('pomsTaskID') in thispass:
                 continue
-            thispass.add(entry.get('id',None))
+            thispass.add(entry.get('pomsTaskID'))
 
             if entry['done'] == self.known['status'].get(entry['pomsTaskID'], None):
                 report_status = None

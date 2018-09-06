@@ -273,7 +273,7 @@ class TaskPOMS:
         maxstatus = (dbhandle.query(func.max(SubmissionHistory.status))
                .filter(SubmissionHistory.status != "New",
                        SubmissionHistory.status != "Running", 
-                       Submissionhistory.submission_id == submission_id)
+                       SubmissionHistory.submission_id == submission_id)
                .one())
         logit.log("update_submission_status max status is %s" , maxstatus)
         if maxstatus == "Located":
