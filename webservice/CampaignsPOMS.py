@@ -226,6 +226,19 @@ class CampaignsPOMS:
         data['message'] = message
         return data
 
+    def get_campaign_id(self, dbhandle, seshandle, campaign_name):
+        c = dbhandle.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == seshandle('experimenter').session_experiment).first()
+        if not c:
+            c = Campaign(name=campaign_name,
+                            experiment=seshandle('experimenter').session_experiment,
+                            creator=seshandle('experimenter').experimenter_id,
+                            creator_role=seshandle('experimenter').session_role)
+            dbhandle.add(c)
+            dbhandle.commit()
+
+        return c.campaign_id
+       
+           
 
     def campaign_add_name(self, dbhandle, seshandle, *args, **kwargs):
         """
@@ -577,6 +590,7 @@ class CampaignsPOMS:
                                                       CampaignStage.name == "_test_%s" % campaign_def_name).first()
         return cs.campaign_stage_id
 
+
     def campaign_stage_edit(self, dbhandle, sesshandle, *args, **kwargs):
         """
             callback for campaign stage edit screens to update campaign record
@@ -635,7 +649,10 @@ class CampaignsPOMS:
                 raise
 
         elif action in ('add', 'edit'):
-            campaign_id = kwargs.pop('ae_campaign_name')
+            if 'ae_campaign_name' in kwargs:
+                campaign_id = kwargs.pop('ae_campaign_name')
+            else:
+                campaign_id = None
             name = kwargs.pop('ae_stage_name')
             if isinstance(name, str):
                 name = name.strip()
@@ -683,7 +700,7 @@ class CampaignsPOMS:
                 else:
                     pass
             else:
-                if kwargs.has_key('ae_campaign_stage_id'):
+                if 'ae_campaign_stage_id' in kwargs:
                     campaign_stage_id = kwargs.pop('ae_campaign_stage_id')
                 job_type_id = kwargs.pop('ae_campaign_definition_id')
                 login_setup_id = kwargs.pop('ae_launch_id')
@@ -734,7 +751,10 @@ class CampaignsPOMS:
                 # now redo dependencies
                 dbhandle.query(CampaignDependency).filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
                 logit.log("depends for %s(%s) are: %s" % (campaign_stage_id, name, depends))
-                dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
+                if 'campaign_stages' in depends:
+                    dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
+                else:
+                    dep_stages = {}
                 for (i, stage) in enumerate(dep_stages):
                     logit.log("trying to add dependency for: {}".format(stage.name))
                     dep = CampaignDependency(provides_campaign_stage_id=campaign_stage_id,

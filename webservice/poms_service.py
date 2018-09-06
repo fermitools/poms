@@ -249,6 +249,13 @@ class PomsService(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
+    def get_campaign_id(self, campaign_name):
+        cid = self.campaignsPOMS.get_campaign_id( cherrypy.request.db, cherrypy.session.get, campaign_name)
+        return cid
+ 
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
     def campaign_add_name(self, *args, **kwargs):
         data = self.campaignsPOMS.campaign_add_name(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
         return data
