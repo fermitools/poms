@@ -276,7 +276,7 @@ class TaskPOMS:
                .subquery())
 
         lasthist = (dbhandle.query(func.max(SubmissionHistory.status))
-               .filter(SubmissionHistory.created == sq)
+               .filter(SubmissionHistory.created == sq.c.latest)
                .one())
 
         # don't roll back Located
