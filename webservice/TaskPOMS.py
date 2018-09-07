@@ -269,14 +269,22 @@ class TaskPOMS:
 
     def update_submission_status(self, dbhandle, submission_id, status):
 
-        # don't update status if we're already Located...
-        maxstatus = (dbhandle.query(func.max(SubmissionHistory.status))
-               .filter(SubmissionHistory.status != "New",
-                       SubmissionHistory.status != "Running", 
-                       SubmissionHistory.submission_id == submission_id)
+        # get our latest history...
+        sq = (dbhandle.query(
+                func.max(SubmissionHistory.created).label('latest')
+              ).filter(SubmissionHistory.submission_id == submission_id)
+               .subquery())
+
+        lasthist = (dbhandle.query(func.max(SubmissionHistory.status))
+               .filter(SubmissionHistory.created == sq)
                .one())
-        logit.log("update_submission_status max status is %s" , maxstatus)
-        if maxstatus == "Located":
+
+        # don't roll back Located
+        if lasthist.status == "Located":
+            return
+
+        # don't put in duplicates
+        if lasthist.status == status:
             return
 
         sh = SubmissionHistory()
