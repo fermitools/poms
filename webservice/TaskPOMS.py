@@ -275,16 +275,20 @@ class TaskPOMS:
               ).filter(SubmissionHistory.submission_id == submission_id)
                .subquery())
 
-        lasthist = (dbhandle.query(func.max(SubmissionHistory.status))
+        lasthist = (dbhandle.query(SubmissionHistory)
                .filter(SubmissionHistory.created == sq.c.latest)
-               .one())
+               .first())
 
         # don't roll back Located
-        if lasthist.status == "Located":
+        if lasthist and lasthist.status == "Located":
+            return
+
+        # don't roll back Completed
+        if lasthist and lasthist.status == "Completed" and status != "Located":
             return
 
         # don't put in duplicates
-        if lasthist.status == status:
+        if lasthist and  lasthist.status == status:
             return
 
         sh = SubmissionHistory()
@@ -367,7 +371,7 @@ class TaskPOMS:
             dbhandle.add(s)
 
         # amend status for completion percent
-        if status == 'Running' and pct_complete and pct_complete >= s.campagin_stage_snapshot_obj.completion_pct and s.campagin_stage_snapshot_obj.completion_type == 'completed':
+        if status == 'Running' and pct_complete and pct_complete >= s.campaign_stage_snapshot_obj.completion_pct and s.campaign_stage_snapshot_obj.completion_type == 'completed':
             status = 'Completed'
 
         if status != None:
