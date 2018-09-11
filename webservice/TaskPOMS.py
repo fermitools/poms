@@ -269,14 +269,26 @@ class TaskPOMS:
 
     def update_submission_status(self, dbhandle, submission_id, status):
 
-        # don't update status if we're already Located...
-        maxstatus = (dbhandle.query(func.max(SubmissionHistory.status))
-               .filter(SubmissionHistory.status != "New",
-                       SubmissionHistory.status != "Running", 
-                       SubmissionHistory.submission_id == submission_id)
-               .one())
-        logit.log("update_submission_status max status is %s" , maxstatus)
-        if maxstatus == "Located":
+        # get our latest history...
+        sq = (dbhandle.query(
+                func.max(SubmissionHistory.created).label('latest')
+              ).filter(SubmissionHistory.submission_id == submission_id)
+               .subquery())
+
+        lasthist = (dbhandle.query(SubmissionHistory)
+               .filter(SubmissionHistory.created == sq.c.latest)
+               .first())
+
+        # don't roll back Located
+        if lasthist and lasthist.status == "Located":
+            return
+
+        # don't roll back Completed
+        if lasthist and lasthist.status == "Completed" and status != "Located":
+            return
+
+        # don't put in duplicates
+        if lasthist and  lasthist.status == status:
             return
 
         sh = SubmissionHistory()
@@ -359,7 +371,7 @@ class TaskPOMS:
             dbhandle.add(s)
 
         # amend status for completion percent
-        if status == 'Running' and pct_complete and pct_complete >= s.campagin_stage_snapshot_obj.completion_pct and s.campagin_stage_snapshot_obj.completion_type == 'completed':
+        if status == 'Running' and pct_complete and pct_complete >= s.campaign_stage_snapshot_obj.completion_pct and s.campaign_stage_snapshot_obj.completion_type == 'completed':
             status = 'Completed'
 
         if status != None:
