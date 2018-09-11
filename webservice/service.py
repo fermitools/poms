@@ -115,14 +115,14 @@ class SATool(cherrypy.Tool):
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
         try:
-	    self.session.execute("SET SESSION lock_timeout = '360s';")
-	    self.session.execute("SET SESSION statement_timeout = '240s';")
-	    self.session.commit()
+            self.session.execute("SET SESSION lock_timeout = '360s';")
+            self.session.execute("SET SESSION statement_timeout = '240s';")
+            self.session.commit()
         except sqlalchemy.exc.UnboundExecutionError:
             self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
-	    self.session.execute("SET SESSION lock_timeout = '360s';")
-	    self.session.execute("SET SESSION statement_timeout = '240s';")
-	    self.session.commit()
+            self.session.execute("SET SESSION lock_timeout = '360s';")
+            self.session.execute("SET SESSION statement_timeout = '240s';")
+            self.session.commit()
 
     def release_session(self):
         # flushing here deletes it too soon...
@@ -432,7 +432,7 @@ if True:
     cherrypy.engine.start()
 
     if not args.use_wsgi:
-        cherrypy.engine.block()		# Disable built-in HTTP server when behind wsgi
+        cherrypy.engine.block()         # Disable built-in HTTP server when behind wsgi
         logit.log("Starting Cherrypy HTTP")
 
     application = cherrypy.tree
