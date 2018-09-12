@@ -106,6 +106,7 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
         users[anal.get('username')] = {'commonname': anal.get('commonname'), 'role': 'analysis'}
     for prod in prod_users:
         users[prod.get('username')] = {'commonname': prod.get('commonname'), 'role': 'production'}
+    logging.debug("ferry data: %s" % str(users))
     return users
 
 def get_voms_data(cert, exp):
