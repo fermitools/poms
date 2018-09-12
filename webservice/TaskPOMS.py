@@ -156,7 +156,14 @@ class TaskPOMS:
         for i in range(len(summary_list)):
             submission = lookup_submission_list[i]
             cfrac = submission.campaign_stage_snapshot_obj.completion_pct / 100.0
-            threshold = (summary_list[i].get('tot_consumed', 0) * cfrac)
+            if submission.project:
+                threshold = (summary_list[i].get('tot_consumed', 0) * cfrac)
+            else:
+                # no project, so guess based on number of jobs in submit command?
+                p1 = submission.command_executed.find('-N')
+                p2 = submission.command_executed.find(' ', p1+3)
+                threshold = int(submission.command_executed[p1+3:p2])
+
             thresholds.append(threshold)
             val = float(count_list[i])
             res.append("submission %s val %f threshold %f "%(submission, val, threshold))
