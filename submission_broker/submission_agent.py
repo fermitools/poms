@@ -210,14 +210,16 @@ class Agent:
                 continue
 
             # don't get confused by duplicate listings
-            if entry.get('id', None) in thispass:
+            if entry.get('pomsTaskID') in thispass:
                 continue
-            thispass.add(entry.get('id',None))
+
+            thispass.add(entry.get('pomsTaskID'))
 
             if entry['done'] == self.known['status'].get(entry['pomsTaskID'], None):
-                report_status = None
+                report_status_flag = False
             else:
-                report_status = get_status(entry)
+                report_status_flag = True
+            report_status = get_status(entry)
 
             ntot = int(entry['running']) + int(entry['idle']) + int(entry['held'])
             if ntot >= self.known['maxjobs'].get(entry['pomsTaskID'], 0):
@@ -233,17 +235,20 @@ class Agent:
                 report_pct_complete = None
 
             if report_pct_complete == self.known['pct'].get(entry['pomsTaskID'], None):
-                report_pct_complete = None
+                report_pct_complete_flag = False
+            else:
+                report_pct_complete_flag = True
 
             if self.get_project(entry) == self.known['project'].get(entry['pomsTaskID'], None):
-                report_project = None
+                report_project_flag = False
             else:
-                report_project = self.get_project(entry)
+                report_project_flag = True
+            report_project = self.get_project(entry)
 
             #
             # actually report it if there's anything changed...
             #
-            if report_status or report_project or report_pct_complete:
+            if report_status_flag or report_project_flag or report_pct_complete_flag:
                 self.update_submission(entry['pomsTaskID'],
                                        jobsub_job_id=entry['id'],
                                        pct_complete=report_pct_complete,

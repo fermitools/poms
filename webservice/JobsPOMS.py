@@ -67,14 +67,6 @@ class JobsPOMS(object):
                 if tjid:
                     jjil.append(tjid.replace('.0', ''))
 
-            if len(jql) == 0:
-                jjil = ["(None Found)"]
-            else:
-                st = jql[0].submission_obj
-                cs = st.campaign_stage_snapshot_obj
-                for j in jql:
-                    jjil.append(j.jobsub_job_id)
-                lts = st.login_setup_snap_obj
 
         if confirm is None:
             jijatem = 'kill_jobs_confirm.html'

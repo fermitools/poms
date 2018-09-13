@@ -536,7 +536,6 @@ class CampaignsPOMS:
                     data['authorized'].append(False)
 
             # Build the recoveries for each campaign.
-            cids = []
             recs_dict = {}
             for cid in cids:
                 recs = (dbhandle.query(CampaignRecovery)
@@ -1482,8 +1481,8 @@ class CampaignsPOMS:
                                  tminsec=tmin.strftime("%s"),
                                  status=th.status,
                                  jobsub_job_id=jjid,
-                                 jobsub_cluster=full_jjid[:jjid.find('.')],
-                                 jobsub_schedd=full_jjid[jjid.find('@') + 1:],
+                                 jobsub_cluster=full_jjid[:full_jjid.find('@')],
+                                 jobsub_schedd=full_jjid[full_jjid.find('@') + 1:],
                                  creator=th.submission_obj.experimenter_creator_obj.username,
                                  campaign_stage_id=th.submission_obj.campaign_stage_id,
                                  created_s=th.submission_obj.created.strftime("%Y%m%d_%H%M%S")
