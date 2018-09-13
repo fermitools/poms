@@ -176,9 +176,9 @@ class Agent:
 
         if since:
            LOGIT.info("check_submissions: since %s", since)
-           since = ', from: "%s"' % since
-        elif lastconn.get(group,None):
-           since = ', from: "%s"' % time.strftime("%Y-%m-%dT%H:%M:%S",time.gmtime(lastconn[group]))
+           since = ', from: \\"%s\\"' % since
+        elif self.lastconn.get(group,None):
+           since = ', from: \\"%s\\"' % time.strftime("%Y-%m-%dT%H:%M:%S",time.gmtime(self.lastconn[group]))
  
 
         if group == 'samdev':
@@ -192,7 +192,7 @@ class Agent:
             ddict = htr.json()
             htr.close()
             # only remember it if we succeed...
-            lastconn[group] = start
+            self.lastconn[group] = start
         except requests.exceptions.RequestException as r:
             LOGIT.info("connection error for group %s: %s" , group, r)
             ddict={}
@@ -293,10 +293,10 @@ def main():
         since = ''
 
     if len(sys.argv) > 1 and sys.argv[1] == '-d':
-        logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(file)s:%(line)s:%(message)s")
+        logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(filename)s:%(lineno)s:%(message)s")
         sys.argv = [sys.argv[0]] + sys.argv[2:]
     else:
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(file)s:%(line)s:%(message)s")
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(filename)s:%(lineno)s:%(message)s")
 
 
     if len(sys.argv) > 1 and sys.argv[1] == '-t':
