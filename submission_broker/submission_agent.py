@@ -75,6 +75,8 @@ class Agent:
         self.elist = htr.json()
         htr.close()
 
+        self.lastconn = {}
+
     def update_submission(self, submission_id, jobsub_job_id,
                           pct_complete=None,
                           project=None,
@@ -174,16 +176,23 @@ class Agent:
 
         if since:
            LOGIT.info("check_submissions: since %s", since)
-           since = ', from: "%s%"' % since
+           since = ', from: \\"%s\\"' % since
+        elif self.lastconn.get(group,None):
+           since = ', from: \\"%s\\"' % time.strftime("%Y-%m-%dT%H:%M:%S",time.gmtime(self.lastconn[group]))
+ 
 
         if group == 'samdev':
             group = 'fermilab'
         try:
+            # keep track of when we started
+            start = time.time()
             htr = self.ssess.post(self.submission_uri,
                                   data=Agent.full_query % (group, since),
                                   headers=self.submission_headers)
             ddict = htr.json()
             htr.close()
+            # only remember it if we succeed...
+            self.lastconn[group] = start
         except requests.exceptions.RequestException as r:
             LOGIT.info("connection error for group %s: %s" , group, r)
             ddict={}
@@ -268,7 +277,7 @@ class Agent:
                     self.check_submissions(exp, since = since)
             except:
                 LOGIT.exception("Exception in check_submissions")
-            time.sleep(30)
+            time.sleep(5)
             since = '' 
 
 def main():
@@ -284,10 +293,10 @@ def main():
         since = ''
 
     if len(sys.argv) > 1 and sys.argv[1] == '-d':
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(filename)s:%(lineno)s:%(message)s")
         sys.argv = [sys.argv[0]] + sys.argv[2:]
     else:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(filename)s:%(lineno)s:%(message)s")
 
 
     if len(sys.argv) > 1 and sys.argv[1] == '-t':

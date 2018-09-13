@@ -536,7 +536,6 @@ class CampaignsPOMS:
                     data['authorized'].append(False)
 
             # Build the recoveries for each campaign.
-            cids = []
             recs_dict = {}
             for cid in cids:
                 recs = (dbhandle.query(CampaignRecovery)
