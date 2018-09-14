@@ -1755,8 +1755,16 @@ gui_editor.prototype.save_state = function () {
         // this.undefaultify_state();
         gui_editor.exportNetwork();
         // this.defaultify_state();
-        sb.innerHTML = "Done.";
+        // sb.innerHTML = "Done.";
+        sb.innerHTML = "";
         gui_editor.unmodified();
+        swal({
+            // position: 'top-end',
+            type: 'success',
+            title: 'Saved',
+            showConfirmButton: false,
+            timer: 1500
+          });
 
         const args = mwm_utils.getSearchParams()
         const base = mwm_utils.getBaseURL()
@@ -1765,7 +1773,9 @@ gui_editor.prototype.save_state = function () {
             const campaign = args['to'];
             location.href = `${base}gui_wf_edit?campaign=${campaign}`;
         } else {
-            location.reload();    // DEBUG
+            window.setTimeout( () => {
+                location.reload();
+            }, 1000);
         }
     //VP~ }, 200);
     /*
