@@ -77,6 +77,64 @@
 <pre id="eventSpan" style="display: none;"></pre>
 <div id="outer_gui_editor_frame" style="display: none;"></div>
 
+<div class="ui modal" id="jt_update">
+    <i class="close icon"></i>
+    <div class="header">
+        Jobtype Update
+    </div>
+    <div class="content">
+        <div class="ui header" id="jt_update_hdr">You may update the jobtype for stages.</div>
+            <div class="ui form">
+                <table class="ui very compact striped table">
+                    <thead>
+                        <tr>
+                            <th>Stage name</th>
+                            <th>Current Job Type</th>
+                            <th>Update</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jt_table">
+                        <!-- -->
+                    </tbody>
+                </table>
+            </div>
+    </div>
+    <div class="actions">
+        <div class="ui positive right __labeled icon button" onclick="gui_editor.update_jobtypes();">
+            Done <!-- <i class="checkmark icon"></i> -->
+        </div>
+    </div>
+</div>
+
+<div class="ui modal" id="ls_update">
+    <i class="close icon"></i>
+    <div class="header">
+        Login/Setup Update
+    </div>
+    <div class="content">
+        <div class="ui header" id="ls_update_hdr">You may update the login/setup for stages.</div>
+            <div class="ui form">
+                <table class="ui very compact striped table">
+                    <thead>
+                        <tr>
+                            <th>Stage name</th>
+                            <th>Current Login/Setup</th>
+                            <th>Update</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ls_table">
+                        <!-- -->
+                    </tbody>
+                </table>
+            </div>
+    </div>
+    <div class="actions">
+        <div class="ui positive right __labeled icon button" onclick="gui_editor.update_loginsetups();">
+            Done <!-- <i class="checkmark icon"></i> -->
+        </div>
+    </div>
+</div>
+
 <script type="text/javascript">
 
 function main() {
@@ -104,7 +162,7 @@ function main() {
               ge.set_state(data);
           }
        })
-   }
+   };
 }
 
 </script>
