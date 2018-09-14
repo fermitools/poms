@@ -138,6 +138,10 @@ grant usage on all sequences in schema public to pomsdbs;
 
 CREATE UNIQUE INDEX ON campaigns (experiment, name) WHERE name IS NOT NULL;
 
+-- Change stages to be unique within a campaign
+alter table campaign_stages drop CONSTRAINT idx_campaigns_experiment_name;
+create unique index ON campaign_stages(campaign_id,name);
+
 -- temp table keep for a while in case of conversion issues.
 create table campaigns_tags_old as (select * from campaigns_tags);
 grant all on campaigns_tags_old to pomsdbs;

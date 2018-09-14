@@ -24,10 +24,10 @@ Job Launches: {{launches}}
 {% set url = "https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Draft_POMS_Overview#" %}
 
  <div class="ui cards">
-    <!--
+
     <div class="card">
         <div class="content">
-            <i class="right floated sun outline icon teal" style="font-size: 30px;"></i>
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
 
             <div class="header">
               Obtaining a POMS Account
@@ -35,17 +35,17 @@ Job Launches: {{launches}}
             <div class="meta">
             </div>
             <div class="description">
-                POMS Access is suppled through your FNAL services account.  The account  must be VOMS registered as production or coordinator. If
-                your account does not have access, contact your experiment coordinator.
+                POMS Access is suppled through FNAL services accounts.  The account must be registered in FERRY as analysis, production
+                or coordinator. If an account does not have access or needs a different level of access, follow the steps in the help link below.
             </div>
         </div>
-        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+        <a target="_blank" href="{{url}}Getting-access-New-Experiments-New-Accounts-Users-and-Roles">
             <div class="ui bottom attached button">
-                <i class="large question circle icon"></i>
+                <i class="question circle icon"></i>
             </div>
         </a>
     </div>
-    -->
+
     <div class="card">
         <div class="content">
             <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
@@ -56,8 +56,10 @@ Job Launches: {{launches}}
             <div class="meta">
             </div>
             <div class="description">
-                A campaign may be created by using the workflow editor, creating and uploading a .ini file, or
-                using the underlying forms.   We recommend starting with the workflow editor.
+                    We recommend creating using the campaign editor.  A new campaign can be created
+                    from the Campaigns page with the add button or cloning and modifying exiting ones.
+                    For an understanding on how to do this please read the user documentation in the
+                    provided help link.
             </div>
         </div>
         <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
@@ -77,11 +79,12 @@ Job Launches: {{launches}}
             <div class="meta">
             </div>
             <div class="description">
-                    Needs a description.
+                POMS provides monitoring through Landscape and internal graphs.  All job related information is available in Fifemon.
+                Internal charts exists to track campaigns.  These are available when viewing a specific stage.
                 </div>
         </div>
         <div class="ui three bottom attached buttons">
-            <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <a target="_blank" href="{{url}}Running-the-Campaign-actions-and-monitoring">
                 <div class="ui button">
                     <i class="question circle icon"></i>
                 </div>
@@ -95,6 +98,7 @@ Job Launches: {{launches}}
         </div>
     </div>
 
+    <!--
     <div class="card">
         <div class="content">
             <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
@@ -113,6 +117,7 @@ Job Launches: {{launches}}
             </div>
         </a>
     </div>
+    -->
 
     <div class="card">
         <div class="content">
@@ -124,10 +129,11 @@ Job Launches: {{launches}}
             <div class="meta">
             </div>
             <div class="description">
-                    Needs a description.
+                    Log files are available for debugging once a stage is launched. They are accessable from the 'Campaign Stages'
+                    by viewing the details of that stage.
             </div>
         </div>
-        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+        <a target="_blank" href="{{url}}Running-the-Campaign-actions-and-monitoring">
             <div class="ui bottom attached button">
                 <i class="question circle icon"></i>
             </div>
@@ -139,15 +145,16 @@ Job Launches: {{launches}}
             <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
 
             <div class="header">
-              Debugging
+              Fife_Utils
             </div>
             <div class="meta">
             </div>
             <div class="description">
-                    Needs a description.
+                    POMS utilizes fife_launch and fife_wrap from the Fife_Utils tool set.  This provides a set of commands and interfaces
+                    with JOBSUB  passing the parameters needed to run the jobs.  Details of this can be found in the the help link below.
             </div>
         </div>
-        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+        <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/fife_utils/wiki/Fife_launchfife_wrap">
             <div class="ui bottom attached button">
                 <i class="question circle icon"></i>
             </div>
@@ -263,9 +270,9 @@ Job Launches: {{launches}}
             </div>
         </div>
         <div class="ui three bottom attached buttons">
-            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000177/dcache-io-rate-by-vo?orgId=1&var-vo={{session_experiment}}&var-PoolGroup=All">
+            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000173/dcache-transfer-overview?orgId=1">
                 <div class="ui button">
-                    Joe?
+                    Overview
                 </div>
             </a>
             <div class="ui button"></div>

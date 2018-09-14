@@ -75,6 +75,8 @@ class Agent:
         self.elist = htr.json()
         htr.close()
 
+        self.lastconn = {}
+
     def update_submission(self, submission_id, jobsub_job_id,
                           pct_complete=None,
                           project=None,
@@ -174,22 +176,29 @@ class Agent:
 
         if since:
            LOGIT.info("check_submissions: since %s", since)
-           since = ', from: "%s%"' % since
+           since = ', from: \\"%s\\"' % since
+        elif self.lastconn.get(group,None):
+           since = ', from: \\"%s\\"' % time.strftime("%Y-%m-%dT%H:%M:%S",time.gmtime(self.lastconn[group]-120))
+ 
 
         if group == 'samdev':
             group = 'fermilab'
         try:
+            # keep track of when we started
+            start = time.time()
             htr = self.ssess.post(self.submission_uri,
                                   data=Agent.full_query % (group, since),
                                   headers=self.submission_headers)
             ddict = htr.json()
             htr.close()
+            # only remember it if we succeed...
+            self.lastconn[group] = start
         except requests.exceptions.RequestException as r:
             LOGIT.info("connection error for group %s: %s" , group, r)
             ddict={}
             pass
 
-        LOGIT.info("data: %s", repr(ddict))
+        LOGIT.info("%s data: %s", group, repr(ddict))
         if not ddict.get('data', None) or not ddict['data'].get('submissions', None):
             return
 
@@ -201,14 +210,16 @@ class Agent:
                 continue
 
             # don't get confused by duplicate listings
-            if entry.get('id', None) in thispass:
+            if entry.get('pomsTaskID') in thispass:
                 continue
-            thispass.add(entry.get('id',None))
+
+            thispass.add(entry.get('pomsTaskID'))
 
             if entry['done'] == self.known['status'].get(entry['pomsTaskID'], None):
-                report_status = None
+                report_status_flag = False
             else:
-                report_status = get_status(entry)
+                report_status_flag = True
+            report_status = get_status(entry)
 
             ntot = int(entry['running']) + int(entry['idle']) + int(entry['held'])
             if ntot >= self.known['maxjobs'].get(entry['pomsTaskID'], 0):
@@ -224,17 +235,20 @@ class Agent:
                 report_pct_complete = None
 
             if report_pct_complete == self.known['pct'].get(entry['pomsTaskID'], None):
-                report_pct_complete = None
+                report_pct_complete_flag = False
+            else:
+                report_pct_complete_flag = True
 
             if self.get_project(entry) == self.known['project'].get(entry['pomsTaskID'], None):
-                report_project = None
+                report_project_flag = False
             else:
-                report_project = self.get_project(entry)
+                report_project_flag = True
+            report_project = self.get_project(entry)
 
             #
             # actually report it if there's anything changed...
             #
-            if report_status or report_project or report_pct_complete:
+            if report_status_flag or report_project_flag or report_pct_complete_flag:
                 self.update_submission(entry['pomsTaskID'],
                                        jobsub_job_id=entry['id'],
                                        pct_complete=report_pct_complete,
@@ -263,7 +277,7 @@ class Agent:
                     self.check_submissions(exp, since = since)
             except:
                 LOGIT.exception("Exception in check_submissions")
-            time.sleep(30)
+            time.sleep(120)
             since = '' 
 
 def main():
@@ -279,10 +293,10 @@ def main():
         since = ''
 
     if len(sys.argv) > 1 and sys.argv[1] == '-d':
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(filename)s:%(lineno)s:%(message)s")
         sys.argv = [sys.argv[0]] + sys.argv[2:]
     else:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(filename)s:%(lineno)s:%(message)s")
 
 
     if len(sys.argv) > 1 and sys.argv[1] == '-t':

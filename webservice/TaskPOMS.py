@@ -156,7 +156,14 @@ class TaskPOMS:
         for i in range(len(summary_list)):
             submission = lookup_submission_list[i]
             cfrac = submission.campaign_stage_snapshot_obj.completion_pct / 100.0
-            threshold = (summary_list[i].get('tot_consumed', 0) * cfrac)
+            if submission.project:
+                threshold = (summary_list[i].get('tot_consumed', 0) * cfrac)
+            else:
+                # no project, so guess based on number of jobs in submit command?
+                p1 = submission.command_executed.find('-N')
+                p2 = submission.command_executed.find(' ', p1+3)
+                threshold = int(submission.command_executed[p1+3:p2])
+
             thresholds.append(threshold)
             val = float(count_list[i])
             res.append("submission %s val %f threshold %f "%(submission, val, threshold))
@@ -269,14 +276,26 @@ class TaskPOMS:
 
     def update_submission_status(self, dbhandle, submission_id, status):
 
-        # don't update status if we're already Located...
-        maxstatus = (dbhandle.query(func.max(SubmissionHistorystatus))
-               .filter(SubmissionHistory.status != "New",
-                       SubmissionHistory.status != "Running", 
-                       Submissionhistory.submission_id == submission_id)
-               .one())
-        logit.log("update_submission_status max status is %s" , maxstatus)
-        if maxstatus == "Located":
+        # get our latest history...
+        sq = (dbhandle.query(
+                func.max(SubmissionHistory.created).label('latest')
+              ).filter(SubmissionHistory.submission_id == submission_id)
+               .subquery())
+
+        lasthist = (dbhandle.query(SubmissionHistory)
+               .filter(SubmissionHistory.created == sq.c.latest)
+               .first())
+
+        # don't roll back Located
+        if lasthist and lasthist.status == "Located":
+            return
+
+        # don't roll back Completed
+        if lasthist and lasthist.status == "Completed" and status != "Located":
+            return
+
+        # don't put in duplicates
+        if lasthist and  lasthist.status == status:
             return
 
         sh = SubmissionHistory()
@@ -359,7 +378,7 @@ class TaskPOMS:
             dbhandle.add(s)
 
         # amend status for completion percent
-        if status == 'Running' and pct_complete and pct_complete >= s.campagin_stage_snapshot_obj.completion_pct and s.campagin_stage_snapshot_obj.completion_type == 'completed':
+        if status == 'Running' and pct_complete and int(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct and s.campaign_stage_snapshot_obj.completion_type == 'completed':
             status = 'Completed'
 
         if status != None:

@@ -58,6 +58,11 @@ class jobsub_q_scraper:
 
     def update_submission(self, submission_id, jobsub_job_id, project = None, status = None):
         logit.info('update_submission: %s' % repr({'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}))
+
+        # for submissions, just give the cluster
+        if jobsub_job_id.find('.') > 0:
+            jobsub_job_id = jobsub_job_id[:jobsub_job_id.find('.')]+jobsub_job_id[jobsub_job_id.find('@'):]
+
         for i in range(4):
             try:
                 r = self.psess.post("%s/update_submission"%self.poms_uri, {'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}, verify=False)

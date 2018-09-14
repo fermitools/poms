@@ -536,7 +536,6 @@ class CampaignsPOMS:
                     data['authorized'].append(False)
 
             # Build the recoveries for each campaign.
-            cids = []
             recs_dict = {}
             for cid in cids:
                 recs = (dbhandle.query(CampaignRecovery)
@@ -649,14 +648,11 @@ class CampaignsPOMS:
                 raise
 
         elif action in ('add', 'edit'):
-            if 'ae_campaign_name' in kwargs:
-                campaign_id = kwargs.pop('ae_campaign_name')
-            else:
-                campaign_id = None
+            campaign_id = kwargs.pop('ae_campaign_name')
             name = kwargs.pop('ae_stage_name')
             if isinstance(name, str):
                 name = name.strip()
-            active = (kwargs.pop('ae_active') in ('True', 'true', '1'))
+            active = (kwargs.pop('ae_active') in ('True', 'true', '1', 'Active', True, 1))
             split_type = kwargs.pop('ae_split_type', None)
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
@@ -696,7 +692,7 @@ class CampaignsPOMS:
                 job_type_id = dbhandle.query(JobType).filter(
                     JobType.name == campaign_definition_name).first().job_type_id
                 if action == 'edit':
-                    campaign_stage_id = dbhandle.query(CampaignStage).filter(CampaignStage.name == name).first().campaign_stage_id
+                    campaign_stage_id = dbhandle.query(CampaignStage).filter(CampaignStage.name == name , CampaignStage.experiment == exp).first().campaign_stage_id
                 else:
                     pass
             else:
@@ -753,6 +749,9 @@ class CampaignsPOMS:
                 logit.log("depends for %s(%s) are: %s" % (campaign_stage_id, name, depends))
                 if 'campaign_stages' in depends:
                     dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
+                elif 'campaigns' in depends:
+                    # backwards combatability
+                    dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaigns']), CampaignStage.experiment == exp).all()
                 else:
                     dep_stages = {}
                 for (i, stage) in enumerate(dep_stages):
@@ -1500,8 +1499,8 @@ class CampaignsPOMS:
                                  tminsec=tmin.strftime("%s"),
                                  status=th.status,
                                  jobsub_job_id=jjid,
-                                 jobsub_cluster=full_jjid[:jjid.find('.')],
-                                 jobsub_schedd=full_jjid[jjid.find('@') + 1:],
+                                 jobsub_cluster=full_jjid[:full_jjid.find('@')],
+                                 jobsub_schedd=full_jjid[full_jjid.find('@') + 1:],
                                  creator=th.submission_obj.experimenter_creator_obj.username,
                                  campaign_stage_id=th.submission_obj.campaign_stage_id,
                                  created_s=th.submission_obj.created.strftime("%Y%m%d_%H%M%S")

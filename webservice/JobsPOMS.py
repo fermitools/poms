@@ -45,8 +45,7 @@ class JobsPOMS(object):
         cs = None
         if campaign_stage_id is not None or submission_id is not None:
             if campaign_stage_id is not None:
-                tl = dbhandle.query(Submission).filter(Submission.campaign_stage_id == campaign_stage_id,
-                                                       Submission.status != 'Completed', Submission.status != 'Located', Submission.status != 'Failed').all()
+                tl = dbhandle.query(Submission).filter(Submission.campaign_stage_id == campaign_stage_id).all()
             else:
                 tl = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).all()
             if len(tl):
@@ -67,14 +66,6 @@ class JobsPOMS(object):
                 if tjid:
                     jjil.append(tjid.replace('.0', ''))
 
-            if len(jql) == 0:
-                jjil = ["(None Found)"]
-            else:
-                st = jql[0].submission_obj
-                cs = st.campaign_stage_snapshot_obj
-                for j in jql:
-                    jjil.append(j.jobsub_job_id)
-                lts = st.login_setup_snap_obj
 
         if confirm is None:
             jijatem = 'kill_jobs_confirm.html'
