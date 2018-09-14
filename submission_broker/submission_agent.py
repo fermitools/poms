@@ -277,7 +277,7 @@ class Agent:
                     self.check_submissions(exp, since = since)
             except:
                 LOGIT.exception("Exception in check_submissions")
-            time.sleep(5)
+            time.sleep(120)
             since = '' 
 
 def main():
