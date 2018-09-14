@@ -40,7 +40,7 @@ class JobsPOMS(object):
 
     def kill_jobs(self, dbhandle, campaign_stage_id=None, submission_id=None, job_id=None, confirm=None, act='kill'):
         jjil = deque()
-        jql = None
+        jql = None      # FIXME: this variable is not assigned anywhere!
         s = None
         cs = None
         if campaign_stage_id is not None or submission_id is not None:
@@ -155,15 +155,18 @@ class JobsPOMS(object):
         return efflist
 
 
-    def jobtype_list(self, dbhandle, seshandle):
+    def jobtype_list(self, dbhandle, seshandle, name=None, full=None):
         """
             Return list of all jobtypes for the experiment.
         """
         exp = seshandle('experimenter').session_experiment
         #data = dbhandle.query(JobType).filter(JobType.experiment == exp).order_by(JobType.name).all()
         #return ["%s" % r for r in data]
-        data = dbhandle.query(JobType.name,
-                              JobType.launch_script,
-                              JobType.definition_parameters,
-                              JobType.output_file_patterns).filter(JobType.experiment == exp).order_by(JobType.name).all()
+        if full:
+            data = dbhandle.query(JobType.name,
+                                JobType.launch_script,
+                                JobType.definition_parameters,
+                                JobType.output_file_patterns).filter(JobType.experiment == exp).order_by(JobType.name).all()
+        else:
+            data = dbhandle.query(JobType.name).filter(JobType.experiment == exp).order_by(JobType.name).all()
         return [r._asdict() for r in data]
