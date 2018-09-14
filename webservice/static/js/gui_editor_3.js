@@ -188,7 +188,7 @@ gui_editor.toggle_form = function(id) {
             new wf_uploader().make_poms_call('get_jobtype_id', {name: `${name}`}).then(
                 (data) => {
                     if (data) {
-                        alert(`The JobType '${name}' does exist.\nPlease use a new name!`);
+                        swal(`The JobType '${name}' does exist.\nPlease use a new name!`);
                         return false;
                         //
                         const now = new Date().toISOString().split('.')[0];
@@ -237,7 +237,7 @@ gui_editor.toggle_form = function(id) {
             new wf_uploader().make_poms_call('get_loginsetup_id', {name: `${name}`}).then(
                 (data) => {
                     if (data) {
-                        alert(`The LoginSetup '${name}' does exist.\nPlease use a new name!`);
+                        swal(`The LoginSetup '${name}' does exist.\nPlease use a new name!`);
                         return false;
                     };
                     return name;
