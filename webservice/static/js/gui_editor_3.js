@@ -1027,11 +1027,14 @@ gui_editor.prototype.draw_state = function () {
         return froms;
     };
 
+    const title = "<ul><li>Click to select</li><li>Double click to open</li><li>Right click to add stages</li></ul>";
     let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
-    let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 1)}));
+    let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 1), title: title}));
     //VP~ this.nodes = new vis.DataSet([{id: 'Default Values', label: this.state.campaign.name,
-    this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`, label: this.state.campaign.name,
-                                         shape: 'ellipse', fixed: false, size: 50}, ...node_list]);
+    this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`,
+                                   label: this.state.campaign.name,
+                                   title: "Double click to open",
+                                   shape: 'ellipse', fixed: false, size: 50}, ...node_list]);
 
     let edge_list = this.depboxes.map(x => ({id: x.box.id, from: x.stage1, to: x.stage2}));
     let edges = new vis.DataSet(edge_list);
@@ -1170,8 +1173,11 @@ gui_editor.prototype.draw_state = function () {
         }
     });
 
-    let setup_nodes = launchtemplist.map(x => ({id: `login_setup ${x}`, label: x, shape: 'ellipse', color: '#22efcc'}));
-    let jtype_nodes = this.jobtypelist.map(x => ({id: `job_type ${x}`, label: x}));
+    let setup_nodes = launchtemplist.map(x => ({id: `login_setup ${x}`, label: x,
+                                                title: "Double click to open",
+                                                shape: 'ellipse', color: '#22efcc'}));
+    let jtype_nodes = this.jobtypelist.map(x => ({id: `job_type ${x}`, label: x,
+                                                  title: "Double click to open"}));
 
     gui_editor.aux_network = new vis.Network(document.getElementById('myjobtypes'), {
             nodes: [...setup_nodes, ...jtype_nodes],
