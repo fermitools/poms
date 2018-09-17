@@ -378,7 +378,7 @@ class TaskPOMS:
             dbhandle.add(s)
 
         # amend status for completion percent
-        if status == 'Running' and pct_complete and int(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct and s.campaign_stage_snapshot_obj.completion_type == 'completed':
+        if status == 'Running' and pct_complete and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct and s.campaign_stage_snapshot_obj.completion_type == 'completed':
             status = 'Completed'
 
         if status != None:
