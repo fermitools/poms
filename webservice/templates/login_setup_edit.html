@@ -45,7 +45,7 @@ Login/Setup {{ show_hint('', 'Help page') }}
     <thead>
       <tr>
         <th></th>
-        <th> Name {{ show_hint('#Name', 'Launch/Setup name') }}    </th>
+        <th> Name {{ show_hint('#Name', 'Login/Setup name') }}    </th>
         <th> Host {{ show_hint('#Host', 'Host name') }}    </th>
         <th> Account {{ show_hint('#Account', 'Account name') }} </th>
         <th> Setup (The entire shell command must be a single line.) {{ show_hint('#Setup', 'Shell commands to set up login environment for running campaign stage<br>') }}
@@ -121,7 +121,7 @@ Login/Setup {{ show_hint('', 'Help page') }}
 <div class="ui modal" id="template_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header"><span id="template_header">
-    Launch/Setup Editor </span> {{ show_hint('', 'Edit template') }}
+    Login/Setup Editor </span> {{ show_hint('', 'Edit template') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
@@ -185,7 +185,7 @@ $("#experiment").change(function() {
 */
 
   function delete_template(template) {
-    $("#confirm_modal_message").text("Delete the launch/setup named" +template+" ?")
+    $("#confirm_modal_message").text("Delete the login/setup named" +template+" ?")
     mod_form = $("#confirm_modal").modal({
     closable  : false,
     onApprove : function(){
@@ -209,7 +209,7 @@ $("#experiment").change(function() {
       $("#ae_launch_action").val("add");
       $("#ae_launch_name").val("CLONE OF: " + name)
     }
-    $("#template_header").text("Launch/Setup Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
+    $("#template_header").text("Login/Setup Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
     $("#ae_launch_id").val(login_setup_id);
     $("#ae_launch_host").val(launch_host);
     $("#ae_launch_account").val(launch_account);
@@ -231,7 +231,7 @@ $("#experiment").change(function() {
 
   function add_template() {
     $("#template_add_edit_modal").form('reset');
-    $("#template_header").text("Launch/Setup Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
+    $("#template_header").text("Login/Setup Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
     $("#ae_experiment").val("{{ data.curr_experiment if data.curr_experiment is defined}}");
     $("#template_add_edit_modal").modal({}).modal('show');
   }
