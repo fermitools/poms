@@ -105,6 +105,7 @@ function gui_editor(toptag) {
 
     //
     this.jobtypes = [];
+    this.loginsetups = [];
 }
 
 
@@ -147,21 +148,124 @@ gui_editor.redraw_all_deps = function () {
 
 /* make form visible/invisible, save on invis */
 gui_editor.toggle_form = function(id) {
-    gui_editor.modified()
-    var e = document.getElementById(id);
-    if (e && e.style.display == 'block') {
-        if (e.parentNode && e.parentNode.gui_box) {
-            e.parentNode.gui_box.save_values();
-            if (id.includes('campaign')) {
-                const nm = id.split(' ')[1];        // component name
-                const nname = id.includes('_stage') ? nm : `campaign ${nm}`;                    // build node name
-                //VP~ this.nodes.update([{id: nname, label: e.name.value}]);
-                gui_editor.network.body.data.nodes.update({id: nname, label: e.name.value});    // update label
+    const form = document.getElementById(id);
+    const ff = mwm_utils.formFields(form);
+    const nhash = mwm_utils.hashCode(JSON.stringify(ff));
+    const ohash = $(form).attr('data-hash');
+
+    if (nhash !== ohash)
+        gui_editor.modified();
+
+    if (form && form.style.display == 'block') {
+        // Closing the form
+        if (form.parentNode && form.parentNode.gui_box) {
+            form.parentNode.gui_box.save_values();
+            if (!id.includes('dependency')) {                   // For any component excluding dependencies
+                var nm = id.split(' ')[1];                      // Extract component name
+                const m = id.match(/campaign |job_type |login_setup /);
+                const nname = m ? `${m[0]}${nm}` : nm;          // build node name
+                if (gui_editor.network.body.data.nodes.get(nname)) {
+                    gui_editor.network.body.data.nodes.update({id: nname, label: form.name.value});        // update label
+                } else if (gui_editor.aux_network.body.data.nodes.get(nname)) {
+                    gui_editor.aux_network.body.data.nodes.update({id: nname, label: form.name.value});    // update label
+                }
             }
         }
-        e.style.display = 'none';
-    } else if ( e ) {
-        e.style.display = 'block';
+        form.style.display = 'none';        // Hide the form
+    } else if (form) {
+        form.style.display = 'block';       // Show the form
+    }
+    // Do extra work to use updated/created elements
+    if (id.includes('job_type') && nhash !== ohash) {   // This is job_type and it has been modified
+        let name = form.name.value;
+        let username;
+        new wf_uploader().get_headers(
+            (headers) => {
+                console.log('headers:', headers);
+                username = headers['X-Shib-Userid'] || 'mengel';
+            }
+        ).then(
+            new wf_uploader().make_poms_call('get_jobtype_id', {name: `${name}`}).then(
+                (data) => {
+                    if (data) {
+                        swal(`The JobType '${name}' does exist.\nPlease use a new name!`);
+                        return false;
+                        //
+                        const now = new Date().toISOString().split('.')[0];
+                        const i = name.indexOf(username);
+                        if (i >= 0) {
+                            name = `${name.slice(0, i)}${username}.${now}`;
+                        } else {
+                            name = `${name}-${username}.${now}`;
+                        }
+                    };
+                    return name;
+                }).then(
+                    (flag) => {
+                        if (!flag) return;
+                        const $tbody = $("#jt_table");                  // Find containing table
+                        $tbody.attr('data-name', name);                 // Store new name from the form
+                        $tbody.empty();                                 // Clean it up
+                        const nodeIdx = gui_editor.network.body.nodeIndices;
+                        for (const node of nodeIdx) {
+                            const popupName = node.startsWith('campaign ') ?  `fields_${node}` : `fields_campaign_stage ${node}`;
+                            const pupupValue = $(`[id='${popupName}']`).find("[name='job_type']")[0].value;
+                            $tbody.append(`<tr>
+                                            <td>${node}</td>
+                                            <td>${pupupValue || 'default'}</td>
+                                            <td class="field">
+                                                <div class="ui fitted checkbox">
+                                                    <input id="cbox_${node}" type="checkbox"> <label></label>
+                                                </div>
+                                            </td>
+                                            </tr>`)
+                        }
+                        $('#jt_update_hdr').text(`New name will be '${name}'.`);
+                        $('#jt_update').modal('show');
+                    }
+                )
+        );
+    } else if (id.includes('login_setup') && nhash !== ohash) {
+        let name = form.name.value;
+        let username;
+        new wf_uploader().get_headers(
+            (headers) => {
+                console.log('headers:', headers);
+                username = headers['X-Shib-Userid'] || 'mengel';
+            }
+        ).then(
+            new wf_uploader().make_poms_call('get_loginsetup_id', {name: `${name}`}).then(
+                (data) => {
+                    if (data) {
+                        swal(`The LoginSetup '${name}' does exist.\nPlease use a new name!`);
+                        return false;
+                    };
+                    return name;
+                }).then(
+                    (flag) => {
+                        if (!flag) return;
+                        const $tbody = $("#ls_table");                  // Find containing table
+                        $tbody.attr('data-name', name);                 // Store new name from the form
+                        $tbody.empty();                                 // Clean it up
+                        const nodeIdx = gui_editor.network.body.nodeIndices;
+                        for (const node of nodeIdx) {
+                            const popupName = node.startsWith('campaign ') ?  `fields_${node}` : `fields_campaign_stage ${node}`;
+                            const pupupValue = $(`[id='${popupName}']`).find("[name='login_setup']")[0].value;
+                            $tbody.append(`<tr>
+                                            <td>${node}</td>
+                                            <td>${pupupValue || 'default'}</td>
+                                            <td class="field">
+                                                <div class="ui fitted checkbox">
+                                                    <input id="cbox_${node}" type="checkbox"> <label></label>
+                                                </div>
+                                            </td>
+                                            </tr>`)
+                        }
+                        $('#ls_update_hdr').text(`New name will be '${name}'.`);
+                        $('#ls_update').modal('show');
+                    }
+                )
+        );
     }
 }
 
@@ -359,6 +463,35 @@ gui_editor.exportNetwork = function () {
     new wf_uploader().make_poms_call('save_campaign', {form: exportValue});     // Send to the server
 }
 
+gui_editor.update_jobtypes = function() {
+    const $jt = $("#jt_table");                 // Find the table with checkboxes
+    const nname = $jt.attr('data-name');        // Get a new job_type name
+    const cboxes = $jt.find("input[type='checkbox']").toArray();
+    console.log('name: ', nname)
+    for (const cb of cboxes) {                  // Walk over checkboxes
+        console.log('id: ', cb.id, 'cb: ', cb.checked);
+        if (cb.checked) {                       // If it is checked
+            const node = cb.id.slice(5);        // Get node name
+            const popupName = node.startsWith('campaign ') ? `fields_${node}` : `fields_campaign_stage ${node}`;    // Create a form name
+            $(`[id='${popupName}']`).find("[name='job_type']").append(`<option selected>${nname}</option>`);                   // Add new selection
+        }
+    }
+}
+
+gui_editor.update_loginsetups = function() {
+    const $jt = $("#ls_table");                 // Find the table with checkboxes
+    const nname = $jt.attr('data-name');        // Get a new job_type name
+    const cboxes = $jt.find("input[type='checkbox']").toArray();
+    console.log('name: ', nname)
+    for (const cb of cboxes) {                  // Walk over checkboxes
+        console.log('id: ', cb.id, 'cb: ', cb.checked);
+        if (cb.checked) {                       // If it is checked
+            const node = cb.id.slice(5);        // Get node name
+            const popupName = node.startsWith('campaign ') ? `fields_${node}` : `fields_campaign_stage ${node}`;    // Create a form name
+            $(`[id='${popupName}']`).find("[name='login_setup']").append(`<option selected>${nname}</option>`);                   // Add new selection
+        }
+    }
+}
 
 /* instance methods */
 
@@ -382,8 +515,9 @@ gui_editor.prototype.clone_rename = function (from, to, experiment, role) {
     for (let i in stages) {
         before = stages[i];
         console.log("fixing: " + before);
-        after = gui_editor.new_name(before, from, to);
-        this.rename_entity('campaign_stage ' + before, 'campaign_stage ' + after);
+        // after = gui_editor.new_name(before, from, to);
+        // this.rename_entity('campaign_stage ' + before, 'campaign_stage ' + after);
+        after = before;     // Keep the stage names the same
         new_stages.push(after);
     }
     this.state['campaign']['campaign_stage_list'] = new_stages.join(' ');
@@ -436,73 +570,108 @@ gui_editor.prototype.fix_dependencies = function (before, after) {
  * set the gui state from an ini-format dump
  */
 gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment, role) {
-    const r = new wf_uploader().make_poms_call('jobtype_list', null).then(
-        (data) => {
-            for (const val of data) {
-                console.log('jobtype=', val.name);
-                this.jobtypes.push(val.name);
-            }
-        }).then(
-        _ => {
-            this.state = JSON.parse(this.ini2json(ini_dump));
-            this.clone_rename(from, to, experiment, role);
-            this.defaultify_state();
-            this.draw_state();
+
+    const prep_jobtype_list = (data) => {
+        for (const val of data) {
+            console.log('jobtype=', val.name);
+            this.jobtypes.push(val.name);
         }
-    );
+    };
+
+    const prep_loginsetup_list = (data) => {
+        for (const val of data) {
+            console.log('loginsetup=', val.name);
+            this.loginsetups.push(val.name);
+        }
+    };
+
+    this.make_poms_call('jobtype_list')
+        .then(prep_jobtype_list)
+        .then( _ => this.make_poms_call('loginsetup_list'))
+        .then(prep_loginsetup_list)
+        .then(
+            _ => {
+                this.state = JSON.parse(this.ini2json(ini_dump));
+                this.clone_rename(from, to, experiment, role);
+                console.log("Cloned State:\n", this.state);    // DEBUG
+                this.defaultify_state();
+                this.draw_state();
+            }
+        );
+}
+
+gui_editor.prototype.make_poms_call = function (url) {
+    return new wf_uploader().make_poms_call(url, null);
 }
 
 gui_editor.prototype.set_state = function (ini_dump) {
-    const r = new wf_uploader().make_poms_call('jobtype_list', null).then(
-        (data) => {
-            for (const val of data) {
-                console.log('jobtype=', val.name);
-                this.jobtypes.push(val.name);
-            }
-        }).then(
-        _ => {
-            this.state = JSON.parse(this.ini2json(ini_dump));
-            console.log("State:\n", this.state);    // DEBUG
-            this.defaultify_state();
-            this.draw_state();
+
+    const prep_jobtype_list = (data) => {
+        for (const val of data) {
+            console.log('jobtype=', val.name);
+            this.jobtypes.push(val.name);
         }
-    )
+    };
+
+    const prep_loginsetup_list = (data) => {
+        for (const val of data) {
+            console.log('loginsetup=', val.name);
+            this.loginsetups.push(val.name);
+        }
+    };
+
+    this.make_poms_call('jobtype_list')
+        .then(prep_jobtype_list)
+        .then( _ => this.make_poms_call('loginsetup_list'))
+        .then(prep_loginsetup_list)
+        .then(
+            _ => {
+                this.state = JSON.parse(this.ini2json(ini_dump));
+                console.log("State:\n", this.state);    // DEBUG
+                this.defaultify_state();
+                this.draw_state();
+            }
+        );
 }
 
 gui_editor.prototype.defaultify_state = function() {
     var st, k, j, max, maxslot;
-    st = {};
-    this.mode = {}
-    /* count frequency of occurance...*/
-    for (k in this.state) {
-        if (k.indexOf('campaign_stage') == 0) {
-            for (j in this.state[k]) {
-                if (!(j in st)) {
-                    st[j] = {}
+    if (true && this.state.campaign_defaults) {
+        this.mode = { name: this.state.campaign.name, ...this.state.campaign_defaults };
+    } else {
+        st = {};
+        this.mode = {}
+        /* count frequency of occurance...*/
+        for (k in this.state) {
+            if (k.startsWith('campaign_stage')) {
+                for (j in this.state[k]) {
+                    if (!(j in st)) {
+                        st[j] = {}
+                    }
+                    if (!(this.state[k][j] in st[j])) {
+                        st[j][this.state[k][j]] = 0;
+                    }
+                    st[j][this.state[k][j]]++;
                 }
-                if (!(this.state[k][j] in st[j])) {
-                    st[j][this.state[k][j]] = 0;
-                }
-                st[j][this.state[k][j]]++;
             }
         }
-    }
-    /* pick the most popular answer for each slot */
-    for (j in st) {
-        max = -1;
-        maxslot = -1;
-        for (k in st[j]) {
-            if (st[j][k] > max) {
-                max = st[j][k];
-                maxslot = k;
+        /* pick the most popular answer for each slot */
+        for (j in st) {
+            max = -1;
+            maxslot = -1;
+            for (k in st[j]) {
+                if (st[j][k] > max) {
+                    max = st[j][k];
+                    maxslot = k;
+                }
             }
+            this.mode[j] = maxslot;
         }
-        this.mode[j] = maxslot;
+        this.mode.name = this.state.campaign.name;  // 'Name' is special case - store the campaign name!
     }
-    this.mode.name = this.state.campaign.name;  // 'Name' is special case - store the campaign name!
     /* now null out whatever is the default */
     for (k in this.state) {
-        if (k.indexOf('campaign_stage') == 0) {
+        if (k.startsWith('campaign_stage')) {
             for (j in this.state[k]) {
                 if (this.state[k][j] == this.mode[j]) {
                     this.state[k][j] = null;
@@ -514,11 +683,12 @@ gui_editor.prototype.defaultify_state = function() {
 
 gui_editor.prototype.undefaultify_state = function () {
     var k, j;
+    const this_mode = $(`[id='fields_campaign ${this.mode.name}']`).serializeArray().reduce((a,e) => ({...a, [e.name]: e.value}));
     for (k in this.state) {
         if (k.indexOf('campaign_stage') == 0) {
             for (j in this.state[k]) {
                 if (this.state[k][j] == null) {
-                    this.state[k][j] = this.mode[j];
+                    this.state[k][j] = this_mode[j];
                 }
             }
         }
@@ -752,15 +922,13 @@ gui_editor.prototype.draw_state = function () {
     launchtemplist = [];
 
     for (k in this.state) {
-        const n = k.split(' ')[1];
-        if (k.indexOf('campaign_stage') == 0) {
-            //stagelist.push(k.slice(15));
+        const p = k.split(' ')[0];          // Prefix
+        const n = k.slice(p.length + 1);    // Name
+        if (p === 'campaign_stage') {
             stagelist.push(n);
-        } else if (k.indexOf('job_type') == 0) {
-            //this.jobtypelist.push(k.slice(9));
+        } else if (p === 'job_type') {
             this.jobtypelist.push(n);
-        } else if (k.indexOf('login_setup') == 0) {
-            //launchtemplist.push(k.slice(12));
+        } else if (p === 'login_setup') {
             launchtemplist.push(n);
         }
     }
@@ -886,7 +1054,7 @@ gui_editor.prototype.draw_state = function () {
                 enabled: true,
                 levelSeparation: 150,
                 nodeSpacing: 80,
-                treeSpacing: 30,
+                treeSpacing: 60,
                 parentCentralization: true,
                 blockShifting: true,
                 edgeMinimization: true,
@@ -906,16 +1074,17 @@ gui_editor.prototype.draw_state = function () {
             shadow: true
         },
         manipulation: {
-            addNode: function (data, callback) {
-                // filling in the popup DOM elements
-                document.getElementById('node-operation').innerHTML = "Add Node";
-                editNode(data, clearNodePopUp, callback);
-            },
-            //editNode: function (data, callback) {
-                //// filling in the popup DOM elements
-                //document.getElementById('node-operation').innerHTML = "Edit Node";
-                //editNode(data, cancelNodeEdit, callback);
-            //},
+            addNode: false,
+            // addNode: function (data, callback) {
+            //     // filling in the popup DOM elements
+            //     document.getElementById('node-operation').innerHTML = "Add Node";
+            //     editNode(data, clearNodePopUp, callback);
+            // },
+            // editNode: function (data, callback) {
+            //     // filling in the popup DOM elements
+            //     document.getElementById('node-operation').innerHTML = "Edit Node";
+            //     editNode(data, cancelNodeEdit, callback);
+            // },
             deleteNode: (data, callback) => {
                 const node_id = data.nodes[0];
                 console.log("Deleting ", node_id);
@@ -964,14 +1133,19 @@ gui_editor.prototype.draw_state = function () {
             const ename = node.startsWith("campaign ") ? `fields_${node}` : `fields_campaign_stage ${node}`;
             const el = document.getElementById(ename);
             el.style.display = 'block';
-            el.style.left = `${params.pointer.DOM.x}px`;
-            el.style.top = `${params.pointer.DOM.y+20}px`;
+            $(el).draggable();
+            //VP~ el.style.left = `${params.pointer.DOM.x}px`;
+            el.style.left = `${params.pointer.DOM.x/2}px`;
+            // el.style.top = `${params.pointer.DOM.y+20}px`;
+            el.style.top = `${params.pointer.DOM.y/2}px`;
         } else if (params.edges[0] !== undefined) {
             const edge = params.edges[0];
             const el = document.getElementById(`fields_${edge}`);
             el.style.display = 'block';
-            el.style.left = `${params.pointer.DOM.x}px`;
-            el.style.top = `${params.pointer.DOM.y+20}px`;
+            $(el).draggable();
+            el.style.left = `${params.pointer.DOM.x/2}px`;
+            // el.style.top = `${params.pointer.DOM.y+20}px`;
+            el.style.top = `${params.pointer.DOM.y/2}px`;
             const h3 = el.querySelector('h3');
             const e = edges.get(edge);
             h3.innerHTML = `dependency ${getLabel(e.from)} -> ${getLabel(e.to)}`;
@@ -1030,8 +1204,9 @@ gui_editor.prototype.draw_state = function () {
             const node = params.nodes[0];
             const el = document.getElementById(`fields_${node}`);
             el.style.display = 'block';
-            el.style.left = `${params.pointer.DOM.x}px`;
-            el.style.top = `${params.pointer.DOM.y + 400}px`;
+            $(el).draggable();
+            el.style.left = `${params.pointer.DOM.x/2}px`;
+            el.style.top = `${params.pointer.DOM.y + 300}px`;
         }
         params.event = "[original event]";
         document.getElementById('eventSpan').innerHTML = '<h2>doubleClick event:</h2>' + JSON.stringify(params, null, 4);
@@ -1141,7 +1316,7 @@ gui_editor.prototype.redraw_deps = function () {
     }
 }
 
-gui_editor.prototype.make_select = function(sval, eid, placeholder) {
+gui_editor.prototype.jobtype_select = function(sval, eid, placeholder) {
     /*
         <select name="carlist" form="carform">
             <option value="volvo">Volvo</option>
@@ -1159,7 +1334,17 @@ gui_editor.prototype.make_select = function(sval, eid, placeholder) {
         return `<select id="${eid}" name="job_type"  required>\n${res}</select>\n`;
     }
 
-/*
+gui_editor.prototype.loginsetup_select = function(sval, eid, placeholder) {
+        let res = this.loginsetups.reduce(
+            function (acc, val) {
+                const sel = (val == sval) ? ' selected' : '';
+                return acc + `<option value="${val}"${sel}>${val}</option>\n`;
+            },
+        `<option value="" disabled selected hidden>${placeholder}</option>\n`);
+        return `<select id="${eid}" name="login_setup"  required>\n${res}</select>\n`;
+    }
+
+    /*
  * make a div with a label in it on the overall screen
  * we don't actually track it, as we don't currently try
  * to move it or anything.
@@ -1216,17 +1401,18 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
 
     // Build the form...
     var val, placeholder;
-    const ro = name.match(/job_type|login_setup/) ? "disabled" : "";
+    // const ro = "";      // name.match(/job_type|login_setup/) ? "disabled" : "";
     let res = [];
     //res.push(`<form id="fields_${name}" class="popup_form" style="display: none; top: ${y}px; left: ${x}px;">`);
-    res.push(`<form id="fields_${name}" class="popup_form" style="display: none;" data-hash="" data-clean="1">`);
+    res.push(`<form id="fields_${name}" class="popup_form ui-widget-content" style="display: none;" data-hash="" data-clean="1">`);
     res.push('<h3>' + name.split(' ')[0]);
     //if (name != 'Default Values') {
     //    res.push(`<button title="Delete" class="rightbutton" type="button" onclick="gui_editor.delete_me('${name}')"><span class="deletebutton"></span></button><p>`);
     //}
     res.push('</h3>');
-    for (i in klist) {
-        k = klist[i];
+    for (const k of klist) {
+        // k = klist[i];
+        const ro = k.includes("param") ? "disabled" : "";
         if (k.startsWith('campaign_stage'))      // Hack to hide this from dependency form
             continue;
         if (vdict[k] == null) {
@@ -1240,7 +1426,10 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         }
         res.push(`<label>${k}</label>`);
         if (k.includes("job_type")) {
-            res.push(this.gui.make_select(val, `${this.get_input_tag(k)}`, placeholder));
+            res.push(this.gui.jobtype_select(val, `${this.get_input_tag(k)}`, placeholder));
+        }
+        else if (k.includes("login_setup")) {
+            res.push(this.gui.loginsetup_select(val, `${this.get_input_tag(k)}`, placeholder));
         } else {
             res.push(`<input id="${this.get_input_tag(k)}" name="${k}" value="${this.escape_quotes(val)}" placeholder="${this.escape_quotes(placeholder)}" ${ro}>`);
         }
@@ -1563,9 +1752,19 @@ gui_editor.prototype.save_state = function () {
     sb.innerHTML = "Saving...";
     /* call with setTimeout to give Saving a chance to show up */
     //VP~ window.setTimeout( () => {
+        // this.undefaultify_state();
         gui_editor.exportNetwork();
-        sb.innerHTML = "Done.";
+        // this.defaultify_state();
+        // sb.innerHTML = "Done.";
+        sb.innerHTML = "";
         gui_editor.unmodified();
+        swal({
+            // position: 'top-end',
+            type: 'success',
+            title: 'Saved',
+            showConfirmButton: false,
+            timer: 1500
+          });
 
         const args = mwm_utils.getSearchParams()
         const base = mwm_utils.getBaseURL()
@@ -1574,7 +1773,9 @@ gui_editor.prototype.save_state = function () {
             const campaign = args['to'];
             location.href = `${base}gui_wf_edit?campaign=${campaign}`;
         } else {
-            location.reload();
+            window.setTimeout( () => {
+                location.reload();
+            }, 1000);
         }
     //VP~ }, 200);
     /*
@@ -1843,7 +2044,7 @@ wf_uploader.prototype.update_session_role = function (role) {
 }
 
 wf_uploader.prototype.get_headers = function (after) {
-    this.make_poms_call('headers', {}, function (s) {
+    return this.make_poms_call('headers', {}, function (s) {
         s = s.replace(/\'/g, '"');
         after(JSON.parse(s));
     });
@@ -1882,6 +2083,12 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
                 resp = result.responseText;
             }
             console.log(resp);
+            const i = result.responseText.indexOf("DETAIL");
+            if (i > 0) {
+                alert("Oops! Something went wrong!\n" + result.responseText.slice(i).split('<')[0]);
+            } else {
+                alert("Oops! Something went wrong!");
+            }
         },
         async: true,
     }));

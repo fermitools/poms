@@ -237,8 +237,8 @@ class CampaignsPOMS:
             dbhandle.commit()
 
         return c.campaign_id
-       
-           
+
+
 
     def campaign_add_name(self, dbhandle, seshandle, *args, **kwargs):
         """
@@ -990,7 +990,7 @@ class CampaignsPOMS:
 
         # sort by dependencies(?)
         cidl = list(cnames.keys())
-        for cid in cnames.keys():
+        for cid in cidl:
             for dcid in dmap[cid]:
                 if cidl.index(dcid) < cidl.index(cid):
                     cidl[cidl.index(dcid)], cidl[cidl.index(cid)] = cidl[cidl.index(cid)], cidl[cidl.index(dcid)]
@@ -1003,6 +1003,24 @@ class CampaignsPOMS:
 
             res.append("campaign_stage_list=%s" % " ".join(map(cnames.get, cidl)))
             res.append("")
+
+            defaults = the_campaign.defaults
+            if defaults:
+                res.append("[campaign_defaults]")
+                # for (k, v) in defaults.items():
+                #     res.append("%s=%s" % (k, v))
+                res.append("vo_role=%s" % defaults.get("vo_role"))
+                res.append("state=%s" % defaults.get("state"))
+                res.append("software_version=%s" % defaults.get("software_version"))
+                res.append("dataset=%s" % defaults.get("dataset"))
+                res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
+                res.append("completion_type=%s" % defaults.get("completion_type"))
+                res.append("completion_pct=%s" % defaults.get("completion_pct"))
+                res.append("param_overrides=%s" % defaults.get("param_overrides"))
+                res.append("test_param_overrides=%s" % defaults.get("test_param_overrides"))
+                res.append("login_setup=%s" % defaults.get("login_setup"))
+                res.append("job_type=%s" % defaults.get("job_type"))
+                res.append("")
 
         for cs in campaign_stages:
             res.append("[campaign_stage %s]" % cs.name)
@@ -1762,25 +1780,71 @@ class CampaignsPOMS:
         """
         role = sesshandle.get('experimenter').session_role or 'production'
         user_id = sesshandle.get('experimenter').experimenter_id
+        user = sesshandle.get('experimenter').username
         exp = sesshandle.get('experimenter').session_experiment
 
         data = kwargs.get('form', None)
         everything = json.loads(data)
 
+        # Process job types and login setups first
+        misc = everything['misc']
+        now = time.strftime("%Y.%m.%d.%H.%M")
+        for el in misc:
+            eid = el.get('id')
+            old_name = eid.split(' ')[1]
+            new_name = el.get('label')
+            clean = el.get('clean')
+            form = el.get('form')
+            #
+            if not clean:
+                if new_name != old_name:
+                    name = new_name
+                elif user in old_name:
+                    i = old_name.index(user)
+                    name = "{}{}.{}".format(old_name[:i], user, now)
+                else:
+                    name = "{}-{}.{}".format(new_name, user, now)
+                #
+                if eid.startswith("job_type "):
+                    definition_parameters = form.get('parameters')
+                    if definition_parameters:
+                        definition_parameters = json.loads(definition_parameters)
+                    job_type = JobType(name=name,
+                                       experiment=exp,
+                                       # input_files_per_job=input_files_per_job,
+                                       # output_files_per_job=output_files_per_job,
+                                       output_file_patterns=form.get('output_file_patterns'),
+                                       launch_script=form.get('launch_script'),
+                                       definition_parameters=definition_parameters,
+                                       creator=user_id, created=datetime.now(utc), creator_role=role)
+                    dbhandle.add(job_type)
+                elif eid.startswith("login_setup "):
+                    login_setup = LoginSetup(name=name,
+                                             experiment=exp,
+                                             launch_host=form.get('host'),
+                                             launch_account=form.get('account'),
+                                             launch_setup=form.get('setup'),
+                                             creator=user_id, created=datetime.now(utc), creator_role=role)
+                    dbhandle.add(login_setup)
+                dbhandle.flush()
+                dbhandle.commit()
+
+        # Now process all stages
         stages = everything['stages']
         print("############## stages: {}".format([s.get('id') for s in stages]))
 
         campaign = [s for s in stages if s.get('id').startswith('campaign ')][0]
         c_old_name = campaign.get('id').split(' ')[1]
         c_new_name = campaign.get('label')
-        clean = campaign.get('clean')
+        campaign_clean = campaign.get('clean')
         defaults = campaign.get('form')
         position = campaign.get('position')
-        print("############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(c_old_name, c_new_name, clean, defaults, position))
+        print("##############Campaign: i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(
+            c_old_name, c_new_name, campaign_clean, defaults, position))
 
         the_campaign = dbhandle.query(Campaign).filter(Campaign.name == c_old_name, Campaign.experiment == exp).scalar()
         if the_campaign:
-            the_campaign.defaults = defaults
+            the_campaign.defaults = defaults    # Store the defaults unconditionally as they may be not stored yet
             if c_new_name != c_old_name:
                 the_campaign.name = c_new_name
         else:   # we do not have a campaign in the db for this experiment so create the campaign and then do the linking
@@ -1830,6 +1894,7 @@ class CampaignsPOMS:
             split_type = form.pop('split_type', None)
             dataset = form.pop('dataset')
             job_type = form.pop('job_type')
+            print("################ job_type: '{}'".format(job_type))
             login_setup = form.pop('login_setup')
             print("################ login_setup: '{}'".format(login_setup))
             param_overrides = form.pop('param_overrides', "[]")
@@ -1857,7 +1922,7 @@ class CampaignsPOMS:
                        .filter(CampaignStage.campaign_id == the_campaign.campaign_id)
                        .filter(CampaignStage.name == old_name).scalar())  # Get stage by the old name
                 obj.name = new_name     # Update the name using provided new_name
-                if not clean:           # Update all fields from the form
+                if not clean or not campaign_clean:           # Update all fields from the form
                     obj.completion_pct = completion_pct
                     obj.completion_type = completion_type
                     obj.cs_split_type = split_type
@@ -1870,6 +1935,7 @@ class CampaignsPOMS:
                     obj.vo_role = vo_role
                     obj.campaign_type = stage_type
                     obj.active = active
+                    dbhandle.flush()
             else:       # If this is a new stage then create and store it
                 cs = CampaignStage(name=new_name, experiment=exp,
                                    campaign_id=the_campaign.campaign_id,
@@ -1889,8 +1955,10 @@ class CampaignsPOMS:
                                    creator=user_id, created=datetime.now(utc),
                                    creator_role=role, campaign_type=stage_type)
                 dbhandle.add(cs)
+                dbhandle.flush()
             dbhandle.commit()
 
+        # Now process all dependencies
         dependencies = everything['dependencies']
         dbhandle.query(CampaignDependency).filter(
             or_(
@@ -1918,5 +1986,34 @@ class CampaignsPOMS:
                                      needs_campaign_stage_id=from_id,
                                      file_patterns=file_pattern)
             dbhandle.add(dep)
+            dbhandle.flush()
         dbhandle.commit()
-        return dependencies
+        return misc
+
+
+    def get_jobtype_id(self, dbhandle, sesshandle, name):
+        """
+        """
+        role = sesshandle.get('experimenter').session_role or 'production'
+        user_id = sesshandle.get('experimenter').experimenter_id
+        user = sesshandle.get('experimenter').username
+        exp = sesshandle.get('experimenter').session_experiment
+
+        id = (dbhandle.query(JobType.job_type_id)
+              .filter(JobType.experiment == exp)
+              .filter(JobType.name == name).scalar())
+        return id
+
+
+    def get_loginsetup_id(self, dbhandle, sesshandle, name):
+        """
+        """
+        role = sesshandle.get('experimenter').session_role or 'production'
+        user_id = sesshandle.get('experimenter').experimenter_id
+        user = sesshandle.get('experimenter').username
+        exp = sesshandle.get('experimenter').session_experiment
+
+        id = (dbhandle.query(LoginSetup.login_setup_id)
+              .filter(LoginSetup.experiment == exp)
+              .filter(LoginSetup.name == name).scalar())
+        return id

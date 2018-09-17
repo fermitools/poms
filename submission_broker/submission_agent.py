@@ -178,7 +178,7 @@ class Agent:
            LOGIT.info("check_submissions: since %s", since)
            since = ', from: \\"%s\\"' % since
         elif self.lastconn.get(group,None):
-           since = ', from: \\"%s\\"' % time.strftime("%Y-%m-%dT%H:%M:%S",time.gmtime(self.lastconn[group]))
+           since = ', from: \\"%s\\"' % time.strftime("%Y-%m-%dT%H:%M:%S",time.gmtime(self.lastconn[group]-120))
  
 
         if group == 'samdev':
@@ -198,7 +198,7 @@ class Agent:
             ddict={}
             pass
 
-        LOGIT.info("data: %s", repr(ddict))
+        LOGIT.info("%s data: %s", group, repr(ddict))
         if not ddict.get('data', None) or not ddict['data'].get('submissions', None):
             return
 
@@ -277,7 +277,7 @@ class Agent:
                     self.check_submissions(exp, since = since)
             except:
                 LOGIT.exception("Exception in check_submissions")
-            time.sleep(5)
+            time.sleep(120)
             since = '' 
 
 def main():

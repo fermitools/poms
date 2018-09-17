@@ -21,7 +21,7 @@ from . import (
                logit,
                version)
 from .elasticsearch import Elasticsearch
-from .poms_model import Campaign, CampaignStage, Submission, Experiment
+from .poms_model import Campaign, CampaignStage, Submission, Experiment, LoginSetup
 
 
 def error_response():
@@ -252,7 +252,7 @@ class PomsService(object):
     def get_campaign_id(self, campaign_name):
         cid = self.campaignsPOMS.get_campaign_id( cherrypy.request.db, cherrypy.session.get, campaign_name)
         return cid
- 
+
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -684,7 +684,7 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def kill_jobs(self, campaign_stage_id=None, submission_id=None, task_id=None, job_id=None, confirm=None, act='kill'):
-        if task_id != None and submission_id == None:
+        if task_id is not None and submission_id is None:
             submission_id = task_id
         if confirm is None:
             jjil, s, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, campaign_stage_id, submission_id,
@@ -953,3 +953,29 @@ class PomsService(object):
     def save_campaign(self, *args, **kwargs):
         data = self.campaignsPOMS.save_campaign(cherrypy.request.db, cherrypy.session, *args, **kwargs)
         return data
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def get_jobtype_id(self, name):
+        data = self.campaignsPOMS.get_jobtype_id(cherrypy.request.db, cherrypy.session, name)
+        return data
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def get_loginsetup_id(self, name):
+        data = self.campaignsPOMS.get_loginsetup_id(cherrypy.request.db, cherrypy.session, name)
+        return data
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def loginsetup_list(self, name=None, full=None, **kwargs):
+        exp = cherrypy.session.get('experimenter').session_experiment
+        if full:
+            data = cherrypy.request.db.query(LoginSetup.name,
+                                            LoginSetup.launch_host,
+                                            LoginSetup.launch_account,
+                                            LoginSetup.launch_setup).filter(LoginSetup.experiment == exp).order_by(LoginSetup.name).all()
+        else:
+            data = cherrypy.request.db.query(LoginSetup.name).filter(LoginSetup.experiment == exp).order_by(LoginSetup.name).all()
+
+        return [r._asdict() for r in data]
