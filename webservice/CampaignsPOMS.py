@@ -1044,7 +1044,7 @@ class CampaignsPOMS:
             res.append("[login_setup %s]" % lt.name)
             res.append("host=%s" % lt.launch_host)
             res.append("account=%s" % lt.launch_account)
-            res.append("setup=%s" % lt.launch_setup)
+            res.append("setup=%s" % lt.launch_setup.replace("\r",";").replace("\n",";").replace(";;",";").replace(";;",";"))
             res.append("")
 
         for jt in jts:
