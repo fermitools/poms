@@ -387,7 +387,8 @@ class TaskPOMS:
         dbhandle.commit()
         return "Ok." 
 
-    def snapshot_parts(self, dbhandle, s, campaign_stage_id): ###This function was removed from the main script
+    def snapshot_parts(self, dbhandle, s, campaign_stage_id): 
+
         cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
         for table, snaptable, field, sfield, sid, tfield in [
                 [CampaignStage, CampaignStageSnapshot,
@@ -416,7 +417,7 @@ class TaskPOMS:
             else:
                 newsnap = dbhandle.query(snaptable).filter(snaptable.updated == i[0]).first()
             setattr(s, tfield, newsnap)
-        dbhandle.add(s) #Felipe change HERE one tap + space to spaces indentation
+        dbhandle.add(s) 
         dbhandle.commit()
 
 
