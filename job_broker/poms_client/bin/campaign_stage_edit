@@ -14,12 +14,13 @@ groupArg = parser.add_argument_group('Require Arguments')
 #parser.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', default = None)
 groupArg.add_argument('--verbose', '-v', action='count')
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
-groupArg.add_argument('--campaign_name', metavar='Name of your campaign', type=str, help='campaign_name', required = True)
+groupArg.add_argument('--campaign_stage_name', metavar='Name of your campaign stage', type=str, help='campaign_stage_name', required = True)
 groupArg.add_argument('--user', metavar='your user name', type=str, help='Please provide your user name', default=os.environ.get('GRID_USER',os.environ.get('USER','unknown')))
 groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True)
 groupArg.add_argument('--vo_role', metavar='Analysis-Production', type=str, help='Define your role Analysis or Production', required = True)
 groupArg.add_argument('--dataset', metavar='campaign dataset', type=str, help='provide the dataset that will be use in the campaign', required=True)
 groupArg.add_argument('--launch_name', metavar='launch_template_name', type=str, help='you must provide the launch template name related with this campaign', required=True)
+groupArg.add_argument('--campaign_name', metavar='campaign_name', type=str, help='the campaign name related with this campaign', required=False, default = None)
 groupArg.add_argument('--job_type', metavar='campaign_definition_name', type=str, help='you must provide teh job_type name', required=True)
 
 
@@ -45,6 +46,7 @@ update_session_role(args.poms_role)
 logging.debug( args )
 logging.debug( 'The arguments you pass are:' )
 logging.debug( 'action ='+ str(args.action ))
+logging.debug( 'campaign_stage_name ='+ str( args.campaign_stage_name ))
 logging.debug( 'campaign_name ='+ str( args.campaign_name ))
 logging.debug( 'user='+ str(args.user ))
 logging.debug( 'experiment='+ str(args.experiment ))
@@ -66,6 +68,7 @@ if args.action in ['add','delete','edit']:
     if args.completion > 0 and args.completion <= 100:
         if args.vo_role in ["Analysis", "Production"]:
             res = campaign_edit(action=args.action,
+                                    ae_campaign_stage_name=args.campaign_stage_name,
                                     ae_campaign_name=args.campaign_name,
                                     pc_username=args.user,
                                     experiment=args.experiment,
