@@ -1018,8 +1018,8 @@ class CampaignsPOMS:
                 res.append("completion_pct=%s" % defaults.get("completion_pct"))
                 res.append("param_overrides=%s" % defaults.get("param_overrides"))
                 res.append("test_param_overrides=%s" % defaults.get("test_param_overrides"))
-                res.append("login_setup=%s" % defaults.get("login_setup"))
-                res.append("job_type=%s" % defaults.get("job_type"))
+                res.append("login_setup=%s" % defaults.get("login_setup", "generic_fife_launch"))
+                res.append("job_type=%s" % defaults.get("job_type", "generic_fife_process"))
                 res.append("")
 
         for cs in campaign_stages:
