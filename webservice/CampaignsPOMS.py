@@ -1935,6 +1935,9 @@ class CampaignsPOMS:
                     obj.vo_role = vo_role
                     obj.campaign_type = stage_type
                     obj.active = active
+                    obj.updater=user_id
+                    obj.updated=datetime.now(utc)
+              
                     dbhandle.flush()
             else:       # If this is a new stage then create and store it
                 cs = CampaignStage(name=new_name, experiment=exp,
