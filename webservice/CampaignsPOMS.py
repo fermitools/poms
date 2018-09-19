@@ -264,11 +264,19 @@ class CampaignsPOMS:
                                cs_split_type="None",
                                dataset="from_parent",
                                job_type_id=(dbhandle.query(JobType.job_type_id)
-                                            .filter(JobType.name == "generic_fife_process", JobType.experiment == experiment)
-                                            .scalar()),
+                                            .filter(JobType.name == "generic", JobType.experiment == experiment)
+                                            .scalar() or
+                                            dbhandle.query(JobType.job_type_id)
+                                            .filter(JobType.name == "generic", JobType.experiment == 'samdev')
+                                            .scalar()
+                                           ),
                                login_setup_id=(dbhandle.query(LoginSetup.login_setup_id)
-                                               .filter(LoginSetup.name == "generic_fife_launch", LoginSetup.experiment == experiment)
-                                               .scalar()),
+                                               .filter(LoginSetup.name == "generic", LoginSetup.experiment == experiment)
+                                               .scalar() or
+                                               dbhandle.query(LoginSetup.login_setup_id)
+                                               .filter(LoginSetup.name == "generic", LoginSetup.experiment == 'samdev')
+                                               .scalar()
+                                              ),
                                param_overrides="[]",
                                software_version="v1_0",
                                test_param_overrides="[]",
@@ -1022,8 +1030,8 @@ class CampaignsPOMS:
                 res.append("completion_pct=%s" % defaults.get("completion_pct"))
                 res.append("param_overrides=%s" % defaults.get("param_overrides"))
                 res.append("test_param_overrides=%s" % defaults.get("test_param_overrides"))
-                res.append("login_setup=%s" % (defaults.get("login_setup") or "generic_fife_launch"))
-                res.append("job_type=%s" % (defaults.get("job_type") or "generic_fife_process"))
+                res.append("login_setup=%s" % (defaults.get("login_setup") or "generic"))
+                res.append("job_type=%s" % (defaults.get("job_type") or "generic"))
                 res.append("")
 
         for cs in campaign_stages:
