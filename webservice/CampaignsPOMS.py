@@ -692,7 +692,11 @@ class CampaignsPOMS:
                 job_type_id = dbhandle.query(JobType).filter(
                     JobType.name == campaign_definition_name).first().job_type_id
                 if action == 'edit':
-                    campaign_stage_id = dbhandle.query(CampaignStage).filter(CampaignStage.name == name , CampaignStage.experiment == exp).first().campaign_stage_id
+                    cs = dbhandle.query(CampaignStage).filter(CampaignStage.name == name , CampaignStage.experiment == exp).first()
+                    if cs:
+                        campaign_stage_id = cs.campaign_stage_id
+                    else:
+                        campaign_stage_id = None
                 else:
                     pass
             else:
