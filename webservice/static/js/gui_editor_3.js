@@ -209,10 +209,10 @@ gui_editor.toggle_form = function(id) {
                         const nodeIdx = gui_editor.network.body.nodeIndices;
                         for (const node of nodeIdx) {
                             const popupName = node.startsWith('campaign ') ?  `fields_${node}` : `fields_campaign_stage ${node}`;
-                            const pupupValue = $(`[id='${popupName}']`).find("[name='job_type']")[0].value;
+                            const popupValue = $(`[id='${popupName}']`).find("[name='job_type']")[0].value;
                             $tbody.append(`<tr>
                                             <td>${node}</td>
-                                            <td>${pupupValue || 'default'}</td>
+                                            <td>${popupValue || 'default'}</td>
                                             <td class="field">
                                                 <div class="ui fitted checkbox">
                                                     <input id="cbox_${node}" type="checkbox"> <label></label>
@@ -1337,8 +1337,8 @@ gui_editor.prototype.jobtype_select = function(sval, eid, placeholder) {
                 const sel = (val == sval) ? ' selected' : '';
                 return acc + `<option value="${val}"${sel}>${val}</option>\n`;
             },
-        `<option value="" disabled selected hidden>${placeholder}</option>\n`);
-        return `<select id="${eid}" name="job_type"  required>\n${res}</select>\n`;
+        `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+        return `<select id="${eid}" name="job_type" required>\n${res}</select>\n`;
     }
 
 gui_editor.prototype.loginsetup_select = function(sval, eid, placeholder) {
@@ -1347,8 +1347,8 @@ gui_editor.prototype.loginsetup_select = function(sval, eid, placeholder) {
                 const sel = (val == sval) ? ' selected' : '';
                 return acc + `<option value="${val}"${sel}>${val}</option>\n`;
             },
-        `<option value="" disabled selected hidden>${placeholder}</option>\n`);
-        return `<select id="${eid}" name="login_setup"  required>\n${res}</select>\n`;
+        `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+        return `<select id="${eid}" name="login_setup" required>\n${res}</select>\n`;
     }
 
     /*
