@@ -427,7 +427,7 @@ class TaskPOMS:
             # XXX should queue for later?!?
             logit.log("recovery launches disabled")
             return 1
-        cdlist = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id).all()
+        cdlist = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id).order_by(CampaignDependency.provides_campaign_stage_id).all()
 
         i = 0
         for cd in cdlist:

@@ -692,7 +692,11 @@ class CampaignsPOMS:
                 job_type_id = dbhandle.query(JobType).filter(
                     JobType.name == campaign_definition_name).first().job_type_id
                 if action == 'edit':
-                    campaign_stage_id = dbhandle.query(CampaignStage).filter(CampaignStage.name == name , CampaignStage.experiment == exp).first().campaign_stage_id
+                    cs = dbhandle.query(CampaignStage).filter(CampaignStage.name == name , CampaignStage.experiment == exp).first()
+                    if cs:
+                        campaign_stage_id = cs.campaign_stage_id
+                    else:
+                        campaign_stage_id = None
                 else:
                     pass
             else:
@@ -1018,8 +1022,8 @@ class CampaignsPOMS:
                 res.append("completion_pct=%s" % defaults.get("completion_pct"))
                 res.append("param_overrides=%s" % defaults.get("param_overrides"))
                 res.append("test_param_overrides=%s" % defaults.get("test_param_overrides"))
-                res.append("login_setup=%s" % defaults.get("login_setup"))
-                res.append("job_type=%s" % defaults.get("job_type"))
+                res.append("login_setup=%s" % (defaults.get("login_setup") or "generic_fife_launch"))
+                res.append("job_type=%s" % (defaults.get("job_type") or "generic_fife_process"))
                 res.append("")
 
         for cs in campaign_stages:
@@ -1937,7 +1941,7 @@ class CampaignsPOMS:
                     obj.active = active
                     obj.updater=user_id
                     obj.updated=datetime.now(utc)
-              
+
                     dbhandle.flush()
             else:       # If this is a new stage then create and store it
                 cs = CampaignStage(name=new_name, experiment=exp,
