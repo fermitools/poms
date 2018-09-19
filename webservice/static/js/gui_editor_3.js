@@ -1034,6 +1034,7 @@ gui_editor.prototype.draw_state = function () {
     this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`,
                                    label: this.state.campaign.name,
                                    title: "Double click to open",
+                                   group: 1,
                                    shape: 'ellipse', fixed: false, size: 50}, ...node_list]);
 
     let edge_list = this.depboxes.map(x => ({id: x.box.id, from: x.stage1, to: x.stage2}));
@@ -1077,12 +1078,12 @@ gui_editor.prototype.draw_state = function () {
             shadow: true
         },
         manipulation: {
-            addNode: false,
-            // addNode: function (data, callback) {
-            //     // filling in the popup DOM elements
-            //     document.getElementById('node-operation').innerHTML = "Add Node";
-            //     editNode(data, clearNodePopUp, callback);
-            // },
+            // addNode: false,
+            addNode: function (data, callback) {
+                // filling in the popup DOM elements
+                document.getElementById('node-operation').innerHTML = "Add Node";
+                editNode(data, clearNodePopUp, callback);
+            },
             // editNode: function (data, callback) {
             //     // filling in the popup DOM elements
             //     document.getElementById('node-operation').innerHTML = "Edit Node";
