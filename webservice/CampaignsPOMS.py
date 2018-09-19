@@ -1809,8 +1809,9 @@ class CampaignsPOMS:
             form = el.get('form')
             #
             if not clean:
-                if new_name != old_name:
-                    name = new_name
+                # if new_name != old_name:
+                #     name = new_name
+                name = new_name
                 # elif user in old_name:
                 #     i = old_name.index(user)
                 #     name = "{}{}.{}".format(old_name[:i], user, now)
