@@ -1809,13 +1809,14 @@ class CampaignsPOMS:
             form = el.get('form')
             #
             if not clean:
-                if new_name != old_name:
-                    name = new_name
-                elif user in old_name:
-                    i = old_name.index(user)
-                    name = "{}{}.{}".format(old_name[:i], user, now)
-                else:
-                    name = "{}-{}.{}".format(new_name, user, now)
+                # if new_name != old_name:
+                #     name = new_name
+                name = new_name
+                # elif user in old_name:
+                #     i = old_name.index(user)
+                #     name = "{}{}.{}".format(old_name[:i], user, now)
+                # else:
+                #     name = "{}-{}.{}".format(new_name, user, now)
                 #
                 if eid.startswith("job_type "):
                     definition_parameters = form.get('parameters')
@@ -1923,10 +1924,20 @@ class CampaignsPOMS:
 
             login_setup_id = (dbhandle.query(LoginSetup.login_setup_id)
                               .filter(LoginSetup.experiment == exp)
-                              .filter(LoginSetup.name == login_setup).scalar())
+                              .filter(LoginSetup.name == login_setup).scalar()
+                              or
+                              dbhandle.query(LoginSetup.login_setup_id)
+                              .filter(LoginSetup.experiment == 'samdev')
+                              .filter(LoginSetup.name == login_setup).scalar()
+                              )
             job_type_id = (dbhandle.query(JobType.job_type_id)
                            .filter(JobType.experiment == exp)
-                           .filter(JobType.name == job_type).scalar())
+                           .filter(JobType.name == job_type).scalar()
+                           or
+                           dbhandle.query(JobType.job_type_id)
+                           .filter(JobType.experiment == 'samdev')
+                           .filter(JobType.name == job_type).scalar()
+                           )
 
             if old_name in old_stage_names:
                 #VP~ obj = dbhandle.query(CampaignStage).filter(CampaignStage.name == old_name).scalar()  # Get stage by the old name
