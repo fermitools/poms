@@ -1811,11 +1811,11 @@ class CampaignsPOMS:
             if not clean:
                 if new_name != old_name:
                     name = new_name
-                elif user in old_name:
-                    i = old_name.index(user)
-                    name = "{}{}.{}".format(old_name[:i], user, now)
-                else:
-                    name = "{}-{}.{}".format(new_name, user, now)
+                # elif user in old_name:
+                #     i = old_name.index(user)
+                #     name = "{}{}.{}".format(old_name[:i], user, now)
+                # else:
+                #     name = "{}-{}.{}".format(new_name, user, now)
                 #
                 if eid.startswith("job_type "):
                     definition_parameters = form.get('parameters')
