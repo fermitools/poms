@@ -162,7 +162,10 @@ class TaskPOMS:
                 # no project, so guess based on number of jobs in submit command?
                 p1 = submission.command_executed.find('-N')
                 p2 = submission.command_executed.find(' ', p1+3)
-                threshold = int(submission.command_executed[p1+3:p2])
+                try:
+                    threshold = int(submission.command_executed[p1+3:p2])
+                except:
+                    threshold = 0
 
             thresholds.append(threshold)
             val = float(count_list[i])

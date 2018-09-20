@@ -1070,7 +1070,7 @@ gui_editor.prototype.draw_state = function () {
             smooth: {
                 //VP~ type: "dynamic",
                 type: "discrete",
-                forceDirection: "horizontal",
+                forceDirection: "vertical",
                 roundness: 1
             },
             width: 2,
