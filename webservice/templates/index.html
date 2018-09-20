@@ -5,38 +5,300 @@
 {%endblock%}
 
 {%block header%}
-Dashboard{%include 'help_button.html'%}
+Job Launches: {{launches}}
+{% if (current_experimenter.is_root()) %}
+<br>
+<div class="ui icon buttons">
+  <div class="ui button" href="set_job_launches?hold=hold">
+    <i class="pause icon"></i>
+  </div>
+  <div class="ui button">
+    <i class="play icon" href="set_job_launches?hold=allowed"></i>
+  </div>
+</div>
+{% endif %}
 {%endblock%}
-
-{%block header_desc%}
-&nbsp;&nbsp;&nbsp;&nbsp;See everything up and running in real time
-{%endblock%}
-
-{%block subheader%}
-Services
-{%endblock%}
-
 
 {%block content%}
-<div class="ui segment raised">
-Job launches: {{launches}}&nbsp;&nbsp;
- {% if (current_experimenter and current_experimenter.is_root()) %}
- <a href="set_job_launches?hold=allowed"><button class="tiny ui left attached button"><i class="play icon"></i>Allow</button></a>
- <a href="set_job_launches?hold=hold"><button class="tiny ui right attached button" ><i class="stop icon"></i>Hold</button></a>
- {% endif %}
-</div>
-	   {{services}}
-<h3> Key:</h3>
-<div class="ui green label">
-  Good Component &nbsp; (0/total) <i class="link check icon"></i>
-</div>
-<div class="ui orange label">
-  Warn Component &nbsp; (num_failed/total) <i class="link warning sign icon"></i>
-</div>
-<div class="ui red label">
-  Failed Component &nbsp; (num_failed/total) <i class="link remove icon"></i>
-</div>
-<div class="ui label">
-  Unknown Component &nbsp; (0/total) <i class="link help circle icon"></i>
+
+{% set url = "https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/POMS_User_Documentation#" %}
+
+ <div class="ui cards">
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+              Obtaining a POMS Account
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                POMS Access is suppled through FNAL services accounts.  The account must be registered in FERRY as analysis, production
+                or coordinator. If an account does not have access or needs a different level of access, follow the steps in the help link below.
+            </div>
+        </div>
+        <a target="_blank" href="{{url}}Getting-access-New-Experiments-New-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="question circle icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+              Creating a Campaign
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                    We recommend creating using the campaign editor.  A new campaign can be created
+                    from the Campaigns page with the add button or cloning and modifying exiting ones.
+                    For an understanding on how to do this please read the user documentation in the
+                    provided help link.
+            </div>
+        </div>
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="question circle icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+                Monitoring
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                POMS provides monitoring through Landscape and internal graphs.  All job related information is available in Fifemon.
+                Internal charts exists to track campaigns.  These are available when viewing a specific stage.
+                </div>
+        </div>
+        <div class="ui three bottom attached buttons">
+            <a target="_blank" href="{{url}}Running-the-Campaign-actions-and-monitoring">
+                <div class="ui button">
+                    <i class="question circle icon"></i>
+                </div>
+            </a>
+                <div class="ui button"></div>
+            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000206/poms-campaign-efficiency?from=now-24h&to=now&var-Experiment={{session_experiment}}&var-Campaign=All&orgId=1">
+                <div class="ui button">
+                    Efficency
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!--
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                Recoveries
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                Needs a description.
+            </div>
+        </div>
+        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+            <div class="ui bottom attached button">
+                <i class="question circle icon"></i>
+            </div>
+        </a>
+    </div>
+    -->
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+              Debugging
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                    Log files are available for debugging once a stage is launched. They are accessable from the 'Campaign Stages'
+                    by viewing the details of that stage.
+            </div>
+        </div>
+        <a target="_blank" href="{{url}}Running-the-Campaign-actions-and-monitoring">
+            <div class="ui bottom attached button">
+                <i class="question circle icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+
+            <div class="header">
+              Fife_Utils
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                    POMS utilizes fife_launch and fife_wrap from the Fife_Utils tool set.  This provides a set of commands and interfaces
+                    with JOBSUB  passing the parameters needed to run the jobs.  Details of this can be found in the the help link below.
+            </div>
+        </div>
+        <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/fife_utils/wiki/Fife_launchfife_wrap">
+            <div class="ui bottom attached button">
+                <i class="question circle icon"></i>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="description">
+                <img class="ui image" src="{{pomspath}}/static/img/space_for_rent.png">
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                FifeMon
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                Fifemon gathers information from many different sources and graphs it on a common timeline
+                to help experiments understand their computing usage and identify problems.
+            </div>
+        </div>
+        <div class="ui three bottom attached buttons">
+            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000004/experiment-overview?orgId=1&var-experiment={{session_experiment}}">
+                <div class="ui button">
+                    Overview
+                </div>
+            </a>
+            <div class="ui button"></div>
+            <a target="_blank" href="https://landscape.fnal.gov/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{session_experiment}}">
+                <div class="ui button">
+                    Shifter
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                SAM
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                    SAM is a data handling system organized as a
+                    set of servers which work together to store and retrieve files and associated metadata,
+                    including a complete record of the processing which has used the files.
+            </div>
+        </div>
+        <div class="ui three bottom attached buttons">
+            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000122/sam-by-experiment?from=now-24h&to=now-5m&orgId=1&var-experiment={{session_experiment}}">
+                <div class="ui button">
+                    Status
+                </div>
+            </a>
+            <div class="ui button"></div>
+            <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/sam-main/wiki/User_Guide_for_SAM">
+                <div class="ui button">
+                    Wiki
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                Jobsub
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                    Jobsub is a suite of tools to manage batch/grid submission. These tools
+                    are designed to simplify the job submission process by defining interfaces for experiments,
+                    integrating grid tools, protecting shared resources.
+            </div>
+        </div>
+        <div class="ui three bottom attached buttons">
+            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000053/experiment-batch-details?orgId=1&from=now-7d&to=now-5m&var-experiment={{session_experiment}}">
+                <div class="ui button">
+                    Batch Detail
+                </div>
+            </a>
+            <div class="ui button"></div>
+            <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/jobsub/wiki">
+                <div class="ui button">
+                    Wiki
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="content">
+            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+            <div class="header">
+                dCache
+            </div>
+            <div class="meta">
+            </div>
+            <div class="description">
+                    dCache is disk caching software capable of massive data throughput.  It stores and retrieves large amounts of data,
+                    distributed among a large number of heterogeneous disk server nodes.
+            </div>
+        </div>
+        <div class="ui three bottom attached buttons">
+            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000173/dcache-transfer-overview?orgId=1">
+                <div class="ui button">
+                    Overview
+                </div>
+            </a>
+            <div class="ui button"></div>
+            <a target="_blank" href="http://www.dcache.org">
+                <div class="ui button">
+                    Wiki
+                </div>
+            </a>
+        </div>
+    </div>
+
+
+    </div>
+{%endblock%}
+
+{%block final%}
+<div class="ui divider"  style="margin-top: 0px;"></div>
+
+<div class="ui right aligned grid" style="margin-right: 30px; margin-bottom: 15px">
+    <div class="right floated right aligned four wide column">
+        <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Release_Notes">
+            <button class="ui teal small button">
+                <i class="share icon"></i>
+                Version: {{version}}
+            </button>
+        </a>
+    </div>
 </div>
 {%endblock%}

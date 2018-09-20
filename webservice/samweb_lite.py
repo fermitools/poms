@@ -96,13 +96,40 @@ class samweb_lite:
     def have_cache(self, experiment, projid):
         if not self.proj_cache_time or not self_proj_cache:
              return 0
-        t = self.proj_cache_time.get(experiment + projid, 0)
+        s = self.proj_cache_time.get(experiment + projid, 0)
         p = self.proj_cache.get(experiment + projid, None)
 
-        if p and (time.time() - t < self.valid or p['project_status'] == "completed"):
+        if p and (time.time() - s < self.valid or p['project_status'] == "completed"):
             return 1
 
         return 0
+
+    def take_snapshot(self, experiment, defname):
+        """
+           basic samweb snapshot interface
+        """
+        if not experiment or not defname or  defname == "None":
+            return -1
+        
+        base = "https://samweb.fnal.gov:8483"
+        url = "%s/sam/%s/api/definitions/name/%s/snapshot" % (base, experiment, defname)
+       
+        for i in range(3):
+            logit.log("take_snapshot try %d" % i)
+            try:
+                with requests.Session() as sess:
+                    res = sess.post(url,
+                                    data={'group': experiment},
+                                    verify=False,
+                                    cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
+                                              "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"])))
+                    res.raise_for_status()
+                break
+            except Exception as e:
+                logit.log("ERROR", "Exception taking snapshot: %s" % e)
+            time.sleep(1)
+            
+        return res.text
 
     def fetch_info(self, experiment, projid, dbhandle=None):
         """
@@ -135,7 +162,7 @@ class samweb_lite:
         """
         #~ return [ {"tot_consumed": 0, "tot_unknown": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
         base = "http://samweb.fnal.gov:8480"
-        urls = ["%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base, t.campaign_snap_obj.experiment, t.project) for t in task_list]
+        urls = ["%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base, s.campaign_stage_snapshot_obj.experiment, s.project) for s in task_list]
         with requests.Session() as sess:
             with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                 # replies = executor.map(sess.get, urls)
@@ -188,7 +215,7 @@ class samweb_lite:
         info["tot_jobfails"] = tot_jobfails
         info["tot_delivered"] = tot_delivered
         info["tot_unknown"] = tot_unknown
-        # we don't need the individual process info, just the totals..
+        # we don's need the individual process info, just the totals..
         if "processes" in info:
             del info["processes"]
 
@@ -326,21 +353,29 @@ class samweb_lite:
 
         pdict = {"defname": name, "dims": dims, "user": "sam", "group": experiment}
         logit.log("INFO","create_definition: calling: %s with %s " % (url, pdict))
-        try:
-            res = requests.post(url,
+        text = None
+        for i in range(3):
+            logit.log("create_defintition try %d" % i)
+            try:
+                with requests.Session() as sess:
+                    res = sess.post(url,
                                 data=pdict,
                                 verify=False,
                                 cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
                                       "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]))
                   )
-            text = res.content
-            logit.log("INFO","definitions/create returns: %s" % text)
-        except Exception as e:
-            logit.log("ERROR","Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
-            return "Fail."
-        finally:
-            if res:
-                res.close()
+                    res.raise_for_status()
+
+                    text = res.content
+                    logit.log("INFO","definitions/create returns: %s" % text)
+                    break
+            except Exception as e:
+                logit.log("ERROR","Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
+            time.sleep(1)
+
+        if text == None:
+            text = "Fail."
+
         return text
 
 if __name__ == "__main__":
@@ -352,6 +387,8 @@ if __name__ == "__main__":
     print("got result:" , r1)
     i = sl.fetch_info("samdev", "mengel-fife_wrap_20170701_102228_3860387")
     print("got result:" , i)
+    res = sl.take_snapshot("nova", "mwm_test_6")
+    print("got snapshot id %s" % res)
     sys.exit(0)
 
     print(sl.create_definition("samdev", "mwm_test_%d" % os.getpid(), "(snapshot_for_project_name mwm_test_proj_1465918505)"))
@@ -373,11 +410,12 @@ if __name__ == "__main__":
     print("got list:")
     pprint.pprint(l)
 
-    c = sl.count_files("nova",
+    cs = sl.count_files("nova",
                        "project_name 'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.e-neardet-20160210_1624',"
                        "'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.a-fardet-20160202_1814'")
 
-    print("got count:", c)
+    print("got count:", cs)
 
     l = sl.count_files_list("nova", ["defname:mwm_test_6", "defname:mwm_test_9", "defname:mwm_test_11"])
     print("got count list: ", l)
+

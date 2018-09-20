@@ -16,6 +16,16 @@ except:
 rs = requests.Session()
 
 
+def get_campaign_id(campaign_name, test=None, user=None, experiment=None, configfile=None):
+    data, status = make_poms_call(
+        method='get_campaign_id',
+        campaign_name=campaign_name,
+        user=user,
+        experiment=experiment,
+        test=test,
+        configfile=configfile)
+    return int(data)
+
 def register_poms_campaign(campaign_name, user=None, experiment=None, version=None, dataset=None, campaign_definition=None, test=None, configfile=None):
     data, status = make_poms_call(
         method='register_poms_campaign',
@@ -200,13 +210,15 @@ def campaign_definition_edit(output_file_patterns, launch_script,
 
     #return data['message']
 
+def campaign_edit(**kwargs):
+    print("campaign_edit has been replaced by campaign_stage_edit")
 
-def campaign_edit(action, ae_campaign_name, pc_username, experiment, vo_role,
+def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experiment, vo_role,
                   dataset, ae_active, ae_split_type, ae_software_version,
                   ae_completion_type, ae_completion_pct, ae_param_overrides,
-                  ae_depends, ae_launch_name, ae_campaign_definition, test_client = None, configfile=None):
-    logging.debug("in get campaign_edit test_client = " + repr(test_client))
-    method = "campaign_edit"
+                  ae_depends, ae_launch_name, ae_campaign_definition, ae_test_param_overrides, test_client = None, configfile=None):
+    logging.debug("in get campaign_stage_edit test_client = " + repr(test_client))
+    method = "campaign_stage_edit"
     logging.debug("#" * 10)
     logging.debug(ae_param_overrides)
 
@@ -232,7 +244,8 @@ def campaign_edit(action, ae_campaign_name, pc_username, experiment, vo_role,
     data, status_code = make_poms_call(pcl_call=1,
                                        method=method,
                                        action=action,
-                                       ae_campaign_name=ae_campaign_name,
+                                       ae_campaign_name=campaign_id,
+                                       ae_stage_name=ae_stage_name,
                                        pc_username=pc_username,
                                        experiment=experiment,
                                        ae_vo_role=vo_role,
@@ -243,6 +256,7 @@ def campaign_edit(action, ae_campaign_name, pc_username, experiment, vo_role,
                                        ae_completion_type=ae_completion_type,
                                        ae_completion_pct=ae_completion_pct,
                                        ae_param_overrides=ae_param_overrides,
+                                       ae_test_param_overrides=ae_param_overrides,
                                        ae_depends=ae_depends,
                                        ae_launch_name=ae_launch_name,
                                        ae_campaign_definition=ae_campaign_definition,

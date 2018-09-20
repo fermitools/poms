@@ -2,11 +2,10 @@
 
 
 ### This module contain the methods that handle the Calendar. (5 methods)
-### List of methods: handle_dates, quick_search, jump_to_job, test_job_counts, task_min_job
+### List of methods: handle_dates, quick_search, jump_to_job,
 ### Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py
 ### written by Marc Mengel, Stephen White and Michael Gueith.
 ### October, 2016.
-from .poms_model import Job
 from datetime import datetime, timedelta
 from .utc import utc
 from .poms_model import Experimenter
@@ -76,16 +75,10 @@ class UtilsPOMS():
         return (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays)
 
 
-    def quick_search(self, dbhandle, redirect, search_term):
+    def quick_search(self, redirect, search_term):
         search_term = search_term.strip()
-        job_info = dbhandle.query(Job).filter(Job.jobsub_job_id == search_term).first()
-        if job_info:
-            tmins = datetime.now(utc).strftime("%Y-%m-%d+%H:%M:%S")
-            raise redirect("%s/triage_job?job_id=%s&tmin=%s" % (self.poms_service.path, str(job_info.job_id), tmins))
-        else:
-            search_term = search_term.replace("+", " ")
-            query = urllib.parse.urlencode({'q': search_term})
-            raise redirect("%s/search_tags?%s" % (self.poms_service.path, query))
+        search_term = search_term.replace("*", "%")
+        raise redirect("%s/search_tags?search_term=%s" % (self.poms_service.path, search_term))
 
     def update_session_experiment(self, db, seshandle, *args, **kwargs):
         sess = seshandle('experimenter')

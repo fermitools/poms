@@ -8,8 +8,11 @@ def get_version():
     version = "unknown"
     try:
         devnull = open("/dev/null","w")
-        version = subprocess.Popen(["git", "describe", "--tags", "--abbrev=0"], cwd=codedir, stdout=subprocess.PIPE, stderr = devnull).stdout.read()
+        proc = subprocess.Popen(["git", "describe", "--tags", "--abbrev=0"], cwd=codedir, stdout=subprocess.PIPE, stderr = devnull)
+        version = proc.stdout.read()
         devnull.close()
+        proc.wait()
+        proc.stdout.close()
         vf = open("%s/.version" % os.environ["POMS_DIR"] ,"w")
         vf.write(version)
         vf.close()

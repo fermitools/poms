@@ -27,9 +27,9 @@ Pending files for Jobs
 
 Pending files for:
 
-     {% if campaign_id is not none %}
-        Campaign Stage {{c.name}}
-     {% elif task_id is not none %}
+     {% if campaign_stage_id is not none %}
+        Campaign Stage {{cs.name}}
+     {% elif submission_id is not none %}
        Submissions(s) {{jjid}}
      {% elif job_id is not none %}
        Job(s) {{jjid}}
@@ -38,18 +38,18 @@ Pending files for:
 
 Projects involved
 <div class="ui raised padded text container segment">
-{% for t in tasklist %}
+{% for s in tasklist %}
 <div class="item">
 <div class="ui list">
-<a href="http://samweb.fnal.gov:8480/station_monitor/{{c.experiment}}/stations/{{c.experiment}}/projects/{{t.project}}">{{t.project}}</a>
-<a href="show_task_jobs?task_id={{t.task_id}}&tmax={{t.updated.strftime('%Y-%m-%d %H:%M:%S')}}">[task]</a>
+<a href="http://samweb.fnal.gov:8480/station_monitor/{{cs.experiment}}/stations/{{cs.experiment}}/projects/{{s.project}}">{{s.project}}</a>
+<a href="show_task_jobs?submission_id={{s.submission_id}}&tmax={{s.updated.strftime('%Y-%m-%d %H:%M:%S')}}">[task]</a>
 </div>
 </div>
 {%endfor%}
 </div>
 </div>
 
-Files without children with version {{c.software_version}}:
+Files without children with version {{cs.software_version}}:
 <div class="ui raised padded text container segment">
 <div class="ui list">
 {% for f in flist %}

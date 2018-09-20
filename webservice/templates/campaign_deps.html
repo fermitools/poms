@@ -1,12 +1,12 @@
 {%extends "layout.html" %}
 
 {%block title%}
-POMS Campaign Dependencies
+POMS Campaign Stage Dependencies
 {%endblock%}
 
 {%block header%}
 <h1 class="ui header">
-          Campaign Dependencies for Tag {{tag}}
+          Campaign Stage Dependencies for Campaign {{tag}}
 
           <div class="sub header">
               see dependencies
@@ -20,11 +20,7 @@ POMS Campaign Dependencies
 
 {%block content %}
 
-<div style="width:100%; height: 40em; border: 1px solid grey; padding: 1em; overflow-x:scroll; overflow-y: scroll">
-<svg style="width:200%; height: 300em ">
-   {{svgdata}}
-</svg>
-</div>
+      {{svgdata|safe}}
 
 {%endblock%}
 

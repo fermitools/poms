@@ -3,6 +3,8 @@
 import argparse
 import time
 import logging
+import smtplib
+
 import psycopg2
 import requests
 try:
@@ -13,7 +15,7 @@ except ImportError:
 urllib3.disable_warnings()
 
 def parse_command_line():
-    doc = "Loads a VOMS generated JSON file of experimenters into POMS."
+    doc = "Adds and updates expermenters from all supported experments into POMS."
     parser = argparse.ArgumentParser(description=doc)
     parser.add_argument('host', help="Host database is on.")
     parser.add_argument('port', type=int, help="Database Port number.")
@@ -27,9 +29,38 @@ def parse_command_line():
     parser.add_argument('-p', '--password', help="Password for the database user account. For testing only, for production use .pgpass .")
     parser.add_argument('-v', '--verbose', action="store_true", help='Output log data to screen')
     parser.add_argument('-l', '--log_dir', help="Output directory for log file.")
+    parser.add_argument('-L', '--list_owner', help="Name of a owner of poms_announce for listserv conformation emails.")
     args = parser.parse_args()
     return args
 
+def add_to_listserv(list_owner, new_users):
+
+    if list_owner is None:
+        logging.debug("add_to_listserv - list_owner was not set")
+        return
+    if not new_users:
+        logging.debug("add_to_listserv: No new users.")
+        return
+
+    listval = 'poms_announce'
+    smtp_server = 'smtp.fnal.gov'
+    fromAddr = '%s' % list_owner
+    toAddr = 'listserv@listserv.fnal.gov'
+
+    subject = "Add new_users to %s" %(listval)
+
+    msg = ''
+    for username, user in new_users.items():
+        email = "%s@fnal.gov" % username
+        msg += "add %s %s %s\r\n" %(listval, email, user['commonname'])
+    message = "From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s\r\n" % (fromAddr, toAddr, subject, msg)
+
+    logging.debug("add_to_listserv - %s new users, updating %s", len(new_users), listval)
+    logging.debug(message)
+    logging.debug(msg)
+    server = smtplib.SMTP(smtp_server)
+    server.sendmail(fromAddr, [toAddr], message)
+    server.quit()
 
 def get_experiments(cursor, experiment):
     exp_list = []
@@ -73,8 +104,10 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
 
     for anal in anal_users:
         users[anal.get('username')] = {'commonname': anal.get('commonname'), 'role': 'analysis'}
+    # Yes, overwrite anal users with those who have production!
     for prod in prod_users:
         users[prod.get('username')] = {'commonname': prod.get('commonname'), 'role': 'production'}
+    logging.debug("ferry data: %s", str(users))
     return users
 
 def get_voms_data(cert, exp):
@@ -90,6 +123,7 @@ def get_voms_data(cert, exp):
             # build a dictionary to get rid of duplicates, make it the
             # same structure as get_ferry_data builds
             users[username] = {'commonname': commonname, 'role': 'production'}
+    logging.debug("voms data: %s" % str(users))
     return users
 
 def determine_changes(cursor, exp, users):
@@ -102,6 +136,10 @@ def determine_changes(cursor, exp, users):
     new_users = users.copy() # existing users will be popped off.
     active_status = {}
     role_changes = {}
+
+    if len(users) == 0:
+        logging.warning("deterimine_changes: Zero users returned for experiment!  Skipping this experiment.")
+        return {}, {}, {}
 
     cursor.execute(sql)
     for (username, experimenter_id, active, role,) in cursor.fetchall():
@@ -128,6 +166,8 @@ def add_users(cursor, exp, new_users):
             names = last_name.lstrip().split(" ", 1)
             if len(names) == 2:
                 (first_name, last_name) = last_name.lstrip().split(" ", 1)
+                first_name = first_name.replace("'","''")
+                last_name = last_name.replace("'","''")
             sql = """
                 insert into experimenters (last_name,first_name,username,session_experiment)
                     values ('%s','%s','%s','%s') returning experimenter_id
@@ -209,6 +249,7 @@ def main():
         if args.commit is True:
             conn.commit()
             logging.debug("main: %s database changes COMMITED!!", exp)
+            add_to_listserv(args.list_owner, new_users)
         else:
             conn.rollback()
             logging.debug("main: %s database changes ROLLED BACK!!", exp)

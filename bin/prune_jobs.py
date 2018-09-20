@@ -7,15 +7,14 @@ import logging
 import psycopg2
 
 def parse_command_line():
-    doc = "Rolls up and deletes task/jobs data."
+    doc = "Deletes jobs data 3 weeks before current (runtime) date.  Deletion date can be changed"
     parser = argparse.ArgumentParser(description=doc)
     parser.add_argument('host', help="Host database is on.")
     parser.add_argument('port', type=int, help="Database Port number.")
     parser.add_argument('dbname', help="Database to connect to.")
     parser.add_argument('user', help="User to connect as")
     parser.add_argument('-d', '--date',
-        help="Data THREE weeks before this date will be rolled up and deleted.  Defaults to the Monday three weeks before today.")
-    parser.add_argument('-c', '--commit', action="store_true", help='Save changes to the database. Required to save data!')
+        help="Data before this date will be rolled up and deleted. Default is 21 days before run date.")
     parser.add_argument('-p', '--password', help="Password for the database user account. For testing only, for production use .pgpass .")
     parser.add_argument('-v', '--verbose', action="store_true", help='Output log data to screen')
     parser.add_argument('-l', '--log_dir', help="Output directory for log file.")
@@ -38,36 +37,52 @@ def set_logging(log_dir, verbose):
         consoleHandler.setLevel(logging.DEBUG)
         rootLogger.addHandler(consoleHandler)
 
-def get_monday(cursor, date):
-    if date is None:
-        date = datetime.datetime.now().strftime("%Y-%m-%d")
-        logging.debug(date)
-    sql = "select date_trunc('week', '%s'::date )::date" % date
-    cursor.execute(sql)
-    monday = cursor.fetchone()[0]
-    return monday.strftime("%Y-%m-%d")
+def get_deletion_date(date_text):
+    if date_text is None:
+        date_text = (datetime.datetime.now() - datetime.timedelta(days=21)).strftime("%Y-%m-%d")
+    try:
+        datetime.datetime.strptime(date_text, '%Y-%m-%d')
+    except ValueError:
+        raise ValueError("Incorrect date format, should be YYYY-MM-DD")
+    return date_text
 
-def get_task_id_list(cursor, monday):
-    sql = "select task_id from tasks where created < '%s'" % monday
-    print(sql)
+def get_task_id_list(cursor, date_text):
+    sql = """select task_id from tasks where created < '%s'
+             and task_id >= (select min(task_id) from jobs)
+             order by task_id""" % date_text
     cursor.execute(sql)
     task_ids = cursor.fetchall()
     return task_ids
 
-def prune_jobs(cursor, task_id):
+def run_sql(conn, cursor, sql, commit=False):
+    try:
+        #logging.debug("run_sql:SQL: %s", sql)
+        cursor.execute(sql)
+        if commit:
+            conn.commit()
+            #logging.debug("      rowcount: %s", cursor.rowcount)
+    except psycopg2.Error as e:
+        logging.debug("run_sql: EXCEPTION, SQL: %s", sql)
+        logging.debug("run_sql:   Code: %s    Error: %s", e.pgcode, e.pgerror)
+        raise e
+
+def prune_jobs(conn, cursor, task_id):
+    retValue = True
     sql = "select job_id from jobs where task_id=%s" % task_id
-    cursor.execute(sql)
-    job_ids = cursor.fetchall()
-    for (job_id, ) in job_ids:
-        del_files = "delete job_files where job_id = %s" % job_id
-        cursor.execute(del_files)
-        cursor.commit()
-        del_histories = "delete job_histories where job_id = %s" % job_id
-        cursor.execute(del_histories)
-        cursor.commit()
-    del_jobs = "delete jobs where task_id = %s" % task_id
-    cursor.execute(del_jobs)
-    cursor.commit()
+    try:
+        run_sql(conn, cursor, sql, commit=False)
+        job_ids = cursor.fetchall()
+        for (job_id, ) in job_ids:
+            del_files = "delete from job_files where job_id = %s" % job_id
+            run_sql(conn, cursor, del_files, commit=True)
+            del_histories = "delete from job_histories where job_id = %s" % job_id
+            run_sql(conn, cursor, del_histories, commit=True)
+        del_jobs = "delete from jobs where task_id = %s" % task_id
+        run_sql(conn, cursor, del_jobs, commit=True)
+    except psycopg2.Error as e:
+        logging.debug("prune_jobs: skipping task_id = %s, moving on...", task_id)
+        retValue = False
+    return retValue
 
 def main():
 
@@ -82,16 +97,36 @@ def main():
 
     conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s %s" % (args.dbname, args.host, args.port, args.user, password))
     cursor = conn.cursor()
-    monday = get_monday(cursor, date=args.date)
-    logging.debug("Rolling up data before %s.", monday)
-    task_ids = get_task_id_list(cursor, monday)
+    del_date = get_deletion_date(date_text=args.date)
+    logging.debug("Deleting job data before %s.", del_date)
+
+    task_ids = get_task_id_list(cursor, del_date)
+    tasktot = len(task_ids)
+    taskcnt = 0
+    prtcnt = 0
+    if tasktot:
+        logging.debug("Pruning %s tasks.  From task_id %s to task_id %s", tasktot, task_ids[0][0], task_ids[tasktot-1][0])
+
     for (task_id, ) in task_ids:
-        prune_jobs(cursor, task_id)
+        status = prune_jobs(conn, cursor, task_id)
+        if not status:
+            cursor.close()
+            conn.close()
+            conn = psycopg2.connect("dbname=%s host=%s port=%s user=%s %s" % (args.dbname, args.host, args.port, args.user, password))
+            cursor = conn.cursor()
+            taskcnt -= 1
+            logging.debug("main: skipped task_id: %s, reopened conn and cursor", task_id)
+        taskcnt += 1
+        prtcnt += 1
+        if prtcnt == 10:
+            logging.debug("Completed %s of %s task prunings.", taskcnt, tasktot)
+            prtcnt = 0
+    logging.debug("Pruned %s tasks", taskcnt)
 
     cursor.close()
     conn.close()
-    logging.debug("main: elapsed seconds: %s", (time.time() - stime))
-    logging.debug("main: finito!")
+    logging.debug("elapsed seconds: %s", (time.time() - stime))
+    logging.debug("finito!")
 
 if __name__ == "__main__":
     main()

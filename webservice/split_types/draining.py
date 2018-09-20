@@ -5,8 +5,8 @@ class draining:
        assuming you have a draining/recursive definition that gives
        you the work remaining to be done.
     """
-    def __init__(self, c, samhandle, dbhandle):
-        self.only = c.dataset
+    def __init__(self, cs, samhandle, dbhandle):
+        self.only = cs.dataset
 
     def peek(self):
         return self.only

@@ -1,7 +1,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-POMS:Campaign Stage {{c.name}} Scheduled Launches
+POMS:Campaign Stage {{cs.name}} Scheduled Launches
 {%endblock%}
 
 {%block header%}
@@ -19,7 +19,7 @@ POMS:Campaign Stage {{c.name}} Scheduled Launches
   <h4>Update Entry form</h4>
   <form class="ui form raised segment" action="update_launch_schedule" method="GET">
 
-   <input type="hidden" name="campaign_id" value="{{campaign_id}}">
+   <input type="hidden" name="campaign_stage_id" value="{{campaign_stage_id}}">
 
    <div class=field>
     <label>  Minutes(s) of the hour:</label>
@@ -54,7 +54,7 @@ POMS:Campaign Stage {{c.name}} Scheduled Launches
    <ul>
    {%for f in launch_flist%}
       <li>
-      <a href="list_launch_file?campaign_id={{campaign_id}}&fname={{f}}">{{f}}</a>
+      <a href="list_launch_file?campaign_stage_id={{campaign_stage_id}}&fname={{f}}">{{f}}</a>
    {%endfor%}
    </ul>
 {%endblock%}

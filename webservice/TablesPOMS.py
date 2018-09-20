@@ -98,8 +98,8 @@ class TablesPOMS(object):
         logit.log("update_for: found is now %s" % found)
         dbhandle.add(found)
         dbhandle.commit()
-        if classname == "Task":
-            self.poms_service.snapshot_parts(found. campaign_id)
+        if classname == "Submission":
+            self.poms_service.snapshot_parts(found. campaign_stage_id)
         return "%s=%s" % (classname, getattr(found, primkey))
 
 
@@ -152,6 +152,7 @@ class TablesPOMS(object):
         self.admin_map = {}
         self.pk_map = {}
         for k in dir(poms_model):
+            logit.log("key: %s" % k)
             if hasattr(poms_model.__dict__[k], '__module__') and poms_model.__dict__[k].__module__ == 'poms.webservice.poms_model':
                 self.admin_map[k] = poms_model.__dict__[k]
                 found = self.admin_map[k]()

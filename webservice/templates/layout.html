@@ -45,6 +45,10 @@
     <link rel="stylesheet" href="https://mottie.github.io/tablesorter/css/theme.ice.css">
     <link rel="stylesheet" href="https://mottie.github.io/tablesorter/css/theme.dropbox.css">
 
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@7.26.28/dist/sweetalert2.all.min.js"></script>
+
     <style type="text/css">
       div.scrollable {
         width: 100%;
@@ -92,19 +96,18 @@
 
       {% endif %}
 
-      <div class="article" style="padding-left: 1em; padding-top: 1em">  <!--header of page-->
-	<br/>
-	<div class="ui three column grid">
+      <div class="article" style="padding-left: 1em; padding-top: 1em">  <!-- header of page-->
+
+	<div class="ui three column middle aligned grid">
 	  <div class="row">
-	    <div class="ten wide column">
-	      <h1 class="ui header" style="margin: 0px 10px 0px 10px;">
-		      {%block header%} {%endblock%}
-	      </h1>
-	      {%block header_desc%}{%endblock%}
-	      <h2 class="ui header" style="margin: 0px 10px 0px 10px;">
-		      {%block subheader%} {%endblock%}
-	      </h2>
-	    </div>
+	    <div class="column">
+          <img class="ui small image" src="{{pomspath}}/static/img/poms.jpg">
+      </div>
+      <div class="column">
+        <h2>
+            {%block header%} {%endblock%}
+        </h2>
+      </div>
 	    <div class="column">
         <br>
         {% if current_experimenter is defined %}
@@ -127,16 +130,27 @@
 	    </div>
 	  </div>
 	</div>
-	<div class="ui divider"  style="margin-top: 0px;">
-	</div>
+	<div class="ui divider"  style="margin: 0px;">
+    </div>
+      <div class="ui three column middle aligned grid" style="margin-top: 5px;">
+        <div class="column"></div>
+        <div class="column">
+          <h3>
+            {%block subheader%} {%endblock%}
+          </h3>
+        </div>
+        <div class="column"></div>
+    </div>
 	{% include 'datepicker_block.html' %}
 	<div class="no example" style="margin: 0px 10px 0px 10px;">
 	  {%block content%} {%endblock%}
 	</div>
-      </div>  <!--ends article-->
+  {%block final%} {%endblock%}
+</div>  <!--ends article-->
 
     </div> <!--ends full height-->
   </div>  <!--ends pusher-->
+
 
 
 <script>
@@ -188,8 +202,6 @@
 
 </script>
 
-
-{%block final%} {%endblock%}
 </body>
 
 </html>

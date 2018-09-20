@@ -7,8 +7,8 @@ from datetime import datetime
 from utc import utc
 import atexit
 from textwrap import dedent
-from io import StringIO
-import dowser
+import io
+#import dowser
 import poms.webservice.pomscache as pomscache
 
 #
@@ -88,7 +88,7 @@ class SATool(cherrypy.Tool):
         to the SA engine and attaching it to the current request.
         Since we are running in a multithreaded application,
         we use the scoped_session that will create a session
-        on a per thread basis so that you don't worry about
+        on a per thread basis so that you don's worry about
         concurrency on the session object itself.
 
         This tools binds a session to the engine each time
@@ -114,9 +114,15 @@ class SATool(cherrypy.Tool):
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
-        self.session.execute("SET SESSION lock_timeout = '360s';")
-        self.session.execute("SET SESSION statement_timeout = '240s';")
-        self.session.commit()
+        try:
+            self.session.execute("SET SESSION lock_timeout = '360s';")
+            self.session.execute("SET SESSION statement_timeout = '240s';")
+            self.session.commit()
+        except sqlalchemy.exc.UnboundExecutionError:
+            self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
+            self.session.execute("SET SESSION lock_timeout = '360s';")
+            self.session.execute("SET SESSION statement_timeout = '240s';")
+            self.session.commit()
 
     def release_session(self):
         # flushing here deletes it too soon...
@@ -152,9 +158,9 @@ class SessionExperimenter(object):
     def is_authorized(self, campaign=None):
         """
         Who can change a campagin/any object with properties fo experiment, creator and creator_role :
-                The creator can change her/his own campaigns with the same role used to create the campaign.
-                The root can change any campaigns.
-                The coordinator can change any campaigns that in the same experiment as the coordinator.
+                The creator can change her/his own campaign_stages with the same role used to create the campaign.
+                The root can change any campaign_stages.
+                The coordinator can change any campaign_stages that in the same experiment as the coordinator.
                 Anyone with a production role can change a campaign created with a production role.
         :param campaign: Name of the campaign.
         :return: True or False
@@ -240,12 +246,12 @@ class SessionTool(cherrypy.Tool):
         logit.log("establish_session startup -- mengel")
 
 
-        cherrypy.session['id']              = cherrypy.session.originalid  #The session ID from the users cookie.
+        cherrypy.session['id'] = cherrypy.session.originalid  #The session ID from the users cookie.
         cherrypy.session['X-Forwarded-For'] = cherrypy.request.headers.get('X-Forwarded-For', None)
         # someone had all these SHIB- headers mixed case, which is not
         # how they are on fermicloud045 or on pomsgpvm01...
-        cherrypy.session['Remote-Addr']     = cherrypy.request.headers.get('Remote-Addr', None)
-        cherrypy.session['X-Shib-Userid']   = cherrypy.request.headers.get('X-Shib-Userid', None)
+        cherrypy.session['Remote-Addr'] = cherrypy.request.headers.get('Remote-Addr', None)
+        cherrypy.session['X-Shib-Userid'] = cherrypy.request.headers.get('X-Shib-Userid', None)
 
         experimenter = None
         username = None
@@ -301,7 +307,7 @@ class SessionTool(cherrypy.Tool):
                 exps[row.experiment] = {'roles':roles[:position]}
 
         if e.session_experiment == "":
-            # don't choke on blank session_experiment, just pick one...
+            # don's choke on blank session_experiment, just pick one...
             e.session_experiment = next(iter(exps.keys()))
 
         cherrypy.session['experimenter'] = SessionExperimenter(e.experimenter_id,
@@ -359,7 +365,7 @@ def pidfile():
 
 def parse_command_line():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', help="Filepath for POMS config file.")
+    parser.add_argument('-cs', '--config', help="Filepath for POMS config file.")
     parser.add_argument('--use-wsgi', dest='use_wsgi', action='store_true', help="Run behind WSGI. (Default)")
     parser.add_argument('--no-wsgi', dest='use_wsgi', action='store_false', help="Run without WSGI.")
     parser.set_defaults(use_wsgi=True)
@@ -388,7 +394,7 @@ if True:
     cf.close
 
     try:
-        cherrypy.config.update(StringIO(confs))
+        cherrypy.config.update(io.StringIO(confs))
         #cherrypy.config.update(configfile)
     except IOError as mess:
         print(mess, file=sys.stderr)
@@ -396,10 +402,10 @@ if True:
         raise SystemExit
 
     # add dowser in to monitor memory...
-    dapp = cherrypy.tree.mount(dowser.Root(), '/dowser')
+    # dapp = cherrypy.tree.mount(dowser.Root(), '/dowser')
 
     poms_instance = poms_service.PomsService()
-    app = cherrypy.tree.mount(poms_instance, poms_instance.path, StringIO(confs))
+    app = cherrypy.tree.mount(poms_instance, poms_instance.path, io.StringIO(confs))
     # app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, configfile)
 
 
@@ -426,7 +432,7 @@ if True:
     cherrypy.engine.start()
 
     if not args.use_wsgi:
-        cherrypy.engine.block()		# Disable built-in HTTP server when behind wsgi
+        cherrypy.engine.block()         # Disable built-in HTTP server when behind wsgi
         logit.log("Starting Cherrypy HTTP")
 
     application = cherrypy.tree

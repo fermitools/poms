@@ -2,22 +2,26 @@
 
 
 {%block title%}
-<title>POMS Campaign Dependencies</title>
+<title>POMS Campaign Editor</title>
 <script src="{{pomspath}}/static/js/gui_editor_3.js"></script>
 <script src="{{pomspath}}/static/js/json_field_editor.js"></script>
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/gui_editor_3.css">
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/json_field_editor.css">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css">
+
 {%endblock%}
 
 {%block bodytags%} onload="main()" {%endblock%}
 
 {%block header%}
 <h1 class="ui header">
-          Workflow Editor for {{campaign}} {%include 'help_button.html'%}
-
-          <div class="sub header">
-               Edit whole workflow
-          </div>
+    Campaign Editor for <span id="camp_header1">{{campaign}}</span> {%include 'help_button.html'%}
+    <!--
+    <div class="sub header">
+        Edit whole workflow
+    </div>
+    -->
 </h1>
 {%endblock%}
 
@@ -27,8 +31,108 @@
 
 {%block content %}
 
-<!-- <div id="outer_gui_editor_frame" style="width:100%; height: 40em; border: 1px solid grey; padding: 1em; overflow-x:scroll; overflow-y: scroll"> -->
-<div id="outer_gui_editor_frame">
+<div id="node-popUp">
+    <span id="node-operation">node</span>
+    <br>
+    <table style="margin:auto;">
+<!--
+        <tr>
+            <td>id</td>
+            <td> <input id="node-id" value="new value"> </td>
+        </tr>
+-->
+        <tr>
+            <td>label</td>
+            <td> <input id="node-label" value="new value"> </td>
+        </tr>
+    </table>
+    <input type="button" value="OK" id="node-saveButton">
+    <input type="button" value="Cancel" id="node-cancelButton">
+</div>
+
+<div id="edge-popUp">
+    <span id="edge-operation">edge</span>
+    <br>
+    <table style="margin:auto;">
+        <tr>
+            <td>label</td>
+            <td> <input id="edge-label" value="new value"> </td>
+        </tr>
+    </table>
+    <input type="button" value="OK" id="edge-saveButton">
+    <input type="button" value="Cancel" id="edge-cancelButton">
+</div>
+
+
+<h3>Campaign <span id="camp_header2">{{campaign}}</span>
+    <button class="ui button" onclick="gui_editor.save('gui_editor_0');">Save</button><span id="savebusy"></span>
+</h3>
+<!--
+<div id="mydefaults" oncontextmenu='return false;' contextmenu=""></div>
+-->
+<div id="popups"></div>
+<div id="mystages" oncontextmenu='return false;' contextmenu=""></div>
+<h4 style="margin: 1px;">Campaign Login/Setups and Jobtypes</h4>
+<div id="myjobtypes" oncontextmenu='return false;' contextmenu=""></div>
+<pre id="eventSpan" style="display: none;"></pre>
+<div id="outer_gui_editor_frame" style="display: none;"></div>
+
+<div class="ui modal" id="jt_update">
+    <i class="close icon"></i>
+    <div class="header">
+        Jobtype Update
+    </div>
+    <div class="content">
+        <div class="ui header" id="jt_update_hdr">You may update the jobtype for stages.</div>
+            <div class="ui form">
+                <table class="ui very compact striped table">
+                    <thead>
+                        <tr>
+                            <th>Stage name</th>
+                            <th>Current Job Type</th>
+                            <th>Update</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jt_table">
+                        <!-- -->
+                    </tbody>
+                </table>
+            </div>
+    </div>
+    <div class="actions">
+        <div class="ui positive right __labeled icon button" onclick="gui_editor.update_jobtypes();">
+            Done <!-- <i class="checkmark icon"></i> -->
+        </div>
+    </div>
+</div>
+
+<div class="ui modal" id="ls_update">
+    <i class="close icon"></i>
+    <div class="header">
+        Login/Setup Update
+    </div>
+    <div class="content">
+        <div class="ui header" id="ls_update_hdr">You may update the login/setup for stages.</div>
+            <div class="ui form">
+                <table class="ui very compact striped table">
+                    <thead>
+                        <tr>
+                            <th>Stage name</th>
+                            <th>Current Login/Setup</th>
+                            <th>Update</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ls_table">
+                        <!-- -->
+                    </tbody>
+                </table>
+            </div>
+    </div>
+    <div class="actions">
+        <div class="ui positive right __labeled icon button" onclick="gui_editor.update_loginsetups();">
+            Done <!-- <i class="checkmark icon"></i> -->
+        </div>
+    </div>
 </div>
 
 <script type="text/javascript">
@@ -36,26 +140,29 @@
 function main() {
    var args = mwm_utils.getSearchParams()
    var base = mwm_utils.getBaseURL()
-   console.log(["args:", args, "base:", base ])
+   console.log(["args:", args, "base:", base])
    if (args['campaign'] != undefined) {
        var url;
-       if (args['campaign'].indexOf('samples%2F') == 0) {
+       //VP~ if (args['campaign'].indexOf('samples/') == 0) {
+       if (args['campaign'].startsWith('samples')) {
           url = base + '/static/' + args['campaign'].replace('%2F','/')
        } else {
-          url = base +'/campaign_deps_ini?tag=' + args['campaign']
+          url = base +'/campaign_deps_ini?name=' + args['campaign']
        }
        $.ajax( {
           url: url
        }).done( function(data) {
           var ge = new gui_editor("outer_gui_editor_frame");
-          var args = mwm_utils.getSearchParams()
+          var args = mwm_utils.getSearchParams();
           if ('clone' in args && 'Clone' == args['clone']) {
-              ge.set_state_clone(data, args['from'], args['to'],'{{session_experiment}}','{{session_role}}')
-          } else {  
-              ge.set_state(data)
+              ge.set_state_clone(data, args['from'], args['to'],'{{session_experiment}}','{{session_role}}');
+              $("#camp_header1").html(`${args['to']}`);
+              $("#camp_header2").html(`${args['to']}`);
+          } else {
+              ge.set_state(data);
           }
        })
-   }
+   };
 }
 
 </script>

@@ -1,34 +1,133 @@
 {%extends "layout.html"%}
 
-{%block title%}
-    POMS: Sample Workflows
-{%endblock%}
-
-
 {%block header%}
-Workflows
+Campaign Samples
 {%endblock%}
 
 {%block subheader%}
 &nbsp;
 {%endblock%}
 
+{%block title%}
+    POMS: Campaign Samples
+{%endblock%}
 
 {%block content%}
-
 <div>
-Samples:
-<ul>
-{% for sample in sl %}
-<li style="margin-top: 0.5em;"> <span class="ui blue tag label">{{sample}}</span>
-  
-   <form style="border:1px solid black; margin: 5px; width: 50%;"  method="GET" action={{pomspath}}/gui_wf_edit?">
-      <input type="hidden" name="campaign" value="{{sample}}">
-      <input type="submit" name="clone" value="Clone">
-      replacing: <input name="from" value="sample">
-      with: <input name="to">
-    </form>
-{% endfor %}
-</ul>
+    <table id="sample_table" class="ui celled _table unstackable tablesorter tablesorter-ice">
+        <thead>
+            <tr>
+                <th>Campaign Name </th>
+                <th data-sorter="false" data-filter="false">View Campaign</th>
+                <th data-sorter="false" data-filter="false">View .ini</th>
+                <th data-sorter="false" data-filter="false">Clone Campaign</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for sample in sl %}
+            <tr>
+                <td>{{sample}}</td>
+                <td>
+                    <a href="{{pomspath}}/gui_wf_edit?campaign={{sample}}&readonly=true">
+                        <button type="button">
+                            <i class="file icon"></i>View Campaign
+                        </button>
+                    </a>
+                </td>
+                <td>
+                    <a href="{{pomspath}}/static/{{sample}}">
+                        <button type="button">
+                            <i class="file icon"></i>Campaign ini
+                        </button>
+                    </a>
+                </td>
+                <td>
+                    <button type="button" onclick="clone_template('{{sample}}');">
+                        <i class="copy blue icon"></i>Clone Campaign
+                    </button>
+                </td>
+            </tr>
 
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="ui modal" id="sample_clone_modal">
+  <i class="close icon"></i>
+  <h3 class="block header"><span id="template_header">
+      Clone Campaign </span>
+  </h3>
+  <div class="ui hidden divider"></div>
+  <div class="ui text container">
+    <form id="sample_clone_form" class="ui form" method="GET" action="{{pomspath}}/gui_wf_edit?">
+      <div class="two fields">
+        <div class="field">
+          <label>Sample Campaign Name</label>
+          <input type="text" id="campaign" name="campaign" readonly>
+        </div>
+        <div class="field">
+          <label>Clone Campaign Name</label>
+          <input type="text" id="to" name="to">
+        </div>
+      </div>
+      <div class="actions">
+        <div class="ui button deny red">Cancel</div>
+        <input type="submit" id="clone" name="clone" value="Clone" class="ui button teal" />
+      </div>
+      <input type="hidden" id="from" name="from" value="sample">
+    </form>
+  </div>
+  <div class="ui hidden divider"></div>
+</div> <!-- Ends template_clone_modal -->
+
+<script>
+        $(document).ready(function() {
+            $('#sample_table').tablesorter( {
+                widgets : [ 'filter', 'saveSort' ],
+                widgetOptions : {filter_reset: '.reset', saveSort: true},
+                //dateFormat : "yyyymmdd"
+                });
+
+            if ('{{msg}}' != '') {
+                $("#poms_message_data").text('{{msg}}');
+                $("#display_message_modal").modal('show');
+            }
+        });
+
+        $('#sample_table')
+        .bind('filterInit', function() {
+            // check that storage ulility is loaded
+            if ($.tablesorter.storage) {
+                // get saved filters
+                var f = $.tablesorter.storage(this, 'tablesorter-filters') || [];
+                $(this).trigger('search', [f]);
+            }
+        })
+        .bind('filterEnd', function(){
+            if ($.tablesorter.storage) {
+                // save current filters
+                var f = $(this).find('.tablesorter-filter').map(function() {
+                    return $(this).val() || '';
+                }).get();
+                $.tablesorter.storage(this, 'tablesorter-filters', f);
+            }
+        });
+
+
+function clone_template(sample) {
+    $("#sample_clone_modal").modal({}).modal('show');
+    $("#campaign").val(sample)
+}
+
+$('#sample_clone_form')
+  .form({
+    inline: true,
+    fields: {
+      to      : {rules: [{type: 'empty',prompt: 'field cannot be blank'}]},
+    }
+  })
+;
+
+</script>
 {%endblock%}

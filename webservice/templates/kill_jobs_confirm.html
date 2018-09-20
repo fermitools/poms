@@ -21,19 +21,19 @@ Confirm {{act}} request {%include 'help_button.html'%}
 <div class="ui raised padded text container segment">
 
    Are you sure you want to {{act}} the jobs for
-     {% if campaign_id is not none %}
-        Campaign Stage {{c.name if c}}, Submission(s) {{jjil|join(', ')}}
-     {% elif task_id is not none %}
+     {% if campaign_stage_id is not none %}
+        Campaign Stage {{cs.name if cs}}, Submission(s) {{jjil|join(', ')}}
+     {% elif submission_id is not none %}
        Submissions(s) {{jjil|join(', ')}}
      {% elif job_id is not none %}
        Job(s) {{jjil|join(', ')}}
      {% endif %}
     ? <br>
   <a href=
-     {% if campaign_id is not none %}
-     "{{pomspath}}/kill_jobs?confirm=y&campaign_id={{campaign_id}}&act={{act}}"
-     {% elif task_id is not none %}
-       "{{pomspath}}/kill_jobs?confirm=y&task_id={{task_id}}&act={{act}}"
+     {% if campaign_stage_id is not none %}
+     "{{pomspath}}/kill_jobs?confirm=y&campaign_stage_id={{campaign_stage_id}}&act={{act}}"
+     {% elif submission_id is not none %}
+       "{{pomspath}}/kill_jobs?confirm=y&submission_id={{submission_id}}&act={{act}}"
      {% elif job_id is not none %}
        "{{pomspath}}/kill_jobs?confirm=y&job_id={{job_id}}&act={{act}}"
      {% endif %}

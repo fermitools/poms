@@ -1,45 +1,33 @@
 {%extends "layout.html" %}
 
 {%block title%}
-POMS Tag Query Results
+POMS Campaign Query Results
 {%endblock%}
 
 {%block header%}
 <h1 class="ui header">
-         Tag Query Results {%include 'help_button.html'%}
-
-          <div class="sub header">
-              view all Campaign Stages belonging to this Tag/Campaign
-          </div>
+         Campaign Query Results {%include 'help_button.html'%}
 </h1>
 {%endblock%}
-
-
-
-
 {%block subheader%}
-<h2 class="ui dividing header">Tag Query Results: {% for item in q_list %} <div class="ui blue label">{{item}}</div> {% endfor %}</h2>
+Search Term: {{search_term}}
 {%endblock%}
 
-
-
 {%block content %}
+<div class="ui hidden divider"></div>
 <table class="ui sortable celled table">
   <thead>
     <tr>
-      <th class="">Campaign Stage Name</th>
-      <th class="">Experiment</th>
+      <th class="">Campaign Name</th>
+      <th class="">Campaign Stage name</th>
     </tr>
   </thead>
 
-
-
   <tbody>
-
   {% for row in results %}
   <tr>
-      <td><a href="{{pomspath}}/campaign_info?campaign_id={{row.campaign_id}}">{{row.name}}</a></td>
-      <td>{{row.experiment}}</td>
+      <td>{{row.Campaign.name}}</td>
+      <td><a href="{{pomspath}}/campaign_info?campaign_stage_id={{row.campaign_stage_id}}">{{row.CampaignStage.name}}</a></td>
   </tr>
   {% endfor %}
 

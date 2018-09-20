@@ -1,0 +1,273 @@
+{%extends "layout.html"%}
+
+{%block title%}
+POMS: Campaign Stages
+{%endblock%}
+
+{%block header%}
+Campaign Stages{%include 'help_button.html'%}
+<script>
+    function do_checkall() {
+        // console.log("In do_changeall");
+        const max_rows = $("#c_table_max_rows").val();
+        for (let i = 1; i <= max_rows; i++) {
+            let $cba = $("#c_cbox_all");
+            let $cb = $("#c_cbox_"+i);
+            if ($cb.is(":visible") && !$cb.is(":disabled")) {
+                $cb.prop("checked", $cba.prop("checked"));
+            }
+        }
+    }
+</script>
+{%endblock%}
+
+{%block content%}
+
+{#set column_heads = ['All','Idle','Running','Held','Total Completed','Completed', 'Located', 'Removed', 'efficiency', 'pending' ] #}
+{%set column_heads = [] %}
+
+<style scoped>
+    table th {
+        font-weight: bold !important;
+        /* padding-right: 12px !important; */
+    }
+
+    /* Hide the first column with IDs */
+    #campaign_stages th:nth-child(1), table td:nth-child(1) {
+        display: none;
+    }
+
+    .tablesorter thead .disabled {
+        display:none;
+    }
+</style>
+<form method="GET" action="{{pomspath}}/show_campaign_stages">
+  {% set has_active=True %}
+  {%include "view_picker.html" %}
+</form>
+  <br>
+<div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Stages Active/Inactive</div>
+<div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Stage Submission</div>
+<div class="ui teal button" onclick="show_stats();">Show Stage Statistics</div>
+{% if campaign_stages|length == 0 %}
+<br>
+[No Campaign Stages Available]
+{% else %}
+<div id="double-scroll" class="ui _scrollable">
+    <!--
+    <table class="ui celled table sortable">
+    -->
+    <table id="campaign_stages" class="ui celled _table unstackable tablesorter tablesorter-ice">
+        <thead>
+            <tr>
+                <th data-sorter="false" data-filter="false">Id</th>
+                <th data-sorter="false" data-filter="false" align="center">
+                    Select All<br><input type="checkbox" id="c_cbox_all" onchange="do_checkall();">
+                </th>
+                <th>Campaign Name</th>
+                <th>Campaign Stage</th>
+                <th>Active</th>
+                <th>Hold By</th>
+                <th>Creator</th>
+                <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
+                <th>Updater</th>
+                <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Updated</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for stage in campaign_stages %}
+                <tr id="c_tr_{{loop.index}}">
+                    <!-- id is hidden by css look for #campaign_stages above -->
+                    <td id="c_id_{{loop.index}}">{{stage.campaign_stage_id}}</td>
+                    <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}" {{ 'disabled' if data.authorized[loop.index-1]!=True }}></td>
+                    <td>{{ stage.campaign_obj.name}}</td>
+                    <td><a href="{{pomspath}}/campaign_info?campaign_stage_id={{stage.campaign_stage_id}}">{{stage.name}}</a></td>
+                    <td>{{ 'Yes' if stage.active else 'No' }}</td>
+                    <td>{{stage.experimenter_holder_obj.username}}</td>
+                    <td>{{stage.experimenter_creator_obj.username}}</td>
+                    <td>{{stage.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>
+                    <td>{{stage.experimenter_updater_obj.username}}</td>
+                    <td>{%if None == stage.updated%}never{%else%}{{stage.updated.strftime('%Y-%m-%d %H:%M:%S')}}{%endif%}</td>
+                    <td id="c_name_{{loop.index}}" style="display:none">{{stage.name}}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <input type="hidden" id="c_table_max_rows" value="{{campaign_stages|length}}">
+    <script>
+        $("#campaign_stages th").attr("style", "padding: 0.3em; border-left: 1;");
+    </script>
+</div>
+{% endif %}
+
+<div class="ui modal small" id="mark_inactive_modal" style="padding: 0px 20px;">
+    <i class="close icon"></i>
+    <div class="header">
+        Campaign Stages to mark Active/Inactive
+    </div>
+    <form class="ui form" action="mark_campaign_active" method="GET">
+        <div class="field">
+            <textarea id="campaign_names" readonly></textarea>
+            <input type="hidden" id="campaign_ids" name="cl">
+        </div>
+        <div class="field">
+            <div class="ui horizontal large label">Mark selected campaign stages as</div>
+            <input type="submit" class="ui teal button" name="is_active" value="Active">
+            <input type="submit" class="ui teal button" name="is_active" value="Inactive">
+        </div>
+        <div class="ui hidden divider"></div>
+    </form>
+</div> <!-- Ends Modal -->
+
+<div class="ui modal small" id="launch_holder_modal" style="padding: 0px 20px;">
+    <i class="close icon"></i>
+    <div class="header">
+        Campaign Stages to Hold/Release:
+    </div>
+    <form class="ui form" action="mark_campaign_hold" method="GET">
+        <div class="field">
+            <textarea id="campaign_names_hold" readonly></textarea>
+            <input type="hidden" id="campaign_ids2HR" name="ids2HR">
+        </div>
+        <div class="field">
+            <div class="ui horizontal large label">Mark selected campaign stages as</div>
+            <input type="submit" class="ui teal button" name="is_hold" value="Hold">
+            <input type="submit" class="ui teal button" name="is_hold" value="Release">
+        </div>
+        <div class="ui hidden divider"></div>
+    </form>
+</div> <!-- Ends Modal -->
+
+
+<script>
+    function pop_mark_inactive_modal() {
+        var max_rows = $("#c_table_max_rows").val();
+        var names = [];
+        var ids = [];
+        for (var i = 1; i <= max_rows; i++) {
+            if ( $("#c_cbox_"+i).is(":checked") ) {
+                names.push($("#c_name_"+i).html());
+                ids.push($("#c_id_"+i).html());
+            }
+        }
+        if (names.length == 0) {
+            mod_form= $("#display_message_modal").modal('show');
+            $("#poms_message_data").text("Please select one or more campaign_stages by using the appropriate check boxes.")
+        }
+        else {
+            mod_form = $("#mark_inactive_modal").modal('show');
+            $("#campaign_names").val( names.join('\n') );
+            $("#campaign_ids").val(ids.join(','))
+        }
+    }
+
+    function pop_launch_holder_modal() {
+        var max_rows = $("#c_table_max_rows").val();
+        var names = [];
+        var ids = [];
+        for (var i = 1; i <= max_rows; i++) {
+            if ( $("#c_cbox_"+i).is(":checked") ) {
+                names.push($("#c_name_"+i).html());
+                ids.push($("#c_id_"+i).html());
+            }
+        }
+        if (names.length == 0) {
+            mod_form= $("#display_message_modal").modal('show');
+            $("#poms_message_data").text("Please select one or more campaign_stages by using the appropriate check boxes.")
+        }
+        else {
+            mod_form = $("#launch_holder_modal").modal('show');
+            $("#campaign_names_hold").val( names.join('\n') );
+            $("#campaign_ids2HR").val(ids.join(','))
+        }
+    }
+
+    function show_stats() {
+        // If any boxes are checked only use those, otherwise take all visible.
+        var max_rows = $("#c_table_max_rows").val();
+        var csv = [];
+        var csv_checked = [];
+        for (var i = 1; i <= max_rows; i++) {
+            if ( $("#c_tr_"+i).is(":visible") ) {
+                csv.push($("#c_id_"+i).html());
+            }
+            if ( $("#c_cbox_"+i).is(":checked") ) {
+                csv_checked.push($("#c_id_"+i).html());
+            }
+        }
+        if (csv_checked.length == 0) {
+            location.href = "./show_campaign_stages?cl=" + csv.join(',');
+        } else {
+            location.href = "./show_campaign_stages?cl=" + csv_checked.join(',');
+        }
+    }
+  </script>
+
+  <script>
+    var tmin_local_time = moment.utc('{{tmin}}').toDate();
+    tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
+    $( ".tmin" ).html( tmin_local_time );
+
+    var tmax_local_time = moment.utc('{{tmax}}').toDate();
+    tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
+    $( ".tmax" ).html( tmax_local_time );
+
+</script>
+
+
+<script>
+    $('.external')
+        .popup({
+            inline: true,
+            hoverable: true,
+            delay: {
+                show: 300,
+                hide: 80
+            }
+        });
+
+    $('.ui.dropdown').dropdown();
+</script>
+
+
+<script>
+   $(function() {
+       $('#global_datepicker_container').show();
+   });
+
+   $(document).ready(function() {
+     $('#double-scroll').doubleScroll();
+   });
+</script>
+
+<script>
+    $(document).ready(function() {
+        $('#campaign_stages').tablesorter( {
+            widgets : [ 'filter', 'saveSort' ],
+            widgetOptions : {filter_reset: '.reset', saveSort: true},
+            //dateFormat : "yyyymmdd"
+            });
+    });
+
+    $('#campaign_stages')
+    .bind('filterInit', function() {
+        // check that storage ulility is loaded
+        if ($.tablesorter.storage) {
+            // get saved filters
+            var f = $.tablesorter.storage(this, 'tablesorter-filters') || [];
+            $(this).trigger('search', [f]);
+        }
+    })
+    .bind('filterEnd', function(){
+        if ($.tablesorter.storage) {
+            // save current filters
+            var f = $(this).find('.tablesorter-filter').map(function() {
+                return $(this).val() || '';
+            }).get();
+            $.tablesorter.storage(this, 'tablesorter-filters', f);
+        }
+    });
+</script>
+
+{%endblock%}

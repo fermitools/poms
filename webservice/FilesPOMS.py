@@ -16,7 +16,7 @@ from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy import distinct, func
 
 from . import logit
-from .poms_model import Job, Task, Campaign, JobFile
+from .poms_model import  Submission, CampaignStage
 from .utc import utc
 from .pomscache import pomscache
 
@@ -28,38 +28,38 @@ class Files_status(object):
         self.poms_service = ps
 
 
-    def list_task_logged_files(self, dbhandle, task_id):
-        t = dbhandle.query(Task).filter(Task.task_id == task_id).first()
-        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, task_id)
-        fl = dbhandle.query(JobFile).join(Job).filter(Job.task_id == task_id, JobFile.job_id == Job.job_id).all()
-        return fl, t, jobsub_job_id
+    def list_task_logged_files(self, dbhandle, submission_id):
+        s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
+        jobsub_job_id = s.jobsub_job_id
+        fl = []
+        return fl, s, jobsub_job_id
         #DELETE: template = self.poms_service.jinja_env.get_template('list_task_logged_files.html')
-        #return template.render(fl = fl, campaign = t.campaign_snap_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
+        #return template.render(fl = fl, campaign = s.campaign_stage_snapshot_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
 
 
-    def campaign_task_files(self, dbhandle, samhandle, campaign_id, tmin=None, tmax=None, tdays=1):
+    def campaign_task_files(self, dbhandle, samhandle, campaign_stage_id, tmin=None, tmax=None, tdays=1):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
          time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
-                                                                              'campaign_task_files?campaign_id=%s&' % campaign_id)
+                                                                              'campaign_task_files?campaign_stage_id=%s&' % campaign_stage_id)
         # inhale all the campaign related task info for the time window
         # in one fell swoop
-        tl = (dbhandle.query(Task)
-              .options(joinedload(Task.campaign_snap_obj))
-              .filter(Task.campaign_id == campaign_id,
-                      Task.created >= tmin, Task.created < tmax)
+        tl = (dbhandle.query(Submission)
+              .options(joinedload(Submission.campaign_stage_snapshot_obj))
+              .filter(Submission.campaign_stage_id == campaign_stage_id,
+                      Submission.created >= tmin, Submission.created < tmax)
               .all())
         #
-        # either get the campaign obj from above, or if we didn't
-        # find any tasks in that window, look it up
+        # either get the campaign obj from above, or if we didn's
+        # find any submissions in that window, look it up
         #
         if len(tl) > 0:
-            c = tl[0].campaign_snap_obj
-            # cs = tl[0].campaign_snap_obj
+            cs = tl[0].campaign_stage_snapshot_obj
+            # cs = tl[0].campaign_stage_snapshot_obj
         else:
-            c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-            # cs = c  # this is klugy -- does this work?
+            cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+            # cs = cs  # this is klugy -- does this work?
         #
         # fetch needed data in tandem
         # -- first build lists of stuff to fetch
@@ -71,21 +71,21 @@ class Files_status(object):
         all_kids_needed = deque()
         all_kids_decl_needed = deque()
         # finished_flying_needed = deque()
-        for t in tl:
-            summary_needed.append(t)
-            basedims = "snapshot_for_project_name %s " % t.project
+        for s in tl:
+            summary_needed.append(s)
+            basedims = "snapshot_for_project_name %s " % s.project
             base_dim_list.append(basedims)
 
-            somekiddims = "%s and isparentof: (version %s)" % (basedims, t.campaign_snap_obj.software_version)
+            somekiddims = "%s and isparentof: (version %s)" % (basedims, s.campaign_stage_snapshot_obj.software_version)
             some_kids_needed.append(somekiddims)
 
             somekidsdecldims = ("%s and isparentof: (version %s with availability anylocation )" %
-                                (basedims, t.campaign_snap_obj.software_version))
+                                (basedims, s.campaign_stage_snapshot_obj.software_version))
             some_kids_decl_needed.append(somekidsdecldims)
 
             allkiddecldims = basedims
             allkiddims = basedims
-            for pat in str(t.campaign_definition_snap_obj.output_file_patterns).split(','):
+            for pat in str(s.job_type_snapshot_obj.output_file_patterns).split(','):
                 if pat == 'None':
                     pat = '%'
                 if pat.find(' ') > 0:
@@ -94,201 +94,66 @@ class Files_status(object):
                     dimbits = "filename like '%s'" % pat
 
                 allkiddims = ("%s and isparentof: ( file_name '%s' and version '%s' ) " %
-                              (allkiddims, dimbits, t.campaign_snap_obj.software_version))
+                              (allkiddims, dimbits, s.campaign_stage_snapshot_obj.software_version))
                 allkiddecldims = ("%s and isparentof: ( file_name '%s' and version '%s' with availability anylocation ) " %
-                                  (allkiddecldims, dimbits, t.campaign_snap_obj.software_version))
+                                  (allkiddecldims, dimbits, s.campaign_stage_snapshot_obj.software_version))
             all_kids_needed.append(allkiddims)
             all_kids_decl_needed.append(allkiddecldims)
         #
         # -- now call parallel fetches for items
         #samhandle = cherrypy.request.samweb_lite ####IMPORTANT
         summary_list = samhandle.fetch_info_list(summary_needed, dbhandle=dbhandle)
-        some_kids_list = samhandle.count_files_list(c.experiment, some_kids_needed)
-        some_kids_decl_list = samhandle.count_files_list(c.experiment, some_kids_decl_needed)
-        all_kids_decl_list = samhandle.count_files_list(c.experiment, all_kids_decl_needed)
-        # all_kids_list = samhandle.count_files_list(c.experiment, all_kids_needed)
-        tids = [t.task_id for t in tl]
-
-        if (len(tids) == 0):
-           tjifl = [] 
-           tjifh = {}
-           tjofl = []
-           tjofh = {}
-        else:
-            #
-            # get input/output file counts
-            #
-            tjifl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
-                     .filter(Job.task_id.in_(tids))
-                     .filter(JobFile.job_id == Job.job_id)
-                     .filter(JobFile.file_type == "input")
-                     .group_by(Job.task_id)
-                     .all())
-
-            tjifh = dict(tjifl)
-
-            tjofl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
-                     .filter(Job.task_id.in_(tids))
-                     .filter(JobFile.job_id == Job.job_id)
-                     .filter(JobFile.file_type == "output")
-                     .group_by(Job.task_id)
-                     .all())
-
-            tjofh = dict(tjofl)
+        some_kids_list = samhandle.count_files_list(cs.experiment, some_kids_needed)
+        some_kids_decl_list = samhandle.count_files_list(cs.experiment, some_kids_decl_needed)
+        all_kids_decl_list = samhandle.count_files_list(cs.experiment, all_kids_decl_needed)
+        # all_kids_list = samhandle.count_files_list(cs.experiment, all_kids_needed)
+        tids = [s.submission_id for s in tl]
 
 
         columns = ["jobsub_jobid", "project", "date", "submit-<br>ted",
                    "deliv-<br>ered<br>SAM",
                    "unknown<br>SAM",
-                   "deliv-<br>ered<br>logs",
-                   "out-<br>put<br>logs",
                    "con-<br>sumed", "failed", "skipped",
                    "w/some kids<br>declared",
                    "w/all kids<br>declared",
-                   "kids in<br>flight",
                    "w/kids<br>located",
                    "pending"]
 
 
-        listfiles = "show_dimension_files?experiment=%s&dims=%%s" % c.experiment
+        listfiles = "show_dimension_files?experiment=%s&dims=%%s" % cs.experiment
         datarows = deque()
         i = -1
-        for t in tl:
-            logit.log("task %d" % t.task_id)
+        for s in tl:
+            logit.log("task %d" % s.submission_id)
             i = i + 1
             psummary = summary_list[i]
             partpending = psummary.get('files_in_snapshot', 0) - some_kids_list[i]
             #pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
             pending = partpending
-            logdelivered = tjifh.get(t.task_id,0)
-            logoutput = tjofh.get(t.task_id,0)
 
-            task_jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, t.task_id)
+            task_jobsub_job_id = s.jobsub_job_id
             if task_jobsub_job_id is None:
-                task_jobsub_job_id = "t%s" % t.task_id
+                task_jobsub_job_id = "s%s" % s.submission_id
             datarows.append([
-                            [task_jobsub_job_id.replace('@', '@<br>'), "show_task_jobs?task_id=%d" % t.task_id],
-                            [t.project, "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s" % (c.experiment, c.experiment, t.project)],
-                            [t.created.strftime("%Y-%m-%d %H:%M"), None],
+                            [task_jobsub_job_id.replace('@', '@<br>'), "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%s&var-schedd=%s&from=now-2d&to=now&refresh=5m&orgId=1" % (task_jobsub_job_id[0:task_jobsub_job_id.find('@')],task_jobsub_job_id[task_jobsub_job_id.find('@')+1:])],
+                            [s.project, "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s" % (cs.experiment, cs.experiment, s.project)],
+                            [s.created.strftime("%Y-%m-%d %H:%M"), None],
                             [psummary.get('files_in_snapshot', 0), listfiles % base_dim_list[i]],
                             ["%d" % (psummary.get('tot_consumed', 0) + psummary.get('tot_failed', 0) + psummary.get('tot_skipped', 0) + psummary.get('tot_delivered', 0)),
                              listfiles % base_dim_list[i] + " and consumed_status consumed,failed,skipped,delivered "],
                             ["%d" % psummary.get('tot_unknown', 0),
                              listfiles % base_dim_list[i] + " and consumed_status unknown"],
-                            ["%d" % logdelivered, "./list_task_logged_files?task_id=%s" % t.task_id],
-                            ["%d" % logoutput, "./list_task_logged_files?task_id=%s" % t.task_id],
                             [psummary.get('tot_consumed', 0), listfiles % base_dim_list[i] + " and consumed_status consumed"],
                             [psummary.get('tot_failed', 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
                             [psummary.get('tot_skipped', 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
                             [some_kids_decl_list[i], listfiles % some_kids_needed[i]],
                             [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                            [len(self.poms_service.filesPOMS.get_inflight(dbhandle, campaign_id, task_id=t.task_id)),
-                             "./inflight_files?task_id=%d" % t.task_id],
                             [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
                             [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
                             ])
-        return c, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
+        return cs, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
 
 
-    def job_file_list(self, dbhandle, jobhandle, job_id, force_reload=False):   # Should this funcion be here or at the main script ????
-        j = dbhandle.query(Job).options(joinedload(Job.task_obj).joinedload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
-        # find the job with the logs -- minimum jobsub_job_id for this task
-        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, j.task_id)
-        role = j.task_obj.campaign_snap_obj.vo_role
-        return jobhandle.index(jobsub_job_id, j.task_obj.campaign_snap_obj.experiment, role, force_reload)
-
-
-    def job_file_contents(self, dbhandle, jobhandle, job_id, task_id, file, tmin=None, tmax=None, tdays=None):
-        #jobhandle = cherrypy.request.jobsub_fetcher
-
-        # we don't really use these for anything but we might want to
-        # pass them into a template to set time ranges...
-        (tmin, tmax,
-         tmins, tmaxs,
-         nextlink, prevlink,
-         time_range_string,tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaigns?')
-        ### You don't use many of those arguments, is just because you need one of them then you call the whole method ???????
-        j = dbhandle.query(Job).options(subqueryload(Job.task_obj).subqueryload(Task.campaign_snap_obj)).filter(Job.job_id == job_id).first()
-        # find the job with the logs -- minimum jobsub_job_id for this task
-        jobsub_job_id = self.poms_service.taskPOMS.task_min_job(dbhandle, j.task_id)
-        logit.log("found job: %s " % jobsub_job_id)
-        role = j.task_obj.campaign_snap_obj.vo_role
-        job_file_contents = jobhandle.contents(file, jobsub_job_id, j.task_obj.campaign_snap_obj.experiment, role)
-        return job_file_contents, tmin
-        #DELETE template = self.jinja_env.get_template('job_file_contents.html')
-        #DELETE return template.render(file=file, job_file_contents=job_file_contents, task_id=task_id, job_id=job_id, tmin=tmin, pomspath=self.path,help_page="JobFileContentsHelp", version=self.version)
-
-
-    def format_job_counts(self, dbhandle, task_id=None, campaign_id=None, tmin=None, tmax=None, tdays=7, range_string=None, title_bits = ''): 
-        counts = self.poms_service.triagePOMS.job_counts(dbhandle, task_id=task_id, campaign_id=campaign_id,
-                                                         tmin=tmin, tmax=tmax, tdays=tdays)
-        ck = list(counts.keys())
-        res = ['<div><b>%s Job States</b><br>' % title_bits,
-               '<table class="ui celled table unstackable">',
-               '<tr><th>Total</th><th colspan=3>Active</th><th colspan=4>Completed In %s</th></tr>' % range_string,
-               '<tr>']
-        for k in ck:
-            if k == "Completed Total":
-                k = "Total"
-            if k == "Completed":
-                k = "Not Located"
-            res.append("<th>%s</th>" % k)
-        res.append("</tr>")
-        res.append("<tr>")
-        var = 'ignore_me'
-        val = ''
-        if campaign_id is not None:
-            var = 'campaign_id'
-            val = campaign_id
-        if task_id is not None:
-            var = 'task_id'
-            val = task_id
-        for k in ck:
-            res.append('<td><a href="job_table?job_status=%s&%s=%s">%d</a></td>' % (k, var, val, counts[k]))
-        res.append("</tr></table></div><br>")
-        return "".join(res)
-
-
-    @staticmethod
-    def get_inflight(dbhandle, campaign_id=None, task_id=None):   # This method was deleted from the main script
-        q = dbhandle.query(JobFile).join(Job).join(Task).join(Campaign)
-        q = q.filter(Task.campaign_id == Campaign.campaign_id)
-        q = q.filter(Task.task_id == Job.task_id)
-        q = q.filter(Job.job_id == JobFile.job_id)
-        q = q.filter(JobFile.file_type == 'output')
-        q = q.filter(JobFile.declared == None)
-        if campaign_id is not None:
-            q = q.filter(Task.campaign_id == campaign_id)
-        if task_id is not None:
-            q = q.filter(Job.task_id == task_id)
-        q = q.filter(Job.output_files_declared == False)
-        return [jf.file_name for jf in q.all()]
-
-
-    def inflight_files(self, dbhandle, status_response, getconfig, campaign_id=None, task_id=None):
-        #status_response = cherrypy.response.status
-        if campaign_id:
-            c = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
-        elif task_id:
-            c = dbhandle.query(Campaign).join(Task).filter(Campaign.campaign_id == Task.campaign_id, Task.task_id == task_id).first()
-        else:
-            # status_response = "404 Permission Denied."
-            return "Neither Campaign nor Task found"
-        outlist = self.poms_service.filesPOMS.get_inflight(dbhandle, campaign_id=campaign_id, task_id=task_id)
-        statusmap = {}
-        if c:
-            fss_file = "%s/%s_files.db" % (getconfig("ftsscandir"), c.experiment)
-            if os.path.exists(fss_file):
-                fss = shelve.open(fss_file, flag='r', protocol=3)
-                for f in outlist:
-                    try:
-                        statusmap[f] = fss.get(f, '')
-                    except KeyError:
-                        statusmap[f] = ''
-                fss.close()
-        return outlist, statusmap, c
-        #template = self.jinja_env.get_template('inflight_files.html')
-        #return template.render(flist = outlist,  current_experimenter=cherrypy.session.get('experimenter'),   statusmap = statusmap, c = c, jjid= self.task_min_job(task_id),campaign_id = campaign_id, task_id = task_id, pomspath=self.path,help_page="PendingFilesJobsHelp", version=self.version)
 
 
     def show_dimension_files(self, samhandle, experiment, dims, dbhandle=None):
@@ -300,51 +165,51 @@ class Files_status(object):
         return flist
 
 
-    def actual_pending_file_dims(self, dbhandle, samhandle, campaign_id=None, tmin=None, tmax=None, tdays=1):
+    def actual_pending_file_dims(self, dbhandle, samhandle, campaign_stage_id=None, tmin=None, tmax=None, tdays=1):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
          time_range_string, tdays
          ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
                                                       'actual_pending_files?%s=%s&' %
-                                                      ('campaign_id', campaign_id))
+                                                      ('campaign_stage_id', campaign_stage_id))
 
-        tl = (dbhandle.query(Task).
-              options(joinedload(Task.campaign_obj)).
-              options(joinedload(Task.jobs).joinedload(Job.job_files)).
-              filter(Task.campaign_id == campaign_id,
-                     Task.created >= tmin, Task.created < tmax).
+        tl = (dbhandle.query(Submission).
+              options(joinedload(Submission.campaign_stage_obj)).
+              options(joinedload(Submission.jobs).joinedload(Job.job_files)).
+              filter(Submission.campaign_stage_id == campaign_stage_id,
+                     Submission.created >= tmin, Submission.created < tmax).
               all())
 
         explist, dimlist = self.get_pending_dims_for_task_lists(dbhandle, samhandle, [tl])
         return explist, dimlist
 
-    def campaign_sheet(self, dbhandle, samhandle, campaign_id, tmin=None, tmax=None, tdays=7):   # maybe at the future for a  ReportsPOMS module
+    def campaign_sheet(self, dbhandle, samhandle, campaign_stage_id, tmin=None, tmax=None, tdays=7):   # maybe at the future for a  ReportsPOMS module
 
         daynames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
-         time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_id=%s&' % campaign_id)
+         time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_stage_id=%s&' % campaign_stage_id)
 
         el = dbhandle.query(distinct(Job.user_exe_exit_code)).filter(Job.updated >= tmin, Job.updated <= tmax).all()
         exitcodes = [e[0] for e in el]
 
-        (experiment,) = dbhandle.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).one()
+        (experiment,) = dbhandle.query(CampaignStage.experiment).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
 
         #
-        # get list of tasks
+        # get list of submissions
         #
-        tl = (dbhandle.query(Task)
-              .filter(Task.campaign_id == campaign_id, Task.created > tmin, Task.created < tmax)
-              .order_by(Task.created)
+        tl = (dbhandle.query(Submission)
+              .filter(Submission.campaign_stage_id == campaign_stage_id, Submission.created > tmin, Submission.created < tmax)
+              .order_by(Submission.created)
               .all())
 
         #
         # extract list of task ids
         #
-        tids = [t.task_id for t in tl]
+        tids = [s.submission_id for s in tl]
 
         if len(tids) == 0:
            tjcl = []
@@ -358,20 +223,20 @@ class Files_status(object):
             #
             # get job counts for each task, put in dict
             #
-            tjcl = (dbhandle.query(Job.task_id, func.count(Job.job_id))
-                    .filter(Job.task_id.in_(tids))
-                    .group_by(Job.task_id))
+            tjcl = (dbhandle.query(Job.submission_id, func.count(Job.job_id))
+                    .filter(Job.submission_id.in_(tids))
+                    .group_by(Job.submission_id))
 
             tjch = dict(tjcl)
             logit.log("job counts:"+repr(tjch))
 
             #
-            # get job efficiency for tasks
+            # get job efficiency for submissions
             #
-            tjel = (dbhandle.query(Job.task_id, func.sum(Job.wall_time), func.sum(Job.cpu_time))
-                    .filter(Job.task_id.in_(tids))
+            tjel = (dbhandle.query(Job.submission_id, func.sum(Job.wall_time), func.sum(Job.cpu_time))
+                    .filter(Job.submission_id.in_(tids))
                     .filter(Job.cpu_time > 0.0, Job.wall_time > 0, Job.cpu_time < Job.wall_time * 10)
-                    .group_by(Job.task_id)
+                    .group_by(Job.submission_id)
                     .all())
 
             tjcpuh = {}
@@ -383,20 +248,20 @@ class Files_status(object):
             #
             # get input/output file counts
             #
-            tjifl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
-                      .filter(Job.task_id.in_(tids))
+            tjifl = (dbhandle.query(Job.submission_id, func.count(JobFile.file_name))
+                      .filter(Job.submission_id.in_(tids))
                       .filter(JobFile.job_id == Job.job_id)
                       .filter(JobFile.file_type == "input")
-                      .group_by(Job.task_id)
+                      .group_by(Job.submission_id)
                       .all())
 
             tjifh = dict(tjifl)
 
-            tjofl = (dbhandle.query(Job.task_id, func.count(JobFile.file_name))
-                      .filter(Job.task_id.in_(tids))
+            tjofl = (dbhandle.query(Job.submission_id, func.count(JobFile.file_name))
+                      .filter(Job.submission_id.in_(tids))
                       .filter(JobFile.job_id == Job.job_id)
                       .filter(JobFile.file_type == "output")
-                      .group_by(Job.task_id)
+                      .group_by(Job.submission_id)
                       .all())
 
             tjofh = dict(tjofl)
@@ -407,10 +272,10 @@ class Files_status(object):
         #
         ecc = {}
         for e in exitcodes:
-            tjel = (dbhandle.query(Job.task_id, func.count(Job.job_id))
-               .filter(Job.task_id.in_(tids))
+            tjel = (dbhandle.query(Job.submission_id, func.count(Job.job_id))
+               .filter(Job.submission_id.in_(tids))
                .filter(Job.user_exe_exit_code == e)
-               .group_by(Job.task_id)
+               .group_by(Job.submission_id)
                .all())
             ecc[e] = dict(tjel)
 
@@ -481,32 +346,32 @@ class Files_status(object):
             day = task.created.weekday()
             date = task.created
             #
-            #~ ps = self.project_summary_for_task(task.task_id)
+            #~ ps = self.project_summary_for_task(task.submission_id)
             ps = psl[tno]
             if ps:
                 totdfiles += ps.get('tot_consumed', 0) + ps.get('tot_failed', 0)
                 totfiles += ps.get('files_in_snapshot', 0)
 
-            if tjch.get(task.task_id, None):
-                totjobs += tjch[task.task_id]
+            if tjch.get(task.submission_id, None):
+                totjobs += tjch[task.submission_id]
 
-            if tjcpuh.get(task.task_id, None) and tjwallh.get(task.task_id, None):
-                totwall += tjwallh[task.task_id]
-                totcpu += tjcpuh[task.task_id]
+            if tjcpuh.get(task.submission_id, None) and tjwallh.get(task.submission_id, None):
+                totwall += tjwallh[task.submission_id]
+                totcpu += tjcpuh[task.submission_id]
 
-            if tjofh.get(task.task_id, None):
-                outfiles += tjofh[task.task_id]
+            if tjofh.get(task.submission_id, None):
+                outfiles += tjofh[task.submission_id]
 
-            if tjifh.get(task.task_id, None):
-                infiles += tjifh[task.task_id]
+            if tjifh.get(task.submission_id, None):
+                infiles += tjifh[task.submission_id]
 
             for i, e in enumerate(exitcodes):
-                if ecc.get(e, None) and ecc[e].get(task.task_id, None):
-                    exitcounts[e] += ecc[e][task.task_id]
+                if ecc.get(e, None) and ecc[e].get(task.submission_id, None):
+                    exitcounts[e] += ecc[e][task.submission_id]
 
         # we *should* add another row here for the last set of totals, but
-        # initially we just added a day to the query range, so we compute a row of totals we don't use..
-        # --- but that doesn't work on new projects...
+        # initially we just added a day to the query range, so we compute a row of totals we don's use..
+        # --- but that doesn's work on new projects...
         # add a row to the table on the day boundary
         daytasks.append(tasklist)
         outrow = deque()
@@ -540,7 +405,7 @@ class Files_status(object):
         #    outrows[i][7] = pendings[i]
 
         if tl and tl[0]:
-            name = tl[0].campaign_snap_obj.name
+            name = tl[0].campaign_stage_snapshot_obj.name
 
         else:
             name = ''
@@ -552,7 +417,7 @@ class Files_status(object):
         if isinstance(campaign_id_list, str):
             campaign_id_list = [cid for cid in campaign_id_list.split(',') if cid]
         dl, cl = self.get_pending_for_campaigns(dbhandle, samhandle, campaign_id_list, tmin, tmax)
-        res = {cid: c for cid, c in zip(campaign_id_list, cl)}
+        res = {cid: cs for cid, cs in zip(campaign_id_list, cl)}
         logit.log("get_pending_dict_for_campaigns returning: " + repr(res))
         return res
 
@@ -565,17 +430,17 @@ class Files_status(object):
         if isinstance(campaign_id_list, str):
             campaign_id_list = [cid for cid in campaign_id_list.split(',') if cid]
 
-        task_list = (dbhandle.query(Task).
-                     options(joinedload(Task.campaign_snap_obj)).
-                     options(joinedload(Task.campaign_definition_snap_obj)).
-                     filter(Task.campaign_id.in_(campaign_id_list),
-                            Task.created >= tmin, Task.created < tmax).
+        task_list = (dbhandle.query(Submission).
+                     options(joinedload(Submission.campaign_stage_snapshot_obj)).
+                     options(joinedload(Submission.job_type_snapshot_obj)).
+                     filter(Submission.campaign_stage_id.in_(campaign_id_list),
+                            Submission.created >= tmin, Submission.created < tmax).
                      all())
         # logit.log("get_pending_for_campaigns: task_list (%d): %s" % (len(task_list), task_list))
 
         tll = defaultdict(lambda: [])                               # To prepare the list of task lists
-        for task in task_list:                                      # Group tasks by campaign ids
-            tll[task.campaign_id].append(task)
+        for task in task_list:                                      # Group submissions by campaign ids
+            tll[task.campaign_stage_id].append(task)
         task_list_list = [tll[int(ci)] for ci in campaign_id_list]  # Build the list of task lists in original campaign order
         # logit.log("get_pending_for_campaigns: task_list_list (%d): %s" % (len(task_list_list), task_list_list))
 
@@ -611,12 +476,12 @@ class Files_status(object):
                 diml.append("(snapshot_for_project_name %s" % task.project)
                 diml.append("minus ( snapshot_for_project_name %s and (" % task.project)
                 sep = ""
-                for pat in str(task.campaign_definition_snap_obj.output_file_patterns).split(','):
+                for pat in str(task.job_type_snapshot_obj.output_file_patterns).split(','):
                     if pat == "None":
                         pat = "%"
                     diml.append(sep)
                     diml.append("isparentof: ( file_name '%s' and version '%s' with availability physical )" %
-                                (pat, task.campaign_snap_obj.software_version))
+                                (pat, task.campaign_stage_snapshot_obj.software_version))
                     sep = "or"
                 diml.append(")")
                 diml.append(")")
@@ -631,7 +496,7 @@ class Files_status(object):
             dimlist.append(" ".join(diml))
 
             if len(tl):
-                explist.append(tl[0].campaign_definition_snap_obj.experiment)
+                explist.append(tl[0].job_type_snapshot_obj.experiment)
             else:
                 explist.append("samdev")
 

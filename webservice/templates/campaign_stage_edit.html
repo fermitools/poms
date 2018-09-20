@@ -28,29 +28,18 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 {%endblock%}
 
 {%block content%}
-<form id="campaign_form" class="ui form" action="campaign_edit" method="POST">
+<form id="campaign_form" class="ui form" action="campaign_stage_edit" method="POST">
+
+  {% set has_active=True %}
+  {%include "view_picker.html" %}
 
   <div class="inline fields">
-    <div class="field">
-      <div class="ui radio checkbox">
-        <input type="radio" name="state" id="state_active" value="state_active" {{ 'checked="checked"' if (data.state is not defined or data.state == "state_active")  }}>
-        <label>Active</label>
-      </div>
-    </div>
-    <div class="field">
-      <div class="ui radio checkbox">
-        <input type="radio" name="state" id="state_inactive" value="state_inactive" {{ 'checked="checked"' if (data.state == "state_inactive")  }}>
-        <label>Inactive</label>
-      </div>
-    </div>
-    <div class="field">
-      <div class="ui radio checkbox">
-        <input type="radio" name="state" id="state_all" value="state_all" {{ 'checked="checked"' if (data.state == "state_all")  }}>
-        <label>All</label>
-      </div>
-    </div>
+    <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (session_role=='coordinator') }}>
+      <i class="icon add square"></i>
+      Add
+    </button>
+    &nbsp;&nbsp;
   </div>
-
 
   {% if data.curr_experiment is defined %}
   <div id="double-scroll" class="scrollable">
@@ -59,7 +48,8 @@ Campaign Stages {{ show_hint('', 'Help page') }}
     <thead>
       <tr>
         <th></th>
-        <th> Name {{ show_hint('#Name', 'Name string') }} </th>
+        <th> Campaign Name</th>
+        <th> Stage Name {{ show_hint('#Name', 'Name string') }} </th>
         <th> Active {{ show_hint('#Active', 'True/False') }} </th>
         <th> VO Role {{ show_hint('#VO-Role', 'Role name') }} </th>
         <th> Software<br>Version {{ show_hint('#Software-Version', 'Version tag') }} </th>
@@ -73,20 +63,20 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       </tr>
     </thead>
     <tbody>
-      {% for row in data.campaigns %}
+      {% for row in data.campaign_stages %}
       <tr>
         <td class="collapsing">
           {% if data.authorized[loop.index-1]==True %}
           <i class="large edit link blue icon"  onclick="edit_campaign({{loop.index}});"></i>
-          <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i>
-          <i class="large trash link blue icon" onclick="delete_campaign('{{row.name}}',{{row.campaign_id}});"></i>
+          <!-- <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i> -->
+          <i class="large trash link blue icon" onclick="delete_campaign('{{row.CampaignStage.name}}',{{row.CampaignStage.campaign_stage_id}});"></i>
           {% else %}
           <i class="large unhide link blue icon" onclick="edit_campaign({{loop.index}});"></i>
-          <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i>
+          <!-- <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i> -->
           {% endif %}
         </td>
-        <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.campaign_id}}</td>
-        {% if row.campaign_id|int == jump_to_campaign|default(-1)|int %}
+        <td id="c_campaign_stage_id_{{loop.index}}" style="display:none">{{row.CampaignStage.campaign_stage_id}}</td>
+        {% if row.CampaignStage.campaign_stage_id|int == jump_to_campaign|default(-1)|int %}
         <script type="text/javascript">
          // jump directly to a particular campaign
          $(document).ready(function(){
@@ -95,25 +85,27 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         </script>
         {% endif %}
         <td id="c_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
-        <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.campaign_definition_id}}</td>
-        <td id="c_launch_id_{{loop.index}}" style="display:none">{{row.launch_id}}</td>
-        <td id="c_name_{{loop.index}}">{{row.name}}</td>
-        <td id="c_active_{{loop.index}}">{{row.active}}</td>
-        <td id="c_vo_role_{{loop.index}}">{{row.vo_role}}</td>
-        <td id="c_software_version_{{loop.index}}">{{row.software_version}}</td>
-        <td id="c_dataset_{{loop.index}}">{{row.dataset}}</td>
-        <td id="c_split_type_{{loop.index}}">{{row.cs_split_type}}</td>
-        <td id="c_completion_type_{{loop.index}}">{{row.completion_type}}</td>
-        <td id="c_completion_pct_{{loop.index}}">{{row.completion_pct}}</td>
-        {% if row.param_overrides is string %}
-            <td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|replace("None","")}}</td>
+        <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.CampaignStage.job_type_id}}</td>
+        <td id="c_launch_id_{{loop.index}}" style="display:none">{{row.CampaignStage.login_setup_id}}</td>
+        <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.CampaignStage.campaign_id}}</td>
+        <td id="c_campaign_name_{{loop.index}}">{{row.Campaign.name}}</td>
+        <td id="c_name_{{loop.index}}">{{row.CampaignStage.name}}</td>
+        <td id="c_active_{{loop.index}}">{{row.CampaignStage.active}}</td>
+        <td id="c_vo_role_{{loop.index}}">{{row.CampaignStage.vo_role}}</td>
+        <td id="c_software_version_{{loop.index}}">{{row.CampaignStage.software_version}}</td>
+        <td id="c_dataset_{{loop.index}}">{{row.CampaignStage.dataset}}</td>
+        <td id="c_split_type_{{loop.index}}">{{row.CampaignStage.cs_split_type}}</td>
+        <td id="c_completion_type_{{loop.index}}">{{row.CampaignStage.completion_type}}</td>
+        <td id="c_completion_pct_{{loop.index}}">{{row.CampaignStage.completion_pct}}</td>
+        {% if row.CampaignStage.param_overrides is string %}
+            <td id="c_param_overrides_{{loop.index}}">{{row.CampaignStage.param_overrides|replace("None","")}}</td>
         {% else %}
-            <td id="c_param_overrides_{{loop.index}}">{{row.param_overrides|tojson|replace("null","")}}</td>
+            <td id="c_param_overrides_{{loop.index}}">{{row.CampaignStage.param_overrides|tojson|replace("null","")}}</td>
         {% endif %}
-        <td id="c_test_param_overrides_{{loop.index}}">{{row.test_param_overrides|tojson|replace("null","")}}</td>
+        <td id="c_test_param_overrides_{{loop.index}}">{{row.CampaignStage.test_param_overrides|tojson|replace("null","")}}</td>
         <td id="c_depends_{{loop.index}}">
         {% for key, value in data.depends.items() %}
-            {% if key == row.campaign_id %}
+            {% if key == row.CampaignStage.campaign_stage_id %}
             {{ value }}
             {% endif %}
         {% endfor %}
@@ -165,18 +157,28 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
 <div class="ui modal" id="campaign_add_edit_modal">
   <i class="close icon"></i>
-  <h3 class="block header"><span id="ae_experiment">Campaign Stage Editor {{ show_hint('', 'Help Page') }}</span></h3>
+  <h3 class="block header"><span id="ae_experiment">Campaign Stage Editor </span>{{ show_hint('', 'Help Page') }}</h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <form id="campaign_add_edit_form" class="ui form" method="POST" action="campaign_edit">
+    <form id="campaign_add_edit_form" class="ui form" method="POST" action="campaign_stage_edit">
+
+      <div class="fields">
+        <label>Campaign Name</label>
+        <select name="ae_campaign_name" id="ae_campaign_name" class="ui fluid search dropdown">
+          <option value=""></option>
+          {% for row in data.campaigns %}
+          <option value={{row.campaign_id}}>{{row.name}}</option>
+          {% endfor %}
+        </select>
+      </div>
 
       <div class="fields">
         <div class="field">
-            <label>Name {{ show_hint('#Stage-Name', 'Stage name') }}</label>
-            <input type="text" id="ae_campaign_name" name="ae_campaign_name" placeholder="Campaign Stage Name">
+            <label>Stage Name {{ show_hint('#Stage-Name', 'Stage name') }}</label>
+            <input type="text" id="ae_stage_name" name="ae_stage_name" placeholder="Campaign Stage Name">
         </div>
         <div class="field">
-            <label>VO Role {{ show_hint('#VO-Role', 'Role name') }}</label>
+            <label>Jobsub VO Role {{ show_hint('#VO-Role', 'Role name') }}</label>
             <input type="text" id="ae_vo_role" name="ae_vo_role">
         </div>
         <div class="field">
@@ -238,15 +240,15 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         </div>
       </div>
 
-      <h4 class="ui horizontal divider">Launch Template</h4>
+      <h4 class="ui horizontal divider">Launch/Setup</h4>
 
       <div class="one field">
         <div class="field">
-          <label>Launch Template {{ show_hint('#Launch-Template', 'Select template name') }}</label>
+          <label>Launch/Setup Name {{ show_hint('#Launch-Template', 'Select template name') }}</label>
           <select class="ui dropdown" name="ae_launch_id" id="ae_launch_id">
             <option value=""></option>
             {% for row in data.templates %}
-            <option value={{row.launch_id}}>{{row.name}}</option>
+            <option value={{row.login_setup_id}}>{{row.name}}</option>
             {% endfor %}
           </select>
         </div>
@@ -273,12 +275,12 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
       <div class="one field">
         <div class="field">
-          <label>Job Type {{ show_hint('#Job-Type', 'Select job type') }}</label>
+          <label>Job Type Name {{ show_hint('#Job-Type', 'Select job type') }}</label>
           <!--<br/>-->
           <select class="ui dropdown" name="ae_campaign_definition_id" id="ae_campaign_definition_id">
             <option value=""></option>
             {% for row in data.definitions %}
-            <option value="{{row.campaign_definition_id}}">{{row.name}}</option>
+            <option value="{{row.job_type_id}}">{{row.name}}</option>
             {% endfor %}
           </select>
         </div>
@@ -295,7 +297,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
       <div class="two fields">
         <div class="field">
-          <label>Launch Script {{ show_hint('#Launch-Script', 'Script name with arguments') }}</label>
+          <label>Launch/Setup Script {{ show_hint('#Launch-Script', 'Script name with arguments') }}</label>
           <textarea rows="3" id="ae_launch_script" disabled></textarea>
         </div>
         <div class="field">
@@ -317,7 +319,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
       <input type="hidden" name="action" id="ae_definition_action" value="add">
       <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id|default('unknown')}}">
-      <input type="hidden" id="ae_campaign_id" name="ae_campaign_id" value="0">
+      <input type="hidden" id="ae_campaign_stage_id" name="ae_campaign_stage_id" value="0">
       <input type="hidden" id="ae_param_overrides" name="ae_param_overrides" value="[]">
       <input type="hidden" id="ae_test_param_overrides" name="ae_test_param_overrides" value="[]">
       <input type="hidden" id="ae_depends" name="ae_depends" value="[]">
@@ -380,8 +382,8 @@ Campaign Stages {{ show_hint('', 'Help page') }}
                  {{i}}.
                     <select name="de_select_{{i}}" id="de_select_{{i}}">
                         <option value="">-</option>
-                        {% for c in data['campaigns'] %}
-                           <option value="{{c.name}}">{{c.name}}</option>
+                        {% for cs in data['campaign_stages'] %}
+                           <option value="{{cs[0].name}}">{{cs[0].name}}</option>
                         {% endfor %}
                     </select>
                 </td>
@@ -415,6 +417,7 @@ $('#campaign_add_edit_form')
   .form({
     fields: {
       ae_campaign_name :          'empty',
+      ae_stage_name :             'empty',
       ae_vo_role :                'empty',
       ae_active :                 'empty',
       ae_software_version :       'empty',
@@ -431,17 +434,10 @@ $('#campaign_add_edit_form')
 //      ae_active_hello :           'dropdown',
 //    }
 
-
-/*
-$("#c_experiment").change(function() {
-    $("#campaign_form").submit();
-});
-*/
-
 $("#ae_launch_id").change(function() {
   var formdata = {'ae_launch_id': $("#ae_launch_id").val()};
   $.ajax({
-      url: "{{pomspath}}/campaign_edit_query",
+      url: "{{pomspath}}/campaign_stage_edit_query",
       type: 'GET',
       data: formdata,
       success: function(dat){
@@ -456,7 +452,7 @@ $("#ae_launch_id").change(function() {
 $("#ae_campaign_definition_id").change(function() {
   var formdata = {'ae_campaign_definition_id': $("#ae_campaign_definition_id").val()};
   $.ajax({
-      url: "{{pomspath}}/campaign_edit_query",
+      url: "{{pomspath}}/campaign_stage_edit_query",
       type: 'GET',
       data: formdata,
       success: function(dat){
@@ -483,12 +479,12 @@ function create_row(index, key, value) {
 
 var ep_parms = [];
 
-/* 
+/*
  * was:
  * $("#edit_param_modal_btn").click(function() {
  *   setup_modal("#ae_param_overrides");
  * });
- * 
+ *
  * $("#edit_param_test_modal_btn").click(function() {
  *   setup_modal("#ae_test_param_overrides");
  * });
@@ -541,27 +537,27 @@ $("#edit_depends_modal_btn").click(function() {
   //mwm
   var depends = $("#ae_depends").val();
   if (depends == "[]") {
-    depends = '{"campaigns": [], "file_patterns": []}';
+    depends = '{"campaign_stages": [], "file_patterns": []}';
   }
   var dlists = JSON.parse(depends);
   var i;
-  for (i = 0 ; i < dlists['campaigns'].length; i++ ) {
-      var sel = "#de_select_" + i.toString()+ " option[value="+dlists['campaigns'][i]+"]";
-      var dep = "#de_filepat_"+i.toString();
+  for (i = 0 ; i < dlists['campaign_stages'].length; i++ ) {
+      var sel = "#de_select_" + i.toString()+ " option[value=\""+dlists['campaign_stages'][i]+"\"]";
+      var dep = "#de_filepat_"+i.toString()
       $(sel).prop('selected','selected');
       $(dep).val(dlists['file_patterns'][i]);
   }
   $("#edit_depends_modal").modal({
     closable  : false,
     onApprove : function(){
-      var dlists = {'campaigns':[], 'file_patterns':[]};
+      var dlists = {'campaign_stages':[], 'file_patterns':[]};
       var i;
       var s;
       for (i = 0; i < 5 ; i++) {
          s=$("#de_select_"+i.toString()+" option:selected").val();
          p=$("#de_filepat_"+i.toString()).val();
          if (s) {
-             dlists['campaigns'].push(s);
+             dlists['campaign_stages'].push(s);
              dlists['file_patterns'].push(p)
          }
       }
@@ -678,14 +674,14 @@ function ep_down_button(current_row) {
   }
 }
 
-function delete_campaign(name,campaign_id) {
+function delete_campaign(name,campaign_stage_id) {
   var cname = name;
-  $("#confirm_modal_message").text("Delete the campaign named " +name+" ?");
+  $("#confirm_modal_message").text("Delete the campaign stage named " +name+" ?");
   $("#confirm_modal").modal({
   closable  : false,
   onApprove : function(){
     $("#action").val('delete');
-    $("<input>").attr({'type':'hidden','name': 'campaign_id', 'value': campaign_id}).appendTo("#campaign_form");
+    $("<input>").attr({'type':'hidden','name': 'campaign_stage_id', 'value': campaign_stage_id}).appendTo("#campaign_form");
     $("<input>").attr({'type':'hidden','name': 'name', 'value': cname}).appendTo("#campaign_form");
     $("#campaign_form").submit();
   },
@@ -695,17 +691,17 @@ function delete_campaign(name,campaign_id) {
 function edit_campaign(index,clone) {
   if (typeof clone === 'undefined') {
     $("#ae_definition_action").val("edit");
-    $("#ae_campaign_name").val( $("#c_name_"+index).text() );
+    $("#ae_stage_name").val( $("#c_name_"+index).text() );
     $("#ae_depends").val( $("#c_depends_"+index).text() );
     $("#ae_depends_text").val( $.trim( $("#c_depends_"+index).text() ));
-    $("#ae_campaign_id").val( $("#c_campaign_id_"+index).text()  );
+    $("#ae_campaign_stage_id").val( $("#c_campaign_stage_id_"+index).text()  );
   } else {
-    $("#ae_campaign_id").val(0);
+    $("#ae_campaign_stage_id").val(0);
     $("#ae_definition_action").val("add");
-    $("#ae_campaign_name").val( "CLONE OF: " + $("#c_name_"+index).text() );
+    $("#ae_stage_name").val( "CLONE OF: " + $("#c_name_"+index).text() );
     // campaign_depends records are NOT cloned.
-    $("#ae_depends").val( '{"campaigns": [], "file_patterns": []}' );
-    $("#ae_depends_text").val( '{"campaigns": [], "file_patterns": []}' );
+    $("#ae_depends").val( '{"campaign_stages": [], "file_patterns": []}' );
+    $("#ae_depends_text").val( '{"campaign_stages": [], "file_patterns": []}' );
   }
   $("#ae_experiment").text("Campaign Stage Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
   $("#ae_active").val( $("#c_active_"+index).text() ).trigger('change');
@@ -729,6 +725,7 @@ function edit_campaign(index,clone) {
   $("#ae_completion_pct").val( $("#c_completion_pct_"+index).text() );
 
   $("#campaign_add_edit_modal").modal('show');
+  $("#ae_campaign_name").val( $("#c_campaign_id_"+index).text()  ).trigger('change');
 
   console.log("clone = : " + clone)
   if ( typeof clone === 'undefined' )
@@ -759,9 +756,11 @@ $(document).ready(function(){
   }
 });
 
-
-$('.ui.dropdown')
-  .dropdown()
+$('#ae_campaign_name')
+  .dropdown({
+    allowAdditions: false,
+    showOnFocus: false
+})
 ;
 
 
