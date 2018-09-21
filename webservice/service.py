@@ -29,7 +29,7 @@ from cherrypy.process import wspbus, plugins
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
-
+import sqlalchemy.exc
 from poms.webservice import poms_service
 
 from poms.webservice import jobsub_fetcher
