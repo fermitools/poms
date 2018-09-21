@@ -1638,7 +1638,7 @@ class CampaignsPOMS:
             dirname = '{}/private/logs/poms/launches/template_tests_{}'.format(os.environ['HOME'], login_setup_id)
         else:
             dirname = '{}/private/logs/poms/launches/campaign_{}'.format(os.environ['HOME'], campaign_stage_id)
-        lf = open('{}/{}'.format(dirname, fname), 'r')
+        lf = open('{}/{}'.format(dirname, fname), 'r', encoding='utf-8', errors='replace')
         sb = os.fstat(lf.fileno())
         lines = lf.readlines()
         lf.close()
