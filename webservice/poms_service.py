@@ -723,11 +723,11 @@ class PomsService(object):
     @logit.logstartstop
     def launch_jobs(self, campaign_stage_id = None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
                     experiment=None, launcher=None, test_launch=False, test_launch_template=None, campaign_id = None, test = None):
-        if campaign_stage_id is None and campaign_id is not None:
+        if not campaign_stage_id and campaign_id:
             campaign_stage_id = campaign_id
-        if test_login_setup is None and test_launch_template is not None:
+        if not test_login_setup and test_launch_template:
             test_login_setup = test_launch_template
-        if parent_task_id is not None and parent_submission_id is None:
+        if parent_task_id and not parent_submission_id:
             parent_submission_id = parent_task_id
         if cherrypy.session.get('experimenter').username and ('poms' != cherrypy.session.get('experimenter').username or launcher == ''):
             launch_user = cherrypy.session.get('experimenter').experimenter_id
