@@ -727,19 +727,22 @@ class PomsService(object):
             campaign_stage_id = campaign_id
         if not test_login_setup and test_launch_template:
             test_login_setup = test_launch_template
-        if parent_task_id and not parent_submission_id:
+        if parent_task_id  and not parent_submission_id:
             parent_submission_id = parent_task_id
         if cherrypy.session.get('experimenter').username and ('poms' != cherrypy.session.get('experimenter').username or launcher == ''):
             launch_user = cherrypy.session.get('experimenter').experimenter_id
         else:
             launch_user = launcher
+  
+        logit.log("calling launch_jobs with campaign_stage_id='%s'" % campaign_stage_id)
 
         vals = self.taskPOMS.launch_jobs(cherrypy.request.db,
                                          cherrypy.config.get,
                                          cherrypy.request.headers.get,
                                          cherrypy.session.get,
                                          cherrypy.request.samweb_lite,
-                                         cherrypy.response.status, campaign_stage_id,
+                                         cherrypy.HTTPError, 
+                                         campaign_stage_id, 
                                          launch_user,
                                          dataset_override=dataset_override,
                                          parent_submission_id=parent_submission_id, test_login_setup=test_login_setup,
