@@ -264,11 +264,19 @@ class CampaignsPOMS:
                                cs_split_type="None",
                                dataset="from_parent",
                                job_type_id=(dbhandle.query(JobType.job_type_id)
-                                            .filter(JobType.name == "generic_fife_process", JobType.experiment == experiment)
-                                            .scalar()),
+                                            .filter(JobType.name == "generic", JobType.experiment == experiment)
+                                            .scalar() or
+                                            dbhandle.query(JobType.job_type_id)
+                                            .filter(JobType.name == "generic", JobType.experiment == 'samdev')
+                                            .scalar()
+                                           ),
                                login_setup_id=(dbhandle.query(LoginSetup.login_setup_id)
-                                               .filter(LoginSetup.name == "generic_fife_launch", LoginSetup.experiment == experiment)
-                                               .scalar()),
+                                               .filter(LoginSetup.name == "generic", LoginSetup.experiment == experiment)
+                                               .scalar() or
+                                               dbhandle.query(LoginSetup.login_setup_id)
+                                               .filter(LoginSetup.name == "generic", LoginSetup.experiment == 'samdev')
+                                               .scalar()
+                                              ),
                                param_overrides="[]",
                                software_version="v1_0",
                                test_param_overrides="[]",
@@ -692,7 +700,11 @@ class CampaignsPOMS:
                 job_type_id = dbhandle.query(JobType).filter(
                     JobType.name == campaign_definition_name).first().job_type_id
                 if action == 'edit':
-                    campaign_stage_id = dbhandle.query(CampaignStage).filter(CampaignStage.name == name , CampaignStage.experiment == exp).first().campaign_stage_id
+                    cs = dbhandle.query(CampaignStage).filter(CampaignStage.name == name , CampaignStage.experiment == exp).first()
+                    if cs:
+                        campaign_stage_id = cs.campaign_stage_id
+                    else:
+                        campaign_stage_id = None
                 else:
                     pass
             else:
@@ -1018,8 +1030,8 @@ class CampaignsPOMS:
                 res.append("completion_pct=%s" % defaults.get("completion_pct"))
                 res.append("param_overrides=%s" % defaults.get("param_overrides"))
                 res.append("test_param_overrides=%s" % defaults.get("test_param_overrides"))
-                res.append("login_setup=%s" % (defaults.get("login_setup") or "generic_fife_launch"))
-                res.append("job_type=%s" % (defaults.get("job_type") or "generic_fife_process"))
+                res.append("login_setup=%s" % (defaults.get("login_setup") or "generic"))
+                res.append("job_type=%s" % (defaults.get("job_type") or "generic"))
                 res.append("")
 
         for cs in campaign_stages:
@@ -1626,7 +1638,7 @@ class CampaignsPOMS:
             dirname = '{}/private/logs/poms/launches/template_tests_{}'.format(os.environ['HOME'], login_setup_id)
         else:
             dirname = '{}/private/logs/poms/launches/campaign_{}'.format(os.environ['HOME'], campaign_stage_id)
-        lf = open('{}/{}'.format(dirname, fname), 'r')
+        lf = open('{}/{}'.format(dirname, fname), 'r', encoding='utf-8', errors='replace')
         sb = os.fstat(lf.fileno())
         lines = lf.readlines()
         lf.close()
@@ -1797,13 +1809,14 @@ class CampaignsPOMS:
             form = el.get('form')
             #
             if not clean:
-                if new_name != old_name:
-                    name = new_name
-                elif user in old_name:
-                    i = old_name.index(user)
-                    name = "{}{}.{}".format(old_name[:i], user, now)
-                else:
-                    name = "{}-{}.{}".format(new_name, user, now)
+                # if new_name != old_name:
+                #     name = new_name
+                name = new_name
+                # elif user in old_name:
+                #     i = old_name.index(user)
+                #     name = "{}{}.{}".format(old_name[:i], user, now)
+                # else:
+                #     name = "{}-{}.{}".format(new_name, user, now)
                 #
                 if eid.startswith("job_type "):
                     definition_parameters = form.get('parameters')
@@ -1911,10 +1924,20 @@ class CampaignsPOMS:
 
             login_setup_id = (dbhandle.query(LoginSetup.login_setup_id)
                               .filter(LoginSetup.experiment == exp)
-                              .filter(LoginSetup.name == login_setup).scalar())
+                              .filter(LoginSetup.name == login_setup).scalar()
+                              or
+                              dbhandle.query(LoginSetup.login_setup_id)
+                              .filter(LoginSetup.experiment == 'samdev')
+                              .filter(LoginSetup.name == login_setup).scalar()
+                              )
             job_type_id = (dbhandle.query(JobType.job_type_id)
                            .filter(JobType.experiment == exp)
-                           .filter(JobType.name == job_type).scalar())
+                           .filter(JobType.name == job_type).scalar()
+                           or
+                           dbhandle.query(JobType.job_type_id)
+                           .filter(JobType.experiment == 'samdev')
+                           .filter(JobType.name == job_type).scalar()
+                           )
 
             if old_name in old_stage_names:
                 #VP~ obj = dbhandle.query(CampaignStage).filter(CampaignStage.name == old_name).scalar()  # Get stage by the old name

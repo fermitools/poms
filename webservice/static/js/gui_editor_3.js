@@ -209,10 +209,10 @@ gui_editor.toggle_form = function(id) {
                         const nodeIdx = gui_editor.network.body.nodeIndices;
                         for (const node of nodeIdx) {
                             const popupName = node.startsWith('campaign ') ?  `fields_${node}` : `fields_campaign_stage ${node}`;
-                            const pupupValue = $(`[id='${popupName}']`).find("[name='job_type']")[0].value;
+                            const popupValue = $(`[id='${popupName}']`).find("[name='job_type']")[0].value;
                             $tbody.append(`<tr>
                                             <td>${node}</td>
-                                            <td>${pupupValue || 'default'}</td>
+                                            <td>${popupValue || 'default'}</td>
                                             <td class="field">
                                                 <div class="ui fitted checkbox">
                                                     <input id="cbox_${node}" type="checkbox"> <label></label>
@@ -1034,6 +1034,7 @@ gui_editor.prototype.draw_state = function () {
     this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`,
                                    label: this.state.campaign.name,
                                    title: "Double click to open",
+                                   group: 1,
                                    shape: 'ellipse', fixed: false, size: 50}, ...node_list]);
 
     let edge_list = this.depboxes.map(x => ({id: x.box.id, from: x.stage1, to: x.stage2}));
@@ -1069,7 +1070,7 @@ gui_editor.prototype.draw_state = function () {
             smooth: {
                 //VP~ type: "dynamic",
                 type: "discrete",
-                forceDirection: "horizontal",
+                forceDirection: "vertical",
                 roundness: 1
             },
             width: 2,
@@ -1077,12 +1078,12 @@ gui_editor.prototype.draw_state = function () {
             shadow: true
         },
         manipulation: {
-            addNode: false,
-            // addNode: function (data, callback) {
-            //     // filling in the popup DOM elements
-            //     document.getElementById('node-operation').innerHTML = "Add Node";
-            //     editNode(data, clearNodePopUp, callback);
-            // },
+            // addNode: false,
+            addNode: function (data, callback) {
+                // filling in the popup DOM elements
+                document.getElementById('node-operation').innerHTML = "Add Node";
+                editNode(data, clearNodePopUp, callback);
+            },
             // editNode: function (data, callback) {
             //     // filling in the popup DOM elements
             //     document.getElementById('node-operation').innerHTML = "Edit Node";
@@ -1336,8 +1337,8 @@ gui_editor.prototype.jobtype_select = function(sval, eid, placeholder) {
                 const sel = (val == sval) ? ' selected' : '';
                 return acc + `<option value="${val}"${sel}>${val}</option>\n`;
             },
-        `<option value="" disabled selected hidden>${placeholder}</option>\n`);
-        return `<select id="${eid}" name="job_type"  required>\n${res}</select>\n`;
+        `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+        return `<select id="${eid}" name="job_type" required>\n${res}</select>\n`;
     }
 
 gui_editor.prototype.loginsetup_select = function(sval, eid, placeholder) {
@@ -1346,8 +1347,8 @@ gui_editor.prototype.loginsetup_select = function(sval, eid, placeholder) {
                 const sel = (val == sval) ? ' selected' : '';
                 return acc + `<option value="${val}"${sel}>${val}</option>\n`;
             },
-        `<option value="" disabled selected hidden>${placeholder}</option>\n`);
-        return `<select id="${eid}" name="login_setup"  required>\n${res}</select>\n`;
+        `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+        return `<select id="${eid}" name="login_setup" required>\n${res}</select>\n`;
     }
 
     /*

@@ -22,7 +22,7 @@ class TagsPOMS(object):
     def __init__(self, ps):
         self.poms_service = ps
 
-    def link_tags(self, dbhandle, ses_get, campaign_stage_id, campaign_name, experiment):
+    def link_tags(self, dbhandle, ses_get, campaign_stage_id, tag_name, experiment):
         if ses_get('experimenter').session_experiment == experiment:
             tag = dbhandle.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()
             if not tag:  # we do not have a tag in the db for this experiment so create the tag and then do the linking

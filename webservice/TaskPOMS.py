@@ -162,7 +162,10 @@ class TaskPOMS:
                 # no project, so guess based on number of jobs in submit command?
                 p1 = submission.command_executed.find('-N')
                 p2 = submission.command_executed.find(' ', p1+3)
-                threshold = int(submission.command_executed[p1+3:p2])
+                try:
+                    threshold = int(submission.command_executed[p1+3:p2])
+                except:
+                    threshold = 0
 
             thresholds.append(threshold)
             val = float(count_list[i])
@@ -427,7 +430,7 @@ class TaskPOMS:
             # XXX should queue for later?!?
             logit.log("recovery launches disabled")
             return 1
-        cdlist = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id).all()
+        cdlist = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id).order_by(CampaignDependency.provides_campaign_stage_id).all()
 
         i = 0
         for cd in cdlist:

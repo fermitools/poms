@@ -721,23 +721,28 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def launch_jobs(self, campaign_stage_id, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
-                    experiment=None, launcher=None, test_launch=False, test_launch_template=None):
-        if test_login_setup is None and test_launch_template is not None:
+    def launch_jobs(self, campaign_stage_id = None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
+                    experiment=None, launcher=None, test_launch=False, test_launch_template=None, campaign_id = None, test = None):
+        if not campaign_stage_id and campaign_id:
+            campaign_stage_id = campaign_id
+        if not test_login_setup and test_launch_template:
             test_login_setup = test_launch_template
-        if parent_task_id is not None and parent_submission_id is None:
+        if parent_task_id  and not parent_submission_id:
             parent_submission_id = parent_task_id
         if cherrypy.session.get('experimenter').username and ('poms' != cherrypy.session.get('experimenter').username or launcher == ''):
             launch_user = cherrypy.session.get('experimenter').experimenter_id
         else:
             launch_user = launcher
+  
+        logit.log("calling launch_jobs with campaign_stage_id='%s'" % campaign_stage_id)
 
         vals = self.taskPOMS.launch_jobs(cherrypy.request.db,
                                          cherrypy.config.get,
                                          cherrypy.request.headers.get,
                                          cherrypy.session.get,
                                          cherrypy.request.samweb_lite,
-                                         cherrypy.response.status, campaign_stage_id,
+                                         cherrypy.HTTPError, 
+                                         campaign_stage_id, 
                                          launch_user,
                                          dataset_override=dataset_override,
                                          parent_submission_id=parent_submission_id, test_login_setup=test_login_setup,
@@ -784,7 +789,9 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def get_task_id_for(self, campaign, user=None, experiment=None, command_executed="", input_dataset="",
-                        parent_task_id=None, task_id=None, parent_submission_id = None, submission_id = None):
+                        parent_task_id=None, task_id=None, parent_submission_id = None, submission_id = None, campaign_id = None, test = None):
+        if not campaign and campaign_id:
+            campaign = campaign_id
         if task_id is not None and submission_id is None:
             submission_id = task_id
         if parent_task_id is not None and parent_submission_id is None:
