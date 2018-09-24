@@ -1625,7 +1625,10 @@ class CampaignsPOMS:
         try:
             res = splitter.next()
         except StopIteration:
-            raise err_res(404, 'No more splits in this campaign')
+o           if err_res:
+                raise err_res(404, 'No more splits in this campaign')
+            else:
+                raise IndexError( 'No more splits in this campaign')
 
         dbhandle.commit()
         return res
@@ -1688,26 +1691,26 @@ class CampaignsPOMS:
 
         logit.log('hourlist is {} '.format(hourlist))
 
-        if minlist[0] == '*':
+        if minlist and minlist[0] == '*':
             minlist = None
         else:
-            minlist = [int(x) for x in minlist if x != '']
+            minlist = [int(x) for x in minlist if x ]
 
-        if hourlist[0] == '*':
+        if hourlist and hourlist[0] == '*':
             hourlist = None
         else:
-            hourlist = [int(x) for x in hourlist if x != '']
+            hourlist = [int(x) for x in hourlist if x ]
 
-        if dowlist[0] == '*':
+        if dowlist and dowlist[0] == '*':
             dowlist = None
         else:
-            # dowlist[0] = [int(x) for x in dowlist if x != '']
+            # dowlist[0] = [int(x) for x in dowlist if x ]
             pass
 
-        if domlist[0] == '*':
+        if domlist and domlist[0] == '*':
             domlist = None
         else:
-            domlist = [int(x) for x in domlist if x != '']
+            domlist = [int(x) for x in domlist if x ]
 
         my_crontab = CronTab(user=True)
         # clean out old
