@@ -1076,9 +1076,9 @@ gui_editor.prototype.draw_state = function () {
         },
         edges: {
             smooth: {
-                //VP~ type: "dynamic",
-                type: "discrete",
-                forceDirection: "vertical",
+                type: "dynamic",
+                // type: "discrete",
+                // forceDirection: "vertical",
                 roundness: 1
             },
             width: 2,
