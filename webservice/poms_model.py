@@ -18,7 +18,7 @@ class Tag(Base):
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
 
-    campaigns = relationship('Campaign', secondary='campaigns_tags')
+    campaigns = relationship('Campaign', secondary='campaigns_tags', lazy='dynamic')
 
 class CampaignsTag(Base):
     __tablename__ = "campaigns_tags"
@@ -36,7 +36,7 @@ class Campaign(Base):
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
 
-    tags = relationship(Tag, secondary='campaigns_tags')
+    tags = relationship(Tag, secondary='campaigns_tags', lazy='dynamic')
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
 
 

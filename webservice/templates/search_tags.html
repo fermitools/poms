@@ -1,12 +1,12 @@
 {%extends "layout.html" %}
 
 {%block title%}
-POMS Campaign Query Results
+POMS Tag Query Results
 {%endblock%}
 
 {%block header%}
 <h1 class="ui header">
-         Campaign Query Results {%include 'help_button.html'%}
+         Tag Query Results {% include 'help_button.html' %}
 </h1>
 {%endblock%}
 {%block subheader%}
@@ -18,17 +18,19 @@ Search Term: {{search_term}}
 <table class="ui sortable celled table">
   <thead>
     <tr>
-      <th class="">Campaign Name</th>
-      <th class="">Campaign Stage name</th>
+      <th class="">Tag Name</th>
+      <th class="">Campaign name</th>
     </tr>
   </thead>
 
   <tbody>
-  {% for row in results %}
-  <tr>
-      <td>{{row.Campaign.name}}</td>
-      <td><a href="{{pomspath}}/campaign_info?campaign_stage_id={{row.campaign_stage_id}}">{{row.CampaignStage.name}}</a></td>
-  </tr>
+  {% for (tag, campaigns) in results %}
+    {% for campaign in campaigns %}
+    <tr>
+        <td>{{tag.tag_name}}</td>
+        <td><a href="{{pomspath}}/campaign_info?campaign_id={{campaign.campaign_id}}">{{campaign.name}}</a></td>
+    </tr>
+    {% endfor %}
   {% endfor %}
 
   </tbody>
