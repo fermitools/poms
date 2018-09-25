@@ -82,8 +82,8 @@ json_field_editor.addrow= function(res, fid, i, k, v) {
             wsr = ''
         }
         res.push('<td><input id="'+fid+'_k_'+istr+'" value="'+k+'"></td>');
-        res.push('<td><input style="padding: auto; width: 4em;" type="checkbox" id="'+fid+'_ws_'+istr+'" '+ws+' value=" ">')
-        res.push('<input style="padding: auto; width: 4em;" type="checkbox" id="'+fid+'_wsr_'+istr+'" '+wsr+' value=" "></td>')
+        res.push('<td><input style="padding: auto; width: 2em;" type="checkbox" id="'+fid+'_ws_'+istr+'" '+ws+' value=" ">')
+        res.push('<input style="padding: auto; width: 2em;" type="checkbox" id="'+fid+'_wsr_'+istr+'" '+wsr+' value=" "></td>')
 
         res.push('<td><input id="'+fid+'_v_'+istr+'" value="'+v+'"></td>');
         res.push('<td>');
@@ -113,13 +113,13 @@ json_field_editor.renumber= function(fid,c) {
 }
 
 json_field_editor.plus= function(fid,i) {
-    var res = []     
+    var res = []
     var tb = document.getElementById(fid+'_tbody');
     var tr = document.createElement('TR');
     var ce = document.getElementById(fid+'_count')
     console.log("before: count: " + ce.value)
     var c = parseInt(ce.value);
-    
+
     json_field_editor.addrow(res, fid, c, "", "");
     tr.innerHTML = res.join("\n")
 
@@ -166,7 +166,7 @@ json_field_editor.save = function(fid) {
     var ce = document.getElementById(fid+'_count')
     console.log("before: count: " + ce.value)
     var c = parseInt(ce.value);
-    
+
     res = [];
     console.log(["count", c])
     for (i = 0 ; i < c ; i++ ) {
