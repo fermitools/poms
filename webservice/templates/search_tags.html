@@ -28,7 +28,8 @@ Search Term: {{search_term}}
     {% for campaign in campaigns %}
     <tr>
         <td>{{tag.tag_name}}</td>
-        <td><a href="{{pomspath}}/campaign_info?campaign_id={{campaign.campaign_id}}">{{campaign.name}}</a></td>
+        <!-- <td><a href="{{pomspath}}/show_campaign_stages?campaign_id={{campaign.campaign_id}}">{{campaign.name}}</a></td> -->
+        <td><a href="{{pomspath}}/show_campaign_stages?campaign_name={{campaign.name}}">{{campaign.name}}</a></td>
     </tr>
     {% endfor %}
   {% endfor %}
