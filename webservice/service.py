@@ -29,6 +29,7 @@ from cherrypy.process import wspbus, plugins
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+import sqlalchemy.exc
 
 from poms.webservice import poms_service
 
@@ -69,7 +70,7 @@ class SAEnginePlugin(plugins.SimplePlugin):
         dbhost = section["dbhost"]
         dbport = section["dbport"]
         db_path = "postgresql://%s:@%s:%s/%s" % (dbuser, dbhost, dbport, db)
-        self.sa_engine = create_engine(db_path, echo=False, echo_pool=False)
+        self.sa_engine = create_engine(db_path, echo=False, echo_pool=False, pool_size=40)
         atexit.register(self.destroy)
 
     def stop(self):
