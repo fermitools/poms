@@ -1118,6 +1118,17 @@ gui_editor.prototype.draw_state = function () {
                 callback(data);
             },
             addEdge: function (data, callback) {
+                if (data.from.startsWith('campaign ') || data.to.startsWith('campaign ')) {
+                    // alert('Dependencies from/to campaign are not allowed yet');
+                    swal({
+                        type: 'info',
+                        title: 'Dependencies from/to campaign are not yet allowed.',
+                        showConfirmButton: false,
+                        timer: 1500
+                      })
+                    callback(null);
+                    return;
+                }
                 if (data.from == data.to) {
                     const r = confirm("Do you want to connect the node to itself?");
                     if (r != true) {
