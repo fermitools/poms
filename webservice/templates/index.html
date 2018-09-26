@@ -1,5 +1,13 @@
 {%extends "layout.html"%}
 
+<style>
+    .plotWrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
 {%block title%}
     <title>POMS</title>
 {%endblock%}
@@ -98,27 +106,6 @@ Job Launches: {{launches}}
         </div>
     </div>
 
-    <!--
-    <div class="card">
-        <div class="content">
-            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
-            <div class="header">
-                Recoveries
-            </div>
-            <div class="meta">
-            </div>
-            <div class="description">
-                Needs a description.
-            </div>
-        </div>
-        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
-            <div class="ui bottom attached button">
-                <i class="question circle icon"></i>
-            </div>
-        </a>
-    </div>
-    -->
-
     <div class="card">
         <div class="content">
             <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
@@ -141,6 +128,25 @@ Job Launches: {{launches}}
     </div>
 
     <div class="card">
+            <div class="content">
+                <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
+                <div class="header">
+                    POMS Statitical Overview
+                </div>
+                <div class="meta">
+                </div>
+                <div class="plotWrap">
+                    <iframe src="https://landscape.fnal.gov/monitor/d-solo/QE61LHhik/poms-monitoring?orgId=1&from=1537366499558&to=1537971299559&var-filter=pool%7C%3D%7Cfifebatch&theme=light&panelId=5" width="250" height="200" frameborder="0"></iframe>
+                </div>
+            </div>
+            <a target="_blank" href="https://landscape.fnal.gov/monitor/d/QE61LHhik/poms-monitoring?orgId=1&from=now-7d&to=now&var-filter=pool%7C%3D%7Cfifebatch">
+                <div class="ui bottom attached button">
+                    Overview
+                </div>
+            </a>
+        </div>
+
+        <div class="card">
         <div class="content">
             <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
 
@@ -161,16 +167,7 @@ Job Launches: {{launches}}
         </a>
     </div>
 
-    <div class="card">
-        <div class="content">
-            <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
-            <div class="description">
-                <img class="ui image" src="{{pomspath}}/static/img/space_for_rent.png">
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
+     <div class="card">
         <div class="content">
             <i class="right floated cogs icon teal" style="font-size: 30px;"></i>
             <div class="header">
