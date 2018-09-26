@@ -161,7 +161,8 @@ gui_editor.toggle_form = function(id) {
         if (form.parentNode && form.parentNode.gui_box) {
             form.parentNode.gui_box.save_values();
             if (!id.includes('dependency')) {                   // For any component excluding dependencies
-                var nm = id.split(' ')[1];                      // Extract component name
+                // var nm = id.split(' ')[1];                      // Extract component name
+                var nm = id.replace(/.*? /, '');                      // Extract component name
                 const m = id.match(/campaign |job_type |login_setup /);
                 const nname = m ? `${m[0]}${nm}` : nm;          // build node name
                 if (gui_editor.network.body.data.nodes.get(nname)) {
@@ -500,7 +501,8 @@ gui_editor.update_loginsetups = function() {
 gui_editor.prototype.clone_rename = function (from, to, experiment, role) {
     console.log(["clone_rename:", from, to, experiment, role]);
     var stages, before, after;
-    stages = this.state['campaign']['campaign_stage_list'].split(/  */);
+    // stages = this.state['campaign']['campaign_stage_list'].split(/  */);
+    stages = this.state['campaign']['campaign_stage_list'].split(/,+/);
     console.log(["clone_rename: stage list", stages]);
     this.state['campaign']['name'] = gui_editor.new_name(this.state['campaign']['name'], from, to);
 
@@ -520,7 +522,8 @@ gui_editor.prototype.clone_rename = function (from, to, experiment, role) {
         after = before;     // Keep the stage names the same
         new_stages.push(after);
     }
-    this.state['campaign']['campaign_stage_list'] = new_stages.join(' ');
+    // this.state['campaign']['campaign_stage_list'] = new_stages.join(' ');
+    this.state['campaign']['campaign_stage_list'] = new_stages.join(',');
 }
 
 
@@ -735,9 +738,11 @@ gui_editor.prototype.delete_key_if_empty = function (k, box) {
     if (k.indexOf('campaign_stage ') == 0) {
         let sl, stage;
         stage = k.slice(15);
-        sl = this.state['campaign']['campaign_stage_list'].split(/  */);
+        // sl = this.state['campaign']['campaign_stage_list'].split(/  */);
+        sl = this.state['campaign']['campaign_stage_list'].split(/,+/);
         sl = sl.filter(function (x) { return x != stage && x != ''; })
-        this.state['campaign']['campaign_stage_list'] = sl.join(' ')
+        // this.state['campaign']['campaign_stage_list'] = sl.join(' ')
+        this.state['campaign']['campaign_stage_list'] = sl.join(',')
     }
 }
 
@@ -776,11 +781,13 @@ gui_editor.prototype.ini2json = function (s) {
           continue;
       } else if (l[0] == '[' &&  l[l.length-1]  == ']') {   // Section
           const s = l.slice(1, -1);
-          const sn = s.split(' ')[1];
+          // const sn = s.split(' ')[1];   // Section name
           this.un_trailing_comma(res);
           res.push('},');
           res.push('"' + s + '": {');
-          if (sn) {
+          const ix = s.indexOf(' ');
+          if (ix > 0) {
+            const sn = s.slice(ix + 1);                     // Section name
             res.push(`"name": "${sn}",`);                   // Add section name as a value
           }
       } else {                                              // Section body
@@ -1027,15 +1034,17 @@ gui_editor.prototype.draw_state = function () {
         return froms;
     };
 
-    const title = "<ul><li>Click to select</li><li>Double click to open</li><li>Right click to add stages</li></ul>";
-    let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
-    let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 1), title: title}));
+    // const title = "<ul><li>Click to select</li><li>Double click to open</li><li>Right click to add stages</li></ul>";
+    // let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
+    let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.replace(/.*? /, ''));
+    let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 1)}));
     //VP~ this.nodes = new vis.DataSet([{id: 'Default Values', label: this.state.campaign.name,
     this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`,
                                    label: this.state.campaign.name,
-                                   title: "Double click to open",
+                                //    title: "Double click to open",
                                    group: 1,
-                                   shape: 'ellipse', fixed: false, size: 50}, ...node_list]);
+                                   shape: 'ellipse', color: '#dddddd',
+                                   fixed: false, size: 50}, ...node_list]);
 
     let edge_list = this.depboxes.map(x => ({id: x.box.id, from: x.stage1, to: x.stage2}));
     let edges = new vis.DataSet(edge_list);
@@ -1068,9 +1077,9 @@ gui_editor.prototype.draw_state = function () {
         },
         edges: {
             smooth: {
-                //VP~ type: "dynamic",
-                type: "discrete",
-                forceDirection: "horizontal",
+                type: "dynamic",
+                // type: "discrete",
+                // forceDirection: "vertical",
                 roundness: 1
             },
             width: 2,
@@ -1104,10 +1113,22 @@ gui_editor.prototype.draw_state = function () {
                 console.log("Then: ", l2);
                 l2.forEach(x => delete this.state[x]);
                 // Update stage list in state
-                this.state.campaign.campaign_stage_list = this.state.campaign.campaign_stage_list.split(' ').filter(x => x != node_id).join(' ');
+                // this.state.campaign.campaign_stage_list = this.state.campaign.campaign_stage_list.split(' ').filter(x => x != node_id).join(' ');
+                this.state.campaign.campaign_stage_list = this.state.campaign.campaign_stage_list.split(',').filter(x => x != node_id).join(',');
                 callback(data);
             },
             addEdge: function (data, callback) {
+                if (data.from.startsWith('campaign ') || data.to.startsWith('campaign ')) {
+                    // alert('Dependencies from/to campaign are not allowed yet');
+                    swal({
+                        type: 'info',
+                        title: 'Dependencies from/to campaign are not yet allowed.',
+                        showConfirmButton: false,
+                        timer: 1500
+                      })
+                    callback(null);
+                    return;
+                }
                 if (data.from == data.to) {
                     const r = confirm("Do you want to connect the node to itself?");
                     if (r != true) {
@@ -1121,6 +1142,9 @@ gui_editor.prototype.draw_state = function () {
                 data.state = this.state;
                 deleteEdge(data, callback);
             }
+        },
+        interaction:{
+            tooltipDelay: 2000
         }
     };
 
@@ -1175,10 +1199,11 @@ gui_editor.prototype.draw_state = function () {
     });
 
     let setup_nodes = launchtemplist.map(x => ({id: `login_setup ${x}`, label: x,
-                                                title: "Double click to open",
+                                                // title: "Double click to open",
                                                 shape: 'ellipse', color: '#22efcc'}));
     let jtype_nodes = this.jobtypelist.map(x => ({id: `job_type ${x}`, label: x,
-                                                  title: "Double click to open"}));
+                                                //   title: "Double click to open"
+                                                }));
 
     gui_editor.aux_network = new vis.Network(document.getElementById('myjobtypes'), {
             nodes: [...setup_nodes, ...jtype_nodes],
@@ -1404,7 +1429,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     this.popup_parent.className = "popup_parent";
     x = x + 50;
     y = y + 50;
-    stage = name.substr(name.indexOf(" ") + 1)
+    stage = name.substr(name.indexOf(" ") + 1);
 
     // Build the form...
     var val, placeholder;
@@ -1669,7 +1694,8 @@ dependency_box.prototype.set_bounds = function () {
 gui_editor.prototype.new_stage = function (name, label) {
     var k = name || window.prompt("New stage name:");
     var x, y, b;
-    this.state['campaign']['campaign_stage_list'] += " " + k;
+    // this.state['campaign']['campaign_stage_list'] += " " + k;
+    this.state['campaign']['campaign_stage_list'] += "," + k;
     k = 'campaign_stage ' + k;
     this.state[k] = {
         'name': label,

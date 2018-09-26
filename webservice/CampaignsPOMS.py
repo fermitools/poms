@@ -1013,7 +1013,7 @@ class CampaignsPOMS:
             res.append("poms_role=%s" % the_campaign.creator_role)
             res.append("name=%s" % the_campaign.name)
 
-            res.append("campaign_stage_list=%s" % " ".join(map(cnames.get, cidl)))
+            res.append("campaign_stage_list=%s" % ",".join(map(cnames.get, cidl)))
             res.append("")
 
             defaults = the_campaign.defaults
@@ -1056,7 +1056,7 @@ class CampaignsPOMS:
             res.append("[login_setup %s]" % lt.name)
             res.append("host=%s" % lt.launch_host)
             res.append("account=%s" % lt.launch_account)
-            res.append("setup=%s" % lt.launch_setup)
+            res.append("setup=%s" % lt.launch_setup.replace("\r",";").replace("\n",";").replace(";;",";").replace(";;",";"))
             res.append("")
 
         for jt in jts:
@@ -1115,7 +1115,7 @@ class CampaignsPOMS:
                                     stdout=subprocess.PIPE, universal_newlines=True)
             pdot.stdin.write('digraph {}Dependencies {{\n'.format(campaign_name))
             pdot.stdin.write('node [shape=box, style=rounded, color=lightgrey, fontcolor=black]\nrankdir = "LR";\n')
-            baseurl = "{}/campaign_info?campaign_stage_id=".format(config_get("pomspath"))
+            baseurl = "{}/campaign_stage_info?campaign_stage_id=".format(config_get("pomspath"))
 
             locatedmap = self.poms_service.taskPOMS.running_submissions(dbhandle, c_ids, status_list=["Located"])
 
@@ -1268,14 +1268,14 @@ class CampaignsPOMS:
             cq = cq.filter(CampaignStage.experiment == experiment)
 
         data = {}
-        if kwargs.get('update_view',None) == None:
+        if kwargs.get('update_view', None) is None:
             # view flags not specified, use defaults
             data['view_active'] = 'view_active'
             data['view_inactive'] = None
             data['view_mine'] = experimenter.experimenter_id
             data['view_others'] = experimenter.experimenter_id
-            data['view_analysis'] = 'view_analysis' if se_role in ('analysis','coordinator') else None
-            data['view_production'] =  'view_production' if se_role in ('production','coordinator') else None
+            data['view_analysis'] = 'view_analysis' if se_role in ('analysis', 'coordinator') else None
+            data['view_production'] = 'view_production' if se_role in ('production', 'coordinator') else None
         else:
             data['view_active'] = kwargs.get('view_active', None)
             data['view_inactive'] = kwargs.get('view_inactive', None)
@@ -1348,24 +1348,24 @@ class CampaignsPOMS:
         dbhandle.commit()
 
     # @pomscache.cache_on_arguments()
-    def campaign_info(self, dbhandle, samhandle, err_res, config_get, campaign_stage_id, tmin=None, tmax=None, tdays=None):
+    def campaign_stage_info(self, dbhandle, samhandle, err_res, config_get, campaign_stage_id, tmin=None, tmax=None, tdays=None):
         """
-           Give information related to a campaign for the campaign_info page
+           Give information related to a campaign stage for the ??? page    # FIXME: what page?
         """
 
         campaign_stage_id = int(campaign_stage_id)
 
-        campaign_info = (dbhandle.query(CampaignStage, Experimenter)
-                         .filter(CampaignStage.campaign_stage_id == campaign_stage_id, CampaignStage.creator == Experimenter.experimenter_id)
-                         .first())
+        campaign_stage_info = (dbhandle.query(CampaignStage, Experimenter)
+                               .filter(CampaignStage.campaign_stage_id == campaign_stage_id, CampaignStage.creator == Experimenter.experimenter_id)
+                               .first())
 
         # default to time window of campaign
         if tmin is None and tdays is None:
-            tmin = campaign_info.CampaignStage.created
+            tmin = campaign_stage_info.CampaignStage.created
             tmax = datetime.now(utc)
 
         tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(
-            tmin, tmax, tdays, 'campaign_info?')
+            tmin, tmax, tdays, 'campaign_stage_info?')
 
         last_activity_l = dbhandle.query(func.max(Submission.updated)).filter(Submission.campaign_stage_id == campaign_stage_id).first()
         logit.log("got last_activity_l %s" % repr(last_activity_l))
@@ -1376,13 +1376,13 @@ class CampaignsPOMS:
         logit.log("after: last_activity %s" % repr(last_activity))
 
         campaign_definition_info = (dbhandle.query(JobType, Experimenter)
-                                    .filter(JobType.job_type_id == campaign_info.CampaignStage.job_type_id,
+                                    .filter(JobType.job_type_id == campaign_stage_info.CampaignStage.job_type_id,
                                             JobType.creator == Experimenter.experimenter_id)
                                     .first())
         login_setup_info = (dbhandle.query(LoginSetup, Experimenter)
-                                .filter(LoginSetup.login_setup_id == campaign_info.CampaignStage.login_setup_id,
-                                        LoginSetup.creator == Experimenter.experimenter_id)
-                                .first())
+                            .filter(LoginSetup.login_setup_id == campaign_stage_info.CampaignStage.login_setup_id,
+                                    LoginSetup.creator == Experimenter.experimenter_id)
+                            .first())
         campaigns = dbhandle.query(Campaign).join(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).all()
 
         launched_campaigns = dbhandle.query(CampaignStageSnapshot).filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id).all()
@@ -1390,7 +1390,7 @@ class CampaignsPOMS:
         #
         # cloned from show_campaign_stages, but for a one row table..
         #
-        campaign = campaign_info[0]
+        campaign_stage = campaign_stage_info[0]
         counts = {}
         counts_keys = {}
         # cil = [cs.campaign_stage_id for cs in cl]
@@ -1407,20 +1407,24 @@ class CampaignsPOMS:
         launch_flist = glob.glob('{}/*'.format(dirname))
         launch_flist = list(map(os.path.basename, launch_flist))
 
-        # put our campaign id in the link
+        # put our campaign_stage id in the link
         campaign_kibana_link_format = config_get('campaign_kibana_link_format')
         logit.log("got format {}".format(campaign_kibana_link_format))
         kibana_link = campaign_kibana_link_format.format(campaign_stage_id)
 
         dep_svg = self.campaign_deps_svg(dbhandle, config_get, campaign_stage_id=campaign_stage_id)
-        return (campaign_info,
+        return (campaign_stage_info,
                 time_range_string,
                 tmins, tmaxs, tdays,
                 campaign_definition_info, login_setup_info,
-                campaigns, launched_campaigns, None,
-                campaign, counts_keys, counts, launch_flist, kibana_link,
-                dep_svg, last_activity
+                campaigns,
+                launched_campaigns, None,
+                campaign_stage,
+                counts_keys, counts,
+                launch_flist,
+                kibana_link, dep_svg, last_activity
                 )
+
 
     # @pomscache_10.cache_on_arguments()
     def campaign_time_bars(self, dbhandle, campaign_stage_id=None, campaign=None, tmin=None, tmax=None, tdays=1):
@@ -1638,7 +1642,7 @@ class CampaignsPOMS:
             dirname = '{}/private/logs/poms/launches/template_tests_{}'.format(os.environ['HOME'], login_setup_id)
         else:
             dirname = '{}/private/logs/poms/launches/campaign_{}'.format(os.environ['HOME'], campaign_stage_id)
-        lf = open('{}/{}'.format(dirname, fname), 'r')
+        lf = open('{}/{}'.format(dirname, fname), 'r', encoding='utf-8', errors='replace')
         sb = os.fstat(lf.fileno())
         lines = lf.readlines()
         lf.close()
