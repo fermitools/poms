@@ -1213,12 +1213,22 @@ class CampaignsPOMS:
             q = q.filter(Campaign.creator != data['view_others'] )
 
         # Campaigns don't have an active field(yet?)
+        # so we have a subquery to get the count of active stages per campaign
+        sq = (dbhandle.query(CampaignStage.campaign_id.label('campaign_id'), 
+                             func.count(CampaignStage.campaign_stage_id).label('active_stages'))
+              .filter(CampaignStage.experiment == experimenter.session_experiment)
+              .filter(CampaignStage.active == True)
+              .group_by(CampaignStage.campaign_id)
+              .subquery())
+
+        logit.log(logit.DEBUG, "subquery for active: %s" % sq)
         if data['view_active'] and data['view_inactive']:
             pass
         elif data['view_active']:
-            pass
-        elif data['view_others']:
-            pass
+
+            q = q.outerjoin(sq, sq.c.campaign_id == Campaign.campaign_id).filter(sq.c.active_stages >= 1)
+        elif data['view_inactive']:
+            q = q.outerjoin(sq, sq.c.campaign_id == Campaign.campaign_id).filter(sq.c.active_stages == None)
 
         tl = q.all()
 
@@ -1629,7 +1639,7 @@ class CampaignsPOMS:
         try:
             res = splitter.next()
         except StopIteration:
-o           if err_res:
+            if err_res:
                 raise err_res(404, 'No more splits in this campaign')
             else:
                 raise IndexError( 'No more splits in this campaign')
