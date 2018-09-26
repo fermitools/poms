@@ -676,6 +676,8 @@ gui_editor.prototype.defaultify_state = function() {
     for (k in this.state) {
         if (k.startsWith('campaign_stage')) {
             for (j in this.state[k]) {
+                if (j === 'name')
+                    continue;
                 if (this.state[k][j] == this.mode[j]) {
                     this.state[k][j] = null;
                 }
