@@ -3,7 +3,7 @@
     display: block;
     background-color: white;
     position: absolute;
-    z-index: 3;
+    z-index: 33;
     left: 0;
     top: 2em;
     /* border: 2px solid black; */
@@ -17,7 +17,7 @@
 
 
 .popup_form_json table {
-    width: 100%;
+    width: 90%;
 }
 
 .popup_form_json h3 {
