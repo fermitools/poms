@@ -8,6 +8,9 @@ from utc import utc
 import atexit
 from textwrap import dedent
 import io
+import urllib.parse
+from markupsafe import Markup
+
 #import dowser
 import poms.webservice.pomscache as pomscache
 
@@ -337,6 +340,14 @@ class SessionExperiment():
         self.restricted = exp.restricted
 
 
+def urlencode_filter(s):
+    if type(s) == 'Markup':
+        s = s.unescape()
+    s = s.encode('utf8')
+    s = urllib.parse.quote(s)
+    return Markup(s)
+
+
 def augment_params():
     experiment = cherrypy.session.get('experimenter').session_experiment
     exp_obj = cherrypy.request.db.query(Experiment).filter(Experiment.experiment == experiment).first()
@@ -351,6 +362,7 @@ def augment_params():
                                        version=root.version,
                                        pomspath=root.path))
     # logit.log("jinja_env.globals: {}".format(str(root.jinja_env.globals)))   # DEBUG
+    root.jinja_env.filters['urlencode'] = urlencode_filter
 
 
 def pidfile():
