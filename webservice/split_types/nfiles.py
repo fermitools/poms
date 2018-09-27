@@ -1,6 +1,6 @@
 class nfiles:
     """
-       This type, when filled out as mod(n) or mod_n for some integer
+       This type, when filled out as nfiles(n) or nfiles_n for some integer
        n, will slice the dataset into n parts using the stride/offset
        expressions.
     """
@@ -9,7 +9,10 @@ class nfiles:
         self.samhandle = samhandle
         self.dbhandle = dbhandle
         self.ds = cs.dataset
-        self.n = int(cs.cs_split_type[7:].strip(')'))
+        try:
+            self.n = int(cs.cs_split_type[7:].strip(')'))
+        except:
+            raise SyntaxError("unable to parse integer parameter from "%s" % cs.cs_split_type)
 
     def peek(self):
         if not self.cs.cs_last_split:

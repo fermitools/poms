@@ -2,10 +2,12 @@
 
 campaign_id=
 launcher=
+campaign_stage_id=
 
 while :
 do
 case x$1 in
+x--campaign_stage_id=*) campaign_stage_id=`echo "$1" | sed -e 's/.*=//'`; shift;;
 x--campaign_id=*) campaign_id=`echo "$1" | sed -e 's/.*=//'`; shift;;
 x--launcher=*) launcher=`echo "$1" | sed -e 's/.*=//'`; shift;;
 *) break;;
@@ -16,6 +18,6 @@ ds=`date +%Y%m%d_%H%M%S`
 outdir="$HOME/private/logs/poms/launches/campaign_$campaign_id"
 outfile="$outdir/$ds"
 mkdir -p $outdir
-url="http://127.0.0.1:8080/poms/launch_jobs?campaign_id=${campaign_id}&launcher=${launcher}"
+url="http://127.0.0.1:8080/poms/launch_jobs?campaign_stage_id=${campaign_stage_id}&campaign_id=${campaign_id}&launcher=${launcher}"
 
 wget --tries=1 --timeout=0 -o outfile.log -O /dev/null "$url"

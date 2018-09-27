@@ -38,7 +38,7 @@ class uploader:
 
     def upload_wf(self, testflag = None, action = 'add'):
         campaign_name = self.cfg.get('campaign', 'name')
-        cfg_stages = self.cfg_get('campaign','campaign_stage_list').split()
+        cfg_stages = self.cfg_get('campaign','campaign_stage_list').split(',')
         cfg_jobtypes = set()
         cfg_launches = set()
 
@@ -54,6 +54,8 @@ class uploader:
             self.upload_jobtype(jt, testflag, action)
         for s in cfg_stages:
             self.upload_stage(s, testflag, action, campaign_id)
+        for s in cfg_stages:
+            self.upload_stage(s, testflag, 'edit', campaign_id)
 
 
     def tag_em(self, tag, cfg_stages, testflag = False):

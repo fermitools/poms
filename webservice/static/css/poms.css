@@ -2505,7 +2505,7 @@ code .chunk {
         display: inline;
         visibility: hidden;
         color: #000;
-        background:rgba(180,220,255,0.90);
+        background:rgba(200,240,250,0.90);
         padding: 4px;
         border: 1px solid #AAA;
         border-radius: 4px;

@@ -22,7 +22,7 @@ class TagsPOMS(object):
     def __init__(self, ps):
         self.poms_service = ps
 
-    def link_tags(self, dbhandle, ses_get, campaign_stage_id, campaign_name, experiment):
+    def link_tags(self, dbhandle, ses_get, campaign_id, tag_name, experiment):
         if ses_get('experimenter').session_experiment == experiment:
             tag = dbhandle.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == experiment).first()
             if not tag:  # we do not have a tag in the db for this experiment so create the tag and then do the linking
@@ -35,26 +35,32 @@ class TagsPOMS(object):
             # we have a tag in the db for this experiment so go ahead and do the linking
             campaign_ids = str(campaign_id).split(',')
             msg = "OK"
-            for sid in campaign_stage_ids:
-                stage = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == sid).first()
-                stage.campaign_id = camp.campaign_id
-                dbhandle.add(stage)
+            for cid in campaign_ids:
+                camp = dbhandle.query(Campaign).filter(Campaign.campaign_id == cid).scalar()
+                camp.tags.append(tag)
+                dbhandle.add(camp)
             dbhandle.commit()
-            response = {"campaign_stage_id": campaign_stage_id, "campaign_id": stage.campaign_id, "name": camp.name, "msg": msg}
+            response = {"campaign_id": campaign_id, "tag_id": tag.tag_id, "tag_name": tag.tag_name, "msg": msg}
             return response
         else:
-            response = {"msg": "You are not authorized to add campaigns."}
+            response = {"msg": "You are not authorized to tag campaigns."}
             return response
 
 
-    def search_tags(self, dbhandle, search_term):
+    def search_campaigns(self, dbhandle, search_term):
         query = (dbhandle.query(Campaign, CampaignStage)
-                 .filter(CampaignStage.campaign_id == Campaign.campaign_id,
-                         Campaign.name.like(search_term),
-                         CampaignStage.campaign_stage_id == CampaignStage.campaign_stage_id)
+                 .filter(CampaignStage.campaign_id == Campaign.campaign_id, Campaign.name.like(search_term))
                  .order_by(Campaign.campaign_id, CampaignStage.campaign_stage_id))
         results = query.all()
         return results
+
+
+    def search_tags(self, dbhandle, tag_name):
+        q = dbhandle.query(Tag).filter(Tag.tag_name.like(tag_name)).order_by(Tag.tag_name)
+        tags = q.all()
+        results = [(tag, [c for c in tag.campaigns.order_by(Campaign.name).all()]) for tag in tags]
+        return results
+
 
     def delete_tag_entirely(self, dbhandle, ses_get, tag_id):
         tag = dbhandle.query(Tag).filter(Tag.tag_id == tag_id).first()
@@ -87,7 +93,7 @@ class TagsPOMS(object):
         return response
 
     def search_all_tags(self, dbhandle, cl):
-        cids = cl.split(',')        # CampaignStage IDs list
+        cids = cl.split(',')        # Campaign IDs list
         result = (dbhandle.query(Tag)
                   .filter(Tag.campaigns.any(Campaign.campaign_id.in_(cids)))
                   .order_by(Tag.tag_name)
@@ -104,10 +110,10 @@ class TagsPOMS(object):
         response = {}
         results = deque()
         rows = (dbhandle.query(Tag)
-                .filter(Tag.name.like('%' + q + '%'), Tag.experiment == experiment)
+                .filter(Tag.tag_name.like('%' + q + '%'), Tag.experiment == experiment)
                 .order_by(desc(Tag.tag_name))
                ).all()
         for row in rows:
-            results.append({"name": row.name})
+            results.append({"name": row.tag_name})
         response["results"] = list(results)
         return response

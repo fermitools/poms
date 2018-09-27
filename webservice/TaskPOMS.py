@@ -162,7 +162,10 @@ class TaskPOMS:
                 # no project, so guess based on number of jobs in submit command?
                 p1 = submission.command_executed.find('-N')
                 p2 = submission.command_executed.find(' ', p1+3)
-                threshold = int(submission.command_executed[p1+3:p2])
+                try:
+                    threshold = int(submission.command_executed[p1+3:p2])
+                except:
+                    threshold = 0
 
             thresholds.append(threshold)
             val = float(count_list[i])
@@ -524,7 +527,7 @@ class TaskPOMS:
 
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
                                  err_res, s.campaign_stage_snapshot_obj.campaign_stage_id, s.creator,  dataset_override=rname,
-                                 parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch = s.submission_params.get('test_launch',false))
+                                 parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch = s.submission_params.get('test_launch',False))
                 return 1
 
         return 0

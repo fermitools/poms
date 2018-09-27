@@ -78,7 +78,7 @@ class UtilsPOMS():
     def quick_search(self, redirect, search_term):
         search_term = search_term.strip()
         search_term = search_term.replace("*", "%")
-        raise redirect("%s/search_tags?search_term=%s" % (self.poms_service.path, search_term))
+        raise redirect("%s/search_campaigns?search_term=%s" % (self.poms_service.path, search_term))
 
     def update_session_experiment(self, db, seshandle, *args, **kwargs):
         sess = seshandle('experimenter')

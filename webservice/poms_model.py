@@ -9,6 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 metadata = Base.metadata
 
+
 class Tag(Base):
     __tablename__ = 'tags'
 
@@ -18,13 +19,15 @@ class Tag(Base):
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
 
-    campaigns = relationship('Campaign', secondary='campaigns_tags')
+    campaigns = relationship('Campaign', secondary='campaigns_tags', lazy='dynamic')
+
 
 class CampaignsTag(Base):
     __tablename__ = "campaigns_tags"
 
     tag_id = Column(Integer, ForeignKey('tags.tag_id'), primary_key=True)
     campaign_id = Column(Integer, ForeignKey('campaigns.campaign_id'), primary_key=True)
+
 
 class Campaign(Base):
     __tablename__ = 'campaigns'
@@ -36,7 +39,7 @@ class Campaign(Base):
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
 
-    tags = relationship(Tag, secondary='campaigns_tags')
+    tags = relationship(Tag, secondary='campaigns_tags', lazy='dynamic')
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
 
 
@@ -87,6 +90,7 @@ class CampaignStage(Base):
                              secondaryjoin="CampaignStage.campaign_stage_id==CampaignDependency.needs_campaign_stage_id",
                              backref="consumers"
                              )
+
 
 class Experimenter(Base):
     __tablename__ = 'experimenters'
@@ -311,6 +315,7 @@ class HeldLaunch(Base):
     dataset = Column(Text)
     param_overrides = Column(JSON)
     launcher = Column(Integer, ForeignKey('experimenters.experimenter_id'))
+
 
 class FaultyRequest(Base):
     __tablename__ = 'faulty_requests'
