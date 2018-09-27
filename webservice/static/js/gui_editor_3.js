@@ -1056,7 +1056,25 @@ gui_editor.prototype.draw_state = function () {
         nodes: this.nodes,
         edges: edges
     };
+    var locales = {
+        en: {
+          edit: 'Edit',
+          del: 'Delete selected',
+          back: 'Back',
+          addNode: 'Add Stage',
+          addEdge: 'Add Dependency',
+          editNode: 'Edit Stage',
+          editEdge: 'Edit Dependency',
+          addDescription: 'Click in an empty space to place a new node.',
+          edgeDescription: 'Click on a node and drag the edge to another node to connect them.',
+          editEdgeDescription: 'Click on the control points and drag them to a node to connect to it.',
+          createEdgeError: 'Cannot link edges to a cluster.',
+          deleteClusterError: 'Clusters cannot be deleted.',
+          editClusterError: 'Clusters cannot be edited.'
+        }
+      };
     const options = {
+        locales: locales,
         autoResize: true,
         physics: false,
         nodes: {
@@ -1092,7 +1110,7 @@ gui_editor.prototype.draw_state = function () {
             // addNode: false,
             addNode: function (data, callback) {
                 // filling in the popup DOM elements
-                document.getElementById('node-operation').innerHTML = "Add Node";
+                document.getElementById('node-operation').innerHTML = "Add Stage";
                 editNode(data, clearNodePopUp, callback);
             },
             // editNode: function (data, callback) {
@@ -1195,7 +1213,7 @@ gui_editor.prototype.draw_state = function () {
         document.getElementById('eventSpan').innerHTML = '<h2>oncontext (right click) event:</h2>' + JSON.stringify(params, null, 4);
 
         if (params.nodes[0] !== undefined) {
-            document.getElementById('node-operation').innerHTML = "Add Node";
+            document.getElementById('node-operation').innerHTML = "Add Stage";
             editNode(params, clearNodePopUp, addNewNode);
         }
     });
