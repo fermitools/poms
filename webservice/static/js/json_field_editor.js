@@ -49,13 +49,13 @@ json_field_editor.start = function(id) {
     res.push('<button type="button" class="ui button deny red" onclick="json_field_editor.cancel(\''+fid+'\')" >Cancel</button>');
     res.push('<button type="button" class="ui button approve teal" onclick="json_field_editor.save(\''+fid+'\')" >Accept</button>');
     var myform =  document.createElement("FORM");
-    myform.className = "popup_form_json "
+    myform.className = "popup_form_json"
     myform.style.top = r.bottom
     myform.style.right = r.right
     myform.style.position = 'absolute'
     myform.id = fid
     myform.innerHTML += res.join('\n');
-    hang_onto.style.position = 'relative';
+    // hang_onto.style.position = 'relative';
     hang_onto.appendChild(myform)
 }
 

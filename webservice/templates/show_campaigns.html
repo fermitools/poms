@@ -190,7 +190,7 @@ Campaigns {%include 'help_button.html'%}
             <div class="field">
                 <input type="hidden" id="tag_campaign_ids" name="cl" readonly>
                 <span style="font-size: 1.3em;">Tag/untag selected campaigns...</span>
-                <div class="ui segment raised ">
+                <div class="ui segment raised">
                     <h3>Tags</h3>
                     <div class="ui search">
                         <div class="ui left icon input">
@@ -513,5 +513,23 @@ $('#tag_field').keypress(function (event) {
 
 </script>
 
+<script>
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    const appname = window.location.pathname.split("/")[1];
+    const querypath = `${protocol}//${hostname}/${appname}/auto_complete_tags_search`;
+
+    const experiment = "{{session_experiment}}";
+    $('.ui.search')
+        .search({
+            apiSettings: {
+                url: querypath + "?q={query}&experiment=" + experiment
+            },
+            fields: {
+                title: 'name'
+            },
+            //minCharacters : 3
+        });
+</script>
 
 {%endblock%}

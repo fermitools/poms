@@ -42,7 +42,7 @@
         </tr>
 -->
         <tr>
-            <td>label</td>
+            <td>Name:</td>
             <td> <input id="node-label" value="new value"> </td>
         </tr>
     </table>
@@ -71,7 +71,17 @@
 <div id="mydefaults" oncontextmenu='return false;' contextmenu=""></div>
 -->
 <div id="popups"></div>
-<div id="mystages" oncontextmenu='return false;' contextmenu=""></div>
+<div>
+    <div id="myhelp" style="z-index: 0; position: absolute;">
+            <!-- <i style="float: none; margin: 10px;" class="icon help large circle tooltip"> -->
+                    <!-- <span class="tooltiptext" style="width: 18em; text-align:left; color: #444;"><ul><li>Click on element to select</li><li>Double click to open</li><li>Right click to add stages</li></ul></span> -->
+                    <span style="margin-right: 10px; font-size: 0.75em;">
+                        [Click on element to select / Double click to open / Right click to add stages]
+                    </span>
+            <!-- </i> -->
+    </div>
+    <div id="mystages" oncontextmenu='return false;' contextmenu=""></div>
+</div>
 <h4 style="margin: 1px;">Campaign Login/Setups and Jobtypes</h4>
 <div id="myjobtypes" oncontextmenu='return false;' contextmenu=""></div>
 <pre id="eventSpan" style="display: none;"></pre>

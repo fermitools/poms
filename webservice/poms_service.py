@@ -250,7 +250,7 @@ class PomsService(object):
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def get_campaign_id(self, campaign_name):
-        cid = self.campaignsPOMS.get_campaign_id( cherrypy.request.db, cherrypy.session.get, campaign_name)
+        cid = self.campaignsPOMS.get_campaign_id(cherrypy.request.db, cherrypy.session.get, campaign_name)
         return cid
 
     @cherrypy.expose
@@ -345,10 +345,10 @@ class PomsService(object):
         (
             campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
         ) = self.campaignsPOMS.show_campaign_stages(cherrypy.request.db,
-                                              cherrypy.request.samweb_lite,
-                                              tmin=tmin, tmax=tmax, tdays=tdays, active=active, campaign_name=campaign_name,
-                                              holder=holder, role_held_with=role_held_with,
-                                              campaign_ids=cl, sesshandler=cherrypy.session.get, **kwargs)
+                                                    cherrypy.request.samweb_lite,
+                                                    tmin=tmin, tmax=tmax, tdays=tdays, active=active, campaign_name=campaign_name,
+                                                    holder=holder, role_held_with=role_held_with,
+                                                    campaign_ids=cl, sesshandler=cherrypy.session.get, **kwargs)
 
         current_experimenter = cherrypy.session.get('experimenter')
         # ~ logit.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
@@ -735,7 +735,7 @@ class PomsService(object):
             launch_user = cherrypy.session.get('experimenter').experimenter_id
         else:
             launch_user = launcher
-  
+
         logit.log("calling launch_jobs with campaign_stage_id='%s'" % campaign_stage_id)
 
         vals = self.taskPOMS.launch_jobs(cherrypy.request.db,
@@ -743,8 +743,8 @@ class PomsService(object):
                                          cherrypy.request.headers.get,
                                          cherrypy.session.get,
                                          cherrypy.request.samweb_lite,
-                                         cherrypy.HTTPError, 
-                                         campaign_stage_id, 
+                                         cherrypy.HTTPError,
+                                         campaign_stage_id,
                                          launch_user,
                                          dataset_override=dataset_override,
                                          parent_submission_id=parent_submission_id, test_login_setup=test_login_setup,
