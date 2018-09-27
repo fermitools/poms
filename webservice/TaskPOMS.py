@@ -100,7 +100,7 @@ class TaskPOMS:
                               CampaignStageSnapshot.campaign_stage_snapshot_id)
                       .filter(Submission.submission_id.in_(completed_sids), 
                               CampaignStageSnapshot.completion_type == 
-                                'completed')
+                                'complete')
                       .all()):
             res.append("completion type completed: %s" % s.submission_id)
             finish_up_submissions.append(s.submission_id)
@@ -381,7 +381,7 @@ class TaskPOMS:
             dbhandle.add(s)
 
         # amend status for completion percent
-        if status == 'Running' and pct_complete and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct and s.campaign_stage_snapshot_obj.completion_type == 'completed':
+        if status == 'Running' and pct_complete and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct and s.campaign_stage_snapshot_obj.completion_type == 'complete':
             status = 'Completed'
 
         if status != None:
