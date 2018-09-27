@@ -1,0 +1,50 @@
+#!/bin/sh
+
+. ${SETUPS_DIR:-/grid/fermiapp/products/common/etc}/setups
+
+cmd="$0 $*"
+
+host=pomsgpvm01.fnal.gov
+while :
+do
+case x$1 in
+x--test)   extra="--test=1"; host=fermicloud045.fnal.gov; shift;;
+x--dev)   extra="--test=dev";host=fermicloud045.fnal.gov;  shift;;
+x--int)   extra="--test=int";host=poms-int.fnal.gov;  shift;;
+x--debug)  set -x; shift;;
+*) break;;
+esac
+done
+
+log_status() {
+    curl -k --cert /tmp/x509up_u$UID --key /tmp/x509up_u$UID  --data "submission_id=$POMS_TASK_ID" --data "jobsub_job_id=$JOBSUB_JOB_ID" --data "status=$1" "https://$host:8443/poms/update_submission"
+}
+
+startup() {
+    if [ x$POMS_TASK_ID = x ]
+    then
+        export POMS_TASK_ID=`get_task_id_for --campaign=$POMS_CAMPAIGN_ID --user=$USER --command_executed="$cmd" $extra| sed -e 's/Task=//'`
+    fi
+
+    export CLUSTER="`date +%s`"
+    export PROCESS="0"
+    export JOBSUB_JOB_ID="$CLUSTER.$PROCESS@fakebatch1.fnal.gov"
+    log_status "Idle"
+
+    sleep 1
+    log_status "Running"
+}
+
+run_command() {
+    "$@"
+    rc=$?
+}
+
+wrapup() {
+    sleep 1
+    log_status "Completed"
+}
+
+startup
+run_command "$@"
+wrapup
