@@ -230,9 +230,9 @@ class CampaignsPOMS:
         c = dbhandle.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == seshandle('experimenter').session_experiment).first()
         if not c:
             c = Campaign(name=campaign_name,
-                            experiment=seshandle('experimenter').session_experiment,
-                            creator=seshandle('experimenter').experimenter_id,
-                            creator_role=seshandle('experimenter').session_role)
+                         experiment=seshandle('experimenter').session_experiment,
+                         creator=seshandle('experimenter').experimenter_id,
+                         creator_role=seshandle('experimenter').session_role)
             dbhandle.add(c)
             dbhandle.commit()
 

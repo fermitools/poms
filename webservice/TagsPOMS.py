@@ -93,7 +93,7 @@ class TagsPOMS(object):
         return response
 
     def search_all_tags(self, dbhandle, cl):
-        cids = cl.split(',')        # CampaignStage IDs list
+        cids = cl.split(',')        # Campaign IDs list
         result = (dbhandle.query(Tag)
                   .filter(Tag.campaigns.any(Campaign.campaign_id.in_(cids)))
                   .order_by(Tag.tag_name)
@@ -110,10 +110,10 @@ class TagsPOMS(object):
         response = {}
         results = deque()
         rows = (dbhandle.query(Tag)
-                .filter(Tag.name.like('%' + q + '%'), Tag.experiment == experiment)
+                .filter(Tag.tag_name.like('%' + q + '%'), Tag.experiment == experiment)
                 .order_by(desc(Tag.tag_name))
                ).all()
         for row in rows:
-            results.append({"name": row.name})
+            results.append({"name": row.tag_name})
         response["results"] = list(results)
         return response
