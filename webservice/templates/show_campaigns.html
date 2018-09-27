@@ -421,9 +421,9 @@ function pop_tag_untag_modal() {
         if (data.msg == "OK") {
             $('#tag_container').html('');
             for (const tag of data.result) {
-                const [tag_id, tag_name] = tag
-                const cids = csv.join('c')
-                const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${tag_name|urlencode}" class="ui blue tag label" id="${cids}_${tag_id}_">${tag_name}</a>`;
+                const [tag_id, tag_name] = tag;
+                const cids = csv.join('c');
+                const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${encodeURIComponent(tag_name)}" class="ui blue tag label" id="${cids}_${tag_id}_">${tag_name}</a>`;
                 const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${cids}_${tag_id}" style="border-radius: 5px;"></i></span>`;
                 $('#tag_container').append(new_tag + new_trash_can);
                 add_click_handler();
@@ -490,7 +490,7 @@ $('#add_button').on('click', function (e) {
             const campaigns_tags_composite_key = data.campaign_id.toString().replace(/,/g, 'c') + "_" + data.tag_id.toString();
             $('#response').html(data.msg);
 
-            const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${data.tag_name|urlencode}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
+            const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${encodeURIComponent(data.tag_name)}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
             const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${campaigns_tags_composite_key}" style="border-radius: 5px;"></i></span>`;
             $('#tag_container').append(new_tag + new_trash_can);
             //$('#tag_container').append(new_tag);
