@@ -61,7 +61,7 @@ Campaigns {%include 'help_button.html'%}
                 <!-- id is hidden by css look for #campaign_table above -->
                 <td id="c_id_{{loop.index}}">{{s.campaign_id}}</td>
                 <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
-                <td><a href="{{pomspath}}/show_campaign_stages?campaign_name={{s.name}}">{{s.name}}</a></td>
+                <td><a href="{{pomspath}}/show_campaign_stages?campaign_name={{s.name|e}}">{{s.name}}</a></td>
                 <td id="running_{{s.campaign_id}}" style="text-align:right; padding-right: 1em">...</td>
                 <td>
                     <a href="{{pomspath}}/campaign_time_bars?tag={{s.name}}&tdays=7&tmax={{last_activity}}">
