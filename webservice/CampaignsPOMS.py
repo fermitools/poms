@@ -1820,7 +1820,7 @@ class CampaignsPOMS:
         now = time.strftime("%Y.%m.%d.%H.%M")
         for el in misc:
             eid = el.get('id')
-            old_name = eid.split(' ')[1]
+            old_name = eid.split(' ', 1)[1]
             new_name = el.get('label')
             clean = el.get('clean')
             form = el.get('form')
@@ -1864,7 +1864,7 @@ class CampaignsPOMS:
         print("############## stages: {}".format([s.get('id') for s in stages]))
 
         campaign = [s for s in stages if s.get('id').startswith('campaign ')][0]
-        c_old_name = campaign.get('id').split(' ')[1]
+        c_old_name = campaign.get('id').split(' ', 1)[1]
         c_new_name = campaign.get('label')
         campaign_clean = campaign.get('clean')
         defaults = campaign.get('form')
@@ -1975,8 +1975,8 @@ class CampaignsPOMS:
                     obj.vo_role = vo_role
                     obj.campaign_type = stage_type
                     obj.active = active
-                    obj.updater=user_id
-                    obj.updated=datetime.now(utc)
+                    obj.updater = user_id
+                    obj.updated = datetime.now(utc)
 
                     dbhandle.flush()
             else:       # If this is a new stage then create and store it
