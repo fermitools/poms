@@ -964,7 +964,7 @@ class CampaignsPOMS:
                 lts.add(lt)
 
         if name is not None:
-            the_campaign = dbhandle.query(Campaign).filter(Campaign.name == name).scalar()
+            the_campaign = dbhandle.query(Campaign).filter(Campaign.name == name, Campaign.experiment == session_experiment).scalar()
             #
             campaign_stages = dbhandle.query(CampaignStage).join(Campaign).filter(
                 Campaign.name == name,
@@ -1214,7 +1214,7 @@ class CampaignsPOMS:
 
         # Campaigns don't have an active field(yet?)
         # so we have a subquery to get the count of active stages per campaign
-        sq = (dbhandle.query(CampaignStage.campaign_id.label('campaign_id'), 
+        sq = (dbhandle.query(CampaignStage.campaign_id.label('campaign_id'),
                              func.count(CampaignStage.campaign_stage_id).label('active_stages'))
               .filter(CampaignStage.experiment == experimenter.session_experiment)
               .filter(CampaignStage.active == True)
