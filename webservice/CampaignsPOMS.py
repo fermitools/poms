@@ -342,7 +342,7 @@ class CampaignsPOMS:
                                   .filter(~Experiment.experiment.in_(["root", "public"]))
                                   .order_by(Experiment.experiment))
         action = kwargs.pop('action', None)
-        experimenter  = seshandle('experimenter')
+        experimenter = seshandle('experimenter')
         exp = seshandle('experimenter').session_experiment
         r = seshandle('experimenter').session_role
         data['curr_experiment'] = exp
@@ -484,7 +484,7 @@ class CampaignsPOMS:
         # Find definitions
         if exp:  # cuz the default is find
 
-            if kwargs.get('update_view',None) == None:
+            if kwargs.get('update_view', None) is None:
                 # view flags not specified, use defaults
                 data['view_active'] = 'view_active'
                 data['view_inactive'] = None
@@ -518,9 +518,9 @@ class CampaignsPOMS:
             if data['view_mine'] and data['view_others']:
                 pass
             elif data['view_mine']:
-                q = q.filter(JobType.creator == data['view_mine'] )
+                q = q.filter(JobType.creator == data['view_mine'])
             elif data['view_others']:
-                q = q.filter(JobType.creator != data['view_others'] )
+                q = q.filter(JobType.creator != data['view_others'])
 
             # JobTypes don't have an active field(yet?)
             if data['view_active'] and data['view_inactive']:
@@ -762,7 +762,7 @@ class CampaignsPOMS:
                 if 'campaign_stages' in depends:
                     dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
                 elif 'campaigns' in depends:
-                    # backwards combatability
+                    # backwards compatibility
                     dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaigns']), CampaignStage.experiment == exp).all()
                 else:
                     dep_stages = {}
@@ -827,9 +827,9 @@ class CampaignsPOMS:
             if data['view_mine'] and data['view_others']:
                 pass
             elif data['view_mine']:
-                cquery = cquery.filter(CampaignStage.creator == data['view_mine'] )
+                cquery = cquery.filter(CampaignStage.creator == data['view_mine'])
             elif data['view_others']:
-                cquery = cquery.filter(CampaignStage.creator != data['view_others'] )
+                cquery = cquery.filter(CampaignStage.creator != data['view_others'])
 
             if data['view_active'] and data['view_inactive']:
                 pass
@@ -1086,10 +1086,10 @@ class CampaignsPOMS:
 
 
     def campaign_deps_svg(self, dbhandle, config_get, campaign_name=None, campaign_stage_id=None):
-        '''
+        """
             return campaign dependencies as an SVG graph
             uses "dot" to generate the drawing
-        '''
+        """
         if campaign_name is not None:
             cl = dbhandle.query(CampaignStage).join(Campaign).filter(Campaign.name == campaign_name,
                                                                      CampaignStage.campaign_id == Campaign.campaign_id).all()
@@ -1479,16 +1479,18 @@ class CampaignsPOMS:
         for cs in cpl:
             cidl.append(cs.campaign_stage_id)
 
-        qr = dbhandle.query(SubmissionHistory).join(Submission).filter(Submission.campaign_stage_id.in_(cidl),
-                                                           SubmissionHistory.submission_id == Submission.submission_id,
-                                                           or_(and_(Submission.created > tmin, Submission.created < tmax),
-                                                               and_(Submission.updated > tmin,
-                                                                    Submission.updated < tmax))).order_by(SubmissionHistory.submission_id,
-                                                                                                    SubmissionHistory.created).all()
+        qr = (dbhandle.query(SubmissionHistory)
+              .join(Submission)
+              .filter(Submission.campaign_stage_id.in_(cidl),
+                      SubmissionHistory.submission_id == Submission.submission_id,
+                      or_(and_(Submission.created > tmin, Submission.created < tmax),
+                          and_(Submission.updated > tmin,
+                               Submission.updated < tmax))).order_by(SubmissionHistory.submission_id,
+                                                                     SubmissionHistory.created).all())
         items = deque()
         extramap = OrderedDict()
 
-        if cpl[0].dataset in (None, 'None','none'):
+        if cpl[0].dataset in (None, 'None', 'none'):
              url_template= "https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
         else:
              url_template= "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
