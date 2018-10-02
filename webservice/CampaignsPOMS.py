@@ -700,7 +700,7 @@ class CampaignsPOMS:
                 job_type_id = dbhandle.query(JobType).filter(
                     JobType.name == campaign_definition_name).first().job_type_id
                 if action == 'edit':
-                    cs = dbhandle.query(CampaignStage).filter(CampaignStage.name == name , CampaignStage.experiment == exp).first()
+                    cs = dbhandle.query(CampaignStage).filter(CampaignStage.name == name, CampaignStage.experiment == exp).first()
                     if cs:
                         campaign_stage_id = cs.campaign_stage_id
                     else:
@@ -760,10 +760,18 @@ class CampaignsPOMS:
                 dbhandle.query(CampaignDependency).filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
                 logit.log("depends for %s(%s) are: %s" % (campaign_stage_id, name, depends))
                 if 'campaign_stages' in depends:
-                    dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
+                    dep_stages = (dbhandle.query(CampaignStage)
+                                  .filter(CampaignStage.name.in_(depends['campaign_stages']),
+                                          CampaignStage.campaign_id == campaign_id,
+                                          CampaignStage.experiment == exp)
+                                  .all())
                 elif 'campaigns' in depends:
                     # backwards compatibility
-                    dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaigns']), CampaignStage.experiment == exp).all()
+                    dep_stages = (dbhandle.query(CampaignStage)
+                                  .filter(CampaignStage.name.in_(depends['campaigns']),
+                                          CampaignStage.campaign_id == campaign_id,
+                                          CampaignStage.experiment == exp)
+                                  .all())
                 else:
                     dep_stages = {}
                 for (i, stage) in enumerate(dep_stages):
@@ -966,9 +974,10 @@ class CampaignsPOMS:
         if name is not None:
             the_campaign = dbhandle.query(Campaign).filter(Campaign.name == name, Campaign.experiment == session_experiment).scalar()
             #
-            campaign_stages = dbhandle.query(CampaignStage).join(Campaign).filter(
-                Campaign.name == name,
-                CampaignStage.campaign_id == Campaign.campaign_id).all()
+            # campaign_stages = dbhandle.query(CampaignStage).join(Campaign).filter(
+            #     Campaign.name == name,
+            #     CampaignStage.campaign_id == Campaign.campaign_id).all()
+            campaign_stages = the_campaign.stages
 
         if stage_id is not None:
             cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(CampaignDependency.provides_campaign_stage_id == stage_id).all()
@@ -997,8 +1006,6 @@ class CampaignsPOMS:
                 if cd.needs_campaign_stage_id in cnames.keys():
                     dmap[cid].append(cd.needs_campaign_stage_id)
                     fpmap[(cid, cd.needs_campaign_stage_id)] = cd.file_patterns
-
-        #------------
 
         # sort by dependencies(?)
         cidl = list(cnames.keys())
@@ -1056,7 +1063,7 @@ class CampaignsPOMS:
             res.append("[login_setup %s]" % lt.name)
             res.append("host=%s" % lt.launch_host)
             res.append("account=%s" % lt.launch_account)
-            res.append("setup=%s" % lt.launch_setup.replace("\r",";").replace("\n",";").replace(";;",";").replace(";;",";"))
+            res.append("setup=%s" % lt.launch_setup.replace("\r", ";").replace("\n", ";").replace(";;", ";").replace(";;", ";"))
             res.append("")
 
         for jt in jts:
