@@ -100,7 +100,7 @@ class TaskPOMS:
                               CampaignStageSnapshot.campaign_stage_snapshot_id)
                       .filter(Submission.submission_id.in_(completed_sids), 
                               CampaignStageSnapshot.completion_type == 
-                                'completed')
+                                'complete')
                       .all()):
             res.append("completion type completed: %s" % s.submission_id)
             finish_up_submissions.append(s.submission_id)
@@ -381,7 +381,7 @@ class TaskPOMS:
             dbhandle.add(s)
 
         # amend status for completion percent
-        if status == 'Running' and pct_complete and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct and s.campaign_stage_snapshot_obj.completion_type == 'completed':
+        if status == 'Running' and pct_complete and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct and s.campaign_stage_snapshot_obj.completion_type == 'complete':
             status = 'Completed'
 
         if status != None:
@@ -641,7 +641,15 @@ class TaskPOMS:
             vers = cs.software_version
             launch_script = cd.launch_script
             cid = cs.campaign_stage_id
-            cname = cs.name
+
+            # isssue #20990
+            if cs.name == cs.campaign_obj.name:
+                cname = cs.name
+            elif cs.name[:len(cs.campaign_obj.name)] == cs.campaign_obj.name:
+                cname = "%s::%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
+            else:
+                cname = "%s::%s" % (cs.campaign_obj.name, cs.name)
+
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
 
