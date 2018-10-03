@@ -1035,8 +1035,8 @@ class CampaignsPOMS:
                 res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
                 res.append("completion_type=%s" % defaults.get("completion_type"))
                 res.append("completion_pct=%s" % defaults.get("completion_pct"))
-                res.append("param_overrides=%s" % defaults.get("param_overrides"))
-                res.append("test_param_overrides=%s" % defaults.get("test_param_overrides"))
+                res.append("param_overrides=%s" % (defaults.get("param_overrides") or "[]"))
+                res.append("test_param_overrides=%s" % (defaults.get("test_param_overrides") or "[]"))
                 res.append("login_setup=%s" % (defaults.get("login_setup") or "generic"))
                 res.append("job_type=%s" % (defaults.get("job_type") or "generic"))
                 res.append("")
@@ -1927,7 +1927,7 @@ class CampaignsPOMS:
             form = {k: (form[k] or defaults[k]) for k in form}   # Use the field if provided otherwise use defaults
             print("############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(old_name, new_name, clean, form, position))
 
-            active = (form.pop('state') in ('True', 'true', '1', 'Active'))
+            active = (form.pop('state', None) in ('True', 'true', '1', 'Active'))
             completion_pct = form.pop('completion_pct')
             completion_type = form.pop('completion_type')
             split_type = form.pop('split_type', None)
@@ -1936,14 +1936,13 @@ class CampaignsPOMS:
             print("################ job_type: '{}'".format(job_type))
             login_setup = form.pop('login_setup')
             print("################ login_setup: '{}'".format(login_setup))
-            param_overrides = form.pop('param_overrides', "[]")
+            param_overrides = form.pop('param_overrides', None) or "[]"
             print("################ param_overrides: '{}'".format(param_overrides))
             if param_overrides:
                 param_overrides = json.loads(param_overrides)
             software_version = form.pop('software_version')
-            test_param_overrides = form.pop('test_param_overrides', "[]")
-            if test_param_overrides:
-                test_param_overrides = json.loads(test_param_overrides)
+            test_param_overrides = form.pop('test_param_overrides', None)
+            test_param_overrides = json.loads(test_param_overrides) if test_param_overrides else None
             vo_role = form.pop('vo_role')
 
             stage_type = form.pop('stage_type', 'test')
