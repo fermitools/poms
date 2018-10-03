@@ -155,22 +155,25 @@ function main() {
        var url;
        //VP~ if (args['campaign'].indexOf('samples/') == 0) {
        if (args['campaign'].startsWith('samples')) {
-          url = base + '/static/' + args['campaign'].replace('%2F','/')
+          url = base + '/static/' + args['campaign'].replace('%2F','/');
        } else {
-          url = base +'/campaign_deps_ini?name=' + args['campaign']
+          url = base +'/campaign_deps_ini?name=' + args['campaign'];
        }
        $.ajax( {
           url: url
        }).done( function(data) {
-          var ge = new gui_editor("outer_gui_editor_frame");
-          var args = mwm_utils.getSearchParams();
-          if ('clone' in args && 'Clone' == args['clone']) {
-              ge.set_state_clone(data, args['from'], args['to'],'{{session_experiment}}','{{session_role}}');
-              $("#camp_header1").html(`${args['to']}`);
-              $("#camp_header2").html(`${args['to']}`);
-          } else {
-              ge.set_state(data);
-          }
+           var ge = new gui_editor("outer_gui_editor_frame");
+           var args = mwm_utils.getSearchParams();
+            if ('clone' in args && 'Clone' == args['clone']) {
+                const from = args['from'];
+                const to = args['to'];
+                const to_name =  args['campaign'].replace('%2F','/').split('/')[1].replace(from, to);
+                ge.set_state_clone(data, from, to,'{{session_experiment}}','{{session_role}}');
+                $("#camp_header1").html(`${to_name}`);
+                $("#camp_header2").html(`${to_name}`);
+            } else {
+                ge.set_state(data);
+            }
        })
    };
 }
