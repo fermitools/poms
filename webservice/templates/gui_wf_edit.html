@@ -167,7 +167,10 @@ function main() {
             if ('clone' in args && 'Clone' == args['clone']) {
                 const from = args['from'];
                 const to = args['to'];
-                const to_name =  args['campaign'].replace('%2F','/').split('/')[1].replace(from, to);
+                let to_name =  args['campaign'].replace('%2F','/');
+                if (to_name.includes('/'))
+                    to_name = to_name.split('/')[1];
+                to_name = to_name.replace(from, to);
                 ge.set_state_clone(data, from, to,'{{session_experiment}}','{{session_role}}');
                 $("#camp_header1").html(`${to_name}`);
                 $("#camp_header2").html(`${to_name}`);
