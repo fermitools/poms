@@ -255,6 +255,16 @@ class samweb_lite:
         dims = dims.replace("(file_name __no_project__ ) union", "")
         return dims
 
+    def get_metadata(self, experiment, filename):
+        base = "http://samweb.fnal.gov:8480"
+        url = "%s/sam/%s/api/files/name/%s/metadata?format=json" % (
+                base, experiment, filename)
+        res = requests.get(url)
+        try:
+            return res.json()
+        except:
+            return {}
+
     def plain_list_files(self, experiment, dims):
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/files/list" % (base, experiment)
@@ -383,6 +393,10 @@ if __name__ == "__main__":
 
     import pprint
     sl = samweb_lite()
+
+    md = sl.get_metadata('uboone','PhysicsRun-2016_1_3_13_5_49-0004357-00974_20180929T225108_numi_unbiased_20180930T032518_merged.root')
+    pprint.pprint(md)
+    
     r1 = sl.update_project_description("samdev", "mengel-fife_wrap_20170701_102228_3860387", "test_1234")
     print("got result:" , r1)
     i = sl.fetch_info("samdev", "mengel-fife_wrap_20170701_102228_3860387")
