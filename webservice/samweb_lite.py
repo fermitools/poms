@@ -64,8 +64,8 @@ def safe_get(sess, url, *args, **kwargs):
     except:
         # Process error!
         # Severe errors like network or DNS problems.
-        logit.log(ERROR,"Died in safe_get:" + url )
-        logit.log(ERROR,traceback.format_exc())
+        logit.log(logit.ERROR,"Died in safe_get:" + url )
+        logit.log(logit.ERROR,traceback.format_exc())
         # Do the same?
         fault = FaultyRequest(url=reply.url, status=reply.status_code, message=reply.reason)
         dbh.add(fault)
