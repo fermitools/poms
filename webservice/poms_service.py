@@ -987,9 +987,9 @@ class PomsService(object):
         exp = cherrypy.session.get('experimenter').session_experiment
         if full:
             data = cherrypy.request.db.query(LoginSetup.name,
-                                            LoginSetup.launch_host,
-                                            LoginSetup.launch_account,
-                                            LoginSetup.launch_setup).filter(LoginSetup.experiment == exp).order_by(LoginSetup.name).all()
+                                             LoginSetup.launch_host,
+                                             LoginSetup.launch_account,
+                                             LoginSetup.launch_setup).filter(LoginSetup.experiment == exp).order_by(LoginSetup.name).all()
         else:
             data = cherrypy.request.db.query(LoginSetup.name).filter(LoginSetup.experiment == exp).order_by(LoginSetup.name).all()
 
