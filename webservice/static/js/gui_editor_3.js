@@ -1042,6 +1042,10 @@ gui_editor.prototype.draw_state = function () {
     // const title = "<ul><li>Click to select</li><li>Double click to open</li><li>Right click to add stages</li></ul>";
     // let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
     let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.replace(/.*? /, ''));
+    const node_positions = this.state.node_positions;
+    if (node_positions) {
+        // Set coordinates for the nodes
+    }
     let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 1)}));
     //VP~ this.nodes = new vis.DataSet([{id: 'Default Values', label: this.state.campaign.name,
     this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`,
