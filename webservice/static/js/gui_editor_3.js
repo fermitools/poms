@@ -418,7 +418,7 @@ gui_editor.exportNetwork = function () {
         const oval = $(el).attr('data-hash');
         const response = {id: e[0],
                           label: network.body.nodes[e[0]].options.label,
-                          position: e[1],
+                          position: e[0].startsWith('campaign ') ? gui_editor.network.getPositions() : e[1],
                           clean: hval === oval ? true : false,
                           form: ff
                 };

@@ -1087,11 +1087,8 @@ class CampaignsPOMS:
         dbhandle.commit()
         return "Submission=%d" % s.submission_id
 
-    def campaign_deps_ini(self, dbhandle, config_get, session_experiment,
-                          name=None, stage_id=None, login_setup=None, job_type=None):
-        '''
-            Generate .ini file format dump of campaign and contents.
-        '''
+
+    def campaign_deps_ini(self, dbhandle, session_experiment, name=None, stage_id=None, login_setup=None, job_type=None, full=None):
         res = []
         campaign_stages = []
         jts = set()
@@ -1179,36 +1176,34 @@ class CampaignsPOMS:
             res.append("")
 
             defaults = the_campaign.defaults
-            if defaults:
-                res.append("[campaign_defaults]")
-                # for (k, v) in defaults.items():
-                #     res.append("%s=%s" % (k, v))
-                res.append("vo_role=%s" % defaults.get("vo_role"))
-                # res.append("state=%s" % defaults.get("state", "Inactive"))
-                res.append(
-                    "software_version=%s" %
-                    defaults.get("software_version"))
-                res.append(
-                    "dataset_or_split_data=%s" %
-                    defaults.get("dataset"))
-                res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
-                res.append(
-                    "completion_type=%s" %
-                    defaults.get("completion_type"))
-                res.append(
-                    "completion_pct=%s" %
-                    defaults.get("completion_pct"))
-                res.append(
-                    "param_overrides=%s" %
-                    (defaults.get("param_overrides") or "[]"))
-                res.append("test_param_overrides=%s" %
-                           (defaults.get("test_param_overrides") or "[]"))
-                res.append("login_setup=%s" %
-                           (defaults.get("login_setup") or "generic"))
-                res.append(
-                    "job_type=%s" %
-                    (defaults.get("job_type") or "generic"))
-                res.append("")
+            positions = None
+            if "defaults" in defaults:
+                positions = defaults["positions"]
+                defaults = defaults["defaults"]
+
+            if full:
+                if defaults:
+                    res.append("[campaign_defaults]")
+                    # for (k, v) in defaults.items():
+                    #     res.append("%s=%s" % (k, v))
+                    res.append("vo_role=%s" % defaults.get("vo_role"))
+                    # res.append("state=%s" % defaults.get("state"))
+                    res.append("software_version=%s" % defaults.get("software_version"))
+                    res.append("dataset_or_split_data=%s" % defaults.get("dataset"))
+                    res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
+                    res.append("completion_type=%s" % defaults.get("completion_type"))
+                    res.append("completion_pct=%s" % defaults.get("completion_pct"))
+                    res.append("param_overrides=%s" % (defaults.get("param_overrides") or "[]"))
+                    res.append("test_param_overrides=%s" % (defaults.get("test_param_overrides") or "[]"))
+                    res.append("login_setup=%s" % (defaults.get("login_setup") or "generic"))
+                    res.append("job_type=%s" % (defaults.get("job_type") or "generic"))
+                    res.append("")
+
+                if positions:
+                    res.append("[node_positions]")
+                    for (n, (k, v)) in enumerate(positions.items()):
+                        res.append('nxy{}=["{}", {}, {}]'.format(n, k, v['x'], v['y']))
+                    res.append("")
 
         for c_s in campaign_stages:
             res.append("[campaign_stage %s]" % c_s.name)
@@ -2271,14 +2266,14 @@ class CampaignsPOMS:
         the_campaign = dbhandle.query(Campaign).filter(
             Campaign.name == c_old_name, Campaign.experiment == exp).scalar()
         if the_campaign:
-            # Store the defaults unconditionally as they may be not stored yet
-            the_campaign.defaults = defaults
+            # the_campaign.defaults = defaults    # Store the defaults unconditionally as they may be not stored yet
+            the_campaign.defaults = {"defaults": defaults, "positions": position}   # Store the defaults unconditionally as they may be not stored yet
             if c_new_name != c_old_name:
                 the_campaign.name = c_new_name
         else:   # we do not have a campaign in the db for this experiment so create the campaign and then do the linking
             the_campaign = Campaign()
             the_campaign.name = c_new_name
-            the_campaign.defaults = defaults
+            the_campaign.defaults = {"defaults": defaults, "positions": position}
             the_campaign.experiment = exp
             the_campaign.creator = user_id
             the_campaign.creator_role = role
