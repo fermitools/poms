@@ -432,11 +432,12 @@ class TaskPOMS:
             return 1
         cdlist = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id).order_by(CampaignDependency.provides_campaign_stage_id).all()
 
+        launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).first()
         i = 0
         for cd in cdlist:
             if cd.provides_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id:
                 # self-reference, just do a normal launch
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.provides_campaign_stage_id, s.creator, test_launch = s.submission_params.get('test',False))
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.provides_campaign_stage_id, launch_user.username, test_launch = s.submission_params.get('test',False))
             else:
                 i = i + 1
                 if cd.file_patterns.find(' ') > 0:
@@ -528,8 +529,10 @@ class TaskPOMS:
                 samhandle.create_definition(s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
 
 
+                launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).first()
+
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
-                                 err_res, s.campaign_stage_snapshot_obj.campaign_stage_id, s.creator,  dataset_override=rname,
+                                 err_res, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username,  dataset_override=rname,
                                  parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch = s.submission_params.get('test_launch',False))
                 return 1
 
