@@ -1175,14 +1175,14 @@ class CampaignsPOMS:
                        ",".join(map(cnames.get, cidl)))
             res.append("")
 
-            defaults = the_campaign.defaults
-            positions = None
-            if "defaults" in defaults:
-                positions = defaults["positions"]
-                defaults = defaults["defaults"]
-
-            if full:
+            if full in ('1', 'y', 'Y', 't', 'T'):
+                positions = None
+                defaults = the_campaign.defaults
                 if defaults:
+                    if "defaults" in defaults:
+                        positions = defaults["positions"]
+                        defaults = defaults["defaults"]
+
                     res.append("[campaign_defaults]")
                     # for (k, v) in defaults.items():
                     #     res.append("%s=%s" % (k, v))

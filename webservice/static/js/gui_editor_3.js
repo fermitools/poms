@@ -1042,16 +1042,12 @@ gui_editor.prototype.draw_state = function () {
     // const title = "<ul><li>Click to select</li><li>Double click to open</li><li>Right click to add stages</li></ul>";
     // let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
     let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.replace(/.*? /, ''));
-    const node_positions = this.state.node_positions;
-    if (node_positions) {
-        // Set coordinates for the nodes
-    }
-    let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 1)}));
+    let node_list = node_labels.map(x => ({id:x, label:x, level: this.getdepth(x, 1)}));
     //VP~ this.nodes = new vis.DataSet([{id: 'Default Values', label: this.state.campaign.name,
     this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`,
                                    label: this.state.campaign.name,
                                 //    title: "Double click to open",
-                                   group: 1,
+                                   level: 1,
                                    shape: 'ellipse', color: '#dddddd',
                                    fixed: false, size: 50}, ...node_list]);
 
@@ -1082,7 +1078,7 @@ gui_editor.prototype.draw_state = function () {
       };
     const options = {
         locales: locales,
-        autoResize: true,
+        // autoResize: true,
         physics: false,
         nodes: {
             shadow: true,
@@ -1090,24 +1086,25 @@ gui_editor.prototype.draw_state = function () {
         },
         layout: {
             improvedLayout: true,
-            hierarchical: {
-                enabled: true,
-                levelSeparation: 150,
-                nodeSpacing: 80,
-                treeSpacing: 60,
-                parentCentralization: true,
-                blockShifting: true,
-                edgeMinimization: true,
-                direction: "LR",
-                sortMethod: "directed"
-            }
+            hierarchical: false,
+            // hierarchical: {
+            //     enabled: true,
+            //     levelSeparation: 150,
+            //     nodeSpacing: 80,
+            //     treeSpacing: 60,
+            //     parentCentralization: true,
+            //     blockShifting: false,
+            //     edgeMinimization: true,
+            //     direction: "LR",
+            //     sortMethod: "directed"
+            // }
         },
         edges: {
             smooth: {
-                type: "dynamic",
-                // type: "discrete",
-                // forceDirection: "vertical",
-                roundness: 1
+                type: "horizontal",     // The best
+                // type: "cubicBezier",
+                // forceDirection: "horizontal",
+                roundness: 0.9
             },
             width: 2,
             arrows: {to : true},
@@ -1178,6 +1175,14 @@ gui_editor.prototype.draw_state = function () {
     // initialize network
     let container = document.getElementById('mystages');
     gui_editor.network = new vis.Network(container, data, options);
+    const node_positions = this.state.node_positions;
+    if (node_positions) {
+        // Set coordinates for the nodes
+        for (const pp in node_positions) {
+            const [n, x, y] = JSON.parse(node_positions[pp]);
+            this.nodes.update({id: n, x: x, y: y});
+        }
+    }
 
     const getLabel = e => this.nodes.get(e).label;
 
@@ -1292,11 +1297,18 @@ gui_editor.prototype.draw_state = function () {
 
     const saveNodeData = (data, callback) => {
         const label = document.getElementById('node-label').value;
+        var parentId, pary;
         clearNodePopUp();
+        if (data.nodes) {
+            parentId = data.nodes[0];
+            pary = gui_editor.network.getPositions()[parentId].y;
+        }
         if (label.includes('*')) {
             const nn = label.split('*');
             for (let i = 0; i < nn[1]; i++) {
                 data.label = `${nn[0]}_${i}`;
+                if (pary)
+                    data.y = pary + 25 - 50*nn[1]/2 + 50*i;
                 const reply = callback(data);
                 // Now handle our stuff
                 this.new_stage(reply[1], data.label);
@@ -1304,6 +1316,8 @@ gui_editor.prototype.draw_state = function () {
             }
         } else {
             data.label = label;
+            if (pary)
+                data.y = pary;
             const reply = callback(data);
             // Now handle our stuff
             if (data.id) {
@@ -1356,7 +1370,10 @@ gui_editor.prototype.draw_state = function () {
         //VP~ const eid = this.add_dependency(parentId, newId);
         //VP~ const nid = this.nodes.add({id: newId, label: params.label,
         const nid = this.nodes.add({label: params.label,
-                                    group: this.nodes.get(parentId).group ? this.nodes.get(parentId).group + 1 : 0})[0];
+                                    level: this.nodes.get(parentId).level ? this.nodes.get(parentId).level + 1 : 1,
+                                    x: gui_editor.network.getPositions()[parentId].x + 150,
+                                    y: params.y
+                                })[0];
         //VP~ edges.add({id: eid, from: parentId, to: newId});
         const eid = edges.add({from: parentId, to: nid})[0];
         //VP~ this.add_dependency(parentId, nid);
