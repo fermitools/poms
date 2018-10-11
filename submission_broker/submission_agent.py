@@ -10,6 +10,7 @@ import os
 import time
 from http.client import HTTPConnection
 import requests
+import re
 HTTPConnection.debuglevel = 1
 
 LOGIT = logging.getLogger()
@@ -39,9 +40,14 @@ class Agent:
          {"query":"{submissions(group: \\"%s\\" %s){id pomsTaskID done running idle   held } }","operationName":null}
          '''
 
-    submission_query = '''
-          {"query":"{submission(id:\\"%s\\"){  pomsTaskID  SAM_PROJECT:env(name:\\"SAM_PROJECT\\")  SAM_PROJECT_NAME:env(name:\\"SAM_PROJECT_NAME\\")  args}}","operationName":null}
+    submission_project_query = '''
+          {"query":"{submission(id:\\"%s\\"){id SAM_PROJECT:env(name:\\"SAM_PROJECT\\")  SAM_PROJECT_NAME:env(name:\\"SAM_PROJECT_NAME\\")  args}}","operationName":null}
         '''
+
+    submission_info_query = '''
+          {"query":"{submission(id:\\"%s\\"){id pomsTaskID done running idle held} }","operationName":null}
+        '''
+
 
     def __init__(self, poms_uri="http://127.0.0.1:8080/poms/",
                  submission_uri='https://landscapeitb.fnal.gov/lens/query'):
@@ -122,6 +128,33 @@ class Agent:
         htr.close()
 
 
+    def get_individual_submission(self,jobsubjobid):
+        '''
+           get submission info from service if the submissions call had
+           an error.
+        '''
+
+        count = 0
+        while 1:
+            postresult = self.ssess.post(self.submission_uri,
+                                         data=Agent.submission_info_query % jobsubjobid,
+                                         headers=self.submission_headers)
+            ddict = postresult.json()
+            LOGIT.info("submission %s data: %s", jobsubjobid, repr(ddict))
+            postresult.close()
+            count = count + 1
+            if ddict.get("errors",None) == None or count > 5:
+                LOGIT.error("found!")
+                break
+            if count > 5:
+                LOGIT.error("giving up.")
+                break
+            LOGIT.error("Retrying...")
+            time.sleep(0.5)
+        ddict = ddict.get("data",{}).get("submission",None)
+
+        return ddict
+
     def get_project(self, entry):
 
         '''
@@ -139,7 +172,7 @@ class Agent:
         # otherwise look it up... in the submission info
 
         postresult = self.ssess.post(self.submission_uri,
-                                     data=Agent.submission_query % entry['id'],
+                                     data=Agent.submission_project_query % entry['id'],
                                      headers=self.submission_headers)
         ddict = postresult.json()
         ddict = ddict['data']['submission']
@@ -199,11 +232,28 @@ class Agent:
             pass
 
         LOGIT.info("%s data: %s", group, repr(ddict))
+
         if not ddict.get('data', None) or not ddict['data'].get('submissions', None):
+            LOGIT.info("No data?")
             return
 
         thispass = set()
+
+        # some come up with errors, look them up individually...
+        # shove in front of zeroed out entry in 'submissions' list.
+
+        for entry in ddict.get('errors',[]):
+            LOGIT.info("checking error: %s", entry)
+            m = re.match('unable to find info for (.*)', entry['message'])
+            if m:
+                jobid = m.group(1)
+                LOGIT.info("checking jobid: %s", jobid)
+                entry = self.get_individual_submission(jobid)
+                if entry:
+                    ddict['data']['submissions'].insert(0,entry)
+
         for entry in ddict['data']['submissions']:
+
 
             # skip if we don't have a pomsTaskID...
             if not entry.get('pomsTaskID', None):
@@ -243,6 +293,7 @@ class Agent:
                 report_project_flag = False
             else:
                 report_project_flag = True
+
             report_project = self.get_project(entry)
 
             #

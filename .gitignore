@@ -15,6 +15,7 @@ CVS
 *orig
 *.py-*
 *.txt*
+*.diff
 
 tmp
 .DS_Store
