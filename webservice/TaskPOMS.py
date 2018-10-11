@@ -485,9 +485,9 @@ class TaskPOMS:
             # uncomment when we get db fields:
             param_overrides = rlist[s.recovery_position].param_overrides
             if rtype.name == 'consumed_status':
-                recovery_dims samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project,useprocess=0,dbhandle)
+                recovery_dims = samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project, useprocess=0, dbhandle = dbhandle)
             elif rtype.name == 'proj_status':
-                recovery_dims samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project,useprocess=1,dbhandle)
+                recovery_dims = samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle = dbhandle)
             elif rtype.name == 'pending_files':
                 recovery_dims = "snapshot_for_project_name %s minus ( " % s.project
                 if s.job_type_snapshot_obj.output_file_patterns:

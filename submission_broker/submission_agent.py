@@ -134,23 +134,16 @@ class Agent:
            an error.
         '''
 
-        count = 0
-        while 1:
-            postresult = self.ssess.post(self.submission_uri,
-                                         data=Agent.submission_info_query % jobsubjobid,
-                                         headers=self.submission_headers)
-            ddict = postresult.json()
-            LOGIT.info("submission %s data: %s", jobsubjobid, repr(ddict))
-            postresult.close()
-            count = count + 1
-            if ddict.get("errors",None) == None or count > 5:
-                LOGIT.error("found!")
-                break
-            if count > 5:
-                LOGIT.error("giving up.")
-                break
-            LOGIT.error("Retrying...")
-            time.sleep(0.5)
+        postresult = self.ssess.post(self.submission_uri,
+                                     data=Agent.submission_info_query % jobsubjobid,
+                                     headers=self.submission_headers)
+        ddict = postresult.json()
+        LOGIT.info("submission %s data: %s", jobsubjobid, repr(ddict))
+        postresult.close()
+
+        if ddict.get("errors",None) != None:
+             return None
+
         ddict = ddict.get("data",{}).get("submission",None)
 
         return ddict
@@ -242,15 +235,23 @@ class Agent:
         # some come up with errors, look them up individually...
         # shove in front of zeroed out entry in 'submissions' list.
 
-        for entry in ddict.get('errors',[]):
-            LOGIT.info("checking error: %s", entry)
-            m = re.match('unable to find info for (.*)', entry['message'])
-            if m:
-                jobid = m.group(1)
-                LOGIT.info("checking jobid: %s", jobid)
-                entry = self.get_individual_submission(jobid)
-                if entry:
-                    ddict['data']['submissions'].insert(0,entry)
+        haveerrors = ddict.get('errors',None) != None
+        count = 0
+        while count < 5 and haveerrors:
+            count = count + 1
+            haveerrors = False      
+            for entry in ddict.get('errors',[]):
+                LOGIT.info("checking error: %s", entry)
+                m = re.match('unable to find info for (.*)', entry['message'])
+                if m:
+                    jobid = m.group(1)
+                    LOGIT.info("checking jobid: %s", jobid)
+                    entry = self.get_individual_submission(jobid)
+                    if entry:
+                        ddict['data']['submissions'].insert(0,entry)
+                    else:
+                        LOGIT.info("errors  jobid: %s", jobid)
+                        haveerrors = True
 
         for entry in ddict['data']['submissions']:
 

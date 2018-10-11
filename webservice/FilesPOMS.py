@@ -91,11 +91,11 @@ class Files_status(object):
                 if pat.find(' ') > 0:
                     dimbits = pat
                 else:
-                    dimbits = "filename like '%s'" % pat
+                    dimbits = "file_name like '%s'" % pat
 
-                allkiddims = ("%s and isparentof: ( file_name '%s' and version '%s' ) " %
+                allkiddims = ("%s and isparentof: ( %s and version '%s' ) " %
                               (allkiddims, dimbits, s.campaign_stage_snapshot_obj.software_version))
-                allkiddecldims = ("%s and isparentof: ( file_name '%s' and version '%s' with availability anylocation ) " %
+                allkiddecldims = ("%s and isparentof: ( %s and version '%s' with availability anylocation ) " %
                                   (allkiddecldims, dimbits, s.campaign_stage_snapshot_obj.software_version))
             all_kids_needed.append(allkiddims)
             all_kids_decl_needed.append(allkiddecldims)
