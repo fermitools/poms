@@ -1823,7 +1823,8 @@ gui_editor.prototype.save_state = function () {
         const base = mwm_utils.getBaseURL()
         console.log(["args:", args, "base:", base ])
         if (args['clone'] != undefined) {
-            const campaign = this.state.campaign['name'];
+            //// const campaign = this.state.campaign['name'];
+            const campaign = this.nodes.get().filter(x => x.id.startsWith('campaign '))[0].label;
             location.href = `${base}gui_wf_edit?campaign=${campaign}`;
         } else {
             window.setTimeout( () => {
