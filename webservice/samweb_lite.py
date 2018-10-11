@@ -131,6 +131,23 @@ class samweb_lite:
             
         return res.text
 
+    def recovery_dimensions(self, experiment, projid, useprocess=0, dbhandle=None):
+        """
+        """
+        if not experiment or not projid or projid == "None":
+            return ""
+
+        base = "http://samweb.fnal.gov:8480"
+        url = "%s/sam/%s/api/projects/name/%s/recovery_dimensions?useProcess=%s" % (base, experiment, projid, useprocess)
+        with requests.Session() as sess:
+            res = safe_get(sess, url, dbhandle=dbhandle)
+        # default to basic consumed status
+        info = "project_name %s minus consumed_status consumed" % projid
+        if res:
+            info = res.text
+
+        return info
+
     def fetch_info(self, experiment, projid, dbhandle=None):
         """
         """
@@ -393,6 +410,8 @@ if __name__ == "__main__":
 
     import pprint
     sl = samweb_lite()
+
+    print( sl.recovery_dimensions("samdev","mengel-fife_wrap_20180927_153506_1003267", useprocess=1))
 
     md = sl.get_metadata('uboone','PhysicsRun-2016_1_3_13_5_49-0004357-00974_20180929T225108_numi_unbiased_20180930T032518_merged.root')
     pprint.pprint(md)

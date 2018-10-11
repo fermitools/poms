@@ -484,23 +484,26 @@ class TaskPOMS:
             # uncomment when we get db fields:
             param_overrides = rlist[s.recovery_position].param_overrides
             if rtype.name == 'consumed_status':
-                recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % s.project
+                recovery_dims samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project,useprocess=0,dbhandle)
             elif rtype.name == 'proj_status':
-                recovery_dims = "project_name %s and process_status != 'ok'" % s.project
+                recovery_dims samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project,useprocess=1,dbhandle)
             elif rtype.name == 'pending_files':
-                recovery_dims = "snapshot_for_project_name %s " % s.project
+                recovery_dims = "snapshot_for_project_name %s minus ( " % s.project
                 if s.job_type_snapshot_obj.output_file_patterns:
                     oftypelist = s.job_type_snapshot_obj.output_file_patterns.split(",")
                 else:
                     oftypelist = ["%"]
 
+                sep = ''
                 for oft in oftypelist:
                     if oft.find(' ') > 0:
                         # it is a dimension not a file_name pattern
                         dim_bits = oft
                     else:
                         dim_bits = "file_name like %s" % oft
-                    recovery_dims += "minus isparent: ( version %s and %s) " % (s.campaign_stage_snapshot_obj.software_version, dim_bits)
+                    recovery_dims += "%s isparentof: ( version %s and %s) " % (sep,s.campaign_stage_snapshot_obj.software_version, dim_bits)
+                    sep = 'and'
+                snapshot_dims += ')'
             else:
                 # default to consumed status(?)
                 recovery_dims = "project_name %s and consumed_status != 'consumed'" % s.project
