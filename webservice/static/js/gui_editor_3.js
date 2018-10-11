@@ -1819,18 +1819,18 @@ gui_editor.prototype.save_state = function () {
             timer: 1500
           });
 
-        const args = mwm_utils.getSearchParams()
-        const base = mwm_utils.getBaseURL()
-        console.log(["args:", args, "base:", base ])
-        if (args['clone'] != undefined) {
+        const args = mwm_utils.getSearchParams();
+        const base = mwm_utils.getBaseURL();
+        console.log(["args:", args, "base:", base ]);
+        // if (args['clone'] != undefined) {
             //// const campaign = this.state.campaign['name'];
             const campaign = this.nodes.get().filter(x => x.id.startsWith('campaign '))[0].label;
             location.href = `${base}gui_wf_edit?campaign=${campaign}`;
-        } else {
-            window.setTimeout( () => {
-                location.reload();
-            }, 1000);
-        }
+        // } else {
+        //     window.setTimeout( () => {
+        //         location.reload();
+        //     }, 1000);
+        // }
     //VP~ }, 200);
     /*
     window.setTimeout( () => {
