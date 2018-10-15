@@ -426,6 +426,12 @@ class TaskPOMS:
 
     def launch_dependents_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  s):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
+
+        # if this is a recovery job, we go back to our parent
+        # to do all the work
+        if s.parent_obj:
+            s = s.parent_obj
+
         if not getconfig("poms.launch_recovery_jobs", False):
             # XXX should queue for later?!?
             logit.log("recovery launches disabled")

@@ -816,11 +816,11 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_task_files(self, campaign_stage_id, tmin=None, tmax=None, tdays=1):
+    def campaign_task_files(self, campaign_stage_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
         (cs, columns, datarows,
          tmins, tmaxs,
          prevlink, nextlink, tdays) = self.filesPOMS.campaign_task_files(cherrypy.request.db,
-                                                                         cherrypy.request.samweb_lite, campaign_stage_id,
+                                                                         cherrypy.request.samweb_lite, campaign_stage_id, campaign_id,
                                                                          tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_task_files.html')
         return template.render(name=cs.name if cs else "",
