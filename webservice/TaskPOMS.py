@@ -426,6 +426,12 @@ class TaskPOMS:
 
     def launch_dependents_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  s):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
+
+        # if this is a recovery job, we go back to our parent
+        # to do all the work
+        if s.parent_obj:
+            s = s.parent_obj
+
         if not getconfig("poms.launch_recovery_jobs", False):
             # XXX should queue for later?!?
             logit.log("recovery launches disabled")
@@ -484,9 +490,9 @@ class TaskPOMS:
             # uncomment when we get db fields:
             param_overrides = rlist[s.recovery_position].param_overrides
             if rtype.name == 'consumed_status':
-                recovery_dims samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project,useprocess=0,dbhandle)
+                recovery_dims = samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project,useprocess=0,dbhandle=dbhandle)
             elif rtype.name == 'proj_status':
-                recovery_dims samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project,useprocess=1,dbhandle)
+                recovery_dims = samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project,useprocess=1,dbhandle=dbhandle)
             elif rtype.name == 'pending_files':
                 recovery_dims = "snapshot_for_project_name %s minus ( " % s.project
                 if s.job_type_snapshot_obj.output_file_patterns:
