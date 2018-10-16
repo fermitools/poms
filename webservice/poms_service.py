@@ -41,8 +41,8 @@ def error_response():
 
 class PomsService(object):
     _cp_config = {'request.error_response': error_response,
-                  'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), '/templates/page_not_found.html'),
-                  'error_page.401': "%s/%s" % (os.path.abspath(os.getcwd()), '/webservice/templates/unauthorized_user.html')
+                  'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/page_not_found.html'),
+                  'error_page.401': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/unauthorized_user.html')
                   }
 
     def __init__(self):
@@ -987,9 +987,9 @@ class PomsService(object):
         exp = cherrypy.session.get('experimenter').session_experiment
         if full:
             data = cherrypy.request.db.query(LoginSetup.name,
-                                            LoginSetup.launch_host,
-                                            LoginSetup.launch_account,
-                                            LoginSetup.launch_setup).filter(LoginSetup.experiment == exp).order_by(LoginSetup.name).all()
+                                             LoginSetup.launch_host,
+                                             LoginSetup.launch_account,
+                                             LoginSetup.launch_setup).filter(LoginSetup.experiment == exp).order_by(LoginSetup.name).all()
         else:
             data = cherrypy.request.db.query(LoginSetup.name).filter(LoginSetup.experiment == exp).order_by(LoginSetup.name).all()
 
