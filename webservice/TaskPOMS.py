@@ -426,17 +426,24 @@ class TaskPOMS:
 
     def launch_dependents_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  s):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
+
+        # if this is a recovery job, we go back to our parent
+        # to do all the work
+        if s.parent_obj:
+            s = s.parent_obj
+
         if not getconfig("poms.launch_recovery_jobs", False):
             # XXX should queue for later?!?
             logit.log("recovery launches disabled")
             return 1
         cdlist = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id).order_by(CampaignDependency.provides_campaign_stage_id).all()
 
+        launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).first()
         i = 0
         for cd in cdlist:
             if cd.provides_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id:
                 # self-reference, just do a normal launch
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.provides_campaign_stage_id, s.creator, test_launch = s.submission_params.get('test',False))
+                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.provides_campaign_stage_id, launch_user.username, test_launch = s.submission_params.get('test',False))
             else:
                 i = i + 1
                 if cd.file_patterns.find(' ') > 0:
@@ -484,23 +491,26 @@ class TaskPOMS:
             # uncomment when we get db fields:
             param_overrides = rlist[s.recovery_position].param_overrides
             if rtype.name == 'consumed_status':
-                recovery_dims = "snapshot_for_project_name %s and consumed_status != 'consumed'" % s.project
+                recovery_dims = samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project, useprocess=0, dbhandle = dbhandle)
             elif rtype.name == 'proj_status':
-                recovery_dims = "project_name %s and process_status != 'ok'" % s.project
+                recovery_dims = samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle = dbhandle)
             elif rtype.name == 'pending_files':
-                recovery_dims = "snapshot_for_project_name %s " % s.project
+                recovery_dims = "snapshot_for_project_name %s minus ( " % s.project
                 if s.job_type_snapshot_obj.output_file_patterns:
                     oftypelist = s.job_type_snapshot_obj.output_file_patterns.split(",")
                 else:
                     oftypelist = ["%"]
 
+                sep = ''
                 for oft in oftypelist:
                     if oft.find(' ') > 0:
                         # it is a dimension not a file_name pattern
                         dim_bits = oft
                     else:
                         dim_bits = "file_name like %s" % oft
-                    recovery_dims += "minus isparent: ( version %s and %s) " % (s.campaign_stage_snapshot_obj.software_version, dim_bits)
+                    recovery_dims += "%s isparentof: ( version %s and %s) " % (sep,s.campaign_stage_snapshot_obj.software_version, dim_bits)
+                    sep = 'and'
+                snapshot_dims += ')'
             else:
                 # default to consumed status(?)
                 recovery_dims = "project_name %s and consumed_status != 'consumed'" % s.project
@@ -525,8 +535,10 @@ class TaskPOMS:
                 samhandle.create_definition(s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
 
 
+                launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).first()
+
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
-                                 err_res, s.campaign_stage_snapshot_obj.campaign_stage_id, s.creator,  dataset_override=rname,
+                                 err_res, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username,  dataset_override=rname,
                                  parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch = s.submission_params.get('test_launch',False))
                 return 1
 
