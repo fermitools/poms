@@ -1,16 +1,30 @@
 <html>
-  <head><title>401 Unauthorized User</title></head>
+  <head>
+    <title>401 Unauthorized User</title>
+    <style>
+        .center-div
+            {
+              margin: 0 auto;
+              width: 650px;
+            }
+    </style>
+  </head>
   <body bgcolor="white">
-    <center><h1>401 Unauthorized User</h1></center>
-    <center><p>
+    <div class="center-div">
+        <h1>401 Unauthorized User</h1>
         Your account is not authorized to use POMS.  To get access, do the following:
-        -- Open the webpage to <a href="https://fermi.service-now.com/wp" target="_blank">SNOW</a>.
-        -- Select the tile "Request Something".
-        -- Select the tile "Experiment/Project/Collaboration Computing Account".
-        -- Choose your experiment.
-        -- Choose the role "Production".   (Analysis is not yet supported.)
-
-        Please do <b>not</b> fill out an incident or request to POMS as this must go through your experiment.
-    </p></center>
+        <br>
+        <ul>
+          <li>Open the webpage to <a href="https://fermi.service-now.com/wp" target="_blank">SNOW</a> and login.</li>
+          <li>Select the tile "Request Something".</li>
+          <li>Select the tile "Experiment/Project/Collaboration Computing Account".</li>
+          <li>Choose your experiment.</li>
+          <li>Choose the role "Production" or "Analysis".</li>
+        </ul>
+        Please do <b>not</b> fill out an incident or request to POMS as access must be granted by your experiment.
+        <br><br>
+        For more information refer to
+        <a href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/POMS_User_Documentation#Getting-access-New-Experiments-New-Accounts-Users-and-Roles" target="_blank">POMS: Getting Started</a>
+    </div>
   </body>
 </html>

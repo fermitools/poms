@@ -100,7 +100,7 @@ class TaskPOMS:
                               CampaignStageSnapshot.campaign_stage_snapshot_id)
                       .filter(Submission.submission_id.in_(completed_sids), 
                               CampaignStageSnapshot.completion_type == 
-                                'completed')
+                                'complete')
                       .all()):
             res.append("completion type completed: %s" % s.submission_id)
             finish_up_submissions.append(s.submission_id)
@@ -381,7 +381,7 @@ class TaskPOMS:
             dbhandle.add(s)
 
         # amend status for completion percent
-        if status == 'Running' and pct_complete and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct and s.campaign_stage_snapshot_obj.completion_type == 'completed':
+        if status == 'Running' and pct_complete and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct and s.campaign_stage_snapshot_obj.completion_type == 'complete':
             status = 'Completed'
 
         if status != None:
@@ -426,6 +426,12 @@ class TaskPOMS:
 
     def launch_dependents_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  s):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
+
+        # if this is itself a recovery job, we go back to our parent
+        # because dependants should use the parent, not the recovery job
+        if s.parent_obj:
+            s = s.parent_obj
+
         if not getconfig("poms.launch_recovery_jobs", False):
             # XXX should queue for later?!?
             logit.log("recovery launches disabled")
@@ -500,7 +506,7 @@ class TaskPOMS:
                         dim_bits = oft
                     else:
                         dim_bits = "file_name like %s" % oft
-                    recovery_dims += "minus isparent: ( version %s and %s) " % (s.campaign_stage_snapshot_obj.software_version, dim_bits)
+                    recovery_dims += "minus isparentof: ( version %s and %s) " % (s.campaign_stage_snapshot_obj.software_version, dim_bits)
             else:
                 # default to consumed status(?)
                 recovery_dims = "project_name %s and consumed_status != 'consumed'" % s.project
@@ -527,7 +533,7 @@ class TaskPOMS:
 
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
                                  err_res, s.campaign_stage_snapshot_obj.campaign_stage_id, s.creator,  dataset_override=rname,
-                                 parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch = s.submission_params.get('test_launch',False))
+                                 parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch = s.submission_params.get('test',False))
                 return 1
 
         return 0
@@ -641,7 +647,15 @@ class TaskPOMS:
             vers = cs.software_version
             launch_script = cd.launch_script
             cid = cs.campaign_stage_id
-            cname = cs.name
+            # isssue #20990
+            if cs.name == cs.campaign_obj.name:
+                cname = cs.name
+            elif cs.name[:len(cs.campaign_obj.name)] == cs.campaign_obj.name:
+                cname = "%s::%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj.name):])
+            else:
+                cname = "%s::%s" % (cs.campaign_obj.name, cs.name)
+
+
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
 
