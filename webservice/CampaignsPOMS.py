@@ -1644,15 +1644,18 @@ class CampaignsPOMS:
             if err_res:
                 raise err_res(404, 'No more splits in this campaign')
             else:
-                raise IndexError( 'No more splits in this campaign')
+                raise IndexError('No more splits in this campaign')
 
         dbhandle.commit()
         return res
 
-    def list_launch_file(self, campaign_stage_id, fname, login_setup_id=None):
+    def list_launch_file(self, dbhandle, campaign_stage_id, fname, login_setup_id=None):
         '''
             get launch output file and return the lines as a list
         '''
+        q = dbhandle.query(CampaignStage, Campaign).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+        campaign_name = q.Campaign.name
+        stage_name = q.CampaignStage.name
         if login_setup_id:
             dirname = '{}/private/logs/poms/launches/template_tests_{}'.format(os.environ['HOME'], login_setup_id)
         else:
@@ -1668,7 +1671,7 @@ class CampaignsPOMS:
             refresh = 10
         else:
             refresh = 0
-        return lines, refresh
+        return lines, refresh, campaign_name, stage_name
 
     def schedule_launch(self, dbhandle, campaign_stage_id):
         '''
