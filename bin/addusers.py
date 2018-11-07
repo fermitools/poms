@@ -15,7 +15,7 @@ except ImportError:
 urllib3.disable_warnings()
 
 def parse_command_line():
-    doc = "Adds and updates expermenters from all supported experments into POMS."
+    doc = "Loads a VOMS generated JSON file of experimenters into POMS."
     parser = argparse.ArgumentParser(description=doc)
     parser.add_argument('host', help="Host database is on.")
     parser.add_argument('port', type=int, help="Database Port number.")
@@ -104,10 +104,9 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
 
     for anal in anal_users:
         users[anal.get('username')] = {'commonname': anal.get('commonname'), 'role': 'analysis'}
-    # Yes, overwrite anal users with those who have production!
     for prod in prod_users:
         users[prod.get('username')] = {'commonname': prod.get('commonname'), 'role': 'production'}
-    logging.debug("ferry data: %s", str(users))
+    logging.debug("ferry data: %s" % str(users))
     return users
 
 def get_voms_data(cert, exp):
@@ -149,7 +148,7 @@ def determine_changes(cursor, exp, users):
                 active_status[username] = {'experimenter_id' : experimenter_id, 'active': False, 'username': username}
         elif user['role'] != role:
             if role != 'coordinator':
-                role_changes[username] = {'experimenter_id': experimenter_id, 'role': role}
+                role_changes[username] = {'experimenter_id': experimenter_id, 'role': user['role']}
         elif active is False:
             active_status[username] = {'experimenter_id' : experimenter_id, 'active': True, 'username': username}
     return new_users, active_status, role_changes
