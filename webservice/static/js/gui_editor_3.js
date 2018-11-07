@@ -799,7 +799,7 @@ gui_editor.prototype.ini2json = function (s) {
           console.log(k_v)
           k_v.shift();
           k = k_v.shift();
-          v = k_v.join('=').replace(/"/g,'\\"');
+          v = k_v.join('=').replace(/\\/g, '\\\\').replace(/"/g,'\\"');
           if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
               continue;
           }
@@ -813,7 +813,7 @@ gui_editor.prototype.ini2json = function (s) {
    this.un_trailing_comma(res);
    res.push('}');
    res.push('}');
-   console.log({"result": res.join("\n")})
+   console.log("ini2json result: ", res.join("\n"))
    return res.join('\n');
 }
 
