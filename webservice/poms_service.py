@@ -469,11 +469,12 @@ class PomsService(object):
     def list_launch_file(self, campaign_stage_id=None, fname=None, login_setup_id=None, launch_template_id=None):
         if login_setup_id is None and launch_template_id is not None:
             login_setup_id = launch_template_id
-        lines, refresh = self.campaignsPOMS.list_launch_file(campaign_stage_id, fname, login_setup_id)
+        lines, refresh, campaign_name, stage_name = self.campaignsPOMS.list_launch_file(cherrypy.request.db, campaign_stage_id, fname, login_setup_id)
         output = "".join(lines)
         template = self.jinja_env.get_template('launch_jobs.html')
         res = template.render(command='', output=output, do_refresh=refresh,
                               cs=None, campaign_stage_id=campaign_stage_id,
+                              campaign_name=campaign_name, stage_name=stage_name,
                               help_page="LaunchedJobsHelp")
         return res
 
