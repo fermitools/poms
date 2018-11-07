@@ -1481,6 +1481,7 @@ class CampaignsPOMS:
 
         qr = (dbhandle.query(SubmissionHistory)
               .join(Submission)
+              .options(joinedload(SubmissionHistory.submission_obj))
               .filter(Submission.campaign_stage_id.in_(cidl),
                       SubmissionHistory.submission_id == Submission.submission_id,
                       or_(and_(Submission.created > tmin, Submission.created < tmax),
@@ -1490,10 +1491,8 @@ class CampaignsPOMS:
         items = deque()
         extramap = OrderedDict()
 
-        if cpl[0].dataset in (None, 'None', 'none'):
-             url_template= "https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
-        else:
-             url_template= "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
+        url_template_plain= "https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
+        url_template_dag= "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
 
         failedlaunch_url_template = self.poms_service.path + "/list_launch_file?campaign_stage_id=%(campaign_stage_id)s&fname=%(created_s)s_%(creator)s"
 
@@ -1535,8 +1534,10 @@ class CampaignsPOMS:
                                  ))
             if th.status == 'LaunchFailed':
                 items[-1].url = failedlaunch_url_template % items[-1].__dict__
+            elif th.submission_obj.project:
+                items[-1].url = url_template_dag % items[-1].__dict__
             else:
-                items[-1].url = url_template % items[-1].__dict__
+                items[-1].url = url_template_plain % items[-1].__dict__
 
         logit.log("campaign_time_bars: items: " + repr(items))
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id',
