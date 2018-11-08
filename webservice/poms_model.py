@@ -204,9 +204,17 @@ class SubmissionHistory(Base):
 
     submission_id = Column(ForeignKey('submissions.submission_id'), primary_key=True, nullable=False)
     created = Column(DateTime(True), primary_key=True, nullable=False)
-    status = Column(Text, nullable=False)
+    status_id = Column(Integer, nullable=False)
 
+    submission_status_obj = relationship('SubmissionStatus', foreign_keys=status_id)
     submission_obj = relationship('Submission', backref='history')
+
+
+class SubmissionStatus(Base):
+    __tablename__ = 'submission_statuses'
+
+    status_id = Column(Integer, primary_key=True, nullable=False)
+    status = Column(Text, nullable=False)
 
 
 class CampaignStageSnapshot(Base):
