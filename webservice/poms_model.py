@@ -204,10 +204,9 @@ class SubmissionHistory(Base):
 
     submission_id = Column(ForeignKey('submissions.submission_id'), primary_key=True, nullable=False)
     created = Column(DateTime(True), primary_key=True, nullable=False)
-    status_id = Column(Integer, nullable=False)
+    status_id = Column(ForeignKey('submission_statuses.status_id'), nullable=False, index=True)
 
-    submission_status_obj = relationship('SubmissionStatus', foreign_keys=status_id)
-    submission_obj = relationship('Submission', backref='history')
+    status_type = relationship('SubmissionStatus')
 
 
 class SubmissionStatus(Base):
