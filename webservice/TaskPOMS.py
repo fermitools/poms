@@ -125,10 +125,31 @@ class TaskPOMS:
                 n_project = n_project + 1
                 basedims = "snapshot_for_project_name %s " % s.project
                 allkiddims = basedims
-                for pat in str(s.job_type_snapshot_obj.output_file_patterns).split(','):
+                plist = []
+
+                # try to get the file pattern list, either from the
+                # dependencies that lead to this campaign_stage,
+                # or from the job type
+
+                for dcd in dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_id).all():
+                    if dcd.file_pattern:
+                        plist.append(dcd.file_pattern)
+                    else:
+                        plist.append("%")
+
+                if len(plist) == 0:
+                    plist = str(s.job_type_snapshot_obj.output_file_patterns).split(',')
+
+                logit.log("got file pattern list: %s" % repr(plist))
+
+                for pat in plist:
                     if pat == 'None':
                         pat = '%'
-                    allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
+
+                    if pat.find(' ') > 0:
+                        allkiddims = "%s and isparentof: ( %s and version '%s' with availability physical ) " % (allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
+                    else:
+                        allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
 
                 lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
                 lookup_submission_list.append(s)
