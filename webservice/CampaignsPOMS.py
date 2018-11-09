@@ -129,7 +129,7 @@ class CampaignsPOMS:
                 if action == 'add':
                     role = seshandle('experimenter').session_role
                     if role == 'root' or role == 'coordinator':
-                        raise cherrypy.HTTPError(401, 'You are not authorized to add launch template.')
+                        raise cherrypy.HTTPError(status=401, message='You are not authorized to add launch template.')
                     else:
                         template = LoginSetup(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host,
                                               launch_account=ae_launch_account,
@@ -426,7 +426,7 @@ class CampaignsPOMS:
                 if action == 'add':
                     role = seshandle('experimenter').session_role
                     if role == 'root' or role == 'coordinator':
-                        raise cherrypy.HTTPError(401, 'You are not authorized to add campaign definition.')
+                        raise cherrypy.HTTPError(status=401, message='You are not authorized to add campaign definition.')
                     else:
                         cd = JobType(name=name, experiment=exp,
                                      input_files_per_job=input_files_per_job,
@@ -1646,7 +1646,7 @@ class CampaignsPOMS:
             res = splitter.next()
         except StopIteration:
             if err_res:
-                raise err_res( 'No more splits in this campaign.', status=404)
+                raise err_res( message='No more splits in this campaign.', status=404)
             else:
                 raise IndexError('No more splits in this campaign')
 
