@@ -1471,8 +1471,7 @@ class CampaignsPOMS:
             cpl = q.all()
             name = campaign
         else:
-            err_res = "404 Permission Denied."
-            return "Neither CampaignStage nor Campaign found"
+            raise err_res(404, "Not found.")
 
         job_counts_list = deque()
         cidl = deque()
@@ -1645,10 +1644,7 @@ class CampaignsPOMS:
         try:
             res = splitter.next()
         except StopIteration:
-            if err_res:
-                raise err_res( message='No more splits in this campaign.', status=404)
-            else:
-                raise IndexError('No more splits in this campaign')
+            raise err_res( 404, 'No more splits in this campaign.')
 
         dbhandle.commit()
         return res
