@@ -1510,12 +1510,15 @@ class CampaignsPOMS:
 
 
             if th.status not in ("Completed", "Located", "Failed", "Removed"):
-                extramap[jjid] = ('<a href="{}/kill_jobs?submission_id={:d}&act=hold"><i class="ui pause icon"></i></a>'
-                                  '<a href="{}/kill_jobs?submission_id={:d}&act=release"><i class="ui play icon"></i></a>'
-                                  '<a href="{}/kill_jobs?submission_id={:d}&act=kill"><i class="ui trash icon"></i></a>'
+                extramap[jjid] = ('<a href="{}/kill_jobs?submission_id={:d}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>'
+                                  '<a href="{}/kill_jobs?submission_id={:d}&act=release" alt="Release"><i class="ui play icon"></i></a>'
+                                  '<a href="{}/kill_jobs?submission_id={:d}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>'
                                   ).format(self.poms_service.path, th.submission_id,
                                            self.poms_service.path, th.submission_id,
                                            self.poms_service.path, th.submission_id)
+            elif th.status == "Completed":
+                extramap[jjid] = '<a href="{}/force_locate_submission?submission_id={:d}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>'.format(self.poms_service.path, th.submission_id)
+
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
 
