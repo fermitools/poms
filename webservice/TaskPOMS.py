@@ -648,8 +648,7 @@ class TaskPOMS:
             cs = cq.options(joinedload(CampaignStage.login_setup_obj), joinedload(CampaignStage.job_type_obj)).first()
 
             if not cs:
-                err_res = 404
-                raise KeyError("CampaignStage not found: " + str(campaign_stage_id))
+                raise err_res("CampaignStage id %s not found" % campaign_stage_id, status=404)
 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
@@ -705,15 +704,12 @@ class TaskPOMS:
 
         if not e and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
-            err_res = "404 Permission Denied."
-            output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
-            return lcmd, output, cs, campaign_stage_id, outdir, outfile    # FIXME: this returns more elements than in other places
+            raise err_res("Permission denied.", status=404)
 
         if not lt.launch_host.find(exp) >= 0 and exp != 'samdev':
             logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
-            err_res = "404 Permission Denied."
             output = "Not Authorized: {} is not a {} experiment node".format(lt.launch_host, exp)
-            return lcmd, output, cs, campaign_stage_id, outdir, outfile    # FIXME: this returns more elements than in other places
+            raise err_res(output, status=404)
 
         experimenter_login = e.username
 

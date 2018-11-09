@@ -1646,7 +1646,7 @@ class CampaignsPOMS:
             res = splitter.next()
         except StopIteration:
             if err_res:
-                raise err_res(404, 'No more splits in this campaign')
+                raise err_res( 'No more splits in this campaign.', status=404)
             else:
                 raise IndexError('No more splits in this campaign')
 
