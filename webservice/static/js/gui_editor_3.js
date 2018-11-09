@@ -90,7 +90,8 @@ function gui_editor(toptag) {
 
     this.div = document.createElement("DIV");
     this.div.className = 'gui_editor_frame';
-    this.div.id = 'gui_editor_' + gui_editor.instance_list.length;
+    // this.div.id = 'gui_editor_' + gui_editor.instance_list.length;
+    this.div.id = 'gui_editor_0';
     this.div.gui_box = this;
     this.div.style.position = 'relative';
     this.div.addEventListener("dragover", gui_editor.dragover_handler);
@@ -101,7 +102,7 @@ function gui_editor(toptag) {
     this.miscboxes = [];
     this.depboxes = [];
     gui_editor.body.appendChild(this.div);
-    gui_editor.instance_list.push(this);
+    // gui_editor.instance_list.push(this);
 
     //
     this.jobtypes = [];
@@ -115,7 +116,7 @@ function gui_editor(toptag) {
     gui_editor.network = null;
 
 /* aforementioned instance list */
-    gui_editor.instance_list = [];
+    // gui_editor.instance_list = [];
 
 /* static methods */
 
