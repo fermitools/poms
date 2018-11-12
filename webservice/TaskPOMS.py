@@ -775,7 +775,7 @@ class TaskPOMS:
             "export POMS4_CAMPAIGN_ID=%s" % cid,
             "export POMS4_CAMPAIGN_NAME=%s" % cname,
             "export POMS4_SUBMISSION_ID=%s" % sid,
-            "export POMS4_CAMPAIGN_ID=%s" % ,
+            "export POMS4_CAMPAIGN_ID=%s" % cid,
             "export POMS_CAMPAIGN_ID=%s" % csid,
             "export POMS_CAMPAIGN_NAME='%s'" % ccname,
             "export POMS_PARENT_TASK_ID=%s" % (parent_submission_id if parent_submission_id else ""),
