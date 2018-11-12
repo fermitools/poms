@@ -125,10 +125,31 @@ class TaskPOMS:
                 n_project = n_project + 1
                 basedims = "snapshot_for_project_name %s " % s.project
                 allkiddims = basedims
-                for pat in str(s.job_type_snapshot_obj.output_file_patterns).split(','):
+                plist = []
+
+                # try to get the file pattern list, either from the
+                # dependencies that lead to this campaign_stage,
+                # or from the job type
+
+                for dcd in dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id).all():
+                    if dcd.file_patterns:
+                        plist.extend(dcd.file_patterns.split(','))
+                    else:
+                        plist.append("%")
+
+                if len(plist) == 0:
+                    plist = str(s.job_type_snapshot_obj.output_file_patterns).split(',')
+
+                logit.log("got file pattern list: %s" % repr(plist))
+
+                for pat in plist:
                     if pat == 'None':
                         pat = '%'
-                    allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
+
+                    if pat.find(' ') > 0:
+                        allkiddims = "%s and isparentof: ( %s and version '%s' with availability physical ) " % (allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
+                    else:
+                        allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
 
                 lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
                 lookup_submission_list.append(s)
@@ -367,6 +388,17 @@ class TaskPOMS:
 
         return res
 
+    def force_locate_submission(self, dbhandle, submission_id):
+        # this doesn't actually mark it located, rather it bumps
+        # the timestamp backwards so it will look timed out...
+
+        s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
+        s.updated = s.updated - timedelta(days=2)
+        dbhandle.add(s)
+        dbhandle.commit()
+        return "Ok."
+       
+        
     def update_submission(self, dbhandle, submission_id, jobsub_job_id, pct_complete = None, status = None, project = None):
         s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
         if not s:
@@ -427,8 +459,8 @@ class TaskPOMS:
     def launch_dependents_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  s):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
 
-        # if this is a recovery job, we go back to our parent
-        # to do all the work
+        # if this is itself a recovery job, we go back to our parent
+        # because dependants should use the parent, not the recovery job
         if s.parent_obj:
             s = s.parent_obj
 
@@ -590,8 +622,10 @@ class TaskPOMS:
             lt = dbhandle.query(LoginSetup).filter(LoginSetup.login_setup_id == test_login_setup).first()
             dataset_override = "fake_test_dataset"
             cdid = "-"
-            cid = "-"
+            csid = "-"
+            ccname = "-"
             cname = "-"
+            csname = "-"
             sid = "-"
             cs = None
             c_param_overrides = []
@@ -616,8 +650,7 @@ class TaskPOMS:
             cs = cq.options(joinedload(CampaignStage.login_setup_obj), joinedload(CampaignStage.job_type_obj)).first()
 
             if not cs:
-                err_res = 404
-                raise KeyError("CampaignStage not found: " + str(campaign_stage_id))
+                raise err_res(404, "CampaignStage id %s not found" % campaign_stage_id)
 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
@@ -640,27 +673,24 @@ class TaskPOMS:
                 return lcmd, cs, campaign_stage_id, outdir, outfile
 
 
-            # allocate task to set ownership
-            sid = self.get_task_id_for(dbhandle, campaign_stage_id, user=launcher_experimenter.username, experiment=experiment, parent_submission_id=parent_submission_id)
-
-            if test_launch:
-                dbhandle.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: {'test':1}});
-                dbhandle.commit()
 
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
             exp = cs.experiment
             vers = cs.software_version
             launch_script = cd.launch_script
-            cid = cs.campaign_stage_id
+            csid = cs.campaign_stage_id
+            cid = cs.campaign_id
 
             # isssue #20990
+            csname = cs.name
+            cname = cs.campaign_obj.name
             if cs.name == cs.campaign_obj.name:
-                cname = cs.name
+                ccname = cs.name
             elif cs.name[:len(cs.campaign_obj.name)] == cs.campaign_obj.name:
-                cname = "%s::%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
+                ccname = "%s::%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
             else:
-                cname = "%s::%s" % (cs.campaign_obj.name, cs.name)
+                ccname = "%s::%s" % (cs.campaign_obj.name, cs.name)
 
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
@@ -673,15 +703,12 @@ class TaskPOMS:
 
         if not e and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
-            err_res = "404 Permission Denied."
-            output = "Not Authorized: e: %s xff %s ra %s" % (e, xff, ra)
-            return lcmd, output, cs, campaign_stage_id, outdir, outfile    # FIXME: this returns more elements than in other places
+            raise err_res(403,"Permission denied.")
 
         if not lt.launch_host.find(exp) >= 0 and exp != 'samdev':
             logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
-            err_res = "404 Permission Denied."
             output = "Not Authorized: {} is not a {} experiment node".format(lt.launch_host, exp)
-            return lcmd, output, cs, campaign_stage_id, outdir, outfile    # FIXME: this returns more elements than in other places
+            raise err_res(403, output)
 
         experimenter_login = e.username
 
@@ -700,6 +727,13 @@ class TaskPOMS:
             poms_test="int"
         else:
             poms_test="1"
+
+        # allocate task to set ownership
+        sid = self.get_task_id_for(dbhandle, campaign_stage_id, user=launcher_experimenter.username, experiment=experiment, parent_submission_id=parent_submission_id)
+
+        if test_launch:
+            dbhandle.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: {'test':1}});
+            dbhandle.commit()
 
         cmdl = [
             "exec 2>&1",
@@ -735,8 +769,15 @@ class TaskPOMS:
             },
             "UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms31 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db",
             "ups active",
-            "export POMS_CAMPAIGN_ID=%s" % cid,
-            "export POMS_CAMPAIGN_NAME='%s'" % cname,
+            # POMS4 'properly named' items for poms_jobsub_wrapper 
+            "export POMS4_CAMPAIGN_STAGE_ID=%s" % csid,
+            "export POMS4_CAMPAIGN_STAGE_NAME=%s" % csname,
+            "export POMS4_CAMPAIGN_ID=%s" % cid,
+            "export POMS4_CAMPAIGN_NAME=%s" % cname,
+            "export POMS4_SUBMISSION_ID=%s" % sid,
+            "export POMS4_CAMPAIGN_ID=%s" % cid,
+            "export POMS_CAMPAIGN_ID=%s" % csid,
+            "export POMS_CAMPAIGN_NAME='%s'" % ccname,
             "export POMS_PARENT_TASK_ID=%s" % (parent_submission_id if parent_submission_id else ""),
             "export POMS_TASK_ID=%s" % sid,
             "export POMS_LAUNCHER=%s" % launcher_experimenter.username,

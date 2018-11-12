@@ -82,7 +82,7 @@ class CampaignStage(Base):
     experiment_obj = relationship('Experiment')
     job_type_obj = relationship('JobType')
     login_setup_obj = relationship('LoginSetup')
-    campaign_obj = relationship('Campaign')
+    campaign_obj = relationship('Campaign', backref="stages")
 
     providers = relationship("CampaignStage",
                              secondary="campaign_dependencies",

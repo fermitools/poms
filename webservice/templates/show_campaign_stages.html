@@ -41,7 +41,8 @@ Campaign Stages{%include 'help_button.html'%}
         display:none;
     }
 </style>
-<form method="GET" action="{{pomspath}}/show_campaign_stages">
+<!--<form method="GET" action="{{pomspath}}/show_campaign_stages">-->
+<form id="view_picker" method="POST">
   {% set has_active=True %}
   {%include "view_picker.html" %}
 </form>
@@ -268,6 +269,12 @@ Campaign Stages{%include 'help_button.html'%}
             $.tablesorter.storage(this, 'tablesorter-filters', f);
         }
     });
+
+    $(document).ready(function() {
+        document.forms.view_picker.action = document.location.href;
+    });
+</script>
+
 </script>
 
 {%endblock%}
