@@ -671,12 +671,6 @@ class TaskPOMS:
                 return lcmd, cs, campaign_stage_id, outdir, outfile
 
 
-            # allocate task to set ownership
-            sid = self.get_task_id_for(dbhandle, campaign_stage_id, user=launcher_experimenter.username, experiment=experiment, parent_submission_id=parent_submission_id)
-
-            if test_launch:
-                dbhandle.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: {'test':1}});
-                dbhandle.commit()
 
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
@@ -728,6 +722,13 @@ class TaskPOMS:
             poms_test="int"
         else:
             poms_test="1"
+
+        # allocate task to set ownership
+        sid = self.get_task_id_for(dbhandle, campaign_stage_id, user=launcher_experimenter.username, experiment=experiment, parent_submission_id=parent_submission_id)
+
+        if test_launch:
+            dbhandle.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: {'test':1}});
+            dbhandle.commit()
 
         cmdl = [
             "exec 2>&1",
