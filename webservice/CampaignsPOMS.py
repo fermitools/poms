@@ -1509,7 +1509,7 @@ class CampaignsPOMS:
                 jjid = 's' + str(th.submission_id)
                 full_jjid="unknown.0@unknown.un.known"
             else:
-                jjid = str(jjid).replace('fifebatch', '').replace('.fnal.gov', '')
+                jjid = 's%s<br>%s' % (str(th.submission_id), str(jjid).replace('fifebatch', '').replace('.fnal.gov', ''))
 
             if campaign is not None:
                 jjid += "<br>%s" % th.submission_obj.campaign_stage_obj.name
