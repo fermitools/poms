@@ -131,9 +131,9 @@ class TaskPOMS:
                 # dependencies that lead to this campaign_stage,
                 # or from the job type
 
-                for dcd in dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_id).all():
-                    if dcd.file_pattern:
-                        plist.append(dcd.file_pattern)
+                for dcd in dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id).all():
+                    if dcd.file_patterns:
+                        plist.extend(dcd.file_patterns.split(','))
                     else:
                         plist.append("%")
 
