@@ -64,8 +64,8 @@ def safe_get(sess, url, *args, **kwargs):
     except:
         # Process error!
         # Severe errors like network or DNS problems.
-        logit.log(ERROR,"Died in safe_get:" + url )
-        logit.log(ERROR,traceback.format_exc())
+        logit.log(logit.ERROR,"Died in safe_get:" + url )
+        logit.log(logit.ERROR,traceback.format_exc())
         # Do the same?
         fault = FaultyRequest(url=reply.url, status=reply.status_code, message=reply.reason)
         dbh.add(fault)
@@ -130,6 +130,23 @@ class samweb_lite:
             time.sleep(1)
             
         return res.text
+
+    def recovery_dimensions(self, experiment, projid, useprocess=0, dbhandle=None):
+        """
+        """
+        if not experiment or not projid or projid == "None":
+            return ""
+
+        base = "http://samweb.fnal.gov:8480"
+        url = "%s/sam/%s/api/projects/name/%s/recovery_dimensions?useProcess=%s" % (base, experiment, projid, useprocess)
+        with requests.Session() as sess:
+            res = safe_get(sess, url, dbhandle=dbhandle)
+        # default to basic consumed status
+        info = "project_name %s minus consumed_status consumed" % projid
+        if res:
+            info = res.text
+
+        return info
 
     def fetch_info(self, experiment, projid, dbhandle=None):
         """
@@ -254,6 +271,16 @@ class samweb_lite:
         dims = dims.replace("(file_name __located__ ) union", "")
         dims = dims.replace("(file_name __no_project__ ) union", "")
         return dims
+
+    def get_metadata(self, experiment, filename):
+        base = "http://samweb.fnal.gov:8480"
+        url = "%s/sam/%s/api/files/name/%s/metadata?format=json" % (
+                base, experiment, filename)
+        res = requests.get(url)
+        try:
+            return res.json()
+        except:
+            return {}
 
     def plain_list_files(self, experiment, dims):
         base = "http://samweb.fnal.gov:8480"
@@ -383,6 +410,12 @@ if __name__ == "__main__":
 
     import pprint
     sl = samweb_lite()
+
+    print( sl.recovery_dimensions("samdev","mengel-fife_wrap_20180927_153506_1003267", useprocess=1))
+
+    md = sl.get_metadata('uboone','PhysicsRun-2016_1_3_13_5_49-0004357-00974_20180929T225108_numi_unbiased_20180930T032518_merged.root')
+    pprint.pprint(md)
+    
     r1 = sl.update_project_description("samdev", "mengel-fife_wrap_20170701_102228_3860387", "test_1234")
     print("got result:" , r1)
     i = sl.fetch_info("samdev", "mengel-fife_wrap_20170701_102228_3860387")

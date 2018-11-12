@@ -10,7 +10,8 @@ logging.basicConfig(level=logging.INFO)
 parser = optparse.OptionParser(usage="usage: %prog [options] \n launch a submission of jobs for campaign")
 parser.add_option('--verbose', '-v', action='count')
 parser.add_option('--campaign', help="campaign id", default = None)
-groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission is for, needed if giving campaign name rather than id')
+parser.add_option('--campaign_stage', help="campaign stage id", default = None)
+parser.add_option('--experiment', metavar='Experiment', type=str, help='The experiment this submission is for, needed if giving campaign name rather than id')
 parser.add_option('--test',  help="use test server", default = None)
 parser.add_option('--poms_role', type=str, help='use to test the client URL query', default = 'production')
 parser.add_option('--dev', action='store_const', const='dev', dest='test_client' , metavar='',  help='use the dev/test instance of POMS')
@@ -20,8 +21,8 @@ parser.add_option('--int', action='store_const', const='int', dest='test_client'
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 
-update_session_role(args.poms_role)
-res = launch_jobs(campaign = options.campaign, 
+update_session_role(options.poms_role)
+res = launch_jobs(campaign = options.campaign if options.campaign else options.campaign_stage, 
         experiment = options.experiment,
 	test = options.test)
 

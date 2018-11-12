@@ -37,19 +37,30 @@ class Files_status(object):
         #return template.render(fl = fl, campaign = s.campaign_stage_snapshot_obj,  jobsub_job_id = jobsub_job_id, current_experimenter=cherrypy.session.get('experimenter'),  do_refresh = 0, pomspath=self.path, help_page="ListTaskLoggedFilesHelp", version=self.version)
 
 
-    def campaign_task_files(self, dbhandle, samhandle, campaign_stage_id, tmin=None, tmax=None, tdays=1):
+    def campaign_task_files(self, dbhandle, samhandle, campaign_stage_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
          time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
-                                                                              'campaign_task_files?campaign_stage_id=%s&' % campaign_stage_id)
+                                                                              'campaign_task_files?campaign_stage_id=%s&campaign_id=%s' % (campaign_stage_id,campaign_id))
         # inhale all the campaign related task info for the time window
         # in one fell swoop
-        tl = (dbhandle.query(Submission)
+
+        q = (dbhandle.query(Submission)
               .options(joinedload(Submission.campaign_stage_snapshot_obj))
-              .filter(Submission.campaign_stage_id == campaign_stage_id,
-                      Submission.created >= tmin, Submission.created < tmax)
-              .all())
+              .filter(Submission.created >= tmin, Submission.created < tmax))
+
+        if campaign_stage_id:
+             q = q.filter(Submission.campaign_stage_id == campaign_stage_id)
+
+        elif campaign_id:
+             q = (q.join(CampaignStage, 
+                         Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
+                    .filter(CampaignStage.campaign_id == campaign_id))
+        else:
+             return {}, {}, [], tmins, tmaxs, prevlink, nextlink, tdays
+
+        tl = q.all()
         #
         # either get the campaign obj from above, or if we didn's
         # find any submissions in that window, look it up
@@ -91,11 +102,11 @@ class Files_status(object):
                 if pat.find(' ') > 0:
                     dimbits = pat
                 else:
-                    dimbits = "filename like '%s'" % pat
+                    dimbits = "file_name like '%s'" % pat
 
-                allkiddims = ("%s and isparentof: ( file_name '%s' and version '%s' ) " %
+                allkiddims = ("%s and isparentof: ( %s and version '%s' ) " %
                               (allkiddims, dimbits, s.campaign_stage_snapshot_obj.software_version))
-                allkiddecldims = ("%s and isparentof: ( file_name '%s' and version '%s' with availability anylocation ) " %
+                allkiddecldims = ("%s and isparentof: ( %s and version '%s' with availability anylocation ) " %
                                   (allkiddecldims, dimbits, s.campaign_stage_snapshot_obj.software_version))
             all_kids_needed.append(allkiddims)
             all_kids_decl_needed.append(allkiddecldims)

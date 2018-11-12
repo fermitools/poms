@@ -41,8 +41,8 @@ def error_response():
 
 class PomsService(object):
     _cp_config = {'request.error_response': error_response,
-                  'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), '/templates/page_not_found.html'),
-                  'error_page.401': "%s/%s" % (os.path.abspath(os.getcwd()), '/webservice/templates/unauthorized_user.html')
+                  'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/page_not_found.html'),
+                  'error_page.401': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/unauthorized_user.html')
                   }
 
     def __init__(self):
@@ -469,11 +469,12 @@ class PomsService(object):
     def list_launch_file(self, campaign_stage_id=None, fname=None, login_setup_id=None, launch_template_id=None):
         if login_setup_id is None and launch_template_id is not None:
             login_setup_id = launch_template_id
-        lines, refresh = self.campaignsPOMS.list_launch_file(campaign_stage_id, fname, login_setup_id)
+        lines, refresh, campaign_name, stage_name = self.campaignsPOMS.list_launch_file(cherrypy.request.db, campaign_stage_id, fname, login_setup_id)
         output = "".join(lines)
         template = self.jinja_env.get_template('launch_jobs.html')
         res = template.render(command='', output=output, do_refresh=refresh,
                               cs=None, campaign_stage_id=campaign_stage_id,
+                              campaign_name=campaign_name, stage_name=stage_name,
                               help_page="LaunchedJobsHelp")
         return res
 
@@ -657,6 +658,11 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
+    def force_locate_submission(self, submission_id):
+        return self.taskPOMS.force_locate_submission(cherrypy.request.db, submission_id)
+
+    @cherrypy.expose
+    @logit.logstartstop
     def mark_failed_submissions(self):
         return self.taskPOMS.mark_failed_submissions(cherrypy.request.db)
 
@@ -816,11 +822,11 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_task_files(self, campaign_stage_id, tmin=None, tmax=None, tdays=1):
+    def campaign_task_files(self, campaign_stage_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
         (cs, columns, datarows,
          tmins, tmaxs,
          prevlink, nextlink, tdays) = self.filesPOMS.campaign_task_files(cherrypy.request.db,
-                                                                         cherrypy.request.samweb_lite, campaign_stage_id,
+                                                                         cherrypy.request.samweb_lite, campaign_stage_id, campaign_id,
                                                                          tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_task_files.html')
         return template.render(name=cs.name if cs else "",
@@ -987,9 +993,9 @@ class PomsService(object):
         exp = cherrypy.session.get('experimenter').session_experiment
         if full:
             data = cherrypy.request.db.query(LoginSetup.name,
-                                            LoginSetup.launch_host,
-                                            LoginSetup.launch_account,
-                                            LoginSetup.launch_setup).filter(LoginSetup.experiment == exp).order_by(LoginSetup.name).all()
+                                             LoginSetup.launch_host,
+                                             LoginSetup.launch_account,
+                                             LoginSetup.launch_setup).filter(LoginSetup.experiment == exp).order_by(LoginSetup.name).all()
         else:
             data = cherrypy.request.db.query(LoginSetup.name).filter(LoginSetup.experiment == exp).order_by(LoginSetup.name).all()
 
