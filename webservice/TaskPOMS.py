@@ -622,8 +622,10 @@ class TaskPOMS:
             lt = dbhandle.query(LoginSetup).filter(LoginSetup.login_setup_id == test_login_setup).first()
             dataset_override = "fake_test_dataset"
             cdid = "-"
-            cid = "-"
+            csid = "-"
+            ccname = "-"
             cname = "-"
+            csname = "-"
             sid = "-"
             cs = None
             c_param_overrides = []
@@ -671,27 +673,24 @@ class TaskPOMS:
                 return lcmd, cs, campaign_stage_id, outdir, outfile
 
 
-            # allocate task to set ownership
-            sid = self.get_task_id_for(dbhandle, campaign_stage_id, user=launcher_experimenter.username, experiment=experiment, parent_submission_id=parent_submission_id)
-
-            if test_launch:
-                dbhandle.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: {'test':1}});
-                dbhandle.commit()
 
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
             exp = cs.experiment
             vers = cs.software_version
             launch_script = cd.launch_script
-            cid = cs.campaign_stage_id
+            csid = cs.campaign_stage_id
+            cid = cs.campaign_id
 
             # isssue #20990
+            csname = cs.name
+            cname = cs.campaign_obj.name
             if cs.name == cs.campaign_obj.name:
-                cname = cs.name
+                ccname = cs.name
             elif cs.name[:len(cs.campaign_obj.name)] == cs.campaign_obj.name:
-                cname = "%s::%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
+                ccname = "%s::%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
             else:
-                cname = "%s::%s" % (cs.campaign_obj.name, cs.name)
+                ccname = "%s::%s" % (cs.campaign_obj.name, cs.name)
 
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
@@ -729,6 +728,13 @@ class TaskPOMS:
         else:
             poms_test="1"
 
+        # allocate task to set ownership
+        sid = self.get_task_id_for(dbhandle, campaign_stage_id, user=launcher_experimenter.username, experiment=experiment, parent_submission_id=parent_submission_id)
+
+        if test_launch:
+            dbhandle.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: {'test':1}});
+            dbhandle.commit()
+
         cmdl = [
             "exec 2>&1",
             "set -x",
@@ -763,8 +769,15 @@ class TaskPOMS:
             },
             "UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms31 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db",
             "ups active",
-            "export POMS_CAMPAIGN_ID=%s" % cid,
-            "export POMS_CAMPAIGN_NAME='%s'" % cname,
+            # POMS4 'properly named' items for poms_jobsub_wrapper 
+            "export POMS4_CAMPAIGN_STAGE_ID=%s" % csid,
+            "export POMS4_CAMPAIGN_STAGE_NAME=%s" % csname,
+            "export POMS4_CAMPAIGN_ID=%s" % cid,
+            "export POMS4_CAMPAIGN_NAME=%s" % cname,
+            "export POMS4_SUBMISSION_ID=%s" % sid,
+            "export POMS4_CAMPAIGN_ID=%s" % ,
+            "export POMS_CAMPAIGN_ID=%s" % csid,
+            "export POMS_CAMPAIGN_NAME='%s'" % ccname,
             "export POMS_PARENT_TASK_ID=%s" % (parent_submission_id if parent_submission_id else ""),
             "export POMS_TASK_ID=%s" % sid,
             "export POMS_LAUNCHER=%s" % launcher_experimenter.username,
