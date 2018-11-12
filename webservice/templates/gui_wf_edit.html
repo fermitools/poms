@@ -153,24 +153,32 @@ function main() {
    console.log(["args:", args, "base:", base])
    if (args['campaign'] != undefined) {
        var url;
+       // const campaign = decodeURIComponent(args['campaign'].replace(/\+/g, ' '));
+       const campaign = args['campaign'];
        //VP~ if (args['campaign'].indexOf('samples/') == 0) {
-       if (args['campaign'].startsWith('samples')) {
-          url = base + '/static/' + args['campaign'].replace('%2F','/')
+       if (campaign.startsWith('samples')) {
+          url = base + '/static/' + campaign.replace(/%2F/g, '/');
        } else {
-          url = base +'/campaign_deps_ini?name=' + args['campaign']
+          url = base +'/campaign_deps_ini?name=' + campaign;
        }
        $.ajax( {
           url: url
        }).done( function(data) {
-          var ge = new gui_editor("outer_gui_editor_frame");
-          var args = mwm_utils.getSearchParams();
-          if ('clone' in args && 'Clone' == args['clone']) {
-              ge.set_state_clone(data, args['from'], args['to'],'{{session_experiment}}','{{session_role}}');
-              $("#camp_header1").html(`${args['to']}`);
-              $("#camp_header2").html(`${args['to']}`);
-          } else {
-              ge.set_state(data);
-          }
+           var ge = new gui_editor("outer_gui_editor_frame");
+           var args = mwm_utils.getSearchParams();
+            if ('clone' in args && 'Clone' == args['clone']) {
+                const from = decodeURIComponent(args['from'].replace(/\+/g, ' '));
+                const to = decodeURIComponent(args['to'].replace(/\+/g, ' '));
+                let to_name =  decodeURIComponent(args['campaign'].replace(/\+/g, ' '));
+                if (to_name.includes('/'))
+                    to_name = to_name.split('/')[1];
+                to_name = to_name.replace(from, to);
+                ge.set_state_clone(data, from, to,'{{session_experiment}}','{{session_role}}');
+                $("#camp_header1").html(`${to_name}`);
+                $("#camp_header2").html(`${to_name}`);
+            } else {
+                ge.set_state(data);
+            }
        })
    };
 }
