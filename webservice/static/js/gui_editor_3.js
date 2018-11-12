@@ -2125,24 +2125,28 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
         },
         error: function (result) {
             var p, resp;
-            p = result.responseText.indexOf('>Traceback');
-            if (p > 0) {
-                resp = result.responseText.slice(p + 6);
-                p = resp.indexOf('</label>')
-                if (p < 0) {
-                    p = resp.indexOf('</pre>');
+            if (result && result.responseText) {
+                p = result.responseText.indexOf('>Traceback');
+                if (p > 0) {
+                    resp = result.responseText.slice(p + 6);
+                    p = resp.indexOf('</label>')
+                    if (p < 0) {
+                        p = resp.indexOf('</pre>');
+                    }
+                    resp = resp.slice(0, p);
+                    resp.replace(/<br\/>/g, '\n');
+                } else {
+                    resp = result.responseText;
                 }
-                resp = resp.slice(0, p);
-                resp.replace(/<br\/>/g, '\n');
+                console.log(resp);
+                const i = result.responseText.indexOf("DETAIL");
+                if (i > 0) {
+                    alert("Oops! Something went wrong!\n" + result.responseText.slice(i).split('<')[0]);
+                } else {
+                    alert("Oops! Something went wrong!");
+                }
             } else {
-                resp = result.responseText;
-            }
-            console.log(resp);
-            const i = result.responseText.indexOf("DETAIL");
-            if (i > 0) {
-                alert("Oops! Something went wrong!\n" + result.responseText.slice(i).split('<')[0]);
-            } else {
-                alert("Oops! Something went wrong!");
+                alert("Oops! Something went wrong! No details available.");
             }
         },
         async: true,
