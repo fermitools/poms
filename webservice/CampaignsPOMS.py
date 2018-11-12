@@ -700,7 +700,7 @@ class CampaignsPOMS:
                 job_type_id = dbhandle.query(JobType).filter(
                     JobType.name == campaign_definition_name).first().job_type_id
                 if action == 'edit':
-                    cs = dbhandle.query(CampaignStage).filter(CampaignStage.name == name , CampaignStage.experiment == exp).first()
+                    cs = dbhandle.query(CampaignStage).filter(CampaignStage.name == name, CampaignStage.experiment == exp).first()
                     if cs:
                         campaign_stage_id = cs.campaign_stage_id
                     else:
@@ -760,10 +760,18 @@ class CampaignsPOMS:
                 dbhandle.query(CampaignDependency).filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
                 logit.log("depends for %s(%s) are: %s" % (campaign_stage_id, name, depends))
                 if 'campaign_stages' in depends:
-                    dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
+                    dep_stages = (dbhandle.query(CampaignStage)
+                                  .filter(CampaignStage.name.in_(depends['campaign_stages']),
+                                          CampaignStage.campaign_id == campaign_id,
+                                          CampaignStage.experiment == exp)
+                                  .all())
                 elif 'campaigns' in depends:
                     # backwards compatibility
-                    dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaigns']), CampaignStage.experiment == exp).all()
+                    dep_stages = (dbhandle.query(CampaignStage)
+                                  .filter(CampaignStage.name.in_(depends['campaigns']),
+                                          CampaignStage.campaign_id == campaign_id,
+                                          CampaignStage.experiment == exp)
+                                  .all())
                 else:
                     dep_stages = {}
                 for (i, stage) in enumerate(dep_stages):
@@ -966,9 +974,10 @@ class CampaignsPOMS:
         if name is not None:
             the_campaign = dbhandle.query(Campaign).filter(Campaign.name == name, Campaign.experiment == session_experiment).scalar()
             #
-            campaign_stages = dbhandle.query(CampaignStage).join(Campaign).filter(
-                Campaign.name == name,
-                CampaignStage.campaign_id == Campaign.campaign_id).all()
+            # campaign_stages = dbhandle.query(CampaignStage).join(Campaign).filter(
+            #     Campaign.name == name,
+            #     CampaignStage.campaign_id == Campaign.campaign_id).all()
+            campaign_stages = the_campaign.stages
 
         if stage_id is not None:
             cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(CampaignDependency.provides_campaign_stage_id == stage_id).all()
@@ -998,8 +1007,6 @@ class CampaignsPOMS:
                     dmap[cid].append(cd.needs_campaign_stage_id)
                     fpmap[(cid, cd.needs_campaign_stage_id)] = cd.file_patterns
 
-        #------------
-
         # sort by dependencies(?)
         cidl = list(cnames.keys())
         for cid in cidl:
@@ -1028,8 +1035,8 @@ class CampaignsPOMS:
                 res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
                 res.append("completion_type=%s" % defaults.get("completion_type"))
                 res.append("completion_pct=%s" % defaults.get("completion_pct"))
-                res.append("param_overrides=%s" % defaults.get("param_overrides"))
-                res.append("test_param_overrides=%s" % defaults.get("test_param_overrides"))
+                res.append("param_overrides=%s" % (defaults.get("param_overrides") or "[]"))
+                res.append("test_param_overrides=%s" % (defaults.get("test_param_overrides") or "[]"))
                 res.append("login_setup=%s" % (defaults.get("login_setup") or "generic"))
                 res.append("job_type=%s" % (defaults.get("job_type") or "generic"))
                 res.append("")
@@ -1056,7 +1063,7 @@ class CampaignsPOMS:
             res.append("[login_setup %s]" % lt.name)
             res.append("host=%s" % lt.launch_host)
             res.append("account=%s" % lt.launch_account)
-            res.append("setup=%s" % lt.launch_setup.replace("\r",";").replace("\n",";").replace(";;",";").replace(";;",";"))
+            res.append("setup=%s" % lt.launch_setup.replace("\r", ";").replace("\n", ";").replace(";;", ";").replace(";;", ";"))
             res.append("")
 
         for jt in jts:
@@ -1923,7 +1930,7 @@ class CampaignsPOMS:
             form = {k: (form[k] or defaults[k]) for k in form}   # Use the field if provided otherwise use defaults
             print("############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(old_name, new_name, clean, form, position))
 
-            active = (form.pop('state') in ('True', 'true', '1', 'Active'))
+            active = (form.pop('state', None) in ('True', 'true', '1', 'Active'))
             completion_pct = form.pop('completion_pct')
             completion_type = form.pop('completion_type')
             split_type = form.pop('split_type', None)
@@ -1932,14 +1939,13 @@ class CampaignsPOMS:
             print("################ job_type: '{}'".format(job_type))
             login_setup = form.pop('login_setup')
             print("################ login_setup: '{}'".format(login_setup))
-            param_overrides = form.pop('param_overrides', "[]")
+            param_overrides = form.pop('param_overrides', None) or "[]"
             print("################ param_overrides: '{}'".format(param_overrides))
             if param_overrides:
                 param_overrides = json.loads(param_overrides)
             software_version = form.pop('software_version')
-            test_param_overrides = form.pop('test_param_overrides', "[]")
-            if test_param_overrides:
-                test_param_overrides = json.loads(test_param_overrides)
+            test_param_overrides = form.pop('test_param_overrides', None)
+            test_param_overrides = json.loads(test_param_overrides) if test_param_overrides else None
             vo_role = form.pop('vo_role')
 
             stage_type = form.pop('stage_type', 'test')

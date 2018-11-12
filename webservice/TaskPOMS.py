@@ -459,8 +459,8 @@ class TaskPOMS:
     def launch_dependents_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  s):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
 
-        # if this is a recovery job, we go back to our parent
-        # to do all the work
+        # if this is itself a recovery job, we go back to our parent
+        # because dependants should use the parent, not the recovery job
         if s.parent_obj:
             s = s.parent_obj
 
@@ -570,8 +570,8 @@ class TaskPOMS:
                 launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).first()
 
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
-                                 err_res, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username,  dataset_override=rname,
-                                 parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch = s.submission_params.get('test_launch',False))
+                                 err_res, s.campaign_stage_snapshot_obj.campaign_stage_id, s.creator,  dataset_override=rname,
+                                 parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch = s.submission_params.get('test',False))
                 return 1
 
         return 0
