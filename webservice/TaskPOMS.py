@@ -688,7 +688,7 @@ class TaskPOMS:
             if cs.name == cs.campaign_obj.name:
                 ccname = cs.name
             elif cs.name[:len(cs.campaign_obj.name)] == cs.campaign_obj.name:
-                ccname = "%s::%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
+                ccname = "%s::%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj.name):])
             else:
                 ccname = "%s::%s" % (cs.campaign_obj.name, cs.name)
 
