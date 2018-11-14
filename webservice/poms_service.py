@@ -664,7 +664,7 @@ class PomsService(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def running_submissions(self,campaign_id_list):
+    def running_submissions(self, campaign_id_list):
         cl = list(map(int, campaign_id_list.split(',')))
         return self.taskPOMS.running_submissions(cherrypy.request.db, cl)
 
