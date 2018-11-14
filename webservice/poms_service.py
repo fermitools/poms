@@ -658,6 +658,11 @@ class PomsService(object):
 
     @cherrypy.expose
     @logit.logstartstop
+    def force_locate_submission(self, submission_id):
+        return self.taskPOMS.force_locate_submission(cherrypy.request.db, submission_id)
+
+    @cherrypy.expose
+    @logit.logstartstop
     def mark_failed_submissions(self):
         return self.taskPOMS.mark_failed_submissions(cherrypy.request.db)
 

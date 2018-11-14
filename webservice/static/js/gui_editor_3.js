@@ -90,7 +90,8 @@ function gui_editor(toptag) {
 
     this.div = document.createElement("DIV");
     this.div.className = 'gui_editor_frame';
-    this.div.id = 'gui_editor_' + gui_editor.instance_list.length;
+    // this.div.id = 'gui_editor_' + gui_editor.instance_list.length;
+    this.div.id = 'gui_editor_0';
     this.div.gui_box = this;
     this.div.style.position = 'relative';
     this.div.addEventListener("dragover", gui_editor.dragover_handler);
@@ -101,7 +102,7 @@ function gui_editor(toptag) {
     this.miscboxes = [];
     this.depboxes = [];
     gui_editor.body.appendChild(this.div);
-    gui_editor.instance_list.push(this);
+    // gui_editor.instance_list.push(this);
 
     //
     this.jobtypes = [];
@@ -115,7 +116,7 @@ function gui_editor(toptag) {
     gui_editor.network = null;
 
 /* aforementioned instance list */
-    gui_editor.instance_list = [];
+    // gui_editor.instance_list = [];
 
 /* static methods */
 
@@ -799,7 +800,7 @@ gui_editor.prototype.ini2json = function (s) {
           console.log(k_v)
           k_v.shift();
           k = k_v.shift();
-          v = k_v.join('=').replace(/"/g,'\\"');
+          v = k_v.join('=').replace(/\\/g, '\\\\').replace(/"/g,'\\"');
           if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
               continue;
           }
@@ -813,7 +814,7 @@ gui_editor.prototype.ini2json = function (s) {
    this.un_trailing_comma(res);
    res.push('}');
    res.push('}');
-   console.log({"result": res.join("\n")})
+   console.log("ini2json result: ", res.join("\n"))
    return res.join('\n');
 }
 
@@ -1819,17 +1820,18 @@ gui_editor.prototype.save_state = function () {
             timer: 1500
           });
 
-        const args = mwm_utils.getSearchParams()
-        const base = mwm_utils.getBaseURL()
-        console.log(["args:", args, "base:", base ])
-        if (args['clone'] != undefined) {
-            const campaign = args['to'];
+        const args = mwm_utils.getSearchParams();
+        const base = mwm_utils.getBaseURL();
+        console.log(["args:", args, "base:", base ]);
+        // if (args['clone'] != undefined) {
+            //// const campaign = this.state.campaign['name'];
+            const campaign = encodeURIComponent(this.nodes.get().filter(x => x.id.startsWith('campaign '))[0].label);
             location.href = `${base}gui_wf_edit?campaign=${campaign}`;
-        } else {
-            window.setTimeout( () => {
-                location.reload();
-            }, 1000);
-        }
+        // } else {
+        //     window.setTimeout( () => {
+        //         location.reload();
+        //     }, 1000);
+        // }
     //VP~ }, 200);
     /*
     window.setTimeout( () => {
@@ -2123,24 +2125,28 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
         },
         error: function (result) {
             var p, resp;
-            p = result.responseText.indexOf('>Traceback');
-            if (p > 0) {
-                resp = result.responseText.slice(p + 6);
-                p = resp.indexOf('</label>')
-                if (p < 0) {
-                    p = resp.indexOf('</pre>');
+            if (result && result.responseText) {
+                p = result.responseText.indexOf('>Traceback');
+                if (p > 0) {
+                    resp = result.responseText.slice(p + 6);
+                    p = resp.indexOf('</label>')
+                    if (p < 0) {
+                        p = resp.indexOf('</pre>');
+                    }
+                    resp = resp.slice(0, p);
+                    resp.replace(/<br\/>/g, '\n');
+                } else {
+                    resp = result.responseText;
                 }
-                resp = resp.slice(0, p);
-                resp.replace(/<br\/>/g, '\n');
+                console.log(resp);
+                const i = result.responseText.indexOf("DETAIL");
+                if (i > 0) {
+                    alert("Oops! Something went wrong!\n" + result.responseText.slice(i).split('<')[0]);
+                } else {
+                    alert("Oops! Something went wrong!");
+                }
             } else {
-                resp = result.responseText;
-            }
-            console.log(resp);
-            const i = result.responseText.indexOf("DETAIL");
-            if (i > 0) {
-                alert("Oops! Something went wrong!\n" + result.responseText.slice(i).split('<')[0]);
-            } else {
-                alert("Oops! Something went wrong!");
+                alert("Oops! Something went wrong! No details available.");
             }
         },
         async: true,

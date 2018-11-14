@@ -2,7 +2,7 @@
 [campaign]
 experiment=sample
 name=sample_mc
-campaign_stage_list= sample_gen sample_g4 sample_detsim sample_reco sample_anatree 
+campaign_stage_list= sample_gen sample_g4 sample_detsim sample_reco sample_anatree
 
 [campaign_stage sample_gen]
 dataset=None
@@ -10,8 +10,8 @@ state=Inactive
 software_version=v1_0
 vo_role=Production
 cs_split_type=None
-job_type=generic_fife_process
-login_setup=generic_fife_launch
+job_type=generic
+login_setup=generic
 param_overrides=[["--stage=","gen"]]
 completion_type=complete
 completion_pct=95
@@ -22,8 +22,8 @@ state=Inactive
 software_version=v1_0
 vo_role=Production
 cs_split_type=None
-job_type=generic_fife_process
-login_setup=generic_fife_launch
+job_type=generic
+login_setup=generic
 param_overrides=[["--stage=","g4"],["-Oglobal.sam_dataset=","%(dataset)s"]]
 completion_type=complete
 completion_pct=95
@@ -34,8 +34,8 @@ state=Inactive
 software_version=v1_0
 vo_role=Production
 cs_split_type=None
-job_type=generic_fife_process
-login_setup=generic_fife_launch
+job_type=generic
+login_setup=generic
 param_overrides=[["--stage=","detsim"],["-Oglobal.sam_dataset=","%(dataset)s"]]
 completion_type=complete
 completion_pct=95
@@ -46,8 +46,8 @@ state=Inactive
 software_version=v1_0
 vo_role=Production
 cs_split_type=None
-job_type=generic_fife_process
-login_setup=generic_fife_launch
+job_type=generic
+login_setup=generic
 param_overrides=[["--stage=","reco"],["-Oglobal.sam_dataset=","%(dataset)s"]]
 completion_type=complete
 completion_pct=95
@@ -58,8 +58,8 @@ state=Inactive
 software_version=v1_0
 vo_role=Production
 cs_split_type=None
-job_type=generic_fife_process
-login_setup=generic_fife_launch
+job_type=generic
+login_setup=generic
 param_overrides=[["--stage=","anatree"],["-Oglobal.sam_dataset=","%(dataset)s"]]
 completion_type=complete
 completion_pct=95
@@ -80,12 +80,12 @@ file_pattern_1 = detsim%%.root
 campaign_stage_1 = sample_reco
 file_pattern_1 = reco%%.root
 
-[login_setup generic_fife_launch]
+[login_setup generic]
 host=%(experiment)sgpvm01.fnal.gov
 account=%(experiment)spro
 setup=export X509_USER_PROXY=/opt/%(experiment)spro/%(experiment)spro.Production.proxy; setup fife_utils, poms_client, poms_jobsub_wrapper
 
-[job_type generic_fife_process]
+[job_type generic]
 launch_script=fife_launch -c $FIFE_UTILS_DIR/cfg/generic.cfg
 output_file_patterns=%%.root
 parameters=[]
