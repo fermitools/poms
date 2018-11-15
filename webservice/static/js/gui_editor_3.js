@@ -2090,43 +2090,43 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
         }
     }
     return $.ajax({
-                // url: base + '/' + name,
-                url: base + name,
-                data: args,
-                method: args ? 'POST' : 'GET'
-            })
-            .done((data, textStatus, jqXHR) => {
-                if (completed) {
-                    completed(data);
-                }
-                return data;
-            })
-            .fail((jqXHR, textStatus, errorThrown) => {
-                var p, resp;
-                if (jqXHR && jqXHR.responseText) {
-                    p = jqXHR.responseText.indexOf('>Traceback');
-                    if (p > 0) {
-                        resp = jqXHR.responseText.slice(p + 6);
-                        p = resp.indexOf('</label>')
-                        if (p < 0) {
-                            p = resp.indexOf('</pre>');
-                        }
-                        resp = resp.slice(0, p);
-                        resp.replace(/<br\/>/g, '\n');
-                    } else {
-                        resp = jqXHR.responseText;
+            // url: base + '/' + name,
+            url: base + name,
+            data: args,
+            method: args ? 'POST' : 'GET'
+        })
+        .done((data, textStatus, jqXHR) => {
+            if (completed) {
+                completed(data);
+            }
+            return data;
+        })
+        .fail((jqXHR, textStatus, errorThrown) => {
+            var p, resp;
+            if (jqXHR && jqXHR.responseText) {
+                p = jqXHR.responseText.indexOf('>Traceback');
+                if (p > 0) {
+                    resp = jqXHR.responseText.slice(p + 6);
+                    p = resp.indexOf('</label>')
+                    if (p < 0) {
+                        p = resp.indexOf('</pre>');
                     }
-                    console.log(resp);
-                    const i = jqXHR.responseText.indexOf("DETAIL");
-                    if (i > 0) {
-                        alert("Oops! Something went wrong!\n" + jqXHR.responseText.slice(i).split('<')[0]);
-                    } else {
-                        alert("Oops! Something went wrong!");
-                    }
+                    resp = resp.slice(0, p);
+                    resp.replace(/<br\/>/g, '\n');
                 } else {
-                    // if (jqXHR.status)
-                        alert("Oops! Something went wrong! No details available.");
+                    resp = jqXHR.responseText;
                 }
-            });
+                console.log(resp);
+                const i = jqXHR.responseText.indexOf("DETAIL");
+                if (i > 0) {
+                    alert("Oops! Something went wrong!\n" + jqXHR.responseText.slice(i).split('<')[0]);
+                } else {
+                    alert("Oops! Something went wrong!");
+                }
+            } else {
+                // if (jqXHR.status)
+                alert("Oops! Something went wrong! No details available.");
+            }
+        });
 }
 
