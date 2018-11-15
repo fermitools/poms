@@ -38,7 +38,8 @@ from .poms_model import (Campaign,
                          RecoveryType,
                          Campaign,
                          Submission,
-                         SubmissionHistory)
+                         SubmissionHistory,
+                         SubmissionStatus)
 from .pomscache import pomscache_10
 from .utc import utc
 
@@ -1486,6 +1487,7 @@ class CampaignsPOMS:
             cidl.append(cs.campaign_stage_id)
 
         qr = (dbhandle.query(SubmissionHistory)
+              .join(SubmissionStatus)
               .join(Submission)
               .options(joinedload(SubmissionHistory.submission_obj))
               .filter(Submission.campaign_stage_id.in_(cidl),
@@ -1514,15 +1516,14 @@ class CampaignsPOMS:
             if campaign is not None:
                 jjid += "<br>%s" % th.submission_obj.campaign_stage_obj.name
 
-
-            if th.status not in ("Completed", "Located", "Failed", "Removed"):
+            if th.status_type.status not in ("Completed", "Located", "Failed", "Removed"):
                 extramap[jjid] = ('<a href="{}/kill_jobs?submission_id={:d}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>'
                                   '<a href="{}/kill_jobs?submission_id={:d}&act=release" alt="Release"><i class="ui play icon"></i></a>'
                                   '<a href="{}/kill_jobs?submission_id={:d}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>'
                                   ).format(self.poms_service.path, th.submission_id,
                                            self.poms_service.path, th.submission_id,
                                            self.poms_service.path, th.submission_id)
-            elif th.status == "Completed":
+            elif th.status_type.status == "Completed":
                 extramap[jjid] = '<a href="{}/force_locate_submission?submission_id={:d}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>'.format(self.poms_service.path, th.submission_id)
 
             else:
@@ -1533,7 +1534,7 @@ class CampaignsPOMS:
                                  tmin=th.submission_obj.created - timedelta(minutes=15),
                                  tmax=th.submission_obj.updated,
                                  tminsec=tmin.strftime("%s"),
-                                 status=th.status,
+                                 status=th.status_type.status,
                                  jobsub_job_id=jjid,
                                  jobsub_cluster=full_jjid[:full_jjid.find('@')],
                                  jobsub_schedd=full_jjid[full_jjid.find('@') + 1:],
@@ -1541,7 +1542,7 @@ class CampaignsPOMS:
                                  campaign_stage_id=th.submission_obj.campaign_stage_id,
                                  created_s=th.submission_obj.created.strftime("%Y%m%d_%H%M%S")
                                  ))
-            if th.status == 'LaunchFailed':
+            if th.status_type.status == 'LaunchFailed':
                 items[-1].url = failedlaunch_url_template % items[-1].__dict__
             elif th.submission_obj.project:
                 items[-1].url = url_template_dag % items[-1].__dict__
