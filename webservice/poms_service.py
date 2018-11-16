@@ -965,6 +965,7 @@ class PomsService(object):
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
+    # @cherrypy.tools.json_in()
     def echo(self, *args, **kwargs):
         data = self.campaignsPOMS.echo(cherrypy.request.db, cherrypy.session, *args, **kwargs)
         return data

@@ -1809,10 +1809,13 @@ class CampaignsPOMS:
 
     def echo(self, dbhandle, sesshandle, *args, **kwargs):
         form = kwargs.get('form', None)
-        #VP~ print("******************* Get the form: '{}'".format(form))
+        print("******************* Get the kwargs: '{}'".format(kwargs))
+        print("******************* Get the form: '{}'".format(form))
         everything = json.loads(form)
+        # print("******************* Get the JSON: '{}'".format(cherrypy.request.json))
+        # everything = cherrypy.request.json['form']
         stages = everything['stages']
-        print("############## {}".format([s.get('id') for s in stages]))
+        # print("############## {}".format([s.get('id') for s in stages]))
         return stages
 
 
@@ -2042,7 +2045,8 @@ class CampaignsPOMS:
             dbhandle.add(dep)
             dbhandle.flush()
         dbhandle.commit()
-        return misc
+        print("+++++++++++++++ Campaign saved")
+        return {'status': "201 Created", 'message': "OK"}
 
 
     def get_jobtype_id(self, dbhandle, sesshandle, name):
