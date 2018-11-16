@@ -31,7 +31,8 @@ from .poms_model import (CampaignStage,
                          LoginSetup,
                          LoginSetupSnapshot,
                          Submission,
-                         SubmissionHistory)
+                         SubmissionHistory,
+                         SubmissionStatus)
 from .utc import utc
 
 
@@ -96,10 +97,10 @@ class TaskPOMS:
         for s in (dbhandle
                       .query(Submission)
                       .join(CampaignStageSnapshot,
-                            Submission.campaign_stage_snapshot_id == 
+                            Submission.campaign_stage_snapshot_id ==
                               CampaignStageSnapshot.campaign_stage_snapshot_id)
-                      .filter(Submission.submission_id.in_(completed_sids), 
-                              CampaignStageSnapshot.completion_type == 
+                      .filter(Submission.submission_id.in_(completed_sids),
+                              CampaignStageSnapshot.completion_type ==
                                 'complete')
                       .all()):
             res.append("completion type completed: %s" % s.submission_id)
@@ -108,9 +109,9 @@ class TaskPOMS:
         n_project = 0
         for s in (dbhandle
                       .query(Submission)
-                      .join(CampaignStageSnapshot,Submission.campaign_stage_snapshot_id == 
+                      .join(CampaignStageSnapshot,Submission.campaign_stage_snapshot_id ==
                               CampaignStageSnapshot.campaign_stage_snapshot_id)
-                      .filter(Submission.submission_id.in_(completed_sids), 
+                      .filter(Submission.submission_id.in_(completed_sids),
                               CampaignStageSnapshot.completion_type == 'located')
                       .all()):
 
@@ -155,7 +156,7 @@ class TaskPOMS:
                 lookup_submission_list.append(s)
                 lookup_dims_list.append(allkiddims)
             else:
-                # it's located but there's no project, so they are 
+                # it's located but there's no project, so they are
                 # defining the poms_depends_%(submission_id)s_1 dataset..
                 allkiddims = "defname:poms_depends_%s_1" % s.submission_id
                 lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
@@ -238,7 +239,7 @@ class TaskPOMS:
         logit.log("get_task_id_for(user='%s',experiment='%s',command_executed='%s',input_dataset='%s',parent_submission_id='%s',submission_id='%s'" % (
              user, experiment, command_executed, input_dataset, parent_submission_id, submission_id
             ))
-  
+
         #
         # try to extract the project name from the launch command...
         #
@@ -335,7 +336,7 @@ class TaskPOMS:
         '''
         now = datetime.now(utc)
         sq = (dbhandle.query(
-                SubmissionHistory.submission_id, 
+                SubmissionHistory.submission_id,
                 func.max(SubmissionHistory.created).label('latest')
               ).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=7))
                .group_by(SubmissionHistory.submission_id).subquery())
@@ -344,7 +345,7 @@ class TaskPOMS:
                         .join(sq,SubmissionHistory.submission_id == sq.c.submission_id)
                         .filter(SubmissionHistory.status == 'New',
                                 SubmissionHistory.created == sq.c.latest,
-                                SubmissionHistory.created < 
+                                SubmissionHistory.created <
                                     (now - timedelta(hours=2)))
                         .all())
 
@@ -354,21 +355,22 @@ class TaskPOMS:
             self.update_submission_status(dbhandle, submission_id,status = 'LaunchFailed')
         dbhandle.commit()
         return "\n".join(res)
-        
+
     def running_submissions(self, dbhandle, campaign_id_list, status_list=['New','Idle','Running']):
 
         cl = campaign_id_list
 
         logit.log("INFO", "running_submissions(%s)" % repr(cl))
         sq = (dbhandle.query(
-                SubmissionHistory.submission_id, 
+                SubmissionHistory.submission_id,
                 func.max(SubmissionHistory.created).label('latest')
               ).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
                .group_by(SubmissionHistory.submission_id).subquery())
 
         running_sids = (dbhandle.query(SubmissionHistory.submission_id)
-                        .join(sq,SubmissionHistory.submission_id == sq.c.submission_id)
-                        .filter(SubmissionHistory.status.in_(status_list),
+                        .join(SubmissionStatus, SubmissionStatus.status_id == SubmissionHistory.status_id)
+                        .join(sq, SubmissionHistory.submission_id == sq.c.submission_id)
+                        .filter(SubmissionStatus.status.in_(status_list),
                                 SubmissionHistory.created == sq.c.latest)
                         .all())
 
@@ -384,7 +386,7 @@ class TaskPOMS:
             res[c] = 0
 
         for row in ccl:
-            res[row[0]] = row[1]           
+            res[row[0]] = row[1]
 
         return res
 
@@ -397,8 +399,8 @@ class TaskPOMS:
         dbhandle.add(s)
         dbhandle.commit()
         return "Ok."
-       
-        
+
+
     def update_submission(self, dbhandle, submission_id, jobsub_job_id, pct_complete = None, status = None, project = None):
         s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
         if not s:
@@ -420,9 +422,9 @@ class TaskPOMS:
             self.update_submission_status(dbhandle, submission_id,status = status)
 
         dbhandle.commit()
-        return "Ok." 
+        return "Ok."
 
-    def snapshot_parts(self, dbhandle, s, campaign_stage_id): 
+    def snapshot_parts(self, dbhandle, s, campaign_stage_id):
 
         cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
         for table, snaptable, field, sfield, sid, tfield in [
@@ -452,7 +454,7 @@ class TaskPOMS:
             else:
                 newsnap = dbhandle.query(snaptable).filter(snaptable.updated == i[0]).first()
             setattr(s, tfield, newsnap)
-        dbhandle.add(s) 
+        dbhandle.add(s)
         dbhandle.commit()
 
 
@@ -769,7 +771,7 @@ class TaskPOMS:
             },
             "UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms31 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db",
             "ups active",
-            # POMS4 'properly named' items for poms_jobsub_wrapper 
+            # POMS4 'properly named' items for poms_jobsub_wrapper
             "export POMS4_CAMPAIGN_STAGE_ID=%s" % csid,
             "export POMS4_CAMPAIGN_STAGE_NAME=%s" % csname,
             "export POMS4_CAMPAIGN_ID=%s" % cid,

@@ -19,6 +19,11 @@ Campaigns {%include 'help_button.html'%}
     #campaign_table th:nth-child(1), table td:nth-child(1) {
         display: none;
     }
+
+    stagelink {
+        background-color: yellow;
+    }
+
 </style>
 
 <form method="GET" action="show_campaigns">
@@ -61,7 +66,8 @@ Campaigns {%include 'help_button.html'%}
                 <!-- id is hidden by css look for #campaign_table above -->
                 <td id="c_id_{{loop.index}}">{{s.campaign_id}}</td>
                 <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
-                <td><a href="{{pomspath}}/show_campaign_stages?campaign_name={{s.name|urlencode}}">{{s.name}}</a></td>
+                <td><a class="stagelink" href="{{pomspath}}/show_campaign_stages?campaign_name={{s.name|urlencode}}">{{s.name}}</a></td>
+		        <!-- <td> <button onclick="call_show_campaign_stages( '{{s.name}}' )"> {{s.name}} </td> -->
                 <td id="running_{{s.campaign_id}}" style="text-align:right; padding-right: 1em">...</td>
                 <td>
                     <a href="{{pomspath}}/campaign_time_bars?tag={{s.name|urlencode}}&tdays=7&tmax={{last_activity}}">
@@ -308,6 +314,32 @@ function update_running(data) {
        }
     }
 }
+
+$("a.stagelink").click(function() {
+    var href = this.href
+    if ( $("#view_active" ).is( ":checked" ) ) {
+        href = href + "&view_active=view_active"
+    }
+    if ( $("#view_inactive" ).is( ":checked" ) ) {
+        href = href + "&view_inactive=view_inactive"
+    }
+    if ( $("#view_mine" ).is( ":checked" ) ) {
+        href = href + "&view_mine=" + $("#view_mine").val();
+    }
+    if ( $("#view_others" ).is( ":checked" ) ) {
+        href = href + "&view_others=" + $("#view_others").val();
+    }
+    if ( $("#view_production" ).is( ":checked" ) ) {
+        href = href + "&view_production=view_production"
+    }
+    if ( $("#view_analysis" ).is( ":checked" ) ) {
+        href = href + "&view_analysis=view_analysis"
+    }
+    if ( href != this.href) {
+        href = href + "&update_view=update_view"
+    }
+    this.href = href;
+});
 
 function clone_template(campaign_name) {
     $("#campaign").val(campaign_name);

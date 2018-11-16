@@ -21,7 +21,7 @@ CREATE TABLE submission_statuses (
 	CONSTRAINT pk_submission_statuses_status_id PRIMARY KEY ( status_id )
  );
 insert into submission_statuses (status_id, status) values (1000, 'New');
-insert into submission_statuses (status_id, status) values (2000, 'Launch Failed');
+insert into submission_statuses (status_id, status) values (2000, 'LaunchFailed');
 insert into submission_statuses (status_id, status) values (3000, 'Idle');
 insert into submission_statuses (status_id, status) values (4000, 'Running');
 insert into submission_statuses (status_id, status) values (5000, 'Held');
@@ -43,12 +43,9 @@ update submission_histories set status_id=8000 where status = 'Located';
 
 delete from submission_histories where status in('started', 'testing', 'unknown', 'Unknown');
 
---- Do not run these in DEV until Marc is ready for them
-
 ALTER TABLE submission_histories ALTER COLUMN status_id set NOT NULL;
 
 ALTER TABLE submission_histories ADD CONSTRAINT fk_submission_histories_submission_statuses FOREIGN KEY ( status_id )
   REFERENCES submission_statuses( status_id )    ;
 
--- After verifying run the following
--- ALTER TABLE submission_histories drop column status;
+ALTER TABLE submission_histories drop column status;
