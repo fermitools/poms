@@ -1660,7 +1660,7 @@ class CampaignsPOMS:
         '''
             get launch output file and return the lines as a list
         '''
-        q = dbhandle.query(CampaignStage, Campaign).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+        q = dbhandle.query(CampaignStage, Campaign).filter(CampaignStage.campaign_stage_id == campaign_stage_id).filter(CampaignStage.campaign_id == Campaign.campaign_id).first()
         campaign_name = q.Campaign.name
         stage_name = q.CampaignStage.name
         if login_setup_id:
