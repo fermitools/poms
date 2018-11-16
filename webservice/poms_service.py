@@ -129,12 +129,14 @@ class PomsService(object):
 # we use cherrypy and logit decorators  on pretty much all of them to
 # make them visible etc, and a few that return JSON use extra decorators
 #
+# h4. headers
 
     @cherrypy.expose
     @logit.logstartstop
     def headers(self):
         return repr(cherrypy.request.headers)
 
+# h4. sign_out
     @cherrypy.expose
     @logit.logstartstop
     def sign_out(self):
@@ -142,6 +144,7 @@ class PomsService(object):
         log_out_url = "https://" + self.hostname + "/Shibboleth.sso/Logout"
         raise cherrypy.HTTPRedirect(log_out_url)
 
+# h4. index
     @cherrypy.expose
     @logit.logstartstop
     def index(self):
@@ -151,6 +154,7 @@ class PomsService(object):
                                launches=self.taskPOMS.get_job_launches(cherrypy.request.db),
                                do_refresh=1200, help_page="DashboardHelp")
 
+# h4. es
     @cherrypy.expose
     @logit.logstartstop
     def es(self):
@@ -172,16 +176,19 @@ class PomsService(object):
     ####################
     ### UtilsPOMS
 
+# h4. quick_search
     @cherrypy.expose
     @logit.logstartstop
     def quick_search(self, search_term):
         self.utilsPOMS.quick_search(cherrypy.HTTPRedirect, search_term)
 
+# h4. update_session_experiment
     @cherrypy.expose
     @logit.logstartstop
     def update_session_experiment(self, *args, **kwargs):
         self.utilsPOMS.update_session_experiment(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
 
+# h4. update_session_role
     @cherrypy.expose
     @logit.logstartstop
     def update_session_role(self, *args, **kwargs):
@@ -190,6 +197,7 @@ class PomsService(object):
 
     #####
     ### DBadminPOMS
+# h4. raw_tables
     @cherrypy.expose
     @logit.logstartstop
     def raw_tables(self):
@@ -199,12 +207,14 @@ class PomsService(object):
         return template.render(tlist=list(self.tablesPOMS.admin_map.keys()), help_page="RawTablesHelp")
 
 
+# h4. experiment_list
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def experiment_list(self):
         return list(map((lambda x: x[0]),cherrypy.request.db.query(Experiment.experiment).all()))
 
+# h4. experiment_members
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -213,6 +223,7 @@ class PomsService(object):
         return trows
 
 
+# h4. member_experiments
     @cherrypy.expose
     @logit.logstartstop
     def member_experiments(self, username, *args, **kwargs):
@@ -220,6 +231,7 @@ class PomsService(object):
         return trows
 
 
+# h4. experiment_edit
     @cherrypy.expose
     @logit.logstartstop
     def experiment_edit(self, message=None):
@@ -228,6 +240,7 @@ class PomsService(object):
         return template.render(message=message, experiments=experiments, help_page="ExperimentEditHelp")
 
 
+# h4. experiment_authorize
     @cherrypy.expose
     @logit.logstartstop
     def experiment_authorize(self, *args, **kwargs):
@@ -240,12 +253,14 @@ class PomsService(object):
     #################################
     ### CampaignsPOMS
 
+# h4. launch_template_edit
     @cherrypy.expose
     @logit.logstartstop
     def launch_template_edit(self, *args, **kwargs):
         #v3_2_0 backward compatabilty
         self.login_setup_edit(args, kwargs)
 
+# h4. login_setup_edit
     @cherrypy.expose
     @logit.logstartstop
     def login_setup_edit(self, *args, **kwargs):
@@ -259,6 +274,7 @@ class PomsService(object):
         return template.render(data=data, help_page="LaunchTemplateEditHelp")
 
 
+# h4. campaign_deps_ini
     @cherrypy.expose
     @logit.logstartstop
     def campaign_deps_ini(self, tag=None, camp_id=None, login_setup=None,
@@ -273,6 +289,7 @@ class PomsService(object):
         return res
 
 
+# h4. campaign_deps
     @cherrypy.expose
     @logit.logstartstop
     def campaign_deps(self, campaign_name=None, campaign_stage_id=None, tag=None, camp_id=None):
@@ -284,6 +301,7 @@ class PomsService(object):
         return template.render(tag=tag, svgdata=svgdata, help_page="CampaignDepsHelp")
 
 
+# h4. campaign_definition_edit
     @cherrypy.expose
     @logit.logstartstop
     def campaign_definition_edit(self, *args, **kwargs):
@@ -300,6 +318,7 @@ class PomsService(object):
         return template.render(data=data, help_page="CampaignDefinitionEditHelp")
 
 
+# h4. make_test_campaign_for
     @cherrypy.expose
     @logit.logstartstop
     def make_test_campaign_for(self, campaign_def_id, campaign_def_name):
@@ -309,12 +328,14 @@ class PomsService(object):
             "%s/campaign_stage_edit?campaign_stage_id=%d&extra_edit_flag=launch_test_job" % (self.path, cid))
 
     @cherrypy.expose
+# h4. get_campaign_id
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def get_campaign_id(self, campaign_name):
         cid = self.campaignsPOMS.get_campaign_id(cherrypy.request.db, cherrypy.session.get, campaign_name)
         return cid
 
+# h4. campaign_add_name
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -322,6 +343,7 @@ class PomsService(object):
         data = self.campaignsPOMS.campaign_add_name(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
         return data
 
+# h4. campaign_rename_name
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -329,6 +351,7 @@ class PomsService(object):
         data = self.campaignsPOMS.campaign_rename_name(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
         return data
 
+# h4. campaign_stage_edit
     @cherrypy.expose
     @logit.logstartstop
     def campaign_stage_edit(self, *args, **kwargs):
@@ -353,6 +376,7 @@ class PomsService(object):
                                )
 
 
+# h4. gui_wf_edit
     @cherrypy.expose
     @logit.logstartstop
     def gui_wf_edit(self, *args, **kwargs):
@@ -360,6 +384,7 @@ class PomsService(object):
         return template.render(help_page="GUI_Workflow_Editor_User_Guide", campaign=kwargs.get('campaign'))
 
 
+# h4. sample_workflows
     @cherrypy.expose
     @logit.logstartstop
     def sample_workflows(self, *args, **kwargs):
@@ -369,6 +394,7 @@ class PomsService(object):
         return template.render(help_page="Sample Workflows", sl=sl)
 
 
+# h4. campaign_list_json
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -377,6 +403,7 @@ class PomsService(object):
         return data
 
 
+# h4. campaign_stage_edit_query
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -385,12 +412,14 @@ class PomsService(object):
         return data
 
 
+# h4. new_task_for_campaign
     @cherrypy.expose
     @logit.logstartstop
     def new_task_for_campaign(self, campaign_name, command_executed, experimenter_name, dataset_name=None):
         return self.campaignsPOMS.new_task_for_campaign(cherrypy.request.db, campaign_name, command_executed,
                                                         experimenter_name, dataset_name)
 
+# h4. show_campaigns
     @cherrypy.expose
     @logit.logstartstop
     def show_campaigns(self, *args, **kwargs):
@@ -400,6 +429,7 @@ class PomsService(object):
         return template.render(tl=tl, last_activity=last_activity, msg=msg, data= data, help_page="ShowCampaignTagsHelp")
 
 
+# h4. show_campaign_stages
     @cherrypy.expose
     @logit.logstartstop
     def show_campaign_stages(self, tmin=None, tmax=None, tdays=7, active=True, campaign_name=None, holder=None, role_held_with=None,
@@ -435,6 +465,7 @@ class PomsService(object):
                                key='', help_page="ShowCampaignsHelp", dbg=kwargs)
 
 
+# h4. reset_campaign_split
     @cherrypy.expose
     @logit.logstartstop
     def reset_campaign_split(self, campaign_stage_id):
@@ -449,6 +480,7 @@ class PomsService(object):
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
 
 
+# h4. campaign_stage_info
     @cherrypy.expose
     @logit.logstartstop
     def campaign_stage_info(self, campaign_stage_id, tmin=None, tmax=None, tdays=None):
@@ -487,6 +519,7 @@ class PomsService(object):
             dep_svg=dep_svg, last_activity=last_activity)
 
 
+# h4. campaign_time_bars
     @cherrypy.expose
     @logit.logstartstop
     def campaign_time_bars(self, campaign_stage_id=None, campaign=None, tag=None, tmin=None, tmax=None, tdays=1):
@@ -505,6 +538,7 @@ class PomsService(object):
                                extramap=extramap, help_page="CampaignTimeBarsHelp")
 
 
+# h4. register_poms_campaign
     @cherrypy.expose
     @logit.logstartstop
     def register_poms_campaign(self, experiment, campaign_name, version, user=None,
@@ -526,6 +560,7 @@ class PomsService(object):
 
 
     @cherrypy.expose
+# h4. list_launch_file
     @logit.logstartstop
     @logit.logstartstop
     def list_launch_file(self, campaign_stage_id=None, fname=None, login_setup_id=None, launch_template_id=None):
@@ -541,6 +576,7 @@ class PomsService(object):
         return res
 
 
+# h4. schedule_launch
     @cherrypy.expose
     @logit.logstartstop
     def schedule_launch(self, campaign_stage_id):
@@ -551,6 +587,7 @@ class PomsService(object):
                                launch_flist=launch_flist)
 
 
+# h4. update_launch_schedule
     @cherrypy.expose
     @logit.logstartstop
     def update_launch_schedule(self, campaign_stage_id, dowlist=None, domlist=None,
@@ -560,6 +597,7 @@ class PomsService(object):
         raise cherrypy.HTTPRedirect("schedule_launch?campaign_stage_id=%s" % campaign_stage_id)
 
 
+# h4. mark_campaign_active
     @cherrypy.expose
     @logit.logstartstop
     def mark_campaign_active(self, campaign_stage_id=None, is_active="", cl=None):
@@ -596,6 +634,7 @@ class PomsService(object):
             raise cherrypy.HTTPRedirect("show_campaign_stages")
 
 
+# h4. mark_campaign_hold
     @cherrypy.expose
     @logit.logstartstop
     def mark_campaign_hold(self, ids2HR=None, is_hold=''):
@@ -648,6 +687,7 @@ class PomsService(object):
             raise cherrypy.HTTPRedirect("show_campaign_stages")
 
 
+# h4. make_stale_campaigns_inactive
     @cherrypy.expose
     @logit.logstartstop
     def make_stale_campaigns_inactive(self):
@@ -657,6 +697,7 @@ class PomsService(object):
         return "Marked inactive stale: " + ",".join(res)
 
 
+# h4. list_generic
     @cherrypy.expose
     @logit.logstartstop
     def list_generic(self, classname):
@@ -668,18 +709,21 @@ class PomsService(object):
                                primary_key='experimenter_id',
                                help_page="ListGenericHelp")
 
+# h4. edit_screen_generic
     @cherrypy.expose
     @logit.logstartstop
     def edit_screen_generic(self, classname, id=None):
         return self.tablesPOMS.edit_screen_generic(cherrypy.HTTPError, cherrypy.request.headers.get, cherrypy.session,
                                                    classname, id)
 
+# h4. update_generic
     @cherrypy.expose
     @logit.logstartstop
     def update_generic(self, classname, *args, **kwargs):
         return self.tablesPOMS.update_generic(cherrypy.request.db, cherrypy.request.headers.get, cherrypy.session,
                                               classname, *args, **kwargs)
 
+# h4. edit_screen_for
     @cherrypy.expose
     @logit.logstartstop
     def edit_screen_for(self, classname, eclass, update_call, primkey, primval, valmap):
@@ -695,6 +739,7 @@ class PomsService(object):
     #######
     ### JobPOMS
 
+# h4. active_jobs
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -703,6 +748,7 @@ class PomsService(object):
         return list(res)
 
 
+# h4. report_declared_files
     @cherrypy.expose
     @logit.logstartstop
     def report_declared_files(self, flist):
@@ -710,6 +756,7 @@ class PomsService(object):
         return "Ok."
 
 
+# h4. output_pending_jobs
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -718,16 +765,19 @@ class PomsService(object):
         return res
 
 
+# h4. force_locate_submission
     @cherrypy.expose
     @logit.logstartstop
     def force_locate_submission(self, submission_id):
         return self.taskPOMS.force_locate_submission(cherrypy.request.db, submission_id)
 
+# h4. mark_failed_submissions
     @cherrypy.expose
     @logit.logstartstop
     def mark_failed_submissions(self):
         return self.taskPOMS.mark_failed_submissions(cherrypy.request.db)
 
+# h4. running_submissions
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -735,6 +785,7 @@ class PomsService(object):
         cl = list(map(int, campaign_id_list.split(',')))
         return self.taskPOMS.running_submissions(cherrypy.request.db, cl)
 
+# h4. update_submission
     @cherrypy.expose
     @logit.logstartstop
     def update_submission(self, submission_id, jobsub_job_id, pct_complete=None, status=None, project=None):
@@ -743,6 +794,7 @@ class PomsService(object):
         return res
 
 
+# h4. json_pending_for_campaigns
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -751,6 +803,7 @@ class PomsService(object):
         return res
 
 
+# h4. kill_jobs
     @cherrypy.expose
     @logit.logstartstop
     def kill_jobs(self, campaign_stage_id=None, submission_id=None, task_id=None, job_id=None, confirm=None, act='kill'):
@@ -774,6 +827,7 @@ class PomsService(object):
                                    help_page="KilledJobsHelp")
 
 
+# h4. set_job_launches
     @cherrypy.expose
     @logit.logstartstop
     def set_job_launches(self, hold):
@@ -781,6 +835,7 @@ class PomsService(object):
         raise cherrypy.HTTPRedirect(self.path + "/")
 
 
+# h4. launch_queued_job
     @cherrypy.expose
     @logit.logstartstop
     def launch_queued_job(self):
@@ -789,6 +844,7 @@ class PomsService(object):
                                                cherrypy.session, cherrypy.request.headers.get,
                                                cherrypy.session, cherrypy.response.status)
 
+# h4. launch_jobs
     @cherrypy.expose
     @logit.logstartstop
     def launch_jobs(self, campaign_stage_id = None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
@@ -831,6 +887,7 @@ class PomsService(object):
                     "%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (self.path, campaign_stage_id, os.path.basename(outfile)))
 
 
+# h4. jobtype_list
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -844,6 +901,7 @@ class PomsService(object):
     ########################
     ### TaskPOMS
 
+# h4. wrapup_tasks
     @cherrypy.expose
     @logit.logstartstop
     def wrapup_tasks(self):
@@ -856,6 +914,7 @@ class PomsService(object):
                                                     cherrypy.response.status))
 
 
+# h4. get_task_id_for
     @cherrypy.expose
     @logit.logstartstop
     def get_task_id_for(self, campaign, user=None, experiment=None, command_executed="", input_dataset="",
@@ -870,6 +929,7 @@ class PomsService(object):
                                                 experiment, command_executed, input_dataset, parent_submission_id, submission_id)
         return "Task=%d" % submission_id
 
+# h4. list_task_logged_files
     @cherrypy.expose
     @logit.logstartstop
     def list_task_logged_files(self, submission_id = None, task_id = None):
@@ -882,6 +942,7 @@ class PomsService(object):
                                help_page="ListTaskLoggedFilesHelp")
 
 
+# h4. campaign_task_files
     @cherrypy.expose
     @logit.logstartstop
     def campaign_task_files(self, campaign_stage_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
@@ -897,6 +958,7 @@ class PomsService(object):
                                prev=prevlink, next=nextlink, tdays=tdays,
                                campaign_stage_id=campaign_stage_id, help_page="CampaignTaskFilesHelp")
 
+# h4. inflight_files
     @cherrypy.expose
     @logit.logstartstop
     def inflight_files(self, campaign_stage_id=None, submission_id=None, task_id = None):
@@ -914,6 +976,7 @@ class PomsService(object):
                                help_page="PendingFilesJobsHelp")
 
 
+# h4. show_dimension_files
     @cherrypy.expose
     @logit.logstartstop
     def show_dimension_files(self, experiment, dims):
@@ -923,6 +986,7 @@ class PomsService(object):
         return template.render(flist=flist, dims=dims, statusmap=[], help_page="ShowDimensionFilesHelp")
 
 
+# h4. actual_pending_files
     @cherrypy.expose
     @logit.logstartstop
     def actual_pending_files(self, count_or_list=None, campaign_stage_id=None, tmin=None, tmax=None, tdays=1):
@@ -933,6 +997,7 @@ class PomsService(object):
         return self.show_dimension_files(exps[0], dims[0])
 
 
+# h4. campaign_sheet
     @cherrypy.expose
     @logit.logstartstop
     def campaign_sheet(self, campaign_stage_id, tmin=None, tmax=None, tdays=7):
@@ -957,6 +1022,7 @@ class PomsService(object):
                                experiment=experiment,
                                help_page="CampaignSheetHelp")
 
+# h4. json_project_summary_for_task
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -964,6 +1030,7 @@ class PomsService(object):
         if task_id is not None and submission_id is None:
             submission_id = task_id
         return self.project_summary_for_task(submission_id)
+# h4. project_summary_for_task
 
 
     def project_summary_for_task(self, submission_id = None, task_id = None):
@@ -971,6 +1038,7 @@ class PomsService(object):
             submission_id = task_id
         s = cherrypy.request.db.query(Submission).filter(Submission.submission_id == submission_id).first()
         return cherrypy.request.samweb_lite.fetch_info(s.campaign_stage_snapshot_obj.experiment, s.project,
+# h4. project_summary_for_tasks
                                                        dbhandle=cherrypy.request.db)
 
     def project_summary_for_tasks(self, task_list):
@@ -978,6 +1046,7 @@ class PomsService(object):
     ##############
     ### TagsPOMS
 
+# h4. link_tags
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -985,6 +1054,7 @@ class PomsService(object):
         return self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session.get, campaign_id=campaign_id, tag_name=tag_name, experiment=experiment)
 
 
+# h4. delete_campaigns_tags
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -992,6 +1062,7 @@ class PomsService(object):
         return self.tagsPOMS.delete_campaigns_tags(cherrypy.request.db, cherrypy.session.get, campaign_id, tag_id,
                                                    experiment, delete_unused_tag)
 
+# h4. search_tags
     @cherrypy.expose
     @logit.logstartstop
     def search_tags(self, q):
@@ -1000,6 +1071,7 @@ class PomsService(object):
         return template.render(results=results, search_term=q, do_refresh=0, help_page="SearchTagsHelp")
 
 
+# h4. search_campaigns
     @cherrypy.expose
     @logit.logstartstop
     def search_campaigns(self, search_term):
@@ -1008,6 +1080,7 @@ class PomsService(object):
         return template.render(results=results, search_term=search_term, do_refresh=0, help_page="SearchTagsHelp")
 
 
+# h4. search_all_tags
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -1015,6 +1088,7 @@ class PomsService(object):
         return self.tagsPOMS.search_all_tags(cherrypy.request.db, cl)
 
 
+# h4. auto_complete_tags_search
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
@@ -1025,30 +1099,35 @@ class PomsService(object):
     # -----------------------
     # debugging
 
+# h4. echo
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def echo(self, *args, **kwargs):
         data = self.campaignsPOMS.echo(cherrypy.request.db, cherrypy.session, *args, **kwargs)
         return data
 
+# h4. save_campaign
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def save_campaign(self, *args, **kwargs):
         data = self.campaignsPOMS.save_campaign(cherrypy.request.db, cherrypy.session, *args, **kwargs)
         return data
 
+# h4. get_jobtype_id
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def get_jobtype_id(self, name):
         data = self.campaignsPOMS.get_jobtype_id(cherrypy.request.db, cherrypy.session, name)
         return data
 
+# h4. get_loginsetup_id
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def get_loginsetup_id(self, name):
         data = self.campaignsPOMS.get_loginsetup_id(cherrypy.request.db, cherrypy.session, name)
         return data
 
+# h4. loginsetup_list
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def loginsetup_list(self, name=None, full=None, **kwargs):
