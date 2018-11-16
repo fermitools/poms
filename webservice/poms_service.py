@@ -1,13 +1,42 @@
 #
+# h2. Module webservice.poms_service
+#
+# This module attaches all the webservice methods to
+# the cherrypy instance, via the mount call in source:webservice/service.py
+# the methods call out to one of the POMS logic modules, and
+# generally either use jinja2 templates to render the results, or
+# use the cherrypy @cherrypy.tools.json_out() decorator to 
+# yeild the result in JSON.
+#
+# h2. Administrivia
+#
+# h3. pylint
+#
+# we leave a note here for pylint as we're still getting the 
+# code pylint clean...
+# <pre>
+#
 # pylint: disable=line-too-long,invalid-name,missing-docstring
+#
+# </pre>
+#
+#
+# h3. imports
+#
+# Usual basic python module imports...
 #
 import os
 import glob
 import pprint
 import socket
 
+# cherrypy and jinja imports...
+
 import cherrypy
 from jinja2 import Environment, PackageLoader
+
+# we import our logic modules, so we can attach an instance each to
+# our overall poms_service class.
 
 from . import (
                CampaignsPOMS,
@@ -20,9 +49,23 @@ from . import (
                UtilsPOMS,
                logit,
                version)
+
+# we have an elasticsearch module we used to use, but now we mostly
+# embed frames from Landscape pages instead...
+
 from .elasticsearch import Elasticsearch
+
+#
+# ORM model is in source:poms_model.py
+#
+
 from .poms_model import Campaign, CampaignStage, Submission, Experiment, LoginSetup
 
+#
+# h3. Error handling
+#
+# we have a routine here we give to cherrypy to format errors
+#
 
 def error_response():
     dump = ""
@@ -38,12 +81,27 @@ def error_response():
     cherrypy.response.body = body.encode()
     logit.log(dump)
 
+#
+# h2. overall PomsService class
+#
 
 class PomsService(object):
+
+#
+# h3. More Error Handling
+#
+# cherrypy config bits for error handling
+#
     _cp_config = {'request.error_response': error_response,
                   'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/page_not_found.html'),
                   'error_page.401': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/unauthorized_user.html')
                   }
+
+# h3. Module init
+#
+# we instantiate the logic modules and attach those instances here.
+# as well as stashing some config values, etc. for later use.
+#
 
     def __init__(self):
         ##
@@ -67,6 +125,14 @@ class PomsService(object):
     def post_initialize(self):
         # Anything that needs to log data must be called here -- after loggers are configured.
         self.tablesPOMS = TablesPOMS.TablesPOMS(self)
+
+#
+# h2. web methods
+#
+# These are the actual methods cherrypy exposes as webservice endpoints.
+# we use cherrypy and logit decorators  on pretty much all of them to
+# make them visible etc, and a few that return JSON use extra decorators
+#
 
     @cherrypy.expose
     @logit.logstartstop
