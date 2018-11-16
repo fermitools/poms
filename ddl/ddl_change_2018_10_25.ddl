@@ -21,7 +21,7 @@ CREATE TABLE submission_statuses (
 	CONSTRAINT pk_submission_statuses_status_id PRIMARY KEY ( status_id )
  );
 insert into submission_statuses (status_id, status) values (1000, 'New');
-insert into submission_statuses (status_id, status) values (2000, 'Launch Failed');
+insert into submission_statuses (status_id, status) values (2000, 'LaunchFailed');
 insert into submission_statuses (status_id, status) values (3000, 'Idle');
 insert into submission_statuses (status_id, status) values (4000, 'Running');
 insert into submission_statuses (status_id, status) values (5000, 'Held');

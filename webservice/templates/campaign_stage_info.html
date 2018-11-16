@@ -11,7 +11,7 @@ Campaign Stage Info {%include 'help_button.html'%}
 
 {%block subheader%}
 Campaign Stage {{CampaignStage.name}}  <br>
-in Campaign {{CampaignStage.campaign_obj.name}} 
+in Campaign {{CampaignStage.campaign_obj.name}}
 {%endblock%}
 
 
@@ -47,7 +47,7 @@ in Campaign {{CampaignStage.campaign_obj.name}}
               </div>
               <div class=item>
                  <i class="external icon"></i>
-                 <a href="{{kibana_link}}" target='_blank'>POMS Campaign Stage(landscape)</a>
+                 <a href="https://fifemon.fnal.gov/monitor/d/otZRzhImk/poms-campaign?from=now-30d&to=now&var-Campaign={{CampaignStage.campaign_stage_id}}" target='_blank'>POMS Campaign Stage(landscape)</a>
               </div>
               <div class=item>
                <a href="https://fifemon.fnal.gov/monitor/d/000000212/poms-campaign-stats?orgId=1&var-Campaign={{CampaignStage.campaign_stage_id}}" target='_blank'>
