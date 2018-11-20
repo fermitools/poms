@@ -542,7 +542,7 @@ class TaskPOMS:
                         dim_bits = "file_name like %s" % oft
                     recovery_dims += "%s isparentof: ( version %s and %s) " % (sep,s.campaign_stage_snapshot_obj.software_version, dim_bits)
                     sep = 'and'
-                snapshot_dims += ')'
+                recovery_dims += ')'
             else:
                 # default to consumed status(?)
                 recovery_dims = "project_name %s and consumed_status != 'consumed'" % s.project
@@ -688,7 +688,7 @@ class TaskPOMS:
             if cs.name == cs.campaign_obj.name:
                 ccname = cs.name
             elif cs.name[:len(cs.campaign_obj.name)] == cs.campaign_obj.name:
-                ccname = "%s::%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
+                ccname = "%s::%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj.name):])
             else:
                 ccname = "%s::%s" % (cs.campaign_obj.name, cs.name)
 
