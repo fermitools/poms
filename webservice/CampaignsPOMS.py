@@ -38,7 +38,8 @@ from .poms_model import (Campaign,
                          RecoveryType,
                          Campaign,
                          Submission,
-                         SubmissionHistory)
+                         SubmissionHistory,
+                         SubmissionStatus)
 from .pomscache import pomscache_10
 from .utc import utc
 
@@ -129,7 +130,7 @@ class CampaignsPOMS:
                 if action == 'add':
                     role = seshandle('experimenter').session_role
                     if role == 'root' or role == 'coordinator':
-                        raise cherrypy.HTTPError(401, 'You are not authorized to add launch template.')
+                        raise cherrypy.HTTPError(status=401, message='You are not authorized to add launch template.')
                     else:
                         template = LoginSetup(experiment=exp, name=ae_launch_name, launch_host=ae_launch_host,
                                               launch_account=ae_launch_account,
@@ -426,7 +427,7 @@ class CampaignsPOMS:
                 if action == 'add':
                     role = seshandle('experimenter').session_role
                     if role == 'root' or role == 'coordinator':
-                        raise cherrypy.HTTPError(401, 'You are not authorized to add campaign definition.')
+                        raise cherrypy.HTTPError(status=401, message='You are not authorized to add campaign definition.')
                     else:
                         cd = JobType(name=name, experiment=exp,
                                      input_files_per_job=input_files_per_job,
@@ -700,7 +701,7 @@ class CampaignsPOMS:
                 job_type_id = dbhandle.query(JobType).filter(
                     JobType.name == campaign_definition_name).first().job_type_id
                 if action == 'edit':
-                    cs = dbhandle.query(CampaignStage).filter(CampaignStage.name == name , CampaignStage.experiment == exp).first()
+                    cs = dbhandle.query(CampaignStage).filter(CampaignStage.name == name, CampaignStage.experiment == exp).first()
                     if cs:
                         campaign_stage_id = cs.campaign_stage_id
                     else:
@@ -760,10 +761,18 @@ class CampaignsPOMS:
                 dbhandle.query(CampaignDependency).filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id).delete(synchronize_session=False)
                 logit.log("depends for %s(%s) are: %s" % (campaign_stage_id, name, depends))
                 if 'campaign_stages' in depends:
-                    dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']), CampaignStage.experiment == exp).all()
+                    dep_stages = (dbhandle.query(CampaignStage)
+                                  .filter(CampaignStage.name.in_(depends['campaign_stages']),
+                                          CampaignStage.campaign_id == campaign_id,
+                                          CampaignStage.experiment == exp)
+                                  .all())
                 elif 'campaigns' in depends:
                     # backwards compatibility
-                    dep_stages = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaigns']), CampaignStage.experiment == exp).all()
+                    dep_stages = (dbhandle.query(CampaignStage)
+                                  .filter(CampaignStage.name.in_(depends['campaigns']),
+                                          CampaignStage.campaign_id == campaign_id,
+                                          CampaignStage.experiment == exp)
+                                  .all())
                 else:
                     dep_stages = {}
                 for (i, stage) in enumerate(dep_stages):
@@ -966,9 +975,10 @@ class CampaignsPOMS:
         if name is not None:
             the_campaign = dbhandle.query(Campaign).filter(Campaign.name == name, Campaign.experiment == session_experiment).scalar()
             #
-            campaign_stages = dbhandle.query(CampaignStage).join(Campaign).filter(
-                Campaign.name == name,
-                CampaignStage.campaign_id == Campaign.campaign_id).all()
+            # campaign_stages = dbhandle.query(CampaignStage).join(Campaign).filter(
+            #     Campaign.name == name,
+            #     CampaignStage.campaign_id == Campaign.campaign_id).all()
+            campaign_stages = the_campaign.stages
 
         if stage_id is not None:
             cidl1 = dbhandle.query(CampaignDependency.needs_campaign_stage_id).filter(CampaignDependency.provides_campaign_stage_id == stage_id).all()
@@ -998,8 +1008,6 @@ class CampaignsPOMS:
                     dmap[cid].append(cd.needs_campaign_stage_id)
                     fpmap[(cid, cd.needs_campaign_stage_id)] = cd.file_patterns
 
-        #------------
-
         # sort by dependencies(?)
         cidl = list(cnames.keys())
         for cid in cidl:
@@ -1028,8 +1036,8 @@ class CampaignsPOMS:
                 res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
                 res.append("completion_type=%s" % defaults.get("completion_type"))
                 res.append("completion_pct=%s" % defaults.get("completion_pct"))
-                res.append("param_overrides=%s" % defaults.get("param_overrides"))
-                res.append("test_param_overrides=%s" % defaults.get("test_param_overrides"))
+                res.append("param_overrides=%s" % (defaults.get("param_overrides") or "[]"))
+                res.append("test_param_overrides=%s" % (defaults.get("test_param_overrides") or "[]"))
                 res.append("login_setup=%s" % (defaults.get("login_setup") or "generic"))
                 res.append("job_type=%s" % (defaults.get("job_type") or "generic"))
                 res.append("")
@@ -1056,7 +1064,7 @@ class CampaignsPOMS:
             res.append("[login_setup %s]" % lt.name)
             res.append("host=%s" % lt.launch_host)
             res.append("account=%s" % lt.launch_account)
-            res.append("setup=%s" % lt.launch_setup.replace("\r",";").replace("\n",";").replace(";;",";").replace(";;",";"))
+            res.append("setup=%s" % lt.launch_setup.replace("\r", ";").replace("\n", ";").replace(";;", ";").replace(";;", ";"))
             res.append("")
 
         for jt in jts:
@@ -1471,8 +1479,7 @@ class CampaignsPOMS:
             cpl = q.all()
             name = campaign
         else:
-            err_res = "404 Permission Denied."
-            return "Neither CampaignStage nor Campaign found"
+            raise err_res(404, "Not found.")
 
         job_counts_list = deque()
         cidl = deque()
@@ -1480,7 +1487,9 @@ class CampaignsPOMS:
             cidl.append(cs.campaign_stage_id)
 
         qr = (dbhandle.query(SubmissionHistory)
+              .join(SubmissionStatus)
               .join(Submission)
+              .options(joinedload(SubmissionHistory.submission_obj))
               .filter(Submission.campaign_stage_id.in_(cidl),
                       SubmissionHistory.submission_id == Submission.submission_id,
                       or_(and_(Submission.created > tmin, Submission.created < tmax),
@@ -1490,10 +1499,8 @@ class CampaignsPOMS:
         items = deque()
         extramap = OrderedDict()
 
-        if cpl[0].dataset in (None, 'None', 'none'):
-             url_template= "https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
-        else:
-             url_template= "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
+        url_template_plain= "https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
+        url_template_dag= "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
 
         failedlaunch_url_template = self.poms_service.path + "/list_launch_file?campaign_stage_id=%(campaign_stage_id)s&fname=%(created_s)s_%(creator)s"
 
@@ -1504,19 +1511,21 @@ class CampaignsPOMS:
                 jjid = 's' + str(th.submission_id)
                 full_jjid="unknown.0@unknown.un.known"
             else:
-                jjid = str(jjid).replace('fifebatch', '').replace('.fnal.gov', '')
+                jjid = 's%s<br>%s' % (str(th.submission_id), str(jjid).replace('fifebatch', '').replace('.fnal.gov', ''))
 
             if campaign is not None:
                 jjid += "<br>%s" % th.submission_obj.campaign_stage_obj.name
 
-
-            if th.status not in ("Completed", "Located", "Failed", "Removed"):
-                extramap[jjid] = ('<a href="{}/kill_jobs?submission_id={:d}&act=hold"><i class="ui pause icon"></i></a>'
-                                  '<a href="{}/kill_jobs?submission_id={:d}&act=release"><i class="ui play icon"></i></a>'
-                                  '<a href="{}/kill_jobs?submission_id={:d}&act=kill"><i class="ui trash icon"></i></a>'
+            if th.status_type.status not in ("Completed", "Located", "Failed", "Removed"):
+                extramap[jjid] = ('<a href="{}/kill_jobs?submission_id={:d}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>'
+                                  '<a href="{}/kill_jobs?submission_id={:d}&act=release" alt="Release"><i class="ui play icon"></i></a>'
+                                  '<a href="{}/kill_jobs?submission_id={:d}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>'
                                   ).format(self.poms_service.path, th.submission_id,
                                            self.poms_service.path, th.submission_id,
                                            self.poms_service.path, th.submission_id)
+            elif th.status_type.status == "Completed":
+                extramap[jjid] = '<a href="{}/force_locate_submission?submission_id={:d}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>'.format(self.poms_service.path, th.submission_id)
+
             else:
                 extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
 
@@ -1525,7 +1534,7 @@ class CampaignsPOMS:
                                  tmin=th.submission_obj.created - timedelta(minutes=15),
                                  tmax=th.submission_obj.updated,
                                  tminsec=tmin.strftime("%s"),
-                                 status=th.status,
+                                 status=th.status_type.status,
                                  jobsub_job_id=jjid,
                                  jobsub_cluster=full_jjid[:full_jjid.find('@')],
                                  jobsub_schedd=full_jjid[full_jjid.find('@') + 1:],
@@ -1533,10 +1542,12 @@ class CampaignsPOMS:
                                  campaign_stage_id=th.submission_obj.campaign_stage_id,
                                  created_s=th.submission_obj.created.strftime("%Y%m%d_%H%M%S")
                                  ))
-            if th.status == 'LaunchFailed':
+            if th.status_type.status == 'LaunchFailed':
                 items[-1].url = failedlaunch_url_template % items[-1].__dict__
+            elif th.submission_obj.project:
+                items[-1].url = url_template_dag % items[-1].__dict__
             else:
-                items[-1].url = url_template % items[-1].__dict__
+                items[-1].url = url_template_plain % items[-1].__dict__
 
         logit.log("campaign_time_bars: items: " + repr(items))
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id',
@@ -1641,10 +1652,7 @@ class CampaignsPOMS:
         try:
             res = splitter.next()
         except StopIteration:
-            if err_res:
-                raise err_res(404, 'No more splits in this campaign')
-            else:
-                raise IndexError('No more splits in this campaign')
+            raise err_res( 404, 'No more splits in this campaign.')
 
         dbhandle.commit()
         return res
@@ -1653,7 +1661,7 @@ class CampaignsPOMS:
         '''
             get launch output file and return the lines as a list
         '''
-        q = dbhandle.query(CampaignStage, Campaign).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+        q = dbhandle.query(CampaignStage, Campaign).filter(CampaignStage.campaign_stage_id == campaign_stage_id).filter(CampaignStage.campaign_id == Campaign.campaign_id).first()
         campaign_name = q.Campaign.name
         stage_name = q.CampaignStage.name
         if login_setup_id:
@@ -1923,7 +1931,7 @@ class CampaignsPOMS:
             form = {k: (form[k] or defaults[k]) for k in form}   # Use the field if provided otherwise use defaults
             print("############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(old_name, new_name, clean, form, position))
 
-            active = (form.pop('state') in ('True', 'true', '1', 'Active'))
+            active = (form.pop('state', None) in ('True', 'true', '1', 'Active'))
             completion_pct = form.pop('completion_pct')
             completion_type = form.pop('completion_type')
             split_type = form.pop('split_type', None)
@@ -1932,14 +1940,13 @@ class CampaignsPOMS:
             print("################ job_type: '{}'".format(job_type))
             login_setup = form.pop('login_setup')
             print("################ login_setup: '{}'".format(login_setup))
-            param_overrides = form.pop('param_overrides', "[]")
+            param_overrides = form.pop('param_overrides', None) or "[]"
             print("################ param_overrides: '{}'".format(param_overrides))
             if param_overrides:
                 param_overrides = json.loads(param_overrides)
             software_version = form.pop('software_version')
-            test_param_overrides = form.pop('test_param_overrides', "[]")
-            if test_param_overrides:
-                test_param_overrides = json.loads(test_param_overrides)
+            test_param_overrides = form.pop('test_param_overrides', None)
+            test_param_overrides = json.loads(test_param_overrides) if test_param_overrides else None
             vo_role = form.pop('vo_role')
 
             stage_type = form.pop('stage_type', 'test')

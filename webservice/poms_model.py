@@ -82,7 +82,7 @@ class CampaignStage(Base):
     experiment_obj = relationship('Experiment')
     job_type_obj = relationship('JobType')
     login_setup_obj = relationship('LoginSetup')
-    campaign_obj = relationship('Campaign')
+    campaign_obj = relationship('Campaign', backref="stages")
 
     providers = relationship("CampaignStage",
                              secondary="campaign_dependencies",
@@ -204,9 +204,16 @@ class SubmissionHistory(Base):
 
     submission_id = Column(ForeignKey('submissions.submission_id'), primary_key=True, nullable=False)
     created = Column(DateTime(True), primary_key=True, nullable=False)
-    status = Column(Text, nullable=False)
+    status_id = Column(ForeignKey('submission_statuses.status_id'), nullable=False, index=True)
 
     submission_obj = relationship('Submission', backref='history')
+    status_type = relationship('SubmissionStatus')
+
+class SubmissionStatus(Base):
+    __tablename__ = 'submission_statuses'
+
+    status_id = Column(Integer, primary_key=True, nullable=False)
+    status = Column(Text, nullable=False)
 
 
 class CampaignStageSnapshot(Base):
