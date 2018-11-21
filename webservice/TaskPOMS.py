@@ -75,10 +75,22 @@ class TaskPOMS:
 
     def __init__(self, ps):
         self.poms_service = ps
+        # keep some status vales around so we don't have to look them up...
+        self.init_status_done = False:
+
+    def init_statuses(self,dbhandle):
+        if init_status_done:
+             reuturn
+        self.status_Located = dbhandle.query(SubmissionStatuses.submission.id).filter(status == "Located").first()
+        self.status_Completed = dbhandle.query(SubmissionStatuses.submission.id).filter(status == "Completed").first()
+        self.status_New = dbhandle.query(SubmissionStatuses.submission.id).filter(status == "New").first()
+        self.init_status_done = True
 
 
     def wrapup_tasks(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res):
         # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
+
+        self.init_statuses(dbhandle)
         now = datetime.now(utc)
         res = ["wrapping up:"]
 
@@ -90,7 +102,7 @@ class TaskPOMS:
         #
         # move launch stuff etc, to one place, so we can keep the table rows
         sq = (dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label('latest')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id).subquery())
-        completed_sids = (dbhandle.query(SubmissionHistory.submission_id).join(sq,SubmissionHistory.submission_id == sq.c.submission_id).filter(SubmissionHistory.status == 'Completed', SubmissionHistory.created == sq.c.latest).all())
+        completed_sids = (dbhandle.query(SubmissionHistory.submission_id).join(sq,SubmissionHistory.submission_id == sq.c.submission_id).filter(SubmissionHistory.status_id == self.status_Completed,  SubmissionHistory.created == sq.c.latest).all())
 
         res.append("Completed submissions_ids: %s" % repr(list(completed_sids)))
 
@@ -300,7 +312,9 @@ class TaskPOMS:
         return s.submission_id
 
     def update_submission_status(self, dbhandle, submission_id, status):
+        self.init_statuses(dbhandle)
 
+        status_id = dbhandle.query(SubmissionStatuses.status_id).filter(SubmissionStatuses.name == status).first();
         # get our latest history...
         sq = (dbhandle.query(
                 func.max(SubmissionHistory.created).label('latest')
@@ -312,20 +326,20 @@ class TaskPOMS:
                .first())
 
         # don't roll back Located
-        if lasthist and lasthist.status == "Located":
+        if lasthist and lasthist.status_id == self.status_Located 
             return
 
         # don't roll back Completed
-        if lasthist and lasthist.status == "Completed" and status != "Located":
+        if lasthist and lasthist.status_id == self.status_Completed and status_id < self.status_Completed:
             return
 
         # don't put in duplicates
-        if lasthist and  lasthist.status == status:
+        if lasthist and  lasthist.status_id == status_id:
             return
 
         sh = SubmissionHistory()
         sh.submission_id = submission_id
-        sh.status = status
+        sh.status_id = status_id
         sh.created = datetime.now(utc)
         dbhandle.add(sh)
 
@@ -334,6 +348,7 @@ class TaskPOMS:
             find all the recent submissions that are still "New" but more
             than two hours old, and mark them "LaunchFailed"
         '''
+        self.init_statuses(dbhandle)
         now = datetime.now(utc)
         sq = (dbhandle.query(
                 SubmissionHistory.submission_id,
@@ -343,7 +358,7 @@ class TaskPOMS:
 
         failed_sids = (dbhandle.query(SubmissionHistory.submission_id)
                         .join(sq,SubmissionHistory.submission_id == sq.c.submission_id)
-                        .filter(SubmissionHistory.status == 'New',
+                        .filter(SubmissionHistory.status_id == self.status_New,
                                 SubmissionHistory.created == sq.c.latest,
                                 SubmissionHistory.created <
                                     (now - timedelta(hours=2)))
