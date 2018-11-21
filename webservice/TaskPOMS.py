@@ -76,14 +76,14 @@ class TaskPOMS:
     def __init__(self, ps):
         self.poms_service = ps
         # keep some status vales around so we don't have to look them up...
-        self.init_status_done = False:
+        self.init_status_done = False
 
     def init_statuses(self,dbhandle):
-        if init_status_done:
+        if self.init_status_done:
              reuturn
-        self.status_Located = dbhandle.query(SubmissionStatuses.submission.id).filter(status == "Located").first()
-        self.status_Completed = dbhandle.query(SubmissionStatuses.submission.id).filter(status == "Completed").first()
-        self.status_New = dbhandle.query(SubmissionStatuses.submission.id).filter(status == "New").first()
+        self.status_Located = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Located").first()
+        self.status_Completed = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Completed").first()
+        self.status_New = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()
         self.init_status_done = True
 
 
@@ -304,8 +304,9 @@ class TaskPOMS:
         dbhandle.add(s)
         dbhandle.flush()
 
+        self.init_statuses(dbhandle)
         if not submission_id:
-            sh = SubmissionHistory(submission_id = s.submission_id, status = "New", created=tim);
+            sh = SubmissionHistory(submission_id = s.submission_id, status_id = self.status_New, created=tim);
             dbhandle.add(sh)
         logit.log("get_task_id_for: returning %s" % s.submission_id)
         dbhandle.commit()
@@ -314,7 +315,7 @@ class TaskPOMS:
     def update_submission_status(self, dbhandle, submission_id, status):
         self.init_statuses(dbhandle)
 
-        status_id = dbhandle.query(SubmissionStatuses.status_id).filter(SubmissionStatuses.name == status).first();
+        status_id = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first();
         # get our latest history...
         sq = (dbhandle.query(
                 func.max(SubmissionHistory.created).label('latest')
@@ -326,7 +327,7 @@ class TaskPOMS:
                .first())
 
         # don't roll back Located
-        if lasthist and lasthist.status_id == self.status_Located 
+        if lasthist and lasthist.status_id == self.status_Located:
             return
 
         # don't roll back Completed
