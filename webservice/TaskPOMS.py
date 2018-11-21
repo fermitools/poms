@@ -80,7 +80,7 @@ class TaskPOMS:
 
     def init_statuses(self,dbhandle):
         if self.init_status_done:
-             reuturn
+             return
         self.status_Located = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Located").first()
         self.status_Completed = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Completed").first()
         self.status_New = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()
