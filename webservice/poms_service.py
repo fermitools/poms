@@ -138,41 +138,12 @@ class PomsService(object):
 
 
     @cherrypy.expose
-    @cherrypy.tools.json_out()
     @logit.logstartstop
-    def experiment_list(self):
-        return list(map((lambda x: x[0]),cherrypy.request.db.query(Experiment.experiment).all()))
-
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def experiment_members(self, experiment, *args, **kwargs):
-        trows = self.dbadminPOMS.experiment_members(cherrypy.request.db, experiment, *args, **kwargs)
-        return trows
-
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def member_experiments(self, username, *args, **kwargs):
-        trows = self.dbadminPOMS.member_experiments(cherrypy.request.db, username, *args, **kwargs)
-        return trows
-
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def experiment_edit(self, message=None):
-        experiments = self.dbadminPOMS.experiment_edit(cherrypy.request.db)
-        template = self.jinja_env.get_template('experiment_edit.html')
-        return template.render(message=message, experiments=experiments, help_page="ExperimentEditHelp")
-
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def experiment_authorize(self, *args, **kwargs):
-        if not cherrypy.session.get('experimenter').is_root():
-            raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-        message = self.dbadminPOMS.experiment_authorize(cherrypy.request.db, *args, **kwargs)
-        return self.experiment_edit(message)
+    def experiment_membership(self, *args, **kwargs):
+        experiment = cherrypy.session.get('experimenter').session_experiment
+        data = self.dbadminPOMS.experiment_membership(cherrypy.request.db, experiment, *args, **kwargs)
+        template = self.jinja_env.get_template('experiment_membership.html')
+        return template.render(data=data, help_page="MembershipHelp")
 
     # -----------------------------------------
     #################################
