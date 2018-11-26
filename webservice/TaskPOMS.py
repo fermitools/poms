@@ -707,9 +707,9 @@ class TaskPOMS:
             if cs.name == cs.campaign_obj.name:
                 ccname = cs.name
             elif cs.name[:len(cs.campaign_obj.name)] == cs.campaign_obj.name:
-                ccname = "%s::%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
+                ccname = "%s__%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
             else:
-                ccname = "%s::%s" % (cs.campaign_obj.name, cs.name)
+                ccname = "%s__%s" % (cs.campaign_obj.name, cs.name)
 
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
