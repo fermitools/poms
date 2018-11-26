@@ -1511,7 +1511,7 @@ class CampaignsPOMS:
                 jjid = 's' + str(th.submission_id)
                 full_jjid="unknown.0@unknown.un.known"
             else:
-                jjid = str(jjid).replace('fifebatch', '').replace('.fnal.gov', '')
+                jjid = 's%s<br>%s' % (str(th.submission_id), str(jjid).replace('fifebatch', '').replace('.fnal.gov', ''))
 
             if campaign is not None:
                 jjid += "<br>%s" % th.submission_obj.campaign_stage_obj.name
@@ -1661,7 +1661,7 @@ class CampaignsPOMS:
         '''
             get launch output file and return the lines as a list
         '''
-        q = dbhandle.query(CampaignStage, Campaign).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+        q = dbhandle.query(CampaignStage, Campaign).filter(CampaignStage.campaign_stage_id == campaign_stage_id).filter(CampaignStage.campaign_id == Campaign.campaign_id).first()
         campaign_name = q.Campaign.name
         stage_name = q.CampaignStage.name
         if login_setup_id:
