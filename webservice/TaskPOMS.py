@@ -702,6 +702,7 @@ class TaskPOMS:
 
             # isssue #20990
             csname = cs.name
+            cstype = cs.campaign_type
             cname = cs.campaign_obj.name
             if cs.name == cs.campaign_obj.name:
                 ccname = cs.name
@@ -790,6 +791,7 @@ class TaskPOMS:
             # POMS4 'properly named' items for poms_jobsub_wrapper
             "export POMS4_CAMPAIGN_STAGE_ID=%s" % csid,
             "export POMS4_CAMPAIGN_STAGE_NAME=%s" % csname,
+            "export POMS4_CAMPAIGN_STAGE_TYPE=%s" % cstype,
             "export POMS4_CAMPAIGN_ID=%s" % cid,
             "export POMS4_CAMPAIGN_NAME=%s" % cname,
             "export POMS4_SUBMISSION_ID=%s" % sid,
