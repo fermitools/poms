@@ -501,7 +501,8 @@ class TaskPOMS:
                     dim_bits = cd.file_patterns
                 else:
                     dim_bits = "file_name like '%s'" % cd.file_patterns
-                dims = "ischildof: (snapshot_for_project_name %s) and version %s and %s " % (s.project, s.campaign_stage_snapshot_obj.software_version, dim_bits)
+                cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
+                dims = "ischildof: (snapshot_for_project_name %s) and version %s and create_date > '%s' and %s" % (s.project, s.campaign_stage_snapshot_obj.software_version, cdate, dim_bits)
 
                 dname = "poms_depends_%d_%d" % (s.submission_id, i)
 
