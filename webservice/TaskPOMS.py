@@ -501,7 +501,8 @@ class TaskPOMS:
                     dim_bits = cd.file_patterns
                 else:
                     dim_bits = "file_name like '%s'" % cd.file_patterns
-                dims = "ischildof: (snapshot_for_project_name %s) and version %s and %s " % (s.project, s.campaign_stage_snapshot_obj.software_version, dim_bits)
+                cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
+                dims = "ischildof: (snapshot_for_project_name %s) and version %s and create_date > '%s' and %s" % (s.project, s.campaign_stage_snapshot_obj.software_version, cdate, dim_bits)
 
                 dname = "poms_depends_%d_%d" % (s.submission_id, i)
 
@@ -702,13 +703,14 @@ class TaskPOMS:
 
             # isssue #20990
             csname = cs.name
+            cstype = cs.campaign_type
             cname = cs.campaign_obj.name
             if cs.name == cs.campaign_obj.name:
                 ccname = cs.name
             elif cs.name[:len(cs.campaign_obj.name)] == cs.campaign_obj.name:
-                ccname = "%s::%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
+                ccname = "%s__%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
             else:
-                ccname = "%s::%s" % (cs.campaign_obj.name, cs.name)
+                ccname = "%s__%s" % (cs.campaign_obj.name, cs.name)
 
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
@@ -777,7 +779,7 @@ class TaskPOMS:
             #    front of the path and can intercept calls to "jobsub_submit"
             #
             "source /grid/fermiapp/products/common/etc/setups",
-            "setup poms_jobsub_wrapper -g poms31 -z /grid/fermiapp/products/common/db",
+            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
             lt.launch_setup % {
                 "dataset": dataset,
                 "experiment": exp,
@@ -785,11 +787,12 @@ class TaskPOMS:
                 "group": group,
                 "experimenter": experimenter_login,
             },
-            "UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms31 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db",
+            "UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db",
             "ups active",
             # POMS4 'properly named' items for poms_jobsub_wrapper
             "export POMS4_CAMPAIGN_STAGE_ID=%s" % csid,
             "export POMS4_CAMPAIGN_STAGE_NAME=%s" % csname,
+            "export POMS4_CAMPAIGN_STAGE_TYPE=%s" % cstype,
             "export POMS4_CAMPAIGN_ID=%s" % cid,
             "export POMS4_CAMPAIGN_NAME=%s" % cname,
             "export POMS4_SUBMISSION_ID=%s" % sid,
