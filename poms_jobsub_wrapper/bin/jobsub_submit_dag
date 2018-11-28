@@ -59,5 +59,6 @@ $JOBSUB_CLIENT_DIR/jobsub_submit_dag \
         -l "+POMS4_CAMPAIGN_NAME=$POMS4_CAMPAIGN_NAME" \
         -l "+POMS4_SUBMISSION_ID=$POMS4_SUBMISSION_ID" \
         -l "+POMS4_CAMPAIGN_TYPE=$POMS4_CAMPAIGN_TYPE" \
+        -l "+POMS4_TEST_LAUNCH=$POMS4_TEST_LAUNCH" \
         $POMS_JOBSUB_EXTRA \
         "$@" | slurp_jobid

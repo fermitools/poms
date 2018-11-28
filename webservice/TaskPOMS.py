@@ -637,6 +637,7 @@ class TaskPOMS:
         e = seshandle_get('experimenter')
         launcher_experimenter = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == launcher).first()
 
+
         if test_login_setup:
             lt = dbhandle.query(LoginSetup).filter(LoginSetup.login_setup_id == test_login_setup).first()
             dataset_override = "fake_test_dataset"
@@ -700,6 +701,13 @@ class TaskPOMS:
             launch_script = cd.launch_script
             csid = cs.campaign_stage_id
             cid = cs.campaign_id
+
+            # test_launch_flag is the one we send to Landscape via the
+            # condor classad  -- either this is a particular test launch
+            # or the whole campaign is marked as a test
+            test_launch_flag = test_launch
+            if cs.campaign_obj.campaign_type == "test":
+                test_launch_flag = True
 
             # isssue #20990
             csname = cs.name
@@ -797,6 +805,7 @@ class TaskPOMS:
             "export POMS4_CAMPAIGN_NAME=%s" % cname,
             "export POMS4_SUBMISSION_ID=%s" % sid,
             "export POMS4_CAMPAIGN_ID=%s" % cid,
+            "export POMS4_TEST_LAUNCH=%s" % test_launch_flag,
             "export POMS_CAMPAIGN_ID=%s" % csid,
             "export POMS_CAMPAIGN_NAME='%s'" % ccname,
             "export POMS_PARENT_TASK_ID=%s" % (parent_submission_id if parent_submission_id else ""),

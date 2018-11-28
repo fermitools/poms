@@ -671,6 +671,7 @@ class CampaignsPOMS:
             completion_type = kwargs.pop('ae_completion_type')
             completion_pct = kwargs.pop('ae_completion_pct')
             depends = kwargs.pop('ae_depends', "[]")
+
             param_overrides = kwargs.pop('ae_param_overrides', "[]")
             if param_overrides:
                 param_overrides = json.loads(param_overrides)
@@ -719,6 +720,11 @@ class CampaignsPOMS:
                 depends = json.loads(depends)
             else:
                 depends = {"campaign_stages": [], "file_patterns": []}
+
+            # fail if they're setting up a trivial infinite loop
+            if split_type in [None,'None','none','Draining'] and name in [x[0] for x in depends['campaign_stages']]:
+                raise err_res(404, "This edit would make an infinite loop. go Back in your browser and set cs_split_type or remove self-dependency.")
+
             try:
                 if action == 'add':
                     if not completion_pct:
