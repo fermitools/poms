@@ -1020,6 +1020,7 @@ class CampaignsPOMS:
             res.append("experiment=%s" % the_campaign.experiment)
             res.append("poms_role=%s" % the_campaign.creator_role)
             res.append("name=%s" % the_campaign.name)
+            res.append("state=%s" % ("Active" if the_campaign.active else "Inactive"))
 
             res.append("campaign_stage_list=%s" % ",".join(map(cnames.get, cidl)))
             res.append("")
@@ -1030,7 +1031,7 @@ class CampaignsPOMS:
                 # for (k, v) in defaults.items():
                 #     res.append("%s=%s" % (k, v))
                 res.append("vo_role=%s" % defaults.get("vo_role"))
-                res.append("state=%s" % defaults.get("state"))
+                res.append("state=%s" % defaults.get("state", "Inactive"))
                 res.append("software_version=%s" % defaults.get("software_version"))
                 res.append("dataset=%s" % defaults.get("dataset"))
                 res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
@@ -1046,7 +1047,6 @@ class CampaignsPOMS:
             res.append("[campaign_stage %s]" % cs.name)
             # res.append("name=%s" % cs.name)
             res.append("vo_role=%s" % cs.vo_role)
-            res.append("state=%s" % ("Active" if cs.active else "Inactive"))
             res.append("software_version=%s" % cs.software_version)
             res.append("dataset=%s" % cs.dataset)
             res.append("cs_split_type=%s" % cs.cs_split_type)
