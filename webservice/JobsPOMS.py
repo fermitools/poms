@@ -95,6 +95,7 @@ class JobsPOMS(object):
 
             launch_setup = launch_setup.strip()
             launch_setup = launch_setup.replace("\n",";")
+            launch_setup = launch_setup.strip(";")
             launch_setup = "source /grid/fermiapp/products/common/etc/setups;setup poms_client -g poms31 -z /grid/fermiapp/products/common/db;" + launch_setup
 
             cmd = """

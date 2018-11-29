@@ -1,0 +1,31 @@
+#!/bin/bash
+
+report=""
+while read line
+do
+    echo "$line"
+    case "x$line" in 
+    xUse?job?id*retrieve?output)
+       set : $line
+       report=$5
+       ;;
+
+    x*) 
+       ;;
+    esac
+done
+
+set -x
+
+case "x$POMS_TEST" in
+xint*) reporturl="https://poms-int.fnal.gov:8443/poms/update_submission" ;;
+x1*)   reporturl="https://fermicloud045.fnal.gov:8443/poms/update_submission" ;;
+x*)    reporturl="https://pomsgpvm01.fnal.gov:8443/poms/update_submission" ;;
+esac
+
+X509_USER_PROXY=${X509_USER_PROXY:-/tmp/x509up_u`id -u`}
+
+if [ "x$report" != "x" ] 
+then
+    wget -O - --no-check-certificate  --certificate=$X509_USER_PROXY --ca-certificate=$X509_USER_PROXY --ca-directory=/etc/grid-security/certificates --private-key=$X509_USER_PROXY "$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$report&status=New" 
+fi

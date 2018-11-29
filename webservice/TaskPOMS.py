@@ -75,10 +75,22 @@ class TaskPOMS:
 
     def __init__(self, ps):
         self.poms_service = ps
+        # keep some status vales around so we don't have to look them up...
+        self.init_status_done = False
+
+    def init_statuses(self,dbhandle):
+        if self.init_status_done:
+             return
+        self.status_Located = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Located").first()
+        self.status_Completed = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Completed").first()
+        self.status_New = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()
+        self.init_status_done = True
 
 
     def wrapup_tasks(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res):
         # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
+
+        self.init_statuses(dbhandle)
         now = datetime.now(utc)
         res = ["wrapping up:"]
 
@@ -90,7 +102,7 @@ class TaskPOMS:
         #
         # move launch stuff etc, to one place, so we can keep the table rows
         sq = (dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label('latest')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id).subquery())
-        completed_sids = (dbhandle.query(SubmissionHistory.submission_id).join(sq,SubmissionHistory.submission_id == sq.c.submission_id).filter(SubmissionHistory.status == 'Completed', SubmissionHistory.created == sq.c.latest).all())
+        completed_sids = (dbhandle.query(SubmissionHistory.submission_id).join(sq,SubmissionHistory.submission_id == sq.c.submission_id).filter(SubmissionHistory.status_id == self.status_Completed,  SubmissionHistory.created == sq.c.latest).all())
 
         res.append("Completed submissions_ids: %s" % repr(list(completed_sids)))
 
@@ -292,15 +304,18 @@ class TaskPOMS:
         dbhandle.add(s)
         dbhandle.flush()
 
+        self.init_statuses(dbhandle)
         if not submission_id:
-            sh = SubmissionHistory(submission_id = s.submission_id, status = "New", created=tim);
+            sh = SubmissionHistory(submission_id = s.submission_id, status_id = self.status_New, created=tim);
             dbhandle.add(sh)
         logit.log("get_task_id_for: returning %s" % s.submission_id)
         dbhandle.commit()
         return s.submission_id
 
     def update_submission_status(self, dbhandle, submission_id, status):
+        self.init_statuses(dbhandle)
 
+        status_id = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first();
         # get our latest history...
         sq = (dbhandle.query(
                 func.max(SubmissionHistory.created).label('latest')
@@ -312,20 +327,20 @@ class TaskPOMS:
                .first())
 
         # don't roll back Located
-        if lasthist and lasthist.status == "Located":
+        if lasthist and lasthist.status_id == self.status_Located:
             return
 
         # don't roll back Completed
-        if lasthist and lasthist.status == "Completed" and status != "Located":
+        if lasthist and lasthist.status_id == self.status_Completed and status_id < self.status_Completed:
             return
 
         # don't put in duplicates
-        if lasthist and  lasthist.status == status:
+        if lasthist and  lasthist.status_id == status_id:
             return
 
         sh = SubmissionHistory()
         sh.submission_id = submission_id
-        sh.status = status
+        sh.status_id = status_id
         sh.created = datetime.now(utc)
         dbhandle.add(sh)
 
@@ -334,6 +349,7 @@ class TaskPOMS:
             find all the recent submissions that are still "New" but more
             than two hours old, and mark them "LaunchFailed"
         '''
+        self.init_statuses(dbhandle)
         now = datetime.now(utc)
         sq = (dbhandle.query(
                 SubmissionHistory.submission_id,
@@ -343,7 +359,7 @@ class TaskPOMS:
 
         failed_sids = (dbhandle.query(SubmissionHistory.submission_id)
                         .join(sq,SubmissionHistory.submission_id == sq.c.submission_id)
-                        .filter(SubmissionHistory.status == 'New',
+                        .filter(SubmissionHistory.status_id == self.status_New,
                                 SubmissionHistory.created == sq.c.latest,
                                 SubmissionHistory.created <
                                     (now - timedelta(hours=2)))
@@ -485,7 +501,8 @@ class TaskPOMS:
                     dim_bits = cd.file_patterns
                 else:
                     dim_bits = "file_name like '%s'" % cd.file_patterns
-                dims = "ischildof: (snapshot_for_project_name %s) and version %s and %s " % (s.project, s.campaign_stage_snapshot_obj.software_version, dim_bits)
+                cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
+                dims = "ischildof: (snapshot_for_project_name %s) and version %s and create_date > '%s' and %s" % (s.project, s.campaign_stage_snapshot_obj.software_version, cdate, dim_bits)
 
                 dname = "poms_depends_%d_%d" % (s.submission_id, i)
 
@@ -686,13 +703,14 @@ class TaskPOMS:
 
             # isssue #20990
             csname = cs.name
+            cstype = cs.campaign_type
             cname = cs.campaign_obj.name
             if cs.name == cs.campaign_obj.name:
                 ccname = cs.name
             elif cs.name[:len(cs.campaign_obj.name)] == cs.campaign_obj.name:
-                ccname = "%s::%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
+                ccname = "%s__%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
             else:
-                ccname = "%s::%s" % (cs.campaign_obj.name, cs.name)
+                ccname = "%s__%s" % (cs.campaign_obj.name, cs.name)
 
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
@@ -761,7 +779,7 @@ class TaskPOMS:
             #    front of the path and can intercept calls to "jobsub_submit"
             #
             "source /grid/fermiapp/products/common/etc/setups",
-            "setup poms_jobsub_wrapper -g poms31 -z /grid/fermiapp/products/common/db",
+            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
             lt.launch_setup % {
                 "dataset": dataset,
                 "experiment": exp,
@@ -769,11 +787,12 @@ class TaskPOMS:
                 "group": group,
                 "experimenter": experimenter_login,
             },
-            "UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms31 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db",
+            "UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db",
             "ups active",
             # POMS4 'properly named' items for poms_jobsub_wrapper
             "export POMS4_CAMPAIGN_STAGE_ID=%s" % csid,
             "export POMS4_CAMPAIGN_STAGE_NAME=%s" % csname,
+            "export POMS4_CAMPAIGN_STAGE_TYPE=%s" % cstype,
             "export POMS4_CAMPAIGN_ID=%s" % cid,
             "export POMS4_CAMPAIGN_NAME=%s" % cname,
             "export POMS4_SUBMISSION_ID=%s" % sid,

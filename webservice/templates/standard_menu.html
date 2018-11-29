@@ -34,19 +34,14 @@
     </div>
   </div>
 
-  {% if current_experimenter and current_experimenter.is_root() %}
   <div class="item">
-    <div class="header">Administration</div>
+    <div class="header">Experiment</div>
     <div class="menu">
-      <a class="item" href="{{pomspath}}/experiment_edit">
-        Experiments
-      </a>
-      <a class="item" href="{{pomspath}}/raw_tables">
-        Raw Tables
+      <a class="item" href="{{pomspath}}/experiment_membership">
+        Membership (POMS)
       </a>
     </div>
   </div>
-  {% endif %}
 
   <div class="item">
     <div class="header">Campaign Data</div>
