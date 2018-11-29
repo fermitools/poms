@@ -49,3 +49,9 @@ ALTER TABLE submission_histories ADD CONSTRAINT fk_submission_histories_submissi
   REFERENCES submission_statuses( status_id )    ;
 
 ALTER TABLE submission_histories drop column status;
+
+-- Changes for active campaign
+
+ALTER TABLE campaigns ADD active bool DEFAULT true NOT NULL;
+ALTER TABLE campaign_stages DROP COLUMN active;
+ALTER TABLE campaign_stage_snapshots DROP COLUMN active;

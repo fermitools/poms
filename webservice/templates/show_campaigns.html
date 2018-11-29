@@ -31,6 +31,7 @@ Campaigns {%include 'help_button.html'%}
 {% set data = data|default({}) %}
 {%include "view_picker.html" %}
 </form>
+<div class="tiny ui teal button" onclick="pop_mark_inactive_modal();">Mark Campaign Active/Inactive</div>
 <div class="tiny ui teal button" onclick="pop_tag_untag_modal();">
     <i class="icon tags"></i>
     Tag/untag Campaigns
@@ -120,6 +121,7 @@ Campaigns {%include 'help_button.html'%}
                 <td>
                     {{s.experimenter_creator_obj.username}}
                 </td>
+                <td id="c_name_{{loop.index}}" style="display:none">{{s.name}}</td>
             </tr>
 
         {% endfor %}
@@ -127,6 +129,25 @@ Campaigns {%include 'help_button.html'%}
     </table>
     <input type="hidden" id="c_table_max_rows" value="{{tl|length}}">
 </div>
+
+<div class="ui modal small" id="mark_inactive_modal" style="padding: 0px 20px;">
+        <i class="close icon"></i>
+        <div class="header">
+            Campaigns to mark Active/Inactive
+        </div>
+        <form class="ui form" action="mark_campaign_active" method="GET">
+            <div class="field">
+                <textarea id="campaign_names" readonly></textarea>
+                <input type="hidden" id="campaign_ids" name="cl">
+            </div>
+            <div class="field">
+                <div class="ui horizontal large label">Mark selected campaigns as</div>
+                <input type="button" class="ui teal button" name="mark_active" id="mark_active" value="Active">
+                <input type="button" class="ui teal button" name="mark_inactive" id="mark_inactive" value="Inactive">
+            </div>
+            <div class="ui hidden divider"></div>
+        </form>
+    </div> <!-- Ends mark_inactive_modal -->
 
 <div class="ui modal" id="template_clone_modal">
   <i class="close icon"></i>
@@ -562,6 +583,29 @@ $('#tag_field').keypress(function (event) {
             },
             //minCharacters : 3
         });
+
+    function pop_mark_inactive_modal() {
+        alert( $("#view_picker_form input[name=view_active]").val() );
+        var max_rows = $("#c_table_max_rows").val();
+        var names = [];
+        var ids = [];
+        for (var i = 1; i <= max_rows; i++) {
+            if ( $("#c_cbox_"+i).is(":checked") ) {
+                names.push($("#c_name_"+i).html());
+                ids.push($("#c_id_"+i).html());
+            }
+        }
+        if (names.length == 0) {
+            mod_form= $("#display_message_modal").modal('show');
+            $("#poms_message_data").text("Please select one or more campaigns by using the appropriate check boxes.")
+        }
+        else {
+            mod_form = $("#mark_inactive_modal").modal('show');
+            $("#campaign_names").val( names.join('\n') );
+            $("#campaign_ids").val(ids.join(','))
+        }
+    }
+
 </script>
 
 {%endblock%}

@@ -1220,23 +1220,13 @@ class CampaignsPOMS:
         elif data['view_others']:
             q = q.filter(Campaign.creator != data['view_others'] )
 
-        # Campaigns don't have an active field(yet?)
-        # so we have a subquery to get the count of active stages per campaign
-        sq = (dbhandle.query(CampaignStage.campaign_id.label('campaign_id'),
-                             func.count(CampaignStage.campaign_stage_id).label('active_stages'))
-              .filter(CampaignStage.experiment == experimenter.session_experiment)
-              .filter(CampaignStage.active == True)
-              .group_by(CampaignStage.campaign_id)
-              .subquery())
-
-        logit.log(logit.DEBUG, "subquery for active: %s" % sq)
         if data['view_active'] and data['view_inactive']:
             pass
         elif data['view_active']:
 
-            q = q.outerjoin(sq, sq.c.campaign_id == Campaign.campaign_id).filter(sq.c.active_stages >= 1)
+            q = q.filter(Campaign.active == True)
         elif data['view_inactive']:
-            q = q.outerjoin(sq, sq.c.campaign_id == Campaign.campaign_id).filter(sq.c.active_stages == None)
+            q = q.filter(Campaign.active == False)
 
         tl = q.all()
 
@@ -1319,9 +1309,9 @@ class CampaignsPOMS:
         if data['view_active'] and data['view_inactive']:
             pass
         elif data['view_active']:
-            cq = cq.filter(CampaignStage.active == True)
+            cq = cq.filter(Campaign.active == True)
         elif data['view_inactive']:
-            cq = cq.filter(CampaignStage.active == False)
+            cq = cq.filter(Campaign.active == False)
 
 
         if campaign_ids:
@@ -1794,17 +1784,20 @@ class CampaignsPOMS:
 
     def make_stale_campaigns_inactive(self, dbhandle, err_res):
         '''
-            turn off active flag on campaign_stages without recent activity
+            turn off active flag on campaigns without recent activity
         '''
+        # Get stages run in the last 7 days - active stage list
         lastweek = datetime.now(utc) - timedelta(days=7)
         recent_sq = dbhandle.query(distinct(Submission.campaign_stage_id)).filter(Submission.created > lastweek)
-
-        stale = (dbhandle.query(CampaignStage)
-                 .filter(CampaignStage.created < lastweek, CampaignStage.campaign_stage_id.notin_(recent_sq), CampaignStage.active == True)
+        # Get the campaign_id of the active stages - active campaign list
+        active_campaigns = (dbhandle.query(distinct(CampaignStage.campaign_id))
+                            .filter(CampaignStage.campaign_stage_id.in_(recent_sq)))
+        # Turn off the active flag on stale campaigns.
+        stale = (dbhandle.query(Campaign)
+                 .filter(Campaign.active == True, Campaign.campaign_id.notin_(active_campaigns))
                  .update({"active": False}, synchronize_session=False))
 
         dbhandle.commit()
-
         return []
 
 
@@ -2072,3 +2065,32 @@ class CampaignsPOMS:
               .filter(LoginSetup.experiment == exp)
               .filter(LoginSetup.name == name).scalar())
         return id
+
+    def mark_campaign_active(self, campaign_id, is_active, cl, dbhandle, user):
+        logit.log("cl={}; is_active='{}'".format(cl, is_active))
+        auth_error = False
+        campaign_ids = (campaign_id or cl).split(",")
+        for cid in campaign_ids:
+            auth = False
+            campaign = dbhandle.query(Campaign).filter(Campaign.campaign_id == cid).first()
+            if campaign:
+                if user.is_root():
+                    auth = True
+                elif user.session_experiment == campaign.experiment:
+                    if user.is_coordinator():
+                        auth = True
+                    elif user.is_production() and campaign.creator_role == 'production':
+                        auth = True
+                    elif user.session_role == campaign.creator_role and user.experimenter_id == campaign.creator:
+                        auth = True
+                    else:
+                        auth_error = True
+                else:
+                    auth_error = True
+                if auth:
+                    campaign.active = (is_active in ('True', 'Active', 'true', '1'))
+                    dbhandle.add(campaign)
+                    dbhandle.commit()
+                else:
+                    auth_error = True
+        return auth_error

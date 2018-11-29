@@ -567,39 +567,14 @@ class PomsService(object):
 # h4. mark_campaign_active
     @cherrypy.expose
     @logit.logstartstop
-    def mark_campaign_active(self, campaign_stage_id=None, is_active="", cl=None):
-
-        logit.log("cl={}; is_active='{}'".format(cl, is_active))
-        campaign_ids = (campaign_stage_id or cl).split(",")
-        for cid in campaign_ids:
-            auth = False
-            campaign = cherrypy.request.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == cid).first()
-            if campaign:
-                user = cherrypy.session.get('experimenter')
-                if user.is_root():
-                    auth = True
-                elif user.session_experiment == campaign.experiment:
-                    if user.is_coordinator():
-                        auth = True
-                    elif user.is_production() and campaign.creator_role == 'production':
-                        auth = True
-                    elif user.session_role == campaign.creator_role and user.experimenter_id == campaign.creator:
-                        auth = True
-                    else:
-                        raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-                else:
-                    raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-                if auth:
-                    campaign.active = (is_active in ('True', 'Active', 'true', '1'))
-                    cherrypy.request.db.add(campaign)
-                    cherrypy.request.db.commit()
-                else:
-                    raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-        if campaign_stage_id:
-            raise cherrypy.HTTPRedirect("campaign_info?campaign_stage_id=%s" % campaign_stage_id)
+    def mark_campaign_active(self, campaign_id=None, is_active="", cl=None):
+        auth_error = self.campaignsPOMS.mark_campaign_active(campaign_id, is_active, cl, cherrypy.request.db, user=cherrypy.session.get('experimenter'))
+        if auth_error:
+            raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
+        elif campaign_id:
+            raise cherrypy.HTTPRedirect("campaign_info?campaign_stage_id=%s" % campaign_id)
         elif cl:
             raise cherrypy.HTTPRedirect("show_campaign_stages")
-
 
 # h4. mark_campaign_hold
     @cherrypy.expose
