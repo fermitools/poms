@@ -26,7 +26,7 @@ Campaigns {%include 'help_button.html'%}
 
 </style>
 
-<form method="GET" action="show_campaigns">
+<form name="view_picker_form" id="view_picker_form" method="GET" action="show_campaigns">
 {% set has_active=True %}
 {% set data = data|default({}) %}
 {%include "view_picker.html" %}
@@ -130,7 +130,7 @@ Campaigns {%include 'help_button.html'%}
     <input type="hidden" id="c_table_max_rows" value="{{tl|length}}">
 </div>
 
-<div class="ui modal small" id="mark_inactive_modal" style="padding: 0px 20px;">
+<div class="ui modal small" name="mark_inactive_modal" id="mark_inactive_modal" style="padding: 0px 20px;">
         <i class="close icon"></i>
         <div class="header">
             Campaigns to mark Active/Inactive
@@ -140,10 +140,22 @@ Campaigns {%include 'help_button.html'%}
                 <textarea id="campaign_names" readonly></textarea>
                 <input type="hidden" id="campaign_ids" name="cl">
             </div>
+            <div class="center inline fields">
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input type="radio" name="is_active" value="Active" checked="checked">
+                        <label>Active</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input type="radio" name="is_active" value="Inactive">
+                        <label>Inactive</label>
+                    </div>
+                </div>
+            </div>
             <div class="field">
-                <div class="ui horizontal large label">Mark selected campaigns as</div>
-                <input type="button" class="ui teal button" name="mark_active" id="mark_active" value="Active">
-                <input type="button" class="ui teal button" name="mark_inactive" id="mark_inactive" value="Inactive">
+                <input type="submit" class="ui teal button" name="Submit">
             </div>
             <div class="ui hidden divider"></div>
         </form>
@@ -584,8 +596,23 @@ $('#tag_field').keypress(function (event) {
             //minCharacters : 3
         });
 
+    $("#mark_inactive_modal").submit(function(event) {
+        event.preventDefault();
+        var formdata = {'is_active': $('input[name=is_active]:checked').val(),
+                        'cl': $("#campaign_ids").val()
+                       };
+        $.ajax({
+            url: "{{pomspath}}/mark_campaign_active",
+            type: 'GET',
+            data: formdata,
+            success: function(data){
+                $('#mark_inactive_modal').modal('toggle');
+                location.reload(true);
+            }
+        })
+    });
+
     function pop_mark_inactive_modal() {
-        alert( $("#view_picker_form input[name=view_active]").val() );
         var max_rows = $("#c_table_max_rows").val();
         var names = [];
         var ids = [];

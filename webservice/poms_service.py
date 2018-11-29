@@ -571,10 +571,6 @@ class PomsService(object):
         auth_error = self.campaignsPOMS.mark_campaign_active(campaign_id, is_active, cl, cherrypy.request.db, user=cherrypy.session.get('experimenter'))
         if auth_error:
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-        elif campaign_id:
-            raise cherrypy.HTTPRedirect("campaign_info?campaign_stage_id=%s" % campaign_id)
-        elif cl:
-            raise cherrypy.HTTPRedirect("show_campaign_stages")
 
 # h4. mark_campaign_hold
     @cherrypy.expose
