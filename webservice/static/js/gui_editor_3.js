@@ -794,10 +794,10 @@ gui_editor.prototype.ini2json = function (s) {
             res.push(`"name": "${sn}",`);                   // Add section name as a value
           }
       } else {                                              // Section body
-          l = mwm_utils.trim_blanks(l)
+          l = mwm_utils.trim_blanks(l);
           l = l.replace(/%%/g,'%');
           k_v = l.match(/([^ =:]*) *[=:] *(.*)/);
-          console.log(k_v)
+          console.log(k_v);
           k_v.shift();
           k = k_v.shift();
           v = k_v.join('=').replace(/\\/g, '\\\\').replace(/"/g,'\\"');
