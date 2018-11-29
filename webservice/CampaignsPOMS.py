@@ -1435,19 +1435,19 @@ class CampaignsPOMS:
 
 
     # @pomscache_10.cache_on_arguments()
-    def campaign_time_bars(self, dbhandle, campaign_stage_id=None, campaign=None, tmin=None, tmax=None, tdays=1):
+    def campaign_time_bars(self, dbhandle, experimenter, campaign_stage_id=None, campaign=None, tmin=None, tmax=None, tdays=1):
         """
             Give time-bars for Tasks for this campaign in a time window
             using the time_grid code
         """
-        if campaign_stage_id == None:
+        if campaign_stage_id is None:
             base_link = 'campaign_time_bars?campaign={}&'.format(campaign)
         else:
             base_link = 'campaign_time_bars?campaign_stage_id={}&'.format(campaign_stage_id)
 
         (
             tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays
-        ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,base_link)
+        ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, base_link)
         tg = time_grid.time_grid()
         key = tg.key()
 
@@ -1458,14 +1458,17 @@ class CampaignsPOMS:
         sl = deque()
 
         if campaign_stage_id is not None:
-            icampaign_id = int(campaign_stage_id)
-            q = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == icampaign_id)
+            icampaign_stage_id = int(campaign_stage_id)
+            q = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == icampaign_stage_id)
             cpl = q.all()
             name = cpl[0].name
-        elif campaign is not None and campaign != "":
-            q = dbhandle.query(CampaignStage).join(Campaign).filter(
-                CampaignStage.campaign_id == Campaign.campaign_id,
-                Campaign.name == campaign)
+        elif campaign not in (None, ""):
+            q = (dbhandle.query(CampaignStage).join(Campaign)
+                 .filter(CampaignStage.campaign_id == Campaign.campaign_id,
+                         Campaign.name == campaign,
+                         Campaign.experiment == experimenter.session_experiment
+                         )
+                 )
             cpl = q.all()
             name = campaign
         else:
@@ -1483,14 +1486,17 @@ class CampaignsPOMS:
               .filter(Submission.campaign_stage_id.in_(cidl),
                       SubmissionHistory.submission_id == Submission.submission_id,
                       or_(and_(Submission.created > tmin, Submission.created < tmax),
-                          and_(Submission.updated > tmin,
-                               Submission.updated < tmax))).order_by(SubmissionHistory.submission_id,
-                                                                     SubmissionHistory.created).all())
+                          and_(Submission.updated > tmin, Submission.updated < tmax))
+                      )
+              .order_by(SubmissionHistory.submission_id, SubmissionHistory.created)
+              .all())
         items = deque()
         extramap = OrderedDict()
 
-        url_template_plain= "https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
-        url_template_dag= "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
+        url_template_plain = ("https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?"
+                              "var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1")
+        url_template_dag = ("https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?"
+                            "var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1")
 
         failedlaunch_url_template = self.poms_service.path + "/list_launch_file?campaign_stage_id=%(campaign_stage_id)s&fname=%(created_s)s_%(creator)s"
 
@@ -1540,8 +1546,7 @@ class CampaignsPOMS:
                 items[-1].url = url_template_plain % items[-1].__dict__
 
         logit.log("campaign_time_bars: items: " + repr(items))
-        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id',
-                                    extramap=extramap)
+        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', extramap=extramap)
         return "", blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
 
@@ -1803,10 +1808,13 @@ class CampaignsPOMS:
 
     def echo(self, dbhandle, sesshandle, *args, **kwargs):
         form = kwargs.get('form', None)
-        #VP~ print("******************* Get the form: '{}'".format(form))
+        print("******************* Get the kwargs: '{}'".format(kwargs))
+        print("******************* Get the form: '{}'".format(form))
         everything = json.loads(form)
+        # print("******************* Get the JSON: '{}'".format(cherrypy.request.json))
+        # everything = cherrypy.request.json['form']
         stages = everything['stages']
-        print("############## {}".format([s.get('id') for s in stages]))
+        # print("############## {}".format([s.get('id') for s in stages]))
         return stages
 
 
@@ -2036,7 +2044,8 @@ class CampaignsPOMS:
             dbhandle.add(dep)
             dbhandle.flush()
         dbhandle.commit()
-        return misc
+        print("+++++++++++++++ Campaign saved")
+        return {'status': "201 Created", 'message': "OK"}
 
 
     def get_jobtype_id(self, dbhandle, sesshandle, name):
