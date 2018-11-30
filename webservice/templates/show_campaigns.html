@@ -184,7 +184,7 @@ Campaigns {%include 'help_button.html'%}
       </div>
       <div class="actions">
         <div class="ui button deny red">Cancel</div>
-        <input type="submit" id="clone" name="clone" value="Clone" class="ui button teal" />
+        <input type="submit" id="clone" name="clone" value="Clone" class="ui button teal">
       </div>
       <input type="hidden" id="campaign" name="campaign">
     </form>
@@ -200,13 +200,14 @@ Campaigns {%include 'help_button.html'%}
     <div class="ui hidden divider"></div>
     <div class="ui text container">
         <div class="ui ignored warning message">
-                    <p>
-                        This will delete all stages of the campaign shown below.
-                        It will not delete job types or login setups.
-                        Deletions will <b>not</b> occur if the campaign has been submitted.
-                    </p>
+            <p>
+                This will delete all stages of the campaign shown below.
+                It will not delete job types or login setups.
+                Deletions will <b>not</b> occur if the campaign has been submitted.
+            </p>
         </div>
-        <form id="delete_campaign_form" class="ui form" method="POST" action="{{pomspath}}/show_campaigns">
+        <!-- <form id="delete_campaign_form" class="ui form" method="POST" action="{{pomspath}}/show_campaigns"> -->
+        <form id="delete_campaign_form" class="ui form" method="POST" action="" onsubmit="this.action=location.href">
             <div class="one field">
                 <div class="field">
                     <label>Campaign to Delete</label>
@@ -215,7 +216,7 @@ Campaigns {%include 'help_button.html'%}
             </div>
             <div class="actions">
                 <div class="ui button deny green">Cancel</div>
-                <input type="submit" value="Delete" class="ui button red" />
+                <input type="submit" value="Delete" class="ui button red">
             </div>
             <input type="hidden" id="del_campaign_id" name="del_campaign_id">
             <input type="hidden" id="action" name="action" value="delete">

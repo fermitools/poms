@@ -168,7 +168,7 @@ class CampaignsPOMS:
 
         # Find templates
         if exp:  # cuz the default is find
-            if kwargs.get('update_view',None) == None:
+            if kwargs.get('update_view', None) is None:
                 # view flags not specified, use defaults
                 data['view_active'] = 'view_active'
                 data['view_inactive'] = None
@@ -1224,7 +1224,6 @@ class CampaignsPOMS:
         if data['view_active'] and data['view_inactive']:
             pass
         elif data['view_active']:
-
             q = q.filter(Campaign.active == True)
         elif data['view_inactive']:
             q = q.filter(Campaign.active == False)
