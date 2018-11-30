@@ -102,7 +102,7 @@ class TaskPOMS:
         #
         # move launch stuff etc, to one place, so we can keep the table rows
 
-        cpairs = dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status).label('maxstat')).filter(Submissionhistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id).with(maxstat == self.status_Completed)
+        cpairs = dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label('maxstat')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id).having(func.max(SubmissionHistory.status_id) == self.status_Completed).all()
 
         completed_sids = [x[0] for x in cpairs]
 
@@ -355,7 +355,7 @@ class TaskPOMS:
         now = datetime.now(utc)
 
         
-        newtups = dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status).label('maxstat'),func.min(SubmissionHistory.created).lable('firsttime')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=7)).with(maxstat == self.status_New, firsttime < datetime.now(utc) - timedleta(hours=4).all()
+        newtups = dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label('maxstat'),func.min(SubmissionHistory.created).lable('firsttime')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=7)).having(func.max(SubmissionHistory.status_id) == self.status_New, firsttime < datetime.now(utc) - timedleta(hours=4)).all()
 
         failed_sids = [x[0] for x in newtups]
 
