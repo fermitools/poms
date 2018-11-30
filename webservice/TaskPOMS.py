@@ -101,8 +101,10 @@ class TaskPOMS:
         mark_located = deque()
         #
         # move launch stuff etc, to one place, so we can keep the table rows
-        sq = (dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label('latest')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id).subquery())
-        completed_sids = (dbhandle.query(SubmissionHistory.submission_id).join(sq,SubmissionHistory.submission_id == sq.c.submission_id).filter(SubmissionHistory.status_id == self.status_Completed,  SubmissionHistory.created == sq.c.latest).all())
+
+        cpairs = dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status).label('maxstat')).filter(Submissionhistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id).with(maxstat == self.status_Completed)
+
+        completed_sids = [x[0] for x in cpairs]
 
         res.append("Completed submissions_ids: %s" % repr(list(completed_sids)))
 
@@ -351,19 +353,11 @@ class TaskPOMS:
         '''
         self.init_statuses(dbhandle)
         now = datetime.now(utc)
-        sq = (dbhandle.query(
-                SubmissionHistory.submission_id,
-                func.max(SubmissionHistory.created).label('latest')
-              ).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=7))
-               .group_by(SubmissionHistory.submission_id).subquery())
 
-        failed_sids = (dbhandle.query(SubmissionHistory.submission_id)
-                        .join(sq,SubmissionHistory.submission_id == sq.c.submission_id)
-                        .filter(SubmissionHistory.status_id == self.status_New,
-                                SubmissionHistory.created == sq.c.latest,
-                                SubmissionHistory.created <
-                                    (now - timedelta(hours=2)))
-                        .all())
+        
+        newtups = dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status).label('maxstat'),func.min(SubmissionHistory.created).lable('firsttime')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=7)).with(maxstat == self.status_New, firsttime < datetime.now(utc) - timedleta(hours=4).all()
+
+        failed_sids = [x[0] for x in newtups]
 
         res = []
         for submission_id in failed_sids:
