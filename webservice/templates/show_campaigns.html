@@ -31,6 +31,7 @@ Campaigns {%include 'help_button.html'%}
 {% set data = data|default({}) %}
 {%include "view_picker.html" %}
 </form>
+<br>
 <div class="tiny ui teal button" onclick="pop_mark_inactive_modal();">Mark Campaign Active/Inactive</div>
 <div class="tiny ui teal button" onclick="pop_tag_untag_modal();">
     <i class="icon tags"></i>
@@ -48,7 +49,8 @@ Campaigns {%include 'help_button.html'%}
                 <th data-sorter="false" data-filter="false">Id</th>
                 <th data-sorter="false" data-filter="false" align="center">
                         Select All<br><input type="checkbox" id="c_cbox_all" onchange="do_checkall();">
-                <th>Campaign Name </th>
+                <th>Campaign Name</th>
+                <th>Active</th>
                 <th>Submissions<br>Running</th>
                 <th data-sorter="false" data-filter="false">Submission<br>History</th>
                 <th data-sorter="false" data-filter="false">Dependencies</th>
@@ -68,6 +70,7 @@ Campaigns {%include 'help_button.html'%}
                 <td id="c_id_{{loop.index}}">{{s.campaign_id}}</td>
                 <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
                 <td><a class="stagelink" href="{{pomspath}}/show_campaign_stages?campaign_name={{s.name|urlencode}}">{{s.name}}</a></td>
+                <td align="center">{{ 'Yes' if s.active else 'No' }}</td>
 		        <!-- <td> <button onclick="call_show_campaign_stages( '{{s.name}}' )"> {{s.name}} </td> -->
                 <td id="running_{{s.campaign_id}}" style="text-align:right; padding-right: 1em">...</td>
                 <td>

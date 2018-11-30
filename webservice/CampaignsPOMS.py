@@ -661,7 +661,7 @@ class CampaignsPOMS:
             name = kwargs.pop('ae_stage_name')
             if isinstance(name, str):
                 name = name.strip()
-            active = (kwargs.pop('ae_active') in ('True', 'true', '1', 'Active', True, 1))
+            # active = (kwargs.pop('ae_active') in ('True', 'true', '1', 'Active', True, 1))
             split_type = kwargs.pop('ae_split_type', None)
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
@@ -727,7 +727,8 @@ class CampaignsPOMS:
                         message = 'Your active role must be analysis or production to add a campaign.'
                     else:
                         cs = CampaignStage(name=name, experiment=exp, vo_role=vo_role,
-                                           active=active, cs_split_type=split_type,
+                                        #    active=active,
+                                           cs_split_type=split_type,
                                            software_version=software_version, dataset=dataset,
                                            test_param_overrides=test_param_overrides,
                                            param_overrides=param_overrides, login_setup_id=login_setup_id,
@@ -742,7 +743,7 @@ class CampaignsPOMS:
                     columns = {
                         "name": name,
                         "vo_role": vo_role,
-                        "active": active,
+                        # "active": active,
                         "cs_split_type": split_type,
                         "software_version": software_version,
                         "dataset": dataset,
@@ -840,12 +841,12 @@ class CampaignsPOMS:
             elif data['view_others']:
                 cquery = cquery.filter(CampaignStage.creator != data['view_others'])
 
-            if data['view_active'] and data['view_inactive']:
-                pass
-            elif data['view_active']:
-                cquery = cquery.filter(CampaignStage.active == True)
-            elif data['view_inactive']:
-                cquery = cquery.filter(CampaignStage.active == False)
+            # if data['view_active'] and data['view_inactive']:             # Not relevant anymore
+            #     pass
+            # elif data['view_active']:
+            #     cquery = cquery.filter(CampaignStage.active == True)
+            # elif data['view_inactive']:
+            #     cquery = cquery.filter(CampaignStage.active == False)
 
             cquery = cquery.order_by(Campaign.name, CampaignStage.name)
             # this bit has to go onto cquery last
@@ -1031,7 +1032,7 @@ class CampaignsPOMS:
                 # for (k, v) in defaults.items():
                 #     res.append("%s=%s" % (k, v))
                 res.append("vo_role=%s" % defaults.get("vo_role"))
-                res.append("state=%s" % defaults.get("state", "Inactive"))
+                # res.append("state=%s" % defaults.get("state", "Inactive"))
                 res.append("software_version=%s" % defaults.get("software_version"))
                 res.append("dataset=%s" % defaults.get("dataset"))
                 res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
