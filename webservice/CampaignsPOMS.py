@@ -168,7 +168,7 @@ class CampaignsPOMS:
 
         # Find templates
         if exp:  # cuz the default is find
-            if kwargs.get('update_view',None) == None:
+            if kwargs.get('update_view', None) is None:
                 # view flags not specified, use defaults
                 data['view_active'] = 'view_active'
                 data['view_inactive'] = None
@@ -661,7 +661,7 @@ class CampaignsPOMS:
             name = kwargs.pop('ae_stage_name')
             if isinstance(name, str):
                 name = name.strip()
-            active = (kwargs.pop('ae_active') in ('True', 'true', '1', 'Active', True, 1))
+            # active = (kwargs.pop('ae_active') in ('True', 'true', '1', 'Active', True, 1))
             split_type = kwargs.pop('ae_split_type', None)
             vo_role = kwargs.pop('ae_vo_role')
             software_version = kwargs.pop('ae_software_version')
@@ -733,7 +733,8 @@ class CampaignsPOMS:
                         message = 'Your active role must be analysis or production to add a campaign.'
                     else:
                         cs = CampaignStage(name=name, experiment=exp, vo_role=vo_role,
-                                           active=active, cs_split_type=split_type,
+                                        #    active=active,
+                                           cs_split_type=split_type,
                                            software_version=software_version, dataset=dataset,
                                            test_param_overrides=test_param_overrides,
                                            param_overrides=param_overrides, login_setup_id=login_setup_id,
@@ -748,7 +749,7 @@ class CampaignsPOMS:
                     columns = {
                         "name": name,
                         "vo_role": vo_role,
-                        "active": active,
+                        # "active": active,
                         "cs_split_type": split_type,
                         "software_version": software_version,
                         "dataset": dataset,
@@ -846,12 +847,12 @@ class CampaignsPOMS:
             elif data['view_others']:
                 cquery = cquery.filter(CampaignStage.creator != data['view_others'])
 
-            if data['view_active'] and data['view_inactive']:
-                pass
-            elif data['view_active']:
-                cquery = cquery.filter(CampaignStage.active == True)
-            elif data['view_inactive']:
-                cquery = cquery.filter(CampaignStage.active == False)
+            # if data['view_active'] and data['view_inactive']:             # Not relevant anymore
+            #     pass
+            # elif data['view_active']:
+            #     cquery = cquery.filter(CampaignStage.active == True)
+            # elif data['view_inactive']:
+            #     cquery = cquery.filter(CampaignStage.active == False)
 
             cquery = cquery.order_by(Campaign.name, CampaignStage.name)
             # this bit has to go onto cquery last
@@ -1026,6 +1027,7 @@ class CampaignsPOMS:
             res.append("experiment=%s" % the_campaign.experiment)
             res.append("poms_role=%s" % the_campaign.creator_role)
             res.append("name=%s" % the_campaign.name)
+            res.append("state=%s" % ("Active" if the_campaign.active else "Inactive"))
 
             res.append("campaign_stage_list=%s" % ",".join(map(cnames.get, cidl)))
             res.append("")
@@ -1036,7 +1038,7 @@ class CampaignsPOMS:
                 # for (k, v) in defaults.items():
                 #     res.append("%s=%s" % (k, v))
                 res.append("vo_role=%s" % defaults.get("vo_role"))
-                res.append("state=%s" % defaults.get("state"))
+                # res.append("state=%s" % defaults.get("state", "Inactive"))
                 res.append("software_version=%s" % defaults.get("software_version"))
                 res.append("dataset=%s" % defaults.get("dataset"))
                 res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
@@ -1052,7 +1054,6 @@ class CampaignsPOMS:
             res.append("[campaign_stage %s]" % cs.name)
             # res.append("name=%s" % cs.name)
             res.append("vo_role=%s" % cs.vo_role)
-            res.append("state=%s" % ("Active" if cs.active else "Inactive"))
             res.append("software_version=%s" % cs.software_version)
             res.append("dataset=%s" % cs.dataset)
             res.append("cs_split_type=%s" % cs.cs_split_type)
@@ -1226,23 +1227,12 @@ class CampaignsPOMS:
         elif data['view_others']:
             q = q.filter(Campaign.creator != data['view_others'] )
 
-        # Campaigns don't have an active field(yet?)
-        # so we have a subquery to get the count of active stages per campaign
-        sq = (dbhandle.query(CampaignStage.campaign_id.label('campaign_id'),
-                             func.count(CampaignStage.campaign_stage_id).label('active_stages'))
-              .filter(CampaignStage.experiment == experimenter.session_experiment)
-              .filter(CampaignStage.active == True)
-              .group_by(CampaignStage.campaign_id)
-              .subquery())
-
-        logit.log(logit.DEBUG, "subquery for active: %s" % sq)
         if data['view_active'] and data['view_inactive']:
             pass
         elif data['view_active']:
-
-            q = q.outerjoin(sq, sq.c.campaign_id == Campaign.campaign_id).filter(sq.c.active_stages >= 1)
+            q = q.filter(Campaign.active == True)
         elif data['view_inactive']:
-            q = q.outerjoin(sq, sq.c.campaign_id == Campaign.campaign_id).filter(sq.c.active_stages == None)
+            q = q.filter(Campaign.active == False)
 
         tl = q.all()
 
@@ -1325,9 +1315,9 @@ class CampaignsPOMS:
         if data['view_active'] and data['view_inactive']:
             pass
         elif data['view_active']:
-            cq = cq.filter(CampaignStage.active == True)
+            cq = cq.filter(Campaign.active == True)
         elif data['view_inactive']:
-            cq = cq.filter(CampaignStage.active == False)
+            cq = cq.filter(Campaign.active == False)
 
 
         if campaign_ids:
@@ -1451,19 +1441,19 @@ class CampaignsPOMS:
 
 
     # @pomscache_10.cache_on_arguments()
-    def campaign_time_bars(self, dbhandle, campaign_stage_id=None, campaign=None, tmin=None, tmax=None, tdays=1):
+    def campaign_time_bars(self, dbhandle, experimenter, campaign_stage_id=None, campaign=None, tmin=None, tmax=None, tdays=1):
         """
             Give time-bars for Tasks for this campaign in a time window
             using the time_grid code
         """
-        if campaign_stage_id == None:
+        if campaign_stage_id is None:
             base_link = 'campaign_time_bars?campaign={}&'.format(campaign)
         else:
             base_link = 'campaign_time_bars?campaign_stage_id={}&'.format(campaign_stage_id)
 
         (
             tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays
-        ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,base_link)
+        ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, base_link)
         tg = time_grid.time_grid()
         key = tg.key()
 
@@ -1474,14 +1464,17 @@ class CampaignsPOMS:
         sl = deque()
 
         if campaign_stage_id is not None:
-            icampaign_id = int(campaign_stage_id)
-            q = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == icampaign_id)
+            icampaign_stage_id = int(campaign_stage_id)
+            q = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == icampaign_stage_id)
             cpl = q.all()
             name = cpl[0].name
-        elif campaign is not None and campaign != "":
-            q = dbhandle.query(CampaignStage).join(Campaign).filter(
-                CampaignStage.campaign_id == Campaign.campaign_id,
-                Campaign.name == campaign)
+        elif campaign not in (None, ""):
+            q = (dbhandle.query(CampaignStage).join(Campaign)
+                 .filter(CampaignStage.campaign_id == Campaign.campaign_id,
+                         Campaign.name == campaign,
+                         Campaign.experiment == experimenter.session_experiment
+                         )
+                 )
             cpl = q.all()
             name = campaign
         else:
@@ -1499,14 +1492,17 @@ class CampaignsPOMS:
               .filter(Submission.campaign_stage_id.in_(cidl),
                       SubmissionHistory.submission_id == Submission.submission_id,
                       or_(and_(Submission.created > tmin, Submission.created < tmax),
-                          and_(Submission.updated > tmin,
-                               Submission.updated < tmax))).order_by(SubmissionHistory.submission_id,
-                                                                     SubmissionHistory.created).all())
+                          and_(Submission.updated > tmin, Submission.updated < tmax))
+                      )
+              .order_by(SubmissionHistory.submission_id, SubmissionHistory.created)
+              .all())
         items = deque()
         extramap = OrderedDict()
 
-        url_template_plain= "https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
-        url_template_dag= "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1"
+        url_template_plain = ("https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?"
+                              "var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1")
+        url_template_dag = ("https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?"
+                            "var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1")
 
         failedlaunch_url_template = self.poms_service.path + "/list_launch_file?campaign_stage_id=%(campaign_stage_id)s&fname=%(created_s)s_%(creator)s"
 
@@ -1556,8 +1552,7 @@ class CampaignsPOMS:
                 items[-1].url = url_template_plain % items[-1].__dict__
 
         logit.log("campaign_time_bars: items: " + repr(items))
-        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id',
-                                    extramap=extramap)
+        blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', extramap=extramap)
         return "", blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
 
@@ -1800,26 +1795,32 @@ class CampaignsPOMS:
 
     def make_stale_campaigns_inactive(self, dbhandle, err_res):
         '''
-            turn off active flag on campaign_stages without recent activity
+            turn off active flag on campaigns without recent activity
         '''
+        # Get stages run in the last 7 days - active stage list
         lastweek = datetime.now(utc) - timedelta(days=7)
         recent_sq = dbhandle.query(distinct(Submission.campaign_stage_id)).filter(Submission.created > lastweek)
-
-        stale = (dbhandle.query(CampaignStage)
-                 .filter(CampaignStage.created < lastweek, CampaignStage.campaign_stage_id.notin_(recent_sq), CampaignStage.active == True)
+        # Get the campaign_id of the active stages - active campaign list
+        active_campaigns = (dbhandle.query(distinct(CampaignStage.campaign_id))
+                            .filter(CampaignStage.campaign_stage_id.in_(recent_sq)))
+        # Turn off the active flag on stale campaigns.
+        stale = (dbhandle.query(Campaign)
+                 .filter(Campaign.active == True, Campaign.campaign_id.notin_(active_campaigns))
                  .update({"active": False}, synchronize_session=False))
 
         dbhandle.commit()
-
         return []
 
 
     def echo(self, dbhandle, sesshandle, *args, **kwargs):
         form = kwargs.get('form', None)
-        #VP~ print("******************* Get the form: '{}'".format(form))
+        print("******************* Get the kwargs: '{}'".format(kwargs))
+        print("******************* Get the form: '{}'".format(form))
         everything = json.loads(form)
+        # print("******************* Get the JSON: '{}'".format(cherrypy.request.json))
+        # everything = cherrypy.request.json['form']
         stages = everything['stages']
-        print("############## {}".format([s.get('id') for s in stages]))
+        # print("############## {}".format([s.get('id') for s in stages]))
         return stages
 
 
@@ -2049,7 +2050,8 @@ class CampaignsPOMS:
             dbhandle.add(dep)
             dbhandle.flush()
         dbhandle.commit()
-        return misc
+        print("+++++++++++++++ Campaign saved")
+        return {'status': "201 Created", 'message': "OK"}
 
 
     def get_jobtype_id(self, dbhandle, sesshandle, name):
@@ -2078,3 +2080,32 @@ class CampaignsPOMS:
               .filter(LoginSetup.experiment == exp)
               .filter(LoginSetup.name == name).scalar())
         return id
+
+    def mark_campaign_active(self, campaign_id, is_active, cl, dbhandle, user):
+        logit.log("cl={}; is_active='{}'".format(cl, is_active))
+        auth_error = False
+        campaign_ids = (campaign_id or cl).split(",")
+        for cid in campaign_ids:
+            auth = False
+            campaign = dbhandle.query(Campaign).filter(Campaign.campaign_id == cid).first()
+            if campaign:
+                if user.is_root():
+                    auth = True
+                elif user.session_experiment == campaign.experiment:
+                    if user.is_coordinator():
+                        auth = True
+                    elif user.is_production() and campaign.creator_role == 'production':
+                        auth = True
+                    elif user.session_role == campaign.creator_role and user.experimenter_id == campaign.creator:
+                        auth = True
+                    else:
+                        auth_error = True
+                else:
+                    auth_error = True
+                if auth:
+                    campaign.active = (is_active in ('True', 'Active', 'true', '1'))
+                    dbhandle.add(campaign)
+                    dbhandle.commit()
+                else:
+                    auth_error = True
+        return auth_error

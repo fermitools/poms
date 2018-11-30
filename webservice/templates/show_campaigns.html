@@ -26,11 +26,13 @@ Campaigns {%include 'help_button.html'%}
 
 </style>
 
-<form method="GET" action="show_campaigns">
+<form name="view_picker_form" id="view_picker_form" method="GET" action="show_campaigns">
 {% set has_active=True %}
 {% set data = data|default({}) %}
 {%include "view_picker.html" %}
 </form>
+<br>
+<div class="tiny ui teal button" onclick="pop_mark_inactive_modal();">Mark Campaign Active/Inactive</div>
 <div class="tiny ui teal button" onclick="pop_tag_untag_modal();">
     <i class="icon tags"></i>
     Tag/untag Campaigns
@@ -47,7 +49,8 @@ Campaigns {%include 'help_button.html'%}
                 <th data-sorter="false" data-filter="false">Id</th>
                 <th data-sorter="false" data-filter="false" align="center">
                         Select All<br><input type="checkbox" id="c_cbox_all" onchange="do_checkall();">
-                <th>Campaign Name </th>
+                <th>Campaign Name</th>
+                <th>Active</th>
                 <th>Submissions<br>Running</th>
                 <th data-sorter="false" data-filter="false">Submission<br>History</th>
                 <th data-sorter="false" data-filter="false">Dependencies</th>
@@ -67,6 +70,7 @@ Campaigns {%include 'help_button.html'%}
                 <td id="c_id_{{loop.index}}">{{s.campaign_id}}</td>
                 <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
                 <td><a class="stagelink" href="{{pomspath}}/show_campaign_stages?campaign_name={{s.name|urlencode}}">{{s.name}}</a></td>
+                <td align="center">{{ 'Yes' if s.active else 'No' }}</td>
 		        <!-- <td> <button onclick="call_show_campaign_stages( '{{s.name}}' )"> {{s.name}} </td> -->
                 <td id="running_{{s.campaign_id}}" style="text-align:right; padding-right: 1em">...</td>
                 <td>
@@ -120,6 +124,7 @@ Campaigns {%include 'help_button.html'%}
                 <td>
                     {{s.experimenter_creator_obj.username}}
                 </td>
+                <td id="c_name_{{loop.index}}" style="display:none">{{s.name}}</td>
             </tr>
 
         {% endfor %}
@@ -127,6 +132,37 @@ Campaigns {%include 'help_button.html'%}
     </table>
     <input type="hidden" id="c_table_max_rows" value="{{tl|length}}">
 </div>
+
+<div class="ui modal small" name="mark_inactive_modal" id="mark_inactive_modal" style="padding: 0px 20px;">
+        <i class="close icon"></i>
+        <div class="header">
+            Campaigns to mark Active/Inactive
+        </div>
+        <form class="ui form" action="mark_campaign_active" method="GET">
+            <div class="field">
+                <textarea id="campaign_names" readonly></textarea>
+                <input type="hidden" id="campaign_ids" name="cl">
+            </div>
+            <div class="center inline fields">
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input type="radio" name="is_active" value="Active" checked="checked">
+                        <label>Active</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input type="radio" name="is_active" value="Inactive">
+                        <label>Inactive</label>
+                    </div>
+                </div>
+            </div>
+            <div class="field">
+                <input type="submit" class="ui teal button" name="Submit">
+            </div>
+            <div class="ui hidden divider"></div>
+        </form>
+    </div> <!-- Ends mark_inactive_modal -->
 
 <div class="ui modal" id="template_clone_modal">
   <i class="close icon"></i>
@@ -148,7 +184,7 @@ Campaigns {%include 'help_button.html'%}
       </div>
       <div class="actions">
         <div class="ui button deny red">Cancel</div>
-        <input type="submit" id="clone" name="clone" value="Clone" class="ui button teal" />
+        <input type="submit" id="clone" name="clone" value="Clone" class="ui button teal">
       </div>
       <input type="hidden" id="campaign" name="campaign">
     </form>
@@ -164,13 +200,14 @@ Campaigns {%include 'help_button.html'%}
     <div class="ui hidden divider"></div>
     <div class="ui text container">
         <div class="ui ignored warning message">
-                    <p>
-                        This will delete all stages of the campaign shown below.
-                        It will not delete job types or login setups.
-                        Deletions will <b>not</b> occur if the campaign has been submitted.
-                    </p>
+            <p>
+                This will delete all stages of the campaign shown below.
+                It will not delete job types or login setups.
+                Deletions will <b>not</b> occur if the campaign has been submitted.
+            </p>
         </div>
-        <form id="delete_campaign_form" class="ui form" method="POST" action="{{pomspath}}/show_campaigns">
+        <!-- <form id="delete_campaign_form" class="ui form" method="POST" action="{{pomspath}}/show_campaigns"> -->
+        <form id="delete_campaign_form" class="ui form" method="POST" action="" onsubmit="this.action=location.href">
             <div class="one field">
                 <div class="field">
                     <label>Campaign to Delete</label>
@@ -179,7 +216,7 @@ Campaigns {%include 'help_button.html'%}
             </div>
             <div class="actions">
                 <div class="ui button deny green">Cancel</div>
-                <input type="submit" value="Delete" class="ui button red" />
+                <input type="submit" value="Delete" class="ui button red">
             </div>
             <input type="hidden" id="del_campaign_id" name="del_campaign_id">
             <input type="hidden" id="action" name="action" value="delete">
@@ -562,6 +599,44 @@ $('#tag_field').keypress(function (event) {
             },
             //minCharacters : 3
         });
+
+    $("#mark_inactive_modal").submit(function(event) {
+        event.preventDefault();
+        var formdata = {'is_active': $('input[name=is_active]:checked').val(),
+                        'cl': $("#campaign_ids").val()
+                       };
+        $.ajax({
+            url: "{{pomspath}}/mark_campaign_active",
+            type: 'GET',
+            data: formdata,
+            success: function(data){
+                $('#mark_inactive_modal').modal('toggle');
+                location.reload(true);
+            }
+        })
+    });
+
+    function pop_mark_inactive_modal() {
+        var max_rows = $("#c_table_max_rows").val();
+        var names = [];
+        var ids = [];
+        for (var i = 1; i <= max_rows; i++) {
+            if ( $("#c_cbox_"+i).is(":checked") ) {
+                names.push($("#c_name_"+i).html());
+                ids.push($("#c_id_"+i).html());
+            }
+        }
+        if (names.length == 0) {
+            mod_form= $("#display_message_modal").modal('show');
+            $("#poms_message_data").text("Please select one or more campaigns by using the appropriate check boxes.")
+        }
+        else {
+            mod_form = $("#mark_inactive_modal").modal('show');
+            $("#campaign_names").val( names.join('\n') );
+            $("#campaign_ids").val(ids.join(','))
+        }
+    }
+
 </script>
 
 {%endblock%}

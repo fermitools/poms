@@ -133,9 +133,9 @@ in Campaign {{CampaignStage.campaign_obj.name}}
                     </i>Schedule Future Job Launches
                  </a>
             </div>
-
+            <!--
              <div class=item>
-              {% if CampaignStage.active %}
+              {# if CampaignStage.active %}
                  <a href="{{pomspath}}/mark_campaign_active?campaign_stage_id={{CampaignStage.campaign_stage_id}}&is_active=False" {{"disabled" if (session_role=="analysis"
                          and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
                  >
@@ -149,8 +149,9 @@ in Campaign {{CampaignStage.campaign_obj.name}}
                     <i class="external unhide icon" data-content="Mark Campaign Stage Active" data-variation="basic">
                     </i>Mark Campaign Stage Active
                   </a>
-              {% endif %}
+              {% endif #}
              </div>
+            -->
              <style type="text/css">
                      a[disabled] {
                      pointer-events: none;
@@ -179,7 +180,7 @@ in Campaign {{CampaignStage.campaign_obj.name}}
     <b>cs_split_type</b>: {{CampaignStage.cs_split_type}}<br>
     <b>cs_split_dimensions</b>: {{CampaignStage.cs_split_dimensions}}<br>
     <b>cs_last_split</b>: {{CampaignStage.cs_last_split}} <a href="{{pomspath}}/reset_campaign_split?campaign_stage_id={{CampaignStage.campaign_stage_id}}"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br>
-    <b>Active</b>: {{CampaignStage.active}} <br>
+    <!-- <b>Active</b>: {{CampaignStage.active}} <br> -->
     <b>Created</b>: {{CampaignStage.created}}<br>
     <b>Creator</b>: {{Campaign_info.Experimenter.username}}<br>
     <b>Updated</b>: {{CampaignStage.updated}}<br>

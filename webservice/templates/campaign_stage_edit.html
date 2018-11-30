@@ -50,7 +50,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         <th></th>
         <th> Campaign Name</th>
         <th> Stage Name {{ show_hint('#Name', 'Name string') }} </th>
-        <th> Active {{ show_hint('#Active', 'True/False') }} </th>
+        <!-- <th> Active {{ show_hint('#Active', 'True/False') }} </th> -->
         <th> VO Role {{ show_hint('#VO-Role', 'Role name') }} </th>
         <th> Software<br>Version {{ show_hint('#Software-Version', 'Version tag') }} </th>
         <th> Dataset {{ show_hint('#Dataset', 'Dataset name') }} </th>
@@ -90,7 +90,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.CampaignStage.campaign_id}}</td>
         <td id="c_campaign_name_{{loop.index}}">{{row.Campaign.name}}</td>
         <td id="c_name_{{loop.index}}">{{row.CampaignStage.name}}</td>
-        <td id="c_active_{{loop.index}}">{{row.CampaignStage.active}}</td>
+        <!-- <td id="c_active_{{loop.index}}">{{row.CampaignStage.active}}</td> -->
         <td id="c_vo_role_{{loop.index}}">{{row.CampaignStage.vo_role}}</td>
         <td id="c_software_version_{{loop.index}}">{{row.CampaignStage.software_version}}</td>
         <td id="c_dataset_{{loop.index}}">{{row.CampaignStage.dataset}}</td>
@@ -172,7 +172,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         </select>
       </div>
 
-      <div class="fields">
+      <div class="three fields">
         <div class="field">
             <label>Stage Name {{ show_hint('#Stage-Name', 'Stage name') }}</label>
             <input type="text" id="ae_stage_name" name="ae_stage_name" placeholder="Campaign Stage Name">
@@ -181,6 +181,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
             <label>Jobsub VO Role {{ show_hint('#VO-Role', 'Role name') }}</label>
             <input type="text" id="ae_vo_role" name="ae_vo_role">
         </div>
+        <!--
         <div class="field">
           <label>State {{ show_hint('#State', 'Select state') }}</label>
           <select class="ui dropdown" name="ae_active" id="ae_active">
@@ -188,6 +189,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
             <option value="False">Inactive</option>
           </select>
         </div>
+        -->
         <div class="field">
             <label>Exp. Software Version {{ show_hint('#Software-Version', 'Version tag') }}</label>
             <input type="text" id="ae_software_version" name="ae_software_version">

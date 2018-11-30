@@ -43,11 +43,11 @@ Campaign Stages{%include 'help_button.html'%}
 </style>
 <!--<form method="GET" action="{{pomspath}}/show_campaign_stages">-->
 <form id="view_picker" method="POST">
-  {% set has_active=True %}
+  {% set has_active=False %}
   {%include "view_picker.html" %}
 </form>
   <br>
-<div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Stages Active/Inactive</div>
+<!-- <div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Stages Active/Inactive</div> -->
 <div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Stage Submission</div>
 <div class="ui teal button" onclick="show_stats();">Show Stage Statistics</div>
 {% if campaign_stages|length == 0 %}
@@ -67,7 +67,7 @@ Campaign Stages{%include 'help_button.html'%}
                 </th>
                 <th>Campaign Name</th>
                 <th>Campaign Stage</th>
-                <th>Active</th>
+                <!-- <th>Active</th> -->
                 <th>Hold By</th>
                 <th>Creator</th>
                 <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
@@ -84,7 +84,7 @@ Campaign Stages{%include 'help_button.html'%}
                     <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}" {{ 'disabled' if data.authorized[loop.index-1]!=True }}></td>
                     <td>{{ stage.campaign_obj.name}}</td>
                     <td><a href="{{pomspath}}/campaign_stage_info?campaign_stage_id={{stage.campaign_stage_id}}">{{stage.name}}</a></td>
-                    <td>{{ 'Yes' if stage.active else 'No' }}</td>
+                    <!-- <td>{{ 'Yes' if stage.active else 'No' }}</td> -->
                     <td>{{stage.experimenter_holder_obj.username}}</td>
                     <td>{{stage.experimenter_creator_obj.username}}</td>
                     <td>{{stage.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>

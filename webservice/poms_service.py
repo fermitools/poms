@@ -490,14 +490,13 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def campaign_time_bars(self, campaign_stage_id=None, campaign=None, tag=None, tmin=None, tmax=None, tdays=1):
-        if tag != None and campaign == None:
-             campaign = tag
-
+        experimenter = cherrypy.session.get('experimenter')
         (
             job_counts, blob, name, tmin, tmax, nextlink, prevlink, tdays, key, extramap
         ) = self.campaignsPOMS.campaign_time_bars(cherrypy.request.db,
+                                                  experimenter=experimenter,
                                                   campaign_stage_id=campaign_stage_id,
-                                                  campaign=campaign,
+                                                  campaign=campaign or tag,
                                                   tmin=tmin, tmax=tmax, tdays=tdays)
         template = self.jinja_env.get_template('campaign_time_bars.html')
         return template.render(job_counts=job_counts, blob=blob, name=name, tmin=tmin, tmax=tmax,
@@ -567,39 +566,10 @@ class PomsService(object):
 # h4. mark_campaign_active
     @cherrypy.expose
     @logit.logstartstop
-    def mark_campaign_active(self, campaign_stage_id=None, is_active="", cl=None):
-
-        logit.log("cl={}; is_active='{}'".format(cl, is_active))
-        campaign_ids = (campaign_stage_id or cl).split(",")
-        for cid in campaign_ids:
-            auth = False
-            campaign = cherrypy.request.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == cid).first()
-            if campaign:
-                user = cherrypy.session.get('experimenter')
-                if user.is_root():
-                    auth = True
-                elif user.session_experiment == campaign.experiment:
-                    if user.is_coordinator():
-                        auth = True
-                    elif user.is_production() and campaign.creator_role == 'production':
-                        auth = True
-                    elif user.session_role == campaign.creator_role and user.experimenter_id == campaign.creator:
-                        auth = True
-                    else:
-                        raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-                else:
-                    raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-                if auth:
-                    campaign.active = (is_active in ('True', 'Active', 'true', '1'))
-                    cherrypy.request.db.add(campaign)
-                    cherrypy.request.db.commit()
-                else:
-                    raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-        if campaign_stage_id:
-            raise cherrypy.HTTPRedirect("campaign_info?campaign_stage_id=%s" % campaign_stage_id)
-        elif cl:
-            raise cherrypy.HTTPRedirect("show_campaign_stages")
-
+    def mark_campaign_active(self, campaign_id=None, is_active="", cl=None):
+        auth_error = self.campaignsPOMS.mark_campaign_active(campaign_id, is_active, cl, cherrypy.request.db, user=cherrypy.session.get('experimenter'))
+        if auth_error:
+            raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
 
 # h4. mark_campaign_hold
     @cherrypy.expose
@@ -1069,6 +1039,7 @@ class PomsService(object):
 # h4. echo
     @cherrypy.expose
     @cherrypy.tools.json_out()
+    # @cherrypy.tools.json_in()
     def echo(self, *args, **kwargs):
         data = self.campaignsPOMS.echo(cherrypy.request.db, cherrypy.session, *args, **kwargs)
         return data

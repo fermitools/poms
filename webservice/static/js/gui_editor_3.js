@@ -17,7 +17,8 @@ mwm_utils.getSearchParams = function () {
 }
 
 mwm_utils.getBaseURL = function () {
-    var p = location.href.replace(/(.*:\/\/[^\/]*\/[^\/]*\/).*/, '$1')
+    // var p = location.href.replace(/(.*:\/\/[^\/]*\/[^\/]*\/).*/, '$1');
+    const p = location.href.replace(/.*:\/\/[^\/]*(\/[^\/]*\/).*/, '$1');
     return p;
 }
 
@@ -462,7 +463,8 @@ gui_editor.exportNetwork = function () {
     console.log(exportValue);
     //VP~ return exportValue;
     //VP~ new wf_uploader().make_poms_call('echo', {form: exportValue});     // Send to the server
-    new wf_uploader().make_poms_call('save_campaign', {form: exportValue});     // Send to the server
+    const wfu = new wf_uploader();
+    return wfu.make_poms_call('save_campaign', {form: exportValue});     // Send to the server
 }
 
 gui_editor.update_jobtypes = function() {
@@ -794,10 +796,10 @@ gui_editor.prototype.ini2json = function (s) {
             res.push(`"name": "${sn}",`);                   // Add section name as a value
           }
       } else {                                              // Section body
-          l = mwm_utils.trim_blanks(l)
+          l = mwm_utils.trim_blanks(l);
           l = l.replace(/%%/g,'%');
           k_v = l.match(/([^ =:]*) *[=:] *(.*)/);
-          console.log(k_v)
+          console.log(k_v);
           k_v.shift();
           k = k_v.shift();
           v = k_v.join('=').replace(/\\/g, '\\\\').replace(/"/g,'\\"');
@@ -1804,52 +1806,25 @@ gui_editor.prototype.add_dependency = function(frm, to, id) {
 gui_editor.prototype.save_state = function () {
     var sb = document.getElementById("savebusy");
     sb.innerHTML = "Saving...";
-    /* call with setTimeout to give Saving a chance to show up */
-    //VP~ window.setTimeout( () => {
-        // this.undefaultify_state();
-        gui_editor.exportNetwork();
-        // this.defaultify_state();
-        // sb.innerHTML = "Done.";
-        sb.innerHTML = "";
-        gui_editor.unmodified();
-        swal({
-            // position: 'top-end',
-            type: 'success',
-            title: 'Saved',
-            showConfirmButton: false,
-            timer: 1500
-          });
-
-        const args = mwm_utils.getSearchParams();
-        const base = mwm_utils.getBaseURL();
-        console.log(["args:", args, "base:", base ]);
-        // if (args['clone'] != undefined) {
-            //// const campaign = this.state.campaign['name'];
-            const campaign = encodeURIComponent(this.nodes.get().filter(x => x.id.startsWith('campaign '))[0].label);
-            location.href = `${base}gui_wf_edit?campaign=${campaign}`;
-        // } else {
-        //     window.setTimeout( () => {
-        //         location.reload();
-        //     }, 1000);
-        // }
-    //VP~ }, 200);
-    /*
-    window.setTimeout( () => {
-        var wu = new wf_uploader();
-        console.log(["wu", wu]);
-        this.undefaultify_state();
-        //const deps = this.depboxes.map(d => [d.box.id, d.stage1, d.stage2]);
-        //VP~ let cfg_stages = this.nodes.map(x => [x.id, x.group]).filter(x => !x[0].startsWith("Default")).sort( (a, b) => b[1] - a[1] ).map(x => x[0]);
-        let cfg_stages = this.nodes.map(x => [x.id, x.group]).filter(x => !x[0].startsWith("campaign ")).sort( (a, b) => b[1] - a[1] ).map(x => x[0]);
-        wu.upload(this.state, cfg_stages, () => {
-            // callback for when whole upload is done..
-            console.log("finally done uploading, whew");
-            this.defaultify_state();
-            sb.innerHTML = "Done.";
+    gui_editor.exportNetwork()
+        .done((data, textStatus, jqXHR) => {
+            sb.innerHTML = "";
             gui_editor.unmodified();
+            swal({
+                // position: 'top-end',
+                type: 'success',
+                title: 'Saved',
+                showConfirmButton: false,
+                timer: 1500
+            });
+            setTimeout( () => {
+                const args = mwm_utils.getSearchParams();
+                const base = mwm_utils.getBaseURL();
+                console.log(["args:", args, "base:", base]);
+                const campaign = encodeURIComponent(this.nodes.get().filter(x => x.id.startsWith('campaign '))[0].label);
+                location.href = `${base}gui_wf_edit?campaign=${campaign}`;
+            }, 1500);
         });
-    }, 5);
-    */
 }
 
 
@@ -2114,21 +2089,24 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
             delete args[k];
         }
     }
-    res = Promise.resolve(jQuery.ajax({
-        url: base + '/' + name,
-        data: args,
-        method: args ? 'POST' : 'GET',
-        success: function (result) {
+    return $.ajax({
+            // url: base + '/' + name,
+            url: base + name,
+            data: args,
+            method: args ? 'POST' : 'GET'
+        })
+        .done((data, textStatus, jqXHR) => {
             if (completed) {
-                completed(result);
+                completed(data);
             }
-        },
-        error: function (result) {
+            return data;
+        })
+        .fail((jqXHR, textStatus, errorThrown) => {
             var p, resp;
-            if (result && result.responseText) {
-                p = result.responseText.indexOf('>Traceback');
+            if (jqXHR && jqXHR.responseText) {
+                p = jqXHR.responseText.indexOf('>Traceback');
                 if (p > 0) {
-                    resp = result.responseText.slice(p + 6);
+                    resp = jqXHR.responseText.slice(p + 6);
                     p = resp.indexOf('</label>')
                     if (p < 0) {
                         p = resp.indexOf('</pre>');
@@ -2136,21 +2114,19 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
                     resp = resp.slice(0, p);
                     resp.replace(/<br\/>/g, '\n');
                 } else {
-                    resp = result.responseText;
+                    resp = jqXHR.responseText;
                 }
                 console.log(resp);
-                const i = result.responseText.indexOf("DETAIL");
+                const i = jqXHR.responseText.indexOf("DETAIL");
                 if (i > 0) {
-                    alert("Oops! Something went wrong!\n" + result.responseText.slice(i).split('<')[0]);
+                    alert("Oops! Something went wrong!\n" + jqXHR.responseText.slice(i).split('<')[0]);
                 } else {
                     alert("Oops! Something went wrong!");
                 }
             } else {
+                // if (jqXHR.status)
                 alert("Oops! Something went wrong! No details available.");
             }
-        },
-        async: true,
-    }));
-    return res;
+        });
 }
 
