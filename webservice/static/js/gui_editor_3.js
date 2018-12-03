@@ -1306,25 +1306,28 @@ gui_editor.prototype.draw_state = function () {
         if (label.includes('*')) {
             const nn = label.split('*');
             for (let i = 0; i < nn[1]; i++) {
-                data.label = `${nn[0]}_${i}`;
+                data.label = nn[0] === '.' ? `${parentId}_${i}` : `${nn[0]}_${i}`;
                 if (pary)
                     data.y = pary + 25 - 50*nn[1]/2 + 50*i;
-                const reply = callback(data);
+                const [pid, nid, eid] = callback(data);
                 // Now handle our stuff
-                this.new_stage(reply[1], data.label);
-                this.add_dependency(reply[0], reply[1], reply[2]);
+                this.new_stage(nid, data.label);
+                this.add_dependency(pid, nid, eid);
             }
         } else {
             data.label = label;
             if (pary)
                 data.y = pary;
-            const reply = callback(data);
+            // const reply = callback(data);
+            const [pid, nid, eid] = callback(data);
             // Now handle our stuff
             if (data.id) {
                 this.new_stage(data.id, data.label);
             } else {
-                this.new_stage(reply[1], data.label);
-                this.add_dependency(reply[0], reply[1], reply[2]);
+                // this.new_stage(reply[1], data.label);
+                // this.add_dependency(reply[0], reply[1], reply[2]);
+                this.new_stage(nid, data.label);
+                this.add_dependency(pid, nid, eid);
             }
         }
     }
@@ -1744,7 +1747,7 @@ gui_editor.prototype.new_stage = function (name, label) {
     this.state[k] = {
         'name': label,
         'vo_role': null,
-        'state': null,
+        // 'state': null,
         'software_version': null,
         'dataset': null,
         'cs_split_type': null,
@@ -2110,44 +2113,47 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
             delete args[k];
         }
     }
-    return $.ajax({
+    return $.ajax(
+        {
             // url: base + '/' + name,
             url: base + name,
             data: args,
             method: args ? 'POST' : 'GET'
         })
-        .done((data, textStatus, jqXHR) => {
-            if (completed) {
-                completed(data);
-            }
-            return data;
-        })
-        .fail((jqXHR, textStatus, errorThrown) => {
-            var p, resp;
-            if (jqXHR && jqXHR.responseText) {
-                p = jqXHR.responseText.indexOf('>Traceback');
-                if (p > 0) {
-                    resp = jqXHR.responseText.slice(p + 6);
-                    p = resp.indexOf('</label>')
-                    if (p < 0) {
-                        p = resp.indexOf('</pre>');
+        .done(
+            (data, textStatus, jqXHR) => {
+                if (completed) {
+                    completed(data);
+                }
+                return data;
+            })
+        .fail(
+            (jqXHR, textStatus, errorThrown) => {
+                var p, resp;
+                if (jqXHR && jqXHR.responseText) {
+                    p = jqXHR.responseText.indexOf('>Traceback');
+                    if (p > 0) {
+                        resp = jqXHR.responseText.slice(p + 6);
+                        p = resp.indexOf('</label>')
+                        if (p < 0) {
+                            p = resp.indexOf('</pre>');
+                        }
+                        resp = resp.slice(0, p);
+                        resp.replace(/<br\/>/g, '\n');
+                    } else {
+                        resp = jqXHR.responseText;
                     }
-                    resp = resp.slice(0, p);
-                    resp.replace(/<br\/>/g, '\n');
+                    console.log(resp);
+                    const i = jqXHR.responseText.indexOf("DETAIL");
+                    if (i > 0) {
+                        alert("Oops! Something went wrong!\n" + jqXHR.responseText.slice(i).split('<')[0]);
+                    } else {
+                        alert("Oops! Something went wrong!");
+                    }
                 } else {
-                    resp = jqXHR.responseText;
+                    // if (jqXHR.status)
+                    alert("Oops! Something went wrong! No details available.");
                 }
-                console.log(resp);
-                const i = jqXHR.responseText.indexOf("DETAIL");
-                if (i > 0) {
-                    alert("Oops! Something went wrong!\n" + jqXHR.responseText.slice(i).split('<')[0]);
-                } else {
-                    alert("Oops! Something went wrong!");
-                }
-            } else {
-                // if (jqXHR.status)
-                alert("Oops! Something went wrong! No details available.");
-            }
-        });
+            });
 }
 
