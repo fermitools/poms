@@ -1315,9 +1315,9 @@ class CampaignsPOMS:
         if data['view_active'] and data['view_inactive']:
             pass
         elif data['view_active']:
-            cq = cq.filter(Campaign.active == True)
+            cq = cq.filter(CampaignStage.campaign_obj.has(Campaign.active == True))
         elif data['view_inactive']:
-            cq = cq.filter(Campaign.active == False)
+            cq = cq.filter(CampaignStage.campaign_obj.has(Campaign.active == False))
 
 
         if campaign_ids:

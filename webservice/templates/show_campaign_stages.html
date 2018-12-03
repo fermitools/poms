@@ -43,7 +43,7 @@ Campaign Stages{%include 'help_button.html'%}
 </style>
 <!--<form method="GET" action="{{pomspath}}/show_campaign_stages">-->
 <form id="view_picker" method="POST">
-  {% set has_active=False %}
+  {% set has_active=True %}
   {%include "view_picker.html" %}
 </form>
   <br>
@@ -67,7 +67,7 @@ Campaign Stages{%include 'help_button.html'%}
                 </th>
                 <th>Campaign Name</th>
                 <th>Campaign Stage</th>
-                <!-- <th>Active</th> -->
+                <th>Active</th>
                 <th>Hold By</th>
                 <th>Creator</th>
                 <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
@@ -84,7 +84,7 @@ Campaign Stages{%include 'help_button.html'%}
                     <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}" {{ 'disabled' if data.authorized[loop.index-1]!=True }}></td>
                     <td>{{ stage.campaign_obj.name}}</td>
                     <td><a href="{{pomspath}}/campaign_stage_info?campaign_stage_id={{stage.campaign_stage_id}}">{{stage.name}}</a></td>
-                    <!-- <td>{{ 'Yes' if stage.active else 'No' }}</td> -->
+                    <td>{{ 'Yes' if stage.campaign_obj.active else 'No' }}</td>
                     <td>{{stage.experimenter_holder_obj.username}}</td>
                     <td>{{stage.experimenter_creator_obj.username}}</td>
                     <td>{{stage.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>
