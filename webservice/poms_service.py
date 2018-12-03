@@ -450,10 +450,10 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def submission_details(self, submission_id ):
-        res = taskPOMS.submission_details(cherrypy.request.db, cherrypy.HTTPError, cherrypy.config.get, submission_id)
+        submission = self.taskPOMS.submission_details(cherrypy.request.db, cherrypy.HTTPError, cherrypy.config.get, submission_id)
         template = self.jinja_env.get_template('submission_details.html')
         return template.render(
-            res,
+            submission = submission, 
             do_refresh=0,
             help_page="SubmissionDetailsHelp",
          )

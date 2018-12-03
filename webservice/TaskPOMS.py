@@ -367,12 +367,13 @@ class TaskPOMS:
         return "\n".join(res)
 
     def submission_details(self, dbhandle, error_exception, config_get, submission_id):
-        res = (dbhandle.query(Submission)
+        submission = (dbhandle.query(Submission)
                .options(joinedload(Submission.campaign_stage_snapshot_obj))
                .options(joinedload(Submission.login_setup_snap_obj))
                .options(joinedload(Submission.job_type_snapshot_obj))
                .filter(Submission.submission_id == submission_id)
                .first())
+        return submission
 
 
     def running_submissions(self, dbhandle, campaign_id_list, status_list=['New','Idle','Running']):
