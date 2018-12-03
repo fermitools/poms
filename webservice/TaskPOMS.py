@@ -102,7 +102,7 @@ class TaskPOMS:
         #
         # move launch stuff etc, to one place, so we can keep the table rows
 
-        cpairs = dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status).label('maxstat')).filter(Submissionhistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id).with(maxstat == self.status_Completed)
+        cpairs = dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status).label('maxstat')).filter(Submissionhistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id).having(maxstat == self.status_Completed)
 
         completed_sids = [x[0] for x in cpairs]
 
@@ -365,6 +365,15 @@ class TaskPOMS:
             self.update_submission_status(dbhandle, submission_id,status = 'LaunchFailed')
         dbhandle.commit()
         return "\n".join(res)
+
+    def submission_details(self, dbhandle, error_exception, config_get, submission_id):
+        res = (dbhandle.query(Submission)
+               .options(joinedload(Submission.campaign_stage_snapshot_obj))
+               .options(joinedload(Submission.login_setup_snap_obj))
+               .options(joinedload(Submission.job_type_snapshot_obj))
+               .filter(Submission.submission_id == submission_id)
+               .first())
+
 
     def running_submissions(self, dbhandle, campaign_id_list, status_list=['New','Idle','Running']):
 

@@ -446,6 +446,18 @@ class PomsService(object):
         else:
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
 
+# h4. submission_details
+    @cherrypy.expose
+    @logit.logstartstop
+    def submission_details(self, submission_id ):
+        res = taskPOMS.submission_details(cherrypy.request.db, cherrypy.HTTPError, cherrypy.config.get, submission_id)
+        template = self.jinja_env.get_template('submission_details.html')
+        return template.render(
+            res,
+            do_refresh=0,
+            help_page="SubmissionDetailsHelp",
+         )
+        
 
 # h4. campaign_stage_info
     @cherrypy.expose
