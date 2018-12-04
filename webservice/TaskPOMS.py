@@ -763,8 +763,17 @@ class TaskPOMS:
         # allocate task to set ownership
         sid = self.get_task_id_for(dbhandle, campaign_stage_id, user=launcher_experimenter.username, experiment=experiment, parent_submission_id=parent_submission_id)
 
-        if test_launch:
-            dbhandle.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: {'test':1}});
+        #
+        # keep some bookkeeping flags
+        #
+        pdict = {}
+        if dataset && datset != 'None':
+            pdict['dataset']  = dataset
+        if test_launch: 
+            pdict['test'] = 1
+
+        if test_launch or dataset_override:
+            dbhandle.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict});
             dbhandle.commit()
 
         cmdl = [
@@ -779,6 +788,9 @@ class TaskPOMS:
                 "group": group,
                 "experimenter": experimenter_login,
             },
+
+            proxyfile = "/opt/%spro/%spro.Production.proxy"
+
             #
             # This bit is a little tricky.  We want to do as little of our
             # own setup as possible after the users' launch_setup text,
@@ -790,6 +802,7 @@ class TaskPOMS:
             # 3. setup *just* poms_jobsub_wrapper, so it gets on the
             #    front of the path and can intercept calls to "jobsub_submit"
             #
+            "export X509_USER_PROXY=%s" % proxyfile,
             "source /grid/fermiapp/products/common/etc/setups",
             "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
             lt.launch_setup % {
