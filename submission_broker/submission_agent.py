@@ -62,6 +62,8 @@ class Agent:
         self.ssess = requests.Session()
         self.poms_uri = poms_uri
         self.submission_uri = submission_uri
+        # biggest time window we should ask LENS for
+        self.maxtimedelta = 3600
         self.known = {}
         self.known['status'] = {}
         self.known['project'] = {}
@@ -75,6 +77,7 @@ class Agent:
             'DNT': '1',
             'Origin': 'https://landscapeitb.fnal.gov'
         }
+
 
 
         htr = self.psess.get("http://127.0.0.1:8080/poms/experiment_list")
@@ -199,6 +202,10 @@ class Agent:
         '''
 
         LOGIT.info("check_submissions: %s", group)
+
+        if time.time() - self.lastconn[group] > self.maxtimedelta:
+            # last info was too long ago, just clear it
+            del self.lastconn[group]
 
         if since:
            LOGIT.info("check_submissions: since %s", since)
