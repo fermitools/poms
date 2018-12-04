@@ -286,7 +286,7 @@ class CampaignsPOMS:
                                creator=seshandle('experimenter').experimenter_id,
                                creator_role=seshandle('experimenter').session_role,
                                created=datetime.now(utc),
-                               campaign_type="regular")
+                               campaign_stage_type="regular")
             dbhandle.add(cs)
         except IntegrityError as e:
             data['message'] = "Integrity error - you are most likely using a name which already exists in database."
@@ -591,7 +591,7 @@ class CampaignsPOMS:
             cs.dataset = ""
             cs.login_setup_id = lt.login_setup_id
             cs.software_version = ""
-            cs.campaign_type = 'regular'
+            cs.campaign_stage_type = 'regular'
             dbhandle.add(cs)
             dbhandle.commit()
             cs = dbhandle.query(CampaignStage).filter(CampaignStage.job_type_id == campaign_def_id,
@@ -741,7 +741,7 @@ class CampaignsPOMS:
                                            job_type_id=job_type_id,
                                            completion_type=completion_type, completion_pct=completion_pct,
                                            creator=experimenter_id, created=datetime.now(utc),
-                                           creator_role=role, campaign_type=campaign_type, campaign_id=campaign_id)
+                                           creator_role=role, campaign_stage_type=campaign_type, campaign_id=campaign_id)
                         dbhandle.add(cs)
                         dbhandle.commit()
                         campaign_stage_id = cs.campaign_stage_id
@@ -1590,7 +1590,7 @@ class CampaignsPOMS:
             cs = CampaignStage(experiment=experiment, name=campaign_name, creator=user, created=datetime.now(utc),
                                software_version=version, job_type_id=cd.job_type_id,
                                login_setup_id=ld.login_setup_id, vo_role=role, dataset='',
-                               creator_role=cr_role, campaign_type='regular')
+                               creator_role=cr_role, campaign_stage_type='regular')
 
         if version:
             cs.software_verison = version
@@ -1992,7 +1992,7 @@ class CampaignsPOMS:
                     obj.software_version = software_version
                     obj.test_param_overrides = test_param_overrides
                     obj.vo_role = vo_role
-                    obj.campaign_type = stage_type
+                    obj.campaign_stage_type = stage_type
                     obj.active = active
                     obj.updater = user_id
                     obj.updated = datetime.now(utc)
@@ -2015,7 +2015,7 @@ class CampaignsPOMS:
                                    vo_role=vo_role,
                                    #
                                    creator=user_id, created=datetime.now(utc),
-                                   creator_role=role, campaign_type=stage_type)
+                                   creator_role=role, campaign_stage_type=stage_type)
                 dbhandle.add(cs)
                 dbhandle.flush()
             dbhandle.commit()

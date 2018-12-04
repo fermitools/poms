@@ -715,7 +715,7 @@ class TaskPOMS:
 
             # isssue #20990
             csname = cs.name
-            cstype = cs.campaign_type
+            cstype = cs.campaign_stage_type
             cname = cs.campaign_obj.name
             if cs.name == cs.campaign_obj.name:
                 ccname = cs.name
