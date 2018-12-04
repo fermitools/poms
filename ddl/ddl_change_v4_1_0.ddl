@@ -55,3 +55,13 @@ ALTER TABLE submission_histories drop column status;
 ALTER TABLE campaigns ADD active bool DEFAULT true NOT NULL;
 ALTER TABLE campaign_stages DROP COLUMN active;
 ALTER TABLE campaign_stage_snapshots DROP COLUMN active;
+
+-- campaign_type
+
+ALTER TABLE campaign_stages DROP CONSTRAINT ck_campaign_type;
+ALTER TABLE campaign_stages RENAME COLUMN campaign_type TO campaign_stage_type;
+ALTER TABLE campaign_stages ADD CONSTRAINT ck_campaign_stage_type
+  CHECK ( campaign_stage_type::text = ANY (ARRAY['test'::character varying, 'generator'::character varying, 'regular'::character varying, 'datahandling'::character varying]::text[])  );
+
+ALTER TABLE campaigns ADD campaign_type text ;
+ALTER TABLE campaigns ADD CONSTRAINT ck_campaign_type CHECK ( campaign_type::text = ANY (ARRAY['test'::character varying]::text[])  );

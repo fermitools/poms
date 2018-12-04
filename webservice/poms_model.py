@@ -39,6 +39,7 @@ class Campaign(Base):
     defaults = Column(JSON)
     creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
+    campaign_type = Column(Text, nullable=True)
 
     tags = relationship(Tag, secondary='campaigns_tags', lazy='dynamic')
     experimenter_creator_obj = relationship('Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
@@ -72,7 +73,7 @@ class CampaignStage(Base):
     hold_experimenter_id = Column(ForeignKey('experimenters.experimenter_id'), nullable=True)
     creator_role = Column(Text, nullable=False)
     role_held_with = Column(Text, nullable=True)
-    campaign_type = Column(Text, nullable=False)
+    campaign_stage_type = Column(Text, nullable=False)
 
     campaign_id = Column(ForeignKey('campaigns.campaign_id'), nullable=True, index=True)
 
