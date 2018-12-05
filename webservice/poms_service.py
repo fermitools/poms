@@ -804,7 +804,7 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def launch_jobs(self, campaign_stage_id = None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
-                    experiment=None, launcher=None, test_launch=False, test_launch_template=None, campaign_id = None, test = None):
+                    experiment=None, launcher=None, test_launch=False, test_launch_template=None, campaign_id = None, test = None, output_commands = None):
         if not campaign_stage_id and campaign_id:
             campaign_stage_id = campaign_id
         if not test_login_setup and test_launch_template:
@@ -829,8 +829,14 @@ class PomsService(object):
                                          dataset_override=dataset_override,
                                          parent_submission_id=parent_submission_id, test_login_setup=test_login_setup,
                                          experiment=experiment,
-                                         test_launch=test_launch)
+                                         test_launch=test_launch,
+                                         output_commands = output_commands)
         logit.log("Got vals: %s" % repr(vals))
+
+        if output_commands:
+            cherrypy.response.headers['Content-Type'] = "text/plain"
+            return vals
+
         lcmd, cs, campaign_stage_id, outdir, outfile = vals
         if lcmd == "":
             return "Launches held, job queued..."

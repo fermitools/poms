@@ -670,7 +670,7 @@ class TaskPOMS:
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
                     err_res, campaign_stage_id, launcher, dataset_override=None, parent_submission_id=None,
-                    param_overrides=None, test_login_setup=None, experiment=None, test_launch = False):
+                    param_overrides=None, test_login_setup=None, experiment=None, test_launch = False, output_commands = False):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id))
 
@@ -907,6 +907,9 @@ class TaskPOMS:
         cmd = '\n'.join(cmdl)
 
         cmd = cmd.replace('\r', '')
+
+        if output_commands:
+            return cmd
 
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
