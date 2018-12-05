@@ -1,0 +1,119 @@
+
+{%extends "layout.html"%}
+
+{%block title%}
+POMS:Submission #{{submission.submission_id}} {{submission.jobsub_job_id}} Details
+{%endblock%}
+
+
+{%block header%}
+Submission Details {%include 'help_button.html'%}
+{%endblock%}
+
+{%block subheader%}
+Submission #{{submission.submission_id}} {{submission.jobsub_job_id}}
+Campaign Stage {{submission.campaign_stage_snapshot_obj.name}}  <br>
+in Campaign {{submission.campaign_stage_snapshot_obj.campaign.campaign_obj.name}}
+{%endblock%}
+
+
+{%block content%}
+
+{%if submission.recovery_tasks_parent %}
+Recovery launch for <a href="./submission_details?submission_id={{submission.recovery_tasks_parent}}">Submission #{{submission.recovery_tasks_parent}}</a> 
+{%else%}
+Regular Launch
+{%endif%}
+
+{%if submission.submission_params.get('dataset') %}
+{%if submission.submission_params['dataset'][:12] == '_poms_depends_' %}
+Launched on completion of  <a href="./submission_details?submission_id={{submission.submission_params['dataset'][15:-2]}}">Submission #{{submission.submission_params['dataset'][15:-2]}}</a> 
+{%endif%}
+{%endif%}
+
+{%if submission.jobsub_job_id %}
+{%if submission.project %}
+  <a href="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster={{submission.jobsub_job_id[:submission.jobsub_job_id.find("@")]}}&var-schedd={{submission.jobsub_job_id[submission.jobsub_job_id.find("@")+1:]}}&from={{submission.created}}s000&to=now&refresh=3m&orgId=1">Landscape</a>
+{% else %}
+  <a href="https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster={{submission.jobsub_job_id[:submission.jobsub_job_id.find("@")]}}s&var-schedd={{submission.jobsub_job_id[submission.jobsub_job_id.find("@")+1:]}}&from={{submission.created}}s000&to=now&refresh=3m&orgId=1">Landscape</a>
+{%endif%}
+{%else%}
+No Successful Job Launch Found
+{%endif%}
+
+<h3>Submission fields</h3>
+ <span class="fn">submission_id:</span> <span class="val">{{submission.submission_id}}</span> <br>
+ <span class="fn">jobsub_job_id:</span> <span class="val">{{submission.jobsub_job_id}}</span> <br>
+ <span class="fn">campaign_stage_id:</span> <span class="val">{{submission.campaign_stage_id}}</span> <br>
+ <span class="fn">creator:</span> <span class="val">{{submission.creator}}</span> <br>
+ <span class="fn">created:</span> <span class="val">{{submission.created}}</span> <br>
+ <span class="fn">submission_params:</span> <span class="val">{{submission.submission_params}}</span> <br>
+ <span class="fn">depends_on:</span> <span class="val">{{submission.depends_on}}</span> <br>
+ <span class="fn">depend_threshold:</span> <span class="val">{{submission.depend_threshold}}</span> <br>
+ <span class="fn">updater:</span> <span class="val">{{submission.updater}}</span> <br>
+ <span class="fn">updated:</span> <span class="val">{{submission.updated}}</span> <br>
+ <span class="fn">command_executed:</span> <span class="val">{{submission.command_executed}}</span> <br>
+ <span class="fn">project:</span> <span class="val">{{submission.project}}</span> <br>
+ <span class="fn">login_setup_snapshot_id:</span> <span class="val">{{submission.login_setup_snapshot_id}}</span> <br>
+ <span class="fn">campaign_stage_snapshot_id:</span> <span class="val">{{submission.campaign_stage_snapshot_id}}</span> <br>
+ <span class="fn">job_type_snapshot_id:</span> <span class="val">{{submission.job_type_snapshot_id}}</span> <br>
+ <span class="fn">recovery_position:</span> <span class="val">{{submission.recovery_position}}</span> <br>
+ <span class="fn">recovery_tasks_parent:</span> <span class="val">{{submission.recovery_tasks_parent}}</span> <br>
+
+
+<h3>Campaign Stage Snapshot</h3>
+
+ <span class="fn">campaign_stage_snapshot_id:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.campaign_stage_snapshot_id}}</span> <br>
+ <span class="fn">campaign_stage_id:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.campaign_stage_id}}</span> <br>
+ <span class="fn">experiment:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.experiment}}</span> <br>
+ <span class="fn">name:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.name}}</span> <br>
+ <span class="fn">job_type_id:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.job_type_id}}</span> <br>
+ <span class="fn">vo_role:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.vo_role}}</span> <br>
+ <span class="fn">creator:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.creator}}</span> <br>
+ <span class="fn">created:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.created}}</span> <br>
+ <span class="fn">dataset:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.dataset}}</span> <br>
+ <span class="fn">software_version:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.software_version}}</span> <br>
+ <span class="fn">login_setup_id:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.login_setup_id}}</span> <br>
+ <span class="fn">param_overrides:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.param_overrides}}</span> <br>
+ <span class="fn">updater:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.updater}}</span> <br>
+ <span class="fn">updated:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.updated}}</span> <br>
+ <span class="fn">cs_last_split:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.cs_last_split}}</span> <br>
+ <span class="fn">cs_split_type:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.cs_split_type}}</span> <br>
+ <span class="fn">cs_split_dimensions:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.cs_split_dimensions}}</span> <br>
+ <span class="fn">completion_type:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.completion_type}}</span> <br>
+ <span class="fn">completion_pct:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.completion_pct}}</span> <br>
+
+<h3>Job Type Snapshot</h3>
+
+ <span class="fn">job_type_snapshot_id:</span> <span class="val">{{submission.job_type_snapshot_obj.job_type_snapshot_id}}</span> <br>
+ <span class="fn">job_type_id:</span> <span class="val">{{submission.job_type_snapshot_obj.job_type_id}}</span> <br>
+ <span class="fn">name:</span> <span class="val">{{submission.job_type_snapshot_obj.name}}</span> <br>
+ <span class="fn">experiment:</span> <span class="val">{{submission.job_type_snapshot_obj.experiment}}</span> <br>
+ <span class="fn">launch_script:</span> <span class="val">{{submission.job_type_snapshot_obj.launch_script}}</span> <br>
+ <span class="fn">definition_parameters:</span> <span class="val">{{submission.job_type_snapshot_obj.definition_parameters}}</span> <br>
+ <span class="fn">input_files_per_job:</span> <span class="val">{{submission.job_type_snapshot_obj.input_files_per_job}}</span> <br>
+ <span class="fn">output_files_per_job:</span> <span class="val">{{submission.job_type_snapshot_obj.output_files_per_job}}</span> <br>
+ <span class="fn">output_file_patterns:</span> <span class="val">{{submission.job_type_snapshot_obj.output_file_patterns}}</span> <br>
+ <span class="fn">creator:</span> <span class="val">{{submission.job_type_snapshot_obj.creator}}</span> <br>
+ <span class="fn">created:</span> <span class="val">{{submission.job_type_snapshot_obj.created}}</span> <br>
+ <span class="fn">updater:</span> <span class="val">{{submission.job_type_snapshot_obj.updater}}</span> <br>
+ <span class="fn">updated:</span> <span class="val">{{submission.job_type_snapshot_obj.updated}}</span> <br>
+
+<h3>Login/Setup Snapshot</h3>
+
+
+ <span class="fn">job_type_snapshot_id:</span> <span class="val">{{submission.login_setup_snap_obj.job_type_snapshot_id}}</span> <br>
+ <span class="fn">job_type_id:</span> <span class="val">{{submission.login_setup_snap_obj.job_type_id}}</span> <br>
+ <span class="fn">name:</span> <span class="val">{{submission.login_setup_snap_obj.name}}</span> <br>
+ <span class="fn">experiment:</span> <span class="val">{{submission.login_setup_snap_obj.experiment}}</span> <br>
+ <span class="fn">launch_script:</span> <span class="val">{{submission.login_setup_snap_obj.launch_script}}</span> <br>
+ <span class="fn">definition_parameters:</span> <span class="val">{{submission.login_setup_snap_obj.definition_parameters}}</span> <br>
+ <span class="fn">input_files_per_job:</span> <span class="val">{{submission.login_setup_snap_obj.input_files_per_job}}</span> <br>
+ <span class="fn">output_files_per_job:</span> <span class="val">{{submission.login_setup_snap_obj.output_files_per_job}}</span> <br>
+ <span class="fn">output_file_patterns:</span> <span class="val">{{submission.login_setup_snap_obj.output_file_patterns}}</span> <br>
+ <span class="fn">creator:</span> <span class="val">{{submission.login_setup_snap_obj.creator}}</span> <br>
+ <span class="fn">created:</span> <span class="val">{{submission.login_setup_snap_obj.created}}</span> <br>
+ <span class="fn">updater:</span> <span class="val">{{submission.login_setup_snap_obj.updater}}</span> <br>
+ <span class="fn">updated:</span> <span class="val">{{submission.login_setup_snap_obj.updated}}</span> <br>
+
+{%endblock%}
