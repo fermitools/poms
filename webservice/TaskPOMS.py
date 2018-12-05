@@ -767,7 +767,7 @@ class TaskPOMS:
         # keep some bookkeeping flags
         #
         pdict = {}
-        if dataset && datset != 'None':
+        if dataset and datset != 'None':
             pdict['dataset']  = dataset
         if test_launch: 
             pdict['test'] = 1
@@ -775,6 +775,8 @@ class TaskPOMS:
         if test_launch or dataset_override:
             dbhandle.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict});
             dbhandle.commit()
+
+        proxyfile = "/opt/%spro/%spro.Production.proxy"
 
         cmdl = [
             "exec 2>&1",
@@ -789,7 +791,6 @@ class TaskPOMS:
                 "experimenter": experimenter_login,
             },
 
-            proxyfile = "/opt/%spro/%spro.Production.proxy"
 
             #
             # This bit is a little tricky.  We want to do as little of our
