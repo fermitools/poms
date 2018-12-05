@@ -326,6 +326,7 @@ class TaskPOMS:
 
         lasthist = (dbhandle.query(SubmissionHistory)
                .filter(SubmissionHistory.created == sq.c.latest)
+               .filter(SubmissionHistory.submission_id == submission_id)
                .first())
 
         # don't roll back Located
