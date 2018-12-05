@@ -366,14 +366,35 @@ class TaskPOMS:
         dbhandle.commit()
         return "\n".join(res)
 
-    def submission_details(self, dbhandle, error_exception, config_get, submission_id):
+    def submission_details(self, dbhandle, samhandle, error_exception, config_get, submission_id):
         submission = (dbhandle.query(Submission)
                .options(joinedload(Submission.campaign_stage_snapshot_obj))
                .options(joinedload(Submission.login_setup_snap_obj))
                .options(joinedload(Submission.job_type_snapshot_obj))
                .filter(Submission.submission_id == submission_id)
                .first())
-        return submission
+        history = (dbhandle.query(SubmissionHistory)
+               .filter(SubmissionHistory.submission_id == submission_id)
+               .order_by(SubmissionHistory.created)
+               .all())
+
+        #
+        # newer submissions should have dataset recorded in submission_params.
+        # but for older ones, we can often look it up...
+        #
+        if submission.submission_params and submission.submission_params.get('dataset'):
+            dataset =  submission.submission_params.get('dataset')
+        elif submission.command_executed.find('--dataset') > 0:
+            pos = submission.command_executed.find('--dataset') 
+            dataset = submission.command_executed[pos+10:]
+            pos = dataset.find(' ')
+            dataset = dataset[:pos]
+        elif submission.project:
+            details = samhandle.fetch_info(experiment, submission.project, dbhandle)
+            datset = details['dataset']
+        else:
+            dataset = None
+        return submission, history, dataset
 
 
     def running_submissions(self, dbhandle, campaign_id_list, status_list=['New','Idle','Running']):

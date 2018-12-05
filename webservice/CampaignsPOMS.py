@@ -1544,13 +1544,7 @@ class CampaignsPOMS:
                                  campaign_stage_id=th.submission_obj.campaign_stage_id,
                                  created_s=th.submission_obj.created.strftime("%Y%m%d_%H%M%S")
                                  ))
-            if th.status_type.status == 'LaunchFailed':
-                items[-1].url = failedlaunch_url_template % items[-1].__dict__
-            elif th.submission_obj.project:
-                items[-1].url = url_template_dag % items[-1].__dict__
-            else:
-                items[-1].url = url_template_plain % items[-1].__dict__
-
+            items[-1].url = "./submission_details?submission_id=%s" % th.submission_id
         logit.log("campaign_time_bars: items: " + repr(items))
         blob = tg.render_query_blob(tmin, tmax, items, 'jobsub_job_id', extramap=extramap)
         return "", blob, name, str(tmin)[:16], str(tmax)[:16], nextlink, prevlink, tdays, key, extramap

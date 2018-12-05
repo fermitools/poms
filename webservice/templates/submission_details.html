@@ -16,30 +16,98 @@ Campaign Stage {{submission.campaign_stage_snapshot_obj.name}}  <br>
 in Campaign {{submission.campaign_stage_snapshot_obj.campaign.campaign_obj.name}}
 {%endblock%}
 
+{%block extracss%}
+<style type="text/css">
+ 
+.fn {
+   display: inline-block;
+   min-width: 12em;
+   font-weight: bold;
+}
 
+</style>
+{%endblock%}
 {%block content%}
 
+<h3>Information</h3>
+
+Submission was: 
 {%if submission.recovery_tasks_parent %}
-Recovery launch for <a href="./submission_details?submission_id={{submission.recovery_tasks_parent}}">Submission #{{submission.recovery_tasks_parent}}</a> 
+a recovery launch for <a href="./submission_details?submission_id={{submission.recovery_tasks_parent}}">Submission #{{submission.recovery_tasks_parent}}</a> ;
 {%else%}
-Regular Launch
+a regular launch;
 {%endif%}
 
-{%if submission.submission_params.get('dataset') %}
-{%if submission.submission_params['dataset'][:12] == '_poms_depends_' %}
-Launched on completion of  <a href="./submission_details?submission_id={{submission.submission_params['dataset'][15:-2]}}">Submission #{{submission.submission_params['dataset'][15:-2]}}</a> 
+{%if dataset %}
+{%if dataset[:12] == '_poms_depends_' %}
+launched on completion of  <a href="./submission_details?submission_id={{dataset[15:-2]}}">Submission #{{dataset[15:-2]}}</a> 
 {%endif%}
+{%endif%}
+
+<br>
+
+{%set cluster=submission.jobsub_job_id[:submission.jobsub_job_id.find("@")] %}
+{%set schedd=submission.jobsub_job_id[submission.jobsub_job_id.find("@")+1:] %}
+{%set experiment=submission.campaign_stage_snapshot_obj.experiment %}
+{%set ds=(submission.created - datetime.timedelta(seconds=0.5)).strftime("%Y%m%d_%H%M%S") %}
+{%set owner=submission.experimenter_creator_obj.username %}
+
+View <a href="{{pomspath}}/list_launch_file?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}">launch output </a> <br>
+
+
+View in 
+{%if submission.jobsub_job_id %}
+{%if submission.project %}
+  <a href="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster={{cluster}}&var-schedd={{schedd}}&from={{submission.created}}s000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
+{% else %}
+  <a href="https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster={{cluster}}s&var-schedd={{schedd}}&from={{submission.created}}s000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
+{%endif%}
+{%else%}
+Landscape (disabled, no info found) <br>
+{%endif%}
+
+{%if submission.project %}
+View the <a href="http://samweb.fnal.gov:8480/station_monitor/{{experiment}}/stations/{{experiment}}/projects/{{submission.project}}">SAM Project</a> <br>
 {%endif%}
 
 {%if submission.jobsub_job_id %}
-{%if submission.project %}
-  <a href="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster={{submission.jobsub_job_id[:submission.jobsub_job_id.find("@")]}}&var-schedd={{submission.jobsub_job_id[submission.jobsub_job_id.find("@")+1:]}}&from={{submission.created}}s000&to=now&refresh=3m&orgId=1">Landscape</a>
-{% else %}
-  <a href="https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster={{submission.jobsub_job_id[:submission.jobsub_job_id.find("@")]}}s&var-schedd={{submission.jobsub_job_id[submission.jobsub_job_id.find("@")+1:]}}&from={{submission.created}}s000&to=now&refresh=3m&orgId=1">Landscape</a>
+View the <a href="https://{{schedd}}:8443/jobsub/acctgroups/{{experiment|replace('samdev','fermilab')}}/sandboxes/{{"%spro"|format(experiment)|replace("samdevpro","mengel")}}/{{submission.jobsub_job_id|replace("@",".0@")}}/">Job Logs</a> <br>
 {%endif%}
+
+<h3>Actions</h3>
+
+{%if history[-1].status_id < 7000 %}
+Hold Condor Jobs<br>
+Release Condor Jobs<br>
 {%else%}
-No Successful Job Launch Found
+{%if history[-1].status_id == 7000 %}
+Kick to Located [button] <br>
 {%endif%}
+Re-Launch Submission [button] <br>
+Launch Recovery for Submission [select_type] [button]
+{%endif%}
+
+
+<h3>History</h3>
+
+<!-- statusmap ought to come from database, but.. -->
+{% set statusmap={
+      1000 : 'New',
+      3000 : 'Idle',
+      4000 : 'Running',
+      5000 : 'Held',
+      6000 : 'Failed',
+      7000 : 'Completed',
+      8000 : 'Located',
+      9000 : 'Removed',
+      2000 : 'LaunchFailed',
+} %}
+
+{% for sh in history %}
+{% if loop.previtem and loop.previtem.status_id != sh.status_id %}
+{{sh.created}} {{statusmap[sh.status_id]}} <br>
+{% endif %}
+{% endfor %}
 
 <h3>Submission fields</h3>
  <span class="fn">submission_id:</span> <span class="val">{{submission.submission_id}}</span> <br>

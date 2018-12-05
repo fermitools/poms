@@ -25,6 +25,7 @@ import os
 import glob
 import pprint
 import socket
+import datetime
 
 # cherrypy and jinja imports...
 
@@ -450,10 +451,13 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def submission_details(self, submission_id ):
-        submission = self.taskPOMS.submission_details(cherrypy.request.db, cherrypy.HTTPError, cherrypy.config.get, submission_id)
+        submission, history, dataset = self.taskPOMS.submission_details(cherrypy.request.db, cherrypy.request.samweb_lite, cherrypy.HTTPError, cherrypy.config.get, submission_id)
         template = self.jinja_env.get_template('submission_details.html')
         return template.render(
+            datetime = datetime,
             submission = submission, 
+            history = history,
+            dataset = dataset,
             do_refresh=0,
             help_page="SubmissionDetailsHelp",
          )
