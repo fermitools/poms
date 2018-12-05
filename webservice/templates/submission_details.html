@@ -83,25 +83,20 @@ Release Condor Jobs<br>
 {%if history[-1].status_id == 7000 %}
 Kick to Located [button] <br>
 {%endif%}
-Re-Launch Submission [button] <br>
-Launch Recovery for Submission [select_type] [button]
+Re-Launch Submission on {{dataset}} <a href="{{pomspath}}/launch_jobs?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}"><button>Relaunch</button></a> <br>
+Launch Recovery for Submission <form action="{{pomspath}}/launch_recovery_for">
+<select name="recovery_type">
+{% for r in recoverymap %}
+<option value="{{recoverymap[r][0]}}" >{{r}} </option>
+{% endfor %}
+</select>
+<input type="hidden" name="campaign_stage_id" value="{{submission.campaign_stage_id}}">
+<input type="hidden" name="submission_id" value="{{submission.submission_id}}">
+<input type="submit" name="launch" value="launch">
 {%endif%}
-
+</form>
 
 <h3>History</h3>
-
-<!-- statusmap ought to come from database, but.. -->
-{% set statusmap={
-      1000 : 'New',
-      3000 : 'Idle',
-      4000 : 'Running',
-      5000 : 'Held',
-      6000 : 'Failed',
-      7000 : 'Completed',
-      8000 : 'Located',
-      9000 : 'Removed',
-      2000 : 'LaunchFailed',
-} %}
 
 {% for sh in history %}
 {% if loop.previtem and loop.previtem.status_id != sh.status_id %}

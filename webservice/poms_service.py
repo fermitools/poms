@@ -451,13 +451,15 @@ class PomsService(object):
     @cherrypy.expose
     @logit.logstartstop
     def submission_details(self, submission_id ):
-        submission, history, dataset = self.taskPOMS.submission_details(cherrypy.request.db, cherrypy.request.samweb_lite, cherrypy.HTTPError, cherrypy.config.get, submission_id)
+        submission, history, dataset, rmap, smap = self.taskPOMS.submission_details(cherrypy.request.db, cherrypy.request.samweb_lite, cherrypy.HTTPError, cherrypy.config.get, submission_id)
         template = self.jinja_env.get_template('submission_details.html')
         return template.render(
             datetime = datetime,
             submission = submission, 
             history = history,
             dataset = dataset,
+            recoverymap = rmap,
+            statusmap = smap,
             do_refresh=0,
             help_page="SubmissionDetailsHelp",
          )
@@ -840,6 +842,30 @@ class PomsService(object):
                     "%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (self.path, campaign_stage_id, os.path.basename(outfile)))
 
 
+# h4. launch_recovery_for
+    def launch_recovery_for(self, submission_id = None, campaign_stage_id = None, recovery_type = None, launch=None):
+
+        # we don't actually get the logfile, etc back from launch_recovery_if_needed, so guess what it will be:
+
+        ds = time.strftime("%Y%m%d_%H%M%S")
+        e = seshandle_get('experimenter')
+        launcher_experimenter = e
+        outdir ="/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campagin_stage_id)
+        outfile = "%s/%_%s" % (outdir, ds, launcher_experimenter.username)
+
+        self.taskPOMS.launch_recovery_if_needed( 
+                                         cherrypy.request.db,
+                                         cherrypy.request.samweb_lite,
+                                         cherrypy.config.get,
+                                         cherrypy.request.headers.get,
+                                         cherrypy.session.get,
+                                         cherrypy.HTTPError,
+                                         submission_id,
+                                         recovery_type)
+        raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (
+                    self.path, campaign_stage_id,  os.path.basename(outfile)))
+
+cherrypy.request.db, cherrypy.request.samweb_lite, cherrypy.session.get, gethead, seshandle, err_res,  s, recovery_type_override = recovery_type):
 # h4. jobtype_list
     @cherrypy.expose
     @cherrypy.tools.json_out()

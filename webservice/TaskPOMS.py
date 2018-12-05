@@ -30,6 +30,7 @@ from .poms_model import (CampaignStage,
                          HeldLaunch,
                          LoginSetup,
                          LoginSetupSnapshot,
+                         RecoveryType,
                          Submission,
                          SubmissionHistory,
                          SubmissionStatus)
@@ -379,6 +380,14 @@ class TaskPOMS:
                .order_by(SubmissionHistory.created)
                .all())
 
+        rtypes = dbhandle.query(RecoveryType).all()
+        sstatuses = dbhandle.query(SubmissionStatus).all()
+        rmap = {}
+        smap = {}
+        for rt in rtypes:
+            rmap[rt.name] = (rt.recovery_type_id, rt.description)
+        for sst in sstatuses:
+            smap[sst.status_id] = sst.status
         #
         # newer submissions should have dataset recorded in submission_params.
         # but for older ones, we can often look it up...
@@ -395,7 +404,7 @@ class TaskPOMS:
             datset = details['dataset']
         else:
             dataset = None
-        return submission, history, dataset
+        return submission, history, dataset, rmap, smap
 
 
     def running_submissions(self, dbhandle, campaign_id_list, status_list=['New','Idle','Running']):
@@ -543,7 +552,7 @@ class TaskPOMS:
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.provides_campaign_stage_id, s.creator, dataset_override = dname, test_launch = test_launch )
         return 1
 
-    def launch_recovery_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  s):
+    def launch_recovery_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  s, recovery_type_override = None):
         logit.log("Entering launch_recovery_if_needed(%s)" % s.submission_id)
         if not getconfig("poms.launch_recovery_jobs", False):
             logit.log("recovery launches disabled")
@@ -555,7 +564,12 @@ class TaskPOMS:
         if s.parent_obj:
             s = s.parent_obj
 
-        rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(dbhandle, s.job_type_snapshot_obj)
+        if recovery_type_override != None:
+            s.recovery_position = 0
+            rlist = dbhandle.query(RecoveryType).filter(RecoveryType.name == recovery_type_override).all()
+        else:
+            rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(dbhandle, s.job_type_snapshot_obj)
+         
 
         logit.log("recovery list %s" % rlist)
         if s.recovery_position is None:
@@ -565,6 +579,7 @@ class TaskPOMS:
             logit.log("recovery position %d" % s.recovery_position)
 
             rtype = rlist[s.recovery_position].recovery_type
+
             # uncomment when we get db fields:
             param_overrides = rlist[s.recovery_position].param_overrides
             if rtype.name == 'consumed_status':
