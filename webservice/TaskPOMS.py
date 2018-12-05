@@ -401,7 +401,7 @@ class TaskPOMS:
             dataset = dataset[:pos]
         elif submission.project:
             details = samhandle.fetch_info(experiment, submission.project, dbhandle)
-            datset = details['dataset']
+            dataset = details['dataset']
         else:
             dataset = None
         return submission, history, dataset, rmap, smap
@@ -804,7 +804,7 @@ class TaskPOMS:
         # keep some bookkeeping flags
         #
         pdict = {}
-        if dataset and datset != 'None':
+        if dataset and dataset != 'None':
             pdict['dataset']  = dataset
         if test_launch: 
             pdict['test'] = 1

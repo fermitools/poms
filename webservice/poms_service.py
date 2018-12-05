@@ -26,6 +26,7 @@ import glob
 import pprint
 import socket
 import datetime
+import time
 
 # cherrypy and jinja imports...
 
@@ -843,15 +844,18 @@ class PomsService(object):
 
 
 # h4. launch_recovery_for
+    @cherrypy.expose
+    @logit.logstartstop
     def launch_recovery_for(self, submission_id = None, campaign_stage_id = None, recovery_type = None, launch=None):
 
         # we don't actually get the logfile, etc back from launch_recovery_if_needed, so guess what it will be:
 
         ds = time.strftime("%Y%m%d_%H%M%S")
-        e = seshandle_get('experimenter')
+        e = cherrypy.session.get('experimenter')
         launcher_experimenter = e
-        outdir ="/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campagin_stage_id)
-        outfile = "%s/%_%s" % (outdir, ds, launcher_experimenter.username)
+        outdir ="%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_stage_id)
+        outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
+        s = cherrypy.request.db.query(Submission).filter(Submission.submission_id == submission_id).first()
 
         self.taskPOMS.launch_recovery_if_needed( 
                                          cherrypy.request.db,
@@ -860,12 +864,11 @@ class PomsService(object):
                                          cherrypy.request.headers.get,
                                          cherrypy.session.get,
                                          cherrypy.HTTPError,
-                                         submission_id,
+                                         s,
                                          recovery_type)
         raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (
                     self.path, campaign_stage_id,  os.path.basename(outfile)))
 
-cherrypy.request.db, cherrypy.request.samweb_lite, cherrypy.session.get, gethead, seshandle, err_res,  s, recovery_type_override = recovery_type):
 # h4. jobtype_list
     @cherrypy.expose
     @cherrypy.tools.json_out()
