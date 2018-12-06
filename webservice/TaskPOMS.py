@@ -813,7 +813,7 @@ class TaskPOMS:
             dbhandle.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict});
             dbhandle.commit()
 
-        proxyfile = "/opt/%spro/%spro.Production.proxy"
+        proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
 
         cmdl = [
             "exec 2>&1",
@@ -902,7 +902,7 @@ class TaskPOMS:
             "experiment": exp,
         }
         if output_commands:
-            cmdl.replace("'", """'"'"'""")
+            lcmd.replace("'", """'"'"'""")
             cmdl.append('echo "\n=========\nrun the following to launch the job:\n%s"' % lcmd)
             cmdl.append('/bin/bash -i')
         else:

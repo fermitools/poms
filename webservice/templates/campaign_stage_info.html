@@ -86,6 +86,12 @@ in Campaign {{CampaignStage.campaign_obj.name}}
                    <i class="external rocket icon" data-content="Immediately Launch Submissions for CampaignStage" data-variation="basic">
                    </i>
                   Launch Campaign Stage Jobs Now
+                </a>
+                &nbsp; &nbsp;
+                <a href="{{pomspath}}/launch_jobs?campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
+                   and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                >
+                (<i class="external text icon"></i>commands)
                </a>
               </div>
               <div class=item>
@@ -95,6 +101,12 @@ in Campaign {{CampaignStage.campaign_obj.name}}
                    <i class="external rocket icon" data-content="Immediately Launch Test Submissions for CampaignStage" data-variation="basic">
                    </i>
                   Launch Campaign Stage Test Jobs Now
+                </a>
+                &nbsp; &nbsp;
+                <a href="{{pomspath}}/launch_jobs?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
+                   and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                >
+                (<i class="external text icon"></i>commands)
                </a>
               </div>
 
