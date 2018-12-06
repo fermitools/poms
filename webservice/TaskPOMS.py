@@ -16,7 +16,7 @@ from collections import OrderedDict, deque
 from datetime import datetime, timedelta
 
 from psycopg2.extensions import QueryCanceledError
-from sqlalchemy import case, func, text
+from sqlalchemy import case, func, text, and_, or_
 from sqlalchemy.orm import joinedload
 
 from . import condor_log_parser, logit, time_grid
@@ -357,7 +357,7 @@ class TaskPOMS:
         now = datetime.now(utc)
 
         
-        newtups = dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label('maxstat'),func.min(SubmissionHistory.created).lable('firsttime')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=7)).having(func.max(SubmissionHistory.status_id) == self.status_New, firsttime < datetime.now(utc) - timedleta(hours=4)).all()
+        newtups = dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label('maxstat'),func.min(SubmissionHistory.created).label('firsttime')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=7)).group_by(SubmissionHistory.submission_id).having(and_(func.max(SubmissionHistory.status_id) == self.status_New, func.min(SubmissionHistory.created) < datetime.now(utc) - timedelta(hours=4))).all()
 
         failed_sids = [x[0] for x in newtups]
 
