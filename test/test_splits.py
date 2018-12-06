@@ -91,9 +91,10 @@ def make_split(ds, split,should_hit_end):
 
 split_table=[
     ['a,b,c','list()',1],
-    ['[["a","b"],["c","d"],["e","f"]]','multiparam()',1],
+    ['[["a","b"],["c","d"],["e","f"]]','multiparam()',0],
     ['gen_cfg','byrun(low=1,high=4)', 0],
     ['gen_cfg','byrun( low=1, high=4 ) ', 0],
+    ['gen_cfg','byexistingruns() ', 0],
     ['gen_cfg','draining', 0],
     ['gen_cfg','mod(3)', 1],
     ['gen_cfg','mod( 3 )', 1],

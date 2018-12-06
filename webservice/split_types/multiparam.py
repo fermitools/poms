@@ -30,8 +30,10 @@ class multiparam:
         res = []
         i = 0
         for l1 in self.list:
-            res.append(l1[n % dims[i]])
-            n = n / dims[i]
+            res.append(l1[n % self.dims[i]])
+            n = n // self.dims[i]
+            i = i + 1
+
         return '_'.join(res)
 
     def next(self):
@@ -48,3 +50,4 @@ class multiparam:
         c = 1
         for l1 in self.list:
             c = c * len(l1)
+        return c

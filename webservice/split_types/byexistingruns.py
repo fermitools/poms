@@ -21,18 +21,18 @@ class byexistingruns:
         else:
             snapshotbit="minus snapshot_id %d" % self.cs.cs_last_split
 
-        filel = self.samhandle.plain_list_files("defname:%s %s with limit 1"% (self.dataset, snapshotbit)
+        filel = self.samhandle.plain_list_files(self.cs.experiment,"defname:%s %s with limit 1"% (self.dataset, snapshotbit))
         if len(filel) == 0:
             raise StopIteration
 
-        md = self.samhandle.get_metadata(filel[0])
+        md = self.samhandle.get_metadata(self.cs.experiment, filel[0])
         if not md.get("runs", None):
             raise StopIteration
         
         run_number = "%d.%04d" % (md['runs'][0][0], md['runs'][0][1])
-        new = self.cs.dataset + "_slice_%i_run_%s % (self.cs.cs_last_split, run_number)
+        new = self.cs.dataset + "_slice_%i_run_%s" % (self.cs.cs_last_split, run_number)
 
-        self.samhandle.create_definition(self.cs.experiment, new,  "defname: %s  %s and run_number %s " % (self.cs.dataset, snapshotbit, run_number)
+        self.samhandle.create_definition(self.cs.experiment, new,  "defname: %s  %s and run_number %s " % (self.cs.dataset, snapshotbit, run_number))
 
         return new
 
