@@ -820,7 +820,7 @@ class TaskPOMS:
             "set -x",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
             "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true",
-            ("ssh -tx %s@%s <<'EOF' &" % (lt.launch_account,lt.launch_host))%{
+            ("ssh -tx %s@%s '" % (lt.launch_account,lt.launch_host))%{
                 "dataset": dataset,
                 "experiment": exp,
                 "version": vers,
@@ -854,15 +854,15 @@ class TaskPOMS:
             "ups active",
             # POMS4 'properly named' items for poms_jobsub_wrapper
             "export POMS4_CAMPAIGN_STAGE_ID=%s" % csid,
-            "export POMS4_CAMPAIGN_STAGE_NAME=%s" % csname,
+            "export POMS4_CAMPAIGN_STAGE_NAME=\"%s\"" % csname,
             "export POMS4_CAMPAIGN_STAGE_TYPE=%s" % cstype,
             "export POMS4_CAMPAIGN_ID=%s" % cid,
-            "export POMS4_CAMPAIGN_NAME=%s" % cname,
+            "export POMS4_CAMPAIGN_NAME=\"%s\"" % cname,
             "export POMS4_SUBMISSION_ID=%s" % sid,
             "export POMS4_CAMPAIGN_ID=%s" % cid,
             "export POMS4_TEST_LAUNCH=%s" % test_launch_flag,
             "export POMS_CAMPAIGN_ID=%s" % csid,
-            "export POMS_CAMPAIGN_NAME='%s'" % ccname,
+            "export POMS_CAMPAIGN_NAME=\"%s\"" % ccname,
             "export POMS_PARENT_TASK_ID=%s" % (parent_submission_id if parent_submission_id else ""),
             "export POMS_TASK_ID=%s" % sid,
             "export POMS_LAUNCHER=%s" % launcher_experimenter.username,
@@ -901,14 +901,21 @@ class TaskPOMS:
             "experimenter": experimenter_login,
             "experiment": exp,
         }
-        cmdl.append(lcmd)
+        if output_commands:
+            cmdl.replace("'", """'"'"'""")
+            cmdl.append('echo "\n=========\nrun the following to launch the job:\n%s"' % lcmd)
+            cmdl.append('/bin/bash -i')
+        else:
+            cmdl.append(lcmd)
         cmdl.append('exit')
-        cmdl.append('EOF')
+        cmdl.append("' &")
         cmd = '\n'.join(cmdl)
 
         cmd = cmd.replace('\r', '')
 
         if output_commands:
+            cmd = cmd[cmd.find('ssh -tx'):]
+            cmd = cmd[:-2]
             return cmd
 
         if not os.path.isdir(outdir):
