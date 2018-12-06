@@ -843,14 +843,14 @@ class TaskPOMS:
             "export X509_USER_PROXY=%s" % proxyfile,
             "source /grid/fermiapp/products/common/etc/setups",
             "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
-            lt.launch_setup % {
+            (lt.launch_setup % {
                 "dataset": dataset,
                 "experiment": exp,
                 "version": vers,
                 "group": group,
                 "experimenter": experimenter_login,
-            },
-            "UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db",
+            }).replace("'", """'"'"'"""),
+            "UPS_OVERRIDE=\"\" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db",
             "ups active",
             # POMS4 'properly named' items for poms_jobsub_wrapper
             "export POMS4_CAMPAIGN_STAGE_ID=%s" % csid,
