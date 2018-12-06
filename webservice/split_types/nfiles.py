@@ -12,7 +12,7 @@ class nfiles:
         try:
             self.n = int(cs.cs_split_type[7:].strip(')'))
         except:
-            raise SyntaxError("unable to parse integer parameter from "%s" % cs.cs_split_type)
+            raise SyntaxError("unable to parse integer parameter from '%s'" % cs.cs_split_type)
 
     def peek(self):
         if not self.cs.cs_last_split:
