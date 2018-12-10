@@ -258,7 +258,7 @@ class CampaignsPOMS:
             dbhandle.commit()
             cs = CampaignStage(name="stage0", experiment=experiment,
                                campaign_id=camp.campaign_id,
-                               active=False,
+                               # active=False,
                                #
                                completion_pct="95",
                                completion_type="complete",
@@ -733,7 +733,7 @@ class CampaignsPOMS:
                         message = 'Your active role must be analysis or production to add a campaign.'
                     else:
                         cs = CampaignStage(name=name, experiment=exp, vo_role=vo_role,
-                                        #    active=active,
+                                           # active=active,
                                            cs_split_type=split_type,
                                            software_version=software_version, dataset=dataset,
                                            test_param_overrides=test_param_overrides,
@@ -1995,7 +1995,7 @@ class CampaignsPOMS:
             else:       # If this is a new stage then create and store it
                 cs = CampaignStage(name=new_name, experiment=exp,
                                    campaign_id=the_campaign.campaign_id,
-                                   active=active,
+                                   # active=active,
                                    #
                                    completion_pct=completion_pct,
                                    completion_type=completion_type,
