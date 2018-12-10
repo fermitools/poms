@@ -53,7 +53,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         <!-- <th> Active {{ show_hint('#Active', 'True/False') }} </th> -->
         <th> VO Role {{ show_hint('#VO-Role', 'Role name') }} </th>
         <th> Software<br>Version {{ show_hint('#Software-Version', 'Version tag') }} </th>
-        <th> Dataset {{ show_hint('#Dataset', 'Dataset name') }} </th>
+        <th> Dataset or <br> Split Data {{ show_hint('#Dataset', 'Dataset name') }} </th>
         <th> Split Type {{ show_hint('#Split-Type', 'Type string') }} </th>
         <th> Completion<br>Type {{ show_hint('#Completion-Type', '[complete|located|...]') }} </th>
         <th> Completion<br>Percent {{ show_hint('#Completion-Percent', 'Integer number') }} </th>
@@ -198,11 +198,11 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
       <div class="two fields">
         <div class="field">
-            <label>Dataset{{ show_hint('#Dataset', 'Dataset name') }}</label>
+            <label>Dataset or Split Data {{ show_hint('#Dataset', 'Dataset name') }}</label>
             <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset"></input>
         </div>
         <div class="field">
-            <label>Dataset Split Type {{ show_hint('#Dataset-Split-Type', 'Set type') }}</label>
+            <label>(Dataset) Split Type {{ show_hint('#Dataset-Split-Type', 'Set type') }}</label>
             <input type="text" id="ae_split_type" name="ae_split_type">
         </div>
       </div>

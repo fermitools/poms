@@ -822,6 +822,7 @@ class TaskPOMS:
             "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true",
             ("ssh -tx %s@%s '" % (lt.launch_account,lt.launch_host))%{
                 "dataset": dataset,
+                "parameter": dataset,
                 "experiment": exp,
                 "version": vers,
                 "group": group,
@@ -845,6 +846,7 @@ class TaskPOMS:
             "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
             (lt.launch_setup % {
                 "dataset": dataset,
+                "parameter": dataset,
                 "experiment": exp,
                 "version": vers,
                 "group": group,
@@ -896,6 +898,7 @@ class TaskPOMS:
         lcmd = launch_script + " " + ' '.join((x[0] + x[1]) for x in list(params.items()))
         lcmd = lcmd % {
             "dataset": dataset,
+            "parameter": dataset,
             "version": vers,
             "group": group,
             "experimenter": experimenter_login,
