@@ -28,8 +28,8 @@ Submission Details {%include 'help_button.html'%}
 <h3>
 Submission #{{submission.submission_id}}<br>
 jobsub_job_Id: {{submission.jobsub_job_id}} <br>
-Campaign Stage <a href="{{pomspath}}/campaign_stage_info?campaign_id={{submission.campaign_stage_snapshot_obj.campaign_stage_id}}">{{submission.campaign_stage_snapshot_obj.name}}</a><br>
-in Campaign <a href="{{pomspath}}/show_campaign_stages">{{submission.campaign_stage_snapshot_obj.campaign.campaign_obj.name}}</a>
+Campaign Stage <a href="{{pomspath}}/campaign_stage_info?campaign_stage_id={{submission.campaign_stage_snapshot_obj.campaign_stage_id}}">{{submission.campaign_stage_snapshot_obj.name}}</a><br>
+in Campaign <a href="{{pomspath}}/show_campaigns?just_one={{submission.campaign_stage_snapshot_obj.campaign.campaign_obj.name}}">{{submission.campaign_stage_snapshot_obj.campaign.campaign_obj.name}}</a>
 </h3>
 
 <div class="ui horizontal segments">
