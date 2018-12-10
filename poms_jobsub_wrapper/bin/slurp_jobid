@@ -15,13 +15,15 @@ do
     esac
 done
 
-set -x
-
 case "x$POMS_TEST" in
-xint*) reporturl="https://poms-int.fnal.gov:8443/poms/update_submission" ;;
-x1*)   reporturl="https://fermicloud045.fnal.gov:8443/poms/update_submission" ;;
-x*)    reporturl="https://pomsgpvm01.fnal.gov:8443/poms/update_submission" ;;
+xint*) baseurl="https://poms-int.fnal.gov:8443/poms" ;;
+x1*)   baseurl="https://fermicloud045.fnal.gov:8443/poms" ;;
+x*)    baseurl="https://pomsgpvm01.fnal.gov:8443/poms" ;;
 esac
+
+reporturl="$baseurl/update_submission"
+submission_url="$baseurl/submission_details?submission_id=$POMS_TASK_ID"
+
 
 X509_USER_PROXY=${X509_USER_PROXY:-/tmp/x509up_u`id -u`}
 
@@ -29,4 +31,6 @@ if [ "x$report" != "x" ]
 then
     report=`echo $report | sed -e 's/\.0@/@/'`
     wget -O - --no-check-certificate  --certificate=$X509_USER_PROXY --ca-certificate=$X509_USER_PROXY --ca-directory=/etc/grid-security/certificates --private-key=$X509_USER_PROXY "$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$report&status=New" 
+
+    echo "For Status, use URL: $submission_url"
 fi
