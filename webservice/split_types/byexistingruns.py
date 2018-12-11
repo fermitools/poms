@@ -56,3 +56,6 @@ class byexistingruns:
     def len(self):
         # WAG of 2 files per run...
         return self.samhandle.count_files(self.cs.experiment,"defname:"+self.ds) /2
+
+    def edit_popup(self):
+        return "null"

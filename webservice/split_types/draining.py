@@ -21,3 +21,6 @@ class draining:
 
     def len(self):
         return -1
+
+    def edit_popup(self):
+        return "null"

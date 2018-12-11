@@ -107,3 +107,6 @@ class new:
 
     def len(self):
         return int((time.time() - self.firsttime)/self.twindow)
+
+    def edit_popup(self):
+        return "null"

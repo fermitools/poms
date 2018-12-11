@@ -40,3 +40,6 @@ class byrun:
 
     def len(self):
         return self.high - self.low + 1
+
+    def edit_popup(self):
+        return "null"
