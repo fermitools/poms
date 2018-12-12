@@ -79,17 +79,24 @@ class TaskPOMS:
         # keep some status vales around so we don't have to look them up...
         self.init_status_done = False
 
-    def init_statuses(self,dbhandle):
+    def init_statuses(self, dbhandle):
         if self.init_status_done:
-             return
-        self.status_Located = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Located").first()
-        self.status_Completed = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Completed").first()
-        self.status_New = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()
+            return
+        self.status_Located = dbhandle.query(
+            SubmissionStatus.status_id).filter(
+            SubmissionStatus.status == "Located").first()
+        self.status_Completed = dbhandle.query(
+            SubmissionStatus.status_id).filter(
+            SubmissionStatus.status == "Completed").first()
+        self.status_New = dbhandle.query(
+            SubmissionStatus.status_id).filter(
+            SubmissionStatus.status == "New").first()
         self.init_status_done = True
 
-
-    def wrapup_tasks(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res):
-        # this function call another function that is not in this module, it use a poms_service object passed as an argument at the init.
+    def wrapup_tasks(self, dbhandle, samhandle, getconfig,
+                     gethead, seshandle, err_res):
+        # this function call another function that is not in this module, it
+        # use a poms_service object passed as an argument at the init.
 
         self.init_statuses(dbhandle)
         now = datetime.now(utc)
@@ -103,32 +110,44 @@ class TaskPOMS:
         #
         # move launch stuff etc, to one place, so we can keep the table rows
 
-        cpairs = dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label('maxstat')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id).having(func.max(SubmissionHistory.status_id) == self.status_Completed).all()
+        cpairs = dbhandle.query(
+            SubmissionHistory.submission_id,
+            func.max(
+                SubmissionHistory.status_id).label('maxstat')).filter(
+            SubmissionHistory.created > datetime.now(utc) -
+            timedelta(
+                days=4)).group_by(
+                    SubmissionHistory.submission_id).having(
+                        func.max(
+                            SubmissionHistory.status_id) == self.status_Completed).all()
 
         completed_sids = [x[0] for x in cpairs]
 
-        res.append("Completed submissions_ids: %s" % repr(list(completed_sids)))
+        res.append(
+            "Completed submissions_ids: %s" %
+            repr(
+                list(completed_sids)))
 
         for s in (dbhandle
-                      .query(Submission)
-                      .join(CampaignStageSnapshot,
-                            Submission.campaign_stage_snapshot_id ==
-                              CampaignStageSnapshot.campaign_stage_snapshot_id)
-                      .filter(Submission.submission_id.in_(completed_sids),
-                              CampaignStageSnapshot.completion_type ==
-                                'complete')
-                      .all()):
+                  .query(Submission)
+                  .join(CampaignStageSnapshot,
+                        Submission.campaign_stage_snapshot_id ==
+                        CampaignStageSnapshot.campaign_stage_snapshot_id)
+                  .filter(Submission.submission_id.in_(completed_sids),
+                          CampaignStageSnapshot.completion_type ==
+                          'complete')
+                  .all()):
             res.append("completion type completed: %s" % s.submission_id)
             finish_up_submissions.append(s.submission_id)
 
         n_project = 0
         for s in (dbhandle
-                      .query(Submission)
-                      .join(CampaignStageSnapshot,Submission.campaign_stage_snapshot_id ==
-                              CampaignStageSnapshot.campaign_stage_snapshot_id)
-                      .filter(Submission.submission_id.in_(completed_sids),
-                              CampaignStageSnapshot.completion_type == 'located')
-                      .all()):
+                  .query(Submission)
+                  .join(CampaignStageSnapshot, Submission.campaign_stage_snapshot_id ==
+                        CampaignStageSnapshot.campaign_stage_snapshot_id)
+                  .filter(Submission.submission_id.in_(completed_sids),
+                          CampaignStageSnapshot.completion_type == 'located')
+                  .all()):
 
             res.append("completion type located: %s" % s.submission_id)
             # after two days, call it on time...
@@ -147,14 +166,16 @@ class TaskPOMS:
                 # dependencies that lead to this campaign_stage,
                 # or from the job type
 
-                for dcd in dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id).all():
+                for dcd in dbhandle.query(CampaignDependency).filter(
+                        CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id).all():
                     if dcd.file_patterns:
                         plist.extend(dcd.file_patterns.split(','))
                     else:
                         plist.append("%")
 
                 if len(plist) == 0:
-                    plist = str(s.job_type_snapshot_obj.output_file_patterns).split(',')
+                    plist = str(
+                        s.job_type_snapshot_obj.output_file_patterns).split(',')
 
                 logit.log("got file pattern list: %s" % repr(plist))
 
@@ -163,27 +184,34 @@ class TaskPOMS:
                         pat = '%'
 
                     if pat.find(' ') > 0:
-                        allkiddims = "%s and isparentof: ( %s and version '%s' with availability physical ) " % (allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
+                        allkiddims = "%s and isparentof: ( %s and version '%s' with availability physical ) " % (
+                            allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
                     else:
-                        allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
+                        allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (
+                            allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
 
-                lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
+                lookup_exp_list.append(
+                    s.campaign_stage_snapshot_obj.experiment)
                 lookup_submission_list.append(s)
                 lookup_dims_list.append(allkiddims)
             else:
                 # it's located but there's no project, so they are
                 # defining the poms_depends_%(submission_id)s_1 dataset..
                 allkiddims = "defname:poms_depends_%s_1" % s.submission_id
-                lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
+                lookup_exp_list.append(
+                    s.campaign_stage_snapshot_obj.experiment)
                 lookup_submission_list.append(s)
                 lookup_dims_list.append(allkiddims)
 
         dbhandle.commit()
 
-        summary_list = samhandle.fetch_info_list(lookup_submission_list, dbhandle=dbhandle)
-        count_list = samhandle.count_files_list(lookup_exp_list, lookup_dims_list)
+        summary_list = samhandle.fetch_info_list(
+            lookup_submission_list, dbhandle=dbhandle)
+        count_list = samhandle.count_files_list(
+            lookup_exp_list, lookup_dims_list)
         thresholds = deque()
-        logit.log("wrapup_tasks: summary_list: %s" % repr(summary_list))    # Check if that is working
+        logit.log("wrapup_tasks: summary_list: %s" %
+                  repr(summary_list))    # Check if that is working
         res.append("wrapup_tasks: summary_list: %s" % repr(summary_list))
 
         res.append("count_list: %s" % count_list)
@@ -196,24 +224,28 @@ class TaskPOMS:
             if submission.project:
                 threshold = (summary_list[i].get('tot_consumed', 0) * cfrac)
             else:
-                # no project, so guess based on number of jobs in submit command?
+                # no project, so guess based on number of jobs in submit
+                # command?
                 p1 = submission.command_executed.find('-N')
-                p2 = submission.command_executed.find(' ', p1+3)
+                p2 = submission.command_executed.find(' ', p1 + 3)
                 try:
-                    threshold = int(submission.command_executed[p1+3:p2]) * cfrac
-                except:
+                    threshold = int(
+                        submission.command_executed[p1 + 3:p2]) * cfrac
+                except BaseException:
                     threshold = 0
 
             thresholds.append(threshold)
             val = float(count_list[i])
-            res.append("submission %s val %f threshold %f "%(submission, val, threshold))
+            res.append(
+                "submission %s val %f threshold %f " %
+                (submission, val, threshold))
             if val >= threshold and threshold > 0:
-                res.append("adding submission %s "%submission)
+                res.append("adding submission %s " % submission)
                 finish_up_submissions.append(submission.submission_id)
 
         for s in finish_up_submissions:
-            res.append("marking submission %s located "%s)
-            self.update_submission_status(dbhandle,s,"Located")
+            res.append("marking submission %s located " % s)
+            self.update_submission_status(dbhandle, s, "Located")
 
         dbhandle.commit()
 
@@ -224,42 +256,51 @@ class TaskPOMS:
         # this way we don's keep the rows locked all day
         #
         #logit.log("Starting need_joblogs loops, len %d" % len(finish_up_submissions))
-        #if len(need_joblogs) == 0:
+        # if len(need_joblogs) == 0:
         #    njtl = []
-        #else:
+        # else:
         #    njtl = dbhandle.query(Submission).filter(Submission.submission_id.in_(need_joblogs)).all()
 
-        res.append("finish_up_submissions: %s "% repr(finish_up_submissions))
+        res.append("finish_up_submissions: %s " % repr(finish_up_submissions))
 
         if len(finish_up_submissions) == 0:
             futl = []
         else:
-            futl = dbhandle.query(Submission).filter(Submission.submission_id.in_(finish_up_submissions)).all()
+            futl = dbhandle.query(Submission).filter(
+                Submission.submission_id.in_(finish_up_submissions)).all()
 
         res.append(" got list... ")
 
         for submission in futl:
             # get logs for job for final cpu values, etc.
-            logit.log("Starting finish_up_submissions items for submission %s" % submission.submission_id)
-            res.append("Starting finish_up_submissions items for submission %s" % submission.submission_id)
+            logit.log(
+                "Starting finish_up_submissions items for submission %s" %
+                submission.submission_id)
+            res.append(
+                "Starting finish_up_submissions items for submission %s" %
+                submission.submission_id)
 
-            if not self.launch_recovery_if_needed(dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission):
-                self.launch_dependents_if_needed(dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission)
+            if not self.launch_recovery_if_needed(
+                    dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission):
+                self.launch_dependents_if_needed(
+                    dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission)
 
         return res
 
 ###
 
-    def get_task_id_for(self, dbhandle, campaign, user=None, experiment=None, command_executed="", input_dataset="", parent_submission_id=None, submission_id = None):
+    def get_task_id_for(self, dbhandle, campaign, user=None, experiment=None,
+                        command_executed="", input_dataset="", parent_submission_id=None, submission_id=None):
         logit.log("get_task_id_for(user='%s',experiment='%s',command_executed='%s',input_dataset='%s',parent_submission_id='%s',submission_id='%s'" % (
-             user, experiment, command_executed, input_dataset, parent_submission_id, submission_id
-            ))
+            user, experiment, command_executed, input_dataset, parent_submission_id, submission_id
+        ))
 
         #
         # try to extract the project name from the launch command...
         #
         project = None
-        for projre in ('-e SAM_PROJECT=([^ ]*)','-e SAM_PROJECT_NAME=([^ ]*)','--sam_project ([^ ]*)') :
+        for projre in (
+                '-e SAM_PROJECT=([^ ]*)', '-e SAM_PROJECT_NAME=([^ ]*)', '--sam_project ([^ ]*)'):
             m = re.search(projre, command_executed)
             if m:
                 project = m.group(1)
@@ -268,7 +309,8 @@ class TaskPOMS:
         if user is None:
             user = 4
         else:
-            u = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
+            u = dbhandle.query(Experimenter).filter(
+                Experimenter.username == user).first()
             if u:
                 user = u.experimenter_id
 
@@ -284,23 +326,22 @@ class TaskPOMS:
         cs = q.first()
         tim = datetime.now(utc)
         if submission_id:
-            s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).one()
+            s = dbhandle.query(Submission).filter(
+                Submission.submission_id == submission_id).one()
             s.command_executed = command_executed
             s.updated = tim
         else:
             s = Submission(campaign_stage_id=cs.campaign_stage_id,
-                 submission_params={},
-                 project = project,
-                 updater=4,
-                 creator=4,
-                 created=tim,
-                 updated=tim,
-                 command_executed=command_executed)
-
+                           submission_params={},
+                           project=project,
+                           updater=4,
+                           creator=4,
+                           created=tim,
+                           updated=tim,
+                           command_executed=command_executed)
 
         if parent_submission_id is not None and parent_submission_id != "None":
             s.recovery_tasks_parent = int(parent_submission_id)
-
 
         self.snapshot_parts(dbhandle, s, s.campaign_stage_id)
 
@@ -309,7 +350,10 @@ class TaskPOMS:
 
         self.init_statuses(dbhandle)
         if not submission_id:
-            sh = SubmissionHistory(submission_id = s.submission_id, status_id = self.status_New, created=tim);
+            sh = SubmissionHistory(
+                submission_id=s.submission_id,
+                status_id=self.status_New,
+                created=tim)
             dbhandle.add(sh)
         logit.log("get_task_id_for: returning %s" % s.submission_id)
         dbhandle.commit()
@@ -318,17 +362,19 @@ class TaskPOMS:
     def update_submission_status(self, dbhandle, submission_id, status):
         self.init_statuses(dbhandle)
 
-        status_id = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first();
+        status_id = dbhandle.query(
+            SubmissionStatus.status_id).filter(
+            SubmissionStatus.status == status).first()
         # get our latest history...
         sq = (dbhandle.query(
-                func.max(SubmissionHistory.created).label('latest')
-              ).filter(SubmissionHistory.submission_id == submission_id)
-               .subquery())
+            func.max(SubmissionHistory.created).label('latest')
+        ).filter(SubmissionHistory.submission_id == submission_id)
+            .subquery())
 
         lasthist = (dbhandle.query(SubmissionHistory)
-               .filter(SubmissionHistory.created == sq.c.latest)
-               .filter(SubmissionHistory.submission_id == submission_id)
-               .first())
+                    .filter(SubmissionHistory.created == sq.c.latest)
+                    .filter(SubmissionHistory.submission_id == submission_id)
+                    .first())
 
         # don't roll back Located
         if lasthist and lasthist.status_id == self.status_Located:
@@ -339,7 +385,7 @@ class TaskPOMS:
             return
 
         # don't put in duplicates
-        if lasthist and  lasthist.status_id == status_id:
+        if lasthist and lasthist.status_id == status_id:
             return
 
         sh = SubmissionHistory()
@@ -356,29 +402,46 @@ class TaskPOMS:
         self.init_statuses(dbhandle)
         now = datetime.now(utc)
 
-        
-        newtups = dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label('maxstat'),func.min(SubmissionHistory.created).label('firsttime')).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=7)).group_by(SubmissionHistory.submission_id).having(and_(func.max(SubmissionHistory.status_id) == self.status_New, func.min(SubmissionHistory.created) < datetime.now(utc) - timedelta(hours=4))).all()
+        newtups = dbhandle.query(
+            SubmissionHistory.submission_id,
+            func.max(
+                SubmissionHistory.status_id).label('maxstat'),
+            func.min(
+                SubmissionHistory.created).label('firsttime')).filter(
+            SubmissionHistory.created > datetime.now(utc) -
+            timedelta(
+                days=7)).group_by(
+            SubmissionHistory.submission_id).having(
+            and_(
+                func.max(
+                    SubmissionHistory.status_id) == self.status_New,
+                func.min(
+                    SubmissionHistory.created) < datetime.now(utc) -
+                timedelta(
+                    hours=4))).all()
 
         failed_sids = [x[0] for x in newtups]
 
         res = []
         for submission_id in failed_sids:
             res.append("updating %s" % submission_id)
-            self.update_submission_status(dbhandle, submission_id,status = 'LaunchFailed')
+            self.update_submission_status(
+                dbhandle, submission_id, status='LaunchFailed')
         dbhandle.commit()
         return "\n".join(res)
 
-    def submission_details(self, dbhandle, samhandle, error_exception, config_get, submission_id):
+    def submission_details(self, dbhandle, samhandle,
+                           error_exception, config_get, submission_id):
         submission = (dbhandle.query(Submission)
-               .options(joinedload(Submission.campaign_stage_snapshot_obj))
-               .options(joinedload(Submission.login_setup_snap_obj))
-               .options(joinedload(Submission.job_type_snapshot_obj))
-               .filter(Submission.submission_id == submission_id)
-               .first())
+                      .options(joinedload(Submission.campaign_stage_snapshot_obj))
+                      .options(joinedload(Submission.login_setup_snap_obj))
+                      .options(joinedload(Submission.job_type_snapshot_obj))
+                      .filter(Submission.submission_id == submission_id)
+                      .first())
         history = (dbhandle.query(SubmissionHistory)
-               .filter(SubmissionHistory.submission_id == submission_id)
-               .order_by(SubmissionHistory.created)
-               .all())
+                   .filter(SubmissionHistory.submission_id == submission_id)
+                   .order_by(SubmissionHistory.created)
+                   .all())
 
         rtypes = dbhandle.query(RecoveryType).all()
         sstatuses = dbhandle.query(SubmissionStatus).all()
@@ -392,31 +455,33 @@ class TaskPOMS:
         # newer submissions should have dataset recorded in submission_params.
         # but for older ones, we can often look it up...
         #
-        if submission.submission_params and submission.submission_params.get('dataset'):
-            dataset =  submission.submission_params.get('dataset')
+        if submission.submission_params and submission.submission_params.get(
+                'dataset'):
+            dataset = submission.submission_params.get('dataset')
         elif submission.command_executed.find('--dataset') > 0:
-            pos = submission.command_executed.find('--dataset') 
-            dataset = submission.command_executed[pos+10:]
+            pos = submission.command_executed.find('--dataset')
+            dataset = submission.command_executed[pos + 10:]
             pos = dataset.find(' ')
             dataset = dataset[:pos]
         elif submission.project:
-            details = samhandle.fetch_info(experiment, submission.project, dbhandle)
+            details = samhandle.fetch_info(
+                experiment, submission.project, dbhandle)
             dataset = details['dataset']
         else:
             dataset = None
         return submission, history, dataset, rmap, smap
 
-
-    def running_submissions(self, dbhandle, campaign_id_list, status_list=['New','Idle','Running']):
+    def running_submissions(self, dbhandle, campaign_id_list, status_list=[
+                            'New', 'Idle', 'Running']):
 
         cl = campaign_id_list
 
         logit.log("INFO", "running_submissions(%s)" % repr(cl))
         sq = (dbhandle.query(
-                SubmissionHistory.submission_id,
-                func.max(SubmissionHistory.created).label('latest')
-              ).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
-               .group_by(SubmissionHistory.submission_id).subquery())
+            SubmissionHistory.submission_id,
+            func.max(SubmissionHistory.created).label('latest')
+        ).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
+            .group_by(SubmissionHistory.submission_id).subquery())
 
         running_sids = (dbhandle.query(SubmissionHistory.submission_id)
                         .join(SubmissionStatus, SubmissionStatus.status_id == SubmissionHistory.status_id)
@@ -426,8 +491,8 @@ class TaskPOMS:
                         .all())
 
         ccl = (dbhandle.query(CampaignStage.campaign_id, func.count(Submission.submission_id))
-            .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
-            .filter(CampaignStage.campaign_id.in_(cl), Submission.submission_id.in_(running_sids)).group_by(CampaignStage.campaign_id).all())
+               .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
+               .filter(CampaignStage.campaign_id.in_(cl), Submission.submission_id.in_(running_sids)).group_by(CampaignStage.campaign_id).all())
 
         # the query never returns a 0 count, so initialize result with
         # a zero count for everyone, then update with the nonzero counts
@@ -445,15 +510,17 @@ class TaskPOMS:
         # this doesn't actually mark it located, rather it bumps
         # the timestamp backwards so it will look timed out...
 
-        s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
+        s = dbhandle.query(Submission).filter(
+            Submission.submission_id == submission_id).first()
         s.updated = s.updated - timedelta(days=2)
         dbhandle.add(s)
         dbhandle.commit()
         return "Ok."
 
-
-    def update_submission(self, dbhandle, submission_id, jobsub_job_id, pct_complete = None, status = None, project = None):
-        s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()
+    def update_submission(self, dbhandle, submission_id, jobsub_job_id,
+                          pct_complete=None, status=None, project=None):
+        s = dbhandle.query(Submission).filter(
+            Submission.submission_id == submission_id).first()
         if not s:
             return "Unknown."
 
@@ -466,35 +533,41 @@ class TaskPOMS:
             dbhandle.add(s)
 
         # amend status for completion percent
-        if status == 'Running' and pct_complete and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct and s.campaign_stage_snapshot_obj.completion_type == 'complete':
+        if status == 'Running' and pct_complete and float(
+                pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct and s.campaign_stage_snapshot_obj.completion_type == 'complete':
             status = 'Completed'
 
-        if status != None:
-            self.update_submission_status(dbhandle, submission_id,status = status)
+        if status is not None:
+            self.update_submission_status(
+                dbhandle, submission_id, status=status)
 
         dbhandle.commit()
         return "Ok."
 
     def snapshot_parts(self, dbhandle, s, campaign_stage_id):
 
-        cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+        cs = dbhandle.query(CampaignStage).filter(
+            CampaignStage.campaign_stage_id == campaign_stage_id).first()
         for table, snaptable, field, sfield, sid, tfield in [
                 [CampaignStage, CampaignStageSnapshot,
                  CampaignStage.campaign_stage_id, CampaignStageSnapshot.campaign_stage_id,
                  cs.campaign_stage_id, 'campaign_stage_snapshot_obj'
-                ],
+                 ],
                 [JobType, JobTypeSnapshot,
                  JobType.job_type_id,
                  JobTypeSnapshot.job_type_id,
                  cs.job_type_id, 'job_type_snapshot_obj'
-                ],
+                 ],
                 [LoginSetup, LoginSetupSnapshot,
                  LoginSetup.login_setup_id,
                  LoginSetupSnapshot.login_setup_id,
                  cs.login_setup_id, 'login_setup_snap_obj'
-                ]]:
+                 ]]:
 
-            i = dbhandle.query(func.max(snaptable.updated)).filter(sfield == sid).first()
+            i = dbhandle.query(
+                func.max(
+                    snaptable.updated)).filter(
+                sfield == sid).first()
             j = dbhandle.query(table).filter(field == sid).first()
             if i[0] is None or j is None or j.updated is None or i[0] < j.updated:
                 newsnap = snaptable()
@@ -503,13 +576,14 @@ class TaskPOMS:
                     setattr(newsnap, fieldname, getattr(j, fieldname))
                 dbhandle.add(newsnap)
             else:
-                newsnap = dbhandle.query(snaptable).filter(snaptable.updated == i[0]).first()
+                newsnap = dbhandle.query(snaptable).filter(
+                    snaptable.updated == i[0]).first()
             setattr(s, tfield, newsnap)
         dbhandle.add(s)
         dbhandle.commit()
 
-
-    def launch_dependents_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  s):
+    def launch_dependents_if_needed(
+            self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res, s):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
 
         # if this is itself a recovery job, we go back to our parent
@@ -521,14 +595,28 @@ class TaskPOMS:
             # XXX should queue for later?!?
             logit.log("recovery launches disabled")
             return 1
-        cdlist = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id).order_by(CampaignDependency.provides_campaign_stage_id).all()
+        cdlist = dbhandle.query(CampaignDependency).filter(
+            CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id).order_by(
+            CampaignDependency.provides_campaign_stage_id).all()
 
-        launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).first()
+        launch_user = dbhandle.query(Experimenter).filter(
+            Experimenter.experimenter_id == s.creator).first()
         i = 0
         for cd in cdlist:
             if cd.provides_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id:
                 # self-reference, just do a normal launch
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.provides_campaign_stage_id, launch_user.username, test_launch = s.submission_params.get('test',False))
+                self.launch_jobs(
+                    dbhandle,
+                    getconfig,
+                    gethead,
+                    seshandle.get,
+                    samhandle,
+                    err_res,
+                    cd.provides_campaign_stage_id,
+                    launch_user.username,
+                    test_launch=s.submission_params.get(
+                        'test',
+                        False))
             else:
                 i = i + 1
                 if cd.file_patterns.find(' ') > 0:
@@ -537,22 +625,38 @@ class TaskPOMS:
                 else:
                     dim_bits = "file_name like '%s'" % cd.file_patterns
                 cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
-                dims = "ischildof: (snapshot_for_project_name %s) and version %s and create_date > '%s' and %s" % (s.project, s.campaign_stage_snapshot_obj.software_version, cdate, dim_bits)
+                dims = "ischildof: (snapshot_for_project_name %s) and version %s and create_date > '%s' and %s" % (
+                    s.project, s.campaign_stage_snapshot_obj.software_version, cdate, dim_bits)
 
                 dname = "poms_depends_%d_%d" % (s.submission_id, i)
 
-                samhandle.create_definition(s.campaign_stage_snapshot_obj.experiment, dname, dims)
-                if s.submission_params and s.submission_params.get('test',False):
-                    test_launch = s.submission_params.get('test',False)
+                samhandle.create_definition(
+                    s.campaign_stage_snapshot_obj.experiment, dname, dims)
+                if s.submission_params and s.submission_params.get(
+                        'test', False):
+                    test_launch = s.submission_params.get('test', False)
                 else:
                     test_launch = False
 
-                logit.log("About to launch jobs, test_launch = %s" % test_launch)
+                logit.log(
+                    "About to launch jobs, test_launch = %s" %
+                    test_launch)
 
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle, err_res, cd.provides_campaign_stage_id, s.creator, dataset_override = dname, test_launch = test_launch )
+                self.launch_jobs(
+                    dbhandle,
+                    getconfig,
+                    gethead,
+                    seshandle.get,
+                    samhandle,
+                    err_res,
+                    cd.provides_campaign_stage_id,
+                    s.creator,
+                    dataset_override=dname,
+                    test_launch=test_launch)
         return 1
 
-    def launch_recovery_if_needed(self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res,  s, recovery_type_override = None):
+    def launch_recovery_if_needed(self, dbhandle, samhandle, getconfig,
+                                  gethead, seshandle, err_res, s, recovery_type_override=None):
         logit.log("Entering launch_recovery_if_needed(%s)" % s.submission_id)
         if not getconfig("poms.launch_recovery_jobs", False):
             logit.log("recovery launches disabled")
@@ -564,18 +668,20 @@ class TaskPOMS:
         if s.parent_obj:
             s = s.parent_obj
 
-        if recovery_type_override != None:
+        if recovery_type_override is not None:
             s.recovery_position = 0
-            rlist = dbhandle.query(RecoveryType).filter(RecoveryType.name == recovery_type_override).all()
+            rlist = dbhandle.query(RecoveryType).filter(
+                RecoveryType.name == recovery_type_override).all()
         else:
-            rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(dbhandle, s.job_type_snapshot_obj)
-         
+            rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(
+                dbhandle, s.job_type_snapshot_obj)
 
         logit.log("recovery list %s" % rlist)
         if s.recovery_position is None:
             s.recovery_position = 0
 
-        while s.recovery_position is not None and s.recovery_position < len(rlist):
+        while s.recovery_position is not None and s.recovery_position < len(
+                rlist):
             logit.log("recovery position %d" % s.recovery_position)
 
             rtype = rlist[s.recovery_position].recovery_type
@@ -583,13 +689,16 @@ class TaskPOMS:
             # uncomment when we get db fields:
             param_overrides = rlist[s.recovery_position].param_overrides
             if rtype.name == 'consumed_status':
-                recovery_dims = samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project, useprocess=0, dbhandle = dbhandle)
+                recovery_dims = samhandle.recovery_dimensions(
+                    s.job_type_snapshot_obj.experiment, s.project, useprocess=0, dbhandle=dbhandle)
             elif rtype.name == 'proj_status':
-                recovery_dims = samhandle.recovery_dimensions(s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle = dbhandle)
+                recovery_dims = samhandle.recovery_dimensions(
+                    s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=dbhandle)
             elif rtype.name == 'pending_files':
                 recovery_dims = "snapshot_for_project_name %s minus ( " % s.project
                 if s.job_type_snapshot_obj.output_file_patterns:
-                    oftypelist = s.job_type_snapshot_obj.output_file_patterns.split(",")
+                    oftypelist = s.job_type_snapshot_obj.output_file_patterns.split(
+                        ",")
                 else:
                     oftypelist = ["%"]
 
@@ -600,7 +709,8 @@ class TaskPOMS:
                         dim_bits = oft
                     else:
                         dim_bits = "file_name like %s" % oft
-                    recovery_dims += "%s isparentof: ( version %s and %s) " % (sep,s.campaign_stage_snapshot_obj.software_version, dim_bits)
+                    recovery_dims += "%s isparentof: ( version %s and %s) " % (
+                        sep, s.campaign_stage_snapshot_obj.software_version, dim_bits)
                     sep = 'and'
                 recovery_dims += ')'
             else:
@@ -609,9 +719,13 @@ class TaskPOMS:
 
             try:
                 logit.log("counting files dims %s" % recovery_dims)
-                nfiles = samhandle.count_files(s.campaign_stage_snapshot_obj.experiment, recovery_dims, dbhandle=dbhandle)
-            except:
-                # if we can's count it, just assume there may be a few for now...
+                nfiles = samhandle.count_files(
+                    s.campaign_stage_snapshot_obj.experiment,
+                    recovery_dims,
+                    dbhandle=dbhandle)
+            except BaseException:
+                # if we can's count it, just assume there may be a few for
+                # now...
                 nfiles = 1
 
             s.recovery_position = s.recovery_position + 1
@@ -620,18 +734,22 @@ class TaskPOMS:
 
             logit.log("recovery files count %d" % nfiles)
             if nfiles > 0:
-                rname = "poms_recover_%d_%d" % (s.submission_id, s. recovery_position)
+                rname = "poms_recover_%d_%d" % (
+                    s.submission_id, s. recovery_position)
 
-                logit.log("launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s" % (s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims))
+                logit.log(
+                    "launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s" %
+                    (s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims))
 
-                samhandle.create_definition(s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
+                samhandle.create_definition(
+                    s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
 
-
-                launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).first()
+                launch_user = dbhandle.query(Experimenter).filter(
+                    Experimenter.experimenter_id == s.creator).first()
 
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
-                                 err_res, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username,  dataset_override=rname,
-                                 parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch = s.submission_params.get('test',False))
+                                 err_res, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username, dataset_override=rname,
+                                 parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch=s.submission_params.get('test', False))
                 return 1
 
         return 0
@@ -639,20 +757,22 @@ class TaskPOMS:
     def set_job_launches(self, dbhandle, hold):
         if hold not in ["hold", "allowed"]:
             return
-        #XXX where do we keep held jobs now?
+        # XXX where do we keep held jobs now?
         return
 
-
     def get_job_launches(self, dbhandle):
-        #XXX where do we keep held jobs now?
+        # XXX where do we keep held jobs now?
         return "allowed"
 
-    def launch_queued_job(self, dbhandle, samhandle, getconfig, gethead, seshandle_get, err_res):
+    def launch_queued_job(self, dbhandle, samhandle,
+                          getconfig, gethead, seshandle_get, err_res):
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
-        hl = dbhandle.query(HeldLaunch).with_for_update(read=True).order_by(HeldLaunch.created).first()
-        launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == hl.launcher).first()
+        hl = dbhandle.query(HeldLaunch).with_for_update(
+            read=True).order_by(HeldLaunch.created).first()
+        launch_user = dbhandle.query(Experimenter).filter(
+            Experimenter.experimenter_id == hl.launcher).first()
         if hl:
             dbhandle.delete(hl)
             dbhandle.commit()
@@ -670,17 +790,19 @@ class TaskPOMS:
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
                     err_res, campaign_stage_id, launcher, dataset_override=None, parent_submission_id=None,
-                    param_overrides=None, test_login_setup=None, experiment=None, test_launch = False, output_commands = False):
+                    param_overrides=None, test_login_setup=None, experiment=None, test_launch=False, output_commands=False):
 
-        logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id))
+        logit.log("Entering launch_jobs(%s, %s, %s)" %
+                  (campaign_stage_id, dataset_override, parent_submission_id))
 
         ds = time.strftime("%Y%m%d_%H%M%S")
         e = seshandle_get('experimenter')
-        launcher_experimenter = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == launcher).first()
-
+        launcher_experimenter = dbhandle.query(Experimenter).filter(
+            Experimenter.experimenter_id == launcher).first()
 
         if test_login_setup:
-            lt = dbhandle.query(LoginSetup).filter(LoginSetup.login_setup_id == test_login_setup).first()
+            lt = dbhandle.query(LoginSetup).filter(
+                LoginSetup.login_setup_id == test_login_setup).first()
             dataset_override = "fake_test_dataset"
             cdid = "-"
             csid = "-"
@@ -695,28 +817,39 @@ class TaskPOMS:
             definition_parameters = []
             exp = e.session_experiment
             launch_script = """echo "Environment"; printenv; echo "jobsub is`which jobsub`;  echo "login_setup successful!"""
-            outdir = "%s/private/logs/poms/launches/template_tests_%d" % (os.environ["HOME"], int(test_login_setup))
+            outdir = "%s/private/logs/poms/launches/template_tests_%d" % (
+                os.environ["HOME"], int(test_login_setup))
             outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
             logit.log("trying to record launch in %s" % outfile)
         else:
-            outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_stage_id)
+            outdir = "%s/private/logs/poms/launches/campaign_%s" % (
+                os.environ["HOME"], campaign_stage_id)
             outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
             logit.log("trying to record launch in %s" % outfile)
 
             if str(campaign_stage_id)[0] in "0123456789":
-                cq = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id)
+                cq = dbhandle.query(CampaignStage).filter(
+                    CampaignStage.campaign_stage_id == campaign_stage_id)
             else:
-                cq = dbhandle.query(CampaignStage).filter(CampaignStage.name == campaign_stage_id, CampaignStage.experiment == experiment)
+                cq = dbhandle.query(CampaignStage).filter(
+                    CampaignStage.name == campaign_stage_id,
+                    CampaignStage.experiment == experiment)
 
-            cs = cq.options(joinedload(CampaignStage.login_setup_obj), joinedload(CampaignStage.job_type_obj)).first()
+            cs = cq.options(
+                joinedload(
+                    CampaignStage.login_setup_obj), joinedload(
+                    CampaignStage.job_type_obj)).first()
 
             if not cs:
-                raise err_res(404, "CampaignStage id %s not found" % campaign_stage_id)
+                raise err_res(
+                    404, "CampaignStage id %s not found" %
+                    campaign_stage_id)
 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
 
-            if self.get_job_launches(dbhandle) == "hold" or cs.hold_experimenter_id:
+            if self.get_job_launches(
+                    dbhandle) == "hold" or cs.hold_experimenter_id:
                 # fix me!!
                 output = "Job launches currently held.... queuing this request"
                 logit.log("launch_jobs -- holding launch")
@@ -732,8 +865,6 @@ class TaskPOMS:
                 lcmd = ""
 
                 return lcmd, cs, campaign_stage_id, outdir, outfile
-
-
 
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
@@ -757,7 +888,8 @@ class TaskPOMS:
             if cs.name == cs.campaign_obj.name:
                 ccname = cs.name
             elif cs.name[:len(cs.campaign_obj.name)] == cs.campaign_obj.name:
-                ccname = "%s__%s" % (cs.campaign_obj.name , cs.name[len(cs.campaign_obj_name):])
+                ccname = "%s__%s" % (cs.campaign_obj.name,
+                                     cs.name[len(cs.campaign_obj_name):])
             else:
                 ccname = "%s__%s" % (cs.campaign_obj.name, cs.name)
 
@@ -772,11 +904,13 @@ class TaskPOMS:
 
         if not e and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
-            raise err_res(403,"Permission denied.")
+            raise err_res(403, "Permission denied.")
 
         if not lt.launch_host.find(exp) >= 0 and exp != 'samdev':
-            logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
-            output = "Not Authorized: {} is not a {} experiment node".format(lt.launch_host, exp)
+            logit.log(
+                "launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
+            output = "Not Authorized: {} is not a {} experiment node".format(
+                lt.launch_host, exp)
             raise err_res(403, output)
 
         experimenter_login = e.username
@@ -784,33 +918,40 @@ class TaskPOMS:
         if dataset_override:
             dataset = dataset_override
         else:
-            dataset = self.poms_service.campaignsPOMS.get_dataset_for(dbhandle, samhandle, err_res, cs)
+            dataset = self.poms_service.campaignsPOMS.get_dataset_for(
+                dbhandle, samhandle, err_res, cs)
 
         group = exp
         if group == 'samdev':
             group = 'fermilab'
 
         if "poms" in self.poms_service.hostname:
-            poms_test=""
-        elif "fermicloudmwm" in  self.poms_service.hostname:
-            poms_test="int"
+            poms_test = ""
+        elif "fermicloudmwm" in self.poms_service.hostname:
+            poms_test = "int"
         else:
-            poms_test="1"
+            poms_test = "1"
 
         # allocate task to set ownership
-        sid = self.get_task_id_for(dbhandle, campaign_stage_id, user=launcher_experimenter.username, experiment=experiment, parent_submission_id=parent_submission_id)
+        sid = self.get_task_id_for(
+            dbhandle,
+            campaign_stage_id,
+            user=launcher_experimenter.username,
+            experiment=experiment,
+            parent_submission_id=parent_submission_id)
 
         #
         # keep some bookkeeping flags
         #
         pdict = {}
         if dataset and dataset != 'None':
-            pdict['dataset']  = dataset
-        if test_launch: 
+            pdict['dataset'] = dataset
+        if test_launch:
             pdict['test'] = 1
 
         if test_launch or dataset_override:
-            dbhandle.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict});
+            dbhandle.query(Submission).filter(Submission.submission_id == sid).update(
+                {Submission.submission_params: pdict})
             dbhandle.commit()
 
         proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
@@ -820,7 +961,7 @@ class TaskPOMS:
             "set -x",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
             "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true",
-            ("ssh -tx %s@%s '" % (lt.launch_account,lt.launch_host))%{
+            ("ssh -tx %s@%s '" % (lt.launch_account, lt.launch_host)) % {
                 "dataset": dataset,
                 "parameter": dataset,
                 "experiment": exp,
@@ -865,7 +1006,8 @@ class TaskPOMS:
             "export POMS4_TEST_LAUNCH=%s" % test_launch_flag,
             "export POMS_CAMPAIGN_ID=%s" % csid,
             "export POMS_CAMPAIGN_NAME=\"%s\"" % ccname,
-            "export POMS_PARENT_TASK_ID=%s" % (parent_submission_id if parent_submission_id else ""),
+            "export POMS_PARENT_TASK_ID=%s" % (
+                parent_submission_id if parent_submission_id else ""),
             "export POMS_TASK_ID=%s" % sid,
             "export POMS_LAUNCHER=%s" % launcher_experimenter.username,
             "export POMS_TEST=%s" % poms_test,
@@ -887,7 +1029,7 @@ class TaskPOMS:
                 params.update(c_param_overrides)
 
         if test_launch and cs.test_param_overrides is not None:
-           params.update(cs.test_param_overrides);
+            params.update(cs.test_param_overrides)
 
         if param_overrides is not None and param_overrides != "":
             if isinstance(param_overrides, str):
@@ -895,7 +1037,8 @@ class TaskPOMS:
             else:
                 params.update(param_overrides)
 
-        lcmd = launch_script + " " + ' '.join((x[0] + x[1]) for x in list(params.items()))
+        lcmd = launch_script + " " + \
+            ' '.join((x[0] + x[1]) for x in list(params.items()))
         lcmd = lcmd % {
             "dataset": dataset,
             "parameter": dataset,
@@ -906,7 +1049,9 @@ class TaskPOMS:
         }
         if output_commands:
             lcmd.replace("'", """'"'"'""")
-            cmdl.append('echo "\n=========\nrun the following to launch the job:\n%s"' % lcmd)
+            cmdl.append(
+                'echo "\n=========\nrun the following to launch the job:\n%s"' %
+                lcmd)
             cmdl.append('/bin/bash -i')
         else:
             cmdl.append(lcmd)
@@ -926,10 +1071,15 @@ class TaskPOMS:
         dn = open("/dev/null", "r")
         lf = open(outfile, "w")
         logit.log("actually starting launch ssh")
-        pp = subprocess.Popen(cmd, shell=True, stdin=dn, stdout=lf, stderr=lf, close_fds=True)
+        pp = subprocess.Popen(
+            cmd,
+            shell=True,
+            stdin=dn,
+            stdout=lf,
+            stderr=lf,
+            close_fds=True)
         lf.close()
         dn.close()
         pp.wait()
-
 
         return lcmd, cs, campaign_stage_id, outdir, outfile
