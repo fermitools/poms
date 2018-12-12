@@ -32,10 +32,10 @@ class list:
     def edit_popup(self):
         return """
 
-        function edit_popup() {
+        function list_edit_popup() {
              ;
         }
-        edit_popup.start = function( id ) {
+        list_edit_popup.start = function( id ) {
             var e, r, v ,res ,i, j, fid, ts;
             var hang_onto;
             e = document.getElementById(id);
@@ -49,8 +49,8 @@ class list:
                 res.push(ts[i])
             }
             res.push('</textarea>')
-            res.push('<button type="button" onclick="edit_popup.save(\''+id+'\')">Save</button>')
-            res.push('<button type="button" onclick="edit_popup.cancel(\''+id+'\')">Cancel</button>')
+            res.push('<button type="button" onclick="list_edit_popup.save(\''+id+'\')">Save</button>')
+            res.push('<button type="button" onclick="list_edit_popup.cancel(\''+id+'\')">Cancel</button>')
             var myform = document.createElement("FORM")
             myform.className = "popup_form_json"
             myform.style.top = r.bottom
@@ -60,7 +60,7 @@ class list:
             myform.innerHTML += res.join('\n');
             hang_onto.appendChild(myform)
         }
-        edit_popup.save = function( id ) {
+        list_edit_popup.save = function( id ) {
             var ta, e;
             console.log('in save('+id+'), starting...')
             ta = document.getElementById( 't1_edit_form_' + id )
@@ -68,9 +68,9 @@ class list:
             console.log('in save, got: ' + e.value)
             console.log('in save, got: ' + ta.value)
             e.value = ta.value.split('\n').join(',')
-            edit_popup.cancel(id)
+            list_edit_popup.cancel(id)
         }
-        edit_popup.cancel = function( id ) {
+        list_edit_popup.cancel = function( id ) {
             var e;
             e = document.getElementById('edit_form_' + id)
             e.parentNode.removeChild(e)
