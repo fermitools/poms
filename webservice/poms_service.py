@@ -15,7 +15,7 @@
 # we leave a note here for pylint as we're still getting the
 # code pylint clean...
 #
-# pylint: disable=line-too-long,invalid-name,missing-docstring
+# pylint: disable=invalid-name,missing-docstring
 #
 # h3. imports
 #
