@@ -2,7 +2,7 @@ import time
 import requests
 import urllib.request, urllib.error, urllib.parse
 import logging
-import utils
+import poms.test.utils as utils
 
 logging.basicConfig(filename='test_requests.log',level=logging.DEBUG, filemode='w', format='%(asctime)s %(message)s')
 
