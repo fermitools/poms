@@ -599,21 +599,17 @@ class PomsService:
         template = self.jinja_env.get_template('campaign_stage_submissions.html')
         return template.render(data=data)
 
-<<<<<<< HEAD
 #   h4. session_status_history
-=======
-# h4. campaign_time_bars
-
-
->>>>>>> 3739437af3ef5023ea7a83ef8412febf4646492b
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-<<<<<<< HEAD
     def session_status_history(self, submission_id):
         rows = self.campaignsPOMS.session_status_history(cherrypy.request.db, submission_id)
         return rows
-=======
+
+
+    @cherrypy.expose
+    @logit.logstartstop
     def campaign_time_bars(self, campaign_stage_id=None,
                            campaign=None, tag=None, tmin=None, tmax=None, tdays=1):
         experimenter = cherrypy.session.get('experimenter')
@@ -628,7 +624,6 @@ class PomsService:
         return template.render(job_counts=job_counts, blob=blob, name=name, tmin=tmin, tmax=tmax,
                                do_refresh=1200, next=nextlink, prev=prevlink, tdays=tdays, key=key,
                                extramap=extramap, help_page="CampaignTimeBarsHelp")
->>>>>>> 3739437af3ef5023ea7a83ef8412febf4646492b
 
 
 # h4. register_poms_campaign
