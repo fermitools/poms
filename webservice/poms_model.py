@@ -198,6 +198,7 @@ class Submission(Base):
     login_setup_snap_obj = relationship('LoginSetupSnapshot', foreign_keys=login_setup_snapshot_id)
     campaign_stage_snapshot_obj = relationship('CampaignStageSnapshot', foreign_keys=campaign_stage_snapshot_id)
     job_type_snapshot_obj = relationship('JobTypeSnapshot', foreign_keys=job_type_snapshot_id)
+    status_history = relationship('SubmissionHistory', primaryjoin='Submission.submission_id == SubmissionHistory.submission_id')
 
 
 class SubmissionHistory(Base):
@@ -207,8 +208,8 @@ class SubmissionHistory(Base):
     created = Column(DateTime(True), primary_key=True, nullable=False)
     status_id = Column(ForeignKey('submission_statuses.status_id'), nullable=False, index=True)
 
-    submission_obj = relationship('Submission', backref='history')
-    status_type = relationship('SubmissionStatus')
+    status_type = relationship('SubmissionStatus', primaryjoin='SubmissionHistory.status_id == SubmissionStatus.status_id')
+
 
 class SubmissionStatus(Base):
     __tablename__ = 'submission_statuses'

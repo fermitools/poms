@@ -23,7 +23,7 @@ import cherrypy
 from crontab import CronTab
 from sqlalchemy import and_, distinct, func, or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import joinedload, attributes
+from sqlalchemy.orm import joinedload, attributes, aliased
 
 from . import logit, time_grid
 from .poms_model import (Campaign,
@@ -1438,6 +1438,49 @@ class CampaignsPOMS:
                 launch_flist,
                 kibana_link, dep_svg, last_activity
                 )
+
+
+    def campaign_stage_submissions(self, dbhandle, campaign_name, stage_name, campaign_stage_id, tmin=None, tmax=None, tdays=1):
+        base_link = 'campaign_stage_submissions?campaign_name={}&stage_name={}&campaign_stage_id={}&'.format(campaign_name, stage_name, campaign_stage_id)
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, base_link)
+        print("  tmin:%s\n   tmax:%s\n   tmins:%s\n   tmaxs:%s\n   nextlink:%s\n   prevlink:%s\n   time_range_string:%s\n   tdays:%s\n" %
+              (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays))
+
+        data = {'tmin': tmin, 'tmax': tmax, 'nextlink': nextlink, 'prevlink': prevlink, 'tdays': tdays}
+
+        subHist = aliased(SubmissionHistory)
+        subq = (dbhandle.query(func.max(subHist.created))
+                .filter(SubmissionHistory.submission_id == subHist.submission_id)
+               )
+
+        data['submissions'] = (dbhandle.query(Submission, SubmissionHistory, SubmissionStatus)
+                               .join(SubmissionHistory)
+                               .join(SubmissionStatus)
+                               .join('experimenter_creator_obj')
+                               .filter(Submission.campaign_stage_id == campaign_stage_id,
+                                       SubmissionHistory.submission_id == Submission.submission_id,
+                                       SubmissionStatus.status_id == SubmissionHistory.status_id,
+                                       or_(and_(Submission.created > tmin, Submission.created < tmax),
+                                           and_(Submission.updated > tmin, Submission.updated < tmax))
+                                      )
+                               .filter(SubmissionHistory.created == subq)
+                               .order_by(SubmissionHistory.submission_id.desc())
+                              ).all()
+        return data
+
+
+    def session_status_history(self, dbhandle, submission_id):
+        rows = []
+        tuples = (dbhandle.query(SubmissionHistory, SubmissionStatus)
+                  .join(SubmissionStatus)
+                  .filter(SubmissionHistory.submission_id == submission_id)
+                  .order_by(SubmissionHistory.created)).all()
+        for row in tuples:
+            submission_id = row.SubmissionHistory.submission_id
+            created = row.SubmissionHistory.created.now().strftime("%Y-%m-%d %H:%M:%S")
+            status = row.SubmissionStatus.status
+            rows.append({'created': created, 'status': status})
+        return rows
 
 
     # @pomscache_10.cache_on_arguments()

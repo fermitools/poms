@@ -455,13 +455,13 @@ class PomsService(object):
         template = self.jinja_env.get_template('submission_details.html')
         return template.render(
             datetime = datetime,
-            submission = submission, 
+            submission = submission,
             history = history,
             dataset = dataset,
             do_refresh=0,
             help_page="SubmissionDetailsHelp",
          )
-        
+
 
 # h4. campaign_stage_info
     @cherrypy.expose
@@ -501,23 +501,23 @@ class PomsService(object):
             kibana_link=kibana_link,
             dep_svg=dep_svg, last_activity=last_activity)
 
-
-# h4. campaign_time_bars
+#   h4. campaign_stage_submissions
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_time_bars(self, campaign_stage_id=None, campaign=None, tag=None, tmin=None, tmax=None, tdays=1):
-        experimenter = cherrypy.session.get('experimenter')
-        (
-            job_counts, blob, name, tmin, tmax, nextlink, prevlink, tdays, key, extramap
-        ) = self.campaignsPOMS.campaign_time_bars(cherrypy.request.db,
-                                                  experimenter=experimenter,
-                                                  campaign_stage_id=campaign_stage_id,
-                                                  campaign=campaign or tag,
-                                                  tmin=tmin, tmax=tmax, tdays=tdays)
-        template = self.jinja_env.get_template('campaign_time_bars.html')
-        return template.render(job_counts=job_counts, blob=blob, name=name, tmin=tmin, tmax=tmax,
-                               do_refresh=1200, next=nextlink, prev=prevlink, tdays=tdays, key=key,
-                               extramap=extramap, help_page="CampaignTimeBarsHelp")
+    def campaign_stage_submissions(self, campaign_name, stage_name, campaign_stage_id, tmin=None, tmax=None, tdays=1):
+        data = self.campaignsPOMS.campaign_stage_submissions(cherrypy.request.db, campaign_name, stage_name, campaign_stage_id, tmin, tmax, tdays)
+        data['campaign_name'] = campaign_name
+        data['stage_name'] = stage_name
+        template = self.jinja_env.get_template('campaign_stage_submissions.html')
+        return template.render(data=data)
+
+#   h4. session_status_history
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def session_status_history(self, submission_id):
+        rows = self.campaignsPOMS.session_status_history(cherrypy.request.db, submission_id)
+        return rows
 
 
 # h4. register_poms_campaign
