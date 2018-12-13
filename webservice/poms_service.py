@@ -887,7 +887,55 @@ class PomsService:
             cherrypy.request.db, cherrypy.request.samweb_lite, cl, tmin, tmax)
         return res
 
+# h3. File upload management for Analysis users
+#
+# h4. file_uploads
+    @cherrypy.expose
+    @logit.logstartstop
+    def file_uploads(self):
+        quota = cherrypy.config.get('base_uploads_quota')
+        file_stat_list, total = self.filesPOMS.file_uploads(
+            cherrypy.config.get('base_uploads_dir'),
+            cherrypy.session,
+            quota
+        )
 
+        template = self.jinja_env.get_template('file_uploads.html')
+        return template.render(
+            file_stat_list = file_stat_list,
+            total = total,
+            quota = quota,
+            time = time)
+
+# h4. upload_files
+    @cherrypy.expose
+    @logit.logstartstop
+    def upload_file(self, filename):
+        res = self.filesPOMS.upload_file(
+            cherrypy.config.get('base_uploads_dir'),
+            cherrypy.session,
+            cherrypy.HTTPError,
+            cherrypy.config.get('base_uploads_quota'),
+            filename
+        )
+        raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
+
+# h4. remove_uploaded_files
+    @cherrypy.expose
+    @logit.logstartstop
+    def remove_uploaded_files(self, filename, action):
+        res = self.filesPOMS.remove_uploaded_files(
+            cherrypy.config.get('base_uploads_dir'),
+            cherrypy.session,
+            cherrypy.HTTPError,
+            filename,
+            action
+        )
+        raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
+
+
+# h3. Job actions
+#
 # h4. kill_jobs
 
 
@@ -1269,6 +1317,14 @@ class PomsService:
     def echo(self, *args, **kwargs):
         data = self.campaignsPOMS.echo(
             cherrypy.request.db, cherrypy.session, *args, **kwargs)
+        return data
+
+# h4. split_type_javascript
+    @cherrypy.expose
+    @cherrypy.tools.response_headers(headers=[('Content-Type', 'text/javascript')])
+    def split_type_javascript(self, *args, **kwargs):
+        data = self.campaignsPOMS.split_type_javascript(
+            cherrypy.request.db, cherrypy.session, cherrypy.request.samweb_lite,*args, **kwargs)
         return data
 
 # h4. save_campaign

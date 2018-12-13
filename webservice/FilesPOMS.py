@@ -10,6 +10,7 @@
 from collections import deque, defaultdict
 import os
 import shelve
+import glob
 from datetime import datetime, timedelta
 
 from sqlalchemy.orm import subqueryload, joinedload
@@ -588,6 +589,48 @@ class Files_status:
             (len(dimlist), count_list))
 
         return dimlist, count_list
+
+    def get_file_upload_path(self, basedir, sesshandle, filename):
+        username = sesshandle.get('experimenter').username
+        experiment = sesshandle.get('experimenter').session_experiment
+        return "%s/uploads/%s/%s/%s" % (basedir, experiment,username,filename)
+       
+    def file_uploads(self, basedir, sesshandle, quota):
+        flist = glob.glob(self.get_file_upload_path(basedir, sesshandle, '*'))
+        res = []
+        total = 0
+        for fname in flist:
+            statout = os.stat(fname)
+            res.append([os.path.basename(fname), statout])
+            total += statout.st_size
+        return res, total
+
+    def upload_file(self, basedir, sesshandle, err_res, quota, filename):
+        outf = self.get_file_upload_path(basedir, sesshandle, filename.filename)
+        f = open(outf, "wb")
+        size = 0
+        while True:
+           data = filename.file.read(8192)
+           if not data:
+               break
+           f.write(data)
+           size += len(data)
+        f.close()
+        fstatlist, total = self.file_uploads(basedir, sesshandle, quota)
+        if total > quota:
+            unlink(outf)
+            raise err_res("Upload exeeds quota of %d kbi" % quota/1024)
+        return "Ok."
+
+    def remove_uploaded_files(self, basedir, sesshandle, err_res, filename, actio):
+        # if there's only one entry the web page will not send a list...
+        if isinstance(filename,str):
+            filename = [ filename ]
+            
+        for f in filename:
+            outf = self.get_file_upload_path(basedir, sesshandle, f)
+            os.unlink(outf)
+        return "Ok."
 
     @staticmethod
     def report_declared_files(flist, dbhandle):
