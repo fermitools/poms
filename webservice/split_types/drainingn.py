@@ -49,3 +49,6 @@ class drainingn:
     def len(self):
         return self.samhandle.count_files(self.cs.experiment,"defname:"+self.ds) / self.n + 1
         return res
+
+    def edit_popup(self):
+        return "null"

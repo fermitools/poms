@@ -26,6 +26,6 @@ class DBadminPOMS:
                    .filter(Experiment.name == experiment)
                    .filter(ExperimentsExperimenters.active == True)
                    .order_by(ExperimentsExperimenters.active.desc(), Experimenter.last_name)
-                  ).all()
+                   ).all()
         data = {'members': members}
         return data

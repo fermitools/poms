@@ -6,7 +6,7 @@ from datetime import datetime
 from collections import deque
 
 
-class Elasticsearch(object):
+class Elasticsearch():
 
     def __init__(self, config=None, debug=0):
         if config is None:
@@ -19,12 +19,13 @@ class Elasticsearch(object):
             self.config = config
         if debug == 1 or self.config.get('elasticsearch_base_url') is None:
             self.base_url = "https://fifemon-es.fnal.gov"
-            #self.base_url="http://sammongpvm01.fnal.gov:9200"
+            # self.base_url="http://sammongpvm01.fnal.gov:9200"
         else:
-            self.base_url = self.config.get('elasticsearch_base_url').strip('"')
+            self.base_url = self.config.get(
+                'elasticsearch_base_url').strip('"')
 
         #configfile = "poms.ini"
-        #self.config.update(configfile)
+        # self.config.update(configfile)
         self.cert = self.config.get('elasticsearch_cert', '').strip('"')
         self.key = self.config.get('elasticsearch_key', '').strip('"')
         if self.cert == "":
@@ -60,9 +61,13 @@ class Elasticsearch(object):
 
         url = "/".join(url_bits)
 
-        r = requests.get(url, data=json.dumps(kwargs.get('query')), verify=False)
-        #print r.url
-        #print r.json
+        r = requests.get(
+            url,
+            data=json.dumps(
+                kwargs.get('query')),
+            verify=False)
+        # print r.url
+        # print r.json
         res = json.loads(r.text)
         r.close()
         return res
@@ -75,19 +80,20 @@ class Elasticsearch(object):
         url_bits = [self.base_url, index, doc_type]
         url = "/".join(url_bits)
         payload = json.dumps(body)
-        r = requests.post(url, data=payload, cert=(self.cert, self.key), verify=False)
-        #print r.text
-        #print r.status_code
+        r = requests.post(
+            url, data=payload, cert=(
+                self.cert, self.key), verify=False)
+        # print r.text
+        # print r.status_code
         res = r.json()
         r.close()
         return res
 
 
-
 if __name__ == '__main__':
-    #example of a type is ifdh
+    # example of a type is ifdh
 
-    #current indicies:
+    # current indicies:
     '''
     fife-dh-*
     fife-events
@@ -101,14 +107,17 @@ if __name__ == '__main__':
 
     print("Indices: ", es.indices())
 
-    #example of basic searching and getting particular fields from object
+    # example of basic searching and getting particular fields from object
     query = {
         'query': {
             'term': {'jobid': '9034906.0@fifebatch1.fnal.gov'}
         }
     }
 
-    response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+    response = es.search(
+        index='fifebatch-logs-*',
+        types=['condor_eventlog'],
+        query=query)
     pprint.pprint(response)
 
     print("# of records: ", response.get('hits').get('total'))
@@ -120,25 +129,31 @@ if __name__ == '__main__':
 
     print("*" * 80)
 
-    #emample of searching by field
+    # emample of searching by field
     query = {
         "query": {
             "term": {"jobid": "9034906.0@fifebatch1.fnal.gov"}
         }
     }
-    response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+    response = es.search(
+        index='fifebatch-logs-*',
+        types=['condor_eventlog'],
+        query=query)
     pprint.pprint(response)
 
     print("*" * 80)
 
-    #example of iterating the result set
+    # example of iterating the result set
     query = {
         'query': {
             'term': {'jobid': '9034906.0@fifebatch1.fnal.gov'}
         }
     }
 
-    response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+    response = es.search(
+        index='fifebatch-logs-*',
+        types=['condor_eventlog'],
+        query=query)
 
     for record in response.get('hits').get('hits'):
         for k, v in record.get("_source").items():
@@ -147,33 +162,46 @@ if __name__ == '__main__':
 
     print("*" * 80)
 
-    #example of specifying a from and a size which can be useful for pagination
+    # example of specifying a from and a size which can be useful for
+    # pagination
     query = {
         "from": 0, "size": 3,
         'query': {
             'term': {'jobid': '9034906.0@fifebatch1.fnal.gov'}
         }
     }
-    response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+    response = es.search(
+        index='fifebatch-logs-*',
+        types=['condor_eventlog'],
+        query=query)
     pprint.pprint(response)
 
     print("*" * 80)
 
-    #example of sorting by date
+    # example of sorting by date
     query = {
         "sort": [{"@timestamp": {"order": "asc"}}],
         'query': {
             'term': {'jobid': '9034906.0@fifebatch1.fnal.gov'}
         }
     }
-    response = es.search(index='fifebatch-logs-*', types=['condor_eventlog'], query=query)
+    response = es.search(
+        index='fifebatch-logs-*',
+        types=['condor_eventlog'],
+        query=query)
     pprint.pprint(response)
 
     print("*" * 80)
 
-    #example of sending a record where datetimes will not be serialized
-    payload = {'timestamp': '2016-09-02T20:00:00', 'message': 'trying out elasticsearch with poms not serialized', 'user': 'mengel'}
-    response = es.index(index='poms-2016-09-02', doc_type='my-poms-type', body=payload)
+    # example of sending a record where datetimes will not be serialized
+    payload = {
+        'timestamp': '2016-09-02T20:00:00',
+        'message': 'trying out elasticsearch with poms not serialized',
+        'user': 'mengel'}
+    response = es.index(
+        index='poms-2016-09-02',
+        doc_type='my-poms-type',
+        body=payload)
     pprint.pprint(response)
 
     print("= " * 40)

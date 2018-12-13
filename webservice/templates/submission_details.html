@@ -2,7 +2,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-POMS:Submission #{{submission.submission_id}} {{submission.jobsub_job_id}} Details
+POMS:Submission #{{submission.submission_id}}: {{submission.jobsub_job_id}} Details
 {%endblock%}
 
 
@@ -11,9 +11,6 @@ Submission Details {%include 'help_button.html'%}
 {%endblock%}
 
 {%block subheader%}
-Submission #{{submission.submission_id}} {{submission.jobsub_job_id}}
-Campaign Stage {{submission.campaign_stage_snapshot_obj.name}}  <br>
-in Campaign {{submission.campaign_stage_snapshot_obj.campaign.campaign_obj.name}}
 {%endblock%}
 
 {%block extracss%}
@@ -28,6 +25,15 @@ in Campaign {{submission.campaign_stage_snapshot_obj.campaign.campaign_obj.name}
 </style>
 {%endblock%}
 {%block content%}
+<h3>
+Submission #{{submission.submission_id}}<br>
+jobsub_job_Id: {{submission.jobsub_job_id}} <br>
+Campaign Stage <a href="{{pomspath}}/campaign_stage_info?campaign_stage_id={{submission.campaign_stage_snapshot_obj.campaign_stage_id}}">{{submission.campaign_stage_snapshot_obj.name}}</a><br>
+in Campaign <a href="{{pomspath}}/show_campaigns?just_one={{submission.campaign_stage_snapshot_obj.campaign.campaign_obj.name}}">{{submission.campaign_stage_snapshot_obj.campaign.campaign_obj.name}}</a>
+</h3>
+
+<div class="ui horizontal segments">
+<div class="ui segment raised" style="max-width: 40%;">
 
 <h3>Information</h3>
 
@@ -39,21 +45,32 @@ a regular launch;
 {%endif%}
 
 {%if dataset %}
-{%if dataset[:12] == '_poms_depends_' %}
-launched on completion of  <a href="./submission_details?submission_id={{dataset[15:-2]}}">Submission #{{dataset[15:-2]}}</a> 
+{%if dataset[:13] == 'poms_depends_' %}
+launched on completion of  <a href="./submission_details?submission_id={{dataset[13:-2]}}">Submission #{{dataset[13:-2]}}</a> 
 {%endif%}
 {%endif%}
 
 <br>
 
+{% if submission.jobsub_job_id %}
 {%set cluster=submission.jobsub_job_id[:submission.jobsub_job_id.find("@")] %}
 {%set schedd=submission.jobsub_job_id[submission.jobsub_job_id.find("@")+1:] %}
+{% else %}
+{%set cluster='unknown' %}
+{%set schedd='unknown' %}
+{% endif %}
+
 {%set experiment=submission.campaign_stage_snapshot_obj.experiment %}
+
+<!-- we take a half second off of the create time to get the logfile time, 
+    probably this should be looked up for real, or we should make it the
+    rule when we're launching jobs that it uses the submission created time
+    minus half a sec  -->
 {%set ds=(submission.created - datetime.timedelta(seconds=0.5)).strftime("%Y%m%d_%H%M%S") %}
+
 {%set owner=submission.experimenter_creator_obj.username %}
 
 View <a href="{{pomspath}}/list_launch_file?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}">launch output </a> <br>
-
 
 View in 
 {%if submission.jobsub_job_id %}
@@ -71,37 +88,46 @@ View the <a href="http://samweb.fnal.gov:8480/station_monitor/{{experiment}}/sta
 {%endif%}
 
 {%if submission.jobsub_job_id %}
-View the <a href="https://{{schedd}}:8443/jobsub/acctgroups/{{experiment|replace('samdev','fermilab')}}/sandboxes/{{"%spro"|format(experiment)|replace("samdevpro","mengel")}}/{{submission.jobsub_job_id|replace("@",".0@")}}/">Job Logs</a> <br>
+View the <a href="https://{{schedd}}:8443/jobsub/acctgroups/{{experiment|replace('samdev','fermilab')}}/sandboxes/{{"%spro"|format(experiment)|replace("samdevpro","mengel")}}/{{submission.jobsub_job_id|replace("@",".0@")|replace(".0.0@",".0@")}}/">Job Logs</a> <br>
 {%endif%}
+
+</div>
+<div class="ui segment raised">
 
 <h3>Actions</h3>
 
 {%if history[-1].status_id < 7000 %}
-Hold Condor Jobs<br>
-Release Condor Jobs<br>
+Hold Condor Jobs <a href="{{pomspath}}/kill_jobs?submission_id={{submission.submission_id}}&act=hold"><i class="pause icon"></i></a> <br>
+Release Condor Jobs <a href="{{pomspath}}/kill_jobs?submission_id={{submission.submission_id}}&act=release"><i class="play icon"></i></a> <br>
+Kill Condor Jobs <a href="{{pomspath}}/kill_jobs?submission_id={{submission.submission_id}}&act=kill"><i class="trash icon"></i></a> <br>
 {%else%}
 {%if history[-1].status_id == 7000 %}
-Kick to Located [button] <br>
+Kick to Located 
+<a href="{{pomspath}}/force_locate_submission?submission_id={{submission.submission_id}}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>
 {%endif%}
-Re-Launch Submission [button] <br>
-Launch Recovery for Submission [select_type] [button]
+<br>
+
+Re-Launch Submission on {{dataset}} <a href="{{pomspath}}/launch_jobs?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}"><button>Relaunch</button></a> <br>
 {%endif%}
 
+Launch Recovery for Submission 
+<form style="display: inline-block;" action="{{pomspath}}/launch_recovery_for">
+<select name="recovery_type">
+{% for r in recoverymap %}
+<option value="{{recoverymap[r][0]}}" >{{r}} </option>
+{% endfor %}
+</select>
+<input type="hidden" name="campaign_stage_id" value="{{submission.campaign_stage_id}}">
+<input type="hidden" name="submission_id" value="{{submission.submission_id}}">
+<input type="submit" name="launch" value="Launch">
+</form>
 
+{# %endif% #}
+</div>
+</div>
+<div class="ui horizontal segments">
+<div class="ui segment raised">
 <h3>History</h3>
-
-<!-- statusmap ought to come from database, but.. -->
-{% set statusmap={
-      1000 : 'New',
-      3000 : 'Idle',
-      4000 : 'Running',
-      5000 : 'Held',
-      6000 : 'Failed',
-      7000 : 'Completed',
-      8000 : 'Located',
-      9000 : 'Removed',
-      2000 : 'LaunchFailed',
-} %}
 
 {% for sh in history %}
 {% if loop.previtem and loop.previtem.status_id != sh.status_id %}
@@ -109,6 +135,10 @@ Launch Recovery for Submission [select_type] [button]
 {% endif %}
 {% endfor %}
 
+</div>
+</div>
+<div class="ui horizontal segments">
+<div class="ui segment raised">
 <h3>Submission fields</h3>
  <span class="fn">submission_id:</span> <span class="val">{{submission.submission_id}}</span> <br>
  <span class="fn">jobsub_job_id:</span> <span class="val">{{submission.jobsub_job_id}}</span> <br>
@@ -128,6 +158,10 @@ Launch Recovery for Submission [select_type] [button]
  <span class="fn">recovery_position:</span> <span class="val">{{submission.recovery_position}}</span> <br>
  <span class="fn">recovery_tasks_parent:</span> <span class="val">{{submission.recovery_tasks_parent}}</span> <br>
 
+</div>
+</div>
+<div class="ui horizontal segments">
+<div class="ui segment raised">
 
 <h3>Campaign Stage Snapshot</h3>
 
@@ -151,6 +185,9 @@ Launch Recovery for Submission [select_type] [button]
  <span class="fn">completion_type:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.completion_type}}</span> <br>
  <span class="fn">completion_pct:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.completion_pct}}</span> <br>
 
+</div>
+<div class="ui segment raised">
+
 <h3>Job Type Snapshot</h3>
 
  <span class="fn">job_type_snapshot_id:</span> <span class="val">{{submission.job_type_snapshot_obj.job_type_snapshot_id}}</span> <br>
@@ -167,6 +204,10 @@ Launch Recovery for Submission [select_type] [button]
  <span class="fn">updater:</span> <span class="val">{{submission.job_type_snapshot_obj.updater}}</span> <br>
  <span class="fn">updated:</span> <span class="val">{{submission.job_type_snapshot_obj.updated}}</span> <br>
 
+</div>
+</div>
+<div class="ui horizontal segments">
+<div class="ui segment raised">
 <h3>Login/Setup Snapshot</h3>
 
 
@@ -184,4 +225,6 @@ Launch Recovery for Submission [select_type] [button]
  <span class="fn">updater:</span> <span class="val">{{submission.login_setup_snap_obj.updater}}</span> <br>
  <span class="fn">updated:</span> <span class="val">{{submission.login_setup_snap_obj.updated}}</span> <br>
 
+</div>
+</div>
 {%endblock%}

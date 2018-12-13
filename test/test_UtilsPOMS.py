@@ -27,19 +27,6 @@ def utils_poms():
     return mp_service.utilsPOMS
 
 
-def test_quick_search_1(dbhandle, utils_poms):
-    got_exception = False
-    exception_url = None
-
-    try:
-        utils_poms.quick_search(dbhandle.get(), mock_redirect_exception, "12249611.0@fifebatch1.fnal.gov")
-    except mock_redirect_exception as e:
-        got_exception = True
-        exception_url = e.what()
-
-    assert got_exception
-    assert exception_url.startswith("/xyzzy/")
-
 
 def test_handle_dates_1(utils_poms):
     # check no min, max, just days

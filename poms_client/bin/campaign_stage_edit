@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #from test_pipe import campaign_edit_test
 import os
-from poms_client import campaign_edit,update_session_role
+from poms_client import campaign_stage_edit,update_session_role
 import argparse
 
 import logging
@@ -25,7 +25,7 @@ groupArg.add_argument('--job_type', metavar='campaign_definition_name', type=str
 
 
 
-parser.add_argument('--state', metavar='Active (True) - Inactive (False)', type=str, help='Do you want to make the campaing active set this flag as True, for Inactive set the flag as False', default = True)
+# parser.add_argument('--state', metavar='Active (True) - Inactive (False)', type=str, help='Do you want to make the campaign active set this flag as True, for Inactive set the flag as False', default = True)
 parser.add_argument('--split_type', metavar='I am still not sure which are the available split types', type=str, help='split type', default = None)
 parser.add_argument('--software_version', metavar='exp_software_version', type=str, help='Provide the the experiment software_version', default = "Non provide")
 parser.add_argument('--completion_type', metavar='located or completed', type=str, help='Please provide the kind of completion type [located] or [Complete], by default it will be located', default = "Located")
@@ -52,7 +52,7 @@ logging.debug( 'user='+ str(args.user ))
 logging.debug( 'experiment='+ str(args.experiment ))
 logging.debug( 'vo_role='+ str( args.vo_role ))
 logging.debug( 'dataset='+ str( args.dataset ))
-logging.debug( 'state'+ str( args.state ))
+# logging.debug( 'state'+ str( args.state ))
 logging.debug( 'split_type='+ str( args.split_type ))
 logging.debug( 'software_version='+ str( args.software_version ))
 logging.debug( 'completion_type='+ str( args.completion_type ))
@@ -67,24 +67,24 @@ logging.debug( 'test_client='+ str( args.test_client ))
 if args.action in ['add','delete','edit']:
     if args.completion > 0 and args.completion <= 100:
         if args.vo_role in ["Analysis", "Production"]:
-            res = campaign_edit(action=args.action,
-                                    ae_campaign_stage_name=args.campaign_stage_name,
-                                    ae_campaign_name=args.campaign_name,
-                                    pc_username=args.user,
-                                    experiment=args.experiment,
-                                    vo_role=args.vo_role,
-                                    dataset=args.dataset,
-                                    ae_active=args.state,
-                                    ae_split_type=args.split_type,
-                                    ae_software_version=args.software_version,
-                                    ae_completion_type=args.completion_type,
-                                    ae_completion_pct=args.completion,
-                                    ae_param_overrides=args.param_overrides,
-                                    ae_depends=args.depends_on,
-                                    ae_launch_name=args.launch_name,
-                                    ae_campaign_definition=args.job_type,
-                                    test_client=args.test_client )
-            if res[0] == 'status_code' and  res[1] == 200:
+            res = campaign_stage_edit(action=args.action,
+                                      ae_campaign_stage_name=args.campaign_stage_name,
+                                      ae_campaign_name=args.campaign_name,
+                                      pc_username=args.user,
+                                      experiment=args.experiment,
+                                      vo_role=args.vo_role,
+                                      dataset=args.dataset,
+                                      # ae_active=args.state,
+                                      ae_split_type=args.split_type,
+                                      ae_software_version=args.software_version,
+                                      ae_completion_type=args.completion_type,
+                                      ae_completion_pct=args.completion,
+                                      ae_param_overrides=args.param_overrides,
+                                      ae_depends=args.depends_on,
+                                      ae_launch_name=args.launch_name,
+                                      ae_campaign_definition=args.job_type,
+                                      test_client=args.test_client)
+            if res[0] == 'status_code' and res[1] == 200:
                  logging.info("Succeeded.")
                  exit(0)
             else:

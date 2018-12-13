@@ -213,17 +213,18 @@ def campaign_definition_edit(output_file_patterns, launch_script,
 def campaign_edit(**kwargs):
     print("campaign_edit has been replaced by campaign_stage_edit")
 
+
 def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experiment, vo_role,
-                  dataset, ae_active, ae_split_type, ae_software_version,
-                  ae_completion_type, ae_completion_pct, ae_param_overrides,
-                  ae_depends, ae_launch_name, ae_campaign_definition, ae_test_param_overrides, test_client = None, configfile=None):
+                        dataset, ae_active, ae_split_type, ae_software_version,
+                        ae_completion_type, ae_completion_pct, ae_param_overrides,
+                        ae_depends, ae_launch_name, ae_campaign_definition, ae_test_param_overrides, test_client=None, configfile=None):
     logging.debug("in get campaign_stage_edit test_client = " + repr(test_client))
     method = "campaign_stage_edit"
     logging.debug("#" * 10)
     logging.debug(ae_param_overrides)
 
     # if already packed as a string, unpack it so we can repack it...
-    if isinstance(ae_param_overrides,basestring):
+    if isinstance(ae_param_overrides, basestring):
         try:
             ae_param_overrides = json.loads(ae_param_overrides)
         except:
@@ -242,7 +243,7 @@ def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experim
     else:
         logging.debug("conserving params, not override anything.")
     data, status_code = make_poms_call(pcl_call=1,
-                                       method=method,
+                                       method="campaign_stage_edit",
                                        action=action,
                                        ae_campaign_name=campaign_id,
                                        ae_stage_name=ae_stage_name,
@@ -250,7 +251,7 @@ def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experim
                                        experiment=experiment,
                                        ae_vo_role=vo_role,
                                        ae_dataset=dataset,
-                                       ae_active=ae_active,
+                                       # ae_active=ae_active,
                                        ae_split_type=ae_split_type,
                                        ae_software_version=ae_software_version,
                                        ae_completion_type=ae_completion_type,

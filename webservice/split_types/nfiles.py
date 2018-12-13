@@ -12,7 +12,7 @@ class nfiles:
         try:
             self.n = int(cs.cs_split_type[7:].strip(')'))
         except:
-            raise SyntaxError("unable to parse integer parameter from "%s" % cs.cs_split_type)
+            raise SyntaxError("unable to parse integer parameter from '%s'" % cs.cs_split_type)
 
     def peek(self):
         if not self.cs.cs_last_split:
@@ -33,3 +33,6 @@ class nfiles:
     def len(self):
         return self.samhandle.count_files(self.cs.experiment,"defname:"+self.ds) / self.n + 1
         return res
+
+    def edit_popup(self):
+        return "null"

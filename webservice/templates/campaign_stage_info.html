@@ -86,6 +86,12 @@ in Campaign {{CampaignStage.campaign_obj.name}}
                    <i class="external rocket icon" data-content="Immediately Launch Submissions for CampaignStage" data-variation="basic">
                    </i>
                   Launch Campaign Stage Jobs Now
+                </a>
+                &nbsp; &nbsp;
+                <a href="{{pomspath}}/launch_jobs?campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
+                   and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                >
+                (<i class="external text icon"></i>commands)
                </a>
               </div>
               <div class=item>
@@ -95,6 +101,12 @@ in Campaign {{CampaignStage.campaign_obj.name}}
                    <i class="external rocket icon" data-content="Immediately Launch Test Submissions for CampaignStage" data-variation="basic">
                    </i>
                   Launch Campaign Stage Test Jobs Now
+                </a>
+                &nbsp; &nbsp;
+                <a href="{{pomspath}}/launch_jobs?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
+                   and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                >
+                (<i class="external text icon"></i>commands)
                </a>
               </div>
 
@@ -168,7 +180,11 @@ in Campaign {{CampaignStage.campaign_obj.name}}
     <h3>Campaign Stage</h3>
     <b>Name</b>: {{CampaignStage.name}}<br>
     <b>Experiment</b>: {{CampaignStage.experiment}}<br>
+    {%if CampaignStage.dataset.find(',') > 0 %}
+    <b>Split Data</b>: {{CampaignStage.dataset}}<br>
+    {% else %}
     <b>Dataset</b>: {{CampaignStage.dataset}}<br>
+    {% endif %}
     <b>Software Version</b>: {{CampaignStage.software_version}}<br>
     <b>VO Role</b>: {{CampaignStage.vo_role}}<br>
     {% if CampaignStage.param_overrides %}
@@ -177,9 +193,11 @@ in Campaign {{CampaignStage.campaign_obj.name}}
     {% if CampaignStage.test_param_overrides %}
     <b>Test Param Overrides</b>: [{% for pair in CampaignStage.test_param_overrides %} <br>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
     {% endif %}
-    <b>cs_split_type</b>: {{CampaignStage.cs_split_type}}<br>
-    <b>cs_split_dimensions</b>: {{CampaignStage.cs_split_dimensions}}<br>
-    <b>cs_last_split</b>: {{CampaignStage.cs_last_split}} <a href="{{pomspath}}/reset_campaign_split?campaign_stage_id={{CampaignStage.campaign_stage_id}}"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br>
+    <b>Split Type</b>: {{CampaignStage.cs_split_type}}<br>
+    {# currently unused
+    <b>Split Dimensions</b>: {{CampaignStage.cs_split_dimensions}}<br>
+    #}
+    <b>Last Split</b>: {{CampaignStage.cs_last_split}} <a href="{{pomspath}}/reset_campaign_split?campaign_stage_id={{CampaignStage.campaign_stage_id}}"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br>
     <!-- <b>Active</b>: {{CampaignStage.active}} <br> -->
     <b>Created</b>: {{CampaignStage.created}}<br>
     <b>Creator</b>: {{Campaign_info.Experimenter.username}}<br>

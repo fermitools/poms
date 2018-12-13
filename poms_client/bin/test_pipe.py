@@ -17,22 +17,22 @@ my_function(D)
 
 def launch_template_edit_test(**kwargs):
     print "---*4"
-    action = kwargs.pop('action',None)
-    name = kwargs.pop('name',None)
-    launch_host = kwargs.pop('launch_host',None)
-    user_account = kwargs.pop('user_account',None)
-    launch_setup = kwargs.pop('launch_setup',None)
-    experiment = kwargs.pop('experiment',None)
-    pc_email = kwargs.pop('pc_email',None)
+    action = kwargs.pop('action', None)
+    name = kwargs.pop('name', None)
+    launch_host = kwargs.pop('launch_host', None)
+    user_account = kwargs.pop('user_account', None)
+    launch_setup = kwargs.pop('launch_setup', None)
+    experiment = kwargs.pop('experiment', None)
+    pc_email = kwargs.pop('pc_email', None)
     print 'action =', action
     print 'name =', name
-    print 'launch_host=',launch_host
-    print 'user_account=',user_account
-    print "launch_setup =",launch_setup
+    print 'launch_host=', launch_host
+    print 'user_account=', user_account
+    print "launch_setup =", launch_setup
     print "experiment=", experiment
     print "pc_email=", pc_email
     #for k in kwargs.items():
-        #print k
+    #print k
     #for k,v in kwargs.items():
     #    print k,v
 
@@ -41,13 +41,13 @@ def campaign_definition_edit_test(**kwargs):
     print "---*4"
     action = kwargs.pop('action')
     name = kwargs.pop('name')
-    email= kwargs.pop('pc_email')
+    email = kwargs.pop('pc_email')
     experiment = kwargs.pop('experiment')
     input_files_per_job = kwargs.pop('input_files_per_job')
     output_files_per_job = kwargs.pop('output_files_per_job')
     output_file_patterns = kwargs.pop('output_file_patterns')
     launch_script = kwargs.pop('launch_script')
-    def_parameter =kwargs.pop('def_parameter')
+    def_parameter = kwargs.pop('def_parameter')
     print 'The arguments you pass are:'
     print 'action =', action
     print 'name =', name
@@ -62,22 +62,22 @@ def campaign_definition_edit_test(**kwargs):
 
 def campaign_edit_test(**kwargs):
     print "\n---*4"
-    action=kwargs.pop('action')
-    ae_campaign_name=kwargs.pop('ae_campaign_name')
-    pc_email=kwargs.pop('pc_email')
-    experiment=kwargs.pop('experiment')
-    vo_role=kwargs.pop('vo_role')
-    dataset=kwargs.pop('dataset')
-    ae_active=kwargs.pop('ae_active')
-    ae_split_type=kwargs.pop('ae_split_type')
-    ae_software_version=kwargs.pop('ae_software_version')
-    ae_completion_type=kwargs.pop('ae_completion_type')
-    ae_completion_pct=kwargs.pop('ae_completion_pct')
-    ae_param_overrides=kwargs.pop('ae_param_overrides')
-    ae_depends=kwargs.pop('ae_depends')
-    ae_launch_name=kwargs.pop('ae_launch_name')
-    ae_campaign_definition=kwargs.pop('ae_campaign_definition')
-    test_client=kwargs.pop('test_client')
+    action = kwargs.pop('action')
+    ae_campaign_name = kwargs.pop('ae_campaign_name')
+    pc_email = kwargs.pop('pc_email')
+    experiment = kwargs.pop('experiment')
+    vo_role = kwargs.pop('vo_role')
+    dataset = kwargs.pop('dataset')
+    ae_active = kwargs.pop('ae_active')
+    ae_split_type = kwargs.pop('ae_split_type')
+    ae_software_version = kwargs.pop('ae_software_version')
+    ae_completion_type = kwargs.pop('ae_completion_type')
+    ae_completion_pct = kwargs.pop('ae_completion_pct')
+    ae_param_overrides = kwargs.pop('ae_param_overrides')
+    ae_depends = kwargs.pop('ae_depends')
+    ae_launch_name = kwargs.pop('ae_launch_name')
+    ae_campaign_definition = kwargs.pop('ae_campaign_definition')
+    test_client = kwargs.pop('test_client')
     print "printing Arguments \n"
     print 'action=', action
     print 'ae_campaign_name=', ae_campaign_name

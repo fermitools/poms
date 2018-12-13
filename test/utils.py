@@ -20,19 +20,26 @@ def beverbose():
 
 # put envioronment vars into some config sections...
 
+class fakeconfig:
+    def __init__(self, *args, **kwargs):
+        self.cf = configparser.SafeConfigParser(*args, **kwargs)
+         
+    def read_file(self, file):
+        return self.cf.read_file(file)
+
+    def write(self, file):
+        return self.cf.write(file)
+
+    def get(self, var, default = None):
+        try:
+            return self.cf.get('global',var)
+        except:
+            return default
+
+
 def get_config_py():
 
-    class fakeconfig(configparser.SafeConfigParser):
-        def newget(self, var, default = None):
-            try:
-                return self.oldget('global',var)
-            except:
-                return default
-
-    fakeconfig.oldget = fakeconfig.get
-    fakeconfig.get = fakeconfig.newget
-    config = fakeconfig()
-    config = get_config(config)
+    config = get_config()
     return config
     
 def get_config(config = None):
@@ -40,8 +47,8 @@ def get_config(config = None):
     from io import StringIO
 
     if config == None:
-        #config = configparser.RawConfigParser()
-        config = get_config_py()
+        config = fakeconfig()
+
     configfile = '../webservice/poms.ini'
     confs = dedent("""
        [DEFAULT]
@@ -53,7 +60,10 @@ def get_config(config = None):
     confs = confs + cf.read()
     cf.close()
 
-    config.readfp(StringIO(confs))
+    config.read_file(StringIO(confs))
+
+    print("in get_config, returning:")
+    config.write(sys.stdout)
     return config
 
 

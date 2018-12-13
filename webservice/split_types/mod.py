@@ -32,3 +32,6 @@ class mod:
 
     def len(self):
         return self.m
+
+    def edit_popup(self):
+        return "null"

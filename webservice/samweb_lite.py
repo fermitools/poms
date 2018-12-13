@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 from collections import deque
-import urllib.request, urllib.parse, urllib.error
+import urllib.request
+import urllib.parse
+import urllib.error
 import time
 import datetime
 import concurrent.futures
@@ -19,21 +21,29 @@ import poms.webservice.logit as logit
 def safe_get(sess, url, *args, **kwargs):
     """
     """
-    #TODO: Need more refactoring to optimize
+    # TODO: Need more refactoring to optimize
     reply = None
     dbh = kwargs.pop('dbhandle', None)
 
     if dbh is None:
         try:
-            sess.mount('http://', HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2)))
-            reply = sess.get(url, timeout=5.0, *args, **kwargs)    # Timeout may need adjustment!
+            sess.mount(
+                'http://',
+                HTTPAdapter(
+                    max_retries=Retry(
+                        total=5,
+                        backoff_factor=0.2)))
+            # Timeout may need adjustment!
+            reply = sess.get(url, timeout=5.0, *args, **kwargs)
             if reply.status_code != 200:
-                logit.log("ERROR","Error: got status %d for url %s" % (reply.status_code,url))
+                logit.log(
+                    "ERROR", "Error: got status %d for url %s" %
+                    (reply.status_code, url))
                 return None     # No need to return the response
-        except:
+        except BaseException:
             # Severe errors like network or DNS problems.
-            logit.log(logit.ERROR,"Died in safe_get:" + url )
-            logit.log(logit.ERROR,traceback.format_exc())
+            logit.log(logit.ERROR, "Died in safe_get:" + url)
+            logit.log(logit.ERROR, traceback.format_exc())
             return None         # No need to return the response
         finally:
             if reply:
@@ -41,7 +51,9 @@ def safe_get(sess, url, *args, **kwargs):
         # Everything went OK
         return reply
 
-    last_fault = dbh.query(FaultyRequest).filter(FaultyRequest.url == url).order_by(FaultyRequest.last_seen.desc()).first()
+    last_fault = dbh.query(FaultyRequest).filter(
+        FaultyRequest.url == url).order_by(
+        FaultyRequest.last_seen.desc()).first()
     # print "******* last_fault: {}".format(last_fault)
     if last_fault is not None:
         # Do some analysis for previous errors
@@ -52,22 +64,36 @@ def safe_get(sess, url, *args, **kwargs):
             return None
         # It happened more than 10 minutes ago, let's try it again...
     try:
-        sess.mount('http://', HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2)))
-        reply = sess.get(url, timeout=5.0, *args, **kwargs)    # Timeout may need adjustment!
+        sess.mount(
+            'http://',
+            HTTPAdapter(
+                max_retries=Retry(
+                    total=5,
+                    backoff_factor=0.2)))
+        # Timeout may need adjustment!
+        reply = sess.get(url, timeout=5.0, *args, **kwargs)
         if reply.status_code != 200 and reply.status_code != 404:
-            logit.log("ERROR","Error: got status %d for url %s" % (reply.status_code,url))
+            logit.log(
+                "ERROR", "Error: got status %d for url %s" %
+                (reply.status_code, url))
             # Process error, store faulty query in DB
-            fault = FaultyRequest(url=url, status=reply.status_code, message=reply.reason)
+            fault = FaultyRequest(
+                url=url,
+                status=reply.status_code,
+                message=reply.reason)
             dbh.add(fault)
             dbh.commit()
             return None     # No need to return the response
-    except:
+    except BaseException:
         # Process error!
         # Severe errors like network or DNS problems.
-        logit.log(logit.ERROR,"Died in safe_get:" + url )
-        logit.log(logit.ERROR,traceback.format_exc())
+        logit.log(logit.ERROR, "Died in safe_get:" + url)
+        logit.log(logit.ERROR, traceback.format_exc())
         # Do the same?
-        fault = FaultyRequest(url=reply.url, status=reply.status_code, message=reply.reason)
+        fault = FaultyRequest(
+            url=reply.url,
+            status=reply.status_code,
+            message=reply.reason)
         dbh.add(fault)
         dbh.commit()
         return None         # No need to return the response
@@ -79,8 +105,9 @@ def safe_get(sess, url, *args, **kwargs):
 
 
 class proj_class_dict(dict):
-     # keep a separate type for project dicts for bookkeeping
-     pass
+    # keep a separate type for project dicts for bookkeeping
+    pass
+
 
 class samweb_lite:
     def __init__(self):
@@ -95,11 +122,12 @@ class samweb_lite:
 
     def have_cache(self, experiment, projid):
         if not self.proj_cache_time or not self_proj_cache:
-             return 0
+            return 0
         s = self.proj_cache_time.get(experiment + projid, 0)
         p = self.proj_cache.get(experiment + projid, None)
 
-        if p and (time.time() - s < self.valid or p['project_status'] == "completed"):
+        if p and (time.time() - s <
+                  self.valid or p['project_status'] == "completed"):
             return 1
 
         return 0
@@ -108,12 +136,13 @@ class samweb_lite:
         """
            basic samweb snapshot interface
         """
-        if not experiment or not defname or  defname == "None":
+        if not experiment or not defname or defname == "None":
             return -1
-        
+
         base = "https://samweb.fnal.gov:8483"
-        url = "%s/sam/%s/api/definitions/name/%s/snapshot" % (base, experiment, defname)
-       
+        url = "%s/sam/%s/api/definitions/name/%s/snapshot" % (
+            base, experiment, defname)
+
         for i in range(3):
             logit.log("take_snapshot try %d" % i)
             try:
@@ -122,23 +151,25 @@ class samweb_lite:
                                     data={'group': experiment},
                                     verify=False,
                                     cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
-                                              "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"])))
+                                          "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"])))
                     res.raise_for_status()
                 break
             except Exception as e:
                 logit.log("ERROR", "Exception taking snapshot: %s" % e)
             time.sleep(1)
-            
+
         return res.text
 
-    def recovery_dimensions(self, experiment, projid, useprocess=0, dbhandle=None):
+    def recovery_dimensions(self, experiment, projid,
+                            useprocess=0, dbhandle=None):
         """
         """
         if not experiment or not projid or projid == "None":
             return ""
 
         base = "http://samweb.fnal.gov:8480"
-        url = "%s/sam/%s/api/projects/name/%s/recovery_dimensions?useProcess=%s" % (base, experiment, projid, useprocess)
+        url = "%s/sam/%s/api/projects/name/%s/recovery_dimensions?useProcess=%s" % (
+            base, experiment, projid, useprocess)
         with requests.Session() as sess:
             res = safe_get(sess, url, dbhandle=dbhandle)
         # default to basic consumed status
@@ -158,7 +189,8 @@ class samweb_lite:
             return self.proj_cache[experiment + projid]
 
         base = "http://samweb.fnal.gov:8480"
-        url = "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base, experiment, projid)
+        url = "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (
+            base, experiment, projid)
         with requests.Session() as sess:
             res = safe_get(sess, url, dbhandle=dbhandle)
         info = {}
@@ -173,17 +205,20 @@ class samweb_lite:
             self.proj_cache_time[experiment + projid] = time.time()
         return info
 
-
     def fetch_info_list(self, task_list, dbhandle=None):
         """
         """
-        #~ return [ {"tot_consumed": 0, "tot_unknown": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
+        # ~ return [ {"tot_consumed": 0, "tot_unknown": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
         base = "http://samweb.fnal.gov:8480"
-        urls = ["%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base, s.campaign_stage_snapshot_obj.experiment, s.project) for s in task_list]
+        urls = [
+            "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" %
+            (base, s.campaign_stage_snapshot_obj.experiment, s.project) for s in task_list]
         with requests.Session() as sess:
             with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                 # replies = executor.map(sess.get, urls)
-                replies = executor.map(lambda url: safe_get(sess, url, dbhandle=dbhandle), urls)
+                replies = executor.map(
+                    lambda url: safe_get(
+                        sess, url, dbhandle=dbhandle), urls)
         infos = deque()
         for r in replies:
             if r:
@@ -191,23 +226,29 @@ class samweb_lite:
                     info = proj_class_dict(r.json())
                     self.do_totals(info)
                     infos.append(info)
-                except:
+                except BaseException:
                     # Error in JSON parsing
-                    logit.log(logit.ERROR,"Died in fetch_info_list:")
-                    logit.log(logit.ERROR,traceback.format_exc())
+                    logit.log(logit.ERROR, "Died in fetch_info_list:")
+                    logit.log(logit.ERROR, traceback.format_exc())
                     infos.append({})
             else:
                 infos.append({})
         return infos
 
     def do_totals(self, info):
-        if not info.get("processes",None):
-             info["tot_jobs"] = info.get("process_counts",{}).get("completed",0)
-             info["tot_consumed"] = info.get("file_counts",{}).get("consumed",0)
-             info["tot_failed"] = info.get("file_counts",{}).get("failed",0)
-             info["tot_delivered"] = info.get("file_counts",{}).get("delivered",0)
-             info["tot_unknown"] = info.get("file_counts",{}).get("unknown",0)
-             return
+        if not info.get("processes", None):
+            info["tot_jobs"] = info.get(
+                "process_counts", {}).get(
+                "completed", 0)
+            info["tot_consumed"] = info.get(
+                "file_counts", {}).get(
+                "consumed", 0)
+            info["tot_failed"] = info.get("file_counts", {}).get("failed", 0)
+            info["tot_delivered"] = info.get(
+                "file_counts", {}).get(
+                "delivered", 0)
+            info["tot_unknown"] = info.get("file_counts", {}).get("unknown", 0)
+            return
         tot_consumed = 0
         tot_skipped = 0
         tot_delivered = 0
@@ -238,10 +279,11 @@ class samweb_lite:
 
     def update_project_description(self, experiment, projname, desc):
         base = "https://samweb.fnal.gov:8483"
-        url = "%s/sam/%s/api/projects/%s/%s/description" % (base, experiment, experiment, projname)
+        url = "%s/sam/%s/api/projects/%s/%s/description" % (
+            base, experiment, experiment, projname)
         res = None
         r1 = None
-        if projname == None or projname == "None":
+        if projname is None or projname == "None":
             return
         try:
             res = requests.post(url, data={"description": desc},
@@ -255,9 +297,12 @@ class samweb_lite:
                 # Process error!
                 r1 = res.text
                 pass
-        except:
-            logit.log(logit.ERROR,"Died in update_project_description :" + url )
-            logit.log(logit.ERROR,traceback.format_exc())
+        except BaseException:
+            logit.log(
+                logit.ERROR,
+                "Died in update_project_description :" +
+                url)
+            logit.log(logit.ERROR, traceback.format_exc())
         finally:
             if res:
                 res.close()
@@ -265,7 +310,7 @@ class samweb_lite:
 
     def cleanup_dims(self, dims):
         # the code currently generates some useless bits..
-        dims = dims.replace("file_name '%' and ","")
+        dims = dims.replace("file_name '%' and ", "")
         dims = dims.replace("union (file_name __located__ )", "")
         dims = dims.replace("union (file_name __no_project__ )", "")
         dims = dims.replace("(file_name __located__ ) union", "")
@@ -275,11 +320,11 @@ class samweb_lite:
     def get_metadata(self, experiment, filename):
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/files/name/%s/metadata?format=json" % (
-                base, experiment, filename)
+            base, experiment, filename)
         res = requests.get(url)
         try:
             return res.json()
-        except:
+        except BaseException:
             return {}
 
     def plain_list_files(self, experiment, dims):
@@ -291,9 +336,13 @@ class samweb_lite:
         #print( "status code: %d url: %s" % (res.status_code, res.url))
         #print( "got output: %s" % res.text)
         if res.status_code >= 200 and res.status_code < 300:
-            logit.log(logit.INFO, "got status code %d looking up dims: %s" % (res.status_code, dims))
+            logit.log(
+                logit.INFO, "got status code %d looking up dims: %s" %
+                (res.status_code, dims))
         else:
-            logit.log(logit.ERROR, "got status code %d looking up dims: %s" % (res.status_code, dims))
+            logit.log(
+                logit.ERROR, "got status code %d looking up dims: %s" %
+                (res.status_code, dims))
         try:
             flist = res.json()
         except ValueError:
@@ -306,7 +355,13 @@ class samweb_lite:
         flist = deque()
         dims = self.cleanup_dims(dims)
         with requests.Session() as sess:
-            res = safe_get(sess, url, params={"dims": dims, "format": "json"}, dbhandle=dbhandle)
+            res = safe_get(
+                sess,
+                url,
+                params={
+                    "dims": dims,
+                    "format": "json"},
+                dbhandle=dbhandle)
         if res:
             try:
                 flist = res.json()
@@ -315,7 +370,9 @@ class samweb_lite:
         return flist
 
     def count_files(self, experiment, dims, dbhandle=None):
-        logit.log("INFO","count_files(experiment=%s, dims=%s)" % (experiment, dims))
+        logit.log(
+            "INFO", "count_files(experiment=%s, dims=%s)" %
+            (experiment, dims))
         base = "http://samweb.fnal.gov:8480"
         url = "%s/sam/%s/api/files/count" % (base, experiment)
         dims = self.cleanup_dims(dims)
@@ -326,7 +383,10 @@ class samweb_lite:
         if res:
             #print("Got status: %d" % res.status_code)
             if res.status_code != 200:
-                logit.log("ERROR","Error in samweb_lite.count_files, got status %d" % res.status_code)
+                logit.log(
+                    "ERROR",
+                    "Error in samweb_lite.count_files, got status %d" %
+                    res.status_code)
             text = res.content
             try:
                 count = int(text)
@@ -367,43 +427,54 @@ class samweb_lite:
             else:
                 try:
                     infos.append(int(r.text))
-                except:
+                except BaseException:
                     infos.append(-1)
         return infos
 
     def create_definition(self, experiment, name, dims):
-        logit.log("INFO","create_definition( %s, %s, %s )" % (experiment, name, dims))
+        logit.log(
+            "INFO", "create_definition( %s, %s, %s )" %
+            (experiment, name, dims))
         base = "https://samweb.fnal.gov:8483"
         path = "/sam/%s/api/definitions/create" % experiment
         url = "%s%s" % (base, path)
         res = None
 
-        pdict = {"defname": name, "dims": dims, "user": "sam", "group": experiment}
-        logit.log("INFO","create_definition: calling: %s with %s " % (url, pdict))
+        pdict = {
+            "defname": name,
+            "dims": dims,
+            "user": "sam",
+            "group": experiment}
+        logit.log(
+            "INFO", "create_definition: calling: %s with %s " %
+            (url, pdict))
         text = None
         for i in range(3):
             logit.log("create_defintition try %d" % i)
             try:
                 with requests.Session() as sess:
                     res = sess.post(url,
-                                data=pdict,
-                                verify=False,
-                                cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
-                                      "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]))
-                  )
+                                    data=pdict,
+                                    verify=False,
+                                    cert=("%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
+                                          "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]))
+                                    )
                     res.raise_for_status()
 
                     text = res.content
-                    logit.log("INFO","definitions/create returns: %s" % text)
+                    logit.log("INFO", "definitions/create returns: %s" % text)
                     break
             except Exception as e:
-                logit.log("ERROR","Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
+                logit.log(
+                    "ERROR", "Exception creating definition: url %s args %s exception %s" %
+                    (url, pdict, e.args))
             time.sleep(1)
 
-        if text == None:
+        if text is None:
             text = "Fail."
 
         return text
+
 
 if __name__ == "__main__":
     requests.packages.urllib3.disable_warnings()
@@ -411,20 +482,34 @@ if __name__ == "__main__":
     import pprint
     sl = samweb_lite()
 
-    print( sl.recovery_dimensions("samdev","mengel-fife_wrap_20180927_153506_1003267", useprocess=1))
+    print(
+        sl.recovery_dimensions(
+            "samdev",
+            "mengel-fife_wrap_20180927_153506_1003267",
+            useprocess=1))
 
-    md = sl.get_metadata('uboone','PhysicsRun-2016_1_3_13_5_49-0004357-00974_20180929T225108_numi_unbiased_20180930T032518_merged.root')
+    md = sl.get_metadata(
+        'uboone',
+        'PhysicsRun-2016_1_3_13_5_49-0004357-00974_20180929T225108_numi_unbiased_20180930T032518_merged.root')
     pprint.pprint(md)
-    
-    r1 = sl.update_project_description("samdev", "mengel-fife_wrap_20170701_102228_3860387", "test_1234")
-    print("got result:" , r1)
+
+    r1 = sl.update_project_description(
+        "samdev",
+        "mengel-fife_wrap_20170701_102228_3860387",
+        "test_1234")
+    print("got result:", r1)
     i = sl.fetch_info("samdev", "mengel-fife_wrap_20170701_102228_3860387")
-    print("got result:" , i)
+    print("got result:", i)
     res = sl.take_snapshot("nova", "mwm_test_6")
     print("got snapshot id %s" % res)
     sys.exit(0)
 
-    print(sl.create_definition("samdev", "mwm_test_%d" % os.getpid(), "(snapshot_for_project_name mwm_test_proj_1465918505)"))
+    print(
+        sl.create_definition(
+            "samdev",
+            "mwm_test_%d" %
+            os.getpid(),
+            "(snapshot_for_project_name mwm_test_proj_1465918505)"))
     i = sl.fetch_info("nova", "arrieta1-Offsite_test_Caltech-20160404_1157")
     i2 = sl.fetch_info("nova", "brebel-AnalysisSkimmer-20151120_0126")
     print("got:")
@@ -444,11 +529,13 @@ if __name__ == "__main__":
     pprint.pprint(l)
 
     cs = sl.count_files("nova",
-                       "project_name 'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.e-neardet-20160210_1624',"
-                       "'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.a-fardet-20160202_1814'")
+                        "project_name 'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.e-neardet-20160210_1624',"
+                        "'vito-vito-calib-manual-Offsite-R16-01-27-prod2calib.a-fardet-20160202_1814'")
 
     print("got count:", cs)
 
-    l = sl.count_files_list("nova", ["defname:mwm_test_6", "defname:mwm_test_9", "defname:mwm_test_11"])
+    l = sl.count_files_list("nova",
+                            ["defname:mwm_test_6",
+                             "defname:mwm_test_9",
+                             "defname:mwm_test_11"])
     print("got count list: ", l)
-

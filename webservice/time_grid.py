@@ -4,20 +4,20 @@ import collections
 
 from collections import deque
 
+
 class time_grid:
 
     def __init__(self):
         # you can's see boxes less than 2% wide...
         self.minwidth = 2
 
-
-    def render_query_blob(self, tmin, tmax, rows, group_key, url_template="", extramap={}):
+    def render_query_blob(self, tmin, tmax, rows, group_key,
+                          url_template="", extramap={}):
         dlmap = self.group_time_data(rows, group_key, url_template)
-        #print "got dlmap:", dlmap
+        # print "got dlmap:", dlmap
         self.add_time_data(tmin, tmax, dlmap)
-        #print "self.pmap is: ", self.pmap
+        # print "self.pmap is: ", self.pmap
         return self.blobdata(extramap)
-
 
     def group_time_data(self, rows, group_key, url_template=""):
         result = collections.OrderedDict()
@@ -29,15 +29,25 @@ class time_grid:
                 lastkey = key
             result[key].append({'time': row.created,
                                 'status': row.status,
-                                'txt':  "%s@%s: %s" % (key, row.created, row.status),
-                                'url':  (url_template % row.__dict__) if url_template else getattr(row, 'url', '')
+                                'txt': "%s@%s: %s" % (key, row.created, row.status),
+                                'url': (url_template % row.__dict__) if url_template else getattr(row, 'url', '')
                                 })
         return result
 
-
     def key(self, fancy=0):
-        res = ['<div class="ui raised padded container segment" style="height: %sem">' % (11 if fancy else 5)]
-        list = ["new", "Idle", "Held", "Running", "Completed", "Removed", "Located","Failed","LaunchFailed"]
+        res = [
+            '<div class="ui raised padded container segment" style="height: %sem">' %
+            (11 if fancy else 5)]
+        list = [
+            "new",
+            "Idle",
+            "Held",
+            "Running",
+            "Completed",
+            "Removed",
+            "Located",
+            "Failed",
+            "LaunchFailed"]
         if fancy:
             list += ["running: user code",
                      "running: copying files in",
@@ -55,7 +65,6 @@ class time_grid:
                        % (self.status_color(s), s))
         res.append('</div>')
         return '\n'.join(res)
-
 
     def status_color(self, line):
         if line.find("started") >= 0:
@@ -111,7 +120,6 @@ class time_grid:
             return "#f80000"
         return "#ffffff"
 
-
     def pwidth(self, t0, t1, tmin, tmax):
         if t0 < tmin:
             t0 = tmin
@@ -121,7 +129,6 @@ class time_grid:
         d2 = (tmax - tmin)
         pw = d1.total_seconds() * 100.0 / d2.total_seconds()
         return pw
-
 
     def add_time_data(self, tmin, tmax, dlistmap):
         self.tmin = tmin
@@ -135,9 +142,11 @@ class time_grid:
             # somehow this is is never false?!?
             # if dlist[0]['time'] > self.tmin:
             # so compare second conversions...
-            if int(dlist[0]['time'].strftime("%s")) > int(self.tmin.strftime("%s")):
+            if int(dlist[0]['time'].strftime("%s")) > int(
+                    self.tmin.strftime("%s")):
                 width = self.pwidth(self.tmin, dlist[0]['time'], tmin, tmax)
-                plist.append({'width': width, 'color': '', 'txt': '', 'url': ''})
+                plist.append(
+                    {'width': width, 'color': '', 'txt': '', 'url': ''})
                 totwidth += max(width, 0.04)
                 i = 0
             else:
@@ -145,7 +154,8 @@ class time_grid:
                 while i < len(dlist) and dlist[i]['time'] < self.tmin:
                     i += 1
                 if i < len(dlist):
-                    width = self.pwidth(self.tmin, dlist[i]['time'], tmin, tmax)
+                    width = self.pwidth(
+                        self.tmin, dlist[i]['time'], tmin, tmax)
                     plist.append({'width': width,
                                   'color': self.status_color(dlist[i - 1]['status']),
                                   'txt': dlist[i - 1]['txt'],
@@ -177,7 +187,6 @@ class time_grid:
 
             self.pmap[id] = plist
 
-
     def min_box_sizes(self):
         '''
         make sure all boxes are at least min box size
@@ -208,7 +217,6 @@ class time_grid:
                 if p['width'] >= 100:
                     p['width'] = 95
 
-
     def blobdata(self, extramap={}):
         blob = {"pmap": self.pmap, "extramap": extramap}
         return blob
@@ -224,21 +232,201 @@ if __name__ == '__main__':
 
     print('<hr>')
     testrows = [
-        fakerow(jobid='job1', created=datetime(2016, 2, 29, 13, 1, 0, 0, utc), status="Idle"),
-        fakerow(jobid='job1', created=datetime(2016, 2, 29, 13, 6, 0, 0, utc), status="ifdh::cp whatever"),
-        fakerow(jobid='job1', created=datetime(2016, 2, 29, 13, 3, 0, 0, utc), status="Running"),
-        fakerow(jobid='job1', created=datetime(2016, 2, 29, 13, 9, 0, 0, utc), status="Completed"),
-        fakerow(jobid='job2', created=datetime(2016, 2, 29, 13, 2, 0, 0, utc), status="Idle"),
-        fakerow(jobid='job2', created=datetime(2016, 2, 29, 13, 4, 0, 0, utc), status="Running"),
-        fakerow(jobid='job2', created=datetime(2016, 2, 29, 13, 6, 0, 0, utc), status="ifdh::cp whatever"),
-        fakerow(jobid='job2', created=datetime(2016, 2, 29, 13, 10, 0, 0, utc), status="Completed"),
-        fakerow(jobid='job3', created=datetime(2016, 2, 29, 13, 2, 0, 0, utc), status="Idle"),
-        fakerow(jobid='job3', created=datetime(2016, 2, 29, 13, 4, 0, 0, utc), status="Running"),
-        fakerow(jobid='job3', created=datetime(2016, 2, 29, 13, 7, 0, 0, utc), status="ifdh::cp whatever"),
-        fakerow(jobid='job3', created=datetime(2016, 2, 29, 13, 10, 0, 0, utc), status="Completed"),
-        fakerow(jobid='job4', created=datetime(2016, 2, 29, 13, 3, 0, 0, utc), status="Idle"),
-        fakerow(jobid='job4', created=datetime(2016, 2, 29, 13, 5, 0, 0, utc), status="Running"),
-        fakerow(jobid='job4', created=datetime(2016, 2, 29, 13, 9, 0, 0, utc), status="ifdh::cp whatever"),
-        fakerow(jobid='job4', created=datetime(2016, 2, 29, 13, 11, 0, 0, utc), status="Completed"),
+        fakerow(
+            jobid='job1',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                1,
+                0,
+                0,
+                utc),
+            status="Idle"),
+        fakerow(
+            jobid='job1',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                6,
+                0,
+                0,
+                utc),
+            status="ifdh::cp whatever"),
+        fakerow(
+            jobid='job1',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                3,
+                0,
+                0,
+                utc),
+            status="Running"),
+        fakerow(
+            jobid='job1',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                9,
+                0,
+                0,
+                utc),
+            status="Completed"),
+        fakerow(
+            jobid='job2',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                2,
+                0,
+                0,
+                utc),
+            status="Idle"),
+        fakerow(
+            jobid='job2',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                4,
+                0,
+                0,
+                utc),
+            status="Running"),
+        fakerow(
+            jobid='job2',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                6,
+                0,
+                0,
+                utc),
+            status="ifdh::cp whatever"),
+        fakerow(
+            jobid='job2',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                10,
+                0,
+                0,
+                utc),
+            status="Completed"),
+        fakerow(
+            jobid='job3',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                2,
+                0,
+                0,
+                utc),
+            status="Idle"),
+        fakerow(
+            jobid='job3',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                4,
+                0,
+                0,
+                utc),
+            status="Running"),
+        fakerow(
+            jobid='job3',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                7,
+                0,
+                0,
+                utc),
+            status="ifdh::cp whatever"),
+        fakerow(
+            jobid='job3',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                10,
+                0,
+                0,
+                utc),
+            status="Completed"),
+        fakerow(
+            jobid='job4',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                3,
+                0,
+                0,
+                utc),
+            status="Idle"),
+        fakerow(
+            jobid='job4',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                5,
+                0,
+                0,
+                utc),
+            status="Running"),
+        fakerow(
+            jobid='job4',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                9,
+                0,
+                0,
+                utc),
+            status="ifdh::cp whatever"),
+        fakerow(
+            jobid='job4',
+            created=datetime(
+                2016,
+                2,
+                29,
+                13,
+                11,
+                0,
+                0,
+                utc),
+            status="Completed"),
     ]
-    print(tg.render_query_blob(datetime(2016, 2, 29, 13, 0, 0, 0, utc), datetime(2016, 2, 29, 13, 30, 0, 0, utc), testrows, 'jobid'))
+    print(
+        tg.render_query_blob(
+            datetime(
+                2016, 2, 29, 13, 0, 0, 0, utc), datetime(
+                2016, 2, 29, 13, 30, 0, 0, utc), testrows, 'jobid'))

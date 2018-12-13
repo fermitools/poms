@@ -299,6 +299,7 @@ Campaigns {%include 'help_button.html'%}
     </div> <!-- Ends Modal -->
 
 <script>
+
 $(document).ready(function() {
     $('#campaign_table').tablesorter( {
         widgets : [ 'filter', 'saveSort' ],
@@ -504,6 +505,8 @@ function pop_tag_untag_modal() {
     });
 }
 
+
+
 $(document).ready(function () {
     add_click_handler();
 });
@@ -636,6 +639,23 @@ $('#tag_field').keypress(function (event) {
             $("#campaign_ids").val(ids.join(','))
         }
     }
+
+    getSearchParams = function () {
+        var p = {};
+        location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (s, k, v) { p[k]
+     = v });
+        return p;
+    }
+
+    pick_just_one = function () {
+        params = getSearchParams();
+        if ( params['just_one'] ) {
+            inp= $("input.tablesorter-filter[data-column=2]"); 
+            inp.val(params['just_one']);
+            setTimeout(function(){inp.trigger('change')}, 500);
+        }
+    }
+    $(document).ready(pick_just_one);
 
 </script>
 
