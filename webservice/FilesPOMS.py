@@ -607,6 +607,7 @@ class Files_status:
 
     def upload_file(self, basedir, sesshandle, err_res, quota, filename):
         outf = self.get_file_upload_path(basedir, sesshandle, filename.filename)
+        os.makdirs(os.path.dirname(outf), exist_ok=True)
         f = open(outf, "wb")
         size = 0
         while True:
