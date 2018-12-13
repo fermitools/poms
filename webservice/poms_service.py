@@ -589,8 +589,23 @@ class PomsService:
             kibana_link=kibana_link,
             dep_svg=dep_svg, last_activity=last_activity)
 
+#   h4. campaign_stage_submissions
+    @cherrypy.expose
+    @logit.logstartstop
+    def campaign_stage_submissions(self, campaign_name, stage_name, campaign_stage_id, tmin=None, tmax=None, tdays=1):
+        data = self.campaignsPOMS.campaign_stage_submissions(cherrypy.request.db, campaign_name, stage_name, campaign_stage_id, tmin, tmax, tdays)
+        data['campaign_name'] = campaign_name
+        data['stage_name'] = stage_name
+        template = self.jinja_env.get_template('campaign_stage_submissions.html')
+        return template.render(data=data)
 
-# h4. campaign_time_bars
+#   h4. session_status_history
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def session_status_history(self, submission_id):
+        rows = self.campaignsPOMS.session_status_history(cherrypy.request.db, submission_id)
+        return rows
 
 
     @cherrypy.expose

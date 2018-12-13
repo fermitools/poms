@@ -280,24 +280,13 @@ class Submission(Base):
     jobsub_job_id = Column(Text, nullable=False)
 
     campaign_stage_obj = relationship('CampaignStage')
-    experimenter_creator_obj = relationship(
-        'Experimenter',
-        primaryjoin='Submission.creator == Experimenter.experimenter_id')
-    experimenter_updater_obj = relationship(
-        'Experimenter',
-        primaryjoin='Submission.updater == Experimenter.experimenter_id')
-    parent_obj = relationship(
-        'Submission',
-        remote_side=[submission_id],
-        foreign_keys=recovery_tasks_parent)
-    login_setup_snap_obj = relationship(
-        'LoginSetupSnapshot',
-        foreign_keys=login_setup_snapshot_id)
-    campaign_stage_snapshot_obj = relationship(
-        'CampaignStageSnapshot',
-        foreign_keys=campaign_stage_snapshot_id)
-    job_type_snapshot_obj = relationship(
-        'JobTypeSnapshot', foreign_keys=job_type_snapshot_id)
+    experimenter_creator_obj = relationship('Experimenter', primaryjoin='Submission.creator == Experimenter.experimenter_id')
+    experimenter_updater_obj = relationship('Experimenter', primaryjoin='Submission.updater == Experimenter.experimenter_id')
+    parent_obj = relationship('Submission', remote_side=[submission_id], foreign_keys=recovery_tasks_parent)
+    login_setup_snap_obj = relationship('LoginSetupSnapshot', foreign_keys=login_setup_snapshot_id)
+    campaign_stage_snapshot_obj = relationship('CampaignStageSnapshot', foreign_keys=campaign_stage_snapshot_id)
+    job_type_snapshot_obj = relationship('JobTypeSnapshot', foreign_keys=job_type_snapshot_id)
+    status_history = relationship('SubmissionHistory', primaryjoin='Submission.submission_id == SubmissionHistory.submission_id')
 
 
 class SubmissionHistory(Base):
@@ -313,8 +302,8 @@ class SubmissionHistory(Base):
         nullable=False,
         index=True)
 
-    submission_obj = relationship('Submission', backref='history')
-    status_type = relationship('SubmissionStatus')
+    status_type = relationship('SubmissionStatus', primaryjoin='SubmissionHistory.status_id == SubmissionStatus.status_id')
+
 
 
 class SubmissionStatus(Base):

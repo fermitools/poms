@@ -23,7 +23,7 @@ import cherrypy
 from crontab import CronTab
 from sqlalchemy import and_, distinct, func, or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import joinedload, attributes
+from sqlalchemy.orm import joinedload, attributes, aliased
 
 from . import logit, time_grid
 from .poms_model import (Campaign,
@@ -1388,7 +1388,7 @@ class CampaignsPOMS:
                         .first())
             if experimenter.is_authorized(campaign):
                 subs = (dbhandle.query(Submission)
-                        .join(CampaignStage, 
+                        .join(CampaignStage,
                               Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
                         .filter(CampaignStage.campaign_id == campaign_id))
                 if subs.count() > 0:
@@ -1471,7 +1471,7 @@ class CampaignsPOMS:
                 data['authorized'].append(True)
             elif cs.creator_role == 'production' and role == 'production':
                 data['authorized'].append(True)
-            elif (cs.creator_role == role and 
+            elif (cs.creator_role == role and
                     cs.creator == sesshandle.get('experimenter').experimenter_id):
                 data['authorized'].append(True)
             else:
@@ -1491,12 +1491,12 @@ class CampaignsPOMS:
                     "%Y-%m-%d %H:%M:%S")
         return tl, last_activity, msg, data
 
-    def show_campaign_stages(self, dbhandle, samhandle, campaign_ids=None, 
+    def show_campaign_stages(self, dbhandle, samhandle, campaign_ids=None,
                              tmin=None, tmax=None, tdays=7,
-                             active=True, campaign_name=None, holder=None, 
+                             active=True, campaign_name=None, holder=None,
                              role_held_with=None, sesshandler=None, **kwargs):
         """
-            give campaign information about campaign_stages with activity 
+            give campaign information about campaign_stages with activity
             in the time window for a given experiment
         :rtype: object
         """
@@ -1576,9 +1576,9 @@ class CampaignsPOMS:
         if campaign_name:
             cq = cq.join(Campaign).filter(Campaign.name == campaign_name)
 
-            # for now we comment out it. When we have a lot of data, 
+            # for now we comment out it. When we have a lot of data,
             # we may need to use these filters.
-            # We will let the client filter it in show_campaign_stages.html 
+            # We will let the client filter it in show_campaign_stages.html
             # with tablesorter for now.
             # if holder:
             # cq = cq.filter(Campaingn.hold_experimenters_id == holder)
@@ -1695,6 +1695,50 @@ class CampaignsPOMS:
                 launch_flist,
                 kibana_link, dep_svg, last_activity
                 )
+
+
+    def campaign_stage_submissions(self, dbhandle, campaign_name, stage_name, campaign_stage_id, tmin=None, tmax=None, tdays=1):
+        base_link = 'campaign_stage_submissions?campaign_name={}&stage_name={}&campaign_stage_id={}&'.format(campaign_name, stage_name, campaign_stage_id)
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, base_link)
+        print("  tmin:%s\n   tmax:%s\n   tmins:%s\n   tmaxs:%s\n   nextlink:%s\n   prevlink:%s\n   time_range_string:%s\n   tdays:%s\n" %
+              (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays))
+
+        data = {'tmin': tmin, 'tmax': tmax, 'nextlink': nextlink, 'prevlink': prevlink, 'tdays': tdays}
+
+        subHist = aliased(SubmissionHistory)
+        subq = (dbhandle.query(func.max(subHist.created))
+                .filter(SubmissionHistory.submission_id == subHist.submission_id)
+               )
+
+        data['submissions'] = (dbhandle.query(Submission, SubmissionHistory, SubmissionStatus)
+                               .join(SubmissionHistory)
+                               .join(SubmissionStatus)
+                               .join('experimenter_creator_obj')
+                               .filter(Submission.campaign_stage_id == campaign_stage_id,
+                                       SubmissionHistory.submission_id == Submission.submission_id,
+                                       SubmissionStatus.status_id == SubmissionHistory.status_id,
+                                       or_(and_(Submission.created > tmin, Submission.created < tmax),
+                                           and_(Submission.updated > tmin, Submission.updated < tmax))
+                                      )
+                               .filter(SubmissionHistory.created == subq)
+                               .order_by(SubmissionHistory.submission_id.desc())
+                              ).all()
+        return data
+
+
+    def session_status_history(self, dbhandle, submission_id):
+        rows = []
+        tuples = (dbhandle.query(SubmissionHistory, SubmissionStatus)
+                  .join(SubmissionStatus)
+                  .filter(SubmissionHistory.submission_id == submission_id)
+                  .order_by(SubmissionHistory.created)).all()
+        for row in tuples:
+            submission_id = row.SubmissionHistory.submission_id
+            created = row.SubmissionHistory.created.now().strftime("%Y-%m-%d %H:%M:%S")
+            status = row.SubmissionStatus.status
+            rows.append({'created': created, 'status': status})
+        return rows
+
 
     # @pomscache_10.cache_on_arguments()
 
