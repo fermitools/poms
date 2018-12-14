@@ -623,6 +623,7 @@ class Files_status:
             raise err_res("Upload exeeds quota of %d kbi" % quota/1024)
         return "Ok."
 
+
     def remove_uploaded_files(self, basedir, sesshandle, err_res, filename, actio):
         # if there's only one entry the web page will not send a list...
         if isinstance(filename,str):
@@ -632,6 +633,16 @@ class Files_status:
             outf = self.get_file_upload_path(basedir, sesshandle, f)
             os.unlink(outf)
         return "Ok."
+
+    def get_launch_sandbox(self, basedir, sesshandle):
+        uploads = self.get_file_upload_path(basedir, sesshandle, '')
+        uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
+        sandbox = "%s/sandboxes/%s" % ( basedir, str(uu))
+        os.makedirs(sandbox, exist_ok=False)
+        flist = glob.glob(self.get_file_upload_path(basedir, sesshandle, '*'))
+        for f in flist:
+            os.link(f, "%s/%s" % (sandbox, os.path.basename(f))
+        return sandbox
 
     @staticmethod
     def report_declared_files(flist, dbhandle):
