@@ -2159,6 +2159,49 @@ class CampaignsPOMS:
         dbhandle.commit()
         return []
 
+    def split_type_javascript( self, dbhandle, sesshandle, samhandle, *args, **kwargs):
+
+        class fake_campaign_stage:
+            def __init__(self, dataset="", cs_split_type = ""):
+                self.dataset = dataset
+                self.cs_split_type = cs_split_type
+
+        modmap = {}
+        rlist = []
+
+        # make the import set POMS_DIR..
+        importlib.import_module('poms.webservice')
+
+        gpath = "%s/webservice/split_types/*.py" % os.environ['POMS_DIR']
+        rlist.append("/* checking: %s */ " % gpath)
+
+        split_list = glob.glob(gpath)
+
+        modnames = [os.path.basename(x).replace('.py','') for x in split_list]
+
+        fake_cs = fake_campaign_stage(dataset='null', cs_split_type='')
+
+        for modname in modnames:
+
+            if modname == '__init__' :
+                continue
+
+            fake_cs.cs_split_type =  "%s(2)" % modname
+
+            mod = importlib.import_module('poms.webservice.split_types.' + modname)
+            split_class = getattr(mod, modname)
+            inst = split_class(fake_cs, samhandle, dbhandle)
+            poptxt =  inst.edit_popup()
+            if poptxt != 'null':
+                modmap[modname] = '%s_edit'
+                rlist.append(poptxt)
+            else:
+                modmap[modname] = None 
+        rlist.append('split_type_edit_map =')
+        rlist.append(json.dumps(modmap))
+        rlist.append(';')
+        return '\n'.join(rlist)
+
     def echo(self, dbhandle, sesshandle, *args, **kwargs):
         form = kwargs.get('form', None)
         print("******************* Get the kwargs: '{}'".format(kwargs))

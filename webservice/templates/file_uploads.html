@@ -1,0 +1,61 @@
+{%extends "layout.html"%}
+
+{%block title%}
+POMS: Uploaded files for user 
+ {% if current_experimenter is defined %}
+     <i class="user icon" style="margin-left: 1em"></i>
+     {{current_experimenter.first_name}} 
+     {{current_experimenter.last_name}}
+ {% endif %}
+
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+Uploaded Files
+</h1>
+{%endblock%}
+
+
+{%block content%}
+
+  These files will be available as <tt>$UPLOADS/filename</tt> to your launch commands.
+  <p>
+
+  <div class="ui raised segment">
+  <h3> Upload an new file </h3>
+  <form action="{{pomspath}}/upload_file" method="POST" enctype="multipart/form-data">
+  Filename: <input type="file" name="filename" />
+            <input type="submit" value="Upload" />
+            </form>
+  </form>
+  </div>
+
+  <div class="ui raised segment">
+  <h3> Uploaded files </h3>
+  <form action="{{pomspath}}/remove_uploaded_files">
+  <table class="ui celled table raised">
+  <thead>
+  <tr><th><input name="file_all" id="file_all" type="checkbox"><th>Name</th><th>Size</th><th>uploaded</th></tr>
+  </thead>
+  <tbody>
+  {% for fs in file_stat_list %}
+      {%set file = fs[0] %}
+      {%set stat = fs[1] %}
+      <tr>
+         <td><input id="filename" name="filename" value="{{file}}" type="checkbox"></td>
+         <td> {{file}} </td><td> {{stat.st_size}} </td><td> {{time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime(stat.st_mtime))}} </td>
+      </tr>
+  {% endfor %}
+      <tr><td style="text-align: right;" colspan=2>Total:</td><td>{{total}}</td><td></td></tr>
+      <tr><td colspan=4> 
+           <input type="submit" name="action" value="Delete Checked"> 
+      </td></tr>
+  </tbody>
+  </table>
+  </form>
+  </div>
+
+
+{%endblock%}
+

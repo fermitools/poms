@@ -18,8 +18,9 @@ class multiparam:
         self.cs = cs
         self.list = json.loads(cs.dataset)
         self.dims = []
-        for l1 in self.list:
-            self.dims.append(len(l1))
+        if self.list:
+            for l1 in self.list:
+                self.dims.append(len(l1))
 
     def peek(self):
         if self.cs.cs_last_split == None:
