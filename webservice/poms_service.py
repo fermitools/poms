@@ -890,7 +890,7 @@ class PomsService:
         quota = cherrypy.config.get('base_uploads_quota')
         file_stat_list, total = self.filesPOMS.file_uploads(
             cherrypy.config.get('base_uploads_dir'),
-            cherrypy.session,
+            cherrypy.session.get,
             quota
         )
 
@@ -907,7 +907,7 @@ class PomsService:
     def upload_file(self, filename):
         res = self.filesPOMS.upload_file(
             cherrypy.config.get('base_uploads_dir'),
-            cherrypy.session,
+            cherrypy.session.get,
             cherrypy.HTTPError,
             cherrypy.config.get('base_uploads_quota'),
             filename
@@ -920,7 +920,7 @@ class PomsService:
     def remove_uploaded_files(self, filename, action):
         res = self.filesPOMS.remove_uploaded_files(
             cherrypy.config.get('base_uploads_dir'),
-            cherrypy.session,
+            cherrypy.session.get,
             cherrypy.HTTPError,
             filename,
             action
@@ -975,8 +975,12 @@ class PomsService:
     def launch_queued_job(self):
         return self.taskPOMS.launch_queued_job(cherrypy.request.db,
                                                cherrypy.request.samweb_lite,
-                                               cherrypy.session, cherrypy.request.headers.get,
-                                               cherrypy.session, cherrypy.response.status)
+                                               cherrypy.session, 
+                                               cherrypy.request.headers.get,
+                                               cherrypy.session, 
+                                               cherrypy.response.status,
+                                               cherrypy.config.get('base_uploads_dir')
+                                               )
 
 # h4. launch_jobs
     @cherrypy.expose
@@ -1005,6 +1009,7 @@ class PomsService:
                                          cherrypy.session.get,
                                          cherrypy.request.samweb_lite,
                                          cherrypy.HTTPError,
+                                         cherrypy.config.get('base_uploads_dir'),
                                          campaign_stage_id,
                                          launch_user,
                                          dataset_override=dataset_override,
@@ -1086,7 +1091,9 @@ class PomsService:
                                                     cherrypy.config.get,
                                                     cherrypy.request.headers.get,
                                                     cherrypy.session,
-                                                    cherrypy.response.status))
+                                                    cherrypy.response.status,
+                                                    cherrypy.config.get('base_uploads_dir')
+                                                    ))
 
 
 # h4. get_task_id_for

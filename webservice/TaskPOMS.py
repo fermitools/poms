@@ -94,7 +94,7 @@ class TaskPOMS:
         self.init_status_done = True
 
     def wrapup_tasks(self, dbhandle, samhandle, getconfig,
-                     gethead, seshandle, err_res):
+                     gethead, seshandle, err_res, basedir):
         # this function call another function that is not in this module, it
         # use a poms_service object passed as an argument at the init.
 
@@ -281,9 +281,9 @@ class TaskPOMS:
                 submission.submission_id)
 
             if not self.launch_recovery_if_needed(
-                    dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission):
+                    dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission, basedir):
                 self.launch_dependents_if_needed(
-                    dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission)
+                    dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission, basedir)
 
         return res
 
@@ -583,7 +583,7 @@ class TaskPOMS:
         dbhandle.commit()
 
     def launch_dependents_if_needed(
-            self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res, s):
+            self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res, s, basedir):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
 
         # if this is itself a recovery job, we go back to our parent
@@ -612,6 +612,7 @@ class TaskPOMS:
                     seshandle.get,
                     samhandle,
                     err_res,
+                    basedir,
                     cd.provides_campaign_stage_id,
                     launch_user.username,
                     test_launch=s.submission_params.get(
@@ -649,6 +650,7 @@ class TaskPOMS:
                     seshandle.get,
                     samhandle,
                     err_res,
+                    basedir,
                     cd.provides_campaign_stage_id,
                     s.creator,
                     dataset_override=dname,
@@ -656,7 +658,7 @@ class TaskPOMS:
         return 1
 
     def launch_recovery_if_needed(self, dbhandle, samhandle, getconfig,
-                                  gethead, seshandle, err_res, s, recovery_type_override=None):
+                                  gethead, seshandle, err_res, s, recovery_type_override=None, basedir = ''):
         logit.log("Entering launch_recovery_if_needed(%s)" % s.submission_id)
         if not getconfig("poms.launch_recovery_jobs", False):
             logit.log("recovery launches disabled")
@@ -748,7 +750,7 @@ class TaskPOMS:
                     Experimenter.experimenter_id == s.creator).first()
 
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
-                                 err_res, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username, dataset_override=rname,
+                                 err_res, basedir, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username, dataset_override=rname,
                                  parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch=s.submission_params.get('test', False))
                 return 1
 
@@ -765,7 +767,7 @@ class TaskPOMS:
         return "allowed"
 
     def launch_queued_job(self, dbhandle, samhandle,
-                          getconfig, gethead, seshandle_get, err_res):
+                          getconfig, gethead, seshandle_get, err_res, basedir):
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
@@ -779,7 +781,9 @@ class TaskPOMS:
             self.launch_jobs(dbhandle,
                              getconfig, gethead,
                              seshandle_get, samhandle,
-                             err_res, hl.campaign_stage_id,
+                             err_res, 
+                             basedir,
+                             hl.campaign_stage_id,
                              launch_user.username,
                              dataset_override=hl.dataset,
                              parent_submission_id=hl.parent_submission_id,
@@ -789,7 +793,7 @@ class TaskPOMS:
             return "None."
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
-                    err_res, campaign_stage_id, launcher, dataset_override=None, parent_submission_id=None,
+                    err_res, basedir, campaign_stage_id, launcher, dataset_override=None, parent_submission_id=None,
                     param_overrides=None, test_login_setup=None, experiment=None, test_launch=False, output_commands=False):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" %
@@ -797,6 +801,8 @@ class TaskPOMS:
 
         ds = time.strftime("%Y%m%d_%H%M%S")
         e = seshandle_get('experimenter')
+        se_role = e.session_role
+
         launcher_experimenter = dbhandle.query(Experimenter).filter(
             Experimenter.experimenter_id == launcher).first()
 
@@ -906,10 +912,15 @@ class TaskPOMS:
             logit.log("launch_jobs -- experimenter not authorized")
             raise err_res(403, "Permission denied.")
 
-        if not lt.launch_host.find(exp) >= 0 and exp != 'samdev':
+        if se_role == 'production' and not lt.launch_host.find(exp) >= 0 and exp != 'samdev':
             logit.log(
                 "launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
             output = "Not Authorized: {} is not a {} experiment node".format(
+                lt.launch_host, exp)
+            raise err_res(403, output)
+
+        if se_role == 'analysis' and not (lt.launch_host in ('pomsgpvm01.fnal.gov' ,'fermicloud045.fnal.gov','pomsint.fnal.gov')):
+            output = "Not Authorized: {} is not a analysis launch node".format(
                 lt.launch_host, exp)
             raise err_res(403, output)
 
@@ -954,7 +965,12 @@ class TaskPOMS:
                 {Submission.submission_params: pdict})
             dbhandle.commit()
 
-        proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
+        if se_role == 'analysis':
+            sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, seshandle_get)
+            proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_proxy" % exp
+        else:
+            sandbox = '$HOME'
+            proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
 
         cmdl = [
             "exec 2>&1",
@@ -969,7 +985,7 @@ class TaskPOMS:
                 "group": group,
                 "experimenter": experimenter_login,
             },
-
+            "export UPLOADS='%s'" % sandbox,
 
             #
             # This bit is a little tricky.  We want to do as little of our
@@ -983,6 +999,8 @@ class TaskPOMS:
             #    front of the path and can intercept calls to "jobsub_submit"
             #
             "export X509_USER_PROXY=%s" % proxyfile,
+            # proxy file has to belong to us, apparently, so...
+            "cp $X509_USER_PROXY /tmp/proxy$$ && export X509_USER_PROXY=/tmp/proxy$$  && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY" if se_role == "analysis" else ":",
             "source /grid/fermiapp/products/common/etc/setups",
             "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
             (lt.launch_setup % {

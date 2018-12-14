@@ -11,6 +11,7 @@ from collections import deque, defaultdict
 import os
 import shelve
 import glob
+import uuid
 from datetime import datetime, timedelta
 
 from sqlalchemy.orm import subqueryload, joinedload
@@ -590,13 +591,13 @@ class Files_status:
 
         return dimlist, count_list
 
-    def get_file_upload_path(self, basedir, sesshandle, filename):
-        username = sesshandle.get('experimenter').username
-        experiment = sesshandle.get('experimenter').session_experiment
+    def get_file_upload_path(self, basedir, sesshandle_get, filename):
+        username = sesshandle_get('experimenter').username
+        experiment = sesshandle_get('experimenter').session_experiment
         return "%s/uploads/%s/%s/%s" % (basedir, experiment,username,filename)
        
-    def file_uploads(self, basedir, sesshandle, quota):
-        flist = glob.glob(self.get_file_upload_path(basedir, sesshandle, '*'))
+    def file_uploads(self, basedir, sesshandle_get, quota):
+        flist = glob.glob(self.get_file_upload_path(basedir, sesshandle_get, '*'))
         res = []
         total = 0
         for fname in flist:
@@ -605,8 +606,8 @@ class Files_status:
             total += statout.st_size
         return res, total
 
-    def upload_file(self, basedir, sesshandle, err_res, quota, filename):
-        outf = self.get_file_upload_path(basedir, sesshandle, filename.filename)
+    def upload_file(self, basedir, sesshandle_get, err_res, quota, filename):
+        outf = self.get_file_upload_path(basedir, sesshandle_get, filename.filename)
         os.makedirs(os.path.dirname(outf), exist_ok=True)
         f = open(outf, "wb")
         size = 0
@@ -617,30 +618,30 @@ class Files_status:
            f.write(data)
            size += len(data)
         f.close()
-        fstatlist, total = self.file_uploads(basedir, sesshandle, quota)
+        fstatlist, total = self.file_uploads(basedir, sesshandle_get, quota)
         if total > quota:
             unlink(outf)
             raise err_res("Upload exeeds quota of %d kbi" % quota/1024)
         return "Ok."
 
 
-    def remove_uploaded_files(self, basedir, sesshandle, err_res, filename, actio):
+    def remove_uploaded_files(self, basedir, sesshandle_get, err_res, filename, actio):
         # if there's only one entry the web page will not send a list...
         if isinstance(filename,str):
             filename = [ filename ]
             
         for f in filename:
-            outf = self.get_file_upload_path(basedir, sesshandle, f)
+            outf = self.get_file_upload_path(basedir, sesshandle_get, f)
             os.unlink(outf)
         return "Ok."
 
-    def get_launch_sandbox(self, basedir, sesshandle):
-        uploads = self.get_file_upload_path(basedir, sesshandle, '')
+    def get_launch_sandbox(self, basedir, sesshandle_get):
+        uploads = self.get_file_upload_path(basedir, sesshandle_get, '')
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
         sandbox = "%s/sandboxes/%s" % ( basedir, str(uu))
         os.makedirs(sandbox, exist_ok=False)
-        flist = glob.glob(self.get_file_upload_path(basedir, sesshandle, '*'))
+        flist = glob.glob(self.get_file_upload_path(basedir, sesshandle_get, '*'))
         for f in flist:
-            os.link(f, "%s/%s" % (sandbox, os.path.basename(f))
+            os.link(f, "%s/%s" % (sandbox, os.path.basename(f)))
         return sandbox
 
