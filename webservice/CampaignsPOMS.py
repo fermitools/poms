@@ -1703,26 +1703,47 @@ class CampaignsPOMS:
         print("  tmin:%s\n   tmax:%s\n   tmins:%s\n   tmaxs:%s\n   nextlink:%s\n   prevlink:%s\n   time_range_string:%s\n   tdays:%s\n" %
               (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays))
 
-        data = {'tmin': tmin, 'tmax': tmax, 'nextlink': nextlink, 'prevlink': prevlink, 'tdays': tdays}
+        data = {'tmin': tmin, 'tmax': tmax, 'nextlink': nextlink, 'prevlink': prevlink, 'tdays': tdays, 'tminsec': tmin.strftime("%s"),}
 
         subHist = aliased(SubmissionHistory)
         subq = (dbhandle.query(func.max(subHist.created))
                 .filter(SubmissionHistory.submission_id == subHist.submission_id)
                )
 
-        data['submissions'] = (dbhandle.query(Submission, SubmissionHistory, SubmissionStatus)
-                               .join(SubmissionHistory)
-                               .join(SubmissionStatus)
-                               .join('experimenter_creator_obj')
-                               .filter(Submission.campaign_stage_id == campaign_stage_id,
-                                       SubmissionHistory.submission_id == Submission.submission_id,
-                                       SubmissionStatus.status_id == SubmissionHistory.status_id,
-                                       or_(and_(Submission.created > tmin, Submission.created < tmax),
-                                           and_(Submission.updated > tmin, Submission.updated < tmax))
-                                      )
-                               .filter(SubmissionHistory.created == subq)
-                               .order_by(SubmissionHistory.submission_id.desc())
-                              ).all()
+        tuples = (dbhandle.query(Submission, SubmissionHistory, SubmissionStatus)
+                  .join(SubmissionHistory)
+                  .join(SubmissionStatus)
+                  .join('experimenter_creator_obj')
+                  .filter(Submission.campaign_stage_id == campaign_stage_id,
+                          SubmissionHistory.submission_id == Submission.submission_id,
+                          SubmissionStatus.status_id == SubmissionHistory.status_id,
+                          or_(and_(Submission.created > tmin, Submission.created < tmax),
+                              and_(Submission.updated > tmin, Submission.updated < tmax))
+                          )
+                  .filter(SubmissionHistory.created == subq)
+                  .order_by(SubmissionHistory.submission_id.desc())
+                  ).all()
+        submissions = []
+        for t in tuples:
+            jjid = t.Submission.jobsub_job_id
+            full_jjid = jjid
+            if not jjid:
+                jjid = 's' + str(t.Submission.submission_id)
+                full_jjid = "unknown.0@unknown.un.known"
+            else:
+                jjid = 's%s<br>%s' % (str(t.Submission.submission_id), str(jjid).replace('fifebatch', '').replace('.fnal.gov','' ) )
+
+            row = {
+                'submission_id': t.Submission.submission_id,
+                'jobsub_job_id': t.Submission.jobsub_job_id,
+                'created': t.Submission.created,
+                'creator': t.Submission.experimenter_creator_obj.username,
+                'status': t.SubmissionStatus.status,
+                'jobsub_cluster': full_jjid[:full_jjid.find('@')],
+                'jobsub_schedd': full_jjid[full_jjid.find('@') + 1:],
+            }
+            submissions.append(row)
+            data['submissions'] = submissions
         return data
 
 
