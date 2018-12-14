@@ -837,27 +837,6 @@ class PomsService:
         return list(res)
 
 
-# h4. report_declared_files
-
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def report_declared_files(self, flist):
-        self.filesPOMS.report_declared_files(flist, cherrypy.request.db)
-        return "Ok."
-
-
-# h4. output_pending_jobs
-
-
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def output_pending_jobs(self):
-        res = self.jobsPOMS.output_pending_jobs(cherrypy.request.db)
-        return res
-
-
 # h4. force_locate_submission
 
 

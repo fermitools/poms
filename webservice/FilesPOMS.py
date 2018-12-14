@@ -632,30 +632,3 @@ class Files_status:
             os.unlink(outf)
         return "Ok."
 
-    @staticmethod
-    def report_declared_files(flist, dbhandle):
-        now = datetime.now(utc)
-        # the "extra" first query on Job is to make sure we get a shared lock
-        # on Job before trying to get an update lock on JobFile, which will
-        # then try to get a lock on Job, but can deadlock with someone
-        # otherwise doing update_job()..
-        dbhandle.query(
-            Job,
-            JobFile).with_for_update(
-            of=Job,
-            read=True).filter(
-            JobFile.job_id == Job.job_id,
-            JobFile.file_name.in_(flist)).order_by(
-                Job.jobsub_job_id).all()
-        dbhandle.query(
-            Job,
-            JobFile).with_for_update(
-            of=JobFile,
-            read=True).filter(
-            JobFile.job_id == Job.job_id,
-            JobFile.file_name.in_(flist)).order_by(
-                JobFile.job_id,
-            JobFile.file_name).all()
-        dbhandle.query(JobFile).filter(JobFile.file_name.in_(flist)).update(
-            {JobFile.declared: now}, synchronize_session=False)
-        dbhandle.commit()
