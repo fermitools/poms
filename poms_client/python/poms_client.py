@@ -15,6 +15,14 @@ except:
 
 rs = requests.Session()
 
+def upload_file(file_name, test=None,  experiment=None, configfile=None):
+    data,status = make_poms_call(
+        method = 'upload_file',
+        files = {'filename': (os.path.basename(file_name), open(file_name, 'rb'))},
+        test = test,
+        configfile = configfile)
+
+    return status == 303
 
 def get_campaign_id(campaign_name, test=None, user=None, experiment=None, configfile=None):
     data, status = make_poms_call(
@@ -282,11 +290,15 @@ def tag_campaigns(tag, cids, experiment, test_client=False):
     return sc == 200
 
 
-def update_session_role(role, test_client=False):
-    logging.debug("in update_session_role test_client = " + repr(test_client))
-    res, sc = make_poms_call(method='update_session_role', session_role='production', test_client=test_client)
+def update_session_experiment(experiment, test_client=False):
+    logging.debug("in update_session_experiment test_client = " + repr(test_client))
+    res, sc = make_poms_call(method='update_session_experiment', session_experiment = experiment, test_client=test_client)
     return sc == 200
 
+def update_session_role(role, test_client=False):
+    logging.debug("in update_session_role test_client = " + repr(test_client))
+    res, sc = make_poms_call(method='update_session_role', session_role=role, test_client=test_client)
+    return sc == 200
 
 def auth_cert():
     # rs.cert = '/tmp/x509up_u`id -u`'
@@ -333,14 +345,21 @@ def make_poms_call(**kwargs):
 
     config = getconfig(kwargs)
 
+
     method = kwargs.get("method")
     del kwargs["method"]
+
+    files = None
+    if kwargs.get("files",None):
+        files=kwargs["files"]
+        del kwargs["files"]
 
     if kwargs.get("test", None) and not kwargs.get("test_client",None):
         kwargs["test_client"] = kwargs["test"]
 
     if kwargs.get("test", None):
         del kwargs["test"]
+
 
     test_client=kwargs.get("test_client",None)
 
@@ -374,7 +393,7 @@ def make_poms_call(**kwargs):
     # ignore insecure request warnings...
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        c = rs.post("%s/%s" % (base, method), data=kwargs, verify=False, allow_redirects=False)
+        c = rs.post("%s/%s" % (base, method), data=kwargs, files=files, verify=False, allow_redirects=False)
     res = c.text
     status_code = c.status_code
     c.close()
