@@ -48,11 +48,6 @@ from . import (
     logit,
     version)
 
-# we have an elasticsearch module we used to use, but now we mostly
-# embed frames from Landscape pages instead...
-
-from .elasticsearch import Elasticsearch
-
 #
 # ORM model is in source:poms_model.py
 #
@@ -169,28 +164,6 @@ class PomsService:
                                launches=self.taskPOMS.get_job_launches(
                                    cherrypy.request.db),
                                do_refresh=1200, help_page="DashboardHelp")
-
-# h4. es
-    @cherrypy.expose
-    @logit.logstartstop
-    def es(self):
-        template = self.jinja_env.get_template('elasticsearch.html')
-
-        es = Elasticsearch(config=cherrypy.config)
-
-        query = {
-            'sort': [{'@timestamp': {'order': 'asc'}}],
-            'query': {
-                'term': {'jobid': '17519748.0@fifebatch2.fnal.gov'}
-            }
-        }
-
-        es_response = es.search(
-            index='fifebatch-logs-*',
-            types=['condor_eventlog'],
-            query=query)
-        pprint.pprint(es_response)
-        return template.render(es_response=es_response)
 
     ####################
     # UtilsPOMS

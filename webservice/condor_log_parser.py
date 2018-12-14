@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 
-# our own logging handle, goes to cherrypy
-from .logit import log
+"""
+Parser for condor job log files to get information out
+"""
 
-from . import jobsub_fetcher
 from datetime import datetime, timedelta
+
+from .logit import log
+from . import jobsub_fetcher
 from .poms_model import Submission
-import time
 
 
+# our own logging handle, goes to cherrypy
 def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
     '''
         get the condor joblog for a given job
@@ -16,9 +19,9 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
     log("INFO", "entering get_joblogs")
     if jobsub_job_id is None:
         return
-    jf = jobsub_fetcher.jobsub_fetcher(cert, key)
+    fetcher = jobsub_fetcher.jobsub_fetcher(cert, key)
     log("DEBUG", "checking index")
-    files = jf.index(jobsub_job_id, experiment, role, True)
+    files = fetcher.index(jobsub_job_id, experiment, role, True)
     task = dbhandle.query(Submission.submission_id).filter(
         Submission.jobsub_job_id == jobsub_job_id).first()
     if task is None:
@@ -35,29 +38,29 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
             # that goes with xyz.cmd, or the dag.nodes.log, which has
             # the individual job.logs in it.
             log("DEBUG", "checking file %s " % row[5])
-            lines = jf.contents(row[5], jobsub_job_id, experiment, role)
+            lines = fetcher.contents(row[5], jobsub_job_id, experiment, role)
             parse_condor_log(dbhandle,
                              lines,
                              jobsub_job_id[jobsub_job_id.find("@") + 1:],
                              submission_id)
             break
-    del jf
+    del fetcher
 
 
 def fix_jobid(clust_proc, batchhost):
     ''' convert 123456.010.000 to 123456.10@batchost '''
-    p1 = clust_proc.find('.')
-    p2 = clust_proc.find('.', p1 + 1)
-    cluster = clust_proc[0:p1]
-    proc = int(clust_proc[p1 + 1:p2])
+    pos1 = clust_proc.find('.')
+    pos2 = clust_proc.find('.', pos1 + 1)
+    cluster = clust_proc[0:pos1]
+    proc = int(clust_proc[pos1 + 1:pos2])
     return "%s.%d@%s" % (cluster, proc, batchhost)
 
 
 def compute_secs(time_str):
     ''' convert hh:mm:ss to seconds '''
     time_str = time_str.strip(",")
-    tl = [int(x) for x in time_str.split(":")]
-    return (tl[0] * 60 + tl[1]) * 60 + tl[2]
+    timelist = [int(x) for x in time_str.split(":")]
+    return (timelist[0] * 60 + timelist[1]) * 60 + timelist[2]
 
 
 def parse_date(date_time_str):
@@ -70,16 +73,16 @@ def parse_date(date_time_str):
            for to get last month right further into this month.
     '''
     # get todays, yesterdays year and month
-    ty, tm = datetime.now().strftime("%Y %m").split()
-    lmy, lm = (datetime.now() - timedelta(days=27)).strftime("%Y %m").split()
+    t_year, t_month = datetime.now().strftime("%Y %m").split()
+    lm_year, lm_month = (datetime.now() - timedelta(days=27)).strftime("%Y %m").split()
 
-    if date_time_str[:2] == tm:
-        date_time_str = "%s/%s" % (ty, date_time_str)
-    elif date_time_str[:2] == lm:
-        date_time_str = "%s/%s" % (lmy, date_time_str)
+    if date_time_str[:2] == t_month:
+        date_time_str = "%s/%s" % (t_year, date_time_str)
+    elif date_time_str[:2] == lm_month:
+        date_time_str = "%s/%s" % (lm_year, date_time_str)
     else:
         # if it is some other month, just guess this year.. sorry
-        date_time_str = "%s/%s" % (ty, date_time_str)
+        date_time_str = "%s/%s" % (t_year, date_time_str)
 
     return datetime.strptime(date_time_str, "%Y/%m/%d %H:%M:%S")
 
@@ -128,7 +131,7 @@ def parse_condor_log(dbhandle, lines, batchhost, submission_id):
         if in_termination:
             log("DEBUG", "saw: ", line)
             if line.find("termination (signal ") > 0:
-                job.exit = 128 + int(line.split()[5].strip(')'))
+                job_exit = 128 + int(line.split()[5].strip(')'))
             if line.find("termination (return value") > 0:
                 job_exit = int(line.split()[5].strip(')'))
             if line.find("Total Remote Usage") > 0:
@@ -137,7 +140,8 @@ def parse_condor_log(dbhandle, lines, batchhost, submission_id):
                 disk_used = line.split()[3]
             if line.find("Memory (KB)") > 0:
                 memory_used = line.split()[3]
-            log("INFO", "condor_log_parser: remote_cpu %s disk_used %s memory_used %s job_exit %s" % (
-                remote_cpu, disk_used, memory_used, job_exit))
+            log("INFO", "condor_log_parser: remote_cpu %s "
+                "disk_used %s memory_used %s job_exit %s" % (
+                    remote_cpu, disk_used, memory_used, job_exit))
 
     dbhandle.commit()
