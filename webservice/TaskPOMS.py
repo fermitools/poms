@@ -605,6 +605,8 @@ class TaskPOMS:
         for cd in cdlist:
             if cd.provides_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id:
                 # self-reference, just do a normal launch
+                # be the role the job we're launching based from was...
+                seshandle.get('experimenter').role = s.creator_role
                 self.launch_jobs(
                     dbhandle,
                     getconfig,
@@ -642,6 +644,9 @@ class TaskPOMS:
                 logit.log(
                     "About to launch jobs, test_launch = %s" %
                     test_launch)
+
+                # take on role of job we're launching based on..
+                seshandle.get('experimenter').role = s.creator_role
 
                 self.launch_jobs(
                     dbhandle,
