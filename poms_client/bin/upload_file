@@ -20,7 +20,7 @@ if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 
 if options.proxy:
-    proxyfile = "/tmp/x509up_voms_%s_%s" % (options.experiment, options.poms_role.capitalize())
+    proxyfile = "/tmp/x509up_voms_%s_%s_%s" % (options.experiment, options.poms_role.capitalize(),os.environ.get('GRID_USER',os.environ.get('USER','unknown')) )
     if os.environ.get('X509_USER_PROXY', None):
          os.system("cp $X509_USER_PROXY %s" % proxyfile)
          os.system("chmod 400 %s" % proxyfile)

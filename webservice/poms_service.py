@@ -1086,22 +1086,7 @@ class PomsService:
                                                       experiment, command_executed, input_dataset, parent_submission_id, submission_id)
         return "Task=%d" % submission_id
 
-# h4. list_task_logged_files
-    @cherrypy.expose
-    @logit.logstartstop
-    def list_task_logged_files(self, submission_id=None, task_id=None):
-        if task_id is not None and submission_id is None:
-            submission_id = task_id
-        fl, s, jobsub_job_id = self.filesPOMS.list_task_logged_files(
-            cherrypy.request.db, submission_id)
-        template = self.jinja_env.get_template('list_task_logged_files.html')
-        return template.render(fl=fl, campaign=s.campaign_stage_snapshot_obj, jobsub_job_id=jobsub_job_id,
-                               do_refresh=0,
-                               help_page="ListTaskLoggedFilesHelp")
-
-
 # h4. campaign_task_files
-
 
     @cherrypy.expose
     @logit.logstartstop

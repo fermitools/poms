@@ -1,11 +1,14 @@
 #!/usr/bin/env python
+"""
 
-# This module contain the methods that handle the file status accounting
-# List of methods: def list_task_logged_files, campaign_task_files, job_file_list, get_inflight,
-# inflight_files, show_dimension_files, campaign_sheet, actual_pending_files
-# Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions
-# in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
-### October, 2016.
+ This module contain the methods that handle the file status accounting
+ List of methods: def list_task_logged_files, campaign_task_files, job_file_list, get_inflight,
+ inflight_files, show_dimension_files, campaign_sheet, actual_pending_files
+ ALso now includes file upload and analysis user launch sandbox code.
+ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions
+ in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
+ October, 2016.
+"""
 
 from collections import deque, defaultdict
 import os
@@ -24,30 +27,25 @@ from .pomscache import pomscache
 
 
 class Files_status:
+    """
+        File related routines
+    """
 
     def __init__(self, ps):
+        """ just hook it in """
         self.poms_service = ps
-
-    def list_task_logged_files(self, dbhandle, submission_id):
-        s = dbhandle.query(Submission).filter(
-            Submission.submission_id == submission_id).first()
-        jobsub_job_id = s.jobsub_job_id
-        fl = []
-        return fl, s, jobsub_job_id
-        #DELETE: template = self.poms_service.jinja_env.get_template('list_task_logged_files.html')
-        # return template.render(fl = fl, campaign =
-        # s.campaign_stage_snapshot_obj,  jobsub_job_id = jobsub_job_id,
-        # current_experimenter=cherrypy.session.get('experimenter'),
-        # do_refresh = 0, pomspath=self.path,
-        # help_page="ListTaskLoggedFilesHelp", version=self.version)
 
     def campaign_task_files(self, dbhandle, samhandle, campaign_stage_id=None,
                             campaign_id=None, tmin=None, tmax=None, tdays=1):
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
-         time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
-                                                                              'campaign_task_files?campaign_stage_id=%s&campaign_id=%s' % (campaign_stage_id, campaign_id))
+         time_range_string, tdays
+        ) = self.poms_service.utilsPOMS.handle_dates(
+            tmin, tmax, tdays,
+            'campaign_task_files?campaign_stage_id=%s&campaign_id=%s' % (
+                campaign_stage_id, campaign_id))
+
         # inhale all the campaign related task info for the time window
         # in one fell swoop
 
@@ -113,9 +111,13 @@ class Files_status:
                     dimbits = "file_name like '%s'" % pat
 
                 allkiddims = ("%s and isparentof: ( %s and version '%s' ) " %
-                              (allkiddims, dimbits, s.campaign_stage_snapshot_obj.software_version))
-                allkiddecldims = ("%s and isparentof: ( %s and version '%s' with availability anylocation ) " %
-                                  (allkiddecldims, dimbits, s.campaign_stage_snapshot_obj.software_version))
+                              (allkiddims, dimbits,
+                               s.campaign_stage_snapshot_obj.software_version))
+                allkiddecldims = ("%s and isparentof: "
+                                  "( %s and version '%s' "
+                                  "with availability anylocation ) " %
+                                  (allkiddecldims, dimbits,
+                                   s.campaign_stage_snapshot_obj.software_version))
             all_kids_needed.append(allkiddims)
             all_kids_decl_needed.append(allkiddecldims)
         #
@@ -156,41 +158,49 @@ class Files_status:
             task_jobsub_job_id = s.jobsub_job_id
             if task_jobsub_job_id is None:
                 task_jobsub_job_id = "s%s" % s.submission_id
-            datarows.append([
-                            [task_jobsub_job_id.replace('@', '@<br>'), "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster=%s&var-schedd=%s&from=now-2d&to=now&refresh=5m&orgId=1" % (
-                                task_jobsub_job_id[0:task_jobsub_job_id.find('@')], task_jobsub_job_id[task_jobsub_job_id.find('@') + 1:])],
-                            [
-                                s.project,
-                                "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s" %
-                                (cs.experiment,
-                                 cs.experiment,
-                                 s.project)],
-                            [s.created.strftime("%Y-%m-%d %H:%M"), None],
-                            [psummary.get('files_in_snapshot', 0),
-                                listfiles % base_dim_list[i]],
-                            ["%d" % (psummary.get('tot_consumed', 0) + psummary.get('tot_failed', 0) + psummary.get('tot_skipped', 0) + psummary.get('tot_delivered', 0)),
-                                listfiles % base_dim_list[i] + " and consumed_status consumed,failed,skipped,delivered "],
-                            ["%d" % psummary.get('tot_unknown', 0),
-                                listfiles % base_dim_list[i] + " and consumed_status unknown"],
-                            [psummary.get('tot_consumed', 0), listfiles %
-                                base_dim_list[i] +
-                                " and consumed_status consumed"],
-                            [psummary.get('tot_failed', 0), listfiles %
-                                base_dim_list[i] +
-                                " and consumed_status failed"],
-                            [psummary.get('tot_skipped', 0), listfiles %
-                                base_dim_list[i] +
-                                " and consumed_status skipped"],
-                            [some_kids_decl_list[i], listfiles %
-                                some_kids_needed[i]],
-                            [all_kids_decl_list[i], listfiles %
-                                some_kids_decl_needed[i]],
-                            [all_kids_decl_list[i], listfiles %
-                                all_kids_decl_needed[i]],
-                            [pending, listfiles %
-                                base_dim_list[i] + "minus ( %s ) " %
-                                all_kids_decl_needed[i]],
-                            ])
+            datarows.append(
+                [
+                    [task_jobsub_job_id.replace('@', '@<br>'),
+                     "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?"
+                     "var-cluster=%s&var-schedd=%s&from=now-2d&to=now&refresh=5m&orgId=1" % (
+                         task_jobsub_job_id[0:task_jobsub_job_id.find('@')],
+                         task_jobsub_job_id[task_jobsub_job_id.find('@') + 1:])],
+                    [
+                        s.project,
+                        "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s" %
+                        (cs.experiment,
+                         cs.experiment,
+                         s.project)],
+                    [s.created.strftime("%Y-%m-%d %H:%M"), None],
+                    [psummary.get('files_in_snapshot', 0),
+                     listfiles % base_dim_list[i]],
+                    ["%d" % (psummary.get('tot_consumed', 0) +
+                             psummary.get('tot_failed', 0) +
+                             psummary.get('tot_skipped', 0) +
+                             psummary.get('tot_delivered', 0)),
+                     listfiles % base_dim_list[i] +
+                     " and consumed_status consumed,failed,skipped,delivered "],
+                    ["%d" % psummary.get('tot_unknown', 0),
+                     listfiles % base_dim_list[i] + " and consumed_status unknown"],
+                    [psummary.get('tot_consumed', 0), listfiles %
+                     base_dim_list[i] +
+                     " and consumed_status consumed"],
+                    [psummary.get('tot_failed', 0), listfiles %
+                     base_dim_list[i] +
+                     " and consumed_status failed"],
+                    [psummary.get('tot_skipped', 0), listfiles %
+                     base_dim_list[i] +
+                     " and consumed_status skipped"],
+                    [some_kids_decl_list[i], listfiles %
+                     some_kids_needed[i]],
+                    [all_kids_decl_list[i], listfiles %
+                     some_kids_decl_needed[i]],
+                    [all_kids_decl_list[i], listfiles %
+                     all_kids_decl_needed[i]],
+                    [pending, listfiles %
+                     base_dim_list[i] + "minus ( %s ) " %
+                     all_kids_decl_needed[i]],
+                ])
         return cs, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
 
     def show_dimension_files(self, samhandle, experiment, dims, dbhandle=None):
@@ -238,17 +248,21 @@ class Files_status:
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
-         time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'campaign_sheet?campaign_stage_id=%s&' % campaign_stage_id)
+         time_range_string, tdays
+        ) = self.poms_service.utilsPOMS.handle_dates(
+              tmin, tmax, tdays,
+             'campaign_sheet?campaign_stage_id=%s&' % campaign_stage_id)
 
-        el = dbhandle.query(
-            distinct(
-                Job.user_exe_exit_code)).filter(
-            Job.updated >= tmin,
-            Job.updated <= tmax).all()
+        el = (dbhandle.query( distinct(Job.user_exe_exit_code))
+              .filter(
+                  Job.updated >= tmin,
+                  Job.updated <= tmax)
+              .all())
         exitcodes = [e[0] for e in el]
 
-        (experiment,) = dbhandle.query(CampaignStage.experiment).filter(
-            CampaignStage.campaign_stage_id == campaign_stage_id).one()
+        (experiment,) = (dbhandle.query(CampaignStage.experiment)
+                         .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
+                         .one())
 
         #
         # get list of submissions
@@ -285,9 +299,16 @@ class Files_status:
             #
             # get job efficiency for submissions
             #
-            tjel = (dbhandle.query(Job.submission_id, func.sum(Job.wall_time), func.sum(Job.cpu_time))
+            tjel = (dbhandle.query(
+                        Job.submission_id,
+                        func.sum(Job.wall_time),
+                        func.sum(Job.cpu_time)
+                    )
                     .filter(Job.submission_id.in_(tids))
-                    .filter(Job.cpu_time > 0.0, Job.wall_time > 0, Job.cpu_time < Job.wall_time * 10)
+                    .filter(
+                        Job.cpu_time > 0.0,
+                        Job.wall_time > 0,
+                        Job.cpu_time < Job.wall_time * 10)
                     .group_by(Job.submission_id)
                     .all())
 
@@ -433,7 +454,8 @@ class Files_status:
                     exitcounts[e] += ecc[e][task.submission_id]
 
         # we *should* add another row here for the last set of totals, but
-        # initially we just added a day to the query range, so we compute a row of totals we don's use..
+        # initially we just added a day to the query range, so we compute
+        # a row of totals we don's use..
         # --- but that doesn's work on new projects...
         # add a row to the table on the day boundary
         daytasks.append(tasklist)
@@ -463,17 +485,14 @@ class Files_status:
         # and fill in the 7th column...
         #
         dimlist = deque()
-        #dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_task_lists(dbhandle, samhandle, daytasks)
-        # for i in range(len(pendings)):
-        #    outrows[i][7] = pendings[i]
 
         if tl and tl[0]:
             name = tl[0].campaign_stage_snapshot_obj.name
 
         else:
             name = ''
-        return name, columns, outrows, dimlist, experiment, tmaxs, prevlink, nextlink, tdays, str(tmin)[
-            :16], str(tmax)[:16]
+        return (name, columns, outrows, dimlist, experiment, tmaxs,
+                prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16])
 
     @pomscache.cache_on_arguments()
     def get_pending_dict_for_campaigns(
@@ -505,11 +524,11 @@ class Files_status:
                      filter(Submission.campaign_stage_id.in_(campaign_id_list),
                             Submission.created >= tmin, Submission.created < tmax).
                      all())
-        # logit.log("get_pending_for_campaigns: task_list (%d): %s" % (len(task_list), task_list))
 
         # To prepare the list of task lists
         tll = defaultdict(lambda: [])
-        for task in task_list:                                      # Group submissions by campaign ids
+        # Group submissions by campaign ids
+        for task in task_list:
             tll[task.campaign_stage_id].append(task)
         # Build the list of task lists in original campaign order
         task_list_list = [tll[int(ci)] for ci in campaign_id_list]
@@ -594,8 +613,8 @@ class Files_status:
     def get_file_upload_path(self, basedir, sesshandle_get, filename):
         username = sesshandle_get('experimenter').username
         experiment = sesshandle_get('experimenter').session_experiment
-        return "%s/uploads/%s/%s/%s" % (basedir, experiment,username,filename)
-       
+        return "%s/uploads/%s/%s/%s" % (basedir, experiment, username, filename)
+
     def file_uploads(self, basedir, sesshandle_get, quota):
         flist = glob.glob(self.get_file_upload_path(basedir, sesshandle_get, '*'))
         res = []
@@ -612,11 +631,11 @@ class Files_status:
         f = open(outf, "wb")
         size = 0
         while True:
-           data = filename.file.read(8192)
-           if not data:
-               break
-           f.write(data)
-           size += len(data)
+            data = filename.file.read(8192)
+            if not data:
+                break
+            f.write(data)
+            size += len(data)
         f.close()
         fstatlist, total = self.file_uploads(basedir, sesshandle_get, quota)
         if total > quota:
@@ -628,8 +647,8 @@ class Files_status:
     def remove_uploaded_files(self, basedir, sesshandle_get, err_res, filename, actio):
         # if there's only one entry the web page will not send a list...
         if isinstance(filename,str):
-            filename = [ filename ]
-            
+            filename = [filename]
+
         for f in filename:
             outf = self.get_file_upload_path(basedir, sesshandle_get, f)
             os.unlink(outf)
@@ -638,10 +657,9 @@ class Files_status:
     def get_launch_sandbox(self, basedir, sesshandle_get):
         uploads = self.get_file_upload_path(basedir, sesshandle_get, '')
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
-        sandbox = "%s/sandboxes/%s" % ( basedir, str(uu))
+        sandbox = "%s/sandboxes/%s" % (basedir, str(uu))
         os.makedirs(sandbox, exist_ok=False)
         flist = glob.glob(self.get_file_upload_path(basedir, sesshandle_get, '*'))
         for f in flist:
             os.link(f, "%s/%s" % (sandbox, os.path.basename(f)))
         return sandbox
-
