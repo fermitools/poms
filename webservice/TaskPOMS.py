@@ -972,7 +972,7 @@ class TaskPOMS:
 
         if se_role == 'analysis':
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, seshandle_get)
-            proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_proxy_%s" % (exp,experimenter_login)
+            proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (exp,experimenter_login)
         else:
             sandbox = '$HOME'
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
