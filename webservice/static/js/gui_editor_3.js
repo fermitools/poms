@@ -1311,8 +1311,16 @@ gui_editor.prototype.draw_state = function () {
                     data.y = pary + 25 - 50*nn[1]/2 + 50*i;
                 const [pid, nid, eid] = callback(data);
                 // Now handle our stuff
-                this.new_stage(nid, data.label);
-                this.add_dependency(pid, nid, eid);
+                if (data.label.startsWith(parentId)) {
+                    const in_edges = gui_editor.network.body.nodes[parentId].edges.filter(x => x.toId == parentId);
+                    // const gpid =
+                    this.new_stage(nid, data.label);
+                    for (const ie of in_edges) {
+                        this.add_dependency(ie.fromId, nid, eid);
+                    }
+                } else {
+                    this.add_dependency(pid, nid, eid);
+                }
             }
         } else {
             data.label = label;
@@ -1368,11 +1376,12 @@ gui_editor.prototype.draw_state = function () {
 
     const addNewNode = (params) => {
         //// var newId = (Math.random() * 1e7).toString(32);
-        let newId = params.label;
+        // let newId = params.label;
         const parentId = params.nodes[0];
         //VP~ const eid = this.add_dependency(parentId, newId);
         //VP~ const nid = this.nodes.add({id: newId, label: params.label,
-        const nid = this.nodes.add({label: params.label,
+        const nid = this.nodes.add({
+                                    label: params.label,
                                     level: this.nodes.get(parentId).level ? this.nodes.get(parentId).level + 1 : 1,
                                     x: gui_editor.network.getPositions()[parentId].x + 150,
                                     y: params.y
@@ -1749,7 +1758,7 @@ gui_editor.prototype.new_stage = function (name, label) {
         'vo_role': null,
         // 'state': null,
         'software_version': null,
-        'dataset': null,
+        'dataset_or_split_data': null,
         'cs_split_type': null,
         'completion_type': null,
         'completion_pct': null,
