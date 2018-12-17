@@ -62,7 +62,7 @@ Campaign Stage:&nbsp;&nbsp;&nbsp; {{data.campaign_name}}
                 {% endif %}
             </td>
             <td>
-                <button class="teal tiny ui button" onclick="get_status_history({{rec.submission_id}}, {{rec.jobsub_job_id}})">
+                <button class="teal tiny ui button" onclick="get_status_history({{rec.submission_id}})">
                         <i class="history icon"></i>
                 </button>
                 {{rec.status}}</td>
@@ -107,7 +107,7 @@ Campaign Stage:&nbsp;&nbsp;&nbsp; {{data.campaign_name}}
     });
 
 
-    function get_status_history(submission_id, jobsub_job_id) {
+    function get_status_history(submission_id) {
         formdata = {"submission_id": submission_id}
         var trows = " ";
         $.ajax({
