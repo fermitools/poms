@@ -1927,7 +1927,12 @@ class CampaignsPOMS:
             dbhandle.query(CampaignDependency).filter(
                 or_(
                     CampaignDependency.provider.has(CampaignStage.name.in_(deleted_stages)),
-                    CampaignDependency.consumer.has(CampaignStage.name.in_(deleted_stages)))
+                    CampaignDependency.consumer.has(CampaignStage.name.in_(deleted_stages))
+                   ),
+                or_(
+                    CampaignDependency.provider.has(CampaignStage.campaign_id == the_campaign.campaign_id),
+                    CampaignDependency.consumer.has(CampaignStage.campaign_id == the_campaign.campaign_id)
+                   ),
             ).delete(synchronize_session=False)         # Delete the stage dependencies if any
             dbhandle.commit()
 
