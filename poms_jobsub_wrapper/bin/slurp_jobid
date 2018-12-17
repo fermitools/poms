@@ -6,10 +6,12 @@
 # our POMS4 classad fields
 #
 esdata="{"
+essep=""
 add_item() {
    k="${1%:*}"
    v="${1#*:}"
-   esdata="$esdata$essep\"$k\": \"$v\","
+   esdata="$esdata$essep\"$k\": \"$v\""
+   essep=", "
 }
 
 add_item "POMS4_CAMPAIGN_STAGE_ID:$POMS4_CAMPAIGN_STAGE_ID" 
@@ -72,4 +74,7 @@ fi
 # finish up data to elasticsearch, and post
 #
 esdata="$esdata }"
+
+echo "posting elasticsearch data: $esdata"
+
 curl -XPOST https://landscape.fnal.gov/ingest/poms_jobsub/_doc -d "$esdata"
