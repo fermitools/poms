@@ -1919,7 +1919,9 @@ class CampaignsPOMS:
             # (dbhandle.query(CampaignStage)                    # We DON'T delete the stages
             #  .filter(CampaignStage.name.in_(deleted_stages))
             #  .delete(synchronize_session=False))
-            cs_list = dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(deleted_stages))  # Get the stage list
+            cs_list = (dbhandle.query(CampaignStage)
+                       .filter(CampaignStage.name.in_(deleted_stages))
+                       .filter(CampaignStage.campaign_id == the_campaign.campaign_id))  # Get the stage list
             for cs in cs_list:
                 cs.campaign_id = None                   # Detach the stage from campaign
             dbhandle.query(CampaignDependency).filter(
