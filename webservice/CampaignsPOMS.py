@@ -684,6 +684,7 @@ class CampaignsPOMS:
                   .first())
         return cs.campaign_stage_id
 
+
     def campaign_stage_edit(self, dbhandle, sesshandle, *args, **kwargs):
         """
             callback for campaign stage edit screens to update campaign record
@@ -707,52 +708,32 @@ class CampaignsPOMS:
         pc_username = kwargs.pop('pc_username', None)
 
         if action == 'delete':
+            campaign_id = kwargs.pop('ae_campaign_name')
             name = kwargs.get('ae_stage_name', kwargs.get('name', None))
             if isinstance(name, str):
                 name = name.strip()
             if pcl_call == 1:
-                campaign_stage_id = dbhandle.query(CampaignStage).filter(
-                    CampaignStage.name == name).first().campaign_stage_id if name else None
+                campaign_stage_id = (dbhandle.query(CampaignStage).filter(CampaignStage.name == name,
+                                                                          CampaignStage.experiment == exp,
+                                                                          CampaignStage.campaign_id == campaign_id)
+                                     .first().campaign_stage_id if name else None)
             else:
                 campaign_stage_id = kwargs.pop('campaign_stage_id')
-            try:
-                unlink = kwargs.pop('unlink', None)
-                print("######################### unlink: {}".format(unlink))
-                if unlink:
-                    unlink = json.loads(unlink)
-                if campaign_stage_id:
-                    (dbhandle.query(CampaignDependency)
-                     .filter(or_(CampaignDependency.needs_campaign_stage_id ==
-                                 campaign_stage_id,
-                                 CampaignDependency.provides_campaign_stage_id ==
-                                 campaign_stage_id))
+
+            if campaign_stage_id:
+                try:
+                    (dbhandle.query(CampaignDependency).filter(or_(CampaignDependency.needs_campaign_stage_id == campaign_stage_id,
+                                                                   CampaignDependency.provides_campaign_stage_id == campaign_stage_id))
                      .delete(synchronize_session=False))
-                if unlink is None:
-                    (dbhandle.query(CampaignStage)
-                     .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
-                     .delete(synchronize_session=False))
-                else:
-                    if isinstance(unlink, (int, str)):
-                        cs = (dbhandle.query(CampaignStage)
-                              .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
-                              .first())
-                        cs.campaign_id = None
-                    else:
-                        qq = (dbhandle.query(CampaignDependency)
-                              .filter(CampaignDependency.provider.has(
-                                  CampaignStage.name == unlink[0]))
-                              .filter(CampaignDependency.consumer.has(
-                                  CampaignStage.name == unlink[1]))
-                              .delete(synchronize_session=False))
-                dbhandle.commit()
-            # except Exception as e:
-            except SQLAlchemyError as e:
-                message = "The campaign stage, {}, has been used and may not be deleted.".format(
-                    name)
-                logit.log(message)
-                logit.log(' '.join(e.args))
-                dbhandle.rollback()
-                raise
+                    (dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id)
+                        .delete(synchronize_session=False))
+                    dbhandle.commit()
+                except SQLAlchemyError as e:
+                    message = "The campaign stage {}, has been used and may not be deleted.".format(name)
+                    logit.log(message)
+                    logit.log(' '.join(e.args))
+                    dbhandle.rollback()
+                    raise
 
         elif action in ('add', 'edit'):
             campaign_id = kwargs.pop('ae_campaign_name')
@@ -803,8 +784,9 @@ class CampaignsPOMS:
                 job_type_id = dbhandle.query(JobType).filter(
                     JobType.name == campaign_definition_name).first().job_type_id
                 if action == 'edit':
-                    cs = (dbhandle.query(CampaignStage)
-                          .filter(CampaignStage.name == name, CampaignStage.experiment == exp)
+                    cs = (dbhandle.query(CampaignStage).filter(CampaignStage.name == name,
+                                                               CampaignStage.experiment == exp,
+                                                               CampaignStage.campaign_id == campaign_id)
                           .first())
                     if cs:
                         campaign_stage_id = cs.campaign_stage_id
@@ -890,18 +872,14 @@ class CampaignsPOMS:
                     "depends for %s(%s) are: %s" %
                     (campaign_stage_id, name, depends))
                 if 'campaign_stages' in depends:
-                    dep_stages = (dbhandle.query(CampaignStage)
-                                  .filter(CampaignStage.name.in_(depends['campaign_stages']),
-                                          CampaignStage.campaign_id == campaign_id,
-                                          CampaignStage.experiment == exp)
-                                  .all())
+                    dep_stages = (dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaign_stages']),
+                                                                       CampaignStage.campaign_id == campaign_id,
+                                                                       CampaignStage.experiment == exp).all())
                 elif 'campaigns' in depends:
                     # backwards compatibility
-                    dep_stages = (dbhandle.query(CampaignStage)
-                                  .filter(CampaignStage.name.in_(depends['campaigns']),
-                                          CampaignStage.campaign_id == campaign_id,
-                                          CampaignStage.experiment == exp)
-                                  .all())
+                    dep_stages = (dbhandle.query(CampaignStage).filter(CampaignStage.name.in_(depends['campaigns']),
+                                                                       CampaignStage.campaign_id == campaign_id,
+                                                                       CampaignStage.experiment == exp).all())
                 else:
                     dep_stages = {}
                 for (i, stage) in enumerate(dep_stages):
@@ -1026,13 +1004,12 @@ class CampaignsPOMS:
             depends = {}
             for c in cq:
                 cid = c.CampaignStage.campaign_stage_id
-                sql = (dbhandle
-                       .query(CampaignDependency.provides_campaign_stage_id,
-                              CampaignStage.name,
-                              CampaignDependency.file_patterns)
+                sql = (dbhandle.query(CampaignDependency.provides_campaign_stage_id,
+                                      CampaignStage.name,
+                                      CampaignDependency.file_patterns)
                        .filter(CampaignDependency.provides_campaign_stage_id == cid,
-                               CampaignStage.campaign_stage_id ==
-                               CampaignDependency.needs_campaign_stage_id))
+                               CampaignStage.campaign_stage_id == CampaignDependency.needs_campaign_stage_id)
+                       )
                 deps = {
                     "campaign_stages": [row[1] for row in sql.all()],
                     "file_patterns": [row[2] for row in sql.all()]
@@ -1042,17 +1019,16 @@ class CampaignsPOMS:
 
             # Get the campain names
             campquery = (dbhandle.query(Campaign)
-                         .filter(Campaign.experiment ==
-                                 sesshandle.get('experimenter').session_experiment)
+                         .filter(Campaign.experiment == sesshandle.get('experimenter').session_experiment)
                          .order_by(Campaign.name)
                          )
             if sesshandle.get('experimenter').session_role != 'production':
-                campquery.filter(Campaign.creator == sesshandle.get(
-                    'experimenter').experimenter_id)
+                campquery.filter(Campaign.creator == sesshandle.get('experimenter').experimenter_id)
                 campquery.filter(Campaign.creator_role == 'analysis')
             data['campaigns'] = campquery.all()
         data['message'] = message
         return data
+
 
     def campaign_stage_edit_query(self, dbhandle, *args, **kwargs):
         """
