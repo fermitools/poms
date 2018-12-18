@@ -2053,7 +2053,7 @@ class CampaignsPOMS:
             os.environ['HOME'], campaign_stage_id)
         launch_flist = glob.glob('{}/*'.format(dirname))
         launch_flist = list(map(os.path.basename, launch_flist))
-        return c__s, job, launch_flist
+        return c_s, job, launch_flist
 
     def update_launch_schedule(self, campaign_stage_id, dowlist='', domlist='', monthly='', month='', hourlist='', submit='',
                                minlist='', delete='', user=''):
