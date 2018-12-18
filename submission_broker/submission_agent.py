@@ -121,6 +121,7 @@ class Agent:
                                       'jobsub_job_id': jobsub_job_id,
                                       'project': project,
                                       'status': status
+                                      'pct_complete': pct_complete
                                   },
                                   verify=False)
 

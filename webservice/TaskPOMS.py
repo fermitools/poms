@@ -365,6 +365,11 @@ class TaskPOMS:
         status_id = dbhandle.query(
             SubmissionStatus.status_id).filter(
             SubmissionStatus.status == status).first()
+
+        if not status_id:
+            # not a known status, just bail
+            return
+
         # get our latest history...
         sq = (dbhandle.query(
             func.max(SubmissionHistory.created).label('latest')
@@ -381,7 +386,7 @@ class TaskPOMS:
             return
 
         # don't roll back Completed
-        if lasthist and lasthist.status_id == self.status_Completed and status_id < self.status_Completed:
+        if lasthist and lasthist.status_id == self.status_Completed and status_id <= self.status_Completed:
             return
 
         # don't put in duplicates
@@ -520,7 +525,7 @@ class TaskPOMS:
     def update_submission(self, dbhandle, submission_id, jobsub_job_id,
                           pct_complete=None, status=None, project=None):
         s = dbhandle.query(Submission).filter(
-            Submission.submission_id == submission_id).first()
+            Submission.submission_id == submission_id).with_for_update(read=True).first()
         if not s:
             return "Unknown."
 
