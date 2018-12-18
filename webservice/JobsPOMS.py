@@ -47,8 +47,12 @@ class JobsPOMS:
         cs = None
         if campaign_stage_id is not None or submission_id is not None:
             if campaign_stage_id is not None:
-                tl = dbhandle.query(Submission).filter(
-                    Submission.campaign_stage_id == campaign_stage_id).all()
+                tl = dbhandle.query(Submission, Submission.id,  func.max(SubmissionHistory.status_id))
+                    .join(SubmissionHistory, Submission.submission_id == SubmissionHistory.submission_id)
+                    .filter(Submission.campaign_stage_id == campaign_stage_id)
+                    .group_by(Submission.id)
+                    .having(func.max(SubmissionHistory.status_id) <= 4000)
+                    .all()
             else:
                 tl = dbhandle.query(Submission).filter(
                     Submission.submission_id == submission_id).all()
