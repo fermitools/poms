@@ -8,7 +8,7 @@ version of functions in poms_service.py written by Marc Mengel, Michael Gueith a
 
 from collections import deque
 import re
-from .poms_model import Submission, CampaignStage, JobType
+from .poms_model import Submission, SubmissionHistory, CampaignStage, JobType
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func, not_, and_, or_, desc
@@ -39,7 +39,7 @@ class JobsPOMS:
             (cid, sid))
         pass
 
-    def kill_jobs(self, dbhandle, campaign_stage_id=None,
+    def kill_jobs(self, dbhandle, seshandle_get, campaign_stage_id=None,
                   submission_id=None, job_id=None, confirm=None, act='kill'):
         jjil = deque()
         jql = None      # FIXME: this variable is not assigned anywhere!
@@ -48,15 +48,17 @@ class JobsPOMS:
 
         e = seshandle_get('experimenter')
         se_role = e.session_role
+        exp = e.session_experiment
 
         if campaign_stage_id is not None or submission_id is not None:
             if campaign_stage_id is not None:
-                tl = dbhandle.query(Submission, Submission.id,  func.max(SubmissionHistory.status_id))
+                tl = (dbhandle.query(Submission, func.max(SubmissionHistory.status_id))
                     .join(SubmissionHistory, Submission.submission_id == SubmissionHistory.submission_id)
                     .filter(Submission.campaign_stage_id == campaign_stage_id)
-                    .group_by(Submission.id)
+                    .group_by(Submission.submission_id)
                     .having(func.max(SubmissionHistory.status_id) <= 4000)
-                    .all()
+                    .all())
+                tl = [x[0] for x in tl]
             else:
                 tl = dbhandle.query(Submission).filter(
                     Submission.submission_id == submission_id).all()
@@ -116,7 +118,7 @@ class JobsPOMS:
             launch_setup = launch_setup.replace("\n", ";")
             launch_setup = launch_setup.strip(";")
             launch_setup = "source /grid/fermiapp/products/common/etc/setups;setup poms_client -g poms31 -z /grid/fermiapp/products/common/db;" + launch_setup
-            launchsetup  = ("cp $X509_USER_PROXY /tmp/proxy$$ && export X509_USER_PROXY=/tmp/proxy$$  && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY;" if se_role == "analysis" else "",) + launch_setup
+            launchsetup  = ("cp $X509_USER_PROXY /tmp/proxy$$ && export X509_USER_PROXY=/tmp/proxy$$  && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY;" if se_role == "analysis" else "") + launch_setup
             launch_setup = "export X509_USER_PROXY=%s;" % proxyfile + launch_setup
             cmd = """
                 exec 2>&1
