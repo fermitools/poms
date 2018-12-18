@@ -652,11 +652,11 @@ class CampaignsPOMS:
         data['message'] = message
         return data
 
-    def make_test_campaign_for(
-            self, dbhandle, sesshandle, campaign_def_id, campaign_def_name):
+    def make_test_campaign_for(self, dbhandle, sesshandle, campaign_def_id, campaign_def_name):
         """
             Build a test_campaign for a given campaign definition
         """
+<<<<<<< HEAD
         c_s = (dbhandle.query(CampaignStage)
                .filter(CampaignStage.job_type_id == campaign_def_id,
                        CampaignStage.name == "_test_%s" % campaign_def_name)
@@ -665,6 +665,15 @@ class CampaignsPOMS:
             l_t = (dbhandle.query(LoginSetup)
                   .filter(LoginSetup.experiment ==
                           sesshandle.get('experimenter').session_experiment)
+=======
+        cs = (dbhandle.query(CampaignStage)
+              .filter(CampaignStage.job_type_id == campaign_def_id,
+                      CampaignStage.name == "_test_%s" % campaign_def_name)
+              .first())
+        if not cs:
+            lt = (dbhandle.query(LoginSetup)
+                  .filter(LoginSetup.experiment == sesshandle.get('experimenter').session_experiment)
+>>>>>>> Some cleanup
                   .first())
             c_s = CampaignStage()
             c_s.job_type_id = campaign_def_id
@@ -716,6 +725,7 @@ class CampaignsPOMS:
             if isinstance(name, str):
                 name = name.strip()
             if pcl_call == 1:
+<<<<<<< HEAD
                 campaign_stage_id = (dbhandle.query(CampaignStage).filter(CampaignStage.name == name,
                                                                           CampaignStage.experiment == exp,
                                                                           CampaignStage.campaign_id == campaign_id)
@@ -737,6 +747,45 @@ class CampaignsPOMS:
                     logit.log(' '.join(e.args))
                     dbhandle.rollback()
                     raise
+=======
+                campaign_stage_id = dbhandle.query(CampaignStage).filter(       # FIXME: Should be campaign ID as well
+                    CampaignStage.name == name).first().campaign_stage_id if name else None
+            else:
+                campaign_stage_id = kwargs.pop('campaign_stage_id')
+            try:
+                unlink = kwargs.pop('unlink', None)
+                print("######################### unlink: {}".format(unlink))
+                if unlink:
+                    unlink = json.loads(unlink)
+                if campaign_stage_id:
+                    (dbhandle.query(CampaignDependency)
+                     .filter(or_(CampaignDependency.needs_campaign_stage_id == campaign_stage_id,
+                                 CampaignDependency.provides_campaign_stage_id == campaign_stage_id))
+                     .delete(synchronize_session=False))
+                if unlink is None:
+                    (dbhandle.query(CampaignStage)
+                     .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
+                     .delete(synchronize_session=False))
+                else:
+                    if isinstance(unlink, (int, str)):
+                        cs = (dbhandle.query(CampaignStage)
+                              .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
+                              .first())
+                        cs.campaign_id = None
+                    else:
+                        qq = (dbhandle.query(CampaignDependency)    # FIXME: Should be filtered by campaign ID as well. Is it still relevant?
+                              .filter(CampaignDependency.provider.has(CampaignStage.name == unlink[0]))
+                              .filter(CampaignDependency.consumer.has(CampaignStage.name == unlink[1]))
+                              .delete(synchronize_session=False))
+                dbhandle.commit()
+            # except Exception as e:
+            except SQLAlchemyError as e:
+                message = "The campaign stage, {}, has been used and may not be deleted.".format(name)
+                logit.log(message)
+                logit.log(' '.join(e.args))
+                dbhandle.rollback()
+                raise
+>>>>>>> Some cleanup
 
         elif action in ('add', 'edit'):
             campaign_id = kwargs.pop('ae_campaign_name')
@@ -787,11 +836,19 @@ class CampaignsPOMS:
                 job_type_id = dbhandle.query(JobType).filter(
                     JobType.name == campaign_definition_name).first().job_type_id
                 if action == 'edit':
+<<<<<<< HEAD
                     c_s = (dbhandle.query(CampaignStage).filter(CampaignStage.name == name,
                                                                 CampaignStage.experiment == exp,
                                                                 CampaignStage.campaign_id == campaign_id).first())
                     if c_s:
                         campaign_stage_id = c_s.campaign_stage_id
+=======
+                    cs = (dbhandle.query(CampaignStage)
+                          .filter(CampaignStage.name == name, CampaignStage.experiment == exp)      # FIXME: Should be fitered by campaign ID as well!
+                          .first())
+                    if cs:
+                        campaign_stage_id = cs.campaign_stage_id
+>>>>>>> Some cleanup
                     else:
                         campaign_stage_id = None
                 else:
@@ -1010,8 +1067,12 @@ class CampaignsPOMS:
                                       CampaignStage.name,
                                       CampaignDependency.file_patterns)
                        .filter(CampaignDependency.provides_campaign_stage_id == cid,
+<<<<<<< HEAD
                                CampaignStage.campaign_stage_id == CampaignDependency.needs_campaign_stage_id)
                        )
+=======
+                               CampaignStage.campaign_stage_id == CampaignDependency.needs_campaign_stage_id))
+>>>>>>> Some cleanup
                 deps = {
                     "campaign_stages": [row[1] for row in sql.all()],
                     "file_patterns": [row[2] for row in sql.all()]
@@ -1068,10 +1129,15 @@ class CampaignsPOMS:
         '''
         if isinstance(campaign_name, str):
             campaign_name = campaign_name.strip()
+<<<<<<< HEAD
         c_s = dbhandle.query(CampaignStage).filter(
             CampaignStage.name == campaign_name).first()
         who = dbhandle.query(Experimenter).filter(
             Experimenter.username == experimenter_name).first()
+=======
+        cs = dbhandle.query(CampaignStage).filter(CampaignStage.name == campaign_name).first()
+        e = dbhandle.query(Experimenter).filter(Experimenter.username == experimenter_name).first()
+>>>>>>> Some cleanup
         s = Submission()
         s.campaign_stage_id = c_s.campaign_stage_id
         s.job_type_id = c_s.job_type_id
@@ -1866,6 +1932,7 @@ class CampaignsPOMS:
         return "", blob, name, str(tmin)[:16], str(
             tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
+
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
                                dataset="", role="Production", cr_role="production", sesshandler=None, params=[]):
         """
@@ -1900,10 +1967,18 @@ class CampaignsPOMS:
         if c_s:
             changed = False
         else:
+<<<<<<< HEAD
             c_s = CampaignStage(experiment=experiment, name=campaign_name, creator=user, created=datetime.now(utc),
                                 software_version=version, job_type_id=c_d.job_type_id,
                                 login_setup_id=ld.login_setup_id, vo_role=role, dataset='',
                                 creator_role=cr_role, campaign_stage_type='regular')
+=======
+            cs = CampaignStage(experiment=experiment, name=campaign_name,
+                               creator=user, created=datetime.now(utc),
+                               software_version=version, job_type_id=cd.job_type_id,
+                               login_setup_id=ld.login_setup_id, vo_role=role, dataset='',
+                               creator_role=cr_role, campaign_stage_type='regular')
+>>>>>>> Some cleanup
 
         if version:
             c_s.software_verison = version
@@ -1926,6 +2001,7 @@ class CampaignsPOMS:
             dbhandle.commit()
 
         return c_s.campaign_stage_id
+
 
     def get_dataset_for(self, dbhandle, samhandle, err_res, camp):
         '''
@@ -1970,11 +2046,12 @@ class CampaignsPOMS:
         dbhandle.commit()
         return res
 
-    def list_launch_file(self, dbhandle, campaign_stage_id,
-                         fname, login_setup_id=None):
+
+    def list_launch_file(self, dbhandle, campaign_stage_id, fname, login_setup_id=None):
         '''
             get launch output file and return the lines as a list
         '''
+<<<<<<< HEAD
         q = (dbhandle
              .query(CampaignStage, Campaign)
              .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
@@ -1990,6 +2067,18 @@ class CampaignsPOMS:
                        .format(os.environ['HOME'], campaign_stage_id))
         lf = open('{}/{}'.format(dirname, fname), 'r',
                   encoding='utf-8', errors='replace')
+=======
+        q = dbhandle.query(CampaignStage, Campaign).filter(
+            CampaignStage.campaign_stage_id == campaign_stage_id).filter(
+            CampaignStage.campaign_id == Campaign.campaign_id).first()
+        campaign_name = q.Campaign.name
+        stage_name = q.CampaignStage.name
+        if login_setup_id:
+            dirname = '{}/private/logs/poms/launches/template_tests_{}'.format(os.environ['HOME'], login_setup_id)
+        else:
+            dirname = '{}/private/logs/poms/launches/campaign_{}'.format(os.environ['HOME'], campaign_stage_id)
+        lf = open('{}/{}'.format(dirname, fname), 'r', encoding='utf-8', errors='replace')
+>>>>>>> Some cleanup
         sb = os.fstat(lf.fileno())
         lines = lf.readlines()
         lf.close()
@@ -2001,6 +2090,7 @@ class CampaignsPOMS:
         else:
             refresh = 0
         return lines, refresh, campaign_name, stage_name
+
 
     def schedule_launch(self, dbhandle, campaign_stage_id):
         '''
@@ -2122,9 +2212,13 @@ class CampaignsPOMS:
         '''
         # Get stages run in the last 7 days - active stage list
         lastweek = datetime.now(utc) - timedelta(days=7)
+<<<<<<< HEAD
         recent_sq = (dbhandle
                      .query(distinct(Submission.campaign_stage_id))
                      .filter(Submission.created > lastweek))
+=======
+        recent_sq = dbhandle.query(distinct(Submission.campaign_stage_id)).filter(Submission.created > lastweek)
+>>>>>>> Some cleanup
         # Get the campaign_id of the active stages - active campaign list
         active_campaigns = (dbhandle.query(distinct(CampaignStage.campaign_id))
                             .filter(CampaignStage.campaign_stage_id.in_(recent_sq)))
@@ -2250,11 +2344,9 @@ class CampaignsPOMS:
 
         # Now process all stages
         stages = everything['stages']
-        print("############## stages: {}".format(
-            [s.get('id') for s in stages]))
+        print("############## stages: {}".format([s.get('id') for s in stages]))
 
-        campaign = [s for s in stages if s.get(
-            'id').startswith('campaign ')][0]
+        campaign = [s for s in stages if s.get('id').startswith('campaign ')][0]
         c_old_name = campaign.get('id').split(' ', 1)[1]
         c_new_name = campaign.get('label')
         campaign_clean = campaign.get('clean')
@@ -2285,8 +2377,7 @@ class CampaignsPOMS:
         old_stage_names = set([s.name for s in old_stages])
 
         # new_stages = tuple(filter(lambda s: not s.get('id').startswith('campaign '), stages))
-        new_stages = [s for s in stages if not s.get(
-            'id').startswith('campaign ')]
+        new_stages = [s for s in stages if not s.get('id').startswith('campaign ')]
         new_stage_names = set([s.get('id') for s in new_stages])
 
         deleted_stages = old_stage_names - new_stage_names
@@ -2319,6 +2410,7 @@ class CampaignsPOMS:
             form = stage.get('form')
             # Use the field if provided otherwise use defaults
             form = {k: (form[k] or defaults[k]) for k in form}
+<<<<<<< HEAD
             print(
                 "############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(
                     old_name,
@@ -2329,6 +2421,12 @@ class CampaignsPOMS:
 
             active = form.pop('state', None) in ('True', 'true', '1', 'Active')
 
+=======
+            print("############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(
+                old_name, new_name, clean, form, position))
+
+            active = (form.pop('state', None) in ('True', 'true', '1', 'Active'))
+>>>>>>> Some cleanup
             completion_pct = form.pop('completion_pct')
             completion_type = form.pop('completion_type')
             split_type = form.pop('split_type', None)
@@ -2416,9 +2514,7 @@ class CampaignsPOMS:
         # Now process all dependencies
         dependencies = everything['dependencies']
         dbhandle.query(CampaignDependency).filter(
-            or_(
-                CampaignDependency.provider.has(
-                    CampaignStage.campaign_id == the_campaign.campaign_id),
+            or_(CampaignDependency.provider.has(CampaignStage.campaign_id == the_campaign.campaign_id),
                 CampaignDependency.consumer.has(CampaignStage.campaign_id == the_campaign.campaign_id))
         ).delete(synchronize_session=False)
 
@@ -2447,6 +2543,7 @@ class CampaignsPOMS:
         print("+++++++++++++++ Campaign saved")
         return {'status': "201 Created", 'message': "OK"}
 
+
     def get_jobtype_id(self, dbhandle, sesshandle, name):
         """
         """
@@ -2455,10 +2552,10 @@ class CampaignsPOMS:
         user = sesshandle.get('experimenter').username
         exp = sesshandle.get('experimenter').session_experiment
 
-        id = (dbhandle.query(JobType.job_type_id)
-              .filter(JobType.experiment == exp)
-              .filter(JobType.name == name).scalar())
-        return id
+        return (dbhandle.query(JobType.job_type_id)
+                .filter(JobType.experiment == exp)
+                .filter(JobType.name == name).scalar())
+
 
     def get_loginsetup_id(self, dbhandle, sesshandle, name):
         """
@@ -2468,10 +2565,10 @@ class CampaignsPOMS:
         user = sesshandle.get('experimenter').username
         exp = sesshandle.get('experimenter').session_experiment
 
-        id = (dbhandle.query(LoginSetup.login_setup_id)
-              .filter(LoginSetup.experiment == exp)
-              .filter(LoginSetup.name == name).scalar())
-        return id
+        return (dbhandle.query(LoginSetup.login_setup_id)
+                .filter(LoginSetup.experiment == exp)
+                .filter(LoginSetup.name == name).scalar())
+
 
     def mark_campaign_active(self, campaign_id, is_active, camp_l, dbhandle, user):
         logit.log("camp_l={}; is_active='{}'".format(camp_l, is_active))
