@@ -1365,7 +1365,7 @@ class CampaignsPOMS:
                 CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all())
 
             for c_d in c_dl:
-                if c_d.needs_campaign_stage_id in c_ids and cd.provides_campaign_stage_id in c_ids:
+                if c_d.needs_campaign_stage_id in c_ids and c_d.provides_campaign_stage_id in c_ids:
                     pdot.stdin.write(
                         'c_s{:d} -> c_s{:d};\n'.format(
                             c_d.needs_campaign_stage_id,
