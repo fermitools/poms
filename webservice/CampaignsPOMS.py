@@ -391,8 +391,6 @@ class CampaignsPOMS:
         exp = seshandle('experimenter').session_experiment
         ses_role = seshandle('experimenter').session_role
         data['curr_experiment'] = exp
-        # added for poms_client
-        # pcl_call == 1 means the method was access through the poms_client.
         pcl_call = int(kwargs.pop('pcl_call', 0))
         # email is the info we know about the user in POMS DB.
         pc_username = kwargs.pop('pc_username', None)
@@ -485,7 +483,7 @@ class CampaignsPOMS:
                             message=('You are not authorized '
                                      'to add campaign definition.'))
                     else:
-                        cd = JobType(
+                        j_t = JobType(
                             name=name,
                             experiment=exp,
                             input_files_per_job=input_files_per_job,
@@ -497,9 +495,9 @@ class CampaignsPOMS:
                             created=datetime.now(utc),
                             creator_role=role)
 
-                    dbhandle.add(cd)
+                    dbhandle.add(j_t)
                     dbhandle.flush()
-                    job_type_id = cd.job_type_id
+                    job_type_id = j_t.job_type_id
                 else:
                     columns = {
                         "name": name,
@@ -511,7 +509,7 @@ class CampaignsPOMS:
                         "updated": datetime.now(utc),
                         "updater": experimenter_id
                     }
-                    cd = (dbhandle.query(JobType)
+                    j_t = (dbhandle.query(JobType)
                           .filter(JobType.job_type_id == job_type_id)
                           .update(columns))
 
@@ -1125,11 +1123,11 @@ class CampaignsPOMS:
 
         if job_type is not None:
             res.append("# with job_type %s" % job_type)
-            cd = dbhandle.query(JobType).filter(
+            j_t = dbhandle.query(JobType).filter(
                 JobType.name == job_type,
                 JobType.experiment == session_experiment).first()
-            if cd:
-                jts.add(cd)
+            if j_t:
+                jts.add(j_t)
 
         if login_setup is not None:
             res.append("# with login_setup: %s" % login_setup)
