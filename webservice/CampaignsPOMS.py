@@ -2196,7 +2196,7 @@ class CampaignsPOMS:
                 modmap[modname] = '%s_edit'
                 rlist.append(poptxt)
             else:
-                modmap[modname] = None 
+                modmap[modname] = None
         rlist.append('split_type_edit_map =')
         rlist.append(json.dumps(modmap))
         rlist.append(';')
@@ -2317,15 +2317,20 @@ class CampaignsPOMS:
             # (dbhandle.query(CampaignStage)                    # We DON'T delete the stages
             #  .filter(CampaignStage.name.in_(deleted_stages))
             #  .delete(synchronize_session=False))
-            cs_list = dbhandle.query(CampaignStage).filter(
-                CampaignStage.name.in_(deleted_stages))  # Get the stage list
+            cs_list = (dbhandle.query(CampaignStage)
+                       .filter(CampaignStage.name.in_(deleted_stages))
+                       .filter(CampaignStage.campaign_id == the_campaign.campaign_id))  # Get the stage list
             for cs in cs_list:
                 cs.campaign_id = None                   # Detach the stage from campaign
             dbhandle.query(CampaignDependency).filter(
                 or_(
-                    CampaignDependency.provider.has(
-                        CampaignStage.name.in_(deleted_stages)),
-                    CampaignDependency.consumer.has(CampaignStage.name.in_(deleted_stages)))
+                    CampaignDependency.provider.has(CampaignStage.name.in_(deleted_stages)),
+                    CampaignDependency.consumer.has(CampaignStage.name.in_(deleted_stages))
+                   ),
+                or_(
+                    CampaignDependency.provider.has(CampaignStage.campaign_id == the_campaign.campaign_id),
+                    CampaignDependency.consumer.has(CampaignStage.campaign_id == the_campaign.campaign_id)
+                   ),
             ).delete(synchronize_session=False)         # Delete the stage dependencies if any
             dbhandle.commit()
 
