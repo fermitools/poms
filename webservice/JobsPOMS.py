@@ -8,7 +8,7 @@ version of functions in poms_service.py written by Marc Mengel, Michael Gueith a
 
 from collections import deque
 import re
-from .poms_model import Submission, CampaignStage, JobType
+from .poms_model import Submission, SubmissionHistory, CampaignStage, JobType
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func, not_, and_, or_, desc
@@ -39,16 +39,26 @@ class JobsPOMS:
             (cid, sid))
         pass
 
-    def kill_jobs(self, dbhandle, campaign_stage_id=None,
+    def kill_jobs(self, dbhandle, seshandle_get, campaign_stage_id=None,
                   submission_id=None, job_id=None, confirm=None, act='kill'):
         jjil = deque()
         jql = None      # FIXME: this variable is not assigned anywhere!
         s = None
         cs = None
+
+        e = seshandle_get('experimenter')
+        se_role = e.session_role
+        exp = e.session_experiment
+
         if campaign_stage_id is not None or submission_id is not None:
             if campaign_stage_id is not None:
-                tl = dbhandle.query(Submission).filter(
-                    Submission.campaign_stage_id == campaign_stage_id).all()
+                tl = (dbhandle.query(Submission, func.max(SubmissionHistory.status_id))
+                    .join(SubmissionHistory, Submission.submission_id == SubmissionHistory.submission_id)
+                    .filter(Submission.campaign_stage_id == campaign_stage_id)
+                    .group_by(Submission.submission_id)
+                    .having(func.max(SubmissionHistory.status_id) <= 4000)
+                    .all())
+                tl = [x[0] for x in tl]
             else:
                 tl = dbhandle.query(Submission).filter(
                     Submission.submission_id == submission_id).all()
@@ -93,6 +103,13 @@ class JobsPOMS:
                 os.open("echo jobsub_%s -G %s --role %s --jobid %s 2>&1" % (subcmd, group, cs.vo_role, ','.join(jjil)), "r")
             '''
 
+            if se_role == 'analysis':
+                sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, seshandle_get)
+                proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (exp,experimenter_login)
+            else:
+                sandbox = '$HOME'
+                proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
+
             # expand launch setup %{whatever}s campaigns...
 
             launch_setup = lts.launch_setup
@@ -101,7 +118,8 @@ class JobsPOMS:
             launch_setup = launch_setup.replace("\n", ";")
             launch_setup = launch_setup.strip(";")
             launch_setup = "source /grid/fermiapp/products/common/etc/setups;setup poms_client -g poms31 -z /grid/fermiapp/products/common/db;" + launch_setup
-
+            launchsetup  = ("cp $X509_USER_PROXY /tmp/proxy$$ && export X509_USER_PROXY=/tmp/proxy$$  && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY;" if se_role == "analysis" else "") + launch_setup
+            launch_setup = "export X509_USER_PROXY=%s;" % proxyfile + launch_setup
             cmd = """
                 exec 2>&1
                 export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s
