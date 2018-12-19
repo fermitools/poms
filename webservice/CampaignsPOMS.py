@@ -106,6 +106,10 @@ class CampaignsPOMS:
                                     .filter(LoginSetup.name == name)
                                     .first()).login_setup_id
                 ae_launch_host = kwargs.pop('ae_launch_host', None)
+
+                if se_role == 'analysis' and  ae_launch_host not in ('pomsgpvm01.fnal.gov','fermicloud045.fnal.gov','pomsint.fnal.gov'):
+                    raise LogicError("Invalid analysis launch host")
+
                 ae_launch_account = kwargs.pop('ae_launch_account', None)
                 ae_launch_setup = kwargs.pop('ae_launch_setup', None)
                 if ae_launch_host in [None, ""]:

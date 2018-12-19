@@ -3,6 +3,7 @@ from collections import deque
 
 import sys
 import os
+import socket
 from datetime import datetime
 from utc import utc
 import atexit
@@ -373,7 +374,8 @@ def augment_params():
                                        session_role=current_experimenter.session_role,
                                        allowed_roles=current_experimenter.get_allowed_roles(),
                                        version=root.version,
-                                       pomspath=root.path))
+                                       pomspath=root.path,
+                                       hostname=socket.gethostname()))
     # logit.log("jinja_env.globals: {}".format(str(root.jinja_env.globals)))
     # # DEBUG
     root.jinja_env.filters['urlencode'] = urlencode_filter
