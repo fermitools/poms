@@ -39,10 +39,9 @@ class JobsPOMS:
             (cid, sid))
         pass
 
-    def kill_jobs(self, dbhandle, seshandle_get, campaign_stage_id=None,
+    def kill_jobs(self, dbhandle, seshandle_get, campaign_id = None, campaign_stage_id=None,
                   submission_id=None, job_id=None, confirm=None, act='kill'):
         jjil = deque()
-        jql = None      # FIXME: this variable is not assigned anywhere!
         s = None
         cs = None
 
@@ -50,42 +49,20 @@ class JobsPOMS:
         se_role = e.session_role
         exp = e.session_experiment
 
-        if campaign_stage_id is not None or submission_id is not None:
-            if campaign_stage_id is not None:
-                tl = (dbhandle.query(Submission, func.max(SubmissionHistory.status_id))
-                    .join(SubmissionHistory, Submission.submission_id == SubmissionHistory.submission_id)
-                    .filter(Submission.campaign_stage_id == campaign_stage_id)
-                    .group_by(Submission.submission_id)
-                    .having(func.max(SubmissionHistory.status_id) <= 4000)
-                    .all())
-                tl = [x[0] for x in tl]
-            else:
-                tl = dbhandle.query(Submission).filter(
-                    Submission.submission_id == submission_id).all()
-            if len(tl):
-                cs = tl[0].campaign_stage_snapshot_obj
-                lts = tl[0].login_setup_snap_obj
-                st = tl[0]
-            else:
-                cs = None
-                lts = None
-
-            for s in tl:
-                tjid = s.jobsub_job_id
-                logit.log(
-                    "kill_jobs: submission_id %s -> tjid %s" %
-                    (s.submission_id, tjid))
-                # for submissions/campaign_stages, kill the whole group of jobs
-                # by getting the leader's jobsub_job_id and taking off
-                # the '.0'.
-                if tjid:
-                    jjil.append(tjid.replace('.0', ''))
+        if campaign_id is not None:
+            what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_stage_id
+        if campaign_stage_id is not None:
+            what = "--constraint=POMS4_CAMPAIGN_STAGE_ID==%s" % campaign_stage_id
+        if submission_id is not None:
+            s = (dbhandle.query(Submission)
+                 .filter(Submission.submission_id == submission_id)
+                 .all())[0]
+            what = "--jobid %s" % s.jobsub_job_id
 
         if confirm is None:
-            jijatem = 'kill_jobs_confirm.html'
+            return what, st, campaign_stage_id, submission_id, job_id
 
-            return jjil, st, campaign_stage_id, submission_id, job_id
-        elif cs:
+        else:
             group = cs.experiment
             if group == 'samdev':
                 group = 'fermilab'
@@ -97,11 +74,6 @@ class JobsPOMS:
                 subcmd = act
             else:
                 raise SyntaxError("called with unknown action %s" % act)
-
-            '''
-            if test == true:
-                os.open("echo jobsub_%s -G %s --role %s --jobid %s 2>&1" % (subcmd, group, cs.vo_role, ','.join(jjil)), "r")
-            '''
 
             if se_role == 'analysis':
                 sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, seshandle_get)
@@ -124,7 +96,7 @@ class JobsPOMS:
                 exec 2>&1
                 export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s
                 kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true
-                ssh %s@%s '%s; set -x; jobsub_%s -G %s --role %s --jobid %s'
+                ssh %s@%s '%s; set -x; jobsub_%s -G %s --role %s %s'
             """ % (
                 group,
                 self.poms_service.hostname,
@@ -134,7 +106,7 @@ class JobsPOMS:
                 subcmd,
                 group,
                 cs.vo_role,
-                ','.join(jjil)
+                what
             )
 
             cmd = cmd % {
@@ -150,8 +122,6 @@ class JobsPOMS:
             f.close()
 
             return output, cs, campaign_stage_id, submission_id, job_id
-        else:
-            return "Nothing to %s!" % act, None, 0, 0, 0
 
     # This method was deleted from the main script
 

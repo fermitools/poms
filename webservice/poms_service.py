@@ -201,6 +201,16 @@ class PomsService:
         template = self.jinja_env.get_template('raw_tables.html')
         return template.render(tlist=list(
             self.tablesPOMS.admin_map.keys()), help_page="RawTablesHelp")
+#
+# h4. experiment_list
+#
+# list of experiments we support for submission agent, etc to use.
+#
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def experiment_list(self):
+        return list(map((lambda x: x[0]),cherrypy.request.db.query(Experiment.experiment).all()))
 
 
 # h4. experiment_membership
@@ -908,15 +918,15 @@ class PomsService:
 
     @cherrypy.expose
     @logit.logstartstop
-    def kill_jobs(self, campaign_stage_id=None, submission_id=None,
+    def kill_jobs(self, campaign_id = None, campaign_stage_id=None, submission_id=None,
                   task_id=None, job_id=None, confirm=None, act='kill'):
         if task_id is not None and submission_id is None:
             submission_id = task_id
         if confirm is None:
-            jjil, s, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, cherrypy.session.get, campaign_stage_id, submission_id,
+            what, s, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, cherrypy.session.get, campaign_id, campaign_stage_id, submission_id,
                                                                                         job_id, confirm, act)
             template = self.jinja_env.get_template('kill_jobs_confirm.html')
-            return template.render(jjil=jjil, task=s, campaign_stage_id=campaign_stage_id,
+            return template.render(what = what, task=s, campaign_stage_id=campaign_stage_id,
                                    submission_id=submission_id, job_id=job_id, act=act,
                                    help_page="KilledJobsHelp")
 

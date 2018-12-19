@@ -77,6 +77,7 @@ class Agent:
             'DNT': '1',
             'Origin': 'https://landscapeitb.fnal.gov'
         }
+        self.timeouts = (30,10)
 
 
 
@@ -100,6 +101,7 @@ class Agent:
                        'submission_id': submission_id,
                        'jobsub_job_id': jobsub_job_id,
                        'project': project,
+                       'pct_complete': pct_complete,
                        'status': status}))
         try:
             htr = self.psess.post("%s/update_submission"%self.poms_uri,
@@ -110,20 +112,23 @@ class Agent:
                                       'status': status,
                                       'pct_complete': pct_complete
                                   },
+                                  timeout=self.timeouts,
                                   verify=False)
 
         except requests.exceptions.ConnectionError:
-            LOGIT.error("Connection Reset! Retrying once...")
-            time.sleep(1)
-            htr = self.psess.post("%s/update_submission" % self.poms_uri,
-                                  {
-                                      'submission_id': submission_id,
-                                      'jobsub_job_id': jobsub_job_id,
-                                      'project': project,
-                                      'status': status
-                                      'pct_complete': pct_complete
-                                  },
-                                  verify=False)
+            LOGIT.exception("Connection Reset! Retrying once...")
+            # -- *not* retrying, as it seems these errors are generally 
+            #    spurious
+            #htr = self.psess.post("%s/update_submission" % self.poms_uri,
+            #                      {
+            #                          'submission_id': submission_id,
+            #                          'jobsub_job_id': jobsub_job_id,
+            #                          'project': project,
+            #                          'status': status,
+            #                          'pct_complete': pct_complete
+            #                      },
+            #                      timeout=self.timeouts,
+            #                      verify=False)
 
         if htr.text != "Ok.":
             LOGIT.error("update_submission: Failed.")
@@ -140,6 +145,7 @@ class Agent:
 
         postresult = self.ssess.post(self.submission_uri,
                                      data=Agent.submission_info_query % jobsubjobid,
+                                     timeout=self.timeouts,
                                      headers=self.submission_headers)
         ddict = postresult.json()
         LOGIT.info("submission %s data: %s", jobsubjobid, repr(ddict))
@@ -170,6 +176,7 @@ class Agent:
 
         postresult = self.ssess.post(self.submission_uri,
                                      data=Agent.submission_project_query % entry['id'],
+                                     timeout=self.timeouts,
                                      headers=self.submission_headers)
         ddict = postresult.json()
         ddict = ddict['data']['submission']
@@ -222,6 +229,7 @@ class Agent:
             start = time.time()
             htr = self.ssess.post(self.submission_uri,
                                   data=Agent.full_query % (group, since),
+                                  timeout=self.timeouts,
                                   headers=self.submission_headers)
             ddict = htr.json()
             htr.close()
