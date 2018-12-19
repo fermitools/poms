@@ -21,8 +21,8 @@ POMS:Campaign Stage Submissions
 
 
 {%block subheader%}
-Campaign:&nbsp;&nbsp;&nbsp; {{data.stage_name}} <br>
-Campaign Stage:&nbsp;&nbsp;&nbsp; {{data.campaign_name}}
+Campaign:&nbsp;&nbsp;&nbsp; {{data.campaign_name}} <br>
+Campaign Stage:&nbsp;&nbsp;&nbsp; {{data.stage_name}}
 {%endblock%}
 
 {%block content%}
@@ -30,6 +30,9 @@ Campaign Stage:&nbsp;&nbsp;&nbsp; {{data.campaign_name}}
     <table class="ui sortable celled table">
         <thead>
             <tr>
+                {%if data.stage_name=='*' %} 
+                <th>Stage Name</th> 
+                {%endif%}
                 <th>Submission Id</th>
                 <th>Jobsub Id</th>
                 <th>Commands</th>
@@ -41,6 +44,9 @@ Campaign Stage:&nbsp;&nbsp;&nbsp; {{data.campaign_name}}
         <tbody>
         {% for rec in data.submissions %}
         <tr>
+            {%if data.stage_name=='*' %} 
+            <td>{{rec.campaign_stage_name}}</td>
+            {%endif%}
             <td>{{rec.submission_id}}</td>
             <td>
                 {% if rec.jobsub_job_id is not none %}

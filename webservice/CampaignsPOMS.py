@@ -1693,17 +1693,18 @@ class CampaignsPOMS:
                 .filter(SubmissionHistory.submission_id == subHist.submission_id)
                )
 
-        if campaign_stage_id == None and campaign_id != None:
-            campaign_ids = (dbhandle.query(CampaignStage.campaign_stage_id)                                 .filter(CampaignStage.campaign_id == campaign_id)
+        if campaign_id != None:
+            campaign_stage_ids = (dbhandle.query(CampaignStage.campaign_stage_id)                                 .filter(CampaignStage.campaign_id == campaign_id)
                              .all())
-        elif campaign_stage_id != None and campaign_id == None:
-            campaign_ids = [ campaign_id ]
+
+        if campaign_stage_id != None:
+            campaign_stage_ids = [ campaign_stage_id ]
 
         tuples = (dbhandle.query(Submission, SubmissionHistory, SubmissionStatus)
                   .join(SubmissionHistory)
                   .join(SubmissionStatus)
                   .join('experimenter_creator_obj')
-                  .filter(Submission.campaign_stage_id.in_(campaign_ids),
+                  .filter(Submission.campaign_stage_id.in_(campaign_stage_ids),
                           SubmissionHistory.submission_id == Submission.submission_id,
                           SubmissionStatus.status_id == SubmissionHistory.status_id,
                           or_(and_(Submission.created > tmin, Submission.created < tmax),
@@ -1730,6 +1731,7 @@ class CampaignsPOMS:
                 'status': tup.SubmissionStatus.status,
                 'jobsub_cluster': full_jjid[:full_jjid.find('@')],
                 'jobsub_schedd': full_jjid[full_jjid.find('@') + 1:],
+                'campaign_stage_name': tup.Submission.campaign_stage_obj.name,
             }
             submissions.append(row)
             data['submissions'] = submissions

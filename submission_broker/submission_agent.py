@@ -104,7 +104,8 @@ class Agent:
                        'pct_complete': pct_complete,
                        'status': status}))
         try:
-            htr = self.psess.post("%s/update_submission"%self.poms_uri,
+            sess = requests.session()
+            htr = sess.post("%s/update_submission"%self.poms_uri,
                                   {
                                       'submission_id': submission_id,
                                       'jobsub_job_id': jobsub_job_id,
@@ -116,7 +117,7 @@ class Agent:
                                   verify=False)
 
         except requests.exceptions.ConnectionError:
-            LOGIT.exception("Connection Reset! Retrying once...")
+            LOGIT.exception("Connection Reset! NOT Retrying once...")
             # -- *not* retrying, as it seems these errors are generally 
             #    spurious
             #htr = self.psess.post("%s/update_submission" % self.poms_uri,
@@ -211,9 +212,10 @@ class Agent:
 
         LOGIT.info("check_submissions: %s", group)
 
-        if time.time() - self.lastconn[group] > self.maxtimedelta:
+        if time.time() - self.lastconn.get(group,0) > self.maxtimedelta:
             # last info was too long ago, just clear it
-            del self.lastconn[group]
+            if self.lastconn.get(group,None):
+                del self.lastconn[group]
 
         if since:
            LOGIT.info("check_submissions: since %s", since)

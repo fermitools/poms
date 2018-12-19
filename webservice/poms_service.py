@@ -575,8 +575,8 @@ class PomsService:
 #   h4. campaign_stage_submissions
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_stage_submissions(self, campaign_name, stage_name, campaign_stage_id, tmin=None, tmax=None, tdays=1):
-        data = self.campaignsPOMS.campaign_stage_submissions(cherrypy.request.db, campaign_name, stage_name, campaign_stage_id, tmin, tmax, tdays)
+    def campaign_stage_submissions(self, campaign_name, stage_name, campaign_stage_id = None, campaign_id = None, tmin=None, tmax=None, tdays=1):
+        data = self.campaignsPOMS.campaign_stage_submissions(cherrypy.request.db, campaign_name, stage_name, campaign_stage_id, campaign_id, tmin, tmax, tdays)
         data['campaign_name'] = campaign_name
         data['stage_name'] = stage_name
         template = self.jinja_env.get_template('campaign_stage_submissions.html')

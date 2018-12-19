@@ -74,7 +74,7 @@ Campaigns {%include 'help_button.html'%}
 		        <!-- <td> <button onclick="call_show_campaign_stages( '{{s.name}}' )"> {{s.name}} </td> -->
                 <td id="running_{{s.campaign_id}}" style="text-align:right; padding-right: 1em">...</td>
                 <td>
-                    <a href="{{pomspath}}/campaign_time_bars?tag={{s.name|urlencode}}&tdays=7&tmax={{last_activity}}">
+                    <a href="{{pomspath}}/campaign_stage_submissions?campaign_name={{s.name}}&stage_name=*&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
                         <button type="button">
                         <i class="chart line icon"></i>
                         </button>
