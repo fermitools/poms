@@ -1159,7 +1159,7 @@ class CampaignsPOMS:
             for c_d in c_dl:
                 if c_d.needs_campaign_stage_id in cnames.keys():
                     dmap[cid].append(c_d.needs_campaign_stage_id)
-                    fpmap[(cid, c_d.needs_campaign_stage_id)] = cd.file_patterns
+                    fpmap[(cid, c_d.needs_campaign_stage_id)] = c_d.file_patterns
 
         # sort by dependencies(?)
         cidl = list(cnames.keys())
