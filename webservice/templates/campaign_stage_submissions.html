@@ -50,7 +50,8 @@ Campaign Stage:&nbsp;&nbsp;&nbsp; {{data.stage_name}}
             <td>{{rec.submission_id}}</td>
             <td>
                 {% if rec.jobsub_job_id is not none %}
-                <a href="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster={{rec.jobsub_cluster}}&var-schedd={{rec.jobsub_schedd}}&from={{data.tminsec}}000&to=now&refresh=3m&orgId=1" target='_blank'>
+                <!--a href="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster={{rec.jobsub_cluster}}&var-schedd={{rec.jobsub_schedd}}&from={{data.tminsec}}000&to=now&refresh=3m&orgId=1" target='_blank'-->
+                <a href="{{pomspath}}/submission_details?submission_id={{rec.submission_id}}" target='_blank'>
                     {{rec.jobsub_job_id}}
                 </a>
                 {% endif %}
