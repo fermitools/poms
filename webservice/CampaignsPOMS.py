@@ -1677,7 +1677,7 @@ class CampaignsPOMS:
                 )
 
 
-    def campaign_stage_submissions(self, dbhandle, campaign_name, stage_name, campaign_stage_id, tmin=None, tmax=None, tdays=1):
+    def campaign_stage_submissions(self, dbhandle, campaign_name, stage_name, campaign_stage_id = None, campaign_id = None, tmin=None, tmax=None, tdays=1):
         '''
            Show submissions from a campaign stage
         '''
@@ -1693,11 +1693,17 @@ class CampaignsPOMS:
                 .filter(SubmissionHistory.submission_id == subHist.submission_id)
                )
 
+        if campaign_stage_id == None and campaign_id != None:
+            campaign_ids = (dbhandle.query(CampaignStage.campaign_stage_id)                                 .filter(CampaignStage.campaign_id == campaign_id)
+                             .all())
+        elif campaign_stage_id != None and campaign_id == None:
+            campaign_ids = [ campaign_id ]
+
         tuples = (dbhandle.query(Submission, SubmissionHistory, SubmissionStatus)
                   .join(SubmissionHistory)
                   .join(SubmissionStatus)
                   .join('experimenter_creator_obj')
-                  .filter(Submission.campaign_stage_id == campaign_stage_id,
+                  .filter(Submission.campaign_stage_id.in_(campaign_ids),
                           SubmissionHistory.submission_id == Submission.submission_id,
                           SubmissionStatus.status_id == SubmissionHistory.status_id,
                           or_(and_(Submission.created > tmin, Submission.created < tmax),
