@@ -1258,7 +1258,7 @@ class CampaignsPOMS:
 
         # still need dependencies
         for cid in dmap:
-            if dmap[cid]:
+            if not dmap[cid]:
                 continue
             res.append("[dependencies %s]" % cnames[cid])
             i = 0
