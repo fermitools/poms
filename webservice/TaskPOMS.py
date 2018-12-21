@@ -82,16 +82,42 @@ class TaskPOMS:
     def init_statuses(self, dbhandle):
         if self.init_status_done:
             return
-        self.status_Located = dbhandle.query(
-            SubmissionStatus.status_id).filter(
-            SubmissionStatus.status == "Located").first()
-        self.status_Completed = dbhandle.query(
-            SubmissionStatus.status_id).filter(
-            SubmissionStatus.status == "Completed").first()
-        self.status_New = dbhandle.query(
-            SubmissionStatus.status_id).filter(
-            SubmissionStatus.status == "New").first()
+        self.status_Located = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Located").first()
+        self.status_Completed = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Completed").first()
+        self.status_New = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()
         self.init_status_done = True
+
+    def campaign_stage_datasets(self, dbhandle):
+        self.init_statuses(dbhandle)
+        running = (dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id))
+                  .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
+                  .group_by(SubmissionHistory.submission_id)
+                  .having(func.max(SubmissionHistory.status_id) < self.status_Completed)
+                  .all())
+        running_submission_ids = [x[0] for x in running]
+        plist = (dbhandle.query(Submission.project,Submission.campaign_stage_id)
+                 .filter(Submission.submission_id.in_(running_submission_ids))
+                 .order_by(Submission.campaign_stage_id)
+                 .all())
+
+        old_cs_id = None
+        this_plist = []
+        res = {}
+        for project, cs_id in plist:
+            if cs_id != old_cs_id:
+                if this_plist:
+                    res[old_cs_id] = this_plist
+                    # make one for old_cs_id which is this_plist 
+                    this_plist = []
+            if project:
+                this_plist.append(project)
+            old_cs_id = cs_id
+ 
+        if this_plist:
+            res[old_cs_id] = this_plist
+
+        return res
+
 
     def wrapup_tasks(self, dbhandle, samhandle, getconfig,
                      gethead, seshandle, err_res, basedir):

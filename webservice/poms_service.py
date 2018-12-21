@@ -512,6 +512,14 @@ class PomsService:
             raise cherrypy.HTTPError(
                 401, 'You are not authorized to access this resource')
 
+# h4. campaign_stage_datasets
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def campaign_stage_datasets(self):
+        return self.taskPOMS.campaign_stage_datasets(cherrypy.request.db)
+
+
 # h4. submission_details
     @cherrypy.expose
     @logit.logstartstop
