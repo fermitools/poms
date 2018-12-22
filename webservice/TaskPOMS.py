@@ -94,8 +94,11 @@ class TaskPOMS:
                   .group_by(SubmissionHistory.submission_id)
                   .having(func.max(SubmissionHistory.status_id) < self.status_Completed)
                   .all())
+
         running_submission_ids = [x[0] for x in running]
-        plist = (dbhandle.query(Submission.project,Submission.campaign_stage_id)
+
+        plist = (dbhandle.query(Submission.project,Submission.campaign_stage_id,CampaignStage.experiment)
+                 .filter(CampaignStage.campaign_stage_id == Submission.campaign_stage_id)
                  .filter(Submission.submission_id.in_(running_submission_ids))
                  .order_by(Submission.campaign_stage_id)
                  .all())
@@ -103,10 +106,10 @@ class TaskPOMS:
         old_cs_id = None
         this_plist = []
         res = {}
-        for project, cs_id in plist:
+        for project, cs_id, exp in plist:
             if cs_id != old_cs_id:
                 if this_plist:
-                    res[old_cs_id] = this_plist
+                    res[old_cs_id] = [exp, this_plist]
                     # make one for old_cs_id which is this_plist 
                     this_plist = []
             if project:
@@ -114,7 +117,7 @@ class TaskPOMS:
             old_cs_id = cs_id
  
         if this_plist:
-            res[old_cs_id] = this_plist
+            res[old_cs_id] = [exp, this_plist]
 
         return res
 
