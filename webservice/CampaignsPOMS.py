@@ -656,8 +656,7 @@ class CampaignsPOMS:
         data['message'] = message
         return data
 
-    def make_test_campaign_for(
-            self, dbhandle, sesshandle, campaign_def_id, campaign_def_name):
+    def make_test_campaign_for(self, dbhandle, sesshandle, campaign_def_id, campaign_def_name):
         """
             Build a test_campaign for a given campaign definition
         """
@@ -733,7 +732,7 @@ class CampaignsPOMS:
                                                                    CampaignDependency.provides_campaign_stage_id == campaign_stage_id))
                      .delete(synchronize_session=False))
                     (dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id)
-                        .delete(synchronize_session=False))
+                     .delete(synchronize_session=False))
                     dbhandle.commit()
                 except SQLAlchemyError as e:
                     message = "The campaign stage {}, has been used and may not be deleted.".format(name)
@@ -1091,11 +1090,8 @@ class CampaignsPOMS:
         dbhandle.commit()
         return "Submission=%d" % s.submission_id
 
-    def campaign_deps_ini(self, dbhandle, config_get, session_experiment,
-                          name=None, stage_id=None, login_setup=None, job_type=None):
-        '''
-            Generate .ini file format dump of campaign and contents.
-        '''
+
+    def campaign_deps_ini(self, dbhandle, session_experiment, name=None, stage_id=None, login_setup=None, job_type=None, full=None):
         res = []
         campaign_stages = []
         jts = set()
@@ -1153,9 +1149,9 @@ class CampaignsPOMS:
         fpmap = {}
         for cid in cnames:
             c_dl = (dbhandle.query(CampaignDependency)
-                   .filter(CampaignDependency.provides_campaign_stage_id == cid)
-                   .filter(CampaignDependency.needs_campaign_stage_id.in_(cnames.keys()))
-                   .all())
+                    .filter(CampaignDependency.provides_campaign_stage_id == cid)
+                    .filter(CampaignDependency.needs_campaign_stage_id.in_(cnames.keys()))
+                    .all())
             for c_d in c_dl:
                 if c_d.needs_campaign_stage_id in cnames.keys():
                     dmap[cid].append(c_d.needs_campaign_stage_id)
@@ -1182,37 +1178,35 @@ class CampaignsPOMS:
                        ",".join(map(cnames.get, cidl)))
             res.append("")
 
-            defaults = the_campaign.defaults
-            if defaults:
-                res.append("[campaign_defaults]")
-                # for (k, v) in defaults.items():
-                #     res.append("%s=%s" % (k, v))
-                res.append("vo_role=%s" % defaults.get("vo_role"))
-                # res.append("state=%s" % defaults.get("state", "Inactive"))
-                res.append(
-                    "software_version=%s" %
-                    defaults.get("software_version"))
-                res.append(
-                    "dataset_or_split_data=%s" %
-                    defaults.get("dataset"))
-                res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
-                res.append(
-                    "completion_type=%s" %
-                    defaults.get("completion_type"))
-                res.append(
-                    "completion_pct=%s" %
-                    defaults.get("completion_pct"))
-                res.append(
-                    "param_overrides=%s" %
-                    (defaults.get("param_overrides") or "[]"))
-                res.append("test_param_overrides=%s" %
-                           (defaults.get("test_param_overrides") or "[]"))
-                res.append("login_setup=%s" %
-                           (defaults.get("login_setup") or "generic"))
-                res.append(
-                    "job_type=%s" %
-                    (defaults.get("job_type") or "generic"))
-                res.append("")
+            if full in ('1', 'y', 'Y', 't', 'T'):
+                positions = None
+                defaults = the_campaign.defaults
+                if defaults:
+                    if "defaults" in defaults:
+                        positions = defaults["positions"]
+                        defaults = defaults["defaults"]
+
+                    res.append("[campaign_defaults]")
+                    # for (k, v) in defaults.items():
+                    #     res.append("%s=%s" % (k, v))
+                    res.append("vo_role=%s" % defaults.get("vo_role"))
+                    # res.append("state=%s" % defaults.get("state"))
+                    res.append("software_version=%s" % defaults.get("software_version"))
+                    res.append("dataset_or_split_data=%s" % defaults.get("dataset"))
+                    res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
+                    res.append("completion_type=%s" % defaults.get("completion_type"))
+                    res.append("completion_pct=%s" % defaults.get("completion_pct"))
+                    res.append("param_overrides=%s" % (defaults.get("param_overrides") or "[]"))
+                    res.append("test_param_overrides=%s" % (defaults.get("test_param_overrides") or "[]"))
+                    res.append("login_setup=%s" % (defaults.get("login_setup") or "generic"))
+                    res.append("job_type=%s" % (defaults.get("job_type") or "generic"))
+                    res.append("")
+
+                if positions:
+                    res.append("[node_positions]")
+                    for (n, (k, v)) in enumerate(positions.items()):
+                        res.append('nxy{}=["{}", {}, {}]'.format(n, k, v['x'], v['y']))
+                    res.append("")
 
         for c_s in campaign_stages:
             res.append("[campaign_stage %s]" % c_s.name)
@@ -1883,6 +1877,7 @@ class CampaignsPOMS:
         return "", blob, name, str(tmin)[:16], str(
             tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
+
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
                                dataset="", role="Production", cr_role="production", sesshandler=None, params=[]):
         """
@@ -1944,6 +1939,7 @@ class CampaignsPOMS:
 
         return c_s.campaign_stage_id
 
+
     def get_dataset_for(self, dbhandle, samhandle, err_res, camp):
         '''
             use the split_type modules to get the next dataset for
@@ -1987,8 +1983,8 @@ class CampaignsPOMS:
         dbhandle.commit()
         return res
 
-    def list_launch_file(self, dbhandle, campaign_stage_id,
-                         fname, login_setup_id=None):
+
+    def list_launch_file(self, dbhandle, campaign_stage_id, fname, login_setup_id=None):
         '''
             get launch output file and return the lines as a list
         '''
@@ -2018,6 +2014,7 @@ class CampaignsPOMS:
         else:
             refresh = 0
         return lines, refresh, campaign_name, stage_name
+
 
     def schedule_launch(self, dbhandle, campaign_stage_id):
         '''
@@ -2267,11 +2264,9 @@ class CampaignsPOMS:
 
         # Now process all stages
         stages = everything['stages']
-        print("############## stages: {}".format(
-            [s.get('id') for s in stages]))
+        print("############## stages: {}".format([s.get('id') for s in stages]))
 
-        campaign = [s for s in stages if s.get(
-            'id').startswith('campaign ')][0]
+        campaign = [s for s in stages if s.get('id').startswith('campaign ')][0]
         c_old_name = campaign.get('id').split(' ', 1)[1]
         c_new_name = campaign.get('label')
         campaign_clean = campaign.get('clean')
@@ -2283,14 +2278,14 @@ class CampaignsPOMS:
         the_campaign = dbhandle.query(Campaign).filter(
             Campaign.name == c_old_name, Campaign.experiment == exp).scalar()
         if the_campaign:
-            # Store the defaults unconditionally as they may be not stored yet
-            the_campaign.defaults = defaults
+            # the_campaign.defaults = defaults    # Store the defaults unconditionally as they may be not stored yet
+            the_campaign.defaults = {"defaults": defaults, "positions": position}   # Store the defaults unconditionally as they may be not stored yet
             if c_new_name != c_old_name:
                 the_campaign.name = c_new_name
         else:   # we do not have a campaign in the db for this experiment so create the campaign and then do the linking
             the_campaign = Campaign()
             the_campaign.name = c_new_name
-            the_campaign.defaults = defaults
+            the_campaign.defaults = {"defaults": defaults, "positions": position}
             the_campaign.experiment = exp
             the_campaign.creator = user_id
             the_campaign.creator_role = role
@@ -2302,8 +2297,7 @@ class CampaignsPOMS:
         old_stage_names = set([s.name for s in old_stages])
 
         # new_stages = tuple(filter(lambda s: not s.get('id').startswith('campaign '), stages))
-        new_stages = [s for s in stages if not s.get(
-            'id').startswith('campaign ')]
+        new_stages = [s for s in stages if not s.get('id').startswith('campaign ')]
         new_stage_names = set([s.get('id') for s in new_stages])
 
         deleted_stages = old_stage_names - new_stage_names
@@ -2433,9 +2427,7 @@ class CampaignsPOMS:
         # Now process all dependencies
         dependencies = everything['dependencies']
         dbhandle.query(CampaignDependency).filter(
-            or_(
-                CampaignDependency.provider.has(
-                    CampaignStage.campaign_id == the_campaign.campaign_id),
+            or_(CampaignDependency.provider.has(CampaignStage.campaign_id == the_campaign.campaign_id),
                 CampaignDependency.consumer.has(CampaignStage.campaign_id == the_campaign.campaign_id))
         ).delete(synchronize_session=False)
 
@@ -2464,6 +2456,7 @@ class CampaignsPOMS:
         print("+++++++++++++++ Campaign saved")
         return {'status': "201 Created", 'message': "OK"}
 
+
     def get_jobtype_id(self, dbhandle, sesshandle, name):
         """
         """
@@ -2472,10 +2465,10 @@ class CampaignsPOMS:
         user = sesshandle.get('experimenter').username
         exp = sesshandle.get('experimenter').session_experiment
 
-        id = (dbhandle.query(JobType.job_type_id)
-              .filter(JobType.experiment == exp)
-              .filter(JobType.name == name).scalar())
-        return id
+        return (dbhandle.query(JobType.job_type_id)
+                .filter(JobType.experiment == exp)
+                .filter(JobType.name == name).scalar())
+
 
     def get_loginsetup_id(self, dbhandle, sesshandle, name):
         """
@@ -2485,10 +2478,10 @@ class CampaignsPOMS:
         user = sesshandle.get('experimenter').username
         exp = sesshandle.get('experimenter').session_experiment
 
-        id = (dbhandle.query(LoginSetup.login_setup_id)
-              .filter(LoginSetup.experiment == exp)
-              .filter(LoginSetup.name == name).scalar())
-        return id
+        return (dbhandle.query(LoginSetup.login_setup_id)
+                .filter(LoginSetup.experiment == exp)
+                .filter(LoginSetup.name == name).scalar())
+
 
     def mark_campaign_active(self, campaign_id, is_active, camp_l, dbhandle, user):
         logit.log("camp_l={}; is_active='{}'".format(camp_l, is_active))

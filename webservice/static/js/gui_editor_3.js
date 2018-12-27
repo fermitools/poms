@@ -409,19 +409,26 @@ gui_editor.exportNetwork = function () {
     // var nodes = gui_editor.network.body.nodeIndices.map(x => ({id: x}));
 
     const node2JSON = (e) => {
-        //VP~ const ename = e[0].startsWith('Default') ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
-        //VP~ const ename = e[0].startsWith('campaign ') ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
         const ename = e[0].match(/campaign |job_type |login_setup /) ? `fields_${e[0]}` : `fields_campaign_stage ${e[0]}`;
         const el = document.getElementById(ename);
         const ff = mwm_utils.formFields(el);
         const hval = mwm_utils.hashCode(JSON.stringify(ff));
         const oval = $(el).attr('data-hash');
-        const response = {id: e[0],
-                          label: network.body.nodes[e[0]].options.label,
-                          position: e[1],
-                          clean: hval === oval ? true : false,
-                          form: ff
-                };
+        //
+        const get_label = (nid) => gui_editor.network.body.data.nodes.get(nid).label;                   // Get node label by its ID
+        const obj_from_entries = arr => Object.assign({}, ...Array.from(arr, ([k, v]) => ({[k]: v}) ));     // Build the object from array of [key, value] entries
+        // Node postions
+        const pp = gui_editor.network.getPositions();
+        // Modified positions with labels instead of IDs
+        const mpp = obj_from_entries(Object.entries(pp).map(p => [p[0].startsWith('campaign ') ? p[0] : get_label(p[0]), p[1]]));
+
+        const response = {
+            id: e[0],
+            label: network.body.nodes[e[0]].options.label,
+            position: e[0].startsWith('campaign ') ? mpp : e[1],
+            clean: hval === oval ? true : false,
+            form: ff
+        };
         //VP~ return e[0].startsWith("campaign ") ? {campaign: this.state.campaign, ...response} : response;    // Not yet, 'this' is not available here
         return response;
     };
@@ -1042,18 +1049,20 @@ gui_editor.prototype.draw_state = function () {
     // const title = "<ul><li>Click to select</li><li>Double click to open</li><li>Right click to add stages</li></ul>";
     // let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
     let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.replace(/.*? /, ''));
-    let node_list = node_labels.map(x => ({id:x, label:x, group: this.getdepth(x, 1)}));
+    let node_list = node_labels.map(x => ({id:x, label:x, level: this.getdepth(x, 1), group: this.state[`campaign_stage ${x}`].job_type || this.state.campaign_defaults.job_type}));
     //VP~ this.nodes = new vis.DataSet([{id: 'Default Values', label: this.state.campaign.name,
     this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`,
                                    label: this.state.campaign.name,
                                 //    title: "Double click to open",
-                                   group: 1,
+                                   level: 1,
+                                   group: this.state.campaign_defaults.job_type,
                                    shape: 'ellipse', color: '#dddddd',
                                    fixed: false, size: 50}, ...node_list]);
 
     let edge_list = this.depboxes.map(x => ({id: x.box.id, from: x.stage1, to: x.stage2}));
     let edges = new vis.DataSet(edge_list);
 
+    const node_positions = this.state.node_positions;
     // provide the data in the vis format
     let data = {
         nodes: this.nodes,
@@ -1086,13 +1095,13 @@ gui_editor.prototype.draw_state = function () {
         },
         layout: {
             improvedLayout: true,
-            hierarchical: {
+            hierarchical: node_positions ? false : {
                 enabled: true,
                 levelSeparation: 150,
                 nodeSpacing: 80,
                 treeSpacing: 60,
                 parentCentralization: true,
-                blockShifting: true,
+                blockShifting: false,
                 edgeMinimization: true,
                 direction: "LR",
                 sortMethod: "directed"
@@ -1100,10 +1109,10 @@ gui_editor.prototype.draw_state = function () {
         },
         edges: {
             smooth: {
-                type: "dynamic",
-                // type: "discrete",
-                // forceDirection: "vertical",
-                roundness: 1
+                type: "horizontal",     // The best
+                // type: "cubicBezier",
+                // forceDirection: "horizontal",
+                roundness: 0.9
             },
             width: 2,
             arrows: {to : true},
@@ -1174,6 +1183,18 @@ gui_editor.prototype.draw_state = function () {
     // initialize network
     let container = document.getElementById('mystages');
     gui_editor.network = new vis.Network(container, data, options);
+    if (node_positions) {
+        // Set coordinates for the nodes
+        for (const pp in node_positions) {
+            const [n, x, y] = JSON.parse(node_positions[pp]);
+            this.nodes.update({id: n, x: x, y: y});
+        }
+    };
+    // setTimeout(()=>{
+        // gui_editor.network.setOptions({layout: {hierarchical: {enabled: false, direction: "LR"}}});
+        gui_editor.network.setOptions({layout: {hierarchical: false}});
+        gui_editor.network.setOptions({physics: false});
+    // }, 1000);
 
     const getLabel = e => this.nodes.get(e).label;
 
@@ -1224,7 +1245,7 @@ gui_editor.prototype.draw_state = function () {
     let setup_nodes = launchtemplist.map(x => ({id: `login_setup ${x}`, label: x,
                                                 // title: "Double click to open",
                                                 shape: 'ellipse', color: '#22efcc'}));
-    let jtype_nodes = this.jobtypelist.map(x => ({id: `job_type ${x}`, label: x,
+    let jtype_nodes = this.jobtypelist.map(x => ({id: `job_type ${x}`, label: x, group: x,
                                                 //   title: "Double click to open"
                                                 }));
 
@@ -1232,6 +1253,7 @@ gui_editor.prototype.draw_state = function () {
             nodes: [...setup_nodes, ...jtype_nodes],
             edges: []
         }, {
+            groups: gui_editor.network.groups.groups,
             autoResize: true,
             physics: true,
             nodes: {
@@ -1286,27 +1308,69 @@ gui_editor.prototype.draw_state = function () {
         callback(null);
     }
 
+    /* Doesn't work out as it doesn't preserve the fields IDs
+    const clone_form = (src, tgt, lbl) => {
+        $(`[id='fields_campaign_stage ${tgt}']`)
+        .replaceWith($(`[id='fields_campaign_stage ${src}']`).clone().attr('id', `fields_campaign_stage ${tgt}`));
+        $(`[id='fields_campaign_stage ${tgt}']`).find("[name='name']").val(lbl);       // Restore name field
+    };
+    */
+    const clone_form = (src, tgt) => {
+        const $src_fields = $(`[id='fields_campaign_stage ${src}']`).find("input,select");  // Cloned form fields
+        const $tgt_elem = $(`[id='fields_campaign_stage ${tgt}']`);                         // Target form element
+        for (const sf of $src_fields) {
+            if (sf.name !== 'name')
+                $tgt_elem.find(`[name='${sf.name}']`)[0].value = sf.value;                  // Replace field value with cloned one
+        }
+    };
+
     const saveNodeData = (data, callback) => {
         const label = document.getElementById('node-label').value;
+        var parentId, pary;
         clearNodePopUp();
+        if (data.nodes) {
+            parentId = data.nodes[0];
+            pary = gui_editor.network.getPositions()[parentId].y;
+        }
         if (label.includes('*')) {
             const nn = label.split('*');
             for (let i = 0; i < nn[1]; i++) {
-                data.label = `${nn[0]}_${i}`;
+                data.label = nn[0] === '' ? `${parentId}_${i}` : `${nn[0]}_${i}`;
+                if (data.label.startsWith(parentId)) {
+                    data.single = true;
+                }
+                if (pary) {
+                    if (nn[0] !== '')
+                        data.y = pary + 30 - 60*nn[1]/2 + 60*i;
+                    else {
+                        data.y = pary + 30 + 30*i;
+                    }
+                }
                 const reply = callback(data);
                 // Now handle our stuff
                 this.new_stage(reply[1], data.label);
-                this.add_dependency(reply[0], reply[1], reply[2]);
+                if (reply[2]) {         // If this is a dependant
+                    this.add_dependency(...reply);
+                } else {                // This is a clone of the stage
+                    const tgt = reply[1];
+                    // this.state[`campaign_stage ${tgt}`] = {...this.state[`campaign_stage ${parentId}`]};        // Clone the stage state
+                    this.state[`campaign_stage ${tgt}`] = JSON.parse(JSON.stringify(this.state[`campaign_stage ${parentId}`]));
+                    this.state[`campaign_stage ${tgt}`].name = data.label;                                      // Restore name
+                    clone_form(parentId, tgt);                         // Clone the popup form
+                }
             }
-        } else {
+        } else {        // Single dependant
             data.label = label;
+            if (pary)
+                data.y = pary;
             const reply = callback(data);
             // Now handle our stuff
             if (data.id) {
                 this.new_stage(data.id, data.label);
             } else {
                 this.new_stage(reply[1], data.label);
-                this.add_dependency(reply[0], reply[1], reply[2]);
+                // this.add_dependency(reply[0], reply[1], reply[2]);
+                this.add_dependency(...reply);
             }
         }
     }
@@ -1347,16 +1411,21 @@ gui_editor.prototype.draw_state = function () {
 
     const addNewNode = (params) => {
         //// var newId = (Math.random() * 1e7).toString(32);
-        let newId = params.label;
+        // let newId = params.label;
         const parentId = params.nodes[0];
         //VP~ const eid = this.add_dependency(parentId, newId);
         //VP~ const nid = this.nodes.add({id: newId, label: params.label,
-        const nid = this.nodes.add({label: params.label,
-                                    group: this.nodes.get(parentId).group ? this.nodes.get(parentId).group + 1 : 0})[0];
+        const nid = this.nodes.add({
+                                    label: params.label,
+                                    level: this.nodes.get(parentId).level ? this.nodes.get(parentId).level + 1 : 1,
+                                    x: gui_editor.network.getPositions()[parentId].x + (params.single ? 0 : 150),
+                                    y: params.y
+                                })[0];
         //VP~ edges.add({id: eid, from: parentId, to: newId});
-        const eid = edges.add({from: parentId, to: nid})[0];
+        if (!params.single)
+            var eid = edges.add({from: parentId, to: nid})[0];
         //VP~ this.add_dependency(parentId, nid);
-        return [parentId, nid, eid];
+        return [parentId, nid, eid || null];
     }
 
 }
@@ -1488,13 +1557,15 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         } else {
             res.push(`<input id="${this.get_input_tag(k)}" name="${k}" value="${this.escape_quotes(val)}" placeholder="${this.escape_quotes(placeholder)}" ${ro}>`);
         }
-        if (k.indexOf('param') >= 0) {
-            res.push(`<button type="button" onclick="json_field_editor.start('${this.get_input_tag(k)}')">Edit</button>`);
+        if (k.includes('param')) {
+            // res.push(`<button type="button" onclick="json_field_editor.start('${this.get_input_tag(k)}')">Edit</button>`);
+            res.push(`<button type="button" onclick="json_field_editor.start(this.previousElementSibling.id)">Edit</button>`);
         }
         res.push('<br>');
     }
     //res.push(`<button class="rightbutton" type="button" onclick="this.parentElement.style.display='none';">OK</button>`);
-    res.push(`<button class="rightbutton" type="button" onclick="gui_editor.toggle_form('fields_${name}')">OK</button>`);
+    // res.push(`<button class="rightbutton" type="button" onclick="gui_editor.toggle_form('fields_${name}')">OK</button>`);
+    res.push(`<button class="rightbutton" type="button" onclick="gui_editor.toggle_form(this.parentNode.id)">OK</button>`);
     res.push(`<button type="reset" value="Reset">Reset</button>`);
     res.push('</form>');
     // Form is ready
@@ -1723,9 +1794,9 @@ gui_editor.prototype.new_stage = function (name, label) {
     this.state[k] = {
         'name': label,
         'vo_role': null,
-        'state': null,
+        // 'state': null,
         'software_version': null,
-        'dataset': null,
+        'dataset_or_split_data': null,
         'cs_split_type': null,
         'completion_type': null,
         'completion_pct': null,
@@ -2089,44 +2160,47 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
             delete args[k];
         }
     }
-    return $.ajax({
+    return $.ajax(
+        {
             // url: base + '/' + name,
             url: base + name,
             data: args,
             method: args ? 'POST' : 'GET'
         })
-        .done((data, textStatus, jqXHR) => {
-            if (completed) {
-                completed(data);
-            }
-            return data;
-        })
-        .fail((jqXHR, textStatus, errorThrown) => {
-            var p, resp;
-            if (jqXHR && jqXHR.responseText) {
-                p = jqXHR.responseText.indexOf('>Traceback');
-                if (p > 0) {
-                    resp = jqXHR.responseText.slice(p + 6);
-                    p = resp.indexOf('</label>')
-                    if (p < 0) {
-                        p = resp.indexOf('</pre>');
+        .done(
+            (data, textStatus, jqXHR) => {
+                if (completed) {
+                    completed(data);
+                }
+                return data;
+            })
+        .fail(
+            (jqXHR, textStatus, errorThrown) => {
+                var p, resp;
+                if (jqXHR && jqXHR.responseText) {
+                    p = jqXHR.responseText.indexOf('>Traceback');
+                    if (p > 0) {
+                        resp = jqXHR.responseText.slice(p + 6);
+                        p = resp.indexOf('</label>')
+                        if (p < 0) {
+                            p = resp.indexOf('</pre>');
+                        }
+                        resp = resp.slice(0, p);
+                        resp.replace(/<br\/>/g, '\n');
+                    } else {
+                        resp = jqXHR.responseText;
                     }
-                    resp = resp.slice(0, p);
-                    resp.replace(/<br\/>/g, '\n');
+                    console.log(resp);
+                    const i = jqXHR.responseText.indexOf("DETAIL");
+                    if (i > 0) {
+                        alert("Oops! Something went wrong!\n" + jqXHR.responseText.slice(i).split('<')[0]);
+                    } else {
+                        alert("Oops! Something went wrong!");
+                    }
                 } else {
-                    resp = jqXHR.responseText;
+                    // if (jqXHR.status)
+                    alert("Oops! Something went wrong! No details available.");
                 }
-                console.log(resp);
-                const i = jqXHR.responseText.indexOf("DETAIL");
-                if (i > 0) {
-                    alert("Oops! Something went wrong!\n" + jqXHR.responseText.slice(i).split('<')[0]);
-                } else {
-                    alert("Oops! Something went wrong!");
-                }
-            } else {
-                // if (jqXHR.status)
-                alert("Oops! Something went wrong! No details available.");
-            }
-        });
+            });
 }
 
