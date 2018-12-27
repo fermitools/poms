@@ -4,6 +4,7 @@
 function json_field_editor() {
   ;
 }
+
 json_field_editor.start = function(id) {
     var e, r,v, res, i, j, fid, istr, k, e_text;
     var hang_onto;
@@ -16,7 +17,7 @@ json_field_editor.start = function(id) {
         r = e.getBoundingClientRect();
         hang_onto = e.parentNode
     }
-    v = e.value;
+    v = e.value || e.placeholder;
     if ('' == v || '[]' == v) {
         j = [['','']]
     } else {
@@ -46,24 +47,24 @@ json_field_editor.start = function(id) {
     res.push('</tbody>');
     res.push('</table>');
     res.push('&nbsp;&nbsp;&nbsp;');
-    res.push('<button type="button" class="ui button deny red" onclick="json_field_editor.cancel(\''+fid+'\')" >Cancel</button>');
-    res.push('<button type="button" class="ui button approve teal" onclick="json_field_editor.save(\''+fid+'\')" >Accept</button>');
+    res.push(`<button type="button" class="ui button deny red" onclick="json_field_editor.cancel('${fid}')">Cancel</button>`);
+    res.push(`<button type="button" class="ui button approve teal" onclick="json_field_editor.save('${fid}')">Accept</button>`);
     var myform =  document.createElement("FORM");
-    myform.className = "popup_form_json"
-    myform.style.top = r.bottom
-    myform.style.right = r.right
-    myform.style.position = 'absolute'
-    myform.id = fid
+    myform.className = "popup_form_json";
+    myform.style.top = r.bottom;
+    myform.style.right = r.right;
+    myform.style.position = 'absolute';
+    myform.id = fid;
     myform.innerHTML += res.join('\n');
     // hang_onto.style.position = 'relative';
-    hang_onto.appendChild(myform)
+    hang_onto.appendChild(myform);
 }
 
 /*
  * add a row to the popup editor.  This is factored out so
  * the plus-button callback can share it..
  */
-json_field_editor.addrow= function(res, fid, i, k, v) {
+json_field_editor.addrow = function(res, fid, i, k, v) {
         var istr = i.toString(), ws, wsr;
         if (k[k.length-1] == ' ' ) {
             while( k[k.length-1] == ' ') {
@@ -92,7 +93,8 @@ json_field_editor.addrow= function(res, fid, i, k, v) {
         res.push('<i onclick="json_field_editor.up(\''+ fid+'\','+istr+')" class="blue icon dlink arrow square up"></i>');
         res.push('<i onclick="json_field_editor.down(\''+ fid+'\','+istr+')" class="blue icon dlink arrow square down"></i>');
 }
-json_field_editor.renumber= function(fid,c) {
+
+json_field_editor.renumber = function(fid,c) {
     var i;
     var res;
     var tb = document.getElementById(fid+'_tbody');
@@ -112,7 +114,7 @@ json_field_editor.renumber= function(fid,c) {
     }
 }
 
-json_field_editor.plus= function(fid,i) {
+json_field_editor.plus = function(fid,i) {
     var res = []
     var tb = document.getElementById(fid+'_tbody');
     var tr = document.createElement('TR');
@@ -130,7 +132,7 @@ json_field_editor.plus= function(fid,i) {
     json_field_editor.renumber(fid,c+1);
 }
 
-json_field_editor.minus= function(fid,i) {
+json_field_editor.minus = function(fid,i) {
     var tb = document.getElementById(fid+'_tbody');
     tb.removeChild(tb.children[i]);
     var c = parseInt(document.getElementById(fid+'_count').value);
@@ -196,7 +198,7 @@ json_field_editor.save = function(fid) {
     json_field_editor.cancel(fid)
 }
 
-json_field_editor.cancel= function(fid) {
+json_field_editor.cancel = function(fid) {
     /*
      * delete the form
      */
