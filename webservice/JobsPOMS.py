@@ -59,9 +59,9 @@ class JobsPOMS:
         if submission_id:
             s = (dbhandle.query(Submission)
                  .filter(Submission.submission_id == submission_id)
-                 .all())[0]
-            cs = s.campaign_stage_obj
+                 .first())
             what = "--constraint=POMS4_SUBMISSION_ID=%s" % s.submission_id
+            cs = s.campaign_stage_obj
 
         if not (submission_id or campaign_id or campaign_stage_id):
             raise SyntaxError("called with out submission, campaign, or stage id" % act)
@@ -71,7 +71,9 @@ class JobsPOMS:
 
         else:
             group = cs.experiment
+            lts = cs.login_setup_obj
             if group == 'samdev':
+
                 group = 'fermilab'
 
             subcmd = 'q'
@@ -120,7 +122,7 @@ class JobsPOMS:
                 "dataset": cs.dataset,
                 "version": cs.software_version,
                 "group": group,
-                "experimenter": st.experimenter_creator_obj.username,
+                "experimenter": s.experimenter_creator_obj.username,
                 "experiment": cs.experiment,
             }
 
