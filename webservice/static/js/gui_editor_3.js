@@ -1141,6 +1141,7 @@ gui_editor.prototype.draw_state = function () {
           editClusterError: 'Clusters cannot be edited.'
         }
       };
+
     const options = {
         groups: gui_editor.aux_network.groups.groups,
         locales: locales,
@@ -1206,7 +1207,7 @@ gui_editor.prototype.draw_state = function () {
                 this.state.campaign.campaign_stage_list = this.state.campaign.campaign_stage_list.split(',').filter(x => x != node_id).join(',');
                 callback(data);
             },
-            addEdge: function (data, callback) {
+            addEdge: (data, callback) => {
                 if (data.from.startsWith('campaign ') || data.to.startsWith('campaign ')) {
                     // alert('Dependencies from/to campaign are not allowed yet');
                     swal({
@@ -1224,6 +1225,13 @@ gui_editor.prototype.draw_state = function () {
                         callback(null);
                         return;
                     }
+                    // Check if the cs_split_type is set
+                    const split_type = this.state[`campaign_stage ${data.to}`].cs_split_type;
+                    if ([null, "", "None", "none", "Draining"].includes(split_type)) {
+                        swal("Set 'cs_split_type' first!");
+                        callback(null);
+                        return;
+                    }
                 }
                 saveEdgeData(data, callback);
             },
@@ -1232,7 +1240,7 @@ gui_editor.prototype.draw_state = function () {
                 deleteEdge(data, callback);
             }
         },
-        interaction:{
+        interaction: {
             tooltipDelay: 2000
         }
     };
