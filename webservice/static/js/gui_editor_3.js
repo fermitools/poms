@@ -168,7 +168,7 @@ gui_editor.toggle_form = function(id) {
                 const m = id.match(/campaign |job_type |login_setup /);
                 const nname = m ? `${m[0]}${nm}` : nm;          // build node name
                 if (gui_editor.network.body.data.nodes.get(nname)) {
-                    gui_editor.network.body.data.nodes.update({id: nname, label: form.name.value});        // update label
+                    gui_editor.network.body.data.nodes.update({id: nname, label: form.name.value, group: form.job_type.value});        // update label
                 } else if (gui_editor.aux_network.body.data.nodes.get(nname)) {
                     gui_editor.aux_network.body.data.nodes.update({id: nname, label: form.name.value});    // update label
                 }
@@ -1040,6 +1040,62 @@ gui_editor.prototype.draw_state = function () {
     /*
      * Vis.js stuff
      */
+
+    /*
+     * Define separate network for job_types & login_setups
+     */
+    let setup_nodes = launchtemplist.map(x => ({
+        id: `login_setup ${x}`,
+        label: x, group: x,
+        // title: "Double click to open",
+        shape: 'ellipse',
+        // color: '#22efcc'
+    }));
+
+    let jtype_nodes = this.jobtypelist.map(x => ({id: `job_type ${x}`, label: x, group: x}));
+
+    gui_editor.aux_network = new vis.Network(document.getElementById('myjobtypes'), {
+            nodes: [...setup_nodes, ...jtype_nodes],
+            edges: []
+        }, {
+            autoResize: true,
+            physics: true,
+            nodes: {
+                shadow: true,
+                shape: 'box'
+            },
+            layout: {
+                improvedLayout: true,
+                hierarchical: {
+                    enabled: true,
+                    levelSeparation: 150,
+                    nodeSpacing: 50,
+                    parentCentralization: true,
+                    blockShifting: true,
+                    edgeMinimization: true,
+                    direction: "UD",
+                    sortMethod: "directed"
+                }
+            }
+        }
+    );
+
+    gui_editor.aux_network.on("doubleClick", function (params) {
+        if (params.nodes[0] !== undefined) {
+            const node = params.nodes[0];
+            const el = document.getElementById(`fields_${node}`);
+            el.style.display = 'block';
+            $(el).draggable();
+            el.style.left = `${params.pointer.DOM.x/2}px`;
+            el.style.top = `${params.pointer.DOM.y + 300}px`;
+        }
+        params.event = "[original event]";
+        document.getElementById('eventSpan').innerHTML = '<h2>doubleClick event:</h2>' + JSON.stringify(params, null, 4);
+    });
+
+    /*
+     * Define main network for campaign
+     */
     const depFrom = (label) => {
         const dep = this.state[`dependencies ${label}`];
         const froms = Object.keys(dep).filter(x => x.startsWith("campaign_stage_")).map(x => dep[x]);
@@ -1086,6 +1142,7 @@ gui_editor.prototype.draw_state = function () {
         }
       };
     const options = {
+        groups: gui_editor.aux_network.groups.groups,
         locales: locales,
         autoResize: true,
         physics: false,
@@ -1241,53 +1298,9 @@ gui_editor.prototype.draw_state = function () {
             editNode(params, clearNodePopUp, addNewNode);
         }
     });
-
-    let setup_nodes = launchtemplist.map(x => ({id: `login_setup ${x}`, label: x,
-                                                // title: "Double click to open",
-                                                shape: 'ellipse', color: '#22efcc'}));
-    let jtype_nodes = this.jobtypelist.map(x => ({id: `job_type ${x}`, label: x, group: x,
-                                                //   title: "Double click to open"
-                                                }));
-
-    gui_editor.aux_network = new vis.Network(document.getElementById('myjobtypes'), {
-            nodes: [...setup_nodes, ...jtype_nodes],
-            edges: []
-        }, {
-            groups: gui_editor.network.groups.groups,
-            autoResize: true,
-            physics: true,
-            nodes: {
-                shadow: true,
-                shape: 'box'
-            },
-            layout: {
-                improvedLayout: true,
-                hierarchical: {
-                    enabled: true,
-                    levelSeparation: 150,
-                    nodeSpacing: 50,
-                    parentCentralization: true,
-                    blockShifting: true,
-                    edgeMinimization: true,
-                    direction: "UD",
-                    sortMethod: "directed"
-                }
-            }
-        }
-    );
-
-    gui_editor.aux_network.on("doubleClick", function (params) {
-        if (params.nodes[0] !== undefined) {
-            const node = params.nodes[0];
-            const el = document.getElementById(`fields_${node}`);
-            el.style.display = 'block';
-            $(el).draggable();
-            el.style.left = `${params.pointer.DOM.x/2}px`;
-            el.style.top = `${params.pointer.DOM.y + 300}px`;
-        }
-        params.event = "[original event]";
-        document.getElementById('eventSpan').innerHTML = '<h2>doubleClick event:</h2>' + JSON.stringify(params, null, 4);
-    });
+    /*
+     *  End of network definition
+     */
 
     function editNode(data, cancelAction, callback) {
         document.getElementById('node-label').value = data.label;
