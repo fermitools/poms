@@ -512,6 +512,14 @@ class PomsService:
             raise cherrypy.HTTPError(
                 401, 'You are not authorized to access this resource')
 
+# h4. campaign_stage_datasets
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def campaign_stage_datasets(self):
+        return self.taskPOMS.campaign_stage_datasets(cherrypy.request.db)
+
+
 # h4. submission_details
     @cherrypy.expose
     @logit.logstartstop
@@ -924,14 +932,13 @@ class PomsService:
             submission_id = task_id
         if confirm is None:
             what, s, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, cherrypy.session.get, campaign_id, campaign_stage_id, submission_id,
-                                                                                        job_id, confirm, act)
-            template = self.jinja_env.get_template('kill_jobs_confirm.html')
+             job_id, confirm, act)
             return template.render(what = what, task=s, campaign_stage_id=campaign_stage_id,
                                    submission_id=submission_id, job_id=job_id, act=act,
                                    help_page="KilledJobsHelp")
 
         else:
-            output, cs, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, cherrypy.session.get, campaign_stage_id, submission_id,
+            output, cs, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, cherrypy.session.get, campaign_id, campaign_stage_id, submission_id,
                                                                                            job_id, confirm, act)
             template = self.jinja_env.get_template('kill_jobs.html')
             return template.render(output=output,

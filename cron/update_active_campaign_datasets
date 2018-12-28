@@ -1,0 +1,63 @@
+#!/bin/sh
+import requests
+
+def experiment_list():
+    resp = request.get('http://localhost:8080/poms/experiment_list')
+    e_l = resp.json()
+    resp.close()
+    return e_l
+
+def campaign_stage_datasets():
+    resp = request.get('http://localhost:8080/poms/campaign_stage_datasets')
+    a_m = resp.json()
+    resp.close()
+    return a_m
+
+
+def create_definition(exp, defname, dims):
+    resp = request.post("http://samweb.fnal.gov:8480/sam/%s/api/definitions/create" % exp, data =  {'defname' : defname, 'dimensions'= dims })
+
+def describe_definition(exp, defname):
+    resp = request.get("http://samweb.fnal.gov:8480/sam/%s/api/definitions/name/%s/?format=json" % (exp, defname))
+    d_d = resp.json()
+    resp.close()
+
+def delete_definition(exp, defname):
+    resp = request.(e"http://samweb.fnal.gov:8480/sam/%s/api/definitions/name/%s/delete" % (exp, defname))
+
+
+def campaign_stage_actives(exp):
+    resp = request.post('http://samweb.fnal.gov:8480/sam/%s/api/definitions/list?defname=poms_campaign_stage_active_%&format=json', data={})
+    c_s_a = resp.json()
+    resp.close()
+    return c_s_a
+    
+
+def update_them():
+
+    activemap = campaign_stage_datasets()
+
+    saw = {}
+    for exp in experiment_list():
+        current_defs = campaign_stage_actives(exp)
+        for c_d in current_defs:
+            defname = c_d['defname']
+            c_s_id = int(defname[22:])
+            saw[c_s_id] = True
+
+            if c_s_id in activemap:
+                 wanted = "project_name in %s" % ','.join(activemap[c_s_id][1])
+                 has = describe_definition(exp, c_d['defname'])['dimensions']
+                 if dimensions != wanted:
+                     delete_definition(exp, defname)
+                     create_definition(exp, defname, wanted)
+            else:
+                 delete_definition(exp, defname)
+
+     for c_s_id in activemap:
+         if not saw.get(c_s_id,False):
+             wanted = "project_name in %s" % ','.join(activemap[c_s_id][1])
+             defname = "poms_campaign_stage_active_%s" % c_s_id
+             create_definition(exp, defname, wanted)
+
+update_them()
