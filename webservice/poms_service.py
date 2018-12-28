@@ -933,6 +933,7 @@ class PomsService:
         if confirm is None:
             what, s, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, cherrypy.session.get, campaign_id, campaign_stage_id, submission_id,
              job_id, confirm, act)
+            template = self.jinja_env.get_template('kill_jobs_confirm.html')
             return template.render(what = what, task=s, campaign_stage_id=campaign_stage_id,
                                    submission_id=submission_id, job_id=job_id, act=act,
                                    help_page="KilledJobsHelp")
