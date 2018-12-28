@@ -185,3 +185,7 @@ select:invalid  {
 .popup_form {
 	cursor: move;
 }
+
+.popup_form > * {
+	cursor: initial;
+}
