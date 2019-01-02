@@ -19,6 +19,7 @@ Campaigns {%include 'help_button.html'%}
     #campaign_table th:nth-child(1), table td:nth-child(1) {
         display: none;
     }
+    
 
     stagelink {
         background-color: yellow;
@@ -69,7 +70,7 @@ Campaigns {%include 'help_button.html'%}
                 <!-- id is hidden by css look for #campaign_table above -->
                 <td id="c_id_{{loop.index}}">{{s.campaign_id}}</td>
                 <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
-                <td><a class="stagelink" href="{{pomspath}}/show_campaign_stages?campaign_name={{s.name|urlencode}}">{{s.name}}</a></td>
+                <td><a class="stagelink" href="{{pomspath}}/show_campaign_stages?campaign_name={{s.name|urlencode}}">{{s.name}}</a> <span class="ui label">{{s.campaign_id}}</span></td>
                 <td align="center">{{ 'Yes' if s.active else 'No' }}</td>
 		        <!-- <td> <button onclick="call_show_campaign_stages( '{{s.name}}' )"> {{s.name}} </td> -->
                 <td id="running_{{s.campaign_id}}" style="text-align:right; padding-right: 1em">...</td>

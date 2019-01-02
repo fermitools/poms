@@ -82,8 +82,8 @@ Campaign Stages{%include 'help_button.html'%}
                     <!-- id is hidden by css look for #campaign_stages above -->
                     <td id="c_id_{{loop.index}}">{{stage.campaign_stage_id}}</td>
                     <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}" {{ 'disabled' if data.authorized[loop.index-1]!=True }}></td>
-                    <td>{{ stage.campaign_obj.name}}</td>
-                    <td><a href="{{pomspath}}/campaign_stage_info?campaign_stage_id={{stage.campaign_stage_id}}">{{stage.name}}</a></td>
+                    <td>{{stage.campaign_obj.name}}<span class="ui label">{{stage.campaign_obj.campaign_id}}</span></td>
+                    <td><a href="{{pomspath}}/campaign_stage_info?campaign_stage_id={{stage.campaign_stage_id}}">{{stage.name}}</a><span class="ui label">{{stage.campaign_stage_id}}</span></td>
                     <td>{{ 'Yes' if stage.campaign_obj.active else 'No' }}</td>
                     <td>{{stage.experimenter_holder_obj.username}}</td>
                     <td>{{stage.experimenter_creator_obj.username}}</td>
