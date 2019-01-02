@@ -1675,7 +1675,7 @@ class CampaignsPOMS:
                 )
 
 
-    def campaign_stage_submissions(self, dbhandle, campaign_name, stage_name, campaign_stage_id = None, campaign_id = None, tmin=None, tmax=None, tdays=1):
+    def campaign_stage_submissions(self, dbhandle, campaign_name = '', stage_name = '', campaign_stage_id = None, campaign_id = None, tmin=None, tmax=None, tdays=1):
         '''
            Show submissions from a campaign stage
         '''

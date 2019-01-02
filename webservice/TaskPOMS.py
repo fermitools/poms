@@ -994,7 +994,7 @@ class TaskPOMS:
             campaign_stage_id,
             user=launcher_experimenter.username,
             experiment=experiment,
-            parent_submission_id=parent_submission_id
+            parent_submission_id=parent_submission_id,
             launch_time = launch_time)
 
         if sid:

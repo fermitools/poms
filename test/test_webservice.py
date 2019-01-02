@@ -70,8 +70,8 @@ def test_login_setup_edit(client):
     assert client.code == 200
     assert 'Setup' in client.text
 
-def test_campaign_time_bars(client):
-    client.get('campaign_time_bars?tag=fake_demo1')
+def test_campaign_stage_submissions(client):
+    client.get('campaign_stage_submissions?campaign_name=fake_demo1&stage_name=*&campaign_id=1')
     print("got: %s" % client.text)
     assert client.code == 200
 
