@@ -815,7 +815,7 @@ class CampaignsPOMS:
             if (split_type in [None, 'None', 'none', 'Draining'] and
                     name in [x[0] for x in depends['campaign_stages']]):
 
-                raise err_res(
+                raise cherrypy.HTTPError(
                     404,
                     "This edit would make an infinite loop. "
                     "Go Back in your browser and set cs_split_type or remove self-dependency.")
@@ -1795,7 +1795,7 @@ class CampaignsPOMS:
             cpl = q.all()
             name = campaign
         else:
-            raise err_res(404, "Not found.")
+            raise cherrypy.HTTPError(404, "Not found.")
 
         job_counts_list = deque()
         cidl = deque()

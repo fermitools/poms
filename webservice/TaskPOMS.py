@@ -680,7 +680,7 @@ class TaskPOMS:
                     test_launch)
 
                 # take on role of job we're launching based on..
-                seshandle.get('experimenter').role = s.creator_role
+                seshandle.get('experimenter').role = s.campaign_stage_obj.creator_role
 
                 self.launch_jobs(
                     dbhandle,

@@ -41,7 +41,6 @@ class JobsPOMS:
 
     def kill_jobs(self, dbhandle, seshandle_get, campaign_id = None, campaign_stage_id=None,
                   submission_id=None, job_id=None, confirm=None, act='kill'):
-        jjil = deque()
         s = None
         cs = None
 
@@ -49,22 +48,32 @@ class JobsPOMS:
         se_role = e.session_role
         exp = e.session_experiment
 
-        if campaign_id is not None:
-            what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_stage_id
-        if campaign_stage_id is not None:
+        if campaign_id:
+            what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
+            cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).first()
+
+        if campaign_stage_id:
             what = "--constraint=POMS4_CAMPAIGN_STAGE_ID==%s" % campaign_stage_id
-        if submission_id is not None:
+            cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+
+        if submission_id:
             s = (dbhandle.query(Submission)
                  .filter(Submission.submission_id == submission_id)
-                 .all())[0]
-            what = "--jobid %s" % s.jobsub_job_id
+                 .first())
+            what = "--constraint=POMS4_SUBMISSION_ID=%s" % s.submission_id
+            cs = s.campaign_stage_obj
+
+        if not (submission_id or campaign_id or campaign_stage_id):
+            raise SyntaxError("called with out submission, campaign, or stage id" % act)
 
         if confirm is None:
-            return what, st, campaign_stage_id, submission_id, job_id
+            return what, s, campaign_stage_id, submission_id, job_id
 
         else:
             group = cs.experiment
+            lts = cs.login_setup_obj
             if group == 'samdev':
+
                 group = 'fermilab'
 
             subcmd = 'q'
@@ -113,7 +122,7 @@ class JobsPOMS:
                 "dataset": cs.dataset,
                 "version": cs.software_version,
                 "group": group,
-                "experimenter": st.experimenter_creator_obj.username,
+                "experimenter": s.experimenter_creator_obj.username,
                 "experiment": cs.experiment,
             }
 
