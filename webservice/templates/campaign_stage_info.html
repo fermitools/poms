@@ -182,6 +182,7 @@ in Campaign {{CampaignStage.campaign_obj.name}}<span class="ui label">{{Campaign
    <div class="ui segment raised">
     <h3>Campaign Stage</h3>
     <b>Name</b>: {{CampaignStage.name}}<br>
+    <b>Id</b>:{{CampaignStage.campaign_stage_id}}<br>
     <b>Experiment</b>: {{CampaignStage.experiment}}<br>
     {%if CampaignStage.dataset.find(',') > 0 %}
     <b>Split Data</b>: {{CampaignStage.dataset}}<br>
