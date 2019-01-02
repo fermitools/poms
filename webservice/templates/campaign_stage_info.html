@@ -10,8 +10,8 @@ Campaign Stage Info {%include 'help_button.html'%}
 {%endblock%}
 
 {%block subheader%}
-Campaign Stage {{CampaignStage.name}}  <br>
-in Campaign {{CampaignStage.campaign_obj.name}}
+Campaign Stage {{CampaignStage.name}} <span class="ui label">{{CampaignStage.campaign_stage_id}}</span> <br>
+in Campaign {{CampaignStage.campaign_obj.name}}<span class="ui label">{{CampaignStage.campaign_obj.campaign_id}}</span>
 {%endblock%}
 
 
