@@ -319,7 +319,7 @@ class TaskPOMS:
 ###
 
     def get_task_id_for(self, dbhandle, campaign, user=None, experiment=None,
-                        command_executed="", input_dataset="", parent_submission_id=None, submission_id=None):
+                        command_executed="", input_dataset="", parent_submission_id=None, submission_id=None, launch_time = None):
         logit.log("get_task_id_for(user='%s',experiment='%s',command_executed='%s',input_dataset='%s',parent_submission_id='%s',submission_id='%s'" % (
             user, experiment, command_executed, input_dataset, parent_submission_id, submission_id
         ))
@@ -353,7 +353,11 @@ class TaskPOMS:
             q = q.filter(CampaignStage.experiment == experiment)
 
         cs = q.first()
-        tim = datetime.now(utc)
+        if launch_time:
+            tim = launch_time
+        else:
+            tim = datetime.now(utc)
+
         if submission_id:
             s = dbhandle.query(Submission).filter(
                 Submission.submission_id == submission_id).one()
@@ -838,7 +842,8 @@ class TaskPOMS:
         logit.log("Entering launch_jobs(%s, %s, %s)" %
                   (campaign_stage_id, dataset_override, parent_submission_id))
 
-        ds = time.strftime("%Y%m%d_%H%M%S")
+        launch_time = datetime.now(utc)
+        ds = launch_time.strftime("%Y%m%d_%H%M%S")
         e = seshandle_get('experimenter')
         se_role = e.session_role
 
@@ -989,7 +994,11 @@ class TaskPOMS:
             campaign_stage_id,
             user=launcher_experimenter.username,
             experiment=experiment,
-            parent_submission_id=parent_submission_id)
+            parent_submission_id=parent_submission_id
+            launch_time = launch_time)
+
+        if sid:
+            outfile = "%s_%d" % (outfile, sid)
 
         #
         # keep some bookkeeping flags
