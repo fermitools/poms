@@ -1757,8 +1757,8 @@ class CampaignsPOMS:
         '''
         rows = []
         tuples = (dbhandle.query(SubmissionHistory, SubmissionStatus)
-                  # .join(SubmissionStatus)
                   .filter(SubmissionHistory.submission_id == submission_id)
+                  .filter(SubmissionStatus.status_id == SubmissionHistory.status_id)
                   .order_by(SubmissionHistory.created)).all()
         for row in tuples:
             submission_id = row.SubmissionHistory.submission_id
