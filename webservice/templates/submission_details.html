@@ -66,11 +66,16 @@ launched on completion of  <a href="./submission_details?submission_id={{dataset
     probably this should be looked up for real, or we should make it the
     rule when we're launching jobs that it uses the submission created time
     minus half a sec  -->
-{%set ds=(submission.created - datetime.timedelta(seconds=0.5)).strftime("%Y%m%d_%H%M%S") %}
 
 {%set owner=submission.experimenter_creator_obj.username %}
 
-View <a href="{{pomspath}}/list_launch_file?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}">launch output </a> <br>
+{%if submission_log_format == 3 %}
+View <a href="{{pomspath}}/list_launch_file?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}_{{submission.submission_id}}">launch output </a> <br>
+{%elif submission_log_format == 2%}
+View <a href="{{pomspath}}/list_launch_file?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}}">launch output </a> <br>
+{%elif submission_log_format == 1%}
+View <a href="{{pomspath}}/list_launch_file?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}">launch output </a> <br>
+{%endif%}
 
 View in 
 {%if submission.jobsub_job_id %}

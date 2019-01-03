@@ -524,7 +524,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def submission_details(self, submission_id):
-        submission, history, dataset, rmap, smap = self.taskPOMS.submission_details(
+        submission, history, dataset, rmap, smap, ds, submission_log_format  = self.taskPOMS.submission_details(
             cherrypy.request.db, cherrypy.request.samweb_lite, cherrypy.HTTPError, cherrypy.config.get, submission_id)
         template = self.jinja_env.get_template('submission_details.html')
         return template.render(
@@ -535,6 +535,8 @@ class PomsService:
             recoverymap=rmap,
             statusmap=smap,
             do_refresh=0,
+            ds = ds,
+            submission_log_format = submission_log_format,
             help_page="SubmissionDetailsHelp",
         )
 

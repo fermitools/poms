@@ -6,12 +6,13 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 """
 
+import glob
 import json
 import os
+import re
 import select
 import subprocess
 import time
-import re
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta
 
@@ -507,7 +508,24 @@ class TaskPOMS:
             dataset = details['dataset']
         else:
             dataset = None
-        return submission, history, dataset, rmap, smap
+
+        ds=(submission.created - timedelta(seconds=0.5)).strftime("%Y%m%d_%H%M%S")
+        dirname = "{}/private/logs/poms/launches/campaign_{}".format(
+            os.environ['HOME'], submission.campaign_stage_id)
+
+        flist = glob.glob('{}/{}*'.format(dirname, ds))
+
+        logit.log("found list of submission files:(%s)" % repr(flist))
+        
+        submission_log_format = 0
+        if "{}_{}_{}".format(ds, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
+            submission_log_format = 3
+        elif "{}_{}".format(ds, submission.experimenter_creator_obj.username) in flist:
+            submission_log_format = 2
+        elif ds in flist:
+            submission_log_format = 1
+           
+        return submission, history, dataset, rmap, smap, ds, submission_log_format
 
     def running_submissions(self, dbhandle, campaign_id_list, status_list=[
                             'New', 'Idle', 'Running']):
