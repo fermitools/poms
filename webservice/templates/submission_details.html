@@ -72,7 +72,7 @@ launched on completion of  <a href="./submission_details?submission_id={{dataset
 {%if submission_log_format == 3 %}
 View <a href="{{pomspath}}/list_launch_file?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}_{{submission.submission_id}}">launch output </a> <br>
 {%elif submission_log_format == 2%}
-View <a href="{{pomspath}}/list_launch_file?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}}">launch output </a> <br>
+View <a href="{{pomspath}}/list_launch_file?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}">launch output </a> <br>
 {%elif submission_log_format == 1%}
 View <a href="{{pomspath}}/list_launch_file?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}">launch output </a> <br>
 {%endif%}

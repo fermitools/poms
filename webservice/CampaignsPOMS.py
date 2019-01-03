@@ -1655,6 +1655,17 @@ class CampaignsPOMS:
         launch_flist = glob.glob('{}/*'.format(dirname))
         launch_flist = list(map(os.path.basename, launch_flist))
 
+        recent_submission_list = (dbhandle.query(Submission.submission_id, func.max(SubmissionHistory.status_id))
+                 .filter(SubmissionHistory.submission_id == Submission.submission_id)
+                 .filter(Submission.campaign_stage_id == campaign_stage_id)
+                 .filter(Submission.created > datetime.now(utc) - timedelta(days=7))
+                 .group_by(Submission.submission_id)
+                 .all())
+
+        recent_submissions = {}
+        for (id, status) in recent_submission_list:
+            recent_submissions[id] = status
+
         # put our campaign_stage id in the link
         campaign_kibana_link_format = config_get('campaign_kibana_link_format')
         logit.log("got format {}".format(campaign_kibana_link_format))
@@ -1662,6 +1673,7 @@ class CampaignsPOMS:
 
         dep_svg = self.campaign_deps_svg(
             dbhandle, config_get, campaign_stage_id=campaign_stage_id)
+
         return (campaign_stage_info,
                 time_range_string,
                 tmins, tmaxs, tdays,
@@ -1671,7 +1683,10 @@ class CampaignsPOMS:
                 campaign_stage,
                 counts_keys, counts,
                 launch_flist,
-                kibana_link, dep_svg, last_activity
+                kibana_link, 
+                dep_svg, 
+                last_activity,
+                recent_submissions
                 )
 
 

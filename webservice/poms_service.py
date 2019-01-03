@@ -557,7 +557,10 @@ class PomsService:
          campaign_stage,
          counts_keys, counts,
          launch_flist,
-         kibana_link, dep_svg, last_activity) = self.campaignsPOMS.campaign_stage_info(cherrypy.request.db,
+         kibana_link, 
+         dep_svg, 
+         last_activity,
+         recent_submissions) = self.campaignsPOMS.campaign_stage_info(cherrypy.request.db,
                                                                                        cherrypy.request.samweb_lite,
                                                                                        cherrypy.HTTPError,
                                                                                        cherrypy.config.get,
@@ -580,7 +583,7 @@ class PomsService:
             do_refresh=0,
             help_page="CampaignInfoHelp",
             kibana_link=kibana_link,
-            dep_svg=dep_svg, last_activity=last_activity)
+            dep_svg=dep_svg, last_activity=last_activity, recent_submissions = recent_submissions)
 
 #   h4. campaign_stage_submissions
     @cherrypy.expose

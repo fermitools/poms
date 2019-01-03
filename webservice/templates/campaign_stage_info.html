@@ -64,9 +64,6 @@ in Campaign {{CampaignStage.campaign_obj.name}}<span class="ui label">{{Campaign
               <a href="{{pomspath}}/campaign_stage_submissions?campaign_name={{CampaignStage.campaign_obj.name}}&stage_name={{CampaignStage.name}}&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tdays=7&tmax={{last_activity}}">
                 <i class="external submissions icon" data-content="Campaign Stage Submissins (1wk)" data-variation="basic"></i>Campaign Stage Submissions (1wk)
               </a>
-              <a href="{{pomspath}}/campaign_time_bars?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tdays=7&tmax={{last_activity}}">
-                <i class="external submissions icon" data-content="Submissions for CampaignStage Time Bars (1wk)" data-variation="basic"></i>Submission Time Bars (1wk) OLD FORM
-              </a>
               </div>
               <div class=item>
                 <a href="{{pomspath}}/campaign_task_files?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}"><i class="external file icon" data-content="List file statistics for Submissions for CampaignStage" data-variation="basic"></i>Campaign Stage Submission Files</a>
@@ -253,6 +250,18 @@ in Campaign {{CampaignStage.campaign_obj.name}}<span class="ui label">{{Campaign
    {%for f in launch_flist|sort(reverse=True)%}
       <li>
       <a href="list_launch_file?campaign_stage_id={{CampaignStage.campaign_stage_id}}&fname={{f}}">{{f}}</a>
+      {%if f|length > 22 %}
+          {%set submission_id = f[23:]|int %}
+          <a href="{{pomspath}}/submission_details?submission_id={{submission_id}}"><span class="ui label green">info</span></a>
+          {%if recent_submissions[submission_id]|default(9999) < 7000 %}
+
+    
+              <a href="/poms/kill_jobs?submission_id={{submission_id}}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>&nbsp;&nbsp;
+              <a href="/poms/kill_jobs?submission_id={{submission_id}}&act=release" alt="Release"><i class="ui play icon"></i></a>&nbsp;&nbsp;
+              <a href="/poms/kill_jobs?submission_id={{submission_id}}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>
+                    
+          {%endif%}
+      {%endif%}
    {%endfor%}
    </ul>
  </div>

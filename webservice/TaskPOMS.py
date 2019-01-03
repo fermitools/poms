@@ -509,20 +509,33 @@ class TaskPOMS:
         else:
             dataset = None
 
-        ds=(submission.created - timedelta(seconds=0.5)).strftime("%Y%m%d_%H%M%S")
+        ds = (submission.created.astimezone(utc)).strftime("%Y%m%d_%H%M%S")
+        ds2 = (submission.created - timedelta(seconds=0.5)).strftime("%Y%m%d_%H%M%S")
         dirname = "{}/private/logs/poms/launches/campaign_{}".format(
             os.environ['HOME'], submission.campaign_stage_id)
 
-        flist = glob.glob('{}/{}*'.format(dirname, ds))
+        pattern = '{}/{}*'.format(dirname, ds[:-2])
+        flist = glob.glob(pattern)
+        pattern2 = '{}/{}*'.format(dirname, ds2[:-2])
+        flist.extend(glob.glob(pattern2))
 
-        logit.log("found list of submission files:(%s)" % repr(flist))
+        logit.log("found list of submission files:(%s -> %s)" % (pattern,repr(flist)))
         
         submission_log_format = 0
-        if "{}_{}_{}".format(ds, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
+        if "{}/{}_{}_{}".format(dirname,ds, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
             submission_log_format = 3
-        elif "{}_{}".format(ds, submission.experimenter_creator_obj.username) in flist:
+        if "{}/{}_{}_{}".format(dirname,ds2, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
+            ds = ds2
+            submission_log_format = 3
+        elif "{}/{}_{}".format(dirname,ds, submission.experimenter_creator_obj.username) in flist:
             submission_log_format = 2
-        elif ds in flist:
+        elif "{}/{}_{}".format(dirname,ds2, submission.experimenter_creator_obj.username) in flist:
+            ds = ds2
+            submission_log_format = 2
+        elif "{}/{}".format(dirname,ds) in flist:
+            submission_log_format = 1
+        elif "{}/{}".format(dirname,ds2) in flist:
+            ds = ds2
             submission_log_format = 1
            
         return submission, history, dataset, rmap, smap, ds, submission_log_format
