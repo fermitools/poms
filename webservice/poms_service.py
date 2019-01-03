@@ -545,6 +545,7 @@ class PomsService:
 
 
     @cherrypy.expose
+    @cherrypy.tools.response_headers(headers=[('Content-Language', 'en')])
     @logit.logstartstop
     def campaign_stage_info(self, campaign_stage_id,
                             tmin=None, tmax=None, tdays=None):

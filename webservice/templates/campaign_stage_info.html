@@ -10,7 +10,7 @@ Campaign Stage Info {%include 'help_button.html'%}
 {%endblock%}
 
 {%block subheader%}
-Campaign Stage {{CampaignStage.name}} <span class="ui label">{{CampaignStage.campaign_stage_id}}</span> <br>
+Campaign Stage {{CampaignStage.name}} <span class="ui label">{{CampaignStage.campaign_stage_id}}</span> <br/>
 in Campaign {{CampaignStage.campaign_obj.name}}<span class="ui label">{{CampaignStage.campaign_obj.campaign_id}}</span>
 {%endblock%}
 
@@ -34,7 +34,7 @@ all the time...
 <iframe scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;"  src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=18"frameborder="0"></iframe>
 <iframe  scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=12" frameborder="0"></iframe>
 
-  <br>
+  <br/>
   <span class="info">statistics for last 30 days</span>
 
     <script>
@@ -183,68 +183,68 @@ all the time...
 
    <div class="ui segment raised">
     <h3>Campaign Stage</h3>
-    <b>Name</b>: {{CampaignStage.name}}<br>
-    <b>Id</b>:{{CampaignStage.campaign_stage_id}}<br>
-    <b>Experiment</b>: {{CampaignStage.experiment}}<br>
+    <b>Name</b>: {{CampaignStage.name}}<br/>
+    <b>Id</b>:{{CampaignStage.campaign_stage_id}}<br/>
+    <b>Experiment</b>: {{CampaignStage.experiment}}<br/>
     {%if CampaignStage.dataset.find(',') > 0 %}
-    <b>Split Data</b>: {{CampaignStage.dataset}}<br>
+    <b>Split Data</b>: {{CampaignStage.dataset}}<br/>
     {% else %}
-    <b>Dataset</b>: {{CampaignStage.dataset}}<br>
+    <b>Dataset</b>: {{CampaignStage.dataset}}<br/>
     {% endif %}
-    <b>Software Version</b>: {{CampaignStage.software_version}}<br>
-    <b>VO Role</b>: {{CampaignStage.vo_role}}<br>
+    <b>Software Version</b>: {{CampaignStage.software_version}}<br/>
+    <b>VO Role</b>: {{CampaignStage.vo_role}}<br/>
     {% if CampaignStage.param_overrides %}
-    <b>Param Overrides</b>: [{% for pair in CampaignStage.param_overrides %} <br>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
+    <b>Param Overrides</b>: [{% for pair in CampaignStage.param_overrides %} <br/>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
     {% endif %}
     {% if CampaignStage.test_param_overrides %}
-    <b>Test Param Overrides</b>: [{% for pair in CampaignStage.test_param_overrides %} <br>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
+    <b>Test Param Overrides</b>: [{% for pair in CampaignStage.test_param_overrides %} <br/>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
     {% endif %}
-    <b>Split Type</b>: {{CampaignStage.cs_split_type}}<br>
+    <b>Split Type</b>: {{CampaignStage.cs_split_type}}<br/>
     {# currently unused
-    <b>Split Dimensions</b>: {{CampaignStage.cs_split_dimensions}}<br>
+    <b>Split Dimensions</b>: {{CampaignStage.cs_split_dimensions}}<br/>
     #}
-    <b>Last Split</b>: {{CampaignStage.cs_last_split}} <a href="{{pomspath}}/reset_campaign_split?campaign_stage_id={{CampaignStage.campaign_stage_id}}"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br>
-    <!-- <b>Active</b>: {{CampaignStage.active}} <br> -->
-    <b>Created</b>: {{CampaignStage.created}}<br>
-    <b>Creator</b>: {{Campaign_info.Experimenter.username}}<br>
-    <b>Updated</b>: {{CampaignStage.updated}}<br>
-    <b>Updater</b>: {{CampaignStage.experimenter_updater_obj.username}}<br>
+    <b>Last Split</b>: {{CampaignStage.cs_last_split}} <a href="{{pomspath}}/reset_campaign_split?campaign_stage_id={{CampaignStage.campaign_stage_id}}"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br/>
+    <!-- <b>Active</b>: {{CampaignStage.active}} <br/> -->
+    <b>Created</b>: {{CampaignStage.created}}<br/>
+    <b>Creator</b>: {{Campaign_info.Experimenter.username}}<br/>
+    <b>Updated</b>: {{CampaignStage.updated}}<br/>
+    <b>Updater</b>: {{CampaignStage.experimenter_updater_obj.username}}<br/>
     </div>
 
 
   <div class="ui segment raised ">
     <h3>Job Type</h3>
 
-    <b>Name</b>: {{Campaign_definition_info.JobType.name}}<br>
-    <!--<b>experiment</b>: {{Campaign_definition_info.JobType.experiment}}<br>-->
-    <b>Launch/Setup</b>: {{Campaign_definition_info.JobType.launch_script}}<br>
-    <b>Definition Parameters</b>: [{% for pair in Campaign_definition_info.JobType.definition_parameters %} <br>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
-    <b>Input Files Per Job</b>: {{Campaign_definition_info.JobType.input_files_per_job}}<br>
-    <b>Output Files Per Job</b>: {{Campaign_definition_info.JobType.output_files_per_job}}<br>
-    <b>Output File Patterns</b>: {{Campaign_definition_info.JobType.output_file_patterns}}<br>
-    <b>Creator</b>: {{Campaign_definition_info.Experimenter.username}}<br>
-    <b>Created</b>: {{Campaign_definition_info.JobType.created}}<br>
-    <b>Updater</b>: {{Campaign_definition_info.Experimenter.username}}<br>
-    <b>Updated</b>: {{Campaign_definition_info.JobType.updated}}<br>
+    <b>Name</b>: {{Campaign_definition_info.JobType.name}}<br/>
+    <!--<b>experiment</b>: {{Campaign_definition_info.JobType.experiment}}<br/>-->
+    <b>Launch/Setup</b>: {{Campaign_definition_info.JobType.launch_script}}<br/>
+    <b>Definition Parameters</b>: [{% for pair in Campaign_definition_info.JobType.definition_parameters %} <br/>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
+    <b>Input Files Per Job</b>: {{Campaign_definition_info.JobType.input_files_per_job}}<br/>
+    <b>Output Files Per Job</b>: {{Campaign_definition_info.JobType.output_files_per_job}}<br/>
+    <b>Output File Patterns</b>: {{Campaign_definition_info.JobType.output_file_patterns}}<br/>
+    <b>Creator</b>: {{Campaign_definition_info.Experimenter.username}}<br/>
+    <b>Created</b>: {{Campaign_definition_info.JobType.created}}<br/>
+    <b>Updater</b>: {{Campaign_definition_info.Experimenter.username}}<br/>
+    <b>Updated</b>: {{Campaign_definition_info.JobType.updated}}<br/>
     <b>
     </div>
   </div>
     <div class="ui segment raised">
     <h3>Launch/Setup</h3>
-    <b>Name</b>: {{login_setup_info.LoginSetup.name}}<br>
-    <b>Experiment</b>: {{CampaignStage.experiment}}<br>
-    <b>Launch Host</b>: {{login_setup_info.LoginSetup.launch_host}}<br>
-    <b>Launch Account</b>: {{login_setup_info.LoginSetup.launch_account}}<br>
-    <b>Launch Setup</b>: {{login_setup_info.LoginSetup.launch_setup}}<br>
-    <b>Creator</b>: {{login_setup_info.Experimenter.username}}<br>
-    <b>Created</b>: {{login_setup_info.LoginSetup.created}}<br>
-    <b>Updater</b>: {{login_setup_info.Experimenter.username}}<br>
-    <b>Updated</b>: {{login_setup_info.LoginSetup.updated}}<br>
+    <b>Name</b>: {{login_setup_info.LoginSetup.name}}<br/>
+    <b>Experiment</b>: {{CampaignStage.experiment}}<br/>
+    <b>Launch Host</b>: {{login_setup_info.LoginSetup.launch_host}}<br/>
+    <b>Launch Account</b>: {{login_setup_info.LoginSetup.launch_account}}<br/>
+    <b>Launch Setup</b>: {{login_setup_info.LoginSetup.launch_setup}}<br/>
+    <b>Creator</b>: {{login_setup_info.Experimenter.username}}<br/>
+    <b>Created</b>: {{login_setup_info.LoginSetup.created}}<br/>
+    <b>Updater</b>: {{login_setup_info.Experimenter.username}}<br/>
+    <b>Updated</b>: {{login_setup_info.LoginSetup.updated}}<br/>
     </div>
 
    <div class="ui segment raised">
     <h3>Immediate Dependencies</h3>
-    <br>
+    <br/>
       {{dep_svg|safe}}
   </div>
 
