@@ -69,6 +69,7 @@ class uploader:
             'launch_script':'launch_script',
             'parameters':'def_parameter',
             'output_file_patterns':'output_file_patterns',
+            'recoveries': 'recoveries',
         }
         d=dict(self.cfg.items('job_type %s'%jt))
         print( "I should upload jt %s" % jt)

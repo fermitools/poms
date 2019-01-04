@@ -174,7 +174,7 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
 
 
 def campaign_definition_edit(output_file_patterns, launch_script,
-                             def_parameter=None, pc_username=None, action=None, name=None, experiment=None, test_client=False, configfile=None):
+                             def_parameter=None, pc_username=None, action=None, name=None, experiment=None, recoveries = None, test_client=False, configfile=None):
     # You can not modify the recovery_type from the poms_client (future feature)
     logging.debug("in get launch_jobs test_client = " + repr(test_client))
     method = "campaign_definition_edit"
@@ -182,7 +182,7 @@ def campaign_definition_edit(output_file_patterns, launch_script,
     action = action
     ae_definition_name = name
     experiment = experiment
-
+    ae_definition_recovery = recoveries
     ae_output_file_patterns = output_file_patterns
     ae_launch_script = launch_script
     if launch_script is not None:
@@ -212,6 +212,7 @@ def campaign_definition_edit(output_file_patterns, launch_script,
                                        ae_output_file_patterns=ae_output_file_patterns,
                                        ae_launch_script=ae_launch_script,
                                        ae_definition_parameters=ae_definition_parameters,
+                                       ae_definition_recovery = ae_definition_recovery,
                                        test_client=test_client,
                                        configfile=configfile)
     return "status_code", status_code

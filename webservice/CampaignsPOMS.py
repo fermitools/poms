@@ -381,6 +381,57 @@ class CampaignsPOMS:
             CampaignStage.experiment).all()
         return [r._asdict() for r in data]
 
+    
+    def get_recoveries(self, dbhandle, cid, exp): 
+        '''
+         Build the recoveries dict for job_types cids
+        '''
+        recs = (dbhandle.query(CampaignRecovery)
+                .join(JobType)
+                .options(joinedload(CampaignRecovery.recovery_type))
+                .filter(CampaignRecovery.job_type_id == cid,
+                        JobType.experiment == exp)
+                .order_by(CampaignRecovery.job_type_id,
+                          CampaignRecovery.recovery_order))
+        rec_list = []
+        for rec in recs:
+            if isinstance(rec.param_overrides, str):
+                if rec.param_overrides in ('', '{}', '[]'):
+                    rec.param_overrides = "[]"
+                    rec_vals = [rec.recovery_type.name,
+                                json.loads(rec.param_overrides)]
+            else:
+                rec_vals = [rec.recovery_type.name,
+                            rec.param_overrides]
+
+            # rec_vals=[rec.recovery_type.name,rec.param_overrides]
+            rec_list.append(rec_vals)
+        return rec_list
+   
+    def fixup_recoveries(self, dbhandle, job_type_id, recoveries):
+        '''
+         fixup_recoveries -- factored out so we can use it
+            from either edit endpoint.
+         Given a JSON dump of the recoveries, clean out old
+         recoveriy entries, add new ones.  It probably should
+         check if they're actually different before doing this..
+        '''
+        (dbhandle.query(CampaignRecovery)
+         .filter(CampaignRecovery.job_type_id == job_type_id)
+         .delete(synchronize_session=False))
+        i = 0
+        for rtn in json.loads(recoveries):
+            rect = rtn[0]
+            recpar = rtn[1]
+            rt = (dbhandle.query(RecoveryType)
+                  .filter(RecoveryType.name == rect)
+                  .first())
+            cr = CampaignRecovery(job_type_id=job_type_id,
+                                  recovery_order=i,
+                                  recovery_type=rt,
+                                  param_overrides=recpar)
+            dbhandle.add(cr)
+
     def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
         """
             callback from edit screen/client.
@@ -517,29 +568,9 @@ class CampaignsPOMS:
                           .filter(JobType.job_type_id == job_type_id)
                           .update(columns))
 
-                # now fixup recoveries -- clean out existing ones, and
-                # add listed ones.
-                if pcl_call == 0:
-                    (dbhandle.query(CampaignRecovery)
-                     .filter(CampaignRecovery.job_type_id == job_type_id)
-                     .delete(synchronize_session=False))
-                    i = 0
-                    for rtn in json.loads(recoveries):
-                        rect = rtn[0]
-                        recpar = rtn[1]
-                        rt = (dbhandle.query(RecoveryType)
-                              .filter(RecoveryType.name == rect)
-                              .first())
-                        cr = CampaignRecovery(job_type_id=job_type_id,
-                                              recovery_order=i,
-                                              recovery_type=rt,
-                                              param_overrides=recpar)
-                        dbhandle.add(cr)
+                if recoveries:
+                    self.fixup_recoveries(dbhandle, job_type_id, recoveries)
                     dbhandle.commit()
-                else:
-                    # We need to define later if it is going to be possible to
-                    # modify the recovery type from the client.
-                    pass
 
             except IntegrityError as exc:
                 message = ("Integrity error: "
@@ -622,31 +653,9 @@ class CampaignsPOMS:
                 else:
                     data['authorized'].append(False)
 
-            # Build the recoveries for each campaign.
             recs_dict = {}
             for cid in cids:
-                recs = (dbhandle.query(CampaignRecovery)
-                        .join(JobType)
-                        .options(joinedload(CampaignRecovery.recovery_type))
-                        .filter(CampaignRecovery.job_type_id == cid,
-                                JobType.experiment == exp)
-                        .order_by(CampaignRecovery.job_type_id,
-                                  CampaignRecovery.recovery_order))
-                rec_list = deque()
-                for rec in recs:
-                    if isinstance(rec.param_overrides, str):
-                        if rec.param_overrides in ('', '{}', '[]'):
-                            rec.param_overrides = "[]"
-                            rec_vals = [rec.recovery_type.name,
-                                        json.loads(rec.param_overrides)]
-                    else:
-                        rec_vals = [rec.recovery_type.name,
-                                    rec.param_overrides]
-
-                    # rec_vals=[rec.recovery_type.name,rec.param_overrides]
-                    rec_list.append(rec_vals)
-                recs_dict[cid] = json.dumps(list(rec_list))
-
+                recs_dict[cid] = json.dumps(self.get_recoveries(dbhandle, cid, exp))
             data['recoveries'] = recs_dict
             data['rtypes'] = (
                 dbhandle.query(RecoveryType.name, RecoveryType.description)
@@ -1247,8 +1256,8 @@ class CampaignsPOMS:
             res.append("launch_script=%s" % j_t.launch_script)
             res.append("parameters=%s" % json.dumps(j_t.definition_parameters))
             res.append("output_file_patterns=%s" % j_t.output_file_patterns)
+            res.append("recoveries = %s" % json.dumps(self.get_recoveries(dbhandle, j_t.job_type_id, j_t.experiment)))
             res.append("")
-            # still need: recovery launches
 
         # still need dependencies
         for cid in dmap:
@@ -2253,8 +2262,8 @@ class CampaignsPOMS:
                 if eid.startswith("job_type "):
                     definition_parameters = form.get('parameters')
                     if definition_parameters:
-                        definition_parameters = json.loads(
-                            definition_parameters)
+                        definition_parameters = json.loads(definition_parameters)
+
                     job_type = JobType(name=name,
                                        experiment=exp,
                                        # input_files_per_job=input_files_per_job,
@@ -2265,6 +2274,12 @@ class CampaignsPOMS:
                                        definition_parameters=definition_parameters,
                                        creator=user_id, created=datetime.now(utc), creator_role=role)
                     dbhandle.add(job_type)
+                    dbhandle.commit()
+                    recoveries = form.get('recoveries')
+                    if recoveries:
+                        self.fixup_recoveries(dbhandle, job_type.job_type_id, recoveries)
+                    dbhandle.commit()
+
                 elif eid.startswith("login_setup "):
                     login_setup = LoginSetup(name=name,
                                              experiment=exp,
