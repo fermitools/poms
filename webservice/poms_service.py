@@ -234,7 +234,7 @@ class PomsService:
     @logit.logstartstop
     def launch_template_edit(self, *args, **kwargs):
         # v3_2_0 backward compatabilty
-        self.login_setup_edit(args, kwargs)
+        return self.login_setup_edit(*args, **kwargs)
 
 # h4. login_setup_edit
     @cherrypy.expose

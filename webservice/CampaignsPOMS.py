@@ -499,23 +499,18 @@ class CampaignsPOMS:
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
                 recoveries = kwargs.pop('ae_definition_recovery', "[]")
+
                 # Getting the info that was not passed by the poms_client
                 # arguments
-                if input_files_per_job in (None, ""):
-                    input_files_per_job = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().input_files_per_job
-                if output_files_per_job in (None, ""):
-                    output_files_per_job = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().output_files_per_job
+
                 if output_file_patterns in (None, ""):
-                    output_file_patterns = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().output_file_patterns
+                    output_file_patterns = '%'
+
                 if launch_script in (None, ""):
-                    launch_script = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().launch_script
+                    raise LogicError("launch_script is required")
+
                 if definition_parameters in (None, ""):
-                    definition_parameters = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().definition_parameters
+                    definition_parameters = []
             else:
                 experimenter_id = kwargs.pop('experimenter_id')
                 job_type_id = kwargs.pop('ae_campaign_definition_id')
