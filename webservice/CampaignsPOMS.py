@@ -54,7 +54,7 @@ class CampaignsPOMS:
         """
         self.poms_service = ps
 
-    def login_setup_edit(self, dbhandle, seshandle, **kwargs):
+    def login_setup_edit(self, dbhandle, seshandle, *args, **kwargs):
         """
             callback to actually change launch templates from edit screen
         """
