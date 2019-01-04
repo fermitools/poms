@@ -66,6 +66,7 @@ class CampaignsPOMS:
                                   .filter(~Experiment.experiment.in_(['root', 'public']))
                                   .order_by(Experiment.experiment))
         action = kwargs.pop('action', None)
+        logit.log("login_setup_edit: action is: %s" % action)
         exp = seshandle('experimenter').session_experiment
         experimenter = seshandle('experimenter')
         se_role = experimenter.session_role
@@ -88,6 +89,7 @@ class CampaignsPOMS:
                 dbhandle.rollback()
 
         if action in ('add', 'edit'):
+            logit.log('login_setup_edit: add,edit case')
             if pcl_call == 1:
                 ae_launch_name = kwargs.pop('ae_launch_name')
                 if isinstance(ae_launch_name, str):
@@ -112,21 +114,12 @@ class CampaignsPOMS:
 
                 ae_launch_account = kwargs.pop('ae_launch_account', None)
                 ae_launch_setup = kwargs.pop('ae_launch_setup', None)
+
                 if ae_launch_host in [None, ""]:
-                    ae_launch_host = (dbhandle.query(LoginSetup)
-                                      .filter(LoginSetup.experiment == exp)
-                                      .filter(LoginSetup.name == name)
-                                      .first()).launch_host
+                    raise LogicError("launch host cannot be empty")
                 if ae_launch_account in [None, ""]:
-                    ae_launch_account = (dbhandle.query(LoginSetup)
-                                         .filter(LoginSetup.experiment == exp)
-                                         .filter(LoginSetup.name == name)
-                                         .first()).launch_account
-                if ae_launch_setup in [None, ""]:
-                    ae_launch_account = (dbhandle.query(LoginSetup)
-                                         .filter(LoginSetup.experiment == exp)
-                                         .filter(LoginSetup.name == name)
-                                         .first()).launch_setup
+                    raise LogicError("launch account cannot be empty")
+
             else:
                 ae_launch_name = kwargs.pop('ae_launch_name')
                 if isinstance(ae_launch_name, str):
@@ -142,6 +135,7 @@ class CampaignsPOMS:
 
             try:
                 if action == 'add':
+                    logit.log("adding new LoginSetup...")
                     role = seshandle('experimenter').session_role
                     if role in ('root', 'coordinator'):
                         raise cherrypy.HTTPError(
@@ -158,6 +152,7 @@ class CampaignsPOMS:
                     dbhandle.commit()
                     data['login_setup_id'] = template.login_setup_id
                 else:
+                    logit.log("editing existing LoginSetup...")
                     columns = {
                         "name": ae_launch_name,
                         "launch_host": ae_launch_host,
@@ -177,16 +172,19 @@ class CampaignsPOMS:
                            "already exists in database.")
                 logit.log(' '.join(exc.args))
                 dbhandle.rollback()
+                raise
             except SQLAlchemyError as exc:
                 message = ("SQLAlchemyError: "
                            "Please report this to the administrator. "
                            "Message: %s" % ' '.join(exc.args))
                 logit.log(' '.join(exc.args))
                 dbhandle.rollback()
+                raise
             except BaseException:
                 message = 'unexpected error ! \n' + traceback.format_exc(4)
                 logit.log(' '.join(message))
                 dbhandle.rollback()
+                raise
 
         # Find templates
         if exp:  # cuz the default is find
@@ -503,23 +501,18 @@ class CampaignsPOMS:
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
                 recoveries = kwargs.pop('ae_definition_recovery', "[]")
+
                 # Getting the info that was not passed by the poms_client
                 # arguments
-                if input_files_per_job in (None, ""):
-                    input_files_per_job = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().input_files_per_job
-                if output_files_per_job in (None, ""):
-                    output_files_per_job = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().output_files_per_job
+
                 if output_file_patterns in (None, ""):
-                    output_file_patterns = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().output_file_patterns
+                    output_file_patterns = '%'
+
                 if launch_script in (None, ""):
-                    launch_script = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().launch_script
+                    raise LogicError("launch_script is required")
+
                 if definition_parameters in (None, ""):
-                    definition_parameters = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().definition_parameters
+                    definition_parameters = []
             else:
                 experimenter_id = kwargs.pop('experimenter_id')
                 job_type_id = kwargs.pop('ae_campaign_definition_id')
