@@ -239,9 +239,9 @@ class PomsService:
 # h4. login_setup_edit
     @cherrypy.expose
     @logit.logstartstop
-    def login_setup_edit(self, *args, **kwargs):
+    def login_setup_edit(self, **kwargs):
         data = self.campaignsPOMS.login_setup_edit(
-            cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+            cherrypy.request.db, cherrypy.session.get, **kwargs)
 
         if kwargs.get('test_template'):
             raise cherrypy.HTTPRedirect(

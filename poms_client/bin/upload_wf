@@ -114,6 +114,7 @@ class uploader:
     def upload_stage(self,st, testflag = None, action = 'add', campaign_id = None):
         field_map = {
             'dataset': 'dataset',
+            'dataset_or_split_data': 'dataset',
             'software_version': 'ae_software_version',
             'vo_role': 'vo_role',
             'cs_split_type': 'ae_split_type',
