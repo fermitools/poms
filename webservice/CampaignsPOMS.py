@@ -134,6 +134,9 @@ class CampaignsPOMS:
                 ae_launch_id = kwargs.pop('ae_launch_id')
                 experimenter_id = kwargs.pop('experimenter_id')
                 ae_launch_host = kwargs.pop('ae_launch_host')
+                if se_role == 'analysis' and  ae_launch_host not in ('pomsgpvm01.fnal.gov','fermicloud045.fnal.gov','pomsint.fnal.gov'):
+                    raise LogicError("Invalid analysis launch host")
+
                 ae_launch_account = kwargs.pop('ae_launch_account')
                 ae_launch_setup = kwargs.pop('ae_launch_setup')
 
@@ -143,8 +146,7 @@ class CampaignsPOMS:
                     if role in ('root', 'coordinator'):
                         raise cherrypy.HTTPError(
                             status=401, message='You are not authorized to add launch template.')
-                    else:
-                        template = LoginSetup(experiment=exp,
+                    template = LoginSetup(experiment=exp,
                                               name=ae_launch_name,
                                               launch_host=ae_launch_host,
                                               launch_account=ae_launch_account,
@@ -797,7 +799,7 @@ class CampaignsPOMS:
                                   .filter(LoginSetup.name == launch_name)
                                   .first().login_setup_id)
                 job_type_id = dbhandle.query(JobType).filter(
-                    JobType.name == campaign_definition_name).first().job_type_id
+                    JobType.name == campaign_definition_name, JobType.experiment == experiment).first().job_type_id
                 if action == 'edit':
                     c_s = (dbhandle.query(CampaignStage).filter(CampaignStage.name == name,
                                                                 CampaignStage.experiment == exp,

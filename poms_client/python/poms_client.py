@@ -113,6 +113,9 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
                     method=method,
                     action=action,
                     ae_launch_name=ae_launch_name,
+                    ae_launch_host = ae_launch_host,
+                    ae_launch_account = ae_launch_account,
+                    ae_launch_setup = ae_launch_setup,
                     experiment=experiment,
                     test_client=test_client,
                     configfile=configfile)
@@ -131,7 +134,6 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
                     action=action,
                     ae_launch_name=ae_launch_name,
                     experiment=experiment,
-
                     ae_launch_host=ae_launch_host,
                     ae_launch_account=ae_launch_account,
                     ae_launch_setup=ae_launch_setup,
