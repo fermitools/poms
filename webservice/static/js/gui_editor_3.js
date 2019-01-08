@@ -1557,7 +1557,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     res.push('</h3>');
     for (const k of klist) {
         // k = klist[i];
-        const ro = k.includes("param") ? "disabled" : "";
+        const ro = (k.includes("param")||k=="recoveries") ? "disabled" : "";
         if (k.startsWith('campaign_stage'))      // Hack to hide this from dependency form
             continue;
         if (vdict[k] == null) {
@@ -1581,6 +1581,10 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         if (k.includes('param')) {
             // res.push(`<button type="button" onclick="json_field_editor.start('${this.get_input_tag(k)}')">Edit</button>`);
             res.push(`<button type="button" onclick="json_field_editor.start(this.previousElementSibling.id)">Edit</button>`);
+        }
+        if (k == 'recoveries') {
+            res.push(`<button type="button" onclick="json_field_editor.recovery_start(this.previousElementSibling.id)">Edit</button>`);
+            
         }
         res.push('<br>');
     }
