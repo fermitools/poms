@@ -80,7 +80,7 @@ json_field_editor.recovery_save = function(fid) {
     /*
      * extract values from the form back in to destination input
      */
-    var j, e, i, si, sid, did, se, de, saveid, savee; 
+    var j, e, i, si, sid, did, se, de, saveid, savee, dest; 
     j = []
     for ( i = 0; i < 10 ; i++) {
         si = i.toString();
@@ -95,9 +95,14 @@ json_field_editor.recovery_save = function(fid) {
         }
     }
     saveid = fid.substr(14);
-    console.log("got saveid " + saveid) 
+    console.log("updating saveid " + saveid) 
     savee = document.getElementById(saveid);
     savee.value = JSON.stringify(j)
+    dest = document.getElementById(saveid+'_text')
+    if (dest) {
+        dest.value = JSON.stringify(j)
+        console.log(["also updating", saveid+'_text', dest, j])
+    }
     json_field_editor.cancel(fid)
 }
 
