@@ -153,6 +153,9 @@ class TaskPOMS:
 
         completed_sids = [x[0] for x in cpairs]
 
+        # lock them all before updating...
+        ll = dbhandle.query(Submission).filter(
+            Submission.submission_id.in_(completed_sids)).with_for_update(read=True).all()
         res.append(
             "Completed submissions_ids: %s" %
             repr(
@@ -588,6 +591,7 @@ class TaskPOMS:
 
     def update_submission(self, dbhandle, submission_id, jobsub_job_id,
                           pct_complete=None, status=None, project=None):
+
         s = dbhandle.query(Submission).filter(
             Submission.submission_id == submission_id).with_for_update(read=True).first()
         if not s:
