@@ -476,6 +476,7 @@ class CampaignsPOMS:
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
+            logit.log("campaign_definition_edit: add or exit case")
             job_type_id = None
             definition_parameters = kwargs.pop('ae_definition_parameters')
             if definition_parameters:
@@ -747,6 +748,7 @@ class CampaignsPOMS:
                     raise
 
         elif action in ('add', 'edit'):
+            logit.log("campaign_stage_edit: add or edit case")
             campaign_id = kwargs.pop('ae_campaign_name')
             name = kwargs.pop('ae_stage_name')
             if isinstance(name, str):
@@ -815,6 +817,10 @@ class CampaignsPOMS:
                 depends = json.loads(depends)
             else:
                 depends = {"campaign_stages": [], "file_patterns": []}
+
+            # backwards combatability
+            if 'campaigns' in depends and not ('campaign_stages' in depends):
+                depends['campaign_stages'] = depends['campaigns']
 
             # fail if they're setting up a trivial infinite loop
             if (split_type in [None, 'None', 'none', 'Draining'] and
