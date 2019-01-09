@@ -387,12 +387,11 @@ class CampaignsPOMS:
          Build the recoveries dict for job_types cids
         '''
         recs = (dbhandle.query(CampaignRecovery)
-                .join(JobType,JobType.job_type_id == CampaignRecovery.job_type_id)
-                .options(joinedload(CampaignRecovery.recovery_type))
-                .filter(CampaignRecovery.job_type_id == cid,
-                        JobType.experiment == exp)
-                .order_by(CampaignRecovery.job_type_id,
-                          CampaignRecovery.recovery_order))
+                .filter(CampaignRecovery.job_type_id == cid)
+                .order_by(CampaignRecovery.job_type_id, CampaignRecovery.recovery_order)
+                .all())
+
+        logit.log("get_recoveries(%d) got %d items" %(cid, len(recs)))
         rec_list = []
         for rec in recs:
             logit.log("get_recoveries(%d) -- rec %s" %(cid, repr(rec)))
@@ -404,7 +403,6 @@ class CampaignsPOMS:
             else:
                 rec_vals = [rec.recovery_type.name, rec.param_overrides]
 
-            # rec_vals=[rec.recovery_type.name,rec.param_overrides]
             rec_list.append(rec_vals)
 
         logit.log("get_recoveries(%d) returning %s" %(cid, repr(rec_list)))
