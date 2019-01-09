@@ -387,7 +387,7 @@ class CampaignsPOMS:
          Build the recoveries dict for job_types cids
         '''
         recs = (dbhandle.query(CampaignRecovery)
-                .join(JobType)
+                .join(JobType,JobType.job_type_id == CampaignRecovery.job_type_id)
                 .options(joinedload(CampaignRecovery.recovery_type))
                 .filter(CampaignRecovery.job_type_id == cid,
                         JobType.experiment == exp)
@@ -395,17 +395,19 @@ class CampaignsPOMS:
                           CampaignRecovery.recovery_order))
         rec_list = []
         for rec in recs:
+            logit.log("get_recoveries(%d) -- rec %s" %(cid, repr(rec)))
             if isinstance(rec.param_overrides, str):
+                logit.log("get_recoveries(%d) -- saw string param_overrides" % cid)
                 if rec.param_overrides in ('', '{}', '[]'):
                     rec.param_overrides = "[]"
-                    rec_vals = [rec.recovery_type.name,
-                                json.loads(rec.param_overrides)]
+                rec_vals = [rec.recovery_type.name, json.loads(rec.param_overrides)]
             else:
-                rec_vals = [rec.recovery_type.name,
-                            rec.param_overrides]
+                rec_vals = [rec.recovery_type.name, rec.param_overrides]
 
             # rec_vals=[rec.recovery_type.name,rec.param_overrides]
             rec_list.append(rec_vals)
+
+        logit.log("get_recoveries(%d) returning %s" %(cid, repr(rec_list)))
         return rec_list
    
     def fixup_recoveries(self, dbhandle, job_type_id, recoveries):
@@ -430,6 +432,7 @@ class CampaignsPOMS:
                                   recovery_order=i,
                                   recovery_type=rt,
                                   param_overrides=recpar)
+            i = i + 1
             dbhandle.add(cr)
 
     def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
@@ -792,7 +795,7 @@ class CampaignsPOMS:
                                   .filter(LoginSetup.name == launch_name)
                                   .first().login_setup_id)
                 job_type_id = dbhandle.query(JobType).filter(
-                    JobType.name == campaign_definition_name, JobType.experiment == experiment).first().job_type_id
+                    JobType.name == campaign_definition_name, JobType.experiment == exp).first().job_type_id
                 if action == 'edit':
                     c_s = (dbhandle.query(CampaignStage).filter(CampaignStage.name == name,
                                                                 CampaignStage.experiment == exp,
