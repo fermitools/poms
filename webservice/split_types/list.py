@@ -9,6 +9,9 @@ class list:
         self.cs = cs
         self.list = cs.dataset.split(',')
 
+    def params(self):
+        return []
+
     def peek(self):
         if self.cs.cs_last_split == None:
             self.cs.cs_last_split = 0

@@ -13,6 +13,9 @@ class drainingn:
         self.dataset = cs.dataset
         self.n = int(cs.cs_split_type[10:].strip(')'))
 
+    def params(self):
+        return ["nfiles"]
+
     def peek(self):
         if not self.cs.cs_last_split:
             self.cs.cs_last_split = 0

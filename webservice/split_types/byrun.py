@@ -18,6 +18,9 @@ class byrun:
 
         self.samhandle = samhandle
 
+    def params(self):
+        return ["low=", "high="]
+
     def peek(self):
         if not self.cs.cs_last_split:
             self.cs.cs_last_split = self.low

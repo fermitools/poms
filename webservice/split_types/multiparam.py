@@ -22,6 +22,9 @@ class multiparam:
             for l1 in self.list:
                 self.dims.append(len(l1))
 
+    def params(self):
+        return []
+
     def peek(self):
         if self.cs.cs_last_split == None:
             self.cs.cs_last_split = 0

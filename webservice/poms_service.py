@@ -978,6 +978,45 @@ class PomsService:
                                                cherrypy.response.status,
                                                cherrypy.config.get('base_uploads_dir')
                                                )
+# h4. launch_campaign
+    @cherrypy.expose
+    @logit.logstartstop
+    def launch_campaign(self, campaign_id=None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
+                    experiment=None, launcher=None, test_launch=False, output_commands=None):
+        if cherrypy.session.get('experimenter').username and (
+                'poms' != cherrypy.session.get('experimenter').username or launcher == ''):
+            launch_user = cherrypy.session.get('experimenter').experimenter_id
+        else:
+            launch_user = launcher
+
+        logit.log( "calling launch_campaign with campaign_id='%s'" % campaign_id)
+
+        vals = self.campaignPOMS.launch_campaign(cherrypy.request.db,
+                                         cherrypy.config.get,
+                                         cherrypy.request.headers.get,
+                                         cherrypy.session.get,
+                                         cherrypy.request.samweb_lite,
+                                         cherrypy.HTTPError,
+                                         cherrypy.config.get('base_uploads_dir'),
+                                         campaign_stage_id,
+                                         launch_user,
+                                         experiment=experiment,
+                                         test_launch=test_launch,
+                                         output_commands=output_commands)
+
+        logit.log("Got vals: %s" % repr(vals))
+
+        if output_commands:
+            cherrypy.response.headers['Content-Type'] = "text/plain"
+            return vals
+
+        lcmd, cs, campaign_stage_id, outdir, outfile = vals
+        if lcmd == "":
+            return "Launches held, job queued..."
+        else:
+            raise cherrypy.HTTPRedirect(
+                    "%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (self.path, campaign_stage_id, os.path.basename(outfile)))
+
 
 # h4. launch_jobs
     @cherrypy.expose

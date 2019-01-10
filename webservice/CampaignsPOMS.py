@@ -381,6 +381,30 @@ class CampaignsPOMS:
             CampaignStage.experiment).all()
         return [r._asdict() for r in data]
 
+    def launch_campaign(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
+                    err_res, basedir, campaign_id, launcher, dataset_override=None, parent_submission_id=None,
+                    param_overrides=None, test_login_setup=None, experiment=None, test_launch=False, output_commands=False):
+
+        logit.log("Entering launch_campaign(...)")
+
+        # subquery to count dependencies
+        subq = (dbhandle.query(func.count(CampaignDependency.campaign_dependency_id))
+               .filter(CampaignDependency.provides_campaign_stage_id == CampaignStage.campaign_stage_id)
+               .subquery())
+        # stages to launch are those which don't depend on others
+        stages = (dbhandle.query(CampaignStage.campaign_stage_id)
+                 .filter(CampaignStage.campaign_id == campaign_id)
+                 .filter(subq == 0)
+                 .all())
+
+        logit.log("launch_campaign: got %d stages" % len(stages))
+
+        if len(stages) == 1:
+            return self.poms_service.taskPOMS.launch_jobs( dbhandle, getconfig, gethead, seshandle_get, samhandle,
+                    err_res, basedir, stages[0], launcher, dataset_override, parent_submission_id,
+                    param_overrides, test_login_setup, experiment, test_launch, output_commands)
+        else:
+            raise err_res(402, "Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
     
     def get_recoveries(self, dbhandle, cid, exp): 
         '''
@@ -2184,6 +2208,8 @@ class CampaignsPOMS:
                 self.cs_split_type = cs_split_type
 
         modmap = {}
+        docmap = {}
+        parammap = {}
         rlist = []
 
         # make the import set POMS_DIR..
@@ -2209,13 +2235,26 @@ class CampaignsPOMS:
             split_class = getattr(mod, modname)
             inst = split_class(fake_cs, samhandle, dbhandle)
             poptxt = inst.edit_popup()
+
+
             if poptxt != 'null':
-                modmap[modname] = '%s_edit'
+                modmap[modname] = '%s_edit_popup' % modname
                 rlist.append(poptxt)
             else:
                 modmap[modname] = None
+           
+            description = split_class.__doc__
+            docmap[modname] = description
+            parammap[modname] = inst.params()
+
         rlist.append('split_type_edit_map =')
-        rlist.append(json.dumps(modmap))
+        rlist.append(json.dumps(modmap).replace('",','",\n').replace('null,','null,\n'))
+        rlist.append(';')
+        rlist.append('split_type_doc_map =')
+        rlist.append(json.dumps(docmap).replace('",','",\n'))
+        rlist.append(';')
+        rlist.append('split_type_param_map =')
+        rlist.append(json.dumps(parammap).replace(',',',\n'))
         rlist.append(';')
         return '\n'.join(rlist)
 

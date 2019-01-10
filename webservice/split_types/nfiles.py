@@ -14,6 +14,9 @@ class nfiles:
         except:
             raise SyntaxError("unable to parse integer parameter from '%s'" % cs.cs_split_type)
 
+    def params(self):
+        return ["n"]
+
     def peek(self):
         if not self.cs.cs_last_split:
             self.cs.cs_last_split = 0
