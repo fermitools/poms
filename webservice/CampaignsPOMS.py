@@ -2252,7 +2252,7 @@ class CampaignsPOMS:
             parammap[modname] = inst.params()
 
         rlist.append('split_type_edit_map =')
-        rlist.append(json.dumps(modmap).replace('",','",\n').replace('null,','null,\n').replace('": "','": ').replace('",',','))
+        rlist.append(json.dumps(modmap).replace('",','",\n').replace('null,','null,\n').replace('": "','": ').replace('",',',').replace('"}','}'))
         rlist.append(';')
         rlist.append('split_type_doc_map =')
         rlist.append(json.dumps(docmap).replace('",','",\n'))
