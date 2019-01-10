@@ -71,36 +71,41 @@ class multiparam:
             hang_onto = e.parentNode;
             fid = 'edit_form_' + id;
             res = [];
-            ts = JSON.parse(e.value)
-            res.push('<input type="hidden" id="edit_ncolumns'+id+'" value="'+str(ts.length)+'">')
+            if (e.value[0] == '[') {
+                ts = JSON.parse(e.value)
+            } else {
+                ts = [ [], []]
+            }
+            res.push('<input type="hidden" id="edit_ncolumns_' + id + '" value="' + ts.length.toString() + '">');
             for (i=0; i< ts.length; i++) {
-                res.push('<textarea id="t' + str(i) + '_' + fid +'">')
+                res.push('<textarea id="t' + i.toString() + '_' + fid +'">')
                 for(j = 0; j < ts[i].length; j++) {
                     res.push(ts[i][j])
                 }
                 res.push('</textarea>')
             }
             // we need a way to add more columns....
-            res.push('<button type="button" onclick="multiparam_edit_popup.save(\''+id+'\')">Save</button>')
-            res.push('<button type="button" onclick="multiparam_edit_popup.cancel(\''+id+'\')">Cancel</button>')
+            res.push('<button type="button" onclick="multiparam_edit_popup.save('+ "'" +id+ "'" + ')">Save</button>')
+            res.push('<button type="button" onclick="multiparam_edit_popup.cancel('+ "'" +id+ "'" + ')">Cancel</button>')
             var myform = document.createElement("FORM")
             myform.className = "popup_form_json"
             myform.style.top = r.bottom
             myform.style.right = r.right
             myform.style.position = 'absolute'
             myform.id = fid
-            myform.innerHTML += res.join('\n');
+            myform.innerHTML += res.join('\\n');
             hang_onto.appendChild(myform)
         }
         multiparam_edit_popup.save = function( id ) {
             var ta, e;
             console.log('in save('+id+'), starting...')
             nce = document.getElementById('edit_ncolumns_' + id)
-            ncols = nce.value
+            ncols = parseInt(nce.value, 10)
             res = []
             for (i = 0; i< ncols ; i++ ) {
-                ta = document.getElementById( 't'+str(i)+'_edit_form_' + id )
-                res.append(ta.value.split(\n))
+                console.log("fetching box " + i.toString() )
+                ta = document.getElementById( 't'+i.toString()+'_edit_form_' + id )
+                res.push(ta.value.split('\\n'))
             }
             e = document.getElementById(id)
             e.value = JSON.stringify(res)
@@ -110,8 +115,8 @@ class multiparam:
             nce = document.getElementById('edit_ncolumns_' + id)
             ncols = nce.value
             newbox = document.createElement("TEXTAREA")
-            newbox.id = 't' + str(ncols) + '_editform_' + id
-            nce.parentNode.appendChild(newbox)
+            newbox.id = 't' + ncols.toString() + '_editform_' + id
+            nce.parentNode.push(newbox)
             nce.value = ncols + 1
         }
         multiparam_edit_popup.cancel = function( id ) {

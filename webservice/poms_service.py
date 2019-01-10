@@ -991,14 +991,14 @@ class PomsService:
 
         logit.log( "calling launch_campaign with campaign_id='%s'" % campaign_id)
 
-        vals = self.campaignPOMS.launch_campaign(cherrypy.request.db,
+        vals = self.campaignsPOMS.launch_campaign(cherrypy.request.db,
                                          cherrypy.config.get,
                                          cherrypy.request.headers.get,
                                          cherrypy.session.get,
                                          cherrypy.request.samweb_lite,
                                          cherrypy.HTTPError,
                                          cherrypy.config.get('base_uploads_dir'),
-                                         campaign_stage_id,
+                                         campaign_id,
                                          launch_user,
                                          experiment=experiment,
                                          test_launch=test_launch,

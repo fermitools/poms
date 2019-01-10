@@ -388,7 +388,7 @@ class CampaignsPOMS:
         logit.log("Entering launch_campaign(...)")
 
         # subquery to count dependencies
-        subq = (dbhandle.query(func.count(CampaignDependency.campaign_dependency_id))
+        subq = (dbhandle.query(func.count(CampaignDependency.campaign_dep_id))
                .filter(CampaignDependency.provides_campaign_stage_id == CampaignStage.campaign_stage_id)
                .subquery())
         # stages to launch are those which don't depend on others
@@ -404,7 +404,7 @@ class CampaignsPOMS:
                     err_res, basedir, stages[0], launcher, dataset_override, parent_submission_id,
                     param_overrides, test_login_setup, experiment, test_launch, output_commands)
         else:
-            raise err_res(402, "Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
+            raise err_res(429, "Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
     
     def get_recoveries(self, dbhandle, cid, exp): 
         '''
@@ -2212,6 +2212,10 @@ class CampaignsPOMS:
         parammap = {}
         rlist = []
 
+        modmap['None'] = None
+        docmap['None'] = "No splitting is done"
+        parammap['None'] = []
+
         # make the import set POMS_DIR..
         importlib.import_module('poms.webservice')
 
@@ -2248,7 +2252,7 @@ class CampaignsPOMS:
             parammap[modname] = inst.params()
 
         rlist.append('split_type_edit_map =')
-        rlist.append(json.dumps(modmap).replace('",','",\n').replace('null,','null,\n'))
+        rlist.append(json.dumps(modmap).replace('",','",\n').replace('null,','null,\n').replace('": "','": ').replace('",',','))
         rlist.append(';')
         rlist.append('split_type_doc_map =')
         rlist.append(json.dumps(docmap).replace('",','",\n'))

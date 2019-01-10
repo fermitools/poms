@@ -7,6 +7,8 @@
 {%block title%}
 POMS
 <script src="{{pomspath}}/static/js/json_field_editor.js"></script>
+<script src="{{pomspath}}/static/js/split_type_picker.js"></script>
+<script src="{{pomspath}}/split_type_javascript"></script>
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/json_field_editor.css">
 {%endblock%}
 
@@ -200,10 +202,13 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         <div class="field">
             <label>Dataset or Split Data {{ show_hint('#Dataset', 'Dataset name') }}</label>
             <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset"></input>
+        
+            <i class="small edit link blue icon" onclick="split_type_picker.custom_edit('ae_split_type','ae_dataset')"></i>
         </div>
         <div class="field">
             <label>(Dataset) Split Type {{ show_hint('#Dataset-Split-Type', 'Set type') }}</label>
             <input type="text" id="ae_split_type" name="ae_split_type">
+            <i class="small edit link blue icon" onclick="split_type_picker.start('ae_split_type')"></i>
         </div>
       </div>
 

@@ -53,9 +53,10 @@ Campaigns {%include 'help_button.html'%}
                 <th>Campaign Name</th>
                 <th>id</th>
                 <th>Active</th>
-                <th>Submissions<br>Running</th>
+                <th>Submis-<br>sions<br>Running</th>
                 <th data-sorter="false" data-filter="false">Submission<br>History</th>
-                <th data-sorter="false" data-filter="false">Dependencies</th>
+                <th data-sorter="false" data-filter="false">Launch</th>
+                <th data-sorter="false" data-filter="false">Depend-<br>encies</th>
                 <th data-sorter="false" data-filter="false">GUI Editor</th>
                 <th data-sorter="false" data-filter="false">Clone<br>Campaign</th>
                 <th data-sorter="false" data-filter="false">.ini File</th>
@@ -80,6 +81,13 @@ Campaigns {%include 'help_button.html'%}
                     <a href="{{pomspath}}/campaign_stage_submissions?campaign_name={{s.name}}&stage_name=*&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
                         <button type="button">
                         <i class="chart line icon"></i>
+                        </button>
+                    </a>
+                </td>
+                <td>
+                    <a href="{{pomspath}}/launch_campaign?campaign_id={{s.campaign_id}}}">
+                        <button type="button">
+                        <i class="chart rocket icon"></i>
                         </button>
                     </a>
                 </td>
