@@ -156,6 +156,18 @@ class TaskPOMS:
         # lock them all before updating...
         ll = dbhandle.query(Submission).filter(
             Submission.submission_id.in_(completed_sids)).with_for_update(read=True).all()
+        # now find the ones that are still completed now that we have the lock
+        cpairs = (dbhandle.query(
+                    SubmissionHistory.submission_id,
+                    func.max(SubmissionHistory.status_id).label('maxstat'))
+                  .filter(SubmissionHistory.submission_id.in_(completed_sids))
+                  .filter(SubmissionHistory.created > datetime.now(utc) - timedelta( days=4))
+                  .group_by(SubmissionHistory.submission_id)
+                  .having(func.max(SubmissionHistory.status_id) == self.status_Completed)
+                  .all())
+
+        completed_sids = [x[0] for x in cpairs]
+
         res.append(
             "Completed submissions_ids: %s" %
             repr(

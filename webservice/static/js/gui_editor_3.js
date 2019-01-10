@@ -1105,6 +1105,12 @@ gui_editor.prototype.draw_state = function () {
     // const title = "<ul><li>Click to select</li><li>Double click to open</li><li>Right click to add stages</li></ul>";
     // let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
     let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.replace(/.*? /, ''));
+
+    // it seems sometimes we got here with campaign_defaults not filled in yet(?) -- mengel
+    if (this.state.campaign_defaults == undefined) {
+       this.state.campaign_defaults = {}
+       this.state.campaign_defaults.job_type = 'unknown'
+    }
     let node_list = node_labels.map(x => ({id:x, label:x, level: this.getdepth(x, 1), group: this.state[`campaign_stage ${x}`].job_type || this.state.campaign_defaults.job_type}));
     //VP~ this.nodes = new vis.DataSet([{id: 'Default Values', label: this.state.campaign.name,
     this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`,
