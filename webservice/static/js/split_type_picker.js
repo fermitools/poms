@@ -5,6 +5,7 @@ function split_type_picker() {
 
 split_type_picker.custom_edit = function(split_type_id, dataset_id) {
     var e_sp, e_ds, current_val, current_type, parenpos;
+    console.log(" custom_edit( " + split_type_id + "," + dataset_id )
     e_sp = document.getElementById(split_type_id)
     current_val = e_sp.value;
     parenpos = current_val.indexOf("(");
@@ -76,6 +77,9 @@ split_type_picker.start = function(id) {
        rlist.push('</div>')
        rlist.push('<div class="data">')
        rlist.push( '<h4>' + split_type + ' parameters:</h4>');
+       if (split_type_param_map[split_type].length == 0) {
+          rlist.push("<i>None</i>")
+       }
        for (i in split_type_param_map[split_type]) {
            param = split_type_param_map[split_type][i]
            if ( param[param.length-1] == '=') {
