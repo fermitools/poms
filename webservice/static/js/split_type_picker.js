@@ -51,8 +51,8 @@ split_type_picker.start = function(id) {
            found = true
        }
     }
-    if (! found){
-        split_type = 'None'
+    if (!found){
+        current_type = 'None'
     }
 
     for(split_type in split_type_param_map) {

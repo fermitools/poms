@@ -1,8 +1,8 @@
 class byrun:
     """
-       This type, when filled out as mod(n) or mod_n for some integer
-       n, will slice the dataset into n parts using the stride/offset
-       expressions.
+       This type, when filled out as byrun(low=2,high=4) will 
+       slice the dataset into parts by picking run numbers 2..4
+       one run per batch. Bug:  It does not handle empty runs well
     """
     def __init__(self, cs, samhandle, dbhandle):
         self.cs = cs
