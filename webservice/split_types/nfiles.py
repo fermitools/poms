@@ -2,7 +2,8 @@ class nfiles:
     """
        This type, when filled out as nfiles(n) or nfiles_n for some integer
        n, will slice the dataset into n parts using the stride/offset
-       expressions.
+       expressions.  This does not work so well for dynamic datasets whose
+       contents are changing, for them try "drainingn"
     """
     def __init__(self, cs, samhandle, dbhandle):
         self.cs = cs
