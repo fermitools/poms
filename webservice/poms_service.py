@@ -248,7 +248,7 @@ class PomsService:
                 "%s/launch_jobs?campaign_stage_id=None&test_login_setup=%s" % (self.path, data['login_setup_id']))
 
         template = self.jinja_env.get_template('login_setup_edit.html')
-        return template.render(data=data, help_page="LaunchTemplateEditHelp")
+        return template.render(data=data, jquery_ui=False, help_page="LaunchTemplateEditHelp")
 
 
 # h4. campaign_deps_ini
@@ -302,7 +302,7 @@ class PomsService:
                 "%s/campaign_stage_edit?jump_to_campaign=%d&extra_edit_flag=launch_test_job" % (self.path, test_campaign))
 
         template = self.jinja_env.get_template('campaign_definition_edit.html')
-        return template.render(
+        return template.render(jquery_ui=False,
             data=data, help_page="CampaignDefinitionEditHelp")
 
 
@@ -368,6 +368,7 @@ class PomsService:
                 (self.path, kwargs.get('ae_campaign_id')))
 
         return template.render(data=data, help_page="CampaignEditHelp",
+                               jquery_ui=False,
                                extra_edit_flag=kwargs.get(
                                    "extra_edit_flag", None),
                                jump_to_campaign=kwargs.get(
