@@ -29,7 +29,9 @@
     <script src='{{pomspath}}/static/js/moment.min.js'></script>
     <script src='{{pomspath}}/static/js/fullcalendar.min.js'></script>
 
+    {% if jquery_ui|default(True) %}
     <script src='{{pomspath}}/static/js/jquery-ui.js'></script>
+    {% endif %}
     <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/datepicker.css">
 
     <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/search.min.css">
@@ -46,8 +48,11 @@
     <link rel="stylesheet" href="https://mottie.github.io/tablesorter/css/theme.ice.css">
     <link rel="stylesheet" href="https://mottie.github.io/tablesorter/css/theme.dropbox.css">
 
+    
+    {% if jquery_ui|default(True) %}
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    {% endif %}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@7.26.28/dist/sweetalert2.all.min.js"></script>
 
     <style type="text/css">

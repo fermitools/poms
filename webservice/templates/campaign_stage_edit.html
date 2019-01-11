@@ -420,6 +420,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 <script type="text/javascript">
 
 // form validation fields,they will appear in red if missing..
+function setup_form_validation() {
 $('#campaign_add_edit_form')
   .form({
     fields: {
@@ -433,8 +434,9 @@ $('#campaign_add_edit_form')
       ae_launch_id :              'empty',
       ae_campaign_definition_id : 'empty'
     }
-  })
-;
+  }) ;
+}
+setup_form_validation()
 //      ae_completion_type :        'empty',
 //      ae_completion_pct  :        'empty',
 //    dropdown: {
@@ -521,6 +523,7 @@ function setup_modal(fieldid) {
         $(fieldid+"_text").val(data[1]);
         $(fieldid).val(data[1]);
         $("#campaign_add_edit_modal").modal('show');
+        setup_form_validation()
       } else {
           return false;
       }
@@ -757,8 +760,8 @@ function add_campaign() {
 
 
 $(document).ready(function(){
-  if ("{{ data.message }}" != "None") {
-    $("#poms_message_data").text("{{ data.message }}");
+  if (`{{ data.message }}` != "None") {
+    $("#poms_message_data").text(`{{ data.message }}`);
     $("#display_message_modal").modal('show');
   }
 });
