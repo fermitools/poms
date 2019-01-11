@@ -1018,6 +1018,14 @@ class PomsService:
                     "%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (self.path, campaign_stage_id, os.path.basename(outfile)))
 
 
+# h4. test_split_type_editors
+
+    @cherrypy.expose
+    @logit.logstartstop
+    def test_split_type_editors(self):
+        template = self.jinja_env.get_template('test_split_type_editors.html')
+        return template.render()
+
 # h4. launch_jobs
     @cherrypy.expose
     @logit.logstartstop

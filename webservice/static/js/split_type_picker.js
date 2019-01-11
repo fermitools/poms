@@ -40,6 +40,8 @@ split_type_picker.start = function(id) {
         current_params = []
     }
 
+    rlist.push('<h4>Split Type Chooser</h4>')
+    rlist.push('<label>Base Split Type:</label>')
     rlist.push('<select id="' + sel_id + '" ' +
         'onchange="split_type_picker.showtype(' + "'" + form_id + "')" + '">');
 
@@ -173,4 +175,5 @@ split_type_picker.cancel = function(form_id) {
     var e = document.getElementById(form_id);
     e.parentNode.removeChild(e)
 }
+
 
