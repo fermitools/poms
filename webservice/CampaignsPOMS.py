@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 
 import cherrypy
 from crontab import CronTab
-from sqlalchemy import and_, distinct, func, or_
+from sqlalchemy import and_, distinct, func, or_, text, Integer
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes, aliased
 
@@ -388,20 +388,16 @@ class CampaignsPOMS:
         logit.log("Entering launch_campaign(...)")
 
         # subquery to count dependencies
-        subq = (dbhandle.query(func.count(CampaignDependency.campaign_dep_id))
-               .filter(CampaignDependency.provides_campaign_stage_id == CampaignStage.campaign_stage_id)
-               .subquery())
-        # stages to launch are those which don't depend on others
-        stages = (dbhandle.query(CampaignStage.campaign_stage_id)
-                 .filter(CampaignStage.campaign_id == campaign_id)
-                 .filter(subq == 0)
-                 .all())
+        q = text("select campaign_stage_id from campaign_stages where campaign_id = :campaign_id and 0 = (select count(campaign_dep_id) from campaign_dependencies where provides_campaign_stage_id = campaign_stage_id)").bindparams(campaign_id = campaign_id).columns(campaign_stage_id = Integer)
 
-        logit.log("launch_campaign: got %d stages" % len(stages))
+        stages = dbhandle.execute(q).fetchall()
+        
+
+        logit.log("launch_campaign: got stages %s" % repr(stages))
 
         if len(stages) == 1:
             return self.poms_service.taskPOMS.launch_jobs( dbhandle, getconfig, gethead, seshandle_get, samhandle,
-                    err_res, basedir, stages[0], launcher, dataset_override, parent_submission_id,
+                    err_res, basedir, stages[0][0], launcher, dataset_override, parent_submission_id,
                     param_overrides, test_login_setup, experiment, test_launch, output_commands)
         else:
             raise err_res(429, "Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
@@ -1380,14 +1376,14 @@ class CampaignsPOMS:
 
             pdot.stdin.write('}\n')
             pdot.stdin.close()
-            text = pdot.stdout.read()
+            ptext = pdot.stdout.read()
             pdot.wait()
         except BaseException:
             raise
-            text = ""
+            ptext = ""
             raise
-        # return bytes(text, encoding="utf-8")
-        return text
+        # return bytes(ptext, encoding="utf-8")
+        return ptext
 
     def show_campaigns(self, dbhandle, sesshandle,
                        experimenter, **kwargs):

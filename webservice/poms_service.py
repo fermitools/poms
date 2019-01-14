@@ -96,7 +96,8 @@ class PomsService:
     #
     _cp_config = {'request.error_response': error_response,
                   'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/page_not_found.html'),
-                  'error_page.401': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/unauthorized_user.html')
+                  'error_page.401': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/unauthorized_user.html'),
+                  'error_page.429': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/too_many.html')
                   }
 
 # h3. Module init
