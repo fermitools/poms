@@ -882,6 +882,10 @@ class TaskPOMS:
         else:
             return "None."
 
+    def has_valid_proxy(self, experimenter_login, exp, sandbox ):
+        res = os.system("voms-proxy-info -exists -valid 0:10 -file %s" % proxyfile)
+        return res == 0
+
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
                     err_res, basedir, campaign_stage_id, launcher, dataset_override=None, parent_submission_id=None,
                     param_overrides=None, test_login_setup=None, experiment=None, test_launch=False, output_commands=False):
@@ -945,23 +949,6 @@ class TaskPOMS:
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
 
-            if self.get_job_launches(
-                    dbhandle) == "hold" or cs.hold_experimenter_id:
-                # fix me!!
-                output = "Job launches currently held.... queuing this request"
-                logit.log("launch_jobs -- holding launch")
-                hl = HeldLaunch()
-                hl.campaign_stage_id = campaign_stage_id
-                hl.created = datetime.now(utc)
-                hl.dataset = dataset_override
-                hl.parent_submission_id = parent_submission_id
-                hl.param_overrides = param_overrides
-                hl.launcher = launcher
-                dbhandle.add(hl)
-                dbhandle.commit()
-                lcmd = ""
-
-                return lcmd, cs, campaign_stage_id, outdir, outfile
 
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
@@ -1018,6 +1005,39 @@ class TaskPOMS:
 
         experimenter_login = e.username
 
+        if se_role == 'analysis':
+            sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, seshandle_get)
+            proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (exp,experimenter_login)
+        else:
+            sandbox = '$HOME'
+            proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
+
+        allheld = self.get_job_launches(dbhandle) == "hold" 
+        csheld = bool(cs.hold_experimenter_id)
+        proxyheld =(se_role == 'analysis' and not self.has_valid_proxy(proxyfile))
+        if allheld or csheld or proxyheld:
+            
+            if allheld:
+                output = "Job launches currently held.... queuing this request"
+            if csheld:
+                output = "Campaign stage %s launches currently held.... queuing this request" % cs.name
+            if proxyheld:
+                output = "Proxy: %s not valid .... queuing this request" % os.path.basename(proxyfile)
+
+            logit.log("launch_jobs -- holding launch")
+            hl = HeldLaunch()
+            hl.campaign_stage_id = campaign_stage_id
+            hl.created = datetime.now(utc)
+            hl.dataset = dataset_override
+            hl.parent_submission_id = parent_submission_id
+            hl.param_overrides = param_overrides
+            hl.launcher = launcher
+            dbhandle.add(hl)
+            dbhandle.commit()
+            lcmd = ""
+
+            return lcmd, cs, campaign_stage_id, outdir, outfile
+
         if dataset_override:
             dataset = dataset_override
         else:
@@ -1061,12 +1081,6 @@ class TaskPOMS:
                 {Submission.submission_params: pdict})
             dbhandle.commit()
 
-        if se_role == 'analysis':
-            sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, seshandle_get)
-            proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (exp,experimenter_login)
-        else:
-            sandbox = '$HOME'
-            proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
 
         cmdl = [
             "exec 2>&1",
