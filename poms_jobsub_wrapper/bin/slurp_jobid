@@ -64,6 +64,7 @@ then
     report=`echo $report | sed -e 's/\.0@/@/'`
     wget -O - --no-check-certificate  --certificate=$X509_USER_PROXY --ca-certificate=$X509_USER_PROXY --ca-directory=/etc/grid-security/certificates --private-key=$X509_USER_PROXY "$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$report&status=New" 
 
+    submission_url=`echo "$submission_url" | sed -e 's;:8443/;/;'`
     echo "For Status, use URL: $submission_url"
     add_item "STATUS: success"
 else

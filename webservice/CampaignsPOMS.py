@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 
 import cherrypy
 from crontab import CronTab
-from sqlalchemy import and_, distinct, func, or_
+from sqlalchemy import and_, distinct, func, or_, text, Integer
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes, aliased
 
@@ -54,7 +54,7 @@ class CampaignsPOMS:
         """
         self.poms_service = ps
 
-    def login_setup_edit(self, dbhandle, seshandle, **kwargs):
+    def login_setup_edit(self, dbhandle, seshandle, *args, **kwargs):
         """
             callback to actually change launch templates from edit screen
         """
@@ -66,6 +66,7 @@ class CampaignsPOMS:
                                   .filter(~Experiment.experiment.in_(['root', 'public']))
                                   .order_by(Experiment.experiment))
         action = kwargs.pop('action', None)
+        logit.log("login_setup_edit: action is: %s" % action)
         exp = seshandle('experimenter').session_experiment
         experimenter = seshandle('experimenter')
         se_role = experimenter.session_role
@@ -88,6 +89,7 @@ class CampaignsPOMS:
                 dbhandle.rollback()
 
         if action in ('add', 'edit'):
+            logit.log('login_setup_edit: add,edit case')
             if pcl_call == 1:
                 ae_launch_name = kwargs.pop('ae_launch_name')
                 if isinstance(ae_launch_name, str):
@@ -112,21 +114,12 @@ class CampaignsPOMS:
 
                 ae_launch_account = kwargs.pop('ae_launch_account', None)
                 ae_launch_setup = kwargs.pop('ae_launch_setup', None)
+
                 if ae_launch_host in [None, ""]:
-                    ae_launch_host = (dbhandle.query(LoginSetup)
-                                      .filter(LoginSetup.experiment == exp)
-                                      .filter(LoginSetup.name == name)
-                                      .first()).launch_host
+                    raise LogicError("launch host cannot be empty")
                 if ae_launch_account in [None, ""]:
-                    ae_launch_account = (dbhandle.query(LoginSetup)
-                                         .filter(LoginSetup.experiment == exp)
-                                         .filter(LoginSetup.name == name)
-                                         .first()).launch_account
-                if ae_launch_setup in [None, ""]:
-                    ae_launch_account = (dbhandle.query(LoginSetup)
-                                         .filter(LoginSetup.experiment == exp)
-                                         .filter(LoginSetup.name == name)
-                                         .first()).launch_setup
+                    raise LogicError("launch account cannot be empty")
+
             else:
                 ae_launch_name = kwargs.pop('ae_launch_name')
                 if isinstance(ae_launch_name, str):
@@ -134,17 +127,20 @@ class CampaignsPOMS:
                 ae_launch_id = kwargs.pop('ae_launch_id')
                 experimenter_id = kwargs.pop('experimenter_id')
                 ae_launch_host = kwargs.pop('ae_launch_host')
+                if se_role == 'analysis' and  ae_launch_host not in ('pomsgpvm01.fnal.gov','fermicloud045.fnal.gov','pomsint.fnal.gov'):
+                    raise LogicError("Invalid analysis launch host")
+
                 ae_launch_account = kwargs.pop('ae_launch_account')
                 ae_launch_setup = kwargs.pop('ae_launch_setup')
 
             try:
                 if action == 'add':
+                    logit.log("adding new LoginSetup...")
                     role = seshandle('experimenter').session_role
                     if role in ('root', 'coordinator'):
                         raise cherrypy.HTTPError(
                             status=401, message='You are not authorized to add launch template.')
-                    else:
-                        template = LoginSetup(experiment=exp,
+                    template = LoginSetup(experiment=exp,
                                               name=ae_launch_name,
                                               launch_host=ae_launch_host,
                                               launch_account=ae_launch_account,
@@ -156,6 +152,7 @@ class CampaignsPOMS:
                     dbhandle.commit()
                     data['login_setup_id'] = template.login_setup_id
                 else:
+                    logit.log("editing existing LoginSetup...")
                     columns = {
                         "name": ae_launch_name,
                         "launch_host": ae_launch_host,
@@ -175,16 +172,19 @@ class CampaignsPOMS:
                            "already exists in database.")
                 logit.log(' '.join(exc.args))
                 dbhandle.rollback()
+                raise
             except SQLAlchemyError as exc:
                 message = ("SQLAlchemyError: "
                            "Please report this to the administrator. "
                            "Message: %s" % ' '.join(exc.args))
                 logit.log(' '.join(exc.args))
                 dbhandle.rollback()
+                raise
             except BaseException:
                 message = 'unexpected error ! \n' + traceback.format_exc(4)
                 logit.log(' '.join(message))
                 dbhandle.rollback()
+                raise
 
         # Find templates
         if exp:  # cuz the default is find
@@ -381,6 +381,78 @@ class CampaignsPOMS:
             CampaignStage.experiment).all()
         return [r._asdict() for r in data]
 
+    def launch_campaign(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
+                    err_res, basedir, campaign_id, launcher, dataset_override=None, parent_submission_id=None,
+                    param_overrides=None, test_login_setup=None, experiment=None, test_launch=False, output_commands=False):
+
+        logit.log("Entering launch_campaign(...)")
+
+        # subquery to count dependencies
+        q = text("select campaign_stage_id from campaign_stages where campaign_id = :campaign_id and 0 = (select count(campaign_dep_id) from campaign_dependencies where provides_campaign_stage_id = campaign_stage_id)").bindparams(campaign_id = campaign_id).columns(campaign_stage_id = Integer)
+
+        stages = dbhandle.execute(q).fetchall()
+        
+
+        logit.log("launch_campaign: got stages %s" % repr(stages))
+
+        if len(stages) == 1:
+            return self.poms_service.taskPOMS.launch_jobs( dbhandle, getconfig, gethead, seshandle_get, samhandle,
+                    err_res, basedir, stages[0][0], launcher, dataset_override, parent_submission_id,
+                    param_overrides, test_login_setup, experiment, test_launch, output_commands)
+        else:
+            raise err_res(429, "Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
+    
+    def get_recoveries(self, dbhandle, cid, exp): 
+        '''
+         Build the recoveries dict for job_types cids
+        '''
+        recs = (dbhandle.query(CampaignRecovery)
+                .filter(CampaignRecovery.job_type_id == cid)
+                .order_by(CampaignRecovery.job_type_id, CampaignRecovery.recovery_order)
+                .all())
+
+        logit.log("get_recoveries(%d) got %d items" %(cid, len(recs)))
+        rec_list = []
+        for rec in recs:
+            logit.log("get_recoveries(%d) -- rec %s" %(cid, repr(rec)))
+            if isinstance(rec.param_overrides, str):
+                logit.log("get_recoveries(%d) -- saw string param_overrides" % cid)
+                if rec.param_overrides in ('', '{}', '[]'):
+                    rec.param_overrides = "[]"
+                rec_vals = [rec.recovery_type.name, json.loads(rec.param_overrides)]
+            else:
+                rec_vals = [rec.recovery_type.name, rec.param_overrides]
+
+            rec_list.append(rec_vals)
+
+        logit.log("get_recoveries(%d) returning %s" %(cid, repr(rec_list)))
+        return rec_list
+   
+    def fixup_recoveries(self, dbhandle, job_type_id, recoveries):
+        '''
+         fixup_recoveries -- factored out so we can use it
+            from either edit endpoint.
+         Given a JSON dump of the recoveries, clean out old
+         recoveriy entries, add new ones.  It probably should
+         check if they're actually different before doing this..
+        '''
+        (dbhandle.query(CampaignRecovery)
+         .filter(CampaignRecovery.job_type_id == job_type_id)
+         .delete(synchronize_session=False))
+        i = 0
+        for rtn in json.loads(recoveries):
+            rect = rtn[0]
+            recpar = rtn[1]
+            rt = (dbhandle.query(RecoveryType)
+                  .filter(RecoveryType.name == rect)
+                  .first())
+            cr = CampaignRecovery(job_type_id=job_type_id,
+                                  recovery_order=i,
+                                  recovery_type=rt,
+                                  param_overrides=recpar)
+            i = i + 1
+            dbhandle.add(cr)
+
     def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
         """
             callback from edit screen/client.
@@ -424,6 +496,7 @@ class CampaignsPOMS:
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
+            logit.log("campaign_definition_edit: add or exit case")
             job_type_id = None
             definition_parameters = kwargs.pop('ae_definition_parameters')
             if definition_parameters:
@@ -450,23 +523,18 @@ class CampaignsPOMS:
                 output_file_patterns = kwargs.pop('ae_output_file_patterns')
                 launch_script = kwargs.pop('ae_launch_script')
                 recoveries = kwargs.pop('ae_definition_recovery', "[]")
+
                 # Getting the info that was not passed by the poms_client
                 # arguments
-                if input_files_per_job in (None, ""):
-                    input_files_per_job = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().input_files_per_job
-                if output_files_per_job in (None, ""):
-                    output_files_per_job = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().output_files_per_job
+
                 if output_file_patterns in (None, ""):
-                    output_file_patterns = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().output_file_patterns
+                    output_file_patterns = '%'
+
                 if launch_script in (None, ""):
-                    launch_script = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().launch_script
+                    raise LogicError("launch_script is required")
+
                 if definition_parameters in (None, ""):
-                    definition_parameters = dbhandle.query(JobType).filter(
-                        JobType.job_type_id == job_type_id).first().definition_parameters
+                    definition_parameters = []
             else:
                 experimenter_id = kwargs.pop('experimenter_id')
                 job_type_id = kwargs.pop('ae_campaign_definition_id')
@@ -517,29 +585,9 @@ class CampaignsPOMS:
                           .filter(JobType.job_type_id == job_type_id)
                           .update(columns))
 
-                # now fixup recoveries -- clean out existing ones, and
-                # add listed ones.
-                if pcl_call == 0:
-                    (dbhandle.query(CampaignRecovery)
-                     .filter(CampaignRecovery.job_type_id == job_type_id)
-                     .delete(synchronize_session=False))
-                    i = 0
-                    for rtn in json.loads(recoveries):
-                        rect = rtn[0]
-                        recpar = rtn[1]
-                        rt = (dbhandle.query(RecoveryType)
-                              .filter(RecoveryType.name == rect)
-                              .first())
-                        cr = CampaignRecovery(job_type_id=job_type_id,
-                                              recovery_order=i,
-                                              recovery_type=rt,
-                                              param_overrides=recpar)
-                        dbhandle.add(cr)
+                if recoveries:
+                    self.fixup_recoveries(dbhandle, job_type_id, recoveries)
                     dbhandle.commit()
-                else:
-                    # We need to define later if it is going to be possible to
-                    # modify the recovery type from the client.
-                    pass
 
             except IntegrityError as exc:
                 message = ("Integrity error: "
@@ -622,31 +670,9 @@ class CampaignsPOMS:
                 else:
                     data['authorized'].append(False)
 
-            # Build the recoveries for each campaign.
             recs_dict = {}
             for cid in cids:
-                recs = (dbhandle.query(CampaignRecovery)
-                        .join(JobType)
-                        .options(joinedload(CampaignRecovery.recovery_type))
-                        .filter(CampaignRecovery.job_type_id == cid,
-                                JobType.experiment == exp)
-                        .order_by(CampaignRecovery.job_type_id,
-                                  CampaignRecovery.recovery_order))
-                rec_list = deque()
-                for rec in recs:
-                    if isinstance(rec.param_overrides, str):
-                        if rec.param_overrides in ('', '{}', '[]'):
-                            rec.param_overrides = "[]"
-                            rec_vals = [rec.recovery_type.name,
-                                        json.loads(rec.param_overrides)]
-                    else:
-                        rec_vals = [rec.recovery_type.name,
-                                    rec.param_overrides]
-
-                    # rec_vals=[rec.recovery_type.name,rec.param_overrides]
-                    rec_list.append(rec_vals)
-                recs_dict[cid] = json.dumps(list(rec_list))
-
+                recs_dict[cid] = json.dumps(self.get_recoveries(dbhandle, cid, exp))
             data['recoveries'] = recs_dict
             data['rtypes'] = (
                 dbhandle.query(RecoveryType.name, RecoveryType.description)
@@ -742,6 +768,7 @@ class CampaignsPOMS:
                     raise
 
         elif action in ('add', 'edit'):
+            logit.log("campaign_stage_edit: add or edit case")
             campaign_id = kwargs.pop('ae_campaign_name')
             name = kwargs.pop('ae_stage_name')
             if isinstance(name, str):
@@ -788,7 +815,7 @@ class CampaignsPOMS:
                                   .filter(LoginSetup.name == launch_name)
                                   .first().login_setup_id)
                 job_type_id = dbhandle.query(JobType).filter(
-                    JobType.name == campaign_definition_name).first().job_type_id
+                    JobType.name == campaign_definition_name, JobType.experiment == exp).first().job_type_id
                 if action == 'edit':
                     c_s = (dbhandle.query(CampaignStage).filter(CampaignStage.name == name,
                                                                 CampaignStage.experiment == exp,
@@ -810,6 +837,10 @@ class CampaignsPOMS:
                 depends = json.loads(depends)
             else:
                 depends = {"campaign_stages": [], "file_patterns": []}
+
+            # backwards combatability
+            if 'campaigns' in depends and not ('campaign_stages' in depends):
+                depends['campaign_stages'] = depends['campaigns']
 
             # fail if they're setting up a trivial infinite loop
             if (split_type in [None, 'None', 'none', 'Draining'] and
@@ -1248,8 +1279,8 @@ class CampaignsPOMS:
             res.append("launch_script=%s" % j_t.launch_script)
             res.append("parameters=%s" % json.dumps(j_t.definition_parameters))
             res.append("output_file_patterns=%s" % j_t.output_file_patterns)
+            res.append("recoveries = %s" % json.dumps(self.get_recoveries(dbhandle, j_t.job_type_id, j_t.experiment)))
             res.append("")
-            # still need: recovery launches
 
         # still need dependencies
         for cid in dmap:
@@ -1346,14 +1377,14 @@ class CampaignsPOMS:
 
             pdot.stdin.write('}\n')
             pdot.stdin.close()
-            text = pdot.stdout.read()
+            ptext = pdot.stdout.read()
             pdot.wait()
         except BaseException:
             raise
-            text = ""
+            ptext = ""
             raise
-        # return bytes(text, encoding="utf-8")
-        return text
+        # return bytes(ptext, encoding="utf-8")
+        return ptext
 
     def show_campaigns(self, dbhandle, sesshandle,
                        experimenter, **kwargs):
@@ -1656,6 +1687,17 @@ class CampaignsPOMS:
         launch_flist = glob.glob('{}/*'.format(dirname))
         launch_flist = list(map(os.path.basename, launch_flist))
 
+        recent_submission_list = (dbhandle.query(Submission.submission_id, func.max(SubmissionHistory.status_id))
+                 .filter(SubmissionHistory.submission_id == Submission.submission_id)
+                 .filter(Submission.campaign_stage_id == campaign_stage_id)
+                 .filter(Submission.created > datetime.now(utc) - timedelta(days=7))
+                 .group_by(Submission.submission_id)
+                 .all())
+
+        recent_submissions = {}
+        for (id, status) in recent_submission_list:
+            recent_submissions[id] = status
+
         # put our campaign_stage id in the link
         campaign_kibana_link_format = config_get('campaign_kibana_link_format')
         logit.log("got format {}".format(campaign_kibana_link_format))
@@ -1663,6 +1705,7 @@ class CampaignsPOMS:
 
         dep_svg = self.campaign_deps_svg(
             dbhandle, config_get, campaign_stage_id=campaign_stage_id)
+
         return (campaign_stage_info,
                 time_range_string,
                 tmins, tmaxs, tdays,
@@ -1672,7 +1715,10 @@ class CampaignsPOMS:
                 campaign_stage,
                 counts_keys, counts,
                 launch_flist,
-                kibana_link, dep_svg, last_activity
+                kibana_link, 
+                dep_svg, 
+                last_activity,
+                recent_submissions
                 )
 
 
@@ -1743,8 +1789,8 @@ class CampaignsPOMS:
         '''
         rows = []
         tuples = (dbhandle.query(SubmissionHistory, SubmissionStatus)
-                  # .join(SubmissionStatus)
                   .filter(SubmissionHistory.submission_id == submission_id)
+                  .filter(SubmissionStatus.status_id == SubmissionHistory.status_id)
                   .order_by(SubmissionHistory.created)).all()
         for row in tuples:
             submission_id = row.SubmissionHistory.submission_id
@@ -2159,7 +2205,13 @@ class CampaignsPOMS:
                 self.cs_split_type = cs_split_type
 
         modmap = {}
+        docmap = {}
+        parammap = {}
         rlist = []
+
+        modmap['None'] = None
+        docmap['None'] = "No splitting is done"
+        parammap['None'] = []
 
         # make the import set POMS_DIR..
         importlib.import_module('poms.webservice')
@@ -2184,13 +2236,26 @@ class CampaignsPOMS:
             split_class = getattr(mod, modname)
             inst = split_class(fake_cs, samhandle, dbhandle)
             poptxt = inst.edit_popup()
+
+
             if poptxt != 'null':
-                modmap[modname] = '%s_edit'
+                modmap[modname] = '%s_edit_popup' % modname
                 rlist.append(poptxt)
             else:
                 modmap[modname] = None
+           
+            description = split_class.__doc__
+            docmap[modname] = description
+            parammap[modname] = inst.params()
+
         rlist.append('split_type_edit_map =')
-        rlist.append(json.dumps(modmap))
+        rlist.append(json.dumps(modmap).replace('",','",\n').replace('null,','null,\n').replace('": "','": ').replace('",',',').replace('"}','}'))
+        rlist.append(';')
+        rlist.append('split_type_doc_map =')
+        rlist.append(json.dumps(docmap).replace('",','",\n'))
+        rlist.append(';')
+        rlist.append('split_type_param_map =')
+        rlist.append(json.dumps(parammap).replace(',',',\n'))
         rlist.append(';')
         return '\n'.join(rlist)
 
@@ -2239,8 +2304,8 @@ class CampaignsPOMS:
                 if eid.startswith("job_type "):
                     definition_parameters = form.get('parameters')
                     if definition_parameters:
-                        definition_parameters = json.loads(
-                            definition_parameters)
+                        definition_parameters = json.loads(definition_parameters)
+
                     job_type = JobType(name=name,
                                        experiment=exp,
                                        # input_files_per_job=input_files_per_job,
@@ -2251,6 +2316,12 @@ class CampaignsPOMS:
                                        definition_parameters=definition_parameters,
                                        creator=user_id, created=datetime.now(utc), creator_role=role)
                     dbhandle.add(job_type)
+                    dbhandle.commit()
+                    recoveries = form.get('recoveries')
+                    if recoveries:
+                        self.fixup_recoveries(dbhandle, job_type.job_type_id, recoveries)
+                    dbhandle.commit()
+
                 elif eid.startswith("login_setup "):
                     login_setup = LoginSetup(name=name,
                                              experiment=exp,

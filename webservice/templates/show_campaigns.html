@@ -64,10 +64,12 @@ Campaigns {%include 'help_button.html'%}
                 <th data-sorter="false" data-filter="false" align="center">
                         Select All<br><input type="checkbox" id="c_cbox_all" onchange="do_checkall();">
                 <th>Campaign Name</th>
+                <th>id</th>
                 <th>Active</th>
-                <th>Submissions<br>Running</th>
+                <th>Submis-<br>sions<br>Running</th>
                 <th data-sorter="false" data-filter="false">Submission<br>History</th>
-                <th data-sorter="false" data-filter="false">Dependencies</th>
+                <th data-sorter="false" data-filter="false">Launch</th>
+                <th data-sorter="false" data-filter="false">Depend-<br>encies</th>
                 <th data-sorter="false" data-filter="false">GUI Editor</th>
                 <th data-sorter="false" data-filter="false">Clone<br>Campaign</th>
                 <th data-sorter="false" data-filter="false">.ini File</th>
@@ -83,7 +85,8 @@ Campaigns {%include 'help_button.html'%}
                 <!-- id is hidden by css look for #campaign_table above -->
                 <td id="c_id_{{loop.index}}">{{s.campaign_id}}</td>
                 <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
-                <td><a class="stagelink" href="{{pomspath}}/show_campaign_stages?campaign_name={{s.name|urlencode}}">{{s.name}}</a> <span class="ui label">{{s.campaign_id}}</span></td>
+                <td><a class="stagelink" href="{{pomspath}}/show_campaign_stages?campaign_name={{s.name|urlencode}}">{{s.name}}</a> </td>
+                <td style="text-align:right">{{s.campaign_id}}</td>
                 <td align="center">{{ 'Yes' if s.active else 'No' }}</td>
 		        <!-- <td> <button onclick="call_show_campaign_stages( '{{s.name}}' )"> {{s.name}} </td> -->
                 <td id="running_{{s.campaign_id}}" style="text-align:right; padding-right: 1em">...</td>
@@ -91,6 +94,13 @@ Campaigns {%include 'help_button.html'%}
                     <a href="{{pomspath}}/campaign_stage_submissions?campaign_name={{s.name}}&stage_name=*&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
                         <button type="button">
                         <i class="chart line icon"></i>
+                        </button>
+                    </a>
+                </td>
+                <td>
+                    <a href="{{pomspath}}/launch_campaign?campaign_id={{s.campaign_id}}">
+                        <button type="button">
+                        <i class="chart rocket icon"></i>
                         </button>
                     </a>
                 </td>

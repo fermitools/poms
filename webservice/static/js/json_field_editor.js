@@ -5,6 +5,107 @@ function json_field_editor() {
   ;
 }
 
+json_field_editor.recovery_start = function(id) {
+    var e ,e_text, r, i,j,k, si ;
+    var hang_onto, recoveries;
+
+    console.log("recovery_start(" +id +")" )
+
+    recoveries = {
+            '-': '',
+            'added_files': 'Include files added to definition since previous job ran',
+            'consumed_status': 'Include files which were not flagged "consumed" by the original job',
+            'pending_files': 'Include files which do not have suitable children declared for this version of software',
+            'proj_status': 'Include files that were processed by jobs that say they failed'
+    }
+    e = document.getElementById(id);
+    e_text = document.getElementById(id+'_text');
+    if (e_text) {
+        r = e_text.getBoundingClientRect();
+        hang_onto = e_text.parentNode
+    } else {
+        r = e.getBoundingClientRect();
+        hang_onto = e.parentNode
+    }
+    v = e.value || e.placeholder;
+    if ('' == v || '[]' == v) {
+        j = []
+    } else {
+        j = JSON.parse(v);
+    }
+    fid = 'edit_recovery_' + id
+    res = []
+    res.push('<h4>Edit Recoveries</h4>')
+    res.push('<table>')
+    res.push('<tr><th>Type</th><th>Param Overrides</th><th></th></tr>')
+    for ( i = 0; i < 10 ; i++) {
+        si = i.toString()
+        res.push('<tr>')
+        res.push('<td><select id="'+fid+'_s'+si+'">')
+        for (k in recoveries) {
+            
+            if (i < j.length && j[i][0] == k) {
+                res.push('<option value="' + k + '" selected>' + k + ' - ' + recoveries[k] +'</option>')
+            } else {
+                res.push('<option value="' + k + '">'+ k + ' - '  + recoveries[k] + '</option>')
+            }
+        }
+        res.push('</select></td>')
+        res.push('<td>')
+        if ( i < j.length) {
+            res.push('<input id="' + fid + '_d' + si + '" value='+ "'" + JSON.stringify(j[i][1]) + "'>")
+        } else {
+            res.push('<input id="' + fid + '_d' + si + '">')
+        }
+        res.push('<i class="large edit link blue icon" onclick="json_field_editor.start(' + "'" + fid + '_d' + si + "'" + ')"></i>')
+        res.push('</td>')
+        res.push('</tr>')
+    }
+    res.push('</table>')
+    res.push(`<button type="button" class="ui button deny red" onclick="json_field_editor.cancel('${fid}')">Cancel</button>`);
+    res.push(`<button type="button" class="ui button approve teal" onclick="json_field_editor.recovery_save('${fid}')">Accept</button>`);
+    var myform =  document.createElement("FORM");
+    myform.className = "popup_form_json";
+    myform.style.top = '-10em';
+    myform.style.left = '1em';
+    myform.style.width = '50em';
+    myform.style.position = 'absolute';
+    myform.id = fid;
+    myform.innerHTML += res.join('\n');
+    // hang_onto.style.position = 'relative';
+    hang_onto.appendChild(myform);
+}
+
+json_field_editor.recovery_save = function(fid) {
+    /*
+     * extract values from the form back in to destination input
+     */
+    var j, e, i, si, sid, did, se, de, saveid, savee, dest; 
+    j = []
+    for ( i = 0; i < 10 ; i++) {
+        si = i.toString();
+        sid = fid + '_s' + si;
+        did = fid + '_d' + si;
+        se = document.getElementById(sid);
+        de = document.getElementById(did);
+        console.log("got sid " + sid + " value " + se.value)
+        console.log("got did " + did + " value " + de.value)
+        if (se.value != '' && se.value != '-') {
+           j.push([se.value,JSON.parse(de.value)]);
+        }
+    }
+    saveid = fid.substr(14);
+    console.log("updating saveid " + saveid) 
+    savee = document.getElementById(saveid);
+    savee.value = JSON.stringify(j)
+    dest = document.getElementById(saveid+'_text')
+    if (dest) {
+        dest.value = JSON.stringify(j)
+        console.log(["also updating", saveid+'_text', dest, j])
+    }
+    json_field_editor.cancel(fid)
+}
+
 json_field_editor.start = function(id) {
     var e, r,v, res, i, j, fid, istr, k, e_text;
     var hang_onto;

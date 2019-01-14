@@ -14,6 +14,9 @@ class byexistingruns:
         self.dbhandle = dbhandle
         self.dataset = cs.dataset
 
+    def params(self):
+        return []
+
     def peek(self):
         if not self.cs.cs_last_split:
             self.cs.cs_last_split = 0

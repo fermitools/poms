@@ -12,6 +12,9 @@ class stagedfiles:
         self.stage_project = cs.dataset
         self.n = int(cs.cs_split_type[12:].strip(')'))
 
+    def params(self):
+        return []
+
     def peek(self):
         if not self.cs.cs_last_split:
             self.cs.cs_last_split = 0

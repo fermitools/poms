@@ -2,9 +2,11 @@ import poms.webservice.logit as logit
 
 class drainingn:
     """
-       This type, when filled out as staged_files(n) or mod_n for some integer
-       n, will watch the project that is in its input for consumed (i.e. staged) files
-       and deliver them on each iteration
+       This type, when filled out as drainign(n) for some integer
+       n, will pull at most n files at a time from the dataset
+       and deliver them on each iteration, keeping track of the
+       delivered files with a snapshot.  This means it works well
+       for datasets that are growing or changing from under it.
     """
     def __init__(self, cs, samhandle, dbhandle):
         self.cs = cs
@@ -12,6 +14,9 @@ class drainingn:
         self.dbhandle = dbhandle
         self.dataset = cs.dataset
         self.n = int(cs.cs_split_type[10:].strip(')'))
+
+    def params(self):
+        return ["nfiles"]
 
     def peek(self):
         if not self.cs.cs_last_split:

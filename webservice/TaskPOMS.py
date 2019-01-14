@@ -6,12 +6,13 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 """
 
+import glob
 import json
 import os
+import re
 import select
 import subprocess
 import time
-import re
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta
 
@@ -149,6 +150,21 @@ class TaskPOMS:
                     SubmissionHistory.submission_id).having(
                         func.max(
                             SubmissionHistory.status_id) == self.status_Completed).all()
+
+        completed_sids = [x[0] for x in cpairs]
+
+        # lock them all before updating...
+        ll = dbhandle.query(Submission).filter(
+            Submission.submission_id.in_(completed_sids)).with_for_update(read=True).all()
+        # now find the ones that are still completed now that we have the lock
+        cpairs = (dbhandle.query(
+                    SubmissionHistory.submission_id,
+                    func.max(SubmissionHistory.status_id).label('maxstat'))
+                  .filter(SubmissionHistory.submission_id.in_(completed_sids))
+                  .filter(SubmissionHistory.created > datetime.now(utc) - timedelta( days=4))
+                  .group_by(SubmissionHistory.submission_id)
+                  .having(func.max(SubmissionHistory.status_id) == self.status_Completed)
+                  .all())
 
         completed_sids = [x[0] for x in cpairs]
 
@@ -507,7 +523,37 @@ class TaskPOMS:
             dataset = details['dataset']
         else:
             dataset = None
-        return submission, history, dataset, rmap, smap
+
+        ds = (submission.created.astimezone(utc)).strftime("%Y%m%d_%H%M%S")
+        ds2 = (submission.created - timedelta(seconds=0.5)).strftime("%Y%m%d_%H%M%S")
+        dirname = "{}/private/logs/poms/launches/campaign_{}".format(
+            os.environ['HOME'], submission.campaign_stage_id)
+
+        pattern = '{}/{}*'.format(dirname, ds[:-2])
+        flist = glob.glob(pattern)
+        pattern2 = '{}/{}*'.format(dirname, ds2[:-2])
+        flist.extend(glob.glob(pattern2))
+
+        logit.log("found list of submission files:(%s -> %s)" % (pattern,repr(flist)))
+        
+        submission_log_format = 0
+        if "{}/{}_{}_{}".format(dirname,ds, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
+            submission_log_format = 3
+        if "{}/{}_{}_{}".format(dirname,ds2, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
+            ds = ds2
+            submission_log_format = 3
+        elif "{}/{}_{}".format(dirname,ds, submission.experimenter_creator_obj.username) in flist:
+            submission_log_format = 2
+        elif "{}/{}_{}".format(dirname,ds2, submission.experimenter_creator_obj.username) in flist:
+            ds = ds2
+            submission_log_format = 2
+        elif "{}/{}".format(dirname,ds) in flist:
+            submission_log_format = 1
+        elif "{}/{}".format(dirname,ds2) in flist:
+            ds = ds2
+            submission_log_format = 1
+           
+        return submission, history, dataset, rmap, smap, ds, submission_log_format
 
     def running_submissions(self, dbhandle, campaign_id_list, status_list=[
                             'New', 'Idle', 'Running']):
@@ -557,6 +603,7 @@ class TaskPOMS:
 
     def update_submission(self, dbhandle, submission_id, jobsub_job_id,
                           pct_complete=None, status=None, project=None):
+
         s = dbhandle.query(Submission).filter(
             Submission.submission_id == submission_id).with_for_update(read=True).first()
         if not s:
@@ -835,6 +882,10 @@ class TaskPOMS:
         else:
             return "None."
 
+    def has_valid_proxy(self, experimenter_login, exp, sandbox ):
+        res = os.system("voms-proxy-info -exists -valid 0:10 -file %s" % proxyfile)
+        return res == 0
+
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
                     err_res, basedir, campaign_stage_id, launcher, dataset_override=None, parent_submission_id=None,
                     param_overrides=None, test_login_setup=None, experiment=None, test_launch=False, output_commands=False):
@@ -898,23 +949,6 @@ class TaskPOMS:
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
 
-            if self.get_job_launches(
-                    dbhandle) == "hold" or cs.hold_experimenter_id:
-                # fix me!!
-                output = "Job launches currently held.... queuing this request"
-                logit.log("launch_jobs -- holding launch")
-                hl = HeldLaunch()
-                hl.campaign_stage_id = campaign_stage_id
-                hl.created = datetime.now(utc)
-                hl.dataset = dataset_override
-                hl.parent_submission_id = parent_submission_id
-                hl.param_overrides = param_overrides
-                hl.launcher = launcher
-                dbhandle.add(hl)
-                dbhandle.commit()
-                lcmd = ""
-
-                return lcmd, cs, campaign_stage_id, outdir, outfile
 
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
@@ -971,6 +1005,39 @@ class TaskPOMS:
 
         experimenter_login = e.username
 
+        if se_role == 'analysis':
+            sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, seshandle_get)
+            proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (exp,experimenter_login)
+        else:
+            sandbox = '$HOME'
+            proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
+
+        allheld = self.get_job_launches(dbhandle) == "hold" 
+        csheld = bool(cs.hold_experimenter_id)
+        proxyheld =(se_role == 'analysis' and not self.has_valid_proxy(proxyfile))
+        if allheld or csheld or proxyheld:
+            
+            if allheld:
+                output = "Job launches currently held.... queuing this request"
+            if csheld:
+                output = "Campaign stage %s launches currently held.... queuing this request" % cs.name
+            if proxyheld:
+                output = "Proxy: %s not valid .... queuing this request" % os.path.basename(proxyfile)
+
+            logit.log("launch_jobs -- holding launch")
+            hl = HeldLaunch()
+            hl.campaign_stage_id = campaign_stage_id
+            hl.created = datetime.now(utc)
+            hl.dataset = dataset_override
+            hl.parent_submission_id = parent_submission_id
+            hl.param_overrides = param_overrides
+            hl.launcher = launcher
+            dbhandle.add(hl)
+            dbhandle.commit()
+            lcmd = ""
+
+            return lcmd, cs, campaign_stage_id, outdir, outfile
+
         if dataset_override:
             dataset = dataset_override
         else:
@@ -1014,12 +1081,6 @@ class TaskPOMS:
                 {Submission.submission_params: pdict})
             dbhandle.commit()
 
-        if se_role == 'analysis':
-            sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, seshandle_get)
-            proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (exp,experimenter_login)
-        else:
-            sandbox = '$HOME'
-            proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
 
         cmdl = [
             "exec 2>&1",

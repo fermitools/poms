@@ -9,6 +9,9 @@ class list:
         self.cs = cs
         self.list = cs.dataset.split(',')
 
+    def params(self):
+        return []
+
     def peek(self):
         if self.cs.cs_last_split == None:
             self.cs.cs_last_split = 0
@@ -49,15 +52,15 @@ class list:
                 res.push(ts[i])
             }
             res.push('</textarea>')
-            res.push('<button type="button" onclick="list_edit_popup.save(\''+id+'\')">Save</button>')
-            res.push('<button type="button" onclick="list_edit_popup.cancel(\''+id+'\')">Cancel</button>')
+            res.push('<button type="button" onclick="list_edit_popup.save('+"'"+id+"'"+')">Save</button>')
+            res.push('<button type="button" onclick="list_edit_popup.cancel('+"'"+id+"'"+')">Cancel</button>')
             var myform = document.createElement("FORM")
             myform.className = "popup_form_json"
             myform.style.top = r.bottom
             myform.style.right = r.right
             myform.style.position = 'absolute'
             myform.id = fid
-            myform.innerHTML += res.join('\n');
+            myform.innerHTML += res.join('\\n');
             hang_onto.appendChild(myform)
         }
         list_edit_popup.save = function( id ) {
@@ -67,7 +70,7 @@ class list:
             e = document.getElementById(id)
             console.log('in save, got: ' + e.value)
             console.log('in save, got: ' + ta.value)
-            e.value = ta.value.split('\n').join(',')
+            e.value = ta.value.split('\\n').join(',')
             list_edit_popup.cancel(id)
         }
         list_edit_popup.cancel = function( id ) {

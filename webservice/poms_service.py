@@ -98,7 +98,8 @@ class PomsService:
     #
     _cp_config = {'request.error_response': error_response,
                   'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/page_not_found.html'),
-                  'error_page.401': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/unauthorized_user.html')
+                  'error_page.401': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/unauthorized_user.html'),
+                  'error_page.429': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/too_many.html')
                   }
 
 # h3. Module init
@@ -236,7 +237,7 @@ class PomsService:
     @logit.logstartstop
     def launch_template_edit(self, *args, **kwargs):
         # v3_2_0 backward compatabilty
-        self.login_setup_edit(args, kwargs)
+        return self.login_setup_edit(*args, **kwargs)
 
 # h4. login_setup_edit
     @cherrypy.expose
@@ -250,7 +251,7 @@ class PomsService:
                 "%s/launch_jobs?campaign_stage_id=None&test_login_setup=%s" % (self.path, data['login_setup_id']))
 
         template = self.jinja_env.get_template('login_setup_edit.html')
-        return template.render(data=data, help_page="LaunchTemplateEditHelp")
+        return template.render(data=data, jquery_ui=False, help_page="LaunchTemplateEditHelp")
 
 
 # h4. campaign_deps_ini
@@ -304,7 +305,7 @@ class PomsService:
                 "%s/campaign_stage_edit?jump_to_campaign=%d&extra_edit_flag=launch_test_job" % (self.path, test_campaign))
 
         template = self.jinja_env.get_template('campaign_definition_edit.html')
-        return template.render(
+        return template.render(jquery_ui=False,
             data=data, help_page="CampaignDefinitionEditHelp")
 
 
@@ -370,6 +371,7 @@ class PomsService:
                 (self.path, kwargs.get('ae_campaign_id')))
 
         return template.render(data=data, help_page="CampaignEditHelp",
+                               jquery_ui=False,
                                extra_edit_flag=kwargs.get(
                                    "extra_edit_flag", None),
                                jump_to_campaign=kwargs.get(
@@ -526,7 +528,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def submission_details(self, submission_id):
-        submission, history, dataset, rmap, smap = self.taskPOMS.submission_details(
+        submission, history, dataset, rmap, smap, ds, submission_log_format  = self.taskPOMS.submission_details(
             cherrypy.request.db, cherrypy.request.samweb_lite, cherrypy.HTTPError, cherrypy.config.get, submission_id)
         template = self.jinja_env.get_template('submission_details.html')
         return template.render(
@@ -537,6 +539,8 @@ class PomsService:
             recoverymap=rmap,
             statusmap=smap,
             do_refresh=0,
+            ds = ds,
+            submission_log_format = submission_log_format,
             help_page="SubmissionDetailsHelp",
         )
 
@@ -545,6 +549,7 @@ class PomsService:
 
 
     @cherrypy.expose
+    @cherrypy.tools.response_headers(headers=[('Content-Language', 'en')])
     @logit.logstartstop
     def campaign_stage_info(self, campaign_stage_id,
                             tmin=None, tmax=None, tdays=None):
@@ -557,7 +562,10 @@ class PomsService:
          campaign_stage,
          counts_keys, counts,
          launch_flist,
-         kibana_link, dep_svg, last_activity) = self.campaignsPOMS.campaign_stage_info(cherrypy.request.db,
+         kibana_link, 
+         dep_svg, 
+         last_activity,
+         recent_submissions) = self.campaignsPOMS.campaign_stage_info(cherrypy.request.db,
                                                                                        cherrypy.request.samweb_lite,
                                                                                        cherrypy.HTTPError,
                                                                                        cherrypy.config.get,
@@ -580,7 +588,7 @@ class PomsService:
             do_refresh=0,
             help_page="CampaignInfoHelp",
             kibana_link=kibana_link,
-            dep_svg=dep_svg, last_activity=last_activity)
+            dep_svg=dep_svg, last_activity=last_activity, recent_submissions = recent_submissions)
 
 #   h4. campaign_stage_submissions
     @cherrypy.expose
@@ -974,6 +982,53 @@ class PomsService:
                                                cherrypy.response.status,
                                                cherrypy.config.get('base_uploads_dir')
                                                )
+# h4. launch_campaign
+    @cherrypy.expose
+    @logit.logstartstop
+    def launch_campaign(self, campaign_id=None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
+                    experiment=None, launcher=None, test_launch=False, output_commands=None):
+        if cherrypy.session.get('experimenter').username and (
+                'poms' != cherrypy.session.get('experimenter').username or launcher == ''):
+            launch_user = cherrypy.session.get('experimenter').experimenter_id
+        else:
+            launch_user = launcher
+
+        logit.log( "calling launch_campaign with campaign_id='%s'" % campaign_id)
+
+        vals = self.campaignsPOMS.launch_campaign(cherrypy.request.db,
+                                         cherrypy.config.get,
+                                         cherrypy.request.headers.get,
+                                         cherrypy.session.get,
+                                         cherrypy.request.samweb_lite,
+                                         cherrypy.HTTPError,
+                                         cherrypy.config.get('base_uploads_dir'),
+                                         campaign_id,
+                                         launch_user,
+                                         experiment=experiment,
+                                         test_launch=test_launch,
+                                         output_commands=output_commands)
+
+        logit.log("Got vals: %s" % repr(vals))
+
+        if output_commands:
+            cherrypy.response.headers['Content-Type'] = "text/plain"
+            return vals
+
+        lcmd, cs, campaign_stage_id, outdir, outfile = vals
+        if lcmd == "":
+            return "Launches held, job queued..."
+        else:
+            raise cherrypy.HTTPRedirect(
+                    "%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (self.path, campaign_stage_id, os.path.basename(outfile)))
+
+
+# h4. test_split_type_editors
+
+    @cherrypy.expose
+    @logit.logstartstop
+    def test_split_type_editors(self):
+        template = self.jinja_env.get_template('test_split_type_editors.html')
+        return template.render()
 
 # h4. launch_jobs
     @cherrypy.expose

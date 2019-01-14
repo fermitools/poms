@@ -7,6 +7,8 @@
 {%block title%}
 POMS
 <script src="{{pomspath}}/static/js/json_field_editor.js"></script>
+<script src="{{pomspath}}/static/js/split_type_picker.js"></script>
+<script src="{{pomspath}}/split_type_javascript"></script>
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/json_field_editor.css">
 {%endblock%}
 
@@ -199,11 +201,14 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       <div class="two fields">
         <div class="field">
             <label>Dataset or Split Data {{ show_hint('#Dataset', 'Dataset name') }}</label>
-            <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset"></input>
+            <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset" style="width: 90%"></input>
+        
+            <i class="edit link blue icon" onclick="split_type_picker.custom_edit('ae_split_type','ae_dataset')"></i>
         </div>
         <div class="field">
             <label>(Dataset) Split Type {{ show_hint('#Dataset-Split-Type', 'Set type') }}</label>
-            <input type="text" id="ae_split_type" name="ae_split_type">
+            <input type="text" id="ae_split_type" name="ae_split_type" style="width:90%">
+            <i class="edit link blue icon" onclick="split_type_picker.start('ae_split_type')"></i>
         </div>
       </div>
 
@@ -415,6 +420,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 <script type="text/javascript">
 
 // form validation fields,they will appear in red if missing..
+function setup_form_validation() {
 $('#campaign_add_edit_form')
   .form({
     fields: {
@@ -428,8 +434,9 @@ $('#campaign_add_edit_form')
       ae_launch_id :              'empty',
       ae_campaign_definition_id : 'empty'
     }
-  })
-;
+  }) ;
+}
+setup_form_validation()
 //      ae_completion_type :        'empty',
 //      ae_completion_pct  :        'empty',
 //    dropdown: {
@@ -516,6 +523,7 @@ function setup_modal(fieldid) {
         $(fieldid+"_text").val(data[1]);
         $(fieldid).val(data[1]);
         $("#campaign_add_edit_modal").modal('show');
+        setup_form_validation()
       } else {
           return false;
       }
@@ -752,8 +760,8 @@ function add_campaign() {
 
 
 $(document).ready(function(){
-  if ("{{ data.message }}" != "None") {
-    $("#poms_message_data").text("{{ data.message }}");
+  if (`{{ data.message }}` != "None") {
+    $("#poms_message_data").text(`{{ data.message }}`);
     $("#display_message_modal").modal('show');
   }
 });

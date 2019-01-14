@@ -415,7 +415,7 @@ class CampaignRecovery(Base):
         primary_key=True,
         nullable=False,
         index=True)
-    recovery_order = Column(Integer, nullable=False)
+    recovery_order = Column(Integer, nullable=False, primary_key=True)
     param_overrides = Column(JSON)
 
     campaign_definition = relationship(
