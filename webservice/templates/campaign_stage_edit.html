@@ -203,7 +203,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
             <label>Dataset or Split Data {{ show_hint('#Dataset', 'Dataset name') }}</label>
             <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset" style="width: 90%"></input>
         
-            <i class="edit link blue icon" onclick="split_type_picker.custom_edit('ae_split_type','ae_dataset')"></i>
+            <i class="edit link blue icon split_type_picker_custom_edit" onclick="split_type_picker.custom_edit('ae_split_type','ae_dataset')"></i>
         </div>
         <div class="field">
             <label>(Dataset) Split Type {{ show_hint('#Dataset-Split-Type', 'Set type') }}</label>
@@ -750,12 +750,14 @@ function edit_campaign(index,clone) {
     $("#ae_submit").prop("value","Clone");
     $("#ae_submit").prop("disabled",false);
   }
+  split_type_picker.fix_custom_edit('ae_split_type')
 }
 
 function add_campaign() {
   $("#campaign_add_edit_modal").form('reset');
   $("#ae_experiment").text("Campaign Stage Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
   $("#campaign_add_edit_modal").modal({}).modal('show');
+  split_type_picker.fix_custom_edit('ae_split_type')
 }
 
 
@@ -773,10 +775,6 @@ $('#ae_campaign_name')
 })
 ;
 
-
-$(document).ready(function(){
-  $('#double-scroll').doubleScroll();
-});
 
 </script>
 

@@ -31,6 +31,7 @@
 
     {% if jquery_ui|default(True) %}
     <script src='{{pomspath}}/static/js/jquery-ui.js'></script>
+    <script src="{{pomspath}}/static/js/jquery.doublescroll.js"></script> <!-- VP -->
     {% endif %}
     <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/datepicker.css">
 
@@ -38,7 +39,6 @@
     <script src='{{pomspath}}/static/js/index.js'></script>
     <script src='{{pomspath}}/static/js/search.min.js'></script>
 
-    <script src="{{pomspath}}/static/js/jquery.doublescroll.js"></script> <!-- VP -->
 
     <script type="text/javascript" src="{{pomspath}}/static/js/jquery.tablesorter.js"></script>
     <script type="text/javascript" src="{{pomspath}}/static/js/jquery.tablesorter.widgets.js"></script>
@@ -148,7 +148,9 @@
         </div>
         <div class="column"></div>
     </div>
+    {% if jquery_ui|default(True) %}
 	{% include 'datepicker_block.html' %}
+    {%endif%}
 	<div class="no example" style="margin: 0px 10px 0px 10px;">
 	  {%block content%} {%endblock%}
 	</div>

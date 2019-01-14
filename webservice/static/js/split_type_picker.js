@@ -20,6 +20,27 @@ split_type_picker.custom_edit = function(split_type_id, dataset_id) {
        split_type_edit_map[current_type].start(dataset_id)
     }
 }
+split_type_picker.fix_custom_edit = function(split_type_id) {
+    var e, el, how;
+    e = document.getElementById(split_type_id)
+    
+    if (!e) {
+        return
+    }
+    console.log("fix_custom_edit: value: " + e.value)
+    if (e && split_type_edit_map[e.value]) {
+       how = 'inline';
+    } else {
+       how = 'none';
+    }
+    el = document.getElementsByClassName('split_type_picker_custom_edit')
+    for (i = 0; i < el.length; i++ ){
+       console.log(['fixing',el[i]])
+       if (el[i] && el[i].style) {
+           el[i].style.display = how
+       }
+    }
+}
 
 split_type_picker.start = function(id) {
     var rlist, form_id, sel_id,e, current_val, current_type, i, j;
@@ -165,6 +186,7 @@ split_type_picker.save = function(form_id) {
     }
     e_dest = document.getElementById(form_id.substr(16))
     e_dest.value = res
+    split_type_picker.fix_custom_edit(form_id.substr(16))
     split_type_picker.cancel(form_id)
 }
 
