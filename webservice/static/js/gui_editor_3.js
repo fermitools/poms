@@ -1105,14 +1105,18 @@ gui_editor.prototype.draw_state = function () {
     // const title = "<ul><li>Click to select</li><li>Double click to open</li><li>Right click to add stages</li></ul>";
     // let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
     let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.replace(/.*? /, ''));
-    let node_list = node_labels.map(x => ({id:x, label:x, level: this.getdepth(x, 1), group: this.state[`campaign_stage ${x}`].job_type || this.state.campaign_defaults.job_type}));
+    let node_list = node_labels.map(x => ({
+        id: x, label: x,
+        level: this.getdepth(x, 1),
+        group: this.state[`campaign_stage ${x}`].job_type || (this.state.campaign_defaults ? this.state.campaign_defaults.job_type : 0)
+    }));
     //VP~ this.nodes = new vis.DataSet([{id: 'Default Values', label: this.state.campaign.name,
     this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`,
                                    label: this.state.campaign.name,
                                 //    title: "Double click to open",
                                    level: 1,
-                                   group: this.state.campaign_defaults.job_type,
-                                   shape: 'ellipse', color: '#dddddd',
+                                   group: (this.state.campaign_defaults ? this.state.campaign_defaults.job_type : 0),
+                                   shape: 'ellipse', // color: '#dddddd',
                                    fixed: false, size: 50}, ...node_list]);
 
     let edge_list = this.depboxes.map(x => ({id: x.box.id, from: x.stage1, to: x.stage2}));
@@ -1473,9 +1477,10 @@ gui_editor.prototype.jobtype_select = function(sval, eid, placeholder) {
         let res = this.jobtypes.reduce(
             function (acc, val) {
                 const sel = (val == sval) ? ' selected' : '';
-                return acc + `<option value="${val}"${sel}>${val}</option>\n`;
-            },
-        `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+                return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
+            }, eid.startsWith("_inpcampaign_stage") ?
+                `<option value="" placeholder="${placeholder}" style="color: #777; background-color: lightcyan;" selected>${placeholder} (default)</option>\n` : "");
+            // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
         return `<select id="${eid}" name="job_type" required>\n${res}</select>\n`;
     }
 
@@ -1483,9 +1488,10 @@ gui_editor.prototype.loginsetup_select = function(sval, eid, placeholder) {
         let res = this.loginsetups.reduce(
             function (acc, val) {
                 const sel = (val == sval) ? ' selected' : '';
-                return acc + `<option value="${val}"${sel}>${val}</option>\n`;
-            },
-        `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+                return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
+            }, eid.startsWith("_inpcampaign_stage") ?
+                `<option value="" placeholder="${placeholder}" style="color: #777; background-color: lightcyan;" selected>${placeholder} (default)</option>\n` : "");
+            // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
         return `<select id="${eid}" name="login_setup" required>\n${res}</select>\n`;
     }
 

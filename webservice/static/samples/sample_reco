@@ -1,8 +1,7 @@
-
 [campaign]
 experiment=sample
 name=sample_reco
-campaign_stage_list= sample_reco sample_anatree
+campaign_stage_list=sample_reco,sample_anatree
 
 [campaign_stage sample_reco]
 dataset=draining_production_reco_v1_0

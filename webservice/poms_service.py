@@ -27,6 +27,8 @@ import pprint
 import socket
 import datetime
 import time
+import json
+from configparser import ConfigParser
 
 # cherrypy and jinja imports...
 
@@ -210,7 +212,7 @@ class PomsService:
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def experiment_list(self):
-        return list(map((lambda x: x[0]),cherrypy.request.db.query(Experiment.experiment).all()))
+        return list(map((lambda x: x[0]), cherrypy.request.db.query(Experiment.experiment).all()))
 
 
 # h4. experiment_membership
@@ -966,9 +968,9 @@ class PomsService:
     def launch_queued_job(self):
         return self.taskPOMS.launch_queued_job(cherrypy.request.db,
                                                cherrypy.request.samweb_lite,
-                                               cherrypy.session, 
+                                               cherrypy.session,
                                                cherrypy.request.headers.get,
-                                               cherrypy.session, 
+                                               cherrypy.session,
                                                cherrypy.response.status,
                                                cherrypy.config.get('base_uploads_dir')
                                                )
@@ -1345,3 +1347,59 @@ class PomsService:
                 LoginSetup.name).all()
 
         return [r._asdict() for r in data]
+
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def ini_to_campaign(self, upload=None, **kwargs):
+        # import pprint
+        if not upload.file:
+            return "Pick the file first!"
+
+        print("upload='{}', kwargs={}".format(upload, kwargs))
+        print("fn: {}, ct: {}, {}".format(upload.filename, upload.content_type, upload.file))
+        data = upload.file.read().decode("utf-8")
+        # print("{}".format(data))
+
+        p = ConfigParser(interpolation=None)
+        p.read_string(data)
+        cfg = {section: dict(p.items(section)) for section in p.sections()}
+        pprint.pprint(cfg)
+
+        # Now reformat into JSON suitable for save_campaign call
+        campaign_d = {"stages": [], "dependencies": [], "misc": []}
+
+        camp_name = cfg['campaign']['name']
+        campaign_d["stages"].append({"id": "campaign {}".format(camp_name), "label": camp_name, "clean": False})
+
+        stage_names = [k for k in cfg if k.startswith('campaign_stage ')]
+        for name in stage_names:
+            sn = name.split(' ')[1]
+            campaign_d["stages"].append({"id": sn, "label": sn, "clean": False, "form": cfg[name]})
+
+        dep_names = [k for k in cfg if k.startswith('dependencies ')]
+        for name in dep_names:
+            section = cfg[name]
+            sn = name.split(' ')[1]
+            from_ids = [k for k in section if k.startswith("campaign_stage_")]
+            for from_id in from_ids:
+                sfx = from_id.rsplit("_", 1)[1]
+                sel = f"file_pattern_{sfx}"
+                campaign_d["dependencies"].append(
+                    {
+                        "id": f"{name}_{sfx}",
+                        "fromId": section[from_id],
+                        "toId": sn,
+                        "clean": False,
+                        "form": {sel: section[sel]}
+                    })
+
+        misc_names = [k for k in cfg if k.startswith('job_type ') or k.startswith('login_setup ')]
+        for name in misc_names:
+            section = cfg[name]
+            sn = name.split(' ')[1]
+            campaign_d["misc"].append({"id": name, "label": sn, "clean": False, "form": section})
+
+        data = self.campaignsPOMS.save_campaign(cherrypy.request.db, cherrypy.session, form=json.dumps(campaign_d), **kwargs)
+
+        return data
