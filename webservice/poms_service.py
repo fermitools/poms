@@ -720,7 +720,7 @@ class PomsService:
             Who can hold/release a campaign:
             The creator can hold/release her/his own campaign_stages.
             The root can hold/release any campaign_stages.
-            The coordinator can hold/release any campaign_stages that in the same experiment as the coordinator.
+            The superuser can hold/release any campaign_stages that in the same experiment as the superuser.
             Anyone with a production role can hold/release a campaign created with a production role.
 
             :param  ids2HR: A list of campaign ids to be hold/released.
@@ -738,7 +738,7 @@ class PomsService:
             mayIChangeIt = False
             if sessionExperimenter.is_root():
                 mayIChangeIt = True
-            elif sessionExperimenter.is_coordinator() and sessionExperimenter.session_experiment == campaign.experiment:
+            elif sessionExperimenter.is_superuser() and sessionExperimenter.session_experiment == campaign.experiment:
                 mayIChangeIt = True
             elif sessionExperimenter.is_production() and sessionExperimenter.session_experiment == campaign.experiment \
                     and campaign.creator_role == "production":

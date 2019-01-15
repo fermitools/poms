@@ -38,19 +38,19 @@ Campaigns {%include 'help_button.html'%}
     <i class="icon tags"></i>
     Tag/untag Campaigns
 </div>
-<button class="tiny ui labled teal icon button" onclick="pop_add_campaign_modal();" {{ 'disabled' if (session_role=='coordinator') }}>
+<button class="tiny ui labled teal icon button" onclick="pop_add_campaign_modal();" {{ 'disabled' if (session_role=='superuser') }}>
     <i class="icon add square"></i>
     Add
 </button>
 
-<!-- <span id="span-upload" class="tiny ui teal button" {{ 'disabled' if (session_role=='coordinator') }}> </span> -->
+<!-- <span id="span-upload" class="tiny ui teal button" {{ 'disabled' if (session_role=='superuser') }}> </span> -->
 
 <form id="ini_upload_form" class="tiny ui buttons" method="POST" enctype="multipart/form-data" action="ini_to_campaign">
     <label for="hidden-new-file" class="tiny ui teal button">
         Pick .ini file
         <input type="file" name="upload" id="hidden-new-file" style="display: none">
     </label>
-    <label for="submit-new-file" class="tiny ui teal button" {{ 'disabled' if (session_role=='coordinator') }}>
+    <label for="submit-new-file" class="tiny ui teal button" {{ 'disabled' if (session_role=='superuser') }}>
         <i class="icon cloud upload"></i>Upload
         <input type="submit" id="submit-new-file" c-lass="ui teal button" name="Submit"  style="display: none">
     </label>

@@ -65,3 +65,7 @@ ALTER TABLE campaign_stages ADD CONSTRAINT ck_campaign_stage_type
 
 ALTER TABLE campaigns ADD campaign_type text ;
 ALTER TABLE campaigns ADD CONSTRAINT ck_campaign_type CHECK ( campaign_type::text = ANY (ARRAY['test'::character varying]::text[])  );
+
+--
+ALTER TABLE experiments_experimenters DROP CONSTRAINT ck_role;
+update experiments_experimenters set role='superuser' where role='coordinator';

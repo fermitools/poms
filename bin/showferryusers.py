@@ -46,7 +46,7 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
     cord_users = {}
     anal_users = query_ferry(cert, ferry_url, exp, 'Analysis')
     prod_users = query_ferry(cert, ferry_url, exp, 'Production')
-    cord_users = query_ferry(cert, ferry_url, exp, 'Coordinator')
+    cord_users = query_ferry(cert, ferry_url, exp, 'superuser')
 
     if skip_analysis is False:
         print("\n\nAnalysis:")
@@ -57,7 +57,7 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
     for prod in prod_users:
         print("    username: %s\t\t  commonname: %s" % (prod.get('username'), prod.get('commonname')))
 
-    print("\n\nCoordinators:")
+    print("\n\nsuperusers:")
     for cord in cord_users:
         print("    username: %s\t\t  commonname: %s" % (cord.get('username'), cord.get('commonname')))
 

@@ -89,7 +89,7 @@ JobTypes {%include 'help_button.html'%}
     <tfoot>
       <tr>
 	      <th colspan="8">
-	        <button class="ui labled teal icon button" onclick="add_definition();return false;" {{ 'disabled' if (session_role=='coordinator') }}>
+	        <button class="ui labled teal icon button" onclick="add_definition();return false;" {{ 'disabled' if (session_role=='superuser') }}>
 	        <i class="icon add square"></i>
 	          Add
 	        </button>

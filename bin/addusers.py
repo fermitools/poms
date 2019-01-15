@@ -147,7 +147,7 @@ def determine_changes(cursor, exp, users):
             if active is True:
                 active_status[username] = {'experimenter_id' : experimenter_id, 'active': False, 'username': username}
         elif user['role'] != role:
-            if role != 'coordinator':
+            if role != 'superuser':
                 role_changes[username] = {'experimenter_id': experimenter_id, 'role': user['role']}
         elif active is False:
             active_status[username] = {'experimenter_id' : experimenter_id, 'active': True, 'username': username}

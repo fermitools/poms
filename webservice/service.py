@@ -170,7 +170,7 @@ class SessionExperimenter:
         Who can change a campagin/any object with properties fo experiment, creator and creator_role :
                 The creator can change her/his own campaign_stages with the same role used to create the campaign.
                 The root can change any campaign_stages.
-                The coordinator can change any campaign_stages that in the same experiment as the coordinator.
+                The superuser can change any campaign_stages that in the same experiment as the superuser.
                 Anyone with a production role can change a campaign created with a production role.
         :param campaign: Name of the campaign.
         :return: True or False
@@ -179,7 +179,7 @@ class SessionExperimenter:
             return False
         if self.is_root():
             return True
-        elif self.is_coordinator() and self.session_experiment == campaign.experiment:
+        elif self.is_superuser() and self.session_experiment == campaign.experiment:
             return True
         elif self.is_production and self.session_experiment == campaign.experiment \
                 and campaign.creator_role == "production":
@@ -193,8 +193,8 @@ class SessionExperimenter:
     def is_root(self):
         return self.root
 
-    def is_coordinator(self):
-        if self.session_role == 'coordinator':
+    def is_superuser(self):
+        if self.session_role == 'superuser':
             return True
         return False
 
@@ -212,7 +212,7 @@ class SessionExperimenter:
         """
         Returns a dictionary of dictionaries.  Where:
           {'experiment':
-            {'roles': [analysis,production,coordinator,root]   # Ordered list of roles the user plays in the experiment
+            {'roles': [analysis,production,superuser,root]   # Ordered list of roles the user plays in the experiment
             },
           }
         """
@@ -299,7 +299,7 @@ class SessionTool(cherrypy.Tool):
         # and construct security role data on each active experiment
         # Not that root is a FLAG not a ROLE. Take care not to make it a role.
         # Ordered by how they will appear in the form dropdown.
-        roles = ['analysis', 'production', 'coordinator']
+        roles = ['analysis', 'production', 'superuser']
         exps = {}
         e2e = None
         if e.root is True:
@@ -314,7 +314,7 @@ class SessionTool(cherrypy.Tool):
                 position = 0
                 if e.root is True:
                     position = 3
-                elif row.role == 'coordinator':
+                elif row.role == 'superuser':
                     position = 3
                 elif row.role == 'production':
                     position = 2

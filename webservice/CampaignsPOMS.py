@@ -137,7 +137,7 @@ class CampaignsPOMS:
                 if action == 'add':
                     logit.log("adding new LoginSetup...")
                     role = seshandle('experimenter').session_role
-                    if role in ('root', 'coordinator'):
+                    if role in ('root', 'superuser'):
                         raise cherrypy.HTTPError(
                             status=401, message='You are not authorized to add launch template.')
                     template = LoginSetup(experiment=exp,
@@ -195,9 +195,9 @@ class CampaignsPOMS:
                 data['view_mine'] = experimenter.experimenter_id
                 data['view_others'] = experimenter.experimenter_id
                 data['view_analysis'] = 'view_analysis' if se_role in (
-                    'analysis', 'coordinator') else None
+                    'analysis', 'superuser') else None
                 data['view_production'] = 'view_production' if se_role in (
-                    'production', 'coordinator') else None
+                    'production', 'superuser') else None
             else:
                 data['view_active'] = kwargs.get('view_active', None)
                 data['view_inactive'] = kwargs.get('view_inactive', None)
@@ -238,7 +238,7 @@ class CampaignsPOMS:
             data['templates'] = q.all()
 
             for l_t in data['templates']:
-                if se_role in ('root', 'coordinator'):
+                if se_role in ('root', 'superuser'):
                     data['authorized'].append(True)
                 elif se_role == 'production':
                     data['authorized'].append(True)
@@ -549,7 +549,7 @@ class CampaignsPOMS:
             try:
                 if action == 'add':
                     role = seshandle('experimenter').session_role
-                    if role == 'root' or role == 'coordinator':
+                    if role == 'root' or role == 'superuser':
                         raise cherrypy.HTTPError(
                             status=401,
                             message=('You are not authorized '
@@ -614,9 +614,9 @@ class CampaignsPOMS:
                 data['view_mine'] = experimenter.experimenter_id
                 data['view_others'] = experimenter.experimenter_id
                 data['view_analysis'] = 'view_analysis' if ses_role in (
-                    'analysis', 'coordinator') else None
+                    'analysis', 'superuser') else None
                 data['view_production'] = 'view_production' if ses_role in (
-                    'production', 'coordinator') else None
+                    'production', 'superuser') else None
             else:
                 data['view_active'] = kwargs.get('view_active', None)
                 data['view_inactive'] = kwargs.get('view_inactive', None)
@@ -659,7 +659,7 @@ class CampaignsPOMS:
             cids = []
             for df in data['definitions']:
                 cids.append(df.JobType.job_type_id)
-                if ses_role in ['root', 'coordinator']:
+                if ses_role in ['root', 'superuser']:
                     data['authorized'].append(True)
                 elif (df.JobType.creator_role == 'production' and
                       ses_role == "production"):
@@ -952,9 +952,9 @@ class CampaignsPOMS:
                 data['view_mine'] = experimenter.experimenter_id
                 data['view_others'] = experimenter.experimenter_id
                 data['view_analysis'] = 'view_analysis' if role in (
-                    'analysis', 'coordinator') else None
+                    'analysis', 'superuser') else None
                 data['view_production'] = 'view_production' if role in (
-                    'production', 'coordinator') else None
+                    'production', 'superuser') else None
             else:
                 data['view_active'] = kwargs.get('view_active', None)
                 data['view_inactive'] = kwargs.get('view_inactive', None)
@@ -1026,7 +1026,7 @@ class CampaignsPOMS:
             csq = data['campaign_stages']
 
             for c_s in csq:
-                if role in ('root', 'coordinator'):
+                if role in ('root', 'superuser'):
                     data['authorized'].append(True)
                 elif (c_s.CampaignStage.creator_role == 'production' and
                       sesshandle.get('experimenter').session_role == 'production'):
@@ -1439,9 +1439,9 @@ class CampaignsPOMS:
             data['view_mine'] = experimenter.experimenter_id
             data['view_others'] = experimenter.experimenter_id
             data['view_analysis'] = 'view_analysis' if se_role in (
-                'analysis', 'coordinator') else None
+                'analysis', 'superuser') else None
             data['view_production'] = 'view_production' if se_role in (
-                'production', 'coordinator') else None
+                'production', 'superuser') else None
         else:
             data['view_active'] = kwargs.get('view_active', None)
             data['view_inactive'] = kwargs.get('view_inactive', None)
@@ -1477,7 +1477,7 @@ class CampaignsPOMS:
             return csl, "", msg, data
         role = sesshandle.get('experimenter').session_role
         for c_s in csl:
-            if role == 'coordinator':
+            if role == 'superuser':
                 data['authorized'].append(True)
             elif c_s.creator_role == 'production' and role == 'production':
                 data['authorized'].append(True)
@@ -1543,9 +1543,9 @@ class CampaignsPOMS:
             data['view_mine'] = experimenter.experimenter_id
             data['view_others'] = experimenter.experimenter_id
             data['view_analysis'] = 'view_analysis' if se_role in (
-                'analysis', 'coordinator') else None
+                'analysis', 'superuser') else None
             data['view_production'] = 'view_production' if se_role in (
-                'production', 'coordinator') else None
+                'production', 'superuser') else None
         else:
             data['view_active'] = kwargs.get('view_active', None)
             data['view_inactive'] = kwargs.get('view_inactive', None)
@@ -2567,7 +2567,7 @@ class CampaignsPOMS:
                 if user.is_root():
                     auth = True
                 elif user.session_experiment == campaign.experiment:
-                    if user.is_coordinator():
+                    if user.is_superuser():
                         auth = True
                     elif user.is_production() and campaign.creator_role == 'production':
                         auth = True
