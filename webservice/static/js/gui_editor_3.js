@@ -1589,10 +1589,10 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
             res.push(`<button type="button" onclick="json_field_editor.start(this.previousElementSibling.id)">Edit</button>`);
         }
         if (k == 'dataset_or_split_data') {
-            res.push(`<button type="button" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
+            res.push(`<button type="button" class="split_type_picker_custom_edit" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
         }
         if (k == 'cs_split_type') {
-            res.push(`<button type="button" onclick="split_type_picker.start(this.previousElementSibling.id)">Edit</button>`);
+            res.push(`<button type="button" class="split_type_picker_button" onclick="split_type_picker.start(this.previousElementSibling.id)">Edit</button>`);
         }
         if (k == 'recoveries') {
             res.push(`<button type="button" onclick="json_field_editor.recovery_start(this.previousElementSibling.id)">Edit</button>`);
@@ -1615,6 +1615,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     // Now calculate and store a hash
     const hval = mwm_utils.hashCode(JSON.stringify(mwm_utils.formFields(this.popup_parent)));
     $(`form[id='fields_${name}']`).attr('data-hash', hval);
+    split_type_picker.fix_custom_edit(this.get_input_tag('cs_split_type'))
 }
 
 /*
