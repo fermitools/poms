@@ -88,6 +88,22 @@ def query_ferry(cert, ferry_url, exp, role):
             results = {}
     return results.get(exp, {})
 
+def query_superusers(cert, ferry_url, exp, anal_users):
+    # Ferry does not support anyway to check for errors in result from this call. They aslo do
+    # not provide the same data back that getAffiliationMemberRoles does.  Supposedly they will fix all this.
+    results = []
+    url = ferry_url + "/getSuperUserList?unitname=%s" % (exp)
+    r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    for row in r.json():
+        uname = row.get('uname')
+        su = {}
+        for u in anal_users:
+            if u['username'] == uname:
+                su = u
+                break
+        results.append({'username': uname, 'commonname': su.get('commonname', 'not known')})
+    return results
+
 def get_ferry_data(cert, ferry_url, exp, skip_analysis):
     """
     Query Ferry for exps users by Analysis and Production.  Join them in one dictionary.
@@ -98,15 +114,20 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
     """
     users = {}
     anal_users = {}
+    su_users = {}
     if skip_analysis is False:
         anal_users = query_ferry(cert, ferry_url, exp, 'Analysis')
+        su_users = query_superusers(cert, ferry_url, exp, anal_users)
     prod_users = query_ferry(cert, ferry_url, exp, 'Production')
 
     for anal in anal_users:
         users[anal.get('username')] = {'commonname': anal.get('commonname'), 'role': 'analysis'}
     for prod in prod_users:
         users[prod.get('username')] = {'commonname': prod.get('commonname'), 'role': 'production'}
-    logging.debug("ferry data: %s" % str(users))
+    for su in su_users:
+        users[su.get('username')] = {'commonname': su.get('commonname'), 'role': 'superuser'}
+
+    logging.debug("ferry data: %s", str(users))
     return users
 
 def get_voms_data(cert, exp):
@@ -122,7 +143,7 @@ def get_voms_data(cert, exp):
             # build a dictionary to get rid of duplicates, make it the
             # same structure as get_ferry_data builds
             users[username] = {'commonname': commonname, 'role': 'production'}
-    logging.debug("voms data: %s" % str(users))
+    logging.debug("voms data: %s", str(users))
     return users
 
 def determine_changes(cursor, exp, users):
@@ -136,7 +157,7 @@ def determine_changes(cursor, exp, users):
     active_status = {}
     role_changes = {}
 
-    if len(users) == 0:
+    if not users:
         logging.warning("deterimine_changes: Zero users returned for experiment!  Skipping this experiment.")
         return {}, {}, {}
 
@@ -147,8 +168,7 @@ def determine_changes(cursor, exp, users):
             if active is True:
                 active_status[username] = {'experimenter_id' : experimenter_id, 'active': False, 'username': username}
         elif user['role'] != role:
-            if role != 'superuser':
-                role_changes[username] = {'experimenter_id': experimenter_id, 'role': user['role']}
+            role_changes[username] = {'experimenter_id': experimenter_id, 'role': user['role']}
         elif active is False:
             active_status[username] = {'experimenter_id' : experimenter_id, 'active': True, 'username': username}
     return new_users, active_status, role_changes
@@ -165,8 +185,8 @@ def add_users(cursor, exp, new_users):
             names = last_name.lstrip().split(" ", 1)
             if len(names) == 2:
                 (first_name, last_name) = last_name.lstrip().split(" ", 1)
-                first_name = first_name.replace("'","''")
-                last_name = last_name.replace("'","''")
+                first_name = first_name.replace("'", "''")
+                last_name = last_name.replace("'", "''")
             sql = """
                 insert into experimenters (last_name,first_name,username,session_experiment)
                     values ('%s','%s','%s','%s') returning experimenter_id
@@ -175,7 +195,6 @@ def add_users(cursor, exp, new_users):
             experimenter_id = cursor.fetchone()[0]
             logging.debug("add_user: inserted new experimenter id=%s username: %s commonname: %s ", experimenter_id, username, user['commonname'])
         add_relationship(cursor, experimenter_id, exp, user['role'], username)
-    return
 
 def add_relationship(cursor, experimenter_id, exp, role, username):
     sql = "select 1 from experiments_experimenters where experiment = '%s' and experimenter_id = %s" % (exp, experimenter_id)

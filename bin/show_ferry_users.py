@@ -34,6 +34,22 @@ def query_ferry(cert, ferry_url, exp, role):
             results = {}
     return results.get(exp, {})
 
+def query_superusers(cert, ferry_url, exp, anal_users):
+    # Ferry does not support anyway to check for errors in result from this call. They aslo do
+    # not provide the same data back that getAffiliationMemberRoles does.  Supposedly they will fix all this.
+    results = []
+    url = ferry_url + "/getSuperUserList?unitname=%s" % (exp)
+    r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    for row in r.json():
+        uname = row.get('uname')
+        su = {}
+        for u in anal_users:
+            if u['username'] == uname:
+                su = u
+                break
+        results.append({'username': uname, 'commonname': su.get('commonname', 'not known'), 'role': 'superuser'})
+    return results
+
 def get_ferry_data(cert, ferry_url, exp, skip_analysis):
     """
     Query Ferry for exps users by Analysis and Production.  Join them in one dictionary.
@@ -42,11 +58,9 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
                  {'commonname':  'value',  'role': 'value'},
       }
     """
-    anal_users = {}
-    cord_users = {}
     anal_users = query_ferry(cert, ferry_url, exp, 'Analysis')
     prod_users = query_ferry(cert, ferry_url, exp, 'Production')
-    cord_users = query_ferry(cert, ferry_url, exp, 'superuser')
+    su_users = query_superusers(cert, ferry_url, exp, anal_users)
 
     if skip_analysis is False:
         print("\n\nAnalysis:")
@@ -57,9 +71,9 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
     for prod in prod_users:
         print("    username: %s\t\t  commonname: %s" % (prod.get('username'), prod.get('commonname')))
 
-    print("\n\nsuperusers:")
-    for cord in cord_users:
-        print("    username: %s\t\t  commonname: %s" % (cord.get('username'), cord.get('commonname')))
+    print("\n\nSuperusers:")
+    for su in su_users:
+        print("    username: %s\t\t  commonname: %s" % (su.get('username'), su.get('commonname')))
 
 def main():
     args = parse_command_line()
