@@ -43,8 +43,7 @@ class Files_status:
          time_range_string, tdays
         ) = self.poms_service.utilsPOMS.handle_dates(
             tmin, tmax, tdays,
-            'campaign_task_files?campaign_stage_id=%s&campaign_id=%s' % (
-                campaign_stage_id, campaign_id))
+            'campaign_task_files?campaign_stage_id=%s&' %campaign_stage_id)
 
         # inhale all the campaign related task info for the time window
         # in one fell swoop
