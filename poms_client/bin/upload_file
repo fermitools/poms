@@ -30,7 +30,8 @@ if options.proxy:
          os.system("mv %s.%d %s" % (proxyfile, os.getppid(), proxyfile))
     args.append(proxyfile)
 
-poms_client.update_session_role(options.poms_role, test_client=options.test)
 poms_client.update_session_experiment(options.experiment, test_client=options.test)
+poms_client.update_session_role(options.poms_role, test_client=options.test)
+
 for f in args:
      poms_client.upload_file(f, test=options.test)

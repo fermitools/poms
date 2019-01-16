@@ -60,7 +60,7 @@ class JobsPOMS:
             s = (dbhandle.query(Submission)
                  .filter(Submission.submission_id == submission_id)
                  .first())
-            what = "--constraint=POMS4_SUBMISSION_ID=%s" % s.submission_id
+            what = "--constraint=POMS4_SUBMISSION_ID==%s" % s.submission_id
             cs = s.campaign_stage_obj
 
         if not (submission_id or campaign_id or campaign_stage_id):
@@ -122,7 +122,7 @@ class JobsPOMS:
                 "dataset": cs.dataset,
                 "version": cs.software_version,
                 "group": group,
-                "experimenter": s.experimenter_creator_obj.username,
+                "experimenter": cs.experimenter_creator_obj.username,
                 "experiment": cs.experiment,
             }
 

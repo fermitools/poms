@@ -27,8 +27,8 @@ class uploader:
             role = self.cfg_get('campaign','poms_role') 
         experiment = self.cfg_get('campaign','experiment')
 
-        poms_client.update_session_role(role)
         poms_client.update_session_experiment(experiment)
+        poms_client.update_session_role(role)
 
     def cfg_get(self,section,item):
         try:

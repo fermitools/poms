@@ -1563,7 +1563,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     res.push('</h3>');
     for (const k of klist) {
         // k = klist[i];
-        const ro = (k.includes("param")||k=="recoveries"||k=="cs_split_type") ? "disabled" : "";
+        const ro = (k.includes("param")||k=="recoveries"||k=="cs_split_type"||((k=="host"||k=="login")&&state['campaign']['poms_role']=="analysis")) ? "disabled" : "";
         if (k.startsWith('campaign_stage'))      // Hack to hide this from dependency form
             continue;
         if (vdict[k] == null) {
