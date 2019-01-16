@@ -3,7 +3,7 @@
 """
 This module contain the methods that allow to create campaign_stages, definitions and templates.
 List of methods:
-login_setup_edit, campaign_definition_edit, campaign_stage_edit, campaign_stage_edit_query.
+login_setup_edit, job_type_edit, campaign_stage_edit, campaign_stage_edit_query.
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in
 poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
 Date: April 28th, 2017. (changes for the POMS_client)
@@ -453,7 +453,7 @@ class CampaignsPOMS:
             i = i + 1
             dbhandle.add(cr)
 
-    def campaign_definition_edit(self, dbhandle, seshandle, *args, **kwargs):
+    def job_type_edit(self, dbhandle, seshandle, *args, **kwargs):
         """
             callback from edit screen/client.
         """
@@ -496,7 +496,7 @@ class CampaignsPOMS:
                 dbhandle.rollback()
 
         if action == 'add' or action == 'edit':
-            logit.log("campaign_definition_edit: add or exit case")
+            logit.log("job_type_edit: add or exit case")
             job_type_id = None
             definition_parameters = kwargs.pop('ae_definition_parameters')
             if definition_parameters:

@@ -2057,9 +2057,9 @@ wf_uploader.prototype.upload_jobtype = function(jt) {
       * exists already, the first will fail..
       */
     var thisx = this;
-    this.make_poms_call('campaign_definition_edit', args, function() {
+    this.make_poms_call('job_type_edit', args, function() {
         args['action'] = 'edit';
-        thisx.make_poms_call('campaign_definition_edit', args, null);
+        thisx.make_poms_call('job_type_edit', args, null);
    });
 }
 
