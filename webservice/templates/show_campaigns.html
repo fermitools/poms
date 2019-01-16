@@ -27,6 +27,15 @@ Campaigns {%include 'help_button.html'%}
 
 </style>
 
+<script>
+ function confirm_call(msg, url) {
+         var r = confirm(msg);
+     if ( r ) {
+         location.assign(url)
+     }
+ }
+</script>
+
 <form name="view_picker_form" id="view_picker_form" method="GET" action="show_campaigns">
 {% set has_active=True %}
 {% set data = data|default({}) %}
@@ -98,11 +107,9 @@ Campaigns {%include 'help_button.html'%}
                     </a>
                 </td>
                 <td>
-                    <a href="{{pomspath}}/launch_campaign?campaign_id={{s.campaign_id}}">
-                        <button type="button">
+                    <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign?campaign_id={{s.campaign_id}}')">
                         <i class="chart rocket icon"></i>
-                        </button>
-                    </a>
+                    </button>
                 </td>
                 <td>
                     <a href="{{pomspath}}/campaign_deps?tag={{s.name|urlencode}}">

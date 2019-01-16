@@ -85,13 +85,21 @@ all the time...
                </div>
 
               <div class=item>
-                <a href="{{pomspath}}/launch_jobs?campaign_stage_id={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
+                <script>
+                 function confirm_call(msg, url) {
+                     var r = confirm(msg);
+                     if ( r ) {
+                         location.assign(url)
+                     }
+                 }
+                </script>
+                <button onclick="confirm_call('Are you sure you want to submit jobs?','{{pomspath}}/launch_jobs?campaign_stage_id={{CampaignStage.campaign_stage_id}}')" {{"disabled" if (session_role=="analysis"
                    and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                    <i class="external rocket icon" data-content="Immediately Launch Submissions for CampaignStage" data-variation="basic">
                    </i>
                   Launch Campaign Stage Jobs Now
-                </a>
+                </button>
                 &nbsp; &nbsp;
                 <a href="{{pomspath}}/launch_jobs?campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
                    and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
@@ -100,13 +108,13 @@ all the time...
                </a>
               </div>
               <div class=item>
-                <a href="{{pomspath}}/launch_jobs?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
+                <button onclick="confirm_call('Are you sure you want to launch test jobs now?','{{pomspath}}/launch_jobs?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}')" {{"disabled" if (session_role=="analysis"
                    and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                    <i class="external rocket icon" data-content="Immediately Launch Test Submissions for CampaignStage" data-variation="basic">
                    </i>
                   Launch Campaign Stage Test Jobs Now
-                </a>
+                </button>
                 &nbsp; &nbsp;
                 <a href="{{pomspath}}/launch_jobs?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
                    and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
