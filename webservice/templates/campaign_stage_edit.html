@@ -34,7 +34,9 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
   {% set has_active=True %}
   {%include "view_picker.html" %}
-
+  <br/>
+  <a class="ui orange ribbon label">Stages must be created via GUI Editor</a>
+<!--
   <div class="inline fields">
     <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (session_role=='superuser') }}>
       <i class="icon add square"></i>
@@ -42,6 +44,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
     </button>
     &nbsp;&nbsp;
   </div>
+-->
 
   {% if data.curr_experiment is defined %}
   <div id="double-scroll" class="scrollable">
@@ -115,6 +118,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       </tr>
       {% endfor %}
     </tbody>
+    <!--
     <tfoot>
         <tr>
             <th colspan="9">
@@ -125,6 +129,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
             </th>
         </tr>
     </tfoot>
+    -->
   </table>
   </div> <!-- double-scroll -->
   {% endif %}
@@ -166,7 +171,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
       <div class="fields">
         <label>Campaign Name</label>
-        <select name="ae_campaign_name" id="ae_campaign_name" class="ui fluid search dropdown">
+        <select name="ae_campaign_name" id="ae_campaign_name" class="ui fluid search dropdown" disabled >
           <option value=""></option>
           {% for row in data.campaigns %}
           <option value={{row.campaign_id}}>{{row.name}}</option>
@@ -202,7 +207,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         <div class="field">
             <label>Dataset or Split Data {{ show_hint('#Dataset', 'Dataset name') }}</label>
             <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset" style="width: 90%"></input>
-        
+
             <i class="edit link blue icon split_type_picker_custom_edit" onclick="split_type_picker.custom_edit('ae_split_type','ae_dataset')"></i>
         </div>
         <div class="field">
