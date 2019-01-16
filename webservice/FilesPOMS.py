@@ -85,6 +85,7 @@ class Files_status:
         some_kids_decl_needed = deque()
         all_kids_needed = deque()
         all_kids_decl_needed = deque()
+        output_files = deque()
         # finished_flying_needed = deque()
         for s in tl:
             summary_needed.append(s)
@@ -118,23 +119,24 @@ class Files_status:
                                   "with availability anylocation ) " %
                                   (allkiddecldims, dimbits,
                                    s.campaign_stage_snapshot_obj.software_version))
+                outputfiledims = ("ischildof: ( %s ) and create_date > '%s' and  %s and version '%s'" % 
+                                   (basedims, s.created.strftime('%Y-%m-%d %H:%M:%S'), dimbits, s.campaign_stage_snapshot_obj.software_version))
             all_kids_needed.append(allkiddims)
             all_kids_decl_needed.append(allkiddecldims)
+            output_files.append(outputfiledims)
         #
         # -- now call parallel fetches for items
         # samhandle = cherrypy.request.samweb_lite ####IMPORTANT
-        summary_list = samhandle.fetch_info_list(
-            summary_needed, dbhandle=dbhandle)
-        some_kids_list = samhandle.count_files_list(
-            cs.experiment, some_kids_needed)
-        some_kids_decl_list = samhandle.count_files_list(
-            cs.experiment, some_kids_decl_needed)
-        all_kids_decl_list = samhandle.count_files_list(
-            cs.experiment, all_kids_decl_needed)
+        summary_list = samhandle.fetch_info_list(summary_needed, dbhandle=dbhandle)
+        output_list = samhandle.count_files_list( cs.experiment, output_files)
+        some_kids_list = samhandle.count_files_list( cs.experiment, some_kids_needed)
+        some_kids_decl_list = samhandle.count_files_list(cs.experiment, some_kids_decl_needed)
+        all_kids_decl_list = samhandle.count_files_list(cs.experiment, all_kids_decl_needed)
         # all_kids_list = samhandle.count_files_list(cs.experiment, all_kids_needed)
         tids = [s.submission_id for s in tl]
 
-        columns = ["jobsub_jobid", "project", "date", "submit-<br>ted",
+        columns = ["submission<br>jobsub_jobid", "project", "date", "submit-<br>ted",
+                   "available<br>output",
                    "deliv-<br>ered<br>SAM",
                    "unknown<br>SAM",
                    "con-<br>sumed", "failed", "skipped",
@@ -174,6 +176,7 @@ class Files_status:
                     [s.created.strftime("%Y-%m-%d %H:%M"), None],
                     [psummary.get('files_in_snapshot', 0),
                      listfiles % base_dim_list[i]],
+                    [output_list[i], listfiles % output_files[i] ],
                     ["%d" % (psummary.get('tot_consumed', 0) +
                              psummary.get('tot_failed', 0) +
                              psummary.get('tot_skipped', 0) +
