@@ -134,8 +134,9 @@ class Files_status:
         # all_kids_list = samhandle.count_files_list(cs.experiment, all_kids_needed)
         tids = [s.submission_id for s in tl]
 
-        columns = ["submission<br>jobsub_jobid", "project", "date", "submit-<br>ted",
+        columns = ["submission<br>jobsub_jobid", "project", "date", 
                    "available<br>output",
+                   "submit-<br>ted",
                    "deliv-<br>ered<br>SAM",
                    "unknown<br>SAM",
                    "con-<br>sumed", "failed", "skipped",
@@ -173,9 +174,9 @@ class Files_status:
                          cs.experiment,
                          s.project)],
                     [s.created.strftime("%Y-%m-%d %H:%M"), None],
+                    [output_list[i], listfiles % output_files[i] ],
                     [psummary.get('files_in_snapshot', 0),
                      listfiles % base_dim_list[i]],
-                    [output_list[i], listfiles % output_files[i] ],
                     ["%d" % (psummary.get('tot_consumed', 0) +
                              psummary.get('tot_failed', 0) +
                              psummary.get('tot_skipped', 0) +
