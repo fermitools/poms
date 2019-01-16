@@ -43,6 +43,7 @@
     </div>
   </div>
 
+  {%if session_role == 'analysis' %}
   <div class="item">
     <div class="header">User Data</div>
     <div class="menu">
@@ -51,6 +52,7 @@
       </a>
      </div>
   </div>
+  {%endif%}
   <div class="item">
     <div class="header">Campaign Data</div>
     <div class="menu">

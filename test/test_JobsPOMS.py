@@ -31,8 +31,8 @@ def test_kill_jobs():
     samhandle = samweb_lite()
     #mock_rm=Mock_jobsub_rm.Mock_jobsub_rm()
     #Two submission_id for the same campaign
-    submission_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a submission_id for the fake campaign
-    task_id2 = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a submission_id for the second task
+    submission_id = mps.taskPOMS.get_task_id_for(dbhandle,user='mengel',experiment='samdev', campaign='14') #Provide a submission_id for the fake campaign
+    task_id2 = mps.taskPOMS.get_task_id_for(dbhandle,user='mengel',experiment='samdev', campaign='14') #Provide a submission_id for the second task
     jid_n = time.time()
 
     jid1 = "%d.0@fakebatch1.fnal.gov" % jid_n  #1 Job in the first submission_id
@@ -48,34 +48,24 @@ def test_kill_jobs():
 
 
     #Calls to the rutine under test.
-    output_killTask, c_obje_T, c_idr_T, task_idr_T, job_idr_T = mps.jobsPOMS.kill_jobs(dbhandle, submission_id=submission_id, confirm = "yes", act="kill") #all task
-    output_killCampaign, c_obje_C, c_idr_C, task_idr_C, job_idr_C = mps.jobsPOMS.kill_jobs(dbhandle, campaign_stage_id='14', confirm = "yes", act="kill") #all campaign
+    output_killTask, c_obje_T, c_idr_T, task_idr_T, job_idr_T = mps.jobsPOMS.kill_jobs(dbhandle, camp_seshandle.get, submission_id=submission_id, confirm = "yes", act="kill") #all task
+    output_killCampaign, c_obje_C, c_idr_C, task_idr_C, job_idr_C = mps.jobsPOMS.kill_jobs(dbhandle, camp_seshandle.get, campaign_stage_id='14', confirm = "yes", act="kill") #all campaign
 
     #Check kill jobs in one task
 
-    sep=output_killTask.rfind('--jobid ')
-    assert(sep!=-1) #--jobid option was in called in the command
     print("got output:", output_killTask)
-    jrm_idtl=output_killTask.split('--jobid ')[1].split(",")
-    jrm_idtl[-1]=jrm_idtl[-1].rstrip('\n')
+    assert(output_killTask.rfind('--constraint=POMS4_SUBMISSION') > 0)
+    assert(output_killTask.rfind('=%d'%submission_id) > 0)
 
     # we may have jobs besides the ones we just added in the task , just do ours..
-    for jid in c_output_killTask:
-        assert(jid in jrm_idtl)
 
     #Check kill all jobs in one CampaignStage,  that also prof that the job market as completed is not killed.
-    sep=output_killCampaign.rfind('--jobid ')
-    assert(sep!=-1) #--jobid option was in called in the command
     print("got output:", output_killCampaign)
-    jrm_idcl=output_killCampaign.split('--jobid ')[1].split(",")
-    jrm_idcl[-1]=jrm_idcl[-1].rstrip('\n')
+    assert(output_killCampaign.rfind('--constraint=POMS4_CAMPAIGN') > 0)
+    assert(output_killCampaign.rfind('=14') > 0)
 
     # there may be *other* jobs in this campaign than the ones we added in this test
 
-    # just make sure the ones we have are in there.
-    #
-    for jid in c_output_killCampaign:
-        assert(jid in jrm_idcl)
 
     #Closing the mock
     mock_rm.close()

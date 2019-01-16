@@ -36,7 +36,7 @@ Uploaded Files
   <form action="{{pomspath}}/remove_uploaded_files">
   <table class="ui celled table raised">
   <thead>
-  <tr><th><input name="file_all" id="file_all" type="checkbox"><th>Name</th><th>Size</th><th>uploaded</th></tr>
+  <tr><th><input name="file_all" id="file_all" type="checkbox"><th>Name</th><th>Size</th><th>Uploaded</th></tr>
   </thead>
   <tbody>
   {% for fs in file_stat_list %}
@@ -47,7 +47,8 @@ Uploaded Files
          <td> {{file}} </td><td> {{stat.st_size}} </td><td> {{time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime(stat.st_mtime))}} </td>
       </tr>
   {% endfor %}
-      <tr><td style="text-align: right;" colspan=2>Total:</td><td>{{total}}</td><td></td></tr>
+      <tr><td colspan=4></td></tr>
+      <tr><td style="text-align: right;" colspan=2>Total:</td><td>{{total}}</td><td>{{(total* 1000.0/quota)|int/10}}% of {{(quota/1024)|int}}k quota</td></tr>
       <tr><td colspan=4> 
            <input type="submit" name="action" value="Delete Checked"> 
       </td></tr>
