@@ -976,7 +976,7 @@ class PomsService:
     def launch_queued_job(self):
         return self.taskPOMS.launch_queued_job(cherrypy.request.db,
                                                cherrypy.request.samweb_lite,
-                                               cherrypy.session,
+                                               cherrypy.session.get,
                                                cherrypy.request.headers.get,
                                                cherrypy.session,
                                                cherrypy.response.status,
@@ -1073,7 +1073,7 @@ class PomsService:
 
         lcmd, cs, campaign_stage_id, outdir, outfile = vals
         if lcmd == "":
-            return "Launches held, job queued..."
+            return outfile
         else:
             if test_login_setup:
                 raise cherrypy.HTTPRedirect("%s/list_launch_file?login_setup_id=%s&fname=%s" % (

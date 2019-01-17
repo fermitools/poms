@@ -874,28 +874,36 @@ class TaskPOMS:
 
         hl = dbhandle.query(HeldLaunch).with_for_update(
             read=True).order_by(HeldLaunch.created).first()
-        launch_user = dbhandle.query(Experimenter).filter(
-            Experimenter.experimenter_id == hl.launcher).first()
         if hl:
+            launcher = hl.launcher
+            campaign_stage_id= hl.campaign_stage_id
+            dataset = hl.dataset
+            parent_submission_id = hl.parent_submission_id
+            param_overrides = hl.param_overrides
+            launch_user = dbhandle.query(Experimenter).filter(
+                Experimenter.experimenter_id == hl.launcher).first()
+
             dbhandle.delete(hl)
             dbhandle.commit()
+         
             self.launch_jobs(dbhandle,
                              getconfig, gethead,
                              seshandle_get, samhandle,
                              err_res, 
                              basedir,
-                             hl.campaign_stage_id,
-                             launch_user.username,
-                             dataset_override=hl.dataset,
-                             parent_submission_id=hl.parent_submission_id,
-                             param_overrides=hl.param_overrides)
+                             campaign_stage_id,
+                             launcher,
+                             dataset_override=dataset,
+                             parent_submission_id=parent_submission_id,
+                             param_overrides=param_overrides)
             return "Launched."
         else:
             return "None."
 
     def has_valid_proxy(self, proxyfile ):
+        logit.log("Checking proxy: %s" % proxyfile)
         res = os.system("voms-proxy-info -exists -valid 0:10 -file %s" % proxyfile)
-        return res == 0
+        return os.WIFEXITED(res) and os.WEXITSTATUS(res) == 0
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
                     err_res, basedir, campaign_stage_id, launcher, dataset_override=None, parent_submission_id=None,
@@ -1018,7 +1026,7 @@ class TaskPOMS:
 
         if se_role == 'analysis':
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, seshandle_get)
-            proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (exp,experimenter_login)
+            proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox,exp,experimenter_login)
         else:
             sandbox = '$HOME'
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
@@ -1047,7 +1055,7 @@ class TaskPOMS:
             dbhandle.commit()
             lcmd = ""
 
-            return lcmd, cs, campaign_stage_id, outdir, outfile
+            return lcmd, cs, campaign_stage_id, outdir, output
 
         if dataset_override:
             dataset = dataset_override
