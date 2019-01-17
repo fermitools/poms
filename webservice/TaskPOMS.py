@@ -415,6 +415,7 @@ class TaskPOMS:
 
         s = dbhandle.query(Submission).filter(
             Submission.submission_id == submission_id).with_for_update(read=True).first()
+
         status_id = dbhandle.query(
             SubmissionStatus.status_id).filter(
             SubmissionStatus.status == status).first()
@@ -433,6 +434,8 @@ class TaskPOMS:
                     .filter(SubmissionHistory.created == sq.c.latest)
                     .filter(SubmissionHistory.submission_id == submission_id)
                     .first())
+
+        logit.log("update_submission_status: newstatus %s  lasthist: status %s created %s " % (status_id, lasthist.status_id, lasthist.created))
 
         # don't roll back Located
         if lasthist and lasthist.status_id == self.status_Located:
