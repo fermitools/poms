@@ -893,7 +893,7 @@ class TaskPOMS:
         else:
             return "None."
 
-    def has_valid_proxy(self, experimenter_login, exp, sandbox ):
+    def has_valid_proxy(self, proxyfile ):
         res = os.system("voms-proxy-info -exists -valid 0:10 -file %s" % proxyfile)
         return res == 0
 
