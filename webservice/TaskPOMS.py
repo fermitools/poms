@@ -411,6 +411,10 @@ class TaskPOMS:
     def update_submission_status(self, dbhandle, submission_id, status):
         self.init_statuses(dbhandle)
 
+        # always lock the submission first to prevent races
+
+        s = dbhandle.query(Submission).filter(
+            Submission.submission_id == submission_id).with_for_update(read=True).first()
         status_id = dbhandle.query(
             SubmissionStatus.status_id).filter(
             SubmissionStatus.status == status).first()
@@ -447,6 +451,10 @@ class TaskPOMS:
         sh.status_id = status_id
         sh.created = datetime.now(utc)
         dbhandle.add(sh)
+
+        if status_id >= self.status_Completed:
+            s.updated = sh.created
+            dbhandle.add(s)
 
     def mark_failed_submissions(self, dbhandle):
         '''
