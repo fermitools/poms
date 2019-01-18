@@ -1174,6 +1174,7 @@ class PomsService:
                                                                          tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_task_files.html')
         return template.render(name=cs.name if cs else "",
+                               CampaignStageSnapshot = cs,
                                columns=columns, datarows=datarows,
                                tmin=tmins, tmax=tmaxs,
                                prev=prevlink, next=nextlink, tdays=tdays,

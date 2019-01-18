@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env python
 import requests
 import logging
 import os
