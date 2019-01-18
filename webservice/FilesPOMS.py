@@ -163,10 +163,7 @@ class Files_status:
             datarows.append(
                 [
                     [task_jobsub_job_id.replace('@', '@<br>'),
-                     "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?"
-                     "var-cluster=%s&var-schedd=%s&from=now-2d&to=now&refresh=5m&orgId=1" % (
-                         task_jobsub_job_id[0:task_jobsub_job_id.find('@')],
-                         task_jobsub_job_id[task_jobsub_job_id.find('@') + 1:])],
+                     "https://fermicloud045.fnal.gov/poms/submission_details?submission_id=%s" % s.submission_id],
                     [
                         s.project,
                         "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s" %
