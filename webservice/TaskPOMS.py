@@ -956,9 +956,9 @@ class TaskPOMS:
                     CampaignStage.experiment == experiment)
 
             cs = cq.options(
-                joinedload(
-                    CampaignStage.login_setup_obj), joinedload(
-                    CampaignStage.job_type_obj)).first()
+                joinedload(CampaignStage.campaign_obj),
+                joinedload(CampaignStage.login_setup_obj), 
+                joinedload(CampaignStage.job_type_obj)).first()
 
             if not cs:
                 raise err_res(
@@ -968,6 +968,10 @@ class TaskPOMS:
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
 
+            # if we're launching jobs, the campaign must now be active
+            if not cs.campaign_obj.active:
+                cs.campaign_obj.active = True
+                dbhandle.add(cs.campaign_obj)
 
             xff = gethead('X-Forwarded-For', None)
             ra = gethead('Remote-Addr', None)
