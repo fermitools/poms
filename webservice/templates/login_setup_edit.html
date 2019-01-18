@@ -19,7 +19,7 @@ POMS Login/Setup Editor
 {% endmacro %}
 
 {%block header%}
-Login/Setup {{ show_hint('', 'Help page') }}
+Login/Setup {% include 'help_button.html' %}
 {%endblock%}
 
 {%block subheader%}
@@ -121,7 +121,7 @@ Login/Setup {{ show_hint('', 'Help page') }}
 <div class="ui modal" id="template_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header"><span id="template_header">
-    Login/Setup Editor </span> {{ show_hint('', 'Edit template') }}
+    Login/Setup Editor </span> {% include 'help_button.html' %} 
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">

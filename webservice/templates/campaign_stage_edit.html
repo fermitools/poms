@@ -1,7 +1,6 @@
 {%extends "layout.html"%}
 
 {% macro show_hint(anchor, hint) %}
-    {% include 'help_button.html' %}
 {% endmacro %}
 
 {%block title%}
@@ -23,7 +22,8 @@ POMS
 </style>
 
 {%block header%}
-Campaign Stages {{ show_hint('', 'Help page') }}
+Campaign Stages 
+    {% include 'help_button.html' %}
 {%endblock%}
 
 {%block subheader%}
@@ -164,7 +164,9 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
 <div class="ui modal" id="campaign_add_edit_modal">
   <i class="close icon"></i>
-  <h3 class="block header"><span id="ae_experiment">Campaign Stage Editor </span>{{ show_hint('', 'Help Page') }}</h3>
+  <h3 class="block header"><span id="ae_experiment">Campaign Stage Editor </span>
+    {% include 'help_button.html' %}
+</h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
     <form id="campaign_add_edit_form" class="ui form" method="POST" action="campaign_stage_edit">
