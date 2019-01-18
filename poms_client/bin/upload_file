@@ -23,15 +23,21 @@ if options.proxy:
     proxyfile = "/tmp/x509up_voms_%s_%s_%s" % (options.experiment, options.poms_role.capitalize(),os.environ.get('GRID_USER',os.environ.get('USER','unknown')) )
     if os.environ.get('X509_USER_PROXY', None):
          os.system("cp $X509_USER_PROXY %s" % proxyfile)
-         os.system("chmod 400 %s" % proxyfile)
     else:
-         cert = poms_client.auth_cert()
-         os.system("voms-proxy-init -dont-verify-ac -valid 120:00 -rfc -noregen -debug -cert %s -key %s -out %s.%d" % (cert, cert, proxyfile, os.getppid()))
-         os.system("mv %s.%d %s" % (proxyfile, os.getppid(), proxyfile))
+         os.unlink(proxyfile)
+         import ifdh
+         ih = ifdh.ifdh()
+         os.environ['EXPERIMENT'] = options.experiment
+         ipf = ih.getProxy()
+         logging.debug("got %s from ifdh getProxy" % ipf)
+         os.system("cp %s %s" % (ipf, proxyfile))
     args.append(proxyfile)
+    os.system("chmod 400 %s" % proxyfile)
+         
 
 poms_client.update_session_experiment(options.experiment, test_client=options.test)
 poms_client.update_session_role(options.poms_role, test_client=options.test)
 
 for f in args:
+     logging.debug("uploading: %s " % f)
      poms_client.upload_file(f, test=options.test)

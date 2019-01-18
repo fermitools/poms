@@ -34,7 +34,10 @@ POMS
     <tr>
     {%for col in columns%}
        <th class="">
-           {{col}}<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignTaskFilesHelp#{{col|replace(' ','_')}}"><i class="small icon grey help circle  link"></i>
+           {{col}}
+            <!-- commenting out per issue #21477
+             <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignTaskFilesHelp#{{col|replace(' ','_')}}"><i class="small icon grey help circle  link"></i></a>
+           -->
        </th>
     {%endfor%}
     </tr>

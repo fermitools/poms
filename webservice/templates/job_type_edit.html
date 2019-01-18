@@ -26,7 +26,7 @@ JobTypes {%include 'help_button.html'%}
 {%block content%}
 
 {% macro show_hint(anchor, hint) %}
-	{% include 'help_button.html' %}
+	{# {% include 'help_button.html' %} task #21477 #}
 {% endmacro %}
 
 <form id="campaign_definition_form" class="ui form" action="job_type_edit" method="POST">
