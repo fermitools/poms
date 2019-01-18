@@ -916,6 +916,7 @@ class TaskPOMS:
         ds = launch_time.strftime("%Y%m%d_%H%M%S")
         e = seshandle_get('experimenter')
         se_role = e.session_role
+        
 
         launcher_experimenter = dbhandle.query(Experimenter).filter(
             Experimenter.experimenter_id == launcher).first()
@@ -959,6 +960,8 @@ class TaskPOMS:
                 joinedload(CampaignStage.campaign_obj),
                 joinedload(CampaignStage.login_setup_obj), 
                 joinedload(CampaignStage.job_type_obj)).first()
+
+            se_role = cs.creator_role
 
             if not cs:
                 raise err_res(
