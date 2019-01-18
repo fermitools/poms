@@ -15,7 +15,7 @@ POMS Login/Setup Editor
 </style>
 
 {% macro show_hint(anchor, hint) %}
-    {% include 'help_button.html' %}
+    {# {% include 'help_button.html' %} task #21477 #}
 {% endmacro %}
 
 {%block header%}
@@ -28,7 +28,7 @@ Login/Setup {{ show_hint('', 'Help page') }}
 {%block content%}
 
 {% macro show_hint(anchor, hint) %}
-    {% include 'help_button.html' %}
+    {# {% include 'help_button.html' %} task #21477 #}
 {% endmacro %}
 
 
