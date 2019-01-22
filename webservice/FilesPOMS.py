@@ -655,11 +655,14 @@ class Files_status:
         return "Ok."
 
     def get_launch_sandbox(self, basedir, sesshandle_get):
+        
         uploads = self.get_file_upload_path(basedir, sesshandle_get, '')
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
         sandbox = "%s/sandboxes/%s" % (basedir, str(uu))
         os.makedirs(sandbox, exist_ok=False)
-        flist = glob.glob(self.get_file_upload_path(basedir, sesshandle_get, '*'))
+        upload_path = self.get_file_upload_path(basedir, sesshandle_get, '*')
+        logit.log("get_launch_sandbox linking items from upload_path %s into %s" % (upload_path, sandbox))
+        flist = glob.glob(upload_path)
         for f in flist:
             os.link(f, "%s/%s" % (sandbox, os.path.basename(f)))
         return sandbox
