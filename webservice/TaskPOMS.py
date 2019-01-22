@@ -15,6 +15,7 @@ import subprocess
 import time
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta
+from .SessionExperimenter import SessionExperimenter
 
 from psycopg2.extensions import QueryCanceledError
 from sqlalchemy import case, func, text, and_, or_
@@ -324,6 +325,20 @@ class TaskPOMS:
             res.append(
                 "Starting finish_up_submissions items for submission %s" %
                 submission.submission_id)
+
+            # override session experimenter to be the owner of
+            # the current task in the role of the submission
+            # so launch actions get done as them.
+
+            seshandle['experimenter'] = SessionExperimenter(
+                submission.experimenter_creator_obj.experimenter_id,
+                submission.experimenter_creator_obj.first_name,
+                submission.experimenter_creator_obj.last_name,
+                submission.experimenter_creator_obj.username,
+                {},
+                submission.experimenter_creator_obj.session_experiment,
+                submission.campaign_stage_obj.creator_role,
+                submission.experimenter_creator_obj.root)
 
             if not self.launch_recovery_if_needed(
                     dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission, basedir):
@@ -903,6 +918,7 @@ class TaskPOMS:
     def has_valid_proxy(self, proxyfile ):
         logit.log("Checking proxy: %s" % proxyfile)
         res = os.system("voms-proxy-info -exists -valid 0:10 -file %s" % proxyfile)
+        logit.log("system(voms-proxy-info... returns %d" % res)
         return os.WIFEXITED(res) and os.WEXITSTATUS(res) == 0
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
