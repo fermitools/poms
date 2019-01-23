@@ -433,7 +433,7 @@ class TaskPOMS:
 
         status_id = dbhandle.query(
             SubmissionStatus.status_id).filter(
-            SubmissionStatus.status == status).first()
+            SubmissionStatus.status == status).first()[0]
 
         if not status_id:
             # not a known status, just bail
