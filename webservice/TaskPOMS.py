@@ -1108,6 +1108,14 @@ class TaskPOMS:
                 output = "Campaign stage %s launches currently held.... queuing this request" % cs.name
             if proxyheld:
                 output = "Proxy: %s not valid .... queuing this request" % os.path.basename(proxyfile)
+                m = Mail()
+                m.send("POMS: Queued job launch for %s:%s " % (cs.campaign_obj.name , cs.name),
+                       "Due to an invalid proxy, we had to queue a job launch\n"
+
+                       "Please upload a new proxy, and release queued jobs for this campaign",
+                       "%s@fnal.gov" % cs.experiment_creator_obj.username)
+                cs.hold_experimenter_id = cs.creator
+                cs.role_held_with = se_role
 
             logit.log("launch_jobs -- holding launch")
             hl = HeldLaunch()
