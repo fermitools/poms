@@ -157,6 +157,22 @@ all the time...
                     <i class="external calendar icon" data-content="Schedule Future Launches" data-variation="basic">
                     </i>Schedule Future Job Launches
                  </a>
+             </div>
+             <div class=item>
+                 <a href="{{pomspath}}/mark_campaign_hold?ids2HR={{CampaignStage.campaign_stage_id}}&is_hold=Hold" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                 >
+                    <i class="sign in alternate icon" data-content="Schedule Future Launches" data-variation="basic">
+                    </i>Queue future job launches
+                 </a>
+            </div>
+             <div class=item>
+                 <a href="{{pomspath}}/mark_campaign_hold?ids2HR={{CampaignStage.campaign_stage_id}}&is_hold=Release" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                 >
+                    <i class="sign out alternate icon" data-content="Schedule Future Launches" data-variation="basic">
+                    </i>Release queued launches
+                 </a>
             </div>
             <!--
              <div class=item>

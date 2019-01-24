@@ -759,7 +759,7 @@ class PomsService:
                     campaign.role_held_with = None
                 else:
                     raise cherrypy.HTTPError(
-                        400, 'The action is not supported. You can only hold or release.')
+                        400, 'The action is not supported. You can only Hold or Release.')
                 cherrypy.request.db.add(campaign)
                 cherrypy.request.db.commit()
             else:
@@ -767,6 +767,10 @@ class PomsService:
                     401, 'You are not authorized to hold or release this campaign_stages. ')
 
         if ids2HR:
+            referrer = cherrypy.request.headers.get('Referer')
+            if referrer:
+                raise cherrypy.HTTPRedirect(referrer[referrer.rfind('/')+1:])
+            
             raise cherrypy.HTTPRedirect("show_campaign_stages")
 
 
