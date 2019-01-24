@@ -1226,33 +1226,6 @@ class PomsService:
         return self.show_dimension_files(exps[0], dims[0])
 
 
-# h4. campaign_sheet
-
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def campaign_sheet(self, campaign_stage_id, tmin=None, tmax=None, tdays=7):
-        (name, columns, outrows, dimlist,
-         experiment, tmaxs,
-         prevlink, nextlink,
-         tdays, tmin, tmax) = self.filesPOMS.campaign_sheet(cherrypy.request.db,
-                                                            cherrypy.request.samweb_lite,
-                                                            campaign_stage_id, tmin, tmax, tdays)
-        template = self.jinja_env.get_template('campaign_sheet.html')
-        return template.render(name=name,
-                               columns=columns,
-                               datarows=outrows,
-                               dimlist=dimlist,
-                               tmaxs=tmaxs,
-                               prev=prevlink,
-                               next=nextlink,
-                               tdays=tdays,
-                               tmin=tmin,
-                               tmax=tmax,
-                               campaign_stage_id=campaign_stage_id,
-                               experiment=experiment,
-                               help_page="CampaignSheetHelp")
-
 # h4. json_project_summary_for_task
     @cherrypy.expose
     @cherrypy.tools.json_out()
