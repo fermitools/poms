@@ -21,7 +21,7 @@ from psycopg2.extensions import QueryCanceledError
 from sqlalchemy import case, func, text, and_, or_
 from sqlalchemy.orm import joinedload
 
-from . import condor_log_parser, logit, time_grid
+from . import condor_log_parser, logit
 from .poms_model import (CampaignStage,
                          JobType,
                          JobTypeSnapshot,

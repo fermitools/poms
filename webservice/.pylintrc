@@ -9,7 +9,7 @@ max-line-length=256
 max-module-lines=3000
 
 [DESIGN]
-max-locals=30
+max-locals=50
 max-args=20
 max-branches=40
 min-public-methods=1
@@ -24,7 +24,16 @@ module-naming-style=PascalCase
 good-names=i,
            j,
            k,
+           c,
+           d,
+           f,
+           fd,
+           e,
            ex,
+           el,
+           cs,
+           tl,
+           tr,
            q,
            sq,
            s,

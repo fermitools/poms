@@ -25,7 +25,7 @@ from sqlalchemy import and_, distinct, func, or_, text, Integer
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes, aliased
 
-from . import logit, time_grid
+from . import logit
 from .poms_model import (Campaign,
                          CampaignStage,
                          JobType,
@@ -303,12 +303,12 @@ class CampaignsPOMS:
                                 login_setup_id=(dbhandle
                                                 .query(LoginSetup.login_setup_id)
                                                 .filter(LoginSetup.name == "generic",
-                                                            LoginSetup.experiment == experiment)
+                                                        LoginSetup.experiment == experiment)
                                                 .scalar()
                                                 or
                                                 dbhandle.query(LoginSetup.login_setup_id)
                                                 .filter(LoginSetup.name == "generic",
-                                                       LoginSetup.experiment == 'samdev')
+                                                        LoginSetup.experiment == 'samdev')
                                                 .scalar()),
                                 param_overrides="[]",
                                 software_version="v1_0",
@@ -503,7 +503,7 @@ class CampaignsPOMS:
                 logit.log(' '.join(exc.args))
                 dbhandle.rollback()
 
-        if action == 'add' or action == 'edit':
+        if action in ('add', 'edit'):
             logit.log("job_type_edit: add or exit case")
             job_type_id = None
             definition_parameters = kwargs.pop('ae_definition_parameters')
@@ -557,7 +557,7 @@ class CampaignsPOMS:
             try:
                 if action == 'add':
                     role = seshandle('experimenter').session_role
-                    if role == 'root' or role == 'superuser':
+                    if role in ('root', 'superuser'):
                         raise cherrypy.HTTPError(
                             status=401,
                             message=('You are not authorized '
@@ -734,7 +734,7 @@ class CampaignsPOMS:
         data = {}
         experimenter = sesshandle.get('experimenter')
         role = sesshandle.get('experimenter').session_role or 'production'
-        user_id = sesshandle.get('experimenter').experimenter_id
+
         message = None
         exp = sesshandle.get('experimenter').session_experiment
         data['exp_selections'] = dbhandle.query(Experiment).filter(
@@ -1131,6 +1131,9 @@ class CampaignsPOMS:
 
 
     def campaign_deps_ini(self, dbhandle, session_experiment, name=None, stage_id=None, login_setup=None, job_type=None, full=None):
+        '''
+            Generate ini-format dump of campaign and dependencies
+        '''
         res = []
         campaign_stages = []
         jts = set()
@@ -1581,12 +1584,10 @@ class CampaignsPOMS:
             pass
         elif data['view_active']:
             csq = csq.filter(
-                CampaignStage.campaign_obj.has(
-                    Campaign.active == True))
+                CampaignStage.campaign_obj.has(Campaign.active))
         elif data['view_inactive']:
             csq = csq.filter(
-                CampaignStage.campaign_obj.has(
-                    Campaign.active == False))
+                CampaignStage.campaign_obj.has(not Campaign.active))
 
         if campaign_ids:
             campaign_ids = campaign_ids.split(",")
@@ -1707,8 +1708,8 @@ class CampaignsPOMS:
         )
 
         recent_submissions = {}
-        for (id, status) in recent_submission_list:
-            recent_submissions[id] = status
+        for (sid, status) in recent_submission_list:
+            recent_submissions[sid] = status
 
         # put our campaign_stage id in the link
         campaign_kibana_link_format = config_get('campaign_kibana_link_format')
@@ -1745,16 +1746,16 @@ class CampaignsPOMS:
 
         data = {'tmin': tmin, 'tmax': tmax, 'nextlink': nextlink, 'prevlink': prevlink, 'tdays': tdays, 'tminsec': tmin.strftime("%s"),}
 
-        subHist = aliased(SubmissionHistory)
-        subq = (dbhandle.query(func.max(subHist.created))
-                .filter(SubmissionHistory.submission_id == subHist.submission_id)
+        subhist = aliased(SubmissionHistory)
+        subq = (dbhandle.query(func.max(subhist.created))
+                .filter(SubmissionHistory.submission_id == subhist.submission_id)
                )
 
-        if campaign_id != None:
+        if campaign_id is not None:
             campaign_stage_ids = (dbhandle.query(CampaignStage.campaign_stage_id)                                 .filter(CampaignStage.campaign_id == campaign_id)
                                   .all())
 
-        if campaign_stage_id != None:
+        if campaign_stage_id is not None:
             campaign_stage_ids = [campaign_stage_id]
 
         tuples = (dbhandle.query(Submission, SubmissionHistory, SubmissionStatus)
@@ -1810,131 +1811,6 @@ class CampaignsPOMS:
             status = row.SubmissionStatus.status
             rows.append({'created': created, 'status': status})
         return rows
-
-
-    # @pomscache_10.cache_on_arguments()
-
-    def campaign_time_bars(self, dbhandle, experimenter, campaign_stage_id=None,
-                           campaign=None, tmin=None, tmax=None, tdays=1):
-        """
-            Give time-bars for Tasks for this campaign in a time window
-            using the time_grid code
-        """
-        if campaign_stage_id is None:
-            base_link = 'campaign_time_bars?campaign={}&'.format(campaign)
-        else:
-            base_link = 'campaign_time_bars?campaign_stage_id={}&'.format(
-                campaign_stage_id)
-
-        (
-            tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays
-        ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, base_link)
-        tg = time_grid.time_grid()
-        key = tg.key()
-
-        class fakerow:
-            def __init__(self, **kwargs):
-                self.__dict__.update(kwargs)
-
-        sl = deque()
-
-        if campaign_stage_id is not None:
-            icampaign_stage_id = int(campaign_stage_id)
-            q = dbhandle.query(CampaignStage).filter(
-                CampaignStage.campaign_stage_id == icampaign_stage_id)
-            cpl = q.all()
-            name = cpl[0].name
-        elif campaign not in (None, ""):
-            q = (dbhandle.query(CampaignStage).join(Campaign)
-                 .filter(CampaignStage.campaign_id == Campaign.campaign_id,
-                         Campaign.name == campaign,
-                         Campaign.experiment == experimenter.session_experiment
-                         )
-                 )
-            cpl = q.all()
-            name = campaign
-        else:
-            raise cherrypy.HTTPError(404, "Not found.")
-
-        job_counts_list = deque()
-        cidl = deque()
-        for c_s in cpl:
-            cidl.append(c_s.campaign_stage_id)
-
-        qr = (dbhandle.query(SubmissionHistory)
-              .join(SubmissionStatus)
-              .join(Submission)
-              .options(joinedload(SubmissionHistory.submission_obj))
-              .filter(Submission.campaign_stage_id.in_(cidl),
-                      SubmissionHistory.submission_id == Submission.submission_id,
-                      or_(and_(Submission.created > tmin, Submission.created < tmax),
-                          and_(Submission.updated > tmin, Submission.updated < tmax))
-                      )
-              .order_by(SubmissionHistory.submission_id, SubmissionHistory.created)
-              .all())
-        items = deque()
-        extramap = OrderedDict()
-
-        url_template_plain = ("https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?"
-                              "var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1")
-        url_template_dag = ("https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?"
-                            "var-cluster=%(jobsub_cluster)s&var-schedd=%(jobsub_schedd)s&from=%(tminsec)s000&to=now&refresh=3m&orgId=1")
-
-        failedlaunch_url_template = self.poms_service.path + \
-            "/list_launch_file?campaign_stage_id=%(campaign_stage_id)s&fname=%(created_s)s_%(creator)s"
-
-        for th in qr:
-            jjid = th.submission_obj.jobsub_job_id
-            full_jjid = jjid
-            if not jjid:
-                jjid = 's' + str(th.submission_id)
-                full_jjid = "unknown.0@unknown.un.known"
-            else:
-                jjid = 's%s<br>%s' % (
-                    str(th.submission_id),
-                    str(jjid).replace('fifebatch', '').replace('.fnal.gov', ''))
-
-            if campaign is not None:
-                jjid += "<br>%s" % th.submission_obj.campaign_stage_obj.name
-
-            if th.status_type.status not in (
-                    "Completed", "Located", "Failed", "Removed"):
-                extramap[jjid] = ('<a href="{}/kill_jobs?submission_id={:d}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>'
-                                  '<a href="{}/kill_jobs?submission_id={:d}&act=release" alt="Release"><i class="ui play icon"></i></a>'
-                                  '<a href="{}/kill_jobs?submission_id={:d}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>'
-                                  ).format(self.poms_service.path, th.submission_id,
-                                           self.poms_service.path, th.submission_id,
-                                           self.poms_service.path, th.submission_id)
-            elif th.status_type.status == "Completed":
-                extramap[jjid] = '<a href="{}/force_locate_submission?submission_id={:d}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>'.format(
-                    self.poms_service.path, th.submission_id)
-
-            else:
-                extramap[jjid] = '&nbsp; &nbsp; &nbsp; &nbsp;'
-
-            items.append(fakerow(submission_id=th.submission_id,
-                                 created=th.created.replace(tzinfo=utc),
-                                 tmin=th.submission_obj.created -
-                                 timedelta(minutes=15),
-                                 tmax=th.submission_obj.updated,
-                                 tminsec=tmin.strftime("%s"),
-                                 status=th.status_type.status,
-                                 jobsub_job_id=jjid,
-                                 jobsub_cluster=full_jjid[:full_jjid.find(
-                                     '@')],
-                                 jobsub_schedd=full_jjid[full_jjid.find(
-                                     '@') + 1:],
-                                 creator=th.submission_obj.experimenter_creator_obj.username,
-                                 campaign_stage_id=th.submission_obj.campaign_stage_id,
-                                 created_s=th.submission_obj.created.strftime(
-                                     "%Y%m%d_%H%M%S")
-                                 ))
-            items[-1].url = "./submission_details?submission_id=%s" % th.submission_id
-        logit.log("campaign_time_bars: items: " + repr(items))
-        blob = tg.render_query_blob(
-            tmin, tmax, items, 'jobsub_job_id', extramap=extramap)
-        return "", blob, name, str(tmin)[:16], str(
-            tmax)[:16], nextlink, prevlink, tdays, key, extramap
 
 
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
@@ -2543,6 +2419,7 @@ class CampaignsPOMS:
 
     def get_jobtype_id(self, dbhandle, sesshandle, name):
         """
+           lookup job type id for name in current experiment
         """
         role = sesshandle.get('experimenter').session_role or 'production'
         user_id = sesshandle.get('experimenter').experimenter_id
@@ -2556,6 +2433,7 @@ class CampaignsPOMS:
 
     def get_loginsetup_id(self, dbhandle, sesshandle, name):
         """
+           lookup login setup id by name for current experiment
         """
         role = sesshandle.get('experimenter').session_role or 'production'
         user_id = sesshandle.get('experimenter').experimenter_id
