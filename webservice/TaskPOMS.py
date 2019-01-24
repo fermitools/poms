@@ -872,34 +872,77 @@ class TaskPOMS:
 
         return 0
 
-    def set_job_launches(self, dbhandle, hold):
+    def set_job_launches(self, dbhandle, seshandle_get, hold):
         if hold not in ["hold", "allowed"]:
             return
-        # XXX where do we keep held jobs now?
+        # keep held launches in campaign stage w/ campaign_stage_id == 0
+        c = dbhandle.query(CampaignStage).with_for_update().filter(CampaignStage.campaign_stage_id == 0).first()
+        if hold == "hold":
+            c.hold_experimenter_id = seshandle_get('experimenter').experimenter_id
+            c.role_held_wtih = seshandle_get('experimenter').sesion_role
+        else:
+            c.hold_experimenter_id = None
+            c.role_held_wtih = None
+        dbhandle.add(c)
+        dbhandle.commit()
         return
 
     def get_job_launches(self, dbhandle):
-        # XXX where do we keep held jobs now?
-        return "allowed"
+        # keep held launches in campaign stage w/ campaign_stage_id == 0
+        c = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == 0).first()
+        if not c:
+             c = CampaignStage(campaign_stage_id = 0,
+                                name="DummyLaunchStatusHOlder", 
+                                experiment='samdev',
+                                completion_pct="95",
+                                completion_type="complete",
+                                cs_split_type="None",
+                                dataset="from_parent",
+                                job_type_id=(dbhandle.query(JobType.job_type_id) .limit(1).scalar()),
+                                login_setup_id=(dbhandle.query(LoginSetup.login_setup_id).limit(1).scalar()),
+                                param_overrides="[]",
+                                software_version="v1_0",
+                                test_param_overrides="[]",
+                                vo_role="Production",
+                                creator=4,
+                                creator_role='production',
+                                created=datetime.now(utc),
+                                campaign_stage_type="regular")
+             dbhandle.add(c)
+             dbhandle.commit()
+
+        return ("hold" if c.hold_experimenter_id else "allowed")
 
     def launch_queued_job(self, dbhandle, samhandle,
                           getconfig, gethead, seshandle_get, err_res, basedir):
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
-        hl = dbhandle.query(HeldLaunch).with_for_update(
-            read=True).order_by(HeldLaunch.created).first()
+        hl = dbhandle.query(HeldLaunch).with_for_update(read=True).order_by(HeldLaunch.created).first()
         if hl:
             launcher = hl.launcher
             campaign_stage_id= hl.campaign_stage_id
             dataset = hl.dataset
             parent_submission_id = hl.parent_submission_id
             param_overrides = hl.param_overrides
-            launch_user = dbhandle.query(Experimenter).filter(
-                Experimenter.experimenter_id == hl.launcher).first()
-
+            launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == hl.launcher).first()
             dbhandle.delete(hl)
             dbhandle.commit()
+            cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+
+            # override session experimenter to be the owner of
+            # the current task in the role of the submission
+            # so launch actions get done as them.
+
+            seshandle['experimenter'] = SessionExperimenter(
+                launch_user.experimenter_id,
+                launch_user.first_name,
+                launch_user.last_name,
+                launch_user.username,
+                {},
+                cs.experiment,
+                cs.creator_role,
+                launch_user.root)
          
             self.launch_jobs(dbhandle,
                              getconfig, gethead,

@@ -109,7 +109,7 @@ class CampaignsPOMS:
                                     .first()).login_setup_id
                 ae_launch_host = kwargs.pop('ae_launch_host', None)
 
-                if se_role == 'analysis' and  ae_launch_host not in ('pomsgpvm01.fnal.gov','fermicloud045.fnal.gov','pomsint.fnal.gov'):
+                if se_role == 'analysis' and  ae_launch_host not in ('pomsgpvm01.fnal.gov', 'fermicloud045.fnal.gov', 'pomsint.fnal.gov'):
                     raise LogicError("Invalid analysis launch host")
 
                 ae_launch_account = kwargs.pop('ae_launch_account', None)
@@ -127,7 +127,7 @@ class CampaignsPOMS:
                 ae_launch_id = kwargs.pop('ae_launch_id')
                 experimenter_id = kwargs.pop('experimenter_id')
                 ae_launch_host = kwargs.pop('ae_launch_host')
-                if se_role == 'analysis' and  ae_launch_host not in ('pomsgpvm01.fnal.gov','fermicloud045.fnal.gov','pomsint.fnal.gov'):
+                if se_role == 'analysis' and  ae_launch_host not in ('pomsgpvm01.fnal.gov', 'fermicloud045.fnal.gov', 'pomsint.fnal.gov'):
                     raise LogicError("Invalid analysis launch host")
 
                 ae_launch_account = kwargs.pop('ae_launch_account')
@@ -141,13 +141,13 @@ class CampaignsPOMS:
                         raise cherrypy.HTTPError(
                             status=401, message='You are not authorized to add launch template.')
                     template = LoginSetup(experiment=exp,
-                                              name=ae_launch_name,
-                                              launch_host=ae_launch_host,
-                                              launch_account=ae_launch_account,
-                                              launch_setup=ae_launch_setup,
-                                              creator=experimenter_id,
-                                              created=datetime.now(utc),
-                                              creator_role=role)
+                                          name=ae_launch_name,
+                                          launch_host=ae_launch_host,
+                                          launch_account=ae_launch_account,
+                                          launch_setup=ae_launch_setup,
+                                          creator=experimenter_id,
+                                          created=datetime.now(utc),
+                                          creator_role=role)
                     dbhandle.add(template)
                     dbhandle.commit()
                     data['login_setup_id'] = template.login_setup_id
@@ -261,9 +261,9 @@ class CampaignsPOMS:
                 .first())
         if not camp:
             camp = Campaign(name=campaign_name,
-                               experiment=seshandle('experimenter').session_experiment,
-                               creator=seshandle('experimenter').experimenter_id,
-                               creator_role=seshandle('experimenter').session_role)
+                            experiment=seshandle('experimenter').session_experiment,
+                            creator=seshandle('experimenter').experimenter_id,
+                            creator_role=seshandle('experimenter').session_role)
             dbhandle.add(camp)
             dbhandle.commit()
 
@@ -292,16 +292,14 @@ class CampaignsPOMS:
                                 completion_type="complete",
                                 cs_split_type="None",
                                 dataset="from_parent",
-                                job_type_id=(
-                                     dbhandle.query(JobType.job_type_id)
+                                job_type_id=(dbhandle.query(JobType.job_type_id)
                                     .filter(JobType.name == "generic",
                                             JobType.experiment == experiment)
                                     .scalar()
                                     or
                                     dbhandle.query(JobType.job_type_id)
                                     .filter(JobType.name == "generic",
-                                            JobType.experiment == 'samdev')
-                                    .scalar()),
+                                            JobType.experiment == 'samdev').scalar()),
                                 login_setup_id=(
                                     dbhandle
                                     .query(LoginSetup.login_setup_id)
@@ -313,17 +311,15 @@ class CampaignsPOMS:
                                     .filter(LoginSetup.name == "generic",
                                             LoginSetup.experiment == 'samdev')
                                     .scalar()),
-                               param_overrides="[]",
-                               software_version="v1_0",
-                               test_param_overrides="[]",
-                               vo_role="Production",
-                               #
-                               creator=seshandle(
-                                   'experimenter').experimenter_id,
-                               creator_role=seshandle(
-                                   'experimenter').session_role,
-                               created=datetime.now(utc),
-                               campaign_stage_type="regular")
+                                param_overrides="[]",
+                                software_version="v1_0",
+                                test_param_overrides="[]",
+                                vo_role="Production",
+                                #
+                                creator=seshandle('experimenter').experimenter_id,
+                                creator_role=seshandle('experimenter').session_role,
+                                created=datetime.now(utc),
+                                campaign_stage_type="regular")
             dbhandle.add(c_s)
         except IntegrityError as exc:
             data['message'] = ("Integrity error: "
@@ -388,10 +384,10 @@ class CampaignsPOMS:
         logit.log("Entering launch_campaign(...)")
 
         # subquery to count dependencies
-        q = text("select campaign_stage_id from campaign_stages where campaign_id = :campaign_id and 0 = (select count(campaign_dep_id) from campaign_dependencies where provides_campaign_stage_id = campaign_stage_id)").bindparams(campaign_id = campaign_id).columns(campaign_stage_id = Integer)
+        q = text("select campaign_stage_id from campaign_stages where campaign_id = :campaign_id and 0 = (select count(campaign_dep_id) from campaign_dependencies where provides_campaign_stage_id = campaign_stage_id)").bindparams(campaign_id=campaign_id).columns(campaign_stage_id=Integer)
 
         stages = dbhandle.execute(q).fetchall()
-        
+
 
         logit.log("launch_campaign: got stages %s" % repr(stages))
 
@@ -401,8 +397,8 @@ class CampaignsPOMS:
                     param_overrides, test_login_setup, experiment, test_launch, output_commands)
         else:
             raise err_res(429, "Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
-    
-    def get_recoveries(self, dbhandle, cid, exp): 
+
+    def get_recoveries(self, dbhandle, cid, exp):
         '''
          Build the recoveries dict for job_types cids
         '''
@@ -427,7 +423,7 @@ class CampaignsPOMS:
 
         logit.log("get_recoveries(%d) returning %s" %(cid, repr(rec_list)))
         return rec_list
-   
+
     def fixup_recoveries(self, dbhandle, job_type_id, recoveries):
         '''
          fixup_recoveries -- factored out so we can use it
@@ -1715,8 +1711,8 @@ class CampaignsPOMS:
                 campaign_stage,
                 counts_keys, counts,
                 launch_flist,
-                kibana_link, 
-                dep_svg, 
+                kibana_link,
+                dep_svg,
                 last_activity,
                 recent_submissions
                 )
@@ -2243,19 +2239,19 @@ class CampaignsPOMS:
                 rlist.append(poptxt)
             else:
                 modmap[modname] = None
-           
+
             description = split_class.__doc__
             docmap[modname] = description
             parammap[modname] = inst.params()
 
         rlist.append('split_type_edit_map =')
-        rlist.append(json.dumps(modmap).replace('",','",\n').replace('null,','null,\n').replace('": "','": ').replace('",',',').replace('"}','}'))
+        rlist.append(json.dumps(modmap).replace('",', '",\n').replace('null,', 'null,\n').replace('": "', '": ').replace('",', ',').replace('"}', '}'))
         rlist.append(';')
         rlist.append('split_type_doc_map =')
-        rlist.append(json.dumps(docmap).replace('",','",\n'))
+        rlist.append(json.dumps(docmap).replace('",', '",\n'))
         rlist.append(';')
         rlist.append('split_type_param_map =')
-        rlist.append(json.dumps(parammap).replace(',',',\n'))
+        rlist.append(json.dumps(parammap).replace(',', ',\n'))
         rlist.append(';')
         return '\n'.join(rlist)
 

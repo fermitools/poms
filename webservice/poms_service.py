@@ -964,7 +964,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def set_job_launches(self, hold):
-        self.taskPOMS.set_job_launches(cherrypy.request.db, hold)
+        self.taskPOMS.set_job_launches(cherrypy.request.db, cherrypy.session.get, hold)
         raise cherrypy.HTTPRedirect(self.path + "/")
 
 
