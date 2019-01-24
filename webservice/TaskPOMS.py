@@ -879,7 +879,7 @@ class TaskPOMS:
         c = dbhandle.query(CampaignStage).with_for_update().filter(CampaignStage.campaign_stage_id == 0).first()
         if hold == "hold":
             c.hold_experimenter_id = seshandle_get('experimenter').experimenter_id
-            c.role_held_wtih = seshandle_get('experimenter').sesion_role
+            c.role_held_wtih = seshandle_get('experimenter').session_role
         else:
             c.hold_experimenter_id = None
             c.role_held_wtih = None
