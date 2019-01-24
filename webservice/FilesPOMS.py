@@ -26,7 +26,7 @@ from .utc import utc
 from .pomscache import pomscache
 
 
-class Files_status:
+class FilesStatus:
     """
         File related routines
     """
@@ -37,6 +37,9 @@ class Files_status:
 
     def campaign_task_files(self, dbhandle, samhandle, campaign_stage_id=None,
                             campaign_id=None, tmin=None, tmax=None, tdays=1):
+        '''
+            Report of file counts for campaign stage with links to details
+        '''
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
@@ -118,8 +121,8 @@ class Files_status:
                                   "with availability anylocation ) " %
                                   (allkiddecldims, dimbits,
                                    s.campaign_stage_snapshot_obj.software_version))
-                outputfiledims = ("ischildof: ( %s ) and create_date > '%s' and  %s and version '%s'" % 
-                                   (basedims, s.created.strftime('%Y-%m-%d %H:%M:%S'), dimbits, s.campaign_stage_snapshot_obj.software_version))
+                outputfiledims = ("ischildof: ( %s ) and create_date > '%s' and  %s and version '%s'" %
+                                  (basedims, s.created.strftime('%Y-%m-%d %H:%M:%S'), dimbits, s.campaign_stage_snapshot_obj.software_version))
             all_kids_needed.append(allkiddims)
             all_kids_decl_needed.append(allkiddecldims)
             output_files.append(outputfiledims)
@@ -127,14 +130,14 @@ class Files_status:
         # -- now call parallel fetches for items
         # samhandle = cherrypy.request.samweb_lite ####IMPORTANT
         summary_list = samhandle.fetch_info_list(summary_needed, dbhandle=dbhandle)
-        output_list = samhandle.count_files_list( cs.experiment, output_files)
+        output_list = samhandle.count_files_list(cs.experiment, output_files)
         some_kids_list = samhandle.count_files_list( cs.experiment, some_kids_needed)
         some_kids_decl_list = samhandle.count_files_list(cs.experiment, some_kids_decl_needed)
         all_kids_decl_list = samhandle.count_files_list(cs.experiment, all_kids_decl_needed)
         # all_kids_list = samhandle.count_files_list(cs.experiment, all_kids_needed)
         tids = [s.submission_id for s in tl]
 
-        columns = ["submission<br>jobsub_jobid", "project", "date", 
+        columns = ["submission<br>jobsub_jobid", "project", "date",
                    "available<br>output",
                    "submit-<br>ted",
                    "deliv-<br>ered<br>SAM",
@@ -171,7 +174,7 @@ class Files_status:
                          cs.experiment,
                          s.project)],
                     [s.created.strftime("%Y-%m-%d %H:%M"), None],
-                    [output_list[i], listfiles % output_files[i] ],
+                    [output_list[i], listfiles % output_files[i]],
                     [psummary.get('files_in_snapshot', 0),
                      listfiles % base_dim_list[i]],
                     ["%d" % (psummary.get('tot_consumed', 0) +
@@ -245,18 +248,14 @@ class Files_status:
             "Saturday",
             "Sunday"]
 
-        (tmin, tmax,
-         tmins, tmaxs,
-         nextlink, prevlink,
-         time_range_string, tdays
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays
         ) = self.poms_service.utilsPOMS.handle_dates(
-              tmin, tmax, tdays,
-             'campaign_sheet?campaign_stage_id=%s&' % campaign_stage_id)
+            tmin, tmax, tdays,
+            'campaign_sheet?campaign_stage_id=%s&' % campaign_stage_id)
 
-        el = (dbhandle.query( distinct(Job.user_exe_exit_code))
-              .filter(
-                  Job.updated >= tmin,
-                  Job.updated <= tmax)
+        el = (dbhandle.query(distinct(Job.user_exe_exit_code))
+              .filter(Job.updated >= tmin,
+                      Job.updated <= tmax)
               .all())
         exitcodes = [e[0] for e in el]
 
@@ -304,8 +303,8 @@ class Files_status:
                         func.sum(Job.wall_time),
                         func.sum(Job.cpu_time)
                     )
-                    .filter(Job.submission_id.in_(tids))
                     .filter(
+                        Job.submission_id.in_(tids),
                         Job.cpu_time > 0.0,
                         Job.wall_time > 0,
                         Job.cpu_time < Job.wall_time * 10)
@@ -646,7 +645,7 @@ class Files_status:
 
     def remove_uploaded_files(self, basedir, sesshandle_get, err_res, filename, actio):
         # if there's only one entry the web page will not send a list...
-        if isinstance(filename,str):
+        if isinstance(filename, str):
             filename = [filename]
 
         for f in filename:
@@ -655,7 +654,7 @@ class Files_status:
         return "Ok."
 
     def get_launch_sandbox(self, basedir, sesshandle_get):
-        
+
         uploads = self.get_file_upload_path(basedir, sesshandle_get, '')
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
         sandbox = "%s/sandboxes/%s" % (basedir, str(uu))

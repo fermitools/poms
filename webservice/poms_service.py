@@ -127,7 +127,7 @@ class PomsService:
         self.taskPOMS = TaskPOMS.TaskPOMS(self)
         self.utilsPOMS = UtilsPOMS.UtilsPOMS(self)
         self.tagsPOMS = TagsPOMS.TagsPOMS(self)
-        self.filesPOMS = FilesPOMS.Files_status(self)
+        self.filesPOMS = FilesPOMS.FilesStatus(self)
         self.tablesPOMS = None
 
     def post_initialize(self):
@@ -465,7 +465,6 @@ class PomsService:
         (
             campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
         ) = self.campaignsPOMS.show_campaign_stages(cherrypy.request.db,
-                                                    cherrypy.request.samweb_lite,
                                                     tmin=tmin, tmax=tmax, tdays=tdays, active=active, campaign_name=campaign_name,
                                                     holder=holder, role_held_with=role_held_with,
                                                     campaign_ids=cl, sesshandler=cherrypy.session.get, **kwargs)
@@ -507,7 +506,6 @@ class PomsService:
                 'experimenter').is_authorized(campaign):
             res = self.campaignsPOMS.reset_campaign_split(
                 cherrypy.request.db,
-                cherrypy.request.samweb_lite,
                 campaign_stage_id)
             raise cherrypy.HTTPRedirect(
                 "campaign_stage_info?campaign_stage_id=%s" %
@@ -566,8 +564,6 @@ class PomsService:
          dep_svg, 
          last_activity,
          recent_submissions) = self.campaignsPOMS.campaign_stage_info(cherrypy.request.db,
-                                                                                       cherrypy.request.samweb_lite,
-                                                                                       cherrypy.HTTPError,
                                                                                        cherrypy.config.get,
                                                                                        campaign_stage_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_stage_info.html')

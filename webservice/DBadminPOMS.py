@@ -23,7 +23,7 @@ class DBadminPOMS:
         members = (dbhandle.query(Experiment, ExperimentsExperimenters, Experimenter)
                    .join(ExperimentsExperimenters).join(Experimenter)
                    .filter(Experiment.name == experiment)
-                   .filter(ExperimentsExperimenters.active == True)
+                   .filter(ExperimentsExperimenters.active)
                    .order_by(ExperimentsExperimenters.active.desc(), Experimenter.last_name)
                    ).all()
         data = {'members': members}
