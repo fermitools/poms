@@ -1185,6 +1185,8 @@ gui_editor.prototype.draw_state = function () {
             addNode: function (data, callback) {
                 // filling in the popup DOM elements
                 document.getElementById('node-operation').innerHTML = "Add Stage";
+                $('#node-label').val('');
+                $('#node-label').attr('placeholder','name');
                 editNode(data, clearNodePopUp, callback);
             },
             // editNode: function (data, callback) {
@@ -1307,6 +1309,8 @@ gui_editor.prototype.draw_state = function () {
 
         if (params.nodes[0] !== undefined) {
             document.getElementById('node-operation').innerHTML = "Add Stage";
+            $('#node-label').val('');
+            $('#node-label').attr('placeholder','name | name*N | *N')
             editNode(params, clearNodePopUp, addNewNode);
         }
     });
@@ -1315,7 +1319,7 @@ gui_editor.prototype.draw_state = function () {
      */
 
     function editNode(data, cancelAction, callback) {
-        document.getElementById('node-label').value = data.label;
+        // document.getElementById('node-label').value = data.label;
         document.getElementById('node-saveButton').onclick = saveNodeData.bind(this, data, callback);
         document.getElementById('node-cancelButton').onclick = cancelAction.bind(this, callback);
         document.getElementById('node-popUp').style.display = 'block';
@@ -1360,35 +1364,38 @@ gui_editor.prototype.draw_state = function () {
         if (label.includes('*')) {
             const nn = label.split('*');
             for (let i = 0; i < nn[1]; i++) {
-                data.label = nn[0] === '' ? `${parentId}_${i}` : `${nn[0]}_${i}`;
-                if (data.label.startsWith(parentId)) {
+                data.label = nn[0] === '' ? `${parentId}_${i}` : `${nn[0]}_${i}`;       // Is it clone or dependant?
+                if (data.label.startsWith(parentId)) {      // This is clone
                     data.single = true;
                 }
-                if (pary) {
-                    if (nn[0] !== '')
+                if (pary) {             // There is a parent node
+                    if (nn[0] !== '')   // This is dependant
                         data.y = pary + 30 - 60*nn[1]/2 + 60*i;
-                    else {
+                    else {              // This is clone
                         data.y = pary + 30 + 30*i;
                     }
                 }
                 const reply = callback(data);
+                const tgt = reply[1];
                 // Now handle our stuff
-                this.new_stage(reply[1], data.label);
+                this.new_stage(tgt, data.label);
                 if (reply[2]) {         // If this is a dependant
                     this.add_dependency(...reply);
                 } else {                // This is a clone of the stage
-                    const tgt = reply[1];
                     // this.state[`campaign_stage ${tgt}`] = {...this.state[`campaign_stage ${parentId}`]};        // Clone the stage state
                     this.state[`campaign_stage ${tgt}`] = JSON.parse(JSON.stringify(this.state[`campaign_stage ${parentId}`]));
                     this.state[`campaign_stage ${tgt}`].name = data.label;                                      // Restore name
                     clone_form(parentId, tgt);                         // Clone the popup form
                 }
+                // Update group
+                this.nodes.update({id: tgt, label: data.label, group: this.state[`campaign_stage ${tgt}`].job_type || this.state["campaign_defaults"].job_type});
             }
         } else {        // Single dependant
             data.label = label;
             if (pary)
                 data.y = pary;
             const reply = callback(data);
+            const tgt = data.id || reply[1];
             // Now handle our stuff
             if (data.id) {
                 this.new_stage(data.id, data.label);
@@ -1397,6 +1404,8 @@ gui_editor.prototype.draw_state = function () {
                 // this.add_dependency(reply[0], reply[1], reply[2]);
                 this.add_dependency(...reply);
             }
+            // Update group
+            this.nodes.update({id: tgt, label: data.label, group: this.state[`campaign_stage ${tgt}`].job_type || this.state["campaign_defaults"].job_type});
         }
     }
 
@@ -1495,7 +1504,7 @@ gui_editor.prototype.loginsetup_select = function(sval, eid, placeholder) {
         return `<select id="${eid}" name="login_setup" required>\n${res}</select>\n`;
     }
 
-    /*
+/*
  * make a div with a label in it on the overall screen
  * we don't actually track it, as we don't currently try
  * to move it or anything.
@@ -1602,6 +1611,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     }
     //res.push(`<button class="rightbutton" type="button" onclick="this.parentElement.style.display='none';">OK</button>`);
     // res.push(`<button class="rightbutton" type="button" onclick="gui_editor.toggle_form('fields_${name}')">OK</button>`);
+    res.push(`<button class="rightbutton" type="reset" value="Cancel" onclick="this.parentNode.style.display='none';">Cancel</button>`);
     res.push(`<button class="rightbutton" type="button" onclick="gui_editor.toggle_form(this.parentNode.id)">OK</button>`);
     res.push(`<button type="reset" value="Reset">Reset</button>`);
     res.push('</form>');
