@@ -157,7 +157,25 @@ all the time...
                     <i class="external calendar icon" data-content="Schedule Future Launches" data-variation="basic">
                     </i>Schedule Future Job Launches
                  </a>
+             </div>
+            {% if CampaignStage.hold_experimenter_id %}
+            <div class=item>
+                 <a href="{{pomspath}}/mark_campaign_hold?ids2HR={{CampaignStage.campaign_stage_id}}&is_hold=Release" 
+                 >
+                    <i class="sign out alternate icon" data-content="Release Queued Launches" data-variation="basic">
+                    </i>Release queued launches
+                 </a>
+                 (queued by {{CampaignStage.experimenter_holder_obj.username}})
+             </div>
+             {% else %}
+             <div class=item>
+                 <a href="{{pomspath}}/mark_campaign_hold?ids2HR={{CampaignStage.campaign_stage_id}}&is_hold=Hold" 
+                 >
+                    <i class="sign in alternate icon" data-content="Queue Future Launches" data-variation="basic">
+                    </i>Queue future job launches
+                 </a>
             </div>
+            {% endif %}
             <!--
              <div class=item>
               {# if CampaignStage.active %}

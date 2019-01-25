@@ -26,7 +26,7 @@ from .utc import utc
 from .pomscache import pomscache
 
 
-class Files_status:
+class FilesStatus:
     """
         File related routines
     """
@@ -37,6 +37,9 @@ class Files_status:
 
     def campaign_task_files(self, dbhandle, samhandle, campaign_stage_id=None,
                             campaign_id=None, tmin=None, tmax=None, tdays=1):
+        '''
+            Report of file counts for campaign stage with links to details
+        '''
         (tmin, tmax,
          tmins, tmaxs,
          nextlink, prevlink,
@@ -67,7 +70,7 @@ class Files_status:
         # either get the campaign obj from above, or if we didn's
         # find any submissions in that window, look it up
         #
-        if len(tl) > 0:
+        if tl:
             cs = tl[0].campaign_stage_snapshot_obj
             # cs = tl[0].campaign_stage_snapshot_obj
         else:
@@ -118,8 +121,8 @@ class Files_status:
                                   "with availability anylocation ) " %
                                   (allkiddecldims, dimbits,
                                    s.campaign_stage_snapshot_obj.software_version))
-                outputfiledims = ("ischildof: ( %s ) and create_date > '%s' and  %s and version '%s'" % 
-                                   (basedims, s.created.strftime('%Y-%m-%d %H:%M:%S'), dimbits, s.campaign_stage_snapshot_obj.software_version))
+                outputfiledims = ("ischildof: ( %s ) and create_date > '%s' and  %s and version '%s'" %
+                                  (basedims, s.created.strftime('%Y-%m-%d %H:%M:%S'), dimbits, s.campaign_stage_snapshot_obj.software_version))
             all_kids_needed.append(allkiddims)
             all_kids_decl_needed.append(allkiddecldims)
             output_files.append(outputfiledims)
@@ -127,14 +130,13 @@ class Files_status:
         # -- now call parallel fetches for items
         # samhandle = cherrypy.request.samweb_lite ####IMPORTANT
         summary_list = samhandle.fetch_info_list(summary_needed, dbhandle=dbhandle)
-        output_list = samhandle.count_files_list( cs.experiment, output_files)
-        some_kids_list = samhandle.count_files_list( cs.experiment, some_kids_needed)
+        output_list = samhandle.count_files_list(cs.experiment, output_files)
+        some_kids_list = samhandle.count_files_list(cs.experiment, some_kids_needed)
         some_kids_decl_list = samhandle.count_files_list(cs.experiment, some_kids_decl_needed)
         all_kids_decl_list = samhandle.count_files_list(cs.experiment, all_kids_decl_needed)
         # all_kids_list = samhandle.count_files_list(cs.experiment, all_kids_needed)
-        tids = [s.submission_id for s in tl]
 
-        columns = ["submission<br>jobsub_jobid", "project", "date", 
+        columns = ["submission<br>jobsub_jobid", "project", "date",
                    "available<br>output",
                    "submit-<br>ted",
                    "deliv-<br>ered<br>SAM",
@@ -163,10 +165,7 @@ class Files_status:
             datarows.append(
                 [
                     [task_jobsub_job_id.replace('@', '@<br>'),
-                     "https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?"
-                     "var-cluster=%s&var-schedd=%s&from=now-2d&to=now&refresh=5m&orgId=1" % (
-                         task_jobsub_job_id[0:task_jobsub_job_id.find('@')],
-                         task_jobsub_job_id[task_jobsub_job_id.find('@') + 1:])],
+                     "https://fermicloud045.fnal.gov/poms/submission_details?submission_id=%s" % s.submission_id],
                     [
                         s.project,
                         "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s" %
@@ -174,7 +173,7 @@ class Files_status:
                          cs.experiment,
                          s.project)],
                     [s.created.strftime("%Y-%m-%d %H:%M"), None],
-                    [output_list[i], listfiles % output_files[i] ],
+                    [output_list[i], listfiles % output_files[i]],
                     [psummary.get('files_in_snapshot', 0),
                      listfiles % base_dim_list[i]],
                     ["%d" % (psummary.get('tot_consumed', 0) +
@@ -235,267 +234,6 @@ class Files_status:
             dbhandle, samhandle, [tl])
         return explist, dimlist
 
-    # maybe at the future for a  ReportsPOMS module
-    def campaign_sheet(self, dbhandle, samhandle,
-                       campaign_stage_id, tmin=None, tmax=None, tdays=7):
-
-        daynames = [
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-            "Sunday"]
-
-        (tmin, tmax,
-         tmins, tmaxs,
-         nextlink, prevlink,
-         time_range_string, tdays
-        ) = self.poms_service.utilsPOMS.handle_dates(
-              tmin, tmax, tdays,
-             'campaign_sheet?campaign_stage_id=%s&' % campaign_stage_id)
-
-        el = (dbhandle.query( distinct(Job.user_exe_exit_code))
-              .filter(
-                  Job.updated >= tmin,
-                  Job.updated <= tmax)
-              .all())
-        exitcodes = [e[0] for e in el]
-
-        (experiment,) = (dbhandle.query(CampaignStage.experiment)
-                         .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
-                         .one())
-
-        #
-        # get list of submissions
-        #
-        tl = (dbhandle.query(Submission)
-              .filter(Submission.campaign_stage_id == campaign_stage_id, Submission.created > tmin, Submission.created < tmax)
-              .order_by(Submission.created)
-              .all())
-
-        #
-        # extract list of task ids
-        #
-        tids = [s.submission_id for s in tl]
-
-        if len(tids) == 0:
-            tjcl = []
-            tjch = {}
-            tjel = []
-            tjcpuh = {}
-            tjwallh = {}
-
-        else:
-
-            #
-            # get job counts for each task, put in dict
-            #
-            tjcl = (dbhandle.query(Job.submission_id, func.count(Job.job_id))
-                    .filter(Job.submission_id.in_(tids))
-                    .group_by(Job.submission_id))
-
-            tjch = dict(tjcl)
-            logit.log("job counts:" + repr(tjch))
-
-            #
-            # get job efficiency for submissions
-            #
-            tjel = (dbhandle.query(
-                        Job.submission_id,
-                        func.sum(Job.wall_time),
-                        func.sum(Job.cpu_time)
-                    )
-                    .filter(Job.submission_id.in_(tids))
-                    .filter(
-                        Job.cpu_time > 0.0,
-                        Job.wall_time > 0,
-                        Job.cpu_time < Job.wall_time * 10)
-                    .group_by(Job.submission_id)
-                    .all())
-
-            tjcpuh = {}
-            tjwallh = {}
-            for row in tjel:
-                tjcpuh[row[0]] = row[1]
-                tjwallh[row[0]] = row[2]
-
-            #
-            # get input/output file counts
-            #
-            tjifl = (dbhandle.query(Job.submission_id, func.count(JobFile.file_name))
-                     .filter(Job.submission_id.in_(tids))
-                     .filter(JobFile.job_id == Job.job_id)
-                     .filter(JobFile.file_type == "input")
-                     .group_by(Job.submission_id)
-                     .all())
-
-            tjifh = dict(tjifl)
-
-            tjofl = (dbhandle.query(Job.submission_id, func.count(JobFile.file_name))
-                     .filter(Job.submission_id.in_(tids))
-                     .filter(JobFile.job_id == Job.job_id)
-                     .filter(JobFile.file_type == "output")
-                     .group_by(Job.submission_id)
-                     .all())
-
-            tjofh = dict(tjofl)
-
-        #
-        # get exit code counts
-        #
-        ecc = {}
-        for e in exitcodes:
-            tjel = (dbhandle.query(Job.submission_id, func.count(Job.job_id))
-                    .filter(Job.submission_id.in_(tids))
-                    .filter(Job.user_exe_exit_code == e)
-                    .group_by(Job.submission_id)
-                    .all())
-            ecc[e] = dict(tjel)
-
-        # Get project summary list for a given task list in one parallel batch
-        psl = self.poms_service.project_summary_for_tasks(tl)
-
-        logit.log("got exitcodes: " + repr(exitcodes))
-        day = -1
-        date = None
-        first = 1
-        columns = [
-            'day',
-            'date',
-            'requested files',
-            'delivered files',
-            'input<br>files',
-            'jobs',
-            'output<br>files',
-            'pending',
-            'efficiency%']
-        exitcodes.sort(key=(lambda x: x if x else -1))
-        for e in exitcodes:
-            if e is not None:
-                columns.append('exit(%d)' % (e))
-            else:
-                columns.append('No exitcode')
-
-        outrows = deque()
-        exitcounts = {e: 0 for e in exitcodes}
-        totfiles = 0
-        totdfiles = 0
-        totjobs = 0
-        outfiles = 0
-        infiles = 0
-        # pendfiles = 0
-        tasklist = deque()
-        totwall = 0.0
-
-        daytasks = deque()
-        for tno, task in enumerate(tl):
-            if day != task.created.weekday():
-
-                if not first:
-                    # add a row to the table on the day boundary
-                    daytasks.append(tasklist)
-                    outrow = deque()
-                    outrow.append(daynames[day])
-                    outrow.append(date.isoformat()[:10])
-                    outrow.append(str(totfiles if totfiles > 0 else infiles))
-                    outrow.append(str(totdfiles))
-                    outrow.append(str(infiles))
-                    outrow.append(str(totjobs))
-                    outrow.append(str(outfiles))
-                    # we will get pending counts in a minute
-                    outrow.append("...")
-                    if totwall == 0.0 or totcpu == 0.0:     # totcpu undefined
-                        outrow.append(-1)
-                    else:
-                        # totcpu undefined
-                        outrow.append(int(totcpu * 100.0 / totwall))
-                    for e in exitcodes:
-                        outrow.append(exitcounts[e])
-
-                    outrows.append(outrow)
-                # clear counters for next days worth
-                first = 0
-                totfiles = 0
-                totdfiles = 0
-                totjobs = 0
-                outfiles = 0
-                infiles = 0
-                totcpu = 0.0
-                totwall = 0.0
-                tasklist = deque()
-                for e in exitcodes:
-                    exitcounts[e] = 0
-            tasklist.append(task)
-            day = task.created.weekday()
-            date = task.created
-            #
-            # ~ ps = self.project_summary_for_task(task.submission_id)
-            ps = psl[tno]
-            if ps:
-                totdfiles += ps.get('tot_consumed', 0) + \
-                    ps.get('tot_failed', 0)
-                totfiles += ps.get('files_in_snapshot', 0)
-
-            if tjch.get(task.submission_id, None):
-                totjobs += tjch[task.submission_id]
-
-            if tjcpuh.get(task.submission_id, None) and tjwallh.get(
-                    task.submission_id, None):
-                totwall += tjwallh[task.submission_id]
-                totcpu += tjcpuh[task.submission_id]
-
-            if tjofh.get(task.submission_id, None):
-                outfiles += tjofh[task.submission_id]
-
-            if tjifh.get(task.submission_id, None):
-                infiles += tjifh[task.submission_id]
-
-            for i, e in enumerate(exitcodes):
-                if ecc.get(e, None) and ecc[e].get(task.submission_id, None):
-                    exitcounts[e] += ecc[e][task.submission_id]
-
-        # we *should* add another row here for the last set of totals, but
-        # initially we just added a day to the query range, so we compute
-        # a row of totals we don's use..
-        # --- but that doesn's work on new projects...
-        # add a row to the table on the day boundary
-        daytasks.append(tasklist)
-        outrow = deque()
-        outrow.append(daynames[day])
-        if date:
-            outrow.append(date.isoformat()[:10])
-        else:
-            outrow.append('')
-        outrow.append(str(totfiles if totfiles > 0 else infiles))
-        outrow.append(str(totdfiles))
-        outrow.append(str(infiles))
-        outrow.append(str(totjobs))
-        outrow.append(str(outfiles))
-        outrow.append("...")   # we will get pending counts in a minute
-        if totwall == 0.0 or totcpu == 0.0:
-            outrow.append(-1)
-        else:
-            outrow.append(str(int(totcpu * 100.0 / totwall)))
-        for e in exitcodes:
-            outrow.append(exitcounts[e])
-        outrows.append(outrow)
-
-        #
-        # --stubbed out , page template will make AJAX call to do this
-        # get pending counts for the task list for each day
-        # and fill in the 7th column...
-        #
-        dimlist = deque()
-
-        if tl and tl[0]:
-            name = tl[0].campaign_stage_snapshot_obj.name
-
-        else:
-            name = ''
-        return (name, columns, outrows, dimlist, experiment, tmaxs,
-                prevlink, nextlink, tdays, str(tmin)[:16], str(tmax)[:16])
 
     @pomscache.cache_on_arguments()
     def get_pending_dict_for_campaigns(
@@ -649,7 +387,7 @@ class Files_status:
 
     def remove_uploaded_files(self, basedir, sesshandle_get, err_res, filename, actio):
         # if there's only one entry the web page will not send a list...
-        if isinstance(filename,str):
+        if isinstance(filename, str):
             filename = [filename]
 
         for f in filename:
@@ -658,11 +396,14 @@ class Files_status:
         return "Ok."
 
     def get_launch_sandbox(self, basedir, sesshandle_get):
+
         uploads = self.get_file_upload_path(basedir, sesshandle_get, '')
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
         sandbox = "%s/sandboxes/%s" % (basedir, str(uu))
         os.makedirs(sandbox, exist_ok=False)
-        flist = glob.glob(self.get_file_upload_path(basedir, sesshandle_get, '*'))
+        upload_path = self.get_file_upload_path(basedir, sesshandle_get, '*')
+        logit.log("get_launch_sandbox linking items from upload_path %s into %s" % (upload_path, sandbox))
+        flist = glob.glob(upload_path)
         for f in flist:
             os.link(f, "%s/%s" % (sandbox, os.path.basename(f)))
         return sandbox

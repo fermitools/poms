@@ -255,7 +255,7 @@ class Agent:
 
         haveerrors = ddict.get('errors',None) != None
         count = 0
-        while count < 5 and haveerrors:
+        while count < 2 and haveerrors:
             count = count + 1
             haveerrors = False      
             for entry in ddict.get('errors',[]):

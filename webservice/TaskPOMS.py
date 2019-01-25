@@ -15,12 +15,13 @@ import subprocess
 import time
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta
+from .SessionExperimenter import SessionExperimenter
 
 from psycopg2.extensions import QueryCanceledError
 from sqlalchemy import case, func, text, and_, or_
 from sqlalchemy.orm import joinedload
 
-from . import condor_log_parser, logit, time_grid
+from . import condor_log_parser, logit
 from .poms_model import (CampaignStage,
                          JobType,
                          JobTypeSnapshot,
@@ -83,9 +84,9 @@ class TaskPOMS:
     def init_statuses(self, dbhandle):
         if self.init_status_done:
             return
-        self.status_Located = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Located").first()
-        self.status_Completed = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Completed").first()
-        self.status_New = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()
+        self.status_Located = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Located").first()[0]
+        self.status_Completed = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Completed").first()[0]
+        self.status_New = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()[0]
         self.init_status_done = True
 
     def campaign_stage_datasets(self, dbhandle):
@@ -325,6 +326,20 @@ class TaskPOMS:
                 "Starting finish_up_submissions items for submission %s" %
                 submission.submission_id)
 
+            # override session experimenter to be the owner of
+            # the current task in the role of the submission
+            # so launch actions get done as them.
+
+            seshandle['experimenter'] = SessionExperimenter(
+                submission.experimenter_creator_obj.experimenter_id,
+                submission.experimenter_creator_obj.first_name,
+                submission.experimenter_creator_obj.last_name,
+                submission.experimenter_creator_obj.username,
+                {},
+                submission.experimenter_creator_obj.session_experiment,
+                submission.campaign_stage_obj.creator_role,
+                submission.experimenter_creator_obj.root)
+
             if not self.launch_recovery_if_needed(
                     dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission, basedir):
                 self.launch_dependents_if_needed(
@@ -416,9 +431,9 @@ class TaskPOMS:
         s = dbhandle.query(Submission).filter(
             Submission.submission_id == submission_id).with_for_update(read=True).first()
 
-        status_id = dbhandle.query(
+        status_id = (dbhandle.query(
             SubmissionStatus.status_id).filter(
-            SubmissionStatus.status == status).first()
+            SubmissionStatus.status == status).first())[0]
 
         if not status_id:
             # not a known status, just bail
@@ -435,7 +450,7 @@ class TaskPOMS:
                     .filter(SubmissionHistory.submission_id == submission_id)
                     .first())
 
-        logit.log("update_submission_status: newstatus %s  lasthist: status %s created %s " % (status_id, lasthist.status_id, lasthist.created))
+        logit.log("update_submission_status: submission_id: %s  newstatus %s  lasthist: status %s created %s " % (submission_id, status_id, lasthist.status_id, lasthist.created))
 
         # don't roll back Located
         if lasthist and lasthist.status_id == self.status_Located:
@@ -857,34 +872,77 @@ class TaskPOMS:
 
         return 0
 
-    def set_job_launches(self, dbhandle, hold):
+    def set_job_launches(self, dbhandle, seshandle_get, hold):
         if hold not in ["hold", "allowed"]:
             return
-        # XXX where do we keep held jobs now?
+        # keep held launches in campaign stage w/ campaign_stage_id == 0
+        c = dbhandle.query(CampaignStage).with_for_update().filter(CampaignStage.campaign_stage_id == 0).first()
+        if hold == "hold":
+            c.hold_experimenter_id = seshandle_get('experimenter').experimenter_id
+            c.role_held_wtih = seshandle_get('experimenter').session_role
+        else:
+            c.hold_experimenter_id = None
+            c.role_held_wtih = None
+        dbhandle.add(c)
+        dbhandle.commit()
         return
 
     def get_job_launches(self, dbhandle):
-        # XXX where do we keep held jobs now?
-        return "allowed"
+        # keep held launches in campaign stage w/ campaign_stage_id == 0
+        c = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == 0).first()
+        if not c:
+             c = CampaignStage(campaign_stage_id = 0,
+                                name="DummyLaunchStatusHOlder", 
+                                experiment='samdev',
+                                completion_pct="95",
+                                completion_type="complete",
+                                cs_split_type="None",
+                                dataset="from_parent",
+                                job_type_id=(dbhandle.query(JobType.job_type_id) .limit(1).scalar()),
+                                login_setup_id=(dbhandle.query(LoginSetup.login_setup_id).limit(1).scalar()),
+                                param_overrides="[]",
+                                software_version="v1_0",
+                                test_param_overrides="[]",
+                                vo_role="Production",
+                                creator=4,
+                                creator_role='production',
+                                created=datetime.now(utc),
+                                campaign_stage_type="regular")
+             dbhandle.add(c)
+             dbhandle.commit()
+
+        return ("hold" if c.hold_experimenter_id else "allowed")
 
     def launch_queued_job(self, dbhandle, samhandle,
                           getconfig, gethead, seshandle_get, err_res, basedir):
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
-        hl = dbhandle.query(HeldLaunch).with_for_update(
-            read=True).order_by(HeldLaunch.created).first()
+        hl = dbhandle.query(HeldLaunch).with_for_update(read=True).order_by(HeldLaunch.created).first()
         if hl:
             launcher = hl.launcher
             campaign_stage_id= hl.campaign_stage_id
             dataset = hl.dataset
             parent_submission_id = hl.parent_submission_id
             param_overrides = hl.param_overrides
-            launch_user = dbhandle.query(Experimenter).filter(
-                Experimenter.experimenter_id == hl.launcher).first()
-
+            launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == hl.launcher).first()
             dbhandle.delete(hl)
             dbhandle.commit()
+            cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+
+            # override session experimenter to be the owner of
+            # the current task in the role of the submission
+            # so launch actions get done as them.
+
+            seshandle['experimenter'] = SessionExperimenter(
+                launch_user.experimenter_id,
+                launch_user.first_name,
+                launch_user.last_name,
+                launch_user.username,
+                {},
+                cs.experiment,
+                cs.creator_role,
+                launch_user.root)
          
             self.launch_jobs(dbhandle,
                              getconfig, gethead,
@@ -903,6 +961,7 @@ class TaskPOMS:
     def has_valid_proxy(self, proxyfile ):
         logit.log("Checking proxy: %s" % proxyfile)
         res = os.system("voms-proxy-info -exists -valid 0:10 -file %s" % proxyfile)
+        logit.log("system(voms-proxy-info... returns %d" % res)
         return os.WIFEXITED(res) and os.WEXITSTATUS(res) == 0
 
     def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
@@ -1049,6 +1108,14 @@ class TaskPOMS:
                 output = "Campaign stage %s launches currently held.... queuing this request" % cs.name
             if proxyheld:
                 output = "Proxy: %s not valid .... queuing this request" % os.path.basename(proxyfile)
+                m = Mail()
+                m.send("POMS: Queued job launch for %s:%s " % (cs.campaign_obj.name , cs.name),
+                       "Due to an invalid proxy, we had to queue a job launch\n"
+
+                       "Please upload a new proxy, and release queued jobs for this campaign",
+                       "%s@fnal.gov" % cs.experiment_creator_obj.username)
+                cs.hold_experimenter_id = cs.creator
+                cs.role_held_with = se_role
 
             logit.log("launch_jobs -- holding launch")
             hl = HeldLaunch()

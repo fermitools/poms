@@ -127,7 +127,7 @@ class PomsService:
         self.taskPOMS = TaskPOMS.TaskPOMS(self)
         self.utilsPOMS = UtilsPOMS.UtilsPOMS(self)
         self.tagsPOMS = TagsPOMS.TagsPOMS(self)
-        self.filesPOMS = FilesPOMS.Files_status(self)
+        self.filesPOMS = FilesPOMS.FilesStatus(self)
         self.tablesPOMS = None
 
     def post_initialize(self):
@@ -465,7 +465,6 @@ class PomsService:
         (
             campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
         ) = self.campaignsPOMS.show_campaign_stages(cherrypy.request.db,
-                                                    cherrypy.request.samweb_lite,
                                                     tmin=tmin, tmax=tmax, tdays=tdays, active=active, campaign_name=campaign_name,
                                                     holder=holder, role_held_with=role_held_with,
                                                     campaign_ids=cl, sesshandler=cherrypy.session.get, **kwargs)
@@ -507,7 +506,6 @@ class PomsService:
                 'experimenter').is_authorized(campaign):
             res = self.campaignsPOMS.reset_campaign_split(
                 cherrypy.request.db,
-                cherrypy.request.samweb_lite,
                 campaign_stage_id)
             raise cherrypy.HTTPRedirect(
                 "campaign_stage_info?campaign_stage_id=%s" %
@@ -566,8 +564,6 @@ class PomsService:
          dep_svg, 
          last_activity,
          recent_submissions) = self.campaignsPOMS.campaign_stage_info(cherrypy.request.db,
-                                                                                       cherrypy.request.samweb_lite,
-                                                                                       cherrypy.HTTPError,
                                                                                        cherrypy.config.get,
                                                                                        campaign_stage_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_stage_info.html')
@@ -759,7 +755,7 @@ class PomsService:
                     campaign.role_held_with = None
                 else:
                     raise cherrypy.HTTPError(
-                        400, 'The action is not supported. You can only hold or release.')
+                        400, 'The action is not supported. You can only Hold or Release.')
                 cherrypy.request.db.add(campaign)
                 cherrypy.request.db.commit()
             else:
@@ -767,6 +763,10 @@ class PomsService:
                     401, 'You are not authorized to hold or release this campaign_stages. ')
 
         if ids2HR:
+            referrer = cherrypy.request.headers.get('Referer')
+            if referrer:
+                raise cherrypy.HTTPRedirect(referrer[referrer.rfind('/')+1:])
+            
             raise cherrypy.HTTPRedirect("show_campaign_stages")
 
 
@@ -964,7 +964,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def set_job_launches(self, hold):
-        self.taskPOMS.set_job_launches(cherrypy.request.db, hold)
+        self.taskPOMS.set_job_launches(cherrypy.request.db, cherrypy.session.get, hold)
         raise cherrypy.HTTPRedirect(self.path + "/")
 
 
@@ -1174,6 +1174,7 @@ class PomsService:
                                                                          tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_task_files.html')
         return template.render(name=cs.name if cs else "",
+                               CampaignStageSnapshot = cs,
                                columns=columns, datarows=datarows,
                                tmin=tmins, tmax=tmaxs,
                                prev=prevlink, next=nextlink, tdays=tdays,
@@ -1224,33 +1225,6 @@ class PomsService:
                                                              tmin=tmin, tmax=tmax, tdays=tdays)
         return self.show_dimension_files(exps[0], dims[0])
 
-
-# h4. campaign_sheet
-
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def campaign_sheet(self, campaign_stage_id, tmin=None, tmax=None, tdays=7):
-        (name, columns, outrows, dimlist,
-         experiment, tmaxs,
-         prevlink, nextlink,
-         tdays, tmin, tmax) = self.filesPOMS.campaign_sheet(cherrypy.request.db,
-                                                            cherrypy.request.samweb_lite,
-                                                            campaign_stage_id, tmin, tmax, tdays)
-        template = self.jinja_env.get_template('campaign_sheet.html')
-        return template.render(name=name,
-                               columns=columns,
-                               datarows=outrows,
-                               dimlist=dimlist,
-                               tmaxs=tmaxs,
-                               prev=prevlink,
-                               next=nextlink,
-                               tdays=tdays,
-                               tmin=tmin,
-                               tmax=tmax,
-                               campaign_stage_id=campaign_stage_id,
-                               experiment=experiment,
-                               help_page="CampaignSheetHelp")
 
 # h4. json_project_summary_for_task
     @cherrypy.expose

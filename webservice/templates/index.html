@@ -17,12 +17,12 @@ Job Launches: {{launches}}
 {% if (current_experimenter.is_root()) %}
 <br>
 <div class="ui icon buttons">
-  <div class="ui button" href="set_job_launches?hold=hold">
+  <a class="ui button" href="set_job_launches?hold=hold">
     <i class="pause icon"></i>
-  </div>
-  <div class="ui button">
-    <i class="play icon" href="set_job_launches?hold=allowed"></i>
-  </div>
+  </a>
+  <a class="ui button" href="set_job_launches?hold=allowed">
+    <i class="play icon"></i>
+  </a>
 </div>
 {% endif %}
 {%endblock%}
