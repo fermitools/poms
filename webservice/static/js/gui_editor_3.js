@@ -640,6 +640,16 @@ gui_editor.prototype.set_state = function (ini_dump) {
         .then(
             _ => {
                 this.state = JSON.parse(this.ini2json(ini_dump));
+                if (this.state.message) {
+                    Swal.fire({
+                        type: 'error',
+                        title: 'Oops...',
+                        text: this.state.message,
+                        //footer: '<a href>Why do I have this issue?</a>'
+                        footer: 'Hint: check the selected experiment'
+                      });
+                    return;
+                }
                 console.log("State:\n", this.state);    // DEBUG
                 this.defaultify_state();
                 this.draw_state();
@@ -778,6 +788,10 @@ gui_editor.prototype.un_trailing_comma = function (res) {
  * builds a list of strings and joins them, python-style
  */
 gui_editor.prototype.ini2json = function (s) {
+    if (s.startsWith("Error:")) {
+        return `{"message": "${s}"}`;
+    }
+
    var res = [];
    var lines = s.split('\n');
    var l, k_v, k, v, i;

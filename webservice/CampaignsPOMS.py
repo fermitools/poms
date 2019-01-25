@@ -1158,7 +1158,11 @@ class CampaignsPOMS:
 
         if name is not None:
             the_campaign = dbhandle.query(Campaign).filter(
-                Campaign.name == name, Campaign.experiment == session_experiment).scalar()
+                Campaign.name == name,
+                Campaign.experiment == session_experiment,
+            ).scalar()
+            if the_campaign is None:
+                return f"Error: Campaign '{name}' was not found for '{session_experiment}' experiment"
             #
             # campaign_stages = dbhandle.query(CampaignStage).join(Campaign).filter(
             #     Campaign.name == name,
