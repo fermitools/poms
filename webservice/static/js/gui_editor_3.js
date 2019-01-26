@@ -646,7 +646,7 @@ gui_editor.prototype.set_state = function (ini_dump) {
                         title: 'Oops...',
                         text: this.state.message,
                         //footer: '<a href>Why do I have this issue?</a>'
-                        footer: 'Hint: check the selected experiment'
+                        footer: 'Hint: check your experiment selection'
                       });
                     return;
                 }
