@@ -62,6 +62,7 @@ class Campaign(Base):
     campaign_type = Column(Text, nullable=True)
 
     tags = relationship(Tag, secondary='campaigns_tags', lazy='dynamic')
+    stages = relationship('CampaignStage', back_populates="campaign_obj", lazy='dynamic')
     experimenter_creator_obj = relationship(
         'Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
 
@@ -127,7 +128,7 @@ class CampaignStage(Base):
     experiment_obj = relationship('Experiment')
     job_type_obj = relationship('JobType')
     login_setup_obj = relationship('LoginSetup')
-    campaign_obj = relationship('Campaign', backref="stages")
+    campaign_obj = relationship('Campaign', back_populates="stages")
 
     providers = relationship("CampaignStage",
                              secondary="campaign_dependencies",

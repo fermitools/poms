@@ -28,6 +28,7 @@ from sqlalchemy.orm import joinedload, attributes, aliased
 from . import logit
 from .poms_model import (Campaign,
                          CampaignStage,
+                         CampaignsTag,
                          JobType,
                          CampaignDependency,
                          CampaignRecovery,
@@ -1167,7 +1168,7 @@ class CampaignsPOMS:
             # campaign_stages = dbhandle.query(CampaignStage).join(Campaign).filter(
             #     Campaign.name == name,
             #     CampaignStage.campaign_id == Campaign.campaign_id).all()
-            campaign_stages = the_campaign.stages
+            campaign_stages = the_campaign.stages.all()
 
         if stage_id is not None:
             cidl1 = (dbhandle.query(CampaignDependency.needs_campaign_stage_id)
@@ -1412,7 +1413,7 @@ class CampaignsPOMS:
             campaign_id = kwargs.get('del_campaign_id')
             campaign = (dbhandle.query(Campaign)
                         .filter(Campaign.campaign_id == campaign_id)
-                        .first())
+                        .scalar())
             if experimenter.is_authorized(campaign):
                 subs = (dbhandle.query(Submission)
                         .join(CampaignStage,
@@ -1421,23 +1422,23 @@ class CampaignsPOMS:
                 if subs.count() > 0:
                     msg = "This campaign has been submitted.  It cannot be deleted."
                 else:
+                    # Delete all dependency records for all campaign stages
                     dbhandle.query(CampaignDependency).filter(
                         or_(
-                            CampaignDependency.provider.has(
-                                CampaignStage.campaign_id == campaign_id),
-                            CampaignDependency.consumer.has(
-                                CampaignStage.campaign_id == campaign_id))
+                            CampaignDependency.provider.has(CampaignStage.campaign_id == campaign_id),
+                            CampaignDependency.consumer.has(CampaignStage.campaign_id == campaign_id))
                     ).delete(synchronize_session=False)
-                    dbhandle.query(CampaignStage).filter(
-                        CampaignStage.campaign_id == campaign_id).delete(
-                            synchronize_session=False)
-                    dbhandle.query(Campaign).filter(
-                        Campaign.campaign_id == campaign_id).delete(
-                            synchronize_session=False)
+                    # Delete all campaign stages
+                    # dbhandle.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).delete(synchronize_session=False)
+                    campaign.stages.delete()
+                    # Delete all campaign tag records
+                    dbhandle.query(CampaignsTag).filter(CampaignsTag.campaign_id == campaign_id).delete()
+                    # Delete the campaign
+                    # dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete(synchronize_session=False)
+                    dbhandle.delete(campaign)
                     dbhandle.commit()
                     msg = ("Campaign named %s with campaign_id %s "
-                           "and related CampagnStages were deleted .") % (
-                               kwargs.get('del_campaign_name'), campaign_id)
+                           "and related CampagnStages were deleted .") % (kwargs.get('del_campaign_name'), campaign_id)
             else:
                 msg = "You are not authorized to delete campaigns."
 

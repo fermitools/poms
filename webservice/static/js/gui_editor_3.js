@@ -534,6 +534,9 @@ gui_editor.prototype.clone_rename = function (from, to, experiment, role) {
     }
     // this.state['campaign']['campaign_stage_list'] = new_stages.join(' ');
     this.state['campaign']['campaign_stage_list'] = new_stages.join(',');
+    if (this.state.node_positions && this.state.node_positions.nxy0) {
+        this.state.node_positions.nxy0 = this.state.node_positions.nxy0.replace(from, to);      // Fix the campaign name in positions
+    }
 }
 
 
