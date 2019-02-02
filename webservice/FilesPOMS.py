@@ -116,11 +116,13 @@ class FilesStatus:
                 allkiddims = ("%s and isparentof: ( %s and version '%s' ) " %
                               (allkiddims, dimbits,
                                s.campaign_stage_snapshot_obj.software_version))
+                cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
                 allkiddecldims = ("%s and isparentof: "
                                   "( %s and version '%s' "
+                                  "and create_date > '%s' "
                                   "with availability anylocation ) " %
                                   (allkiddecldims, dimbits,
-                                   s.campaign_stage_snapshot_obj.software_version))
+                                   s.campaign_stage_snapshot_obj.software_version, cdate))
                 outputfiledims = ("ischildof: ( %s ) and create_date > '%s' and  %s and version '%s'" %
                                   (basedims, s.created.strftime('%Y-%m-%d %H:%M:%S'), dimbits, s.campaign_stage_snapshot_obj.software_version))
             all_kids_needed.append(allkiddims)

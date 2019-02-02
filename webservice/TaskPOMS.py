@@ -821,14 +821,16 @@ class TaskPOMS:
                     oftypelist = ["%"]
 
                 sep = ''
+                cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
                 for oft in oftypelist:
                     if oft.find(' ') > 0:
                         # it is a dimension not a file_name pattern
                         dim_bits = oft
                     else:
                         dim_bits = "file_name like %s" % oft
-                    recovery_dims += "%s isparentof: ( version %s and %s) " % (
-                        sep, s.campaign_stage_snapshot_obj.software_version, dim_bits)
+                       
+                    recovery_dims += "%s isparentof: ( version %s and %s and create_date > '%s' ) " % (
+                        sep, s.campaign_stage_snapshot_obj.software_version, dim_bits, cdate)
                     sep = 'and'
                 recovery_dims += ')'
             else:
