@@ -40,6 +40,7 @@ update submission_histories set status_id=5000 where status = 'Held';
 update submission_histories set status_id=6000 where status = 'Failed';
 update submission_histories set status_id=7000 where status = 'Completed';
 update submission_histories set status_id=8000 where status = 'Located';
+update submission_histories set status_id=9000 where status = 'Removed';
 
 delete from submission_histories where status in('started', 'testing', 'unknown', 'Unknown');
 
@@ -69,3 +70,5 @@ ALTER TABLE campaigns ADD CONSTRAINT ck_campaign_type CHECK ( campaign_type::tex
 --
 ALTER TABLE experiments_experimenters DROP CONSTRAINT ck_role;
 update experiments_experimenters set role='superuser' where role='coordinator';
+
+\i grants.sql

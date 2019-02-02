@@ -167,7 +167,7 @@ class FilesStatus:
             datarows.append(
                 [
                     [task_jobsub_job_id.replace('@', '@<br>'),
-                     "https://fermicloud045.fnal.gov/poms/submission_details?submission_id=%s" % s.submission_id],
+                     "submission_details?submission_id=%s" % s.submission_id],
                     [
                         s.project,
                         "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s" %
