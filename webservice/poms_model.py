@@ -369,8 +369,8 @@ class JobTypeSnapshot(Base):
     updater = Column(Integer)
     updated = Column(DateTime(True))
 
-    campaign_definition = relationship(
-        'JobType')   # FIXME: Should it be job_type?
+    # FIXME: Should it be job_type?
+    campaign_definition = relationship('JobType')
 
 
 class LoginSetupSnapshot(Base):
@@ -419,8 +419,8 @@ class CampaignRecovery(Base):
     recovery_order = Column(Integer, nullable=False, primary_key=True)
     param_overrides = Column(JSON)
 
-    campaign_definition = relationship(
-        'JobType')   # FIXME: Should it be job_type?
+    # FIXME: Should it be job_type?
+    campaign_definition = relationship('JobType')
     recovery_type = relationship('RecoveryType')
 
 

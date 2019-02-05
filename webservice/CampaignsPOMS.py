@@ -1438,7 +1438,7 @@ class CampaignsPOMS:
                     dbhandle.delete(campaign)
                     dbhandle.commit()
                     msg = ("Campaign named %s with campaign_id %s "
-                           "and related CampagnStages were deleted .") % (kwargs.get('del_campaign_name'), campaign_id)
+                           "and related CampagnStages were deleted.") % (kwargs.get('del_campaign_name'), campaign_id)
             else:
                 msg = "You are not authorized to delete campaigns."
 
