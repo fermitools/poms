@@ -1350,7 +1350,7 @@ class CampaignsPOMS:
                                     stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE,
                                     universal_newlines=True)
-            pdot.stdin.write('digraph {}Dependencies {{\n'.format(campaign_name))
+            pdot.stdin.write('digraph "{} Dependencies" {{\n'.format(campaign_name))
             pdot.stdin.write('node [shape=box, style=rounded, '
                              'color=lightgrey, fontcolor=black]\n'
                              'rankdir = "LR";\n')
