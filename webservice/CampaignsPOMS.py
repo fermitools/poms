@@ -1744,7 +1744,7 @@ class CampaignsPOMS:
         '''
            Show submissions from a campaign stage
         '''
-        base_link = 'campaign_stage_submissions?campaign_name={}&stage_name={}&campaign_stage_id={}&campaign_id={}'.format(campaign_name, stage_name, campaign_stage_id,campaign_id)
+        base_link = 'campaign_stage_submissions?campaign_name={}&stage_name={}&campaign_stage_id={}&campaign_id={}&'.format(campaign_name, stage_name, campaign_stage_id,campaign_id)
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, base_link)
         print("  tmin:%s\n   tmax:%s\n   tmins:%s\n   tmaxs:%s\n   nextlink:%s\n   prevlink:%s\n   time_range_string:%s\n   tdays:%s\n" %
               (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays))
