@@ -1357,29 +1357,20 @@ class CampaignsPOMS:
             baseurl = "{}/campaign_stage_info?campaign_stage_id=".format(
                 config_get("pomspath"))
 
-            locatedmap = self.poms_service.taskPOMS.running_submissions(
-                dbhandle, c_ids, status_list=["Located"])
-
-            logit.log(
-                logit.INFO,
-                "campaign_deps: locatedmap=%s" %
-                repr(locatedmap))
             for c_s in csl:
                 tot = (dbhandle.query(func.count(Submission.submission_id))
                        .filter(Submission.campaign_stage_id == c_s.campaign_stage_id)
                        .one())[0]
-                ltot = locatedmap[c_s.campaign_stage_id]
                 logit.log(logit.INFO, "campaign_deps: tot=%s" % repr(tot))
                 pdot.stdin.write(
                     ('c_s{:d} [URL="{}{:d}",label="{}\\n'
-                     'Submissions {:d} Located {:d}",color={}];\n')
+                     'Submissions {:d}",color={}];\n')
                     .format(c_s.campaign_stage_id,
                             baseurl,
                             c_s.campaign_stage_id,
                             c_s.name,
                             tot,
-                            ltot,
-                            ("darkgreen" if ltot == tot else "black")))
+                            "black"))
 
             c_dl = (dbhandle.query(CampaignDependency).filter(
                 CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all())
@@ -1744,7 +1735,7 @@ class CampaignsPOMS:
         '''
            Show submissions from a campaign stage
         '''
-        base_link = 'campaign_stage_submissions?campaign_name={}&stage_name={}&campaign_stage_id={}&'.format(campaign_name, stage_name, campaign_stage_id)
+        base_link = 'campaign_stage_submissions?campaign_name={}&stage_name={}&campaign_stage_id={}&campaign_id={}&'.format(campaign_name, stage_name, campaign_stage_id ,campaign_id)
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, base_link)
         print("  tmin:%s\n   tmax:%s\n   tmins:%s\n   tmaxs:%s\n   nextlink:%s\n   prevlink:%s\n   time_range_string:%s\n   tdays:%s\n" %
               (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays))
@@ -1756,11 +1747,11 @@ class CampaignsPOMS:
                 .filter(SubmissionHistory.submission_id == subhist.submission_id)
                )
 
-        if campaign_id is not None:
+        if not campaign_id in (None, 'None',''):
             campaign_stage_ids = (dbhandle.query(CampaignStage.campaign_stage_id)                                 .filter(CampaignStage.campaign_id == campaign_id)
                                   .all())
 
-        if campaign_stage_id is not None:
+        if not campaign_stage_id in (None, 'None',''):
             campaign_stage_ids = [campaign_stage_id]
 
         tuples = (dbhandle.query(Submission, SubmissionHistory, SubmissionStatus)
