@@ -2203,8 +2203,7 @@ class CampaignsPOMS:
                                        experiment=exp,
                                        # input_files_per_job=input_files_per_job,
                                        # output_files_per_job=output_files_per_job,
-                                       output_file_patterns=form.get(
-                                           'output_file_patterns'),
+                                       output_file_patterns=form.get('output_file_patterns'),
                                        launch_script=form.get('launch_script'),
                                        definition_parameters=definition_parameters,
                                        creator=user_id, created=datetime.now(utc), creator_role=role)
@@ -2219,8 +2218,7 @@ class CampaignsPOMS:
                     login_setup = LoginSetup(name=name,
                                              experiment=exp,
                                              launch_host=form.get('host'),
-                                             launch_account=form.get(
-                                                 'account'),
+                                             launch_account=form.get('account'),
                                              launch_setup=form.get('setup'),
                                              creator=user_id, created=datetime.now(utc), creator_role=role)
                     dbhandle.add(login_setup)
