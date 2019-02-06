@@ -1357,29 +1357,20 @@ class CampaignsPOMS:
             baseurl = "{}/campaign_stage_info?campaign_stage_id=".format(
                 config_get("pomspath"))
 
-            locatedmap = self.poms_service.taskPOMS.running_submissions(
-                dbhandle, c_ids, status_list=["Located"])
-
-            logit.log(
-                logit.INFO,
-                "campaign_deps: locatedmap=%s" %
-                repr(locatedmap))
             for c_s in csl:
                 tot = (dbhandle.query(func.count(Submission.submission_id))
                        .filter(Submission.campaign_stage_id == c_s.campaign_stage_id)
                        .one())[0]
-                ltot = locatedmap[c_s.campaign_stage_id]
                 logit.log(logit.INFO, "campaign_deps: tot=%s" % repr(tot))
                 pdot.stdin.write(
                     ('c_s{:d} [URL="{}{:d}",label="{}\\n'
-                     'Submissions {:d} Located {:d}",color={}];\n')
+                     'Submissions {:d}",color={}];\n')
                     .format(c_s.campaign_stage_id,
                             baseurl,
                             c_s.campaign_stage_id,
                             c_s.name,
                             tot,
-                            ltot,
-                            ("darkgreen" if ltot == tot else "black")))
+                            "black"))
 
             c_dl = (dbhandle.query(CampaignDependency).filter(
                 CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all())
