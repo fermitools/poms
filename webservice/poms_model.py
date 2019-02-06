@@ -14,7 +14,7 @@ metadata = Base.metadata
 class Tag(Base):
     __tablename__ = "tags"
 
-    tag_id = Column(Integer, primary_key=True)
+    tag_id = Column(Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)"))
     experiment = Column(ForeignKey("experiments.experiment"), nullable=False, index=True)
     tag_name = Column(Text, nullable=False)
     creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
@@ -33,10 +33,12 @@ class CampaignsTag(Base):
 class Campaign(Base):
     __tablename__ = "campaigns"
 
-    campaign_id = Column(Integer, primary_key=True)
+    campaign_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)")
+    )
     experiment = Column(ForeignKey("experiments.experiment"), nullable=False, index=True)
     name = Column(Text, nullable=False)
-    active = Column(Boolean, nullable=False)
+    active = Column(Boolean, nullable=False, server_default=text("true"))
     defaults = Column(JSON)
     creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
@@ -52,10 +54,17 @@ class Campaign(Base):
 class CampaignStage(Base):
     __tablename__ = "campaign_stages"
 
-    campaign_stage_id = Column(Integer, primary_key=True)
+    campaign_stage_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('campaign_stages_campaign_stage_id_seq'::regclass)")
+    )
     experiment = Column(ForeignKey("experiments.experiment"), nullable=False, index=True)
     name = Column(Text, nullable=False)
-    job_type_id = Column(ForeignKey("job_types.job_type_id"), nullable=False, index=True)
+    job_type_id = Column(
+        ForeignKey("job_types.job_type_id"),
+        nullable=False,
+        index=True,
+        server_default=text("nextval('campaigns_campaign_definition_id_seq'::regclass)"),
+    )
 
     creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
@@ -71,8 +80,8 @@ class CampaignStage(Base):
     login_setup_id = Column(ForeignKey("login_setups.login_setup_id"), nullable=False)
     param_overrides = Column(JSON)
     test_param_overrides = Column(JSON)
-    completion_type = Column(Text, nullable=False)
-    completion_pct = Column(Text, nullable=False)
+    completion_type = Column(Text, nullable=False, server_default=text("located"))
+    completion_pct = Column(Text, nullable=False, server_default="95")
     hold_experimenter_id = Column(ForeignKey("experimenters.experimenter_id"), nullable=True)
     creator_role = Column(Text, nullable=False)
     role_held_with = Column(Text, nullable=True)
@@ -106,7 +115,7 @@ class CampaignStage(Base):
 class Experimenter(Base):
     __tablename__ = "experimenters"
 
-    experimenter_id = Column(Integer, primary_key=True)
+    experimenter_id = Column(Integer, primary_key=True, server_default="")
     first_name = Column(Text, nullable=False)
     last_name = Column(Text)
     username = Column(Text, nullable=False)
@@ -121,8 +130,8 @@ class ExperimentsExperimenters(Base):
 
     experimenter_id = Column(Integer, ForeignKey("experimenters.experimenter_id"), primary_key=True)
     experiment = Column(Text, ForeignKey("experiments.experiment"), primary_key=True)
-    active = Column(Boolean, nullable=False)
-    role = Column(Text, nullable=False)
+    active = Column(Boolean, nullable=False, server_default=text("true"))
+    role = Column(Text, nullable=False, server_default=text("analysis"))
 
     experimenter_obj = relationship(Experimenter, backref="exp_expers")
     experiment_obj = relationship("Experiment", backref="exp_expers")
@@ -135,13 +144,15 @@ class Experiment(Base):
     name = Column(Text, nullable=False)
     logbook = Column(Text, nullable=True)
     snow_url = Column(Text, nullable=True)
-    restricted = Column(Boolean, nullable=False)
+    restricted = Column(Boolean, nullable=False, server_default=text("false"))
 
 
 class LoginSetup(Base):
     __tablename__ = "login_setups"
 
-    login_setup_id = Column(Integer, primary_key=True)
+    login_setup_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('login_setups_login_setup_id_seq'::regclass)")
+    )
     name = Column(Text, nullable=False, index=True, unique=True)
     experiment = Column(ForeignKey("experiments.experiment"), nullable=False, index=True)
     launch_host = Column(Text, nullable=False)
@@ -165,7 +176,9 @@ class LoginSetup(Base):
 class JobType(Base):
     __tablename__ = "job_types"
 
-    job_type_id = Column(Integer, primary_key=True)
+    job_type_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('job_types_job_type_id_seq'::regclass)")
+    )
     name = Column(Text, nullable=False, unique=True)
     experiment = Column(ForeignKey("experiments.experiment"), nullable=False, index=True)
     launch_script = Column(Text)
@@ -191,8 +204,15 @@ class JobType(Base):
 class Submission(Base):
     __tablename__ = "submissions"
 
-    submission_id = Column(Integer, primary_key=True)
-    campaign_stage_id = Column(ForeignKey("campaign_stages.campaign_stage_id"), nullable=False, index=True)
+    submission_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('submissions_submissions_id_seq'::regclass)")
+    )
+    campaign_stage_id = Column(
+        ForeignKey("campaign_stages.campaign_stage_id"),
+        nullable=False,
+        index=True,
+        server_default=text("nextval('tasks_campaign_id_seq'::regclass)"),
+    )
     creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
     submission_params = Column(JSON)
@@ -251,7 +271,11 @@ class SubmissionStatus(Base):
 class CampaignStageSnapshot(Base):
     __tablename__ = "campaign_stage_snapshots"
 
-    campaign_stage_snapshot_id = Column(Integer, primary_key=True)
+    campaign_stage_snapshot_id = Column(
+        Integer,
+        primary_key=True,
+        server_default=text("nextval('campaign_stage_snapshots_campaign_stage_snapshot_id_seq'::regclass)"),
+    )
     campaign_stage_id = Column(ForeignKey("campaign_stages.campaign_stage_id"), nullable=False, index=True)
     experiment = Column(Text, nullable=False)
     name = Column(Text, nullable=False)
@@ -268,8 +292,8 @@ class CampaignStageSnapshot(Base):
     cs_last_split = Column(Integer)
     cs_split_type = Column(Text)
     cs_split_dimensions = Column(Text)
-    completion_type = Column(Text, nullable=False)
-    completion_pct = Column(Text, nullable=False)
+    completion_type = Column(Text, nullable=False, server_default=text("located"))
+    completion_pct = Column(Text, nullable=False, server_default="95")
 
     campaign_stage = relationship("CampaignStage")
 
@@ -277,7 +301,11 @@ class CampaignStageSnapshot(Base):
 class JobTypeSnapshot(Base):
     __tablename__ = "job_type_snapshots"
 
-    job_type_snapshot_id = Column(Integer, primary_key=True)
+    job_type_snapshot_id = Column(
+        Integer,
+        primary_key=True,
+        server_default=text("nextval('job_type_snapshots_job_type_snapshot_id_seq'::regclass)"),
+    )
     job_type_id = Column(ForeignKey("job_types.job_type_id"), nullable=False, index=True)
     name = Column(Text, nullable=False)
     experiment = Column(Text, nullable=False)
@@ -297,7 +325,9 @@ class JobTypeSnapshot(Base):
 class LoginSetupSnapshot(Base):
     __tablename__ = "login_setup_snapshots"
 
-    login_setup_snapshot_id = Column(Integer, primary_key=True)
+    login_setup_snapshot_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('login_setup_snapshots_login_setup_id_seq'::regclass)")
+    )
     login_setup_id = Column(ForeignKey("login_setups.login_setup_id"), nullable=False, index=True)
     experiment = Column(String(10), nullable=False)
     launch_host = Column(Text, nullable=False)
@@ -315,7 +345,9 @@ class LoginSetupSnapshot(Base):
 class RecoveryType(Base):
     __tablename__ = "recovery_types"
 
-    recovery_type_id = Column(Integer, primary_key=True)
+    recovery_type_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('recovery_types_recovery_type_id_seq'::regclass)")
+    )
     name = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
 
@@ -337,7 +369,9 @@ class CampaignRecovery(Base):
 class CampaignDependency(Base):
     __tablename__ = "campaign_dependencies"
 
-    campaign_dep_id = Column(Integer, primary_key=True)
+    campaign_dep_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('campaign_dependency_id_seq'::regclass)")
+    )
     needs_campaign_stage_id = Column(
         ForeignKey("campaign_stages.campaign_stage_id"), primary_key=True, nullable=False, index=True
     )
@@ -368,4 +402,4 @@ class FaultyRequest(Base):
     status = Column(Integer)
     message = Column(Text)
     ntries = Column(Integer)
-    last_seen = Column(DateTime(timezone=True), nullable=False, primary_key=True)
+    last_seen = Column(DateTime(timezone=True), nullable=False, primary_key=True, server_default=text("now()"))

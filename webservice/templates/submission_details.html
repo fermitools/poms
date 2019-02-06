@@ -30,8 +30,8 @@ Submission #{{submission.submission_id}}<br>
 jobsub_job_Id: {{submission.jobsub_job_id}} <br>
 Campaign Stage <a href="{{pomspath}}/campaign_stage_info?campaign_stage_id={{submission.campaign_stage_snapshot_obj.campaign_stage_id}}">{{submission.campaign_stage_snapshot_obj.name}}</a> 
 <span class="ui label">{{submission.campaign_stage_snapshot_obj.campaign_stage_id}}</span> <br/>
-in Campaign <a href="{{pomspath}}/show_campaigns?just_one={{submission.campaign_stage_snapshot_obj.campaign.campaign_obj.name}}">{{submission.campaign_stage_snapshot_obj.campaign.campaign_obj.name}}</a>
-<span class="ui label">{{submission.campaign_stage_snapshot_obj.campaign.campaign_obj.campaign_id}}</span>
+in Campaign <a href="{{pomspath}}/show_campaigns?just_one={{submission.campaign_stage_obj.campaign_obj.name}}">{{submission.campaign_stage_obj.campaign_obj.name}}</a>
+<span class="ui label">{{submission.campaign_stage_obj.campaign_obj.campaign_id}}</span>
 
 </h3>
 
