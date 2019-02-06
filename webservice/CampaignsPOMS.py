@@ -1350,7 +1350,7 @@ class CampaignsPOMS:
                                     stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE,
                                     universal_newlines=True)
-            pdot.stdin.write('digraph {}Dependencies {{\n'.format(campaign_name))
+            pdot.stdin.write('digraph "{} Dependencies" {{\n'.format(campaign_name))
             pdot.stdin.write('node [shape=box, style=rounded, '
                              'color=lightgrey, fontcolor=black]\n'
                              'rankdir = "LR";\n')
@@ -1438,7 +1438,7 @@ class CampaignsPOMS:
                     dbhandle.delete(campaign)
                     dbhandle.commit()
                     msg = ("Campaign named %s with campaign_id %s "
-                           "and related CampagnStages were deleted .") % (kwargs.get('del_campaign_name'), campaign_id)
+                           "and related CampagnStages were deleted.") % (kwargs.get('del_campaign_name'), campaign_id)
             else:
                 msg = "You are not authorized to delete campaigns."
 
