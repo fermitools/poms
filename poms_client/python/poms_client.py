@@ -15,6 +15,15 @@ except:
 
 rs = requests.Session()
 
+def upload_wf(file_name, test=None,  experiment=None, configfile=None):
+    data,status = make_poms_call( 
+        method =  'ini_to_campaign',
+        files = {'upload': (os.path.basename(file_name), open(file_name, 'rb'))},
+        test = test,
+        configfile = configfile)
+
+    return status == 303
+
 def upload_file(file_name, test=None,  experiment=None, configfile=None):
     data,status = make_poms_call(
         method = 'upload_file',
