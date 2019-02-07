@@ -81,7 +81,8 @@ class CampaignStage(Base):
     param_overrides = Column(JSON)
     test_param_overrides = Column(JSON)
     completion_type = Column(Text, nullable=False, server_default=text("located"))
-    completion_pct = Column(Text, nullable=False, server_default="95")
+    # completion_pct = Column(Text, nullable=False, server_default="95")
+    completion_pct = Column(Integer, nullable=False, server_default="95")
     hold_experimenter_id = Column(ForeignKey("experimenters.experimenter_id"), nullable=True)
     creator_role = Column(Text, nullable=False)
     role_held_with = Column(Text, nullable=True)
@@ -293,7 +294,8 @@ class CampaignStageSnapshot(Base):
     cs_split_type = Column(Text)
     cs_split_dimensions = Column(Text)
     completion_type = Column(Text, nullable=False, server_default=text("located"))
-    completion_pct = Column(Text, nullable=False, server_default="95")
+    # completion_pct = Column(Text, nullable=False, server_default="95")
+    completion_pct = Column(Integer, nullable=False, server_default="95")
 
     campaign_stage = relationship("CampaignStage")
 
