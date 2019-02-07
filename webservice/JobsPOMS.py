@@ -104,7 +104,7 @@ class JobsPOMS:
             cmd = """
                 exec 2>&1
                 export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s
-                kinit -kt $HOME/private/keytabs/poms.keytab poms/cd/%s@FNAL.GOV || true
+                kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true
                 ssh %s@%s '%s; set -x; jobsub_%s -G %s --role %s %s'
             """ % (
                 group,
