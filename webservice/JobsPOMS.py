@@ -108,7 +108,6 @@ class JobsPOMS:
                 ssh %s@%s '%s; set -x; jobsub_%s -G %s --role %s %s'
             """ % (
                 group,
-                self.poms_service.hostname,
                 lts.launch_account,
                 lts.launch_host,
                 launch_setup,
