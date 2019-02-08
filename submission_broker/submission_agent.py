@@ -50,7 +50,7 @@ class Agent:
 
 
     def __init__(self, poms_uri="http://127.0.0.1:8080/poms/",
-                 submission_uri='https://landscapeitb.fnal.gov/lens/query'):
+                 submission_uri='https://landscape.fnal.gov/lens/query'):
 
         '''
             Setup webservice http session objects, uri's to reach things,
@@ -75,7 +75,7 @@ class Agent:
             'Accept': '*/*',
             'Connection': 'keep-alive',
             'DNT': '1',
-            'Origin': 'https://landscapeitb.fnal.gov'
+            'Origin': 'https://landscape.fnal.gov'
         }
         self.timeouts = (30,10)
 
