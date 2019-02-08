@@ -284,7 +284,7 @@ all the time...
       {%if f|length > 22 %}
           {%set submission_id = f[23:]|int %}
           <a href="{{pomspath}}/submission_details?submission_id={{submission_id}}"><span class="ui label green">info</span></a>
-          {%if recent_submissions[submission_id]|default(9999) < 7000 %}
+          {%if recent_submissions[submission_id]|default(9999) < 7000 and recent_submissions[submission_id]|default(9999) != 2000 %}
 
     
               <a href="/poms/kill_jobs?submission_id={{submission_id}}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>&nbsp;&nbsp;
