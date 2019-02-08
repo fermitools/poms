@@ -2347,6 +2347,10 @@ class CampaignsPOMS:
                               .filter(LoginSetup.experiment == 'samdev')
                               .filter(LoginSetup.name == login_setup).scalar()
                               )
+            if not login_setup_id:
+                message.append(f"Error: LoginSetup '{login_setup}' not found! Campaign is incomplete!")
+                return {'status': "400 Bad Request", 'message': message}
+
             job_type_id = (dbhandle.query(JobType.job_type_id)
                            .filter(JobType.experiment == exp)
                            .filter(JobType.name == job_type).scalar()
@@ -2355,6 +2359,9 @@ class CampaignsPOMS:
                            .filter(JobType.experiment == 'samdev')
                            .filter(JobType.name == job_type).scalar()
                            )
+            if not job_type_id:
+                message.append(f"Error: JobType '{job_type}' not found! Campaign is incomplete!")
+                return {'status': "400 Bad Request", 'message': message}
 
             if old_name in old_stage_names:
                 # VP~ obj =
