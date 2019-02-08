@@ -105,7 +105,7 @@ View the <a href="https://{{schedd}}:8443/jobsub/acctgroups/{{experiment|replace
 
 <h3>Actions</h3>
 
-{%if history[-1].status_id < 7000 %}
+{%if history[-1].status_id < 7000 and history[-1].status_id != 2000 %}
 Hold Condor Jobs <a href="{{pomspath}}/kill_jobs?submission_id={{submission.submission_id}}&act=hold"><i class="pause icon"></i></a> <br>
 Release Condor Jobs <a href="{{pomspath}}/kill_jobs?submission_id={{submission.submission_id}}&act=release"><i class="play icon"></i></a> <br>
 Kill Condor Jobs <a href="{{pomspath}}/kill_jobs?submission_id={{submission.submission_id}}&act=kill"><i class="trash icon"></i></a> <br>
@@ -114,8 +114,10 @@ Kill Condor Jobs <a href="{{pomspath}}/kill_jobs?submission_id={{submission.subm
 Kick to Located 
 <a href="{{pomspath}}/force_locate_submission?submission_id={{submission.submission_id}}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>
 {%endif%}
+{%endif%}
 <br>
 
+{%if history[-1].status_id >= 7000 or history[-1].status_id == 2000 %}
 Re-Launch Submission on dataset {{dataset}} <a href="{{pomspath}}/launch_jobs?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}"><button>Relaunch</button></a> <br>
 {%endif%}
 
