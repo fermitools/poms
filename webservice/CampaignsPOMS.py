@@ -1162,6 +1162,7 @@ class CampaignsPOMS:
                 Campaign.name == name,
                 Campaign.experiment == session_experiment,
             ).scalar()
+
             if the_campaign is None:
                 return f"Error: Campaign '{name}' was not found for '{session_experiment}' experiment"
             #
@@ -1225,7 +1226,8 @@ class CampaignsPOMS:
                        ",".join(map(cnames.get, cidl)))
             res.append("")
 
-            if full in ('1', 'y', 'Y', 't', 'T'):
+            # if full in ('1', 'y', 'Y', 't', 'T'):
+            if True:
                 positions = None
                 defaults = the_campaign.defaults
                 if defaults:
@@ -1249,7 +1251,10 @@ class CampaignsPOMS:
                         res.append("login_setup=%s" % (defaults.get("login_setup") or "generic"))
                         res.append("job_type=%s" % (defaults.get("job_type") or "generic"))
                         res.append("")
+                    else:
+                        defaults = {}
 
+            if full in ('1', 'y', 'Y', 't', 'T'):
                 if positions:
                     res.append("[node_positions]")
                     for (n, (k, v)) in enumerate(positions.items()):
@@ -1259,22 +1264,26 @@ class CampaignsPOMS:
         for c_s in campaign_stages:
             res.append("[campaign_stage %s]" % c_s.name)
             # res.append("name=%s" % c_s.name)
-            res.append("vo_role=%s" % c_s.vo_role)
-            res.append("software_version=%s" % c_s.software_version)
-            res.append("dataset_or_split_data=%s" % c_s.dataset)
-            res.append("cs_split_type=%s" % c_s.cs_split_type)
-            res.append("completion_type=%s" % c_s.completion_type)
-            res.append("completion_pct=%s" % c_s.completion_pct)
-            res.append(
-                "param_overrides=%s" %
-                json.dumps(
-                    c_s.param_overrides or []))
-            res.append(
-                "test_param_overrides=%s" %
-                json.dumps(
-                    c_s.test_param_overrides or []))
-            res.append("login_setup=%s" % c_s.login_setup_obj.name)
-            res.append("job_type=%s" % c_s.job_type_obj.name)
+            if c_s.vo_role != defaults.get("vo_role"):
+                res.append("vo_role=%s" % c_s.vo_role)
+            if c_s.software_version != defaults.get("software_version"):
+                res.append("software_version=%s" % c_s.software_version)
+            if c_s.dataset != defaults.get("dataset_or_split_data"):
+                res.append("dataset_or_split_data=%s" % c_s.dataset)
+            if c_s.cs_split_type != defaults.get("cs_split_type"):
+                res.append("cs_split_type=%s" % c_s.cs_split_type)
+            if c_s.completion_type != defaults.get("completion_type"):
+                res.append("completion_type=%s" % c_s.completion_type)
+            if str(c_s.completion_pct) != defaults.get("completion_pct"):
+                res.append("completion_pct=%s" % c_s.completion_pct)
+            if json.dumps(c_s.param_overrides) != defaults.get("param_overrides"):
+                res.append("param_overrides=%s" % json.dumps(c_s.param_overrides or []))
+            if json.dumps(c_s.test_param_overrides) != defaults.get("test_param_overrides"):
+                res.append("test_param_overrides=%s" % json.dumps(c_s.test_param_overrides or []))
+            if c_s.login_setup_obj.name != defaults.get("login_setup"):
+                res.append("login_setup=%s" % c_s.login_setup_obj.name)
+            if c_s.job_type_obj.name != defaults.get("job_type"):
+                res.append("job_type=%s" % c_s.job_type_obj.name)
             jts.add(c_s.job_type_obj)
             lts.add(c_s.login_setup_obj)
             res.append("")
@@ -2164,6 +2173,7 @@ class CampaignsPOMS:
 
         data = kwargs.get('form', None)
         everything = json.loads(data)
+        message = []
 
         # Process job types and login setups first
         misc = everything['misc']
@@ -2199,7 +2209,14 @@ class CampaignsPOMS:
                                        definition_parameters=definition_parameters,
                                        creator=user_id, created=datetime.now(utc), creator_role=role)
                     dbhandle.add(job_type)
-                    dbhandle.commit()
+                    try:
+                        print(f"*** Creating: JobType '{name}'.")
+                        dbhandle.commit()
+                    except IntegrityError:
+                        message.append(f"Warning: JobType '{name}' already exists and will not change.")
+                        print(f"*** DB error: {message}")
+                        dbhandle.rollback()
+
                     recoveries = form.get('recoveries')
                     if recoveries:
                         self.fixup_recoveries(dbhandle, job_type.job_type_id, recoveries)
@@ -2213,8 +2230,14 @@ class CampaignsPOMS:
                                              launch_setup=form.get('setup'),
                                              creator=user_id, created=datetime.now(utc), creator_role=role)
                     dbhandle.add(login_setup)
-                dbhandle.flush()
-                dbhandle.commit()
+                    try:
+                        print(f"*** Creating: LoginSetup '{name}'.")
+                        dbhandle.flush()
+                        dbhandle.commit()
+                    except IntegrityError:
+                        message.append(f"Warning: LoginSetup '{name}' already exists and will not change.")
+                        print(f"*** DB error: {message}")
+                        dbhandle.rollback()
 
         # Now process all stages
         stages = everything['stages']
@@ -2283,7 +2306,9 @@ class CampaignsPOMS:
             clean = stage.get('clean')
             form = stage.get('form')
             # Use the field if provided otherwise use defaults
-            form = {k: (form[k] or defaults[k]) for k in form}
+            # form = {k: (form[k] or defaults[k]) for k in form}
+            keys = set(defaults.keys()) | set(form.keys())
+            form = {k: (form.get(k) or defaults.get(k)) for k in keys}
             print(
                 "############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(
                     old_name,
@@ -2408,7 +2433,7 @@ class CampaignsPOMS:
             dbhandle.flush()
         dbhandle.commit()
         print("+++++++++++++++ Campaign saved")
-        return {'status': "201 Created", 'message': "OK"}
+        return {'status': "201 Created", 'message': message or "OK"}
 
 
     def get_jobtype_id(self, dbhandle, sesshandle, name):
