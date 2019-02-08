@@ -119,6 +119,7 @@ Kick to Located
 Re-Launch Submission on dataset {{dataset}} <a href="{{pomspath}}/launch_jobs?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}"><button>Relaunch</button></a> <br>
 {%endif%}
 
+{%if history[-1].status_id >= 7000 %}
 Launch Recovery for Submission 
 <form style="display: inline-block;" action="{{pomspath}}/launch_recovery_for">
 <select name="recovery_type">
@@ -131,7 +132,7 @@ Launch Recovery for Submission
 <input type="submit" name="launch" value="Launch">
 </form>
 
-{# %endif% #}
+{%endif%}
 </div>
 </div>
 <div class="ui horizontal segments">
