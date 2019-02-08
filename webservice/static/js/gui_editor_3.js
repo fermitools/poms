@@ -420,7 +420,8 @@ gui_editor.exportNetwork = function () {
         // Node postions
         const pp = gui_editor.network.getPositions();
         // Modified positions with labels instead of IDs
-        const mpp = obj_from_entries(Object.entries(pp).map(p => [p[0].startsWith('campaign ') ? p[0] : get_label(p[0]), p[1]]));
+        // const mpp = obj_from_entries(Object.entries(pp).map(p => [p[0].startsWith('campaign ') ? p[0] : get_label(p[0]), p[1]]));
+        const mpp = obj_from_entries(Object.entries(pp).map(p => [p[0].startsWith('campaign ') ? `campaign ${get_label(p[0])}` : get_label(p[0]), p[1]]));
 
         const response = {
             id: e[0],
