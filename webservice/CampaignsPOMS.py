@@ -1803,7 +1803,7 @@ class CampaignsPOMS:
                   .order_by(SubmissionHistory.created)).all()
         for row in tuples:
             submission_id = row.SubmissionHistory.submission_id
-            created = row.SubmissionHistory.created.now().strftime("%Y-%m-%d %H:%M:%S")
+            created = row.SubmissionHistory.created.strftime("%Y-%m-%d %H:%M:%S")
             status = row.SubmissionStatus.status
             rows.append({'created': created, 'status': status})
         return rows
