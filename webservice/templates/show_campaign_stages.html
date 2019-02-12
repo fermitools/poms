@@ -48,7 +48,7 @@ Campaign Stages{%include 'help_button.html'%}
 </form>
   <br>
 <!-- <div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Stages Active/Inactive</div> -->
-<div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Stage Submission</div>
+<div class="ui teal button" onclick="pop_launch_holder_modal();">Queue future/Release Queued job launches</div>
 <div class="ui teal button" onclick="show_stats();">Show Stage Statistics</div>
 {% if campaign_stages|length == 0 %}
 <br>
@@ -70,7 +70,7 @@ Campaign Stages{%include 'help_button.html'%}
                 <th>Campaign Stage</th>
                 <th>s_id</th>
                 <th>Active</th>
-                <th>Hold By</th>
+                <th>Queued By</th>
                 <th>Creator</th>
                 <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
                 <th>Updater</th>
@@ -128,7 +128,7 @@ Campaign Stages{%include 'help_button.html'%}
 <div class="ui modal small" id="launch_holder_modal" style="padding: 0px 20px;">
     <i class="close icon"></i>
     <div class="header">
-        Campaign Stages to Hold/Release:
+        Campaign Stages to Queue/Release:
     </div>
     <form class="ui form" action="mark_campaign_hold" method="GET">
         <div class="field">
@@ -137,7 +137,7 @@ Campaign Stages{%include 'help_button.html'%}
         </div>
         <div class="field">
             <div class="ui horizontal large label">Mark selected campaign stages as</div>
-            <input type="submit" class="ui teal button" name="is_hold" value="Hold">
+            <input type="submit" class="ui teal button" name="is_hold" value="Queue">
             <input type="submit" class="ui teal button" name="is_hold" value="Release">
         </div>
         <div class="ui hidden divider"></div>

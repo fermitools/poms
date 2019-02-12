@@ -721,7 +721,7 @@ class PomsService:
             Anyone with a production role can hold/release a campaign created with a production role.
 
             :param  ids2HR: A list of campaign ids to be hold/released.
-            :param is_hold: 'Hold' or 'Release'
+            :param is_hold: 'Hold'/'Queue' or 'Release'
             :return:
         """
         campaign_ids = ids2HR.split(",")
@@ -748,7 +748,7 @@ class PomsService:
                     401, 'You are not authorized to hold or release this campaign_stages. ')
 
             if mayIChangeIt:
-                if is_hold == "Hold":
+                if is_hold in ("Hold","Queue"):
                     campaign.hold_experimenter_id = sessionExperimenter.experimenter_id
                     campaign.role_held_with = sessionExperimenter.session_role
                 elif is_hold == "Release":
@@ -756,7 +756,7 @@ class PomsService:
                     campaign.role_held_with = None
                 else:
                     raise cherrypy.HTTPError(
-                        400, 'The action is not supported. You can only Hold or Release.')
+                        400, 'The action is not supported. You can only Hold/Queue or Release.')
                 cherrypy.request.db.add(campaign)
                 cherrypy.request.db.commit()
             else:
