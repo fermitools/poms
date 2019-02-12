@@ -1229,7 +1229,7 @@ class CampaignsPOMS:
             # if full in ('1', 'y', 'Y', 't', 'T'):
             if True:
                 positions = None
-                defaults = the_campaign.defaults
+                defaults = the_campaign.defaults or {}
                 if defaults:
                     if "defaults" in defaults:
                         positions = defaults["positions"]
