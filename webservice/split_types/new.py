@@ -56,7 +56,15 @@ class new:
 
         # make sure time-window is a multiple of rounding factor
         self.twindow = int(self.twindow) - (int(self.twindow) % int(self.tround))
-
+    def params(self):
+        return [
+            "window=",
+            "round=",
+            "fts=",
+            "localtime=",
+            "firsttime=",
+            "lasttime=",
+         ]
     def peek(self):
         bound_time = self.tlasttime - self.tfts - self.twindow
         bound_time = int(bound_time) - (int(bound_time) % int(self.tround))
@@ -107,3 +115,6 @@ class new:
 
     def len(self):
         return int((time.time() - self.firsttime)/self.twindow)
+
+    def edit_popup(self):
+        return "null"

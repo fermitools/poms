@@ -50,7 +50,7 @@ class Agent:
 
 
     def __init__(self, poms_uri="http://127.0.0.1:8080/poms/",
-                 submission_uri='https://landscapeitb.fnal.gov/lens/query'):
+                 submission_uri='https://landscape.fnal.gov/lens/query'):
 
         '''
             Setup webservice http session objects, uri's to reach things,
@@ -62,6 +62,8 @@ class Agent:
         self.ssess = requests.Session()
         self.poms_uri = poms_uri
         self.submission_uri = submission_uri
+        # biggest time window we should ask LENS for
+        self.maxtimedelta = 3600
         self.known = {}
         self.known['status'] = {}
         self.known['project'] = {}
@@ -73,8 +75,10 @@ class Agent:
             'Accept': '*/*',
             'Connection': 'keep-alive',
             'DNT': '1',
-            'Origin': 'https://landscapeitb.fnal.gov'
+            'Origin': 'https://landscape.fnal.gov'
         }
+        self.timeouts = (30,10)
+
 
 
         htr = self.psess.get("http://127.0.0.1:8080/poms/experiment_list")
@@ -97,9 +101,11 @@ class Agent:
                        'submission_id': submission_id,
                        'jobsub_job_id': jobsub_job_id,
                        'project': project,
+                       'pct_complete': pct_complete,
                        'status': status}))
         try:
-            htr = self.psess.post("%s/update_submission"%self.poms_uri,
+            sess = requests.session()
+            htr = sess.post("%s/update_submission"%self.poms_uri,
                                   {
                                       'submission_id': submission_id,
                                       'jobsub_job_id': jobsub_job_id,
@@ -107,19 +113,23 @@ class Agent:
                                       'status': status,
                                       'pct_complete': pct_complete
                                   },
+                                  timeout=self.timeouts,
                                   verify=False)
 
         except requests.exceptions.ConnectionError:
-            LOGIT.error("Connection Reset! Retrying once...")
-            time.sleep(1)
-            htr = self.psess.post("%s/update_submission" % self.poms_uri,
-                                  {
-                                      'submission_id': submission_id,
-                                      'jobsub_job_id': jobsub_job_id,
-                                      'project': project,
-                                      'status': status
-                                  },
-                                  verify=False)
+            LOGIT.exception("Connection Reset! NOT Retrying once...")
+            # -- *not* retrying, as it seems these errors are generally 
+            #    spurious
+            #htr = self.psess.post("%s/update_submission" % self.poms_uri,
+            #                      {
+            #                          'submission_id': submission_id,
+            #                          'jobsub_job_id': jobsub_job_id,
+            #                          'project': project,
+            #                          'status': status,
+            #                          'pct_complete': pct_complete
+            #                      },
+            #                      timeout=self.timeouts,
+            #                      verify=False)
 
         if htr.text != "Ok.":
             LOGIT.error("update_submission: Failed.")
@@ -136,6 +146,7 @@ class Agent:
 
         postresult = self.ssess.post(self.submission_uri,
                                      data=Agent.submission_info_query % jobsubjobid,
+                                     timeout=self.timeouts,
                                      headers=self.submission_headers)
         ddict = postresult.json()
         LOGIT.info("submission %s data: %s", jobsubjobid, repr(ddict))
@@ -166,6 +177,7 @@ class Agent:
 
         postresult = self.ssess.post(self.submission_uri,
                                      data=Agent.submission_project_query % entry['id'],
+                                     timeout=self.timeouts,
                                      headers=self.submission_headers)
         ddict = postresult.json()
         ddict = ddict['data']['submission']
@@ -200,6 +212,11 @@ class Agent:
 
         LOGIT.info("check_submissions: %s", group)
 
+        if time.time() - self.lastconn.get(group,0) > self.maxtimedelta:
+            # last info was too long ago, just clear it
+            if self.lastconn.get(group,None):
+                del self.lastconn[group]
+
         if since:
            LOGIT.info("check_submissions: since %s", since)
            since = ', from: \\"%s\\"' % since
@@ -214,6 +231,7 @@ class Agent:
             start = time.time()
             htr = self.ssess.post(self.submission_uri,
                                   data=Agent.full_query % (group, since),
+                                  timeout=self.timeouts,
                                   headers=self.submission_headers)
             ddict = htr.json()
             htr.close()
@@ -237,7 +255,7 @@ class Agent:
 
         haveerrors = ddict.get('errors',None) != None
         count = 0
-        while count < 5 and haveerrors:
+        while count < 2 and haveerrors:
             count = count + 1
             haveerrors = False      
             for entry in ddict.get('errors',[]):

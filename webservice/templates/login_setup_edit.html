@@ -15,11 +15,11 @@ POMS Login/Setup Editor
 </style>
 
 {% macro show_hint(anchor, hint) %}
-    {% include 'help_button.html' %}
+    {# {% include 'help_button.html' %} task #21477 #}
 {% endmacro %}
 
 {%block header%}
-Login/Setup {{ show_hint('', 'Help page') }}
+Login/Setup {% include 'help_button.html' %}
 {%endblock%}
 
 {%block subheader%}
@@ -28,7 +28,7 @@ Login/Setup {{ show_hint('', 'Help page') }}
 {%block content%}
 
 {% macro show_hint(anchor, hint) %}
-    {% include 'help_button.html' %}
+    {# {% include 'help_button.html' %} task #21477 #}
 {% endmacro %}
 
 
@@ -79,7 +79,7 @@ Login/Setup {{ show_hint('', 'Help page') }}
     <tfoot>
       <tr>
         <th colspan="5">
-          <button class="ui labled teal icon button" onclick="add_template();return false;") {{ 'disabled' if (session_role=='coordinator') }}>
+          <button class="ui labled teal icon button" onclick="add_template();return false;") {{ 'disabled' if (session_role=='superuser') }}>
             <i class="icon add square"></i>
             Add
           </button>
@@ -121,7 +121,7 @@ Login/Setup {{ show_hint('', 'Help page') }}
 <div class="ui modal" id="template_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header"><span id="template_header">
-    Login/Setup Editor </span> {{ show_hint('', 'Edit template') }}
+    Login/Setup Editor </span> {% include 'help_button.html' %} 
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
@@ -133,11 +133,16 @@ Login/Setup {{ show_hint('', 'Help page') }}
       </div>
       <div class="field">
         <label>Host {{ show_hint('#Host', 'Host name') }}</label>
-        <input type="text" id="ae_launch_host" name="ae_launch_host" placeholder="Launch Host">
+        <input type="text" id="ae_launch_host" name="ae_launch_host" placeholder="Launch Host" 
+            {{ 'value="{{hostname}}" disabled' if (session_role=='analysis') }}
+         >
       </div>
       <div class="field">
         <label>Account {{ show_hint('#Account', 'Account name') }}</label>
-        <input type="text" id="ae_launch_account" name="ae_launch_account" placeholder="Launch Account">
+        <input type="text" id="ae_launch_account" name="ae_launch_account" placeholder="Launch Account"
+
+            {{ 'value="poms_launcher" disabled' if (session_role=='analysis') }}
+        >
       </div>
     </div>
     <div class="one field">

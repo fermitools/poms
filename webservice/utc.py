@@ -1,6 +1,7 @@
-from datetime import datetime, tzinfo,timedelta
+from datetime import datetime, tzinfo, timedelta
 
 ZERO = timedelta(0)
+
 
 class UTC(tzinfo):
     """UTC"""
@@ -13,5 +14,6 @@ class UTC(tzinfo):
 
     def dst(self, dt):
         return ZERO
+
 
 utc = UTC()

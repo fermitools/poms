@@ -1,0 +1,53 @@
+{%extends "layout.html" %}
+
+
+{%block title%}
+<title>POMS Campaign Editor</title>
+<script src="{{pomspath}}/static/js/gui_editor_3.js"></script>
+<script src="{{pomspath}}/static/js/json_field_editor.js"></script>
+<script src="{{pomspath}}/static/js/split_type_picker.js"></script>
+<script src="{{pomspath}}/split_type_javascript"></script>
+<link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/gui_editor_3.css">
+<link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/json_field_editor.css">
+
+{%endblock%}
+
+
+{%block header%}
+<h1 class="ui header">
+    Test page for split_type editors.
+</h1>
+{%endblock%}
+
+{%block subheader%}
+&nbsp;
+{%endblock%}
+
+{%block content %}
+
+<div id="test_canvas" style="position: relative">
+            Dataset or Split Data 
+            <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset" style="width: 90%"></input>
+        
+            <i class="edit link blue icon" onclick="split_type_picker.custom_edit('ae_split_type','ae_dataset')"></i>
+       <br>
+            (Dataset) Split Type
+            <input type="text" id="ae_split_type" name="ae_split_type" style="width:90%">
+            <i class="edit link blue icon" onclick="split_type_picker.start('ae_split_type')"></i>
+       <br>
+</div>
+
+<script type="text/javascript">
+/*
+function main() {
+    split_type_picker.test_em('test_canvas');
+}
+*/
+
+</script>
+
+{%endblock%}
+
+{%block final%}
+
+{%endblock%}

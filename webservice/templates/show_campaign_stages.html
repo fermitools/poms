@@ -47,8 +47,8 @@ Campaign Stages{%include 'help_button.html'%}
   {%include "view_picker.html" %}
 </form>
   <br>
-<div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Stages Active/Inactive</div>
-<div class="ui teal button" onclick="pop_launch_holder_modal();">Hold/Release Stage Submission</div>
+<!-- <div class="ui teal button" onclick="pop_mark_inactive_modal();">Mark Stages Active/Inactive</div> -->
+<div class="ui teal button" onclick="pop_launch_holder_modal();">Queue future/Release Queued job launches</div>
 <div class="ui teal button" onclick="show_stats();">Show Stage Statistics</div>
 {% if campaign_stages|length == 0 %}
 <br>
@@ -66,9 +66,11 @@ Campaign Stages{%include 'help_button.html'%}
                     Select All<br><input type="checkbox" id="c_cbox_all" onchange="do_checkall();">
                 </th>
                 <th>Campaign Name</th>
+                <th>c_id</th>
                 <th>Campaign Stage</th>
+                <th>s_id</th>
                 <th>Active</th>
-                <th>Hold By</th>
+                <th>Queued By</th>
                 <th>Creator</th>
                 <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
                 <th>Updater</th>
@@ -82,9 +84,11 @@ Campaign Stages{%include 'help_button.html'%}
                     <!-- id is hidden by css look for #campaign_stages above -->
                     <td id="c_id_{{loop.index}}">{{stage.campaign_stage_id}}</td>
                     <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}" {{ 'disabled' if data.authorized[loop.index-1]!=True }}></td>
-                    <td>{{ stage.campaign_obj.name}}</td>
+                    <td>{{stage.campaign_obj.name}}</td>
+                    <td style="width: 4em; text-align:right">{{stage.campaign_obj.campaign_id}}</td>
                     <td><a href="{{pomspath}}/campaign_stage_info?campaign_stage_id={{stage.campaign_stage_id}}">{{stage.name}}</a></td>
-                    <td>{{ 'Yes' if stage.active else 'No' }}</td>
+                    <td style="width: 4em; text-align:right">{{stage.campaign_stage_id}}</td>
+                    <td>{{ 'Yes' if stage.campaign_obj.active else 'No' }}</td>
                     <td>{{stage.experimenter_holder_obj.username}}</td>
                     <td>{{stage.experimenter_creator_obj.username}}</td>
                     <td>{{stage.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>
@@ -124,7 +128,7 @@ Campaign Stages{%include 'help_button.html'%}
 <div class="ui modal small" id="launch_holder_modal" style="padding: 0px 20px;">
     <i class="close icon"></i>
     <div class="header">
-        Campaign Stages to Hold/Release:
+        Campaign Stages to Queue/Release:
     </div>
     <form class="ui form" action="mark_campaign_hold" method="GET">
         <div class="field">
@@ -133,7 +137,7 @@ Campaign Stages{%include 'help_button.html'%}
         </div>
         <div class="field">
             <div class="ui horizontal large label">Mark selected campaign stages as</div>
-            <input type="submit" class="ui teal button" name="is_hold" value="Hold">
+            <input type="submit" class="ui teal button" name="is_hold" value="Queue">
             <input type="submit" class="ui teal button" name="is_hold" value="Release">
         </div>
         <div class="ui hidden divider"></div>

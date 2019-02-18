@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+
+import sys
+import poms_client
+import optparse
+import logging
+import os
+
+parser = optparse.OptionParser(usage="usage: %prog [options] \n upload file to POMS")
+parser.add_option('--poms_role', type=str, help='use to test the client URL query', default='analysis')
+parser.add_option('--experiment', help="experiment name", default = None)
+parser.add_option('--test',  help="use test server", default = None)
+parser.add_option('--dev', action='store_const', const='dev', dest='test', metavar='', help='use the dev/test instance of POMS', default = False)
+parser.add_option('--int', action='store_const', const='int', dest='test', metavar='', help='use the int/integration instance of POMS')
+parser.add_option('--verbose', action='store_true', help="be verbose", default = None)
+parser.add_option('--proxy', action='store_true', help='upload a proxy', default=None)
+(options, args ) = parser.parse_args()
+
+if options.verbose:
+    logging.getLogger().setLevel(logging.DEBUG)
+
+if options.proxy:
+    proxyfile = "/tmp/x509up_voms_%s_%s_%s" % (options.experiment, options.poms_role.capitalize(),os.environ.get('GRID_USER',os.environ.get('USER','unknown')) )
+    if os.environ.get('X509_USER_PROXY', None):
+         os.system("cp $X509_USER_PROXY %s" % proxyfile)
+    else:
+         os.unlink(proxyfile)
+         import ifdh
+         ih = ifdh.ifdh()
+         os.environ['EXPERIMENT'] = options.experiment
+         ipf = ih.getProxy()
+         logging.debug("got %s from ifdh getProxy" % ipf)
+         os.system("cp %s %s" % (ipf, proxyfile))
+    args.append(proxyfile)
+    os.system("chmod 400 %s" % proxyfile)
+         
+
+poms_client.update_session_experiment(options.experiment, test_client=options.test)
+poms_client.update_session_role(options.poms_role, test_client=options.test)
+
+for f in args:
+     logging.debug("uploading: %s " % f)
+     poms_client.upload_file(f, test=options.test)

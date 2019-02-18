@@ -1,5 +1,6 @@
 # coding: utf-8
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text
+
 # from sqlalchemy import Table
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql.json import JSON
@@ -11,50 +12,63 @@ metadata = Base.metadata
 
 
 class Tag(Base):
-    __tablename__ = 'tags'
+    __tablename__ = "tags"
 
     tag_id = Column(Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)"))
-    experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
+    experiment = Column(ForeignKey("experiments.experiment"), nullable=False, index=True)
     tag_name = Column(Text, nullable=False)
-    creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
+    creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
 
-    campaigns = relationship('Campaign', secondary='campaigns_tags', lazy='dynamic')
+    campaigns = relationship("Campaign", secondary="campaigns_tags", lazy="dynamic")
 
 
 class CampaignsTag(Base):
     __tablename__ = "campaigns_tags"
 
-    tag_id = Column(Integer, ForeignKey('tags.tag_id'), primary_key=True)
-    campaign_id = Column(Integer, ForeignKey('campaigns.campaign_id'), primary_key=True)
+    tag_id = Column(Integer, ForeignKey("tags.tag_id"), primary_key=True)
+    campaign_id = Column(Integer, ForeignKey("campaigns.campaign_id"), primary_key=True)
 
 
 class Campaign(Base):
-    __tablename__ = 'campaigns'
+    __tablename__ = "campaigns"
 
-    campaign_id = Column(Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)"))
-    experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
+    campaign_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)")
+    )
+    experiment = Column(ForeignKey("experiments.experiment"), nullable=False, index=True)
     name = Column(Text, nullable=False)
+    active = Column(Boolean, nullable=False, server_default=text("true"))
     defaults = Column(JSON)
-    creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
+    creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
+    campaign_type = Column(Text, nullable=True)
 
-    tags = relationship(Tag, secondary='campaigns_tags', lazy='dynamic')
-    experimenter_creator_obj = relationship('Experimenter', primaryjoin='Campaign.creator == Experimenter.experimenter_id')
+    tags = relationship(Tag, secondary="campaigns_tags", lazy="dynamic")
+    stages = relationship("CampaignStage", back_populates="campaign_obj", lazy="dynamic")
+    experimenter_creator_obj = relationship(
+        "Experimenter", primaryjoin="Campaign.creator == Experimenter.experimenter_id"
+    )
 
 
 class CampaignStage(Base):
-    __tablename__ = 'campaign_stages'
+    __tablename__ = "campaign_stages"
 
-    campaign_stage_id = Column(Integer, primary_key=True, server_default=text("nextval('campaign_stages_campaign_stage_id_seq'::regclass)"))
-    experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
+    campaign_stage_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('campaign_stages_campaign_stage_id_seq'::regclass)")
+    )
+    experiment = Column(ForeignKey("experiments.experiment"), nullable=False, index=True)
     name = Column(Text, nullable=False)
-    job_type_id = Column(ForeignKey('job_types.job_type_id'), nullable=False, index=True,
-                         server_default=text("nextval('campaigns_campaign_definition_id_seq'::regclass)"))
+    job_type_id = Column(
+        ForeignKey("job_types.job_type_id"),
+        nullable=False,
+        index=True,
+        server_default=text("nextval('campaigns_campaign_definition_id_seq'::regclass)"),
+    )
 
-    creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
+    creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
-    updater = Column(ForeignKey('experimenters.experimenter_id'), index=True)
+    updater = Column(ForeignKey("experimenters.experimenter_id"), index=True)
     updated = Column(DateTime(True))
 
     vo_role = Column(Text, nullable=False)
@@ -63,37 +77,44 @@ class CampaignStage(Base):
     cs_split_dimensions = Column(Text, nullable=True)
     dataset = Column(Text, nullable=False)
     software_version = Column(Text, nullable=False)
-    active = Column(Boolean, nullable=False, server_default=text("true"))
-    login_setup_id = Column(ForeignKey('login_setups.login_setup_id'), nullable=False)
+    login_setup_id = Column(ForeignKey("login_setups.login_setup_id"), nullable=False)
     param_overrides = Column(JSON)
     test_param_overrides = Column(JSON)
     completion_type = Column(Text, nullable=False, server_default=text("located"))
-    completion_pct = Column(Text, nullable=False, server_default="95")
-    hold_experimenter_id = Column(ForeignKey('experimenters.experimenter_id'), nullable=True)
+    # completion_pct = Column(Text, nullable=False, server_default="95")
+    completion_pct = Column(Integer, nullable=False, server_default="95")
+    hold_experimenter_id = Column(ForeignKey("experimenters.experimenter_id"), nullable=True)
     creator_role = Column(Text, nullable=False)
     role_held_with = Column(Text, nullable=True)
-    campaign_type = Column(Text, nullable=False)
+    campaign_stage_type = Column(Text, nullable=False)
 
-    campaign_id = Column(ForeignKey('campaigns.campaign_id'), nullable=True, index=True)
+    campaign_id = Column(ForeignKey("campaigns.campaign_id"), nullable=True, index=True)
 
-    experimenter_creator_obj = relationship('Experimenter', primaryjoin='CampaignStage.creator == Experimenter.experimenter_id')
-    experimenter_updater_obj = relationship('Experimenter', primaryjoin='CampaignStage.updater == Experimenter.experimenter_id')
-    experimenter_holder_obj = relationship('Experimenter', primaryjoin='CampaignStage.hold_experimenter_id == Experimenter.experimenter_id')
-    experiment_obj = relationship('Experiment')
-    job_type_obj = relationship('JobType')
-    login_setup_obj = relationship('LoginSetup')
-    campaign_obj = relationship('Campaign', backref="stages")
+    experimenter_creator_obj = relationship(
+        "Experimenter", primaryjoin="CampaignStage.creator == Experimenter.experimenter_id"
+    )
+    experimenter_updater_obj = relationship(
+        "Experimenter", primaryjoin="CampaignStage.updater == Experimenter.experimenter_id"
+    )
+    experimenter_holder_obj = relationship(
+        "Experimenter", primaryjoin="CampaignStage.hold_experimenter_id == Experimenter.experimenter_id"
+    )
+    experiment_obj = relationship("Experiment")
+    job_type_obj = relationship("JobType")
+    login_setup_obj = relationship("LoginSetup")
+    campaign_obj = relationship("Campaign", back_populates="stages")
 
-    providers = relationship("CampaignStage",
-                             secondary="campaign_dependencies",
-                             primaryjoin="CampaignStage.campaign_stage_id==CampaignDependency.provides_campaign_stage_id",
-                             secondaryjoin="CampaignStage.campaign_stage_id==CampaignDependency.needs_campaign_stage_id",
-                             backref="consumers"
-                             )
+    providers = relationship(
+        "CampaignStage",
+        secondary="campaign_dependencies",
+        primaryjoin="CampaignStage.campaign_stage_id==CampaignDependency.provides_campaign_stage_id",
+        secondaryjoin="CampaignStage.campaign_stage_id==CampaignDependency.needs_campaign_stage_id",
+        backref="consumers",
+    )
 
 
 class Experimenter(Base):
-    __tablename__ = 'experimenters'
+    __tablename__ = "experimenters"
 
     experimenter_id = Column(Integer, primary_key=True, server_default="")
     first_name = Column(Text, nullable=False)
@@ -106,10 +127,10 @@ class Experimenter(Base):
 
 
 class ExperimentsExperimenters(Base):
-    __tablename__ = 'experiments_experimenters'
+    __tablename__ = "experiments_experimenters"
 
-    experimenter_id = Column(Integer, ForeignKey('experimenters.experimenter_id'), primary_key=True)
-    experiment = Column(Text, ForeignKey('experiments.experiment'), primary_key=True)
+    experimenter_id = Column(Integer, ForeignKey("experimenters.experimenter_id"), primary_key=True)
+    experiment = Column(Text, ForeignKey("experiments.experiment"), primary_key=True)
     active = Column(Boolean, nullable=False, server_default=text("true"))
     role = Column(Text, nullable=False, server_default=text("analysis"))
 
@@ -118,7 +139,7 @@ class ExperimentsExperimenters(Base):
 
 
 class Experiment(Base):
-    __tablename__ = 'experiments'
+    __tablename__ = "experiments"
 
     experiment = Column(String(10), primary_key=True)
     name = Column(Text, nullable=False)
@@ -128,99 +149,141 @@ class Experiment(Base):
 
 
 class LoginSetup(Base):
-    __tablename__ = 'login_setups'
+    __tablename__ = "login_setups"
 
-    login_setup_id = Column(Integer, primary_key=True, server_default=text("nextval('login_setups_login_setup_id_seq'::regclass)"))
+    login_setup_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('login_setups_login_setup_id_seq'::regclass)")
+    )
     name = Column(Text, nullable=False, index=True, unique=True)
-    experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
+    experiment = Column(ForeignKey("experiments.experiment"), nullable=False, index=True)
     launch_host = Column(Text, nullable=False)
     launch_account = Column(Text, nullable=False)
     launch_setup = Column(Text, nullable=False)
-    creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
+    creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
-    updater = Column(ForeignKey('experimenters.experimenter_id'), index=True)
+    updater = Column(ForeignKey("experimenters.experimenter_id"), index=True)
     updated = Column(DateTime(True))
     creator_role = Column(Text, nullable=False)
 
-    experiment_obj = relationship('Experiment')
-    experimenter_creator_obj = relationship('Experimenter', primaryjoin='LoginSetup.creator == Experimenter.experimenter_id')
-    experimenter_updater_obj = relationship('Experimenter', primaryjoin='LoginSetup.updater == Experimenter.experimenter_id')
+    experiment_obj = relationship("Experiment")
+    experimenter_creator_obj = relationship(
+        "Experimenter", primaryjoin="LoginSetup.creator == Experimenter.experimenter_id"
+    )
+    experimenter_updater_obj = relationship(
+        "Experimenter", primaryjoin="LoginSetup.updater == Experimenter.experimenter_id"
+    )
 
 
 class JobType(Base):
-    __tablename__ = 'job_types'
+    __tablename__ = "job_types"
 
-    job_type_id = Column(Integer, primary_key=True, server_default=text("nextval('job_types_job_type_id_seq'::regclass)"))
+    job_type_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('job_types_job_type_id_seq'::regclass)")
+    )
     name = Column(Text, nullable=False, unique=True)
-    experiment = Column(ForeignKey('experiments.experiment'), nullable=False, index=True)
+    experiment = Column(ForeignKey("experiments.experiment"), nullable=False, index=True)
     launch_script = Column(Text)
     definition_parameters = Column(JSON)
     input_files_per_job = Column(Integer)
     output_files_per_job = Column(Integer)
     output_file_patterns = Column(Text)
-    creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
+    creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
-    updater = Column(ForeignKey('experimenters.experimenter_id'), index=True)
+    updater = Column(ForeignKey("experimenters.experimenter_id"), index=True)
     updated = Column(DateTime(True))
     creator_role = Column(Text, nullable=False)
 
-    experiment_obj = relationship('Experiment')
-    experimenter_creator_obj = relationship('Experimenter', primaryjoin='JobType.creator == Experimenter.experimenter_id')
-    experimenter_updater_obj = relationship('Experimenter', primaryjoin='JobType.updater == Experimenter.experimenter_id')
+    experiment_obj = relationship("Experiment")
+    experimenter_creator_obj = relationship(
+        "Experimenter", primaryjoin="JobType.creator == Experimenter.experimenter_id"
+    )
+    experimenter_updater_obj = relationship(
+        "Experimenter", primaryjoin="JobType.updater == Experimenter.experimenter_id"
+    )
 
 
 class Submission(Base):
-    __tablename__ = 'submissions'
+    __tablename__ = "submissions"
 
-    submission_id = Column(Integer, primary_key=True, server_default=text("nextval('submissions_submissions_id_seq'::regclass)"))
-    campaign_stage_id = Column(ForeignKey('campaign_stages.campaign_stage_id'), nullable=False, index=True, server_default=text("nextval('tasks_campaign_id_seq'::regclass)"))
-    creator = Column(ForeignKey('experimenters.experimenter_id'), nullable=False, index=True)
+    submission_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('submissions_submissions_id_seq'::regclass)")
+    )
+    campaign_stage_id = Column(
+        ForeignKey("campaign_stages.campaign_stage_id"),
+        nullable=False,
+        index=True,
+        server_default=text("nextval('tasks_campaign_id_seq'::regclass)"),
+    )
+    creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
     submission_params = Column(JSON)
-    depends_on = Column(ForeignKey('submissions.submission_id'), index=True)
+    depends_on = Column(ForeignKey("submissions.submission_id"), index=True)
     depend_threshold = Column(Integer)
-    updater = Column(ForeignKey('experimenters.experimenter_id'), index=True)
+    updater = Column(ForeignKey("experimenters.experimenter_id"), index=True)
     updated = Column(DateTime(True))
     command_executed = Column(Text)
     project = Column(Text)
-    login_setup_snapshot_id = Column(ForeignKey('login_setup_snapshots.login_setup_snapshot_id'), nullable=True, index=True)
-    campaign_stage_snapshot_id = Column(ForeignKey('campaign_stage_snapshots.campaign_stage_snapshot_id'), nullable=True, index=True)
-    job_type_snapshot_id = Column(ForeignKey('job_type_snapshots.job_type_snapshot_id'), nullable=True, index=True)
+    login_setup_snapshot_id = Column(
+        ForeignKey("login_setup_snapshots.login_setup_snapshot_id"), nullable=True, index=True
+    )
+    campaign_stage_snapshot_id = Column(
+        ForeignKey("campaign_stage_snapshots.campaign_stage_snapshot_id"), nullable=True, index=True
+    )
+    job_type_snapshot_id = Column(ForeignKey("job_type_snapshots.job_type_snapshot_id"), nullable=True, index=True)
     recovery_position = Column(Integer)
-    recovery_tasks_parent = Column(ForeignKey('submissions.submission_id'), index=True)
+    recovery_tasks_parent = Column(ForeignKey("submissions.submission_id"), index=True)
     jobsub_job_id = Column(Text, nullable=False)
 
-    campaign_stage_obj = relationship('CampaignStage')
-    experimenter_creator_obj = relationship('Experimenter', primaryjoin='Submission.creator == Experimenter.experimenter_id')
-    experimenter_updater_obj = relationship('Experimenter', primaryjoin='Submission.updater == Experimenter.experimenter_id')
-    parent_obj = relationship('Submission', remote_side=[submission_id], foreign_keys=recovery_tasks_parent)
-    login_setup_snap_obj = relationship('LoginSetupSnapshot', foreign_keys=login_setup_snapshot_id)
-    campaign_stage_snapshot_obj = relationship('CampaignStageSnapshot', foreign_keys=campaign_stage_snapshot_id)
-    job_type_snapshot_obj = relationship('JobTypeSnapshot', foreign_keys=job_type_snapshot_id)
+    campaign_stage_obj = relationship("CampaignStage")
+    experimenter_creator_obj = relationship(
+        "Experimenter", primaryjoin="Submission.creator == Experimenter.experimenter_id"
+    )
+    experimenter_updater_obj = relationship(
+        "Experimenter", primaryjoin="Submission.updater == Experimenter.experimenter_id"
+    )
+    parent_obj = relationship("Submission", remote_side=[submission_id], foreign_keys=recovery_tasks_parent)
+    login_setup_snap_obj = relationship("LoginSetupSnapshot", foreign_keys=login_setup_snapshot_id)
+    campaign_stage_snapshot_obj = relationship("CampaignStageSnapshot", foreign_keys=campaign_stage_snapshot_id)
+    job_type_snapshot_obj = relationship("JobTypeSnapshot", foreign_keys=job_type_snapshot_id)
+    status_history = relationship(
+        "SubmissionHistory", primaryjoin="Submission.submission_id == SubmissionHistory.submission_id"
+    )
 
 
 class SubmissionHistory(Base):
-    __tablename__ = 'submission_histories'
+    __tablename__ = "submission_histories"
 
-    submission_id = Column(ForeignKey('submissions.submission_id'), primary_key=True, nullable=False)
+    submission_id = Column(ForeignKey("submissions.submission_id"), primary_key=True, nullable=False)
     created = Column(DateTime(True), primary_key=True, nullable=False)
-    status = Column(Text, nullable=False)
+    status_id = Column(ForeignKey("submission_statuses.status_id"), nullable=False, index=True)
 
-    submission_obj = relationship('Submission', backref='history')
+    status_type = relationship(
+        "SubmissionStatus", primaryjoin="SubmissionHistory.status_id == SubmissionStatus.status_id"
+    )
+
+
+class SubmissionStatus(Base):
+    __tablename__ = "submission_statuses"
+
+    status_id = Column(Integer, primary_key=True, nullable=False)
+    status = Column(Text, nullable=False)
 
 
 class CampaignStageSnapshot(Base):
-    __tablename__ = 'campaign_stage_snapshots'
+    __tablename__ = "campaign_stage_snapshots"
 
-    campaign_stage_snapshot_id = Column(Integer, primary_key=True, server_default=text("nextval('campaign_stage_snapshots_campaign_stage_snapshot_id_seq'::regclass)"))
-    campaign_stage_id = Column(ForeignKey('campaign_stages.campaign_stage_id'), nullable=False, index=True)
+    campaign_stage_snapshot_id = Column(
+        Integer,
+        primary_key=True,
+        server_default=text("nextval('campaign_stage_snapshots_campaign_stage_snapshot_id_seq'::regclass)"),
+    )
+    campaign_stage_id = Column(ForeignKey("campaign_stages.campaign_stage_id"), nullable=False, index=True)
     experiment = Column(Text, nullable=False)
     name = Column(Text, nullable=False)
     job_type_id = Column(Integer, nullable=False)
     vo_role = Column(Text, nullable=False)
     creator = Column(Integer, nullable=False)
     created = Column(DateTime(True), nullable=False)
-    active = Column(Boolean, nullable=False, server_default=text("true"))
     dataset = Column(Text, nullable=False)
     software_version = Column(Text, nullable=False)
     login_setup_id = Column(Integer, nullable=False)
@@ -231,17 +294,21 @@ class CampaignStageSnapshot(Base):
     cs_split_type = Column(Text)
     cs_split_dimensions = Column(Text)
     completion_type = Column(Text, nullable=False, server_default=text("located"))
-    completion_pct = Column(Text, nullable=False, server_default="95")
+    # completion_pct = Column(Text, nullable=False, server_default="95")
+    completion_pct = Column(Integer, nullable=False, server_default="95")
 
-    campaign = relationship('CampaignStage')    # FIXME: Should it be campaign_stage?
+    campaign_stage = relationship("CampaignStage")
 
 
 class JobTypeSnapshot(Base):
-    __tablename__ = 'job_type_snapshots'
+    __tablename__ = "job_type_snapshots"
 
-    job_type_snapshot_id = Column(Integer, primary_key=True,
-                                         server_default=text("nextval('job_type_snapshots_job_type_snapshot_id_seq'::regclass)"))
-    job_type_id = Column(ForeignKey('job_types.job_type_id'), nullable=False, index=True)
+    job_type_snapshot_id = Column(
+        Integer,
+        primary_key=True,
+        server_default=text("nextval('job_type_snapshots_job_type_snapshot_id_seq'::regclass)"),
+    )
+    job_type_id = Column(ForeignKey("job_types.job_type_id"), nullable=False, index=True)
     name = Column(Text, nullable=False)
     experiment = Column(Text, nullable=False)
     launch_script = Column(Text)
@@ -254,14 +321,16 @@ class JobTypeSnapshot(Base):
     updater = Column(Integer)
     updated = Column(DateTime(True))
 
-    campaign_definition = relationship('JobType')   # FIXME: Should it be job_type?
+    job_type = relationship("JobType")
 
 
 class LoginSetupSnapshot(Base):
-    __tablename__ = 'login_setup_snapshots'
+    __tablename__ = "login_setup_snapshots"
 
-    login_setup_snapshot_id = Column(Integer, primary_key=True, server_default=text("nextval('login_setup_snapshots_login_setup_id_seq'::regclass)"))
-    login_setup_id = Column(ForeignKey('login_setups.login_setup_id'), nullable=False, index=True)
+    login_setup_snapshot_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('login_setup_snapshots_login_setup_id_seq'::regclass)")
+    )
+    login_setup_id = Column(ForeignKey("login_setups.login_setup_id"), nullable=False, index=True)
     experiment = Column(String(10), nullable=False)
     launch_host = Column(Text, nullable=False)
     launch_account = Column(Text, nullable=False)
@@ -272,53 +341,65 @@ class LoginSetupSnapshot(Base):
     updated = Column(DateTime(True))
     name = Column(Text, nullable=False)
 
-    launch = relationship('LoginSetup')     # FIXME: Should it be login_setup?
+    login_setup = relationship("LoginSetup")
 
 
 class RecoveryType(Base):
-    __tablename__ = 'recovery_types'
+    __tablename__ = "recovery_types"
 
-    recovery_type_id = Column(Integer, primary_key=True, server_default=text("nextval('recovery_types_recovery_type_id_seq'::regclass)"))
+    recovery_type_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('recovery_types_recovery_type_id_seq'::regclass)")
+    )
     name = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
 
 
 class CampaignRecovery(Base):
-    __tablename__ = 'campaign_recoveries'
+    __tablename__ = "campaign_recoveries"
 
-    job_type_id = Column(ForeignKey('job_types.job_type_id'), primary_key=True, nullable=False)
-    recovery_type_id = Column(ForeignKey('recovery_types.recovery_type_id'), primary_key=True, nullable=False, index=True)
-    recovery_order = Column(Integer, nullable=False)
+    job_type_id = Column(ForeignKey("job_types.job_type_id"), primary_key=True, nullable=False)
+    recovery_type_id = Column(
+        ForeignKey("recovery_types.recovery_type_id"), primary_key=True, nullable=False, index=True
+    )
+    recovery_order = Column(Integer, nullable=False, primary_key=True)
     param_overrides = Column(JSON)
 
-    campaign_definition = relationship('JobType')   # FIXME: Should it be job_type?
-    recovery_type = relationship('RecoveryType')
+    job_type = relationship("JobType")
+    recovery_type = relationship("RecoveryType")
 
 
 class CampaignDependency(Base):
-    __tablename__ = 'campaign_dependencies'
+    __tablename__ = "campaign_dependencies"
 
-    campaign_dep_id = Column(Integer, primary_key=True, server_default=text("nextval('campaign_dependency_id_seq'::regclass)"))
-    needs_campaign_stage_id = Column(ForeignKey('campaign_stages.campaign_stage_id'), primary_key=True, nullable=False, index=True)
-    provides_campaign_stage_id = Column(ForeignKey('campaign_stages.campaign_stage_id'), primary_key=True, nullable=False, index=True)
+    campaign_dep_id = Column(
+        Integer, primary_key=True, server_default=text("nextval('campaign_dependency_id_seq'::regclass)")
+    )
+    needs_campaign_stage_id = Column(
+        ForeignKey("campaign_stages.campaign_stage_id"), primary_key=True, nullable=False, index=True
+    )
+    provides_campaign_stage_id = Column(
+        ForeignKey("campaign_stages.campaign_stage_id"), primary_key=True, nullable=False, index=True
+    )
     file_patterns = Column(Text, nullable=False)
 
-    provider = relationship('CampaignStage', foreign_keys=needs_campaign_stage_id, backref='consumer_associations')
-    consumer = relationship('CampaignStage', foreign_keys=provides_campaign_stage_id, backref='provider_associations')
+    provider = relationship("CampaignStage", foreign_keys=needs_campaign_stage_id, backref="consumer_associations")
+    consumer = relationship("CampaignStage", foreign_keys=provides_campaign_stage_id, backref="provider_associations")
 
 
 class HeldLaunch(Base):
-    __tablename__ = 'held_launches'
-    campaign_stage_id = Column(ForeignKey('campaign_stages.campaign_stage_id'), primary_key=True, nullable=False, index=True)
+    __tablename__ = "held_launches"
+    campaign_stage_id = Column(
+        ForeignKey("campaign_stages.campaign_stage_id"), primary_key=True, nullable=False, index=True
+    )
     created = Column(DateTime(True), nullable=False, primary_key=True)
     parent_submission_id = Column(Integer, nullable=False)
     dataset = Column(Text)
     param_overrides = Column(JSON)
-    launcher = Column(Integer, ForeignKey('experimenters.experimenter_id'))
+    launcher = Column(Integer, ForeignKey("experimenters.experimenter_id"))
 
 
 class FaultyRequest(Base):
-    __tablename__ = 'faulty_requests'
+    __tablename__ = "faulty_requests"
     url = Column(Text, nullable=False, primary_key=True)
     status = Column(Integer)
     message = Column(Text)

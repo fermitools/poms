@@ -24,39 +24,6 @@ rpstatus = "200"
 ########
 
 
-def test_active_update_jobs():
-    dbhandle = DBHandle.DBHandle().get()
-    samhandle = samweb_lite()
-
-    l1 = mps.jobsPOMS.active_jobs(dbhandle)
-
-    jid = "%f@fakebatch1.fnal.gov" % time.time()
-
-    # start up a fake job
-    submission_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14')
-
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Idle')
-
-    l2 = mps.jobsPOMS.active_jobs(dbhandle)
-
-    # end fake job
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid, host_site = "fake_host", status = 'Completed')
-
-    l3 = mps.jobsPOMS.active_jobs(dbhandle)
-
-    # so job list should have gotten longer and shorter
-    # and jobid should be only in the middle list...
-    assert(len(l2)  > len(l1))
-    assert(len(l2)  > len(l3))
-    jpair = (jid,submission_id)
-    assert(jpair in l2)
-    assert(not jpair in l3)
-
-def test_update_SAM_project():
-    # stubbed out for now, until production SAM implements the call.
-    assert(True)
-
-
 
 def test_kill_jobs():
     ##Calling the DB and SAM handles methods.
@@ -64,19 +31,14 @@ def test_kill_jobs():
     samhandle = samweb_lite()
     #mock_rm=Mock_jobsub_rm.Mock_jobsub_rm()
     #Two submission_id for the same campaign
-    submission_id = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a submission_id for the fake campaign
-    task_id2 = mps.taskPOMS.get_task_id_for(dbhandle,campaign='14') #Provide a submission_id for the second task
+    submission_id = mps.taskPOMS.get_task_id_for(dbhandle,user='mengel',experiment='samdev', campaign='14') #Provide a submission_id for the fake campaign
+    task_id2 = mps.taskPOMS.get_task_id_for(dbhandle,user='mengel',experiment='samdev', campaign='14') #Provide a submission_id for the second task
+    jid_n = time.time()
 
-    jid_n = time.time() * 10
-    #Create jobs in the same campaign, 2 in one submission_id, one in another submission_id but same campaign, and on job in the same submission_id, campaign but market as completed.
     jid1 = "%d.0@fakebatch1.fnal.gov" % jid_n  #1 Job in the first submission_id
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid1, host_site = "fake_host", status = 'running')
-    jid2 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 1) #2Job in the first submission_id
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid2, host_site = "fake_host", status = 'running')
+    mps.taskPOMS.update_submission(dbhandle, submission_id = submission_id, jobsub_job_id = jid1, status = 'Running')
     jid3 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 2) #3Job in a new submission_id but same campaign
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = task_id2, jobsub_job_id = jid3, host_site = "fake_host", status = 'running')
-    jid4 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 3) 
-    mps.jobsPOMS.update_job(dbhandle, rpstatus, samhandle, submission_id = submission_id, jobsub_job_id = jid4, host_site = "fake_host", status = 'Completed')
+    mps.taskPOMS.update_submission(dbhandle, submission_id = task_id2, jobsub_job_id = jid3,  status = 'Running')
 
     #Control arguments
     c_arg="-G fermilab --role Analysis --jobid "
@@ -86,50 +48,24 @@ def test_kill_jobs():
 
 
     #Calls to the rutine under test.
-    output_killjob, c_obje, c_idr, task_idr, job_idr = mps.jobsPOMS.kill_jobs(dbhandle, job_id=job_obj1.job_id, confirm = "yes", act="kill") #single job
-    output_killTask, c_obje_T, c_idr_T, task_idr_T, job_idr_T = mps.jobsPOMS.kill_jobs(dbhandle, submission_id=submission_id, confirm = "yes", act="kill") #all task
-    output_killCampaign, c_obje_C, c_idr_C, task_idr_C, job_idr_C = mps.jobsPOMS.kill_jobs(dbhandle, campaign_stage_id='14', confirm = "yes", act="kill") #all campaign
-    #output_killjob2, c_obje2, c_idr2, task_idr2, job_idr2 = mps.jobsPOMS.kill_jobs(dbhandle, job_id=job_obj2.job_id, confirm = "yes", act="kill")
-
-    #Now the check the outputs, they need a bit of pre-processing.
-    #Arguments
-
-    print("output_killjob: %s" % output_killjob)
-    sep=output_killjob.rfind('--jobid ')
-    assert(sep!=-1) #--jobid option was in called in the command
-
-    jrm_args=output_killjob[0:sep+8] #the arguments are correct
-    assert(jrm_args==c_arg) #compare the arguments are in place
-
-    #Check single job kill
-    jrm_id = output_killjob.split('--jobid ')[1].rstrip('\n')
-    assert(jrm_id==c_output_killjob)
+    output_killTask, c_obje_T, c_idr_T, task_idr_T, job_idr_T = mps.jobsPOMS.kill_jobs(dbhandle, camp_seshandle.get, submission_id=submission_id, confirm = "yes", act="kill") #all task
+    output_killCampaign, c_obje_C, c_idr_C, task_idr_C, job_idr_C = mps.jobsPOMS.kill_jobs(dbhandle, camp_seshandle.get, campaign_stage_id='14', confirm = "yes", act="kill") #all campaign
 
     #Check kill jobs in one task
 
-    sep=output_killTask.rfind('--jobid ')
-    assert(sep!=-1) #--jobid option was in called in the command
     print("got output:", output_killTask)
-    jrm_idtl=output_killTask.split('--jobid ')[1].split(",")
-    jrm_idtl[-1]=jrm_idtl[-1].rstrip('\n')
+    assert(output_killTask.rfind('--constraint=POMS4_SUBMISSION') > 0)
+    assert(output_killTask.rfind('=%d'%submission_id) > 0)
 
     # we may have jobs besides the ones we just added in the task , just do ours..
-    for jid in c_output_killTask:
-        assert(jid in jrm_idtl)
 
     #Check kill all jobs in one CampaignStage,  that also prof that the job market as completed is not killed.
-    sep=output_killCampaign.rfind('--jobid ')
-    assert(sep!=-1) #--jobid option was in called in the command
     print("got output:", output_killCampaign)
-    jrm_idcl=output_killCampaign.split('--jobid ')[1].split(",")
-    jrm_idcl[-1]=jrm_idcl[-1].rstrip('\n')
+    assert(output_killCampaign.rfind('--constraint=POMS4_CAMPAIGN') > 0)
+    assert(output_killCampaign.rfind('=14') > 0)
 
     # there may be *other* jobs in this campaign than the ones we added in this test
 
-    # just make sure the ones we have are in there.
-    #
-    for jid in c_output_killCampaign:
-        assert(jid in jrm_idcl)
 
     #Closing the mock
     mock_rm.close()
@@ -177,10 +113,3 @@ def test_kill_jobs():
     print "#"*10
     '''
 
-
-############Do not pay attention to the info below
-def test_output_pending():
-    dbhandle = DBHandle.DBHandle().get()
-
-    res = mps.jobsPOMS.output_pending_jobs(dbhandle)
-    assert(res != None)

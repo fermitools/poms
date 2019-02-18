@@ -12,6 +12,9 @@ class stagedfiles:
         self.stage_project = cs.dataset
         self.n = int(cs.cs_split_type[12:].strip(')'))
 
+    def params(self):
+        return []
+
     def peek(self):
         if not self.cs.cs_last_split:
             self.cs.cs_last_split = 0
@@ -45,3 +48,6 @@ class stagedfiles:
     def len(self):
         return self.samhandle.count_files(self.cs.experiment,"defname:"+self.ds) / self.n + 1
         return res
+
+    def edit_popup(self):
+        return "null"

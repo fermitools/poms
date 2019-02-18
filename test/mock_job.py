@@ -276,7 +276,7 @@ class mock_job:
 if __name__ == '__main__':
     import sys
     n_jobs = 1
-    campaign_stage_id = "14"
+    campaign_stage_id = "18" # _joe...
     logger.setLevel(50)
     dataset = None
     fileflag = False

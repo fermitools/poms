@@ -8,6 +8,9 @@ class draining:
     def __init__(self, cs, samhandle, dbhandle):
         self.only = cs.dataset
 
+    def params(self):
+        return []
+
     def peek(self):
         return self.only
 
@@ -21,3 +24,6 @@ class draining:
 
     def len(self):
         return -1
+
+    def edit_popup(self):
+        return "null"

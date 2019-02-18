@@ -28,7 +28,7 @@ def popen_read_with_timeout(cmd, totaltime = 30):
 #-----------------------------------------
 ### CampaignsPOMS
     def launch_template_edit(self, *args, **kwargs):
-    def campaign_definition_edit(self, *args, **kwargs):
+    def job_type_edit(self, *args, **kwargs):
     def campaign_edit(self, *args, **kwargs):
     def campaign_edit_query(self, *args, **kwargs):
     def new_task_for_campaign(self, campaign_name, command_executed, experimenter_name, dataset_name = None):

@@ -1,12 +1,13 @@
 {%extends "layout.html"%}
 
 {% macro show_hint(anchor, hint) %}
-    {% include 'help_button.html' %}
 {% endmacro %}
 
 {%block title%}
 POMS
 <script src="{{pomspath}}/static/js/json_field_editor.js"></script>
+<script src="{{pomspath}}/static/js/split_type_picker.js"></script>
+<script src="{{pomspath}}/split_type_javascript"></script>
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/json_field_editor.css">
 {%endblock%}
 
@@ -21,7 +22,8 @@ POMS
 </style>
 
 {%block header%}
-Campaign Stages {{ show_hint('', 'Help page') }}
+Campaign Stages 
+    {% include 'help_button.html' %}
 {%endblock%}
 
 {%block subheader%}
@@ -32,14 +34,17 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
   {% set has_active=True %}
   {%include "view_picker.html" %}
-
+  <br/>
+  <a class="ui orange ribbon label">Stages must be created via GUI Editor</a>
+<!--
   <div class="inline fields">
-    <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (session_role=='coordinator') }}>
+    <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (session_role=='superuser') }}>
       <i class="icon add square"></i>
       Add
     </button>
     &nbsp;&nbsp;
   </div>
+-->
 
   {% if data.curr_experiment is defined %}
   <div id="double-scroll" class="scrollable">
@@ -50,10 +55,10 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         <th></th>
         <th> Campaign Name</th>
         <th> Stage Name {{ show_hint('#Name', 'Name string') }} </th>
-        <th> Active {{ show_hint('#Active', 'True/False') }} </th>
+        <!-- <th> Active {{ show_hint('#Active', 'True/False') }} </th> -->
         <th> VO Role {{ show_hint('#VO-Role', 'Role name') }} </th>
         <th> Software<br>Version {{ show_hint('#Software-Version', 'Version tag') }} </th>
-        <th> Dataset {{ show_hint('#Dataset', 'Dataset name') }} </th>
+        <th> Dataset or <br> Split Data {{ show_hint('#Dataset', 'Dataset name') }} </th>
         <th> Split Type {{ show_hint('#Split-Type', 'Type string') }} </th>
         <th> Completion<br>Type {{ show_hint('#Completion-Type', '[complete|located|...]') }} </th>
         <th> Completion<br>Percent {{ show_hint('#Completion-Percent', 'Integer number') }} </th>
@@ -90,7 +95,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.CampaignStage.campaign_id}}</td>
         <td id="c_campaign_name_{{loop.index}}">{{row.Campaign.name}}</td>
         <td id="c_name_{{loop.index}}">{{row.CampaignStage.name}}</td>
-        <td id="c_active_{{loop.index}}">{{row.CampaignStage.active}}</td>
+        <!-- <td id="c_active_{{loop.index}}">{{row.CampaignStage.active}}</td> -->
         <td id="c_vo_role_{{loop.index}}">{{row.CampaignStage.vo_role}}</td>
         <td id="c_software_version_{{loop.index}}">{{row.CampaignStage.software_version}}</td>
         <td id="c_dataset_{{loop.index}}">{{row.CampaignStage.dataset}}</td>
@@ -113,16 +118,18 @@ Campaign Stages {{ show_hint('', 'Help page') }}
       </tr>
       {% endfor %}
     </tbody>
+    <!--
     <tfoot>
         <tr>
             <th colspan="9">
-                <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (session_role=='coordinator') }}>
+                <button class="ui labled teal icon button" onclick="add_campaign();return false;" {{ 'disabled' if (session_role=='superuser') }}>
                     <i class="icon add square"></i>
                     Add
                 </button>
             </th>
         </tr>
     </tfoot>
+    -->
   </table>
   </div> <!-- double-scroll -->
   {% endif %}
@@ -157,14 +164,16 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
 <div class="ui modal" id="campaign_add_edit_modal">
   <i class="close icon"></i>
-  <h3 class="block header"><span id="ae_experiment">Campaign Stage Editor </span>{{ show_hint('', 'Help Page') }}</h3>
+  <h3 class="block header"><span id="ae_experiment">Campaign Stage Editor </span>
+    {% include 'help_button.html' %}
+</h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
     <form id="campaign_add_edit_form" class="ui form" method="POST" action="campaign_stage_edit">
 
       <div class="fields">
         <label>Campaign Name</label>
-        <select name="ae_campaign_name" id="ae_campaign_name" class="ui fluid search dropdown">
+        <select name="ae_campaign_name" id="ae_campaign_name" class="ui fluid search dropdown" disabled >
           <option value=""></option>
           {% for row in data.campaigns %}
           <option value={{row.campaign_id}}>{{row.name}}</option>
@@ -172,7 +181,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
         </select>
       </div>
 
-      <div class="fields">
+      <div class="three fields">
         <div class="field">
             <label>Stage Name {{ show_hint('#Stage-Name', 'Stage name') }}</label>
             <input type="text" id="ae_stage_name" name="ae_stage_name" placeholder="Campaign Stage Name">
@@ -181,6 +190,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
             <label>Jobsub VO Role {{ show_hint('#VO-Role', 'Role name') }}</label>
             <input type="text" id="ae_vo_role" name="ae_vo_role">
         </div>
+        <!--
         <div class="field">
           <label>State {{ show_hint('#State', 'Select state') }}</label>
           <select class="ui dropdown" name="ae_active" id="ae_active">
@@ -188,6 +198,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
             <option value="False">Inactive</option>
           </select>
         </div>
+        -->
         <div class="field">
             <label>Exp. Software Version {{ show_hint('#Software-Version', 'Version tag') }}</label>
             <input type="text" id="ae_software_version" name="ae_software_version">
@@ -196,12 +207,15 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 
       <div class="two fields">
         <div class="field">
-            <label>Dataset{{ show_hint('#Dataset', 'Dataset name') }}</label>
-            <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset"></input>
+            <label>Dataset or Split Data {{ show_hint('#Dataset', 'Dataset name') }}</label>
+            <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset" style="width: 90%"></input>
+
+            <i class="edit link blue icon split_type_picker_custom_edit" onclick="split_type_picker.custom_edit('ae_split_type','ae_dataset')"></i>
         </div>
         <div class="field">
-            <label>Dataset Split Type {{ show_hint('#Dataset-Split-Type', 'Set type') }}</label>
-            <input type="text" id="ae_split_type" name="ae_split_type">
+            <label>(Dataset) Split Type {{ show_hint('#Dataset-Split-Type', 'Set type') }}</label>
+            <input type="text" id="ae_split_type" name="ae_split_type" style="width:90%">
+            <i class="edit link blue icon" onclick="split_type_picker.start('ae_split_type')"></i>
         </div>
       </div>
 
@@ -413,6 +427,7 @@ Campaign Stages {{ show_hint('', 'Help page') }}
 <script type="text/javascript">
 
 // form validation fields,they will appear in red if missing..
+function setup_form_validation() {
 $('#campaign_add_edit_form')
   .form({
     fields: {
@@ -426,8 +441,9 @@ $('#campaign_add_edit_form')
       ae_launch_id :              'empty',
       ae_campaign_definition_id : 'empty'
     }
-  })
-;
+  }) ;
+}
+setup_form_validation()
 //      ae_completion_type :        'empty',
 //      ae_completion_pct  :        'empty',
 //    dropdown: {
@@ -514,6 +530,7 @@ function setup_modal(fieldid) {
         $(fieldid+"_text").val(data[1]);
         $(fieldid).val(data[1]);
         $("#campaign_add_edit_modal").modal('show');
+        setup_form_validation()
       } else {
           return false;
       }
@@ -740,18 +757,20 @@ function edit_campaign(index,clone) {
     $("#ae_submit").prop("value","Clone");
     $("#ae_submit").prop("disabled",false);
   }
+  split_type_picker.fix_custom_edit('ae_split_type')
 }
 
 function add_campaign() {
   $("#campaign_add_edit_modal").form('reset');
   $("#ae_experiment").text("Campaign Stage Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
   $("#campaign_add_edit_modal").modal({}).modal('show');
+  split_type_picker.fix_custom_edit('ae_split_type')
 }
 
 
 $(document).ready(function(){
-  if ("{{ data.message }}" != "None") {
-    $("#poms_message_data").text("{{ data.message }}");
+  if (`{{ data.message }}` != "None") {
+    $("#poms_message_data").text(`{{ data.message }}`);
     $("#display_message_modal").modal('show');
   }
 });
@@ -763,10 +782,6 @@ $('#ae_campaign_name')
 })
 ;
 
-
-$(document).ready(function(){
-  $('#double-scroll').doubleScroll();
-});
 
 </script>
 

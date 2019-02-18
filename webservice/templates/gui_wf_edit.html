@@ -3,8 +3,10 @@
 
 {%block title%}
 <title>POMS Campaign Editor</title>
-<script src="{{pomspath}}/static/js/gui_editor_3.js"></script>
+<script src="{{pomspath}}/static/js/split_type_picker.js"></script>
+<script src="{{pomspath}}/split_type_javascript"></script>
 <script src="{{pomspath}}/static/js/json_field_editor.js"></script>
+<script src="{{pomspath}}/static/js/gui_editor_3.js"></script>
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/gui_editor_3.css">
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/json_field_editor.css">
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.js"></script>
@@ -43,7 +45,7 @@
 -->
         <tr>
             <td>Name:</td>
-            <td> <input id="node-label" value="new value"> </td>
+            <td> <input id="node-label" type="text" value="new value"> </td>
         </tr>
     </table>
     <input type="button" value="OK" id="node-saveButton">
@@ -159,7 +161,7 @@ function main() {
        if (campaign.startsWith('samples')) {
           url = base + '/static/' + campaign.replace(/%2F/g, '/');
        } else {
-          url = base +'/campaign_deps_ini?name=' + campaign;
+          url = base +'/campaign_deps_ini?full=1&name=' + campaign;
        }
        $.ajax( {
           url: url
@@ -183,6 +185,7 @@ function main() {
    };
 }
 
+//$('.ui.dropdown').dropdown();
 </script>
 
 {%endblock%}

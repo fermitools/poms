@@ -10,6 +10,9 @@ class mod:
         self.m = int(cs.cs_split_type[4:].strip(')'))
         self.samhandle = samhandle
 
+    def params(self):
+        return ["modulus"]
+
     def peek(self):
         if not self.cs.cs_last_split:
             self.cs.cs_last_split = 0
@@ -32,3 +35,6 @@ class mod:
 
     def len(self):
         return self.m
+
+    def edit_popup(self):
+        return "null"

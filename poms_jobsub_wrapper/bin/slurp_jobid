@@ -1,0 +1,81 @@
+#!/bin/bash
+
+#
+# we build up a javascript dictionary to report to elasticsearch
+# in esdata.  Mainly lines we see in the jobsub output, plus
+# our POMS4 classad fields
+#
+esdata="{"
+essep=""
+add_item() {
+   k="${1%:*}"
+   v="${1#*:}"
+   esdata="$esdata$essep\"$k\": \"$v\""
+   essep=", "
+}
+
+add_item "POMS4_CAMPAIGN_STAGE_ID:$POMS4_CAMPAIGN_STAGE_ID" 
+add_item "POMS4_CAMPAIGN_STAGE_NAME:$POMS4_CAMPAIGN_STAGE_NAME" 
+add_item "POMS4_CAMPAIGN_ID:$POMS4_CAMPAIGN_ID" 
+add_item "POMS4_CAMPAIGN_NAME:$POMS4_CAMPAIGN_NAME" 
+add_item "POMS4_SUBMISSION_ID:$POMS4_SUBMISSION_ID"
+add_item "POMS4_CAMPAIGN_TYPE:$POMS4_CAMPAIGN_TYPE"
+add_item "POMS4_TEST_LAUNCH:$POMS4_TEST_LAUNCH"
+
+report=""
+while read line
+do
+    echo "$line"
+    case "x$line" in 
+    xUse?job?id*retrieve?output)
+       set : $line
+       report=$5
+       add_item "JOBSUB_JOB_ID: $report"
+       ;;
+
+    xJOBSUB?SERVER?CONTACTED*:*)     add_item "$line";;
+    xJOBSUB?SERVER?RESPONDED*:*)     add_item "$line";;
+    xJOBSUB?SERVER?RESPONSE?CODE?:*) add_item "$line";;
+    xJOBSUB?SERVER?SERVICED?IN?:*)   add_item "$line";;
+    xJOBSUB?CLIENT?FQDN*:*)add_item "$line";;
+    xERROR:*)    add_item "$line";;
+    xEXITCODE:*) add_item "$line";;
+    xSTDOUT:*)   add_item "$line";;
+    xSTDERR:*)   add_item "$line";;
+    x*) 
+       ;;
+    esac
+done
+
+case "x$POMS_TEST" in
+xint*) baseurl="https://poms-int.fnal.gov:8443/poms" ;;
+x1*)   baseurl="https://fermicloud045.fnal.gov:8443/poms" ;;
+x*)    baseurl="https://pomsgpvm01.fnal.gov:8443/poms" ;;
+esac
+
+
+reporturl="$baseurl/update_submission"
+submission_url="$baseurl/submission_details?submission_id=$POMS_TASK_ID"
+
+X509_USER_PROXY=${X509_USER_PROXY:-/tmp/x509up_u`id -u`}
+
+if [ "x$report" != "x" ] 
+then
+    report=`echo $report | sed -e 's/\.0@/@/'`
+    wget -O - --no-check-certificate  --certificate=$X509_USER_PROXY --ca-certificate=$X509_USER_PROXY --ca-directory=/etc/grid-security/certificates --private-key=$X509_USER_PROXY "$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$report&status=New" 
+
+    submission_url=`echo "$submission_url" | sed -e 's;:8443/;/;'`
+    echo "For Status, use URL: $submission_url"
+    add_item "STATUS: success"
+else
+    add_item "STATUS: fail"
+fi
+
+#
+# finish up data to elasticsearch, and post
+#
+esdata="$esdata }"
+
+echo "posting elasticsearch data: $esdata"
+
+curl -XPOST https://landscape.fnal.gov/ingest/poms_jobsub/_doc -d "$esdata"

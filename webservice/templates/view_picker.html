@@ -1,55 +1,52 @@
 
   <!-- data: {{data}} -->
 
-  <div class="inline fields">
-  {% if has_active|default(False) %}
-   <div style="float: left; border: 1px solid grey; padding:0.5em">
-    <div class="field">
-      <div class="ui checkbox">
-        <input type="checkbox" name="view_active" id="view_active" value="view_active" {{ 'checked="checked"' if (data.view_active is not defined or data.view_active == "view_active")  }}>
-        <label>Active</label>
-      </div>
-    </div>
-    <div class="field">
-      <div class="ui checkbox">
-        <input type="checkbox" name="view_inactive" id="view_inactive" value="view_inactive" {{ 'checked="checked"' if (data.view_inactive is not defined or data.view_inactive == "view_inactive")  }}>
-        <label>Inactive</label>
-      </div>
-    </div>
-   </div>
-   {% endif %}
-   <div style="float: left; border: 1px solid grey; padding:0.5em">
-    <div class="field">
-      <div class="ui checkbox">
-        <input type="checkbox" name="view_mine" id="view_mine" value="{{current_experimenter.experimenter_id}}" {{ 'checked="checked"' if (data.view_mine is not defined or data.view_mine|string == current_experimenter.experimenter_id|string)  }}>
-        <label>Mine</label>
-      </div>
-    </div>
-    <div class="field">
-      <div class="ui checkbox">
-        <input type="checkbox" name="view_others" id="view_others" value="{{current_experimenter.experimenter_id}}" {{ 'checked="checked"' if (data.view_others is not defined or data.view_others|string == current_experimenter.experimenter_id|string )  }}>
-        <label>Others</label>
-      </div>
+  <div class="ui segment">
+    <div class="ui {{'four' if has_active|default(False) else 'three'}} column divided grid">
+        <div class="row">
+
+            {% if has_active|default(False) %}
+            <div class="column">
+                <div class="ui checkbox">
+                <input type="checkbox" name="view_active" id="view_active" value="view_active" {{ 'checked' if (data.view_active is not defined or data.view_active == "view_active") }}>
+                <label>Active</label>
+                </div><br/>
+                <div class="ui checkbox">
+                <input type="checkbox" name="view_inactive" id="view_inactive" value="view_inactive" {{ 'checked' if (data.view_inactive is not defined or data.view_inactive == "view_inactive") }}>
+                <label>Inactive</label>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="column">
+                <div class="ui checkbox">
+                <input type="checkbox" name="view_mine" id="view_mine" value="{{current_experimenter.experimenter_id}}" {{ 'checked' if (data.view_mine is not defined or data.view_mine|string == current_experimenter.experimenter_id|string) }}>
+                <label>Mine</label>
+                </div><br/>
+                <div class="ui checkbox">
+                <input type="checkbox" name="view_others" id="view_others" value="{{current_experimenter.experimenter_id}}" {{ 'checked' if (data.view_others is not defined or data.view_others|string == current_experimenter.experimenter_id|string ) }}>
+                <label>Others</label>
+                </div>
+            </div>
+
+            <div class="column">
+                <div class="ui checkbox">
+                <input type="checkbox" name="view_analysis" id="view_analysis" value="view_analysis" {{ 'checked' if (data.view_analysis is not defined or data.view_analysis == "view_analysis") }}>
+                <label>Analysis</label>
+                </div><br/>
+                <div class="ui checkbox">
+                <input type="checkbox" name="view_production" id="view_production" value="view_production" {{ 'checked' if (data.view_production is not defined or data.view_production == "view_production") }}>
+                <label>Production</label>
+                </div>
+            </div>
+
+            <div class="column middle aligned">
+                <div class="button">
+                <input type="submit" class="ui mini teal button" name="update_view" value="Update View">
+                </div>
+            </div>
+
+        </div> <!-- row -->
+
     </div>
   </div>
-  <div style="float: left; border: 1px solid grey; padding:0.5em">
-   <div class="field">
-    <div class="ui checkbox">
-        <input type="checkbox" name="view_analysis" id="view_analysis" value="view_analysis" {{ 'checked="checked"' if (data.view_analysis is not defined or data.view_analysis == "view_analysis")  }}>
-        <label>Analysis</label>
-      </div>
-    </div>
-    <div class="field">
-      <div class="ui checkbox">
-        <input type="checkbox" name="view_production" id="view_production" value="view_production" {{ 'checked="checked"' if (data.view_production is not defined or data.view_production == "view_production")  }}>
-        <label>Production</label>
-      </div>
-    </div>
-  </div>
-  <div style="float: left; border: 1px solid grey; padding: 0.62em">
-    <input type=submit name="update_view" value="Update View" style="padding: 0.5em">
-  </div>
-</div>
-<br>
-<br>
-<br>

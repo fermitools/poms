@@ -1,0 +1,139 @@
+{%extends "layout.html"%}
+
+{%block title%}
+POMS:Campaign Stage Submissions
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+     Campaign Stage Submissions{%include 'help_button.html'%}
+</h1>
+
+<div class="ui basic label">
+  <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
+</div>
+
+<div>
+  <a href="{{data.prevlink}}">&lt;previous {{data.tdays}} days</a> |
+  <a href="{{data.nextlink}}">next {{data.tdays}} days &gt;</a>
+</div>
+{%endblock%}
+
+
+{%block subheader%}
+Campaign:&nbsp;&nbsp;&nbsp; {{data.campaign_name}} <br>
+Campaign Stage:&nbsp;&nbsp;&nbsp; {{data.stage_name}}
+{%endblock%}
+
+{%block content%}
+
+    <table class="ui sortable celled table">
+        <thead>
+            <tr>
+                {%if data.stage_name=='*' %} 
+                <th>Stage Name</th> 
+                {%endif%}
+                <th>Submission Id</th>
+                <th>Jobsub Id</th>
+                <th>Commands</th>
+                <th>Status (History/Current)</th>
+                <th>Submitted</th>
+                <th>Submitter</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for rec in data.submissions %}
+        <tr>
+            {%if data.stage_name=='*' %} 
+            <td>{{rec.campaign_stage_name}}</td>
+            {%endif%}
+            <td>{{rec.submission_id}}</td>
+            <td>
+                {% if rec.jobsub_job_id is not none %}
+                <!--a href="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster={{rec.jobsub_cluster}}&var-schedd={{rec.jobsub_schedd}}&from={{data.tminsec}}000&to=now&refresh=3m&orgId=1" target='_blank'-->
+                <a href="{{pomspath}}/submission_details?submission_id={{rec.submission_id}}" target='_blank'>
+                    {{rec.jobsub_job_id}}
+                </a>
+                {% endif %}
+            </td>
+            <td>
+                {% if rec.jobsub_job_id is not none %}
+                    {% if rec.status in ('New', 'Idle', 'Running', 'Held') %}
+                    <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>&nbsp;&nbsp;
+                    <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=release" alt="Release"><i class="ui play icon"></i></a>&nbsp;&nbsp;
+                    <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>
+                    {% endif %}
+                    {% if rec.status == 'Completed' %}
+                    <a href="{{pomspath}}/force_locate_submission?submission_id={{rec.submission_id}}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>
+                    {% endif %}
+                {% endif %}
+            </td>
+            <td>
+                <button class="teal tiny ui button" onclick="get_status_history({{rec.submission_id}})">
+                        <i class="history icon"></i>
+                </button>
+                {{rec.status}}</td>
+            <td>{{rec.created}}</td>
+            <td>{{rec.creator}}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="ui small modal" id="status_history_modal">
+        <i class="close icon"></i>
+        <div class="header" id="status_history_header">
+            Status History
+        </div>
+        <div class="scrollable">
+        <table class="ui table segment">
+            <thead>
+                <tr>
+                    <th>Start Timestamp</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="status_history_body">
+            </tbody>
+        </table>
+        </div>
+
+    </div> <!-- Ends status_history_modal -->
+
+<script>
+    var tmin_local_time = moment.utc('{{data.tmin}}').toDate();
+    tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
+    $( ".tmin" ).html( tmin_local_time );
+
+    var tmax_local_time = moment.utc('{{data.tmax}}').toDate();
+    tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
+    $( ".tmax" ).html( tmax_local_time );
+
+    $(function() {
+        $('#global_datepicker_container').show();
+    });
+
+
+    function get_status_history(submission_id) {
+        formdata = {"submission_id": submission_id}
+        var trows = " ";
+        $.ajax({
+            url: "{{pomspath}}/session_status_history",
+                type: 'GET',
+                data: formdata,
+                dataType: 'json',
+                success: function(rows){
+                    var index = 0;
+                    for (index = 0; index < rows.length; index++) {
+                        var row = rows[index];
+                        trows = trows + "<tr><td>" +row.created + "</td><td>" + row.status + "</td></tr>";
+                    }
+                    $("#status_history_body").html(trows);
+                    $("#status_history_modal").modal('show');
+                }
+        });
+    }
+
+</script>
+
+{%endblock%}
