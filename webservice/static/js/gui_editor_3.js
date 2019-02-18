@@ -420,7 +420,8 @@ gui_editor.exportNetwork = function () {
         // Node postions
         const pp = gui_editor.network.getPositions();
         // Modified positions with labels instead of IDs
-        const mpp = obj_from_entries(Object.entries(pp).map(p => [p[0].startsWith('campaign ') ? p[0] : get_label(p[0]), p[1]]));
+        // const mpp = obj_from_entries(Object.entries(pp).map(p => [p[0].startsWith('campaign ') ? p[0] : get_label(p[0]), p[1]]));
+        const mpp = obj_from_entries(Object.entries(pp).map(p => [p[0].startsWith('campaign ') ? `campaign ${get_label(p[0])}` : get_label(p[0]), p[1]]));
 
         const response = {
             id: e[0],
@@ -698,10 +699,12 @@ gui_editor.prototype.defaultify_state = function() {
     /* now null out whatever is the default */
     for (k in this.state) {
         if (k.startsWith('campaign_stage')) {
-            for (j in this.state[k]) {
+            // for (j in this.state[k]) {       // VP Try to merge defaults with the state
+            for (j in this.mode) {
+            // for (j in this.state.campaign_defaults) {
                 if (j === 'name')
                     continue;
-                if (this.state[k][j] == this.mode[j]) {
+                if (!this.state[k][j] || (this.state[k][j] == this.mode[j])) {
                     this.state[k][j] = null;
                 }
             }
@@ -1011,7 +1014,8 @@ gui_editor.prototype.draw_state = function () {
         }
         prevstage = stagelist[i];
         first = false;
-        b = new stage_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y, this);
+        // b = new stage_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y, this);   // VP
+        b = new stage_box(k, this.state[k], mwm_utils.dict_keys(this.mode), this.div, x, y, this);
         this.stageboxes.push(b);
     }
 
@@ -1521,6 +1525,28 @@ gui_editor.prototype.loginsetup_select = function(sval, eid, placeholder) {
         return `<select id="${eid}" name="login_setup" required>\n${res}</select>\n`;
     }
 
+    gui_editor.prototype.completion_type_select = function(sval, eid, placeholder) {
+        let res = ["complete", "located"].reduce(
+            function (acc, val) {
+                const sel = (val == sval) ? ' selected' : '';
+                return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
+            }, eid.startsWith("_inpcampaign_stage") ?
+                `<option value="" placeholder="${placeholder}" style="color: #777; background-color: lightcyan;" selected>${placeholder} (default)</option>\n` : "");
+            // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+        return `<select id="${eid}" name="completion_type" required>\n${res}</select>\n`;
+    }
+
+    gui_editor.prototype.state_select = function(sval, eid, placeholder) {
+        let res = ["active", "inactive"].reduce(
+            function (acc, val) {
+                const sel = (val == sval) ? ' selected' : '';
+                return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
+            }, eid.startsWith("_inpcampaign_stage") ?
+                `<option value="" placeholder="${placeholder}" style="color: #777; background-color: lightcyan;" selected>${placeholder} (default)</option>\n` : "");
+            // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+        return `<select id="${eid}" name="state" required>\n${res}</select>\n`;
+    }
+
 /*
  * make a div with a label in it on the overall screen
  * we don't actually track it, as we don't currently try
@@ -1607,6 +1633,12 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         }
         else if (k.includes("login_setup")) {
             res.push(this.gui.loginsetup_select(val, `${this.get_input_tag(k)}`, placeholder));
+        }
+        else if (k.includes("completion_type")) {
+            res.push(this.gui.completion_type_select(val, `${this.get_input_tag(k)}`, placeholder));
+        }
+        else if (k.includes("state")) {
+            res.push(this.gui.state_select(val, `${this.get_input_tag(k)}`, placeholder));
         } else {
             res.push(`<input id="${this.get_input_tag(k)}" name="${k}" value="${this.escape_quotes(val)}" placeholder="${this.escape_quotes(placeholder)}" ${ro}>`);
         }

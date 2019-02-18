@@ -561,8 +561,8 @@ class PomsService:
          campaign_stage,
          counts_keys, counts,
          launch_flist,
-         kibana_link, 
-         dep_svg, 
+         kibana_link,
+         dep_svg,
          last_activity,
          recent_submissions) = self.campaignsPOMS.campaign_stage_info(cherrypy.request.db,
                                                                                        cherrypy.config.get,
@@ -721,7 +721,7 @@ class PomsService:
             Anyone with a production role can hold/release a campaign created with a production role.
 
             :param  ids2HR: A list of campaign ids to be hold/released.
-            :param is_hold: 'Hold' or 'Release'
+            :param is_hold: 'Hold'/'Queue' or 'Release'
             :return:
         """
         campaign_ids = ids2HR.split(",")
@@ -748,7 +748,7 @@ class PomsService:
                     401, 'You are not authorized to hold or release this campaign_stages. ')
 
             if mayIChangeIt:
-                if is_hold == "Hold":
+                if is_hold in ("Hold","Queue"):
                     campaign.hold_experimenter_id = sessionExperimenter.experimenter_id
                     campaign.role_held_with = sessionExperimenter.session_role
                 elif is_hold == "Release":
@@ -756,7 +756,7 @@ class PomsService:
                     campaign.role_held_with = None
                 else:
                     raise cherrypy.HTTPError(
-                        400, 'The action is not supported. You can only Hold or Release.')
+                        400, 'The action is not supported. You can only Hold/Queue or Release.')
                 cherrypy.request.db.add(campaign)
                 cherrypy.request.db.commit()
             else:
@@ -767,7 +767,7 @@ class PomsService:
             referrer = cherrypy.request.headers.get('Referer')
             if referrer:
                 raise cherrypy.HTTPRedirect(referrer[referrer.rfind('/')+1:])
-            
+
             raise cherrypy.HTTPRedirect("show_campaign_stages")
 
 
@@ -1392,25 +1392,42 @@ class PomsService:
         # print("{}".format(data))
 
         p = ConfigParser(interpolation=None)
-        p.read_string(data)
+        try:
+            p.read_string(data)
+        except Exception:
+            return {'status': "400 Bad Request", 'message': "Bad file format"}
+
         cfg = {section: dict(p.items(section)) for section in p.sections()}
         pprint.pprint(cfg)
 
         # Now reformat into JSON suitable for save_campaign call
         campaign_d = {"stages": [], "dependencies": [], "misc": []}
 
-        camp_name = cfg['campaign']['name']
-        campaign_d["stages"].append({"id": "campaign {}".format(camp_name), "label": camp_name, "clean": False})
+        campaign_s = cfg.get('campaign')
+        if campaign_s is None:
+            return {'status': "400 Bad Request", 'message': "No Campaign section in the file"}
 
+        camp_name = campaign_s['name']
+        campaign_d["stages"].append(
+            {
+                "id": "campaign {}".format(camp_name),
+                "label": camp_name,
+                "clean": False,
+                "form": cfg.get('campaign_defaults', {}),
+            })
+        # Process stages
         stage_names = [k for k in cfg if k.startswith('campaign_stage ')]
-        for name in stage_names:
-            sn = name.split(' ')[1]
-            campaign_d["stages"].append({"id": sn, "label": sn, "clean": False, "form": cfg[name]})
+        if not stage_names:
+            return {'status': "400 Bad Request", 'message': "No Campaign Stage sections in the file"}
 
+        for name in stage_names:
+            sn = name.split(' ', 1)[1]
+            campaign_d["stages"].append({"id": sn, "label": sn, "clean": False, "form": cfg[name]})
+        # Process dependencies
         dep_names = [k for k in cfg if k.startswith('dependencies ')]
         for name in dep_names:
             section = cfg[name]
-            sn = name.split(' ')[1]
+            sn = name.split(' ', 1)[1]
             from_ids = [k for k in section if k.startswith("campaign_stage_")]
             for from_id in from_ids:
                 sfx = from_id.rsplit("_", 1)[1]
@@ -1421,15 +1438,15 @@ class PomsService:
                         "fromId": section[from_id],
                         "toId": sn,
                         "clean": False,
-                        "form": {sel: section[sel]}
+                        "form": {sel: section[sel]},
                     })
-
+        # Process JobTypes and LoginSetups
         misc_names = [k for k in cfg if k.startswith('job_type ') or k.startswith('login_setup ')]
         for name in misc_names:
             section = cfg[name]
-            sn = name.split(' ')[1]
+            sn = name.split(' ', 1)[1]
             campaign_d["misc"].append({"id": name, "label": sn, "clean": False, "form": section})
-
+        # Save the campaign
         data = self.campaignsPOMS.save_campaign(cherrypy.request.db, cherrypy.session, form=json.dumps(campaign_d), **kwargs)
 
         return data
