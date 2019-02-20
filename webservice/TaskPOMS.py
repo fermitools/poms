@@ -544,9 +544,9 @@ class TaskPOMS:
             pos = dataset.find(' ')
             dataset = dataset[:pos]
         elif submission.project:
-            details = samhandle.fetch_info(
-                experiment, submission.project, dbhandle)
-            dataset = details['dataset']
+            details = samhandle.fetch_info( submission.campaign_stage_snapshot_
+            #logit.log("got details = %s" % repr(details))
+            dataset = details.get('dataset_def_name',None)
         else:
             dataset = None
 
