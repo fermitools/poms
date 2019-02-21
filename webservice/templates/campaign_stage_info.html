@@ -282,7 +282,7 @@ all the time...
       <li>
       <a href="list_launch_file?campaign_stage_id={{CampaignStage.campaign_stage_id}}&fname={{f}}">{{f}}</a>
       {%if f|length > 22 %}
-          {%set submission_id = f.split('_')[3]|int %}
+          {%set submission_id = f.split('_')[3]|default('0')|int %}
           {%if submission_id != 0 %}
           <a href="{{pomspath}}/submission_details?submission_id={{submission_id}}"><span class="ui label green">info</span></a>
           {%if recent_submissions[submission_id]|default(9999) < 7000 and recent_submissions[submission_id]|default(9999) != 2000 %}
