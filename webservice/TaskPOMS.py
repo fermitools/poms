@@ -341,7 +341,7 @@ class TaskPOMS:
                 submission.experimenter_creator_obj.root)
 
             if not self.launch_recovery_if_needed(
-                    dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission, basedir):
+                    dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission, None, basedir):
                 self.launch_dependents_if_needed(
                     dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission, basedir)
 
@@ -544,7 +544,8 @@ class TaskPOMS:
             pos = dataset.find(' ')
             dataset = dataset[:pos]
         elif submission.project:
-            details = samhandle.fetch_info( submission.campaign_stage_snapshot_
+            details = samhandle.fetch_info( submission.campaign_stage_snapshot_obj.experiment, submission.project, dbhandle)
+
             #logit.log("got details = %s" % repr(details))
             dataset = details.get('dataset_def_name',None)
         else:
