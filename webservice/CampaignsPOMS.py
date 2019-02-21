@@ -778,7 +778,7 @@ class CampaignsPOMS:
 
         elif action in ('add', 'edit'):
             logit.log("campaign_stage_edit: add or edit case")
-            campaign_id = kwargs.pop('ae_campaign_name')
+            campaign_id = kwargs.pop('ae_campaign_name', None)
             name = kwargs.pop('ae_stage_name')
             if isinstance(name, str):
                 name = name.strip()

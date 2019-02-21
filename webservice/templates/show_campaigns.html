@@ -59,6 +59,7 @@ Campaigns {%include 'help_button.html'%}
         Pick .ini file
         <input type="file" name="upload" id="hidden-new-file" style="display: none">
     </label>
+    <div class="or" data-text="and"></div>
     <label for="submit-new-file" class="tiny ui teal button" {{ 'disabled' if (session_role=='superuser') }}>
         <i class="icon cloud upload"></i>Upload
         <input type="submit" id="submit-new-file" c-lass="ui teal button" name="Submit"  style="display: none">

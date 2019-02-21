@@ -544,9 +544,9 @@ class TaskPOMS:
             pos = dataset.find(' ')
             dataset = dataset[:pos]
         elif submission.project:
-            details = samhandle.fetch_info(
-                experiment, submission.project, dbhandle)
-            dataset = details['dataset']
+            details = samhandle.fetch_info( submission.campaign_stage_snapshot_
+            #logit.log("got details = %s" % repr(details))
+            dataset = details.get('dataset_def_name',None)
         else:
             dataset = None
 
@@ -1063,6 +1063,10 @@ class TaskPOMS:
                                      cs.name[len(cs.campaign_obj_name):])
             else:
                 ccname = "%s__%s" % (cs.campaign_obj.name, cs.name)
+
+            cname = cname.replace('.','_').replace(' ','_')
+            csname = csname.replace('.','_').replace(' ','_')
+            ccname = ccname.replace('.','_').replace(' ','_')
 
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
