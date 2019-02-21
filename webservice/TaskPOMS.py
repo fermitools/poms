@@ -789,7 +789,7 @@ class TaskPOMS:
         if recovery_type_override is not None:
             s.recovery_position = 0
             rlist = dbhandle.query(RecoveryType).filter(
-                RecoveryType.name == recovery_type_override).all()
+                RecoveryType.recovery_type_id == int(recovery_type_override)).all()
         else:
             rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(
                 dbhandle, s.job_type_snapshot_obj)
