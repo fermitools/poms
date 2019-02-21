@@ -977,10 +977,15 @@ class TaskPOMS:
         ds = launch_time.strftime("%Y%m%d_%H%M%S")
         e = seshandle_get('experimenter')
         se_role = e.session_role
-        
 
-        launcher_experimenter = dbhandle.query(Experimenter).filter(
-            Experimenter.experimenter_id == launcher).first()
+        # at the moment we're inconsistent about whether we pass
+        # launcher as a username or experimenter_id...
+        if isinstance(launcher, int):
+            launcher_experimenter = dbhandle.query(Experimenter).filter(
+                Experimenter.experimenter_id == launcher).first()
+        else:
+            launcher_experimenter = dbhandle.query(Experimenter).filter(
+                Experimenter.username == launcher).first()
 
         if test_login_setup:
             lt = dbhandle.query(LoginSetup).filter(
