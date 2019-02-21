@@ -1066,6 +1066,7 @@ class TaskPOMS:
 
             cname = cname.replace('.','_').replace(' ','_')
             csname = csname.replace('.','_').replace(' ','_')
+            ccname = ccname.replace('.','_').replace(' ','_')
 
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
