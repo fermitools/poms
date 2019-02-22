@@ -1070,10 +1070,6 @@ class TaskPOMS:
             else:
                 ccname = "%s__%s" % (cs.campaign_obj.name, cs.name)
 
-            cname = cname.replace('.','_').replace(' ','_')
-            csname = csname.replace('.','_').replace(' ','_')
-            ccname = ccname.replace('.','_').replace(' ','_')
-
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
 
