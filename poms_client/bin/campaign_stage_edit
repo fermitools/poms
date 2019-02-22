@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #from test_pipe import campaign_edit_test
 import os
+import sys
 from poms_client import campaign_stage_edit,update_session_role
 import argparse
 
@@ -39,64 +40,68 @@ parser.add_argument('--int', action='store_const', const='int', dest='test_clien
 args = parser.parse_args()
 if args.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
+try:
 
-update_session_role(args.poms_role)
+    update_session_role(args.poms_role, test_client=args.test_client)
 
-#parser.print_help()
-logging.debug( args )
-logging.debug( 'The arguments you pass are:' )
-logging.debug( 'action ='+ str(args.action ))
-logging.debug( 'campaign_stage_name ='+ str( args.campaign_stage_name ))
-logging.debug( 'campaign_name ='+ str( args.campaign_name ))
-logging.debug( 'user='+ str(args.user ))
-logging.debug( 'experiment='+ str(args.experiment ))
-logging.debug( 'vo_role='+ str( args.vo_role ))
-logging.debug( 'dataset='+ str( args.dataset ))
-# logging.debug( 'state'+ str( args.state ))
-logging.debug( 'split_type='+ str( args.split_type ))
-logging.debug( 'software_version='+ str( args.software_version ))
-logging.debug( 'completion_type='+ str( args.completion_type ))
-logging.debug( 'completion='+ str( args.completion ))
-logging.debug( 'param_overrides='+ str( args.param_overrides ))
-logging.debug( 'depends_on='+ str( args.depends_on ))
-logging.debug( 'launch_name'+ str( args.launch_name ))
-logging.debug( 'job_type='+ str( args.job_type ))
-logging.debug( 'test_client='+ str( args.test_client ))
+    #parser.print_help()
+    logging.debug( args )
+    logging.debug( 'The arguments you pass are:' )
+    logging.debug( 'action ='+ str(args.action ))
+    logging.debug( 'campaign_stage_name ='+ str( args.campaign_stage_name ))
+    logging.debug( 'campaign_name ='+ str( args.campaign_name ))
+    logging.debug( 'user='+ str(args.user ))
+    logging.debug( 'experiment='+ str(args.experiment ))
+    logging.debug( 'vo_role='+ str( args.vo_role ))
+    logging.debug( 'dataset='+ str( args.dataset ))
+    # logging.debug( 'state'+ str( args.state ))
+    logging.debug( 'split_type='+ str( args.split_type ))
+    logging.debug( 'software_version='+ str( args.software_version ))
+    logging.debug( 'completion_type='+ str( args.completion_type ))
+    logging.debug( 'completion='+ str( args.completion ))
+    logging.debug( 'param_overrides='+ str( args.param_overrides ))
+    logging.debug( 'depends_on='+ str( args.depends_on ))
+    logging.debug( 'launch_name'+ str( args.launch_name ))
+    logging.debug( 'job_type='+ str( args.job_type ))
+    logging.debug( 'test_client='+ str( args.test_client ))
 
-#Calling the poms_client.campaign_definition_edit'
-if args.action in ['add','delete','edit']:
-    if args.completion > 0 and args.completion <= 100:
-        if args.vo_role in ["Analysis", "Production"]:
-            res = campaign_stage_edit(action=args.action,
-                                      ae_campaign_stage_name=args.campaign_stage_name,
-                                      ae_campaign_name=args.campaign_name,
-                                      pc_username=args.user,
-                                      experiment=args.experiment,
-                                      vo_role=args.vo_role,
-                                      dataset=args.dataset,
-                                      # ae_active=args.state,
-                                      ae_split_type=args.split_type,
-                                      ae_software_version=args.software_version,
-                                      ae_completion_type=args.completion_type,
-                                      ae_completion_pct=args.completion,
-                                      ae_param_overrides=args.param_overrides,
-                                      ae_depends=args.depends_on,
-                                      ae_launch_name=args.launch_name,
-                                      ae_campaign_definition=args.job_type,
-                                      test_client=args.test_client)
-            if res[0] == 'status_code' and res[1] == 200:
-                 logging.info("Succeeded.")
-                 exit(0)
+    #Calling the poms_client.campaign_definition_edit'
+    if args.action in ['add','delete','edit']:
+        if args.completion > 0 and args.completion <= 100:
+            if args.vo_role in ["Analysis", "Production"]:
+                res = campaign_stage_edit(action=args.action,
+                                          ae_campaign_stage_name=args.campaign_stage_name,
+                                          ae_campaign_name=args.campaign_name,
+                                          pc_username=args.user,
+                                          experiment=args.experiment,
+                                          vo_role=args.vo_role,
+                                          dataset=args.dataset,
+                                          # ae_active=args.state,
+                                          ae_split_type=args.split_type,
+                                          ae_software_version=args.software_version,
+                                          ae_completion_type=args.completion_type,
+                                          ae_completion_pct=args.completion,
+                                          ae_param_overrides=args.param_overrides,
+                                          ae_depends=args.depends_on,
+                                          ae_launch_name=args.launch_name,
+                                          ae_campaign_definition=args.job_type,
+                                          test_client=args.test_client)
+                if res[0] == 'status_code' and res[1] == 200:
+                     logging.info("Succeeded.")
+                     exit(0)
+                else:
+                     logging.error("Failed: "+ repr(res))
+                     exit(1)
             else:
-                 logging.error("Failed: "+ repr(res))
-                 exit(1)
+                msg = "\n the vo_role may be Analysis or Production,", args.vo_role
+                logging.error( msg)
         else:
-            msg = "\n the vo_role may be Analysis or Production,", args.vo_role
+            msg = "\n ERROR: provide the percentage of completion as a value Integer between (0-100], the percentage you set was =", args.completion
             logging.error( msg)
-    else:
-        msg = "\n ERROR: provide the percentage of completion as a value Integer between (0-100], the percentage you set was =", args.completion
-        logging.error( msg)
 
-else:
-    msg = "\n ERROR: the action you choose was [action="+args.action+"] you must use add-edit-delete as option"
-    logging.error(msg)
+    else:
+        msg = "\n ERROR: the action you choose was [action="+args.action+"] you must use add-edit-delete as option"
+        logging.error(msg)
+except:
+    logging.exception(sys.argv[0])
+    sys.exit(1)

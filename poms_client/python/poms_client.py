@@ -414,7 +414,7 @@ def make_poms_call(**kwargs):
     if status_code == 303:
         res = c.headers['Location']
         # res = base + res[res.find('/poms/'):]
-    elif status_code != 200:
+    elif status_code not in (200, 202):
         if res.find("Traceback"):
             res = res[res.find("Traceback"):]
             res = res.replace("<br/>","\n")
@@ -422,8 +422,8 @@ def make_poms_call(**kwargs):
             logging.debug("Server: " + res)
         else:
             logging.debug("Error text" + res)
+        raise RuntimeError( "POMS call %s error: HTTP status: %d\n%s" % ( method, status_code, res ))
     return res, status_code
-
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
