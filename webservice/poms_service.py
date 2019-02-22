@@ -977,7 +977,7 @@ class PomsService:
     def launch_queued_job(self):
         return self.taskPOMS.launch_queued_job(cherrypy.request.db,
                                                cherrypy.request.samweb_lite,
-                                               cherrypy.session.get,
+                                               cherrypy.session,
                                                cherrypy.request.headers.get,
                                                cherrypy.session,
                                                cherrypy.response.status,

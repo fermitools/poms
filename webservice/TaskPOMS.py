@@ -917,7 +917,7 @@ class TaskPOMS:
         return ("hold" if c.hold_experimenter_id else "allowed")
 
     def launch_queued_job(self, dbhandle, samhandle,
-                          getconfig, gethead, seshandle_get, err_res, basedir):
+                          getconfig, gethead, seshandle, err_res, basedir):
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
@@ -949,7 +949,7 @@ class TaskPOMS:
          
             self.launch_jobs(dbhandle,
                              getconfig, gethead,
-                             seshandle_get, samhandle,
+                             seshandle.get, samhandle,
                              err_res, 
                              basedir,
                              campaign_stage_id,
