@@ -535,18 +535,17 @@ class TaskPOMS:
         # newer submissions should have dataset recorded in submission_params.
         # but for older ones, we can often look it up...
         #
-        if submission.submission_params and submission.submission_params.get(
+        if submission and submission.submission_params and submission.submission_params.get(
                 'dataset'):
             dataset = submission.submission_params.get('dataset')
-        elif submission.command_executed.find('--dataset') > 0:
+        elif submission and submission.command_executed.find('--dataset') > 0:
             pos = submission.command_executed.find('--dataset')
             dataset = submission.command_executed[pos + 10:]
             pos = dataset.find(' ')
             dataset = dataset[:pos]
-        elif submission.project:
+        elif submission and submission.project:
             details = samhandle.fetch_info( submission.campaign_stage_snapshot_obj.experiment, submission.project, dbhandle)
-
-            #logit.log("got details = %s" % repr(details))
+            logit.log("got details = %s" % repr(details))
             dataset = details.get('dataset_def_name',None)
         else:
             dataset = None
@@ -978,12 +977,13 @@ class TaskPOMS:
         ds = launch_time.strftime("%Y%m%d_%H%M%S")
         e = seshandle_get('experimenter')
         se_role = e.session_role
+        
 
         # at the moment we're inconsistent about whether we pass
         # launcher as a username or experimenter_id...
-        if isinstance(launcher, int):
+        if str(launcher)[0] in ('0','1','2','3','4','5','6','7','8','9'):
             launcher_experimenter = dbhandle.query(Experimenter).filter(
-                Experimenter.experimenter_id == launcher).first()
+                Experimenter.experimenter_id == int(launcher)).first()
         else:
             launcher_experimenter = dbhandle.query(Experimenter).filter(
                 Experimenter.username == launcher).first()
@@ -1073,9 +1073,9 @@ class TaskPOMS:
             # now quoting in poms_jobsub_wrapper, but blanks still make
             # it sad so replace them
             cname = cname.replace(' ','_')
-            csname = csname..replace(' ','_')
-            ccname = ccname..replace(' ','_')
- 
+            csname = csname.replace(' ','_')
+            ccname = ccname.replace(' ','_')
+
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
 
