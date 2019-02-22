@@ -790,7 +790,7 @@ class TaskPOMS:
         if recovery_type_override is not None:
             s.recovery_position = 0
             rlist = dbhandle.query(RecoveryType).filter(
-                RecoveryType.name == recovery_type_override).all()
+                RecoveryType.recovery_type_id == int(recovery_type_override)).all()
         else:
             rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(
                 dbhandle, s.job_type_snapshot_obj)
@@ -978,10 +978,15 @@ class TaskPOMS:
         ds = launch_time.strftime("%Y%m%d_%H%M%S")
         e = seshandle_get('experimenter')
         se_role = e.session_role
-        
 
-        launcher_experimenter = dbhandle.query(Experimenter).filter(
-            Experimenter.experimenter_id == launcher).first()
+        # at the moment we're inconsistent about whether we pass
+        # launcher as a username or experimenter_id...
+        if isinstance(launcher, int):
+            launcher_experimenter = dbhandle.query(Experimenter).filter(
+                Experimenter.experimenter_id == launcher).first()
+        else:
+            launcher_experimenter = dbhandle.query(Experimenter).filter(
+                Experimenter.username == launcher).first()
 
         if test_login_setup:
             lt = dbhandle.query(LoginSetup).filter(
