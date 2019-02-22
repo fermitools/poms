@@ -1070,6 +1070,12 @@ class TaskPOMS:
             else:
                 ccname = "%s__%s" % (cs.campaign_obj.name, cs.name)
 
+            # now quoting in poms_jobsub_wrapper, but blanks still make
+            # it sad so replace them
+            cname = cname.replace(' ','_')
+            csname = csname..replace(' ','_')
+            ccname = ccname..replace(' ','_')
+ 
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
 
