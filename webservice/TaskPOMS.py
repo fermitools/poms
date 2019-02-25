@@ -1282,8 +1282,8 @@ class TaskPOMS:
             "experimenter": experimenter_login,
             "experiment": exp,
         }
+        lcmd.replace("'", """'"'"'""")
         if output_commands:
-            lcmd.replace("'", """'"'"'""")
             cmdl.append(
                 'echo "\n=========\nrun the following to launch the job:\n%s"' %
                 lcmd)
