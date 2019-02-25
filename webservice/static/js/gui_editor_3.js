@@ -1279,7 +1279,9 @@ gui_editor.prototype.draw_state = function () {
         // Set coordinates for the nodes
         for (const pp in node_positions) {
             const [n, x, y] = JSON.parse(node_positions[pp]);
-            this.nodes.update({id: n, x: x, y: y});
+            // Fix the issue with campaign renaming. Code cleanup is needed.
+            const nn = n.startsWith("campaign") ? `campaign ${this.state.campaign.name}` : n;
+            this.nodes.update({id: nn, x: x, y: y});
         }
     };
     // setTimeout(()=>{
