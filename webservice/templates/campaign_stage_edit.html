@@ -22,7 +22,7 @@ POMS
 </style>
 
 {%block header%}
-Campaign Stages 
+Campaign Stages
     {% include 'help_button.html' %}
 {%endblock%}
 
@@ -49,12 +49,14 @@ Campaign Stages
   {% if data.curr_experiment is defined %}
   <div id="double-scroll" class="scrollable">
 
-  <table class="ui sortable single line celled table" style="margin-top: 3em;">
+  <table class="ui sortable single line celled table" style="margin-top: 3em;" id="stagetable">
     <thead>
       <tr>
         <th></th>
         <th> Campaign Name</th>
+        <th> C Id</th>
         <th> Stage Name {{ show_hint('#Name', 'Name string') }} </th>
+        <th> S Id</th>
         <!-- <th> Active {{ show_hint('#Active', 'True/False') }} </th> -->
         <th> VO Role {{ show_hint('#VO-Role', 'Role name') }} </th>
         <th> Software<br>Version {{ show_hint('#Software-Version', 'Version tag') }} </th>
@@ -82,20 +84,16 @@ Campaign Stages
         </td>
         <td id="c_campaign_stage_id_{{loop.index}}" style="display:none">{{row.CampaignStage.campaign_stage_id}}</td>
         {% if row.CampaignStage.campaign_stage_id|int == jump_to_campaign|default(-1)|int %}
-        <script type="text/javascript">
-         // jump directly to a particular campaign
-         $(document).ready(function(){
-            edit_campaign({{loop.index}});
-         });
+
         </script>
         {% endif %}
         <td id="c_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
         <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.CampaignStage.job_type_id}}</td>
         <td id="c_launch_id_{{loop.index}}" style="display:none">{{row.CampaignStage.login_setup_id}}</td>
-        <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.CampaignStage.campaign_id}}</td>
         <td id="c_campaign_name_{{loop.index}}">{{row.Campaign.name}}</td>
+        <td id="c_campaign_id_{{loop.index}}">{{row.CampaignStage.campaign_id}}</td>
         <td id="c_name_{{loop.index}}">{{row.CampaignStage.name}}</td>
-        <!-- <td id="c_active_{{loop.index}}">{{row.CampaignStage.active}}</td> -->
+        <td id="c_campaign_stage_id_{{loop.index}}">{{row.CampaignStage.campaign_stage_id}}</td>
         <td id="c_vo_role_{{loop.index}}">{{row.CampaignStage.vo_role}}</td>
         <td id="c_software_version_{{loop.index}}">{{row.CampaignStage.software_version}}</td>
         <td id="c_dataset_{{loop.index}}">{{row.CampaignStage.dataset}}</td>
@@ -110,8 +108,8 @@ Campaign Stages
         <td id="c_test_param_overrides_{{loop.index}}">{{row.CampaignStage.test_param_overrides|tojson|replace("null","")}}</td>
         <td id="c_depends_{{loop.index}}">
         {% for key, value in data.depends.items() %}
-            {% if key == row.CampaignStage.campaign_stage_id %}
-            {{ value }}
+            {% if key == row.CampaignStage.campaign_stage_id and value|length %}
+                {{ value }}
             {% endif %}
         {% endfor %}
         </td>
@@ -173,12 +171,8 @@ Campaign Stages
 
       <div class="fields">
         <label>Campaign Name</label>
-        <select name="ae_campaign_name" id="ae_campaign_name" class="ui fluid search dropdown" disabled >
-          <option value=""></option>
-          {% for row in data.campaigns %}
-          <option value={{row.campaign_id}}>{{row.name}}</option>
-          {% endfor %}
-        </select>
+        <input type="text" id="ae_campaign_name" name="ae_campaign_name" value="" readonly>
+        <input type="hidden" id="ae_campaign_id" name="ae_campaign_id" value="0">
       </div>
 
       <div class="three fields">
@@ -431,7 +425,6 @@ function setup_form_validation() {
 $('#campaign_add_edit_form')
   .form({
     fields: {
-      ae_campaign_name :          'empty',
       ae_stage_name :             'empty',
       ae_vo_role :                'empty',
       ae_active :                 'empty',
@@ -708,6 +701,8 @@ function delete_campaign(name,campaign_stage_id) {
 function edit_campaign(index,clone) {
   if (typeof clone === 'undefined') {
     $("#ae_definition_action").val("edit");
+    $("#ae_campaign_name").val( $("#c_campaign_name_"+index).text() );
+    $("#ae_campaign_id").val( $("#c_campaign_id_"+index).text() );
     $("#ae_stage_name").val( $("#c_name_"+index).text() );
     $("#ae_depends").val( $("#c_depends_"+index).text() );
     $("#ae_depends_text").val( $.trim( $("#c_depends_"+index).text() ));
@@ -742,7 +737,6 @@ function edit_campaign(index,clone) {
   $("#ae_completion_pct").val( $("#c_completion_pct_"+index).text() );
 
   $("#campaign_add_edit_modal").modal('show');
-  $("#ae_campaign_name").val( $("#c_campaign_id_"+index).text()  ).trigger('change');
 
   console.log("clone = : " + clone)
   if ( typeof clone === 'undefined' )
@@ -769,18 +763,23 @@ function add_campaign() {
 
 
 $(document).ready(function(){
+  {% if jump_to_campaign is not none %}
+  var rows = $('#stagetable tr').length;
+  var i;
+  var stage_id;
+  for (i = 0; i <= rows; i++) {
+    stage_id = $("#c_campaign_stage_id_"+i).text();
+    if (stage_id == "{{jump_to_campaign}}") {
+      edit_campaign(i);
+    }
+  }
+  {% else %}
   if (`{{ data.message }}` != "None") {
     $("#poms_message_data").text(`{{ data.message }}`);
     $("#display_message_modal").modal('show');
   }
+  {% endif %}
 });
-
-$('#ae_campaign_name')
-  .dropdown({
-    allowAdditions: false,
-    showOnFocus: false
-})
-;
 
 
 </script>
