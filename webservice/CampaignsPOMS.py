@@ -2192,11 +2192,12 @@ class CampaignsPOMS:
                                        definition_parameters=definition_parameters,
                                        creator=user_id, created=datetime.now(utc), creator_role=role)
                     dbhandle.add(job_type)
-                    recoveries = form.get('recoveries')
-                    if recoveries:
-                        self.fixup_recoveries(dbhandle, job_type.job_type_id, recoveries)
                     try:
                         print(f"*** Creating: JobType '{name}'.")
+                        dbhandle.commit()
+                        recoveries = form.get('recoveries')
+                        if recoveries:
+                            self.fixup_recoveries(dbhandle, job_type.job_type_id, recoveries)
                         dbhandle.commit()
                     except IntegrityError:
                         message.append(f"Warning: JobType '{name}' already exists and will not change.")
