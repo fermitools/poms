@@ -929,6 +929,12 @@ class TaskPOMS:
             parent_submission_id = hl.parent_submission_id
             param_overrides = hl.param_overrides
             launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == hl.launcher).first()
+            if not launch_user:
+                logit.log("bogus experimenter_id : %s aborting held launch"  % hl.launcher)
+                 
+                dbhandle.delete(hl)
+                dbhandle.commit()
+                return "Fail: invalid queued user"
             dbhandle.delete(hl)
             dbhandle.commit()
             cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
@@ -1128,7 +1134,7 @@ class TaskPOMS:
                        "Due to an invalid proxy, we had to queue a job launch\n"
 
                        "Please upload a new proxy, and release queued jobs for this campaign",
-                       "%s@fnal.gov" % cs.experiment_creator_obj.username)
+                       "%s@fnal.gov" % cs.experimenter_creator_obj.username)
                 cs.hold_experimenter_id = cs.creator
                 cs.role_held_with = se_role
 
