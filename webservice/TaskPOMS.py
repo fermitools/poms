@@ -1104,7 +1104,7 @@ class TaskPOMS:
             raise err_res(403, output)
 
 
-        if se_role == 'analysis' and not (lt.launch_host in ('pomsgpvm01.fnal.gov' ,'fermicloud045.fnal.gov','pomsint.fnal.gov')):
+        if se_role == 'analysis' and not (lt.launch_host in ('pomsgpvm01.fnal.gov' ,'fermicloud045.fnal.gov','poms-int.fnal.gov','pomsint.fnal.gov')):
             output = "Not Authorized: {} is not a analysis launch node".format(
                 lt.launch_host, exp)
             raise err_res(403, output)
