@@ -903,9 +903,9 @@ class TaskPOMS:
                                 dataset="from_parent",
                                 job_type_id=(dbhandle.query(JobType.job_type_id) .limit(1).scalar()),
                                 login_setup_id=(dbhandle.query(LoginSetup.login_setup_id).limit(1).scalar()),
-                                param_overrides="[]",
+                                param_overrides=[],
                                 software_version="v1_0",
-                                test_param_overrides="[]",
+                                test_param_overrides=[],
                                 vo_role="Production",
                                 creator=4,
                                 creator_role='production',
@@ -1271,7 +1271,10 @@ class TaskPOMS:
                 params.update(c_param_overrides)
 
         if test_launch and cs.test_param_overrides is not None:
-            params.update(cs.test_param_overrides)
+            try:
+                params.update(cs.test_param_overrides)
+            except:
+                pass
 
         if param_overrides is not None and param_overrides != "":
             if isinstance(param_overrides, str):
