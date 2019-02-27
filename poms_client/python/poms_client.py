@@ -19,7 +19,7 @@ def upload_wf(file_name, test=None,  experiment=None, configfile=None):
     data,status = make_poms_call( 
         method =  'ini_to_campaign',
         files = {'upload': (os.path.basename(file_name), open(file_name, 'rb'))},
-        test = test,
+        test_client = test,
         configfile = configfile)
 
     return status == 303
@@ -28,7 +28,7 @@ def upload_file(file_name, test=None,  experiment=None, configfile=None):
     data,status = make_poms_call(
         method = 'upload_file',
         files = {'filename': (os.path.basename(file_name), open(file_name, 'rb'))},
-        test = test,
+        test_client = test,
         configfile = configfile)
 
     return status == 303
@@ -374,6 +374,8 @@ def make_poms_call(**kwargs):
 
 
     test_client=kwargs.get("test_client",None)
+    if kwargs.has_key("test_client"):
+        del kwargs["test_client"]
 
     logging.debug("in make_poms_call test_client = " + repr(test_client))
 
