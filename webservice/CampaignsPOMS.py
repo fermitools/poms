@@ -747,9 +747,9 @@ class CampaignsPOMS:
         pcl_call = int(kwargs.pop('pcl_call', 0))
         # email is the info we know about the user in POMS DB.
         pc_username = kwargs.pop('pc_username', None)
+        campaign_id = kwargs.pop('ae_campaign_id', None)
 
         if action == 'delete':
-            campaign_id = kwargs.pop('ae_campaign_name')
             name = kwargs.get('ae_stage_name', kwargs.get('name', None))
             if isinstance(name, str):
                 name = name.strip()
@@ -778,7 +778,6 @@ class CampaignsPOMS:
 
         elif action in ('add', 'edit'):
             logit.log("campaign_stage_edit: add or edit case")
-            campaign_id = kwargs.pop('ae_campaign_name', None)
             name = kwargs.pop('ae_stage_name')
             if isinstance(name, str):
                 name = name.strip()
@@ -986,7 +985,7 @@ class CampaignsPOMS:
             cquery = (dbhandle.query(CampaignStage, Campaign)
                       .outerjoin(Campaign)
                       .filter(CampaignStage.experiment == exp)
-                      )
+                     )
             if data['view_analysis'] and data['view_production']:
                 pass
             elif data['view_analysis']:
@@ -1004,13 +1003,6 @@ class CampaignsPOMS:
             elif data['view_others']:
                 cquery = cquery.filter(
                     CampaignStage.creator != data['view_others'])
-
-            # if data['view_active'] and data['view_inactive']:             # Not relevant anymore
-            #     pass
-            # elif data['view_active']:
-            #     cquery = cquery.filter(CampaignStage.active == True)
-            # elif data['view_inactive']:
-            #     cquery = cquery.filter(CampaignStage.active == False)
 
             cquery = cquery.order_by(Campaign.name, CampaignStage.name)
             # this bit has to go onto cquery last
@@ -1054,7 +1046,7 @@ class CampaignsPOMS:
                                       CampaignDependency.file_patterns)
                        .filter(CampaignDependency.provides_campaign_stage_id == cid,
                                CampaignStage.campaign_stage_id == CampaignDependency.needs_campaign_stage_id)
-                       )
+                      )
                 deps = {
                     "campaign_stages": [row[1] for row in sql.all()],
                     "file_patterns": [row[2] for row in sql.all()]
@@ -1062,15 +1054,6 @@ class CampaignsPOMS:
                 depends[cid] = json.dumps(deps)
             data['depends'] = depends
 
-            # Get the campain names
-            campquery = (dbhandle.query(Campaign)
-                         .filter(Campaign.experiment == sesshandle.get('experimenter').session_experiment)
-                         .order_by(Campaign.name)
-                         )
-            if sesshandle.get('experimenter').session_role != 'production':
-                campquery.filter(Campaign.creator == sesshandle.get('experimenter').experimenter_id)
-                campquery.filter(Campaign.creator_role == 'analysis')
-            data['campaigns'] = campquery.all()
         data['message'] = message
         return data
 
@@ -2212,15 +2195,14 @@ class CampaignsPOMS:
                     try:
                         print(f"*** Creating: JobType '{name}'.")
                         dbhandle.commit()
+                        recoveries = form.get('recoveries')
+                        if recoveries:
+                            self.fixup_recoveries(dbhandle, job_type.job_type_id, recoveries)
+                        dbhandle.commit()
                     except IntegrityError:
                         message.append(f"Warning: JobType '{name}' already exists and will not change.")
                         print(f"*** DB error: {message}")
                         dbhandle.rollback()
-
-                    recoveries = form.get('recoveries')
-                    if recoveries:
-                        self.fixup_recoveries(dbhandle, job_type.job_type_id, recoveries)
-                    dbhandle.commit()
 
                 elif eid.startswith("login_setup "):
                     login_setup = LoginSetup(name=name,
