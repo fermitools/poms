@@ -386,7 +386,6 @@ def make_poms_call(**kwargs):
             base=config.get('url','base_dev_ssl')
 
         logging.debug("base = " + base)
-        del kwargs["test_client"]
     else:
         #base=config['url']['base_prod']
         base = config.get('url', 'base_prod')
