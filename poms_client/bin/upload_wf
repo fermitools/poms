@@ -24,7 +24,12 @@ try:
 
     for f in args:
          logging.debug("uploading: %s " % f)
-         poms_client.upload_wf(f, test=options.test)
+         ok, data = poms_client.upload_wf(f, test=options.test)
+         if data.has_key('message'):
+             for m in data['message']:
+                 print( m )
 except:
     logging.exception(sys.argv[0])
     sys.exit(1)
+
+sys.exit(0 if ok else 1)

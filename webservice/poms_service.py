@@ -1,4 +1,4 @@
-#
+
 # h2. Module webservice.poms_service
 #
 # This module attaches all the webservice methods to
@@ -29,6 +29,8 @@ import datetime
 import time
 import json
 from configparser import ConfigParser
+from sqlalchemy.inspection import inspect
+
 
 # cherrypy and jinja imports...
 
@@ -54,8 +56,24 @@ from . import (
 # ORM model is in source:poms_model.py
 #
 
-from .poms_model import Campaign, CampaignStage, Submission, Experiment, LoginSetup
+from .poms_model import Campaign, CampaignStage, Submission, Experiment, LoginSetup, Base
 
+class JSONORMEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+
+        if obj == datetime:
+            return 'datetime'
+
+        if isinstance(obj, Base):
+            # smash ORM objects into dictionaries
+            obj = {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.column_attrs} 
+            return obj
+
+        if isinstance(obj, datetime.datetime):
+            return(obj.strftime("%Y-%m-%dT%H:%M:%S"))
+
+        return super(JSONORMEncoder, self).default(obj)
 #
 # h3. Error handling
 #
@@ -526,22 +544,28 @@ class PomsService:
 # h4. submission_details
     @cherrypy.expose
     @logit.logstartstop
-    def submission_details(self, submission_id):
+    def submission_details(self, submission_id, format = 'html'):
         submission, history, dataset, rmap, smap, ds, submission_log_format  = self.taskPOMS.submission_details(
             cherrypy.request.db, cherrypy.request.samweb_lite, cherrypy.HTTPError, cherrypy.config.get, submission_id)
         template = self.jinja_env.get_template('submission_details.html')
-        return template.render(
-            datetime=datetime,
-            submission=submission,
-            history=history,
-            dataset=dataset,
-            recoverymap=rmap,
-            statusmap=smap,
-            do_refresh=0,
-            ds = ds,
-            submission_log_format = submission_log_format,
-            help_page="SubmissionDetailsHelp",
-        )
+        values = {
+            'submission': submission,
+            'history': history,
+            'dataset': dataset,
+            'recoverymap': rmap,
+            'statusmap': smap,
+            'ds ':  ds,
+            'submission_log_format ':  submission_log_format,
+            'datetime': datetime,
+            'do_refresh': 0,
+            'help_page': "SubmissionDetailsHelp",
+        }
+        if format == 'json':
+            cherrypy.response.headers['Content-Type'] = 'application/json'
+            return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')
+        else:
+            return template.render( **values )
+
 
 
 # h4. campaign_stage_info

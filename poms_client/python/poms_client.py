@@ -15,6 +15,17 @@ except:
 
 rs = requests.Session()
 
+def submission_details(submission_id, test=None, experiment=None, configfile=None):
+
+    data,status = make_poms_call( 
+        method =  'submission_details',
+        submission_id = submission_id,
+        format = json,
+        test_client = test,
+        configfile = configfile)
+
+    return status in (200, 201), json.loads(data)
+
 def upload_wf(file_name, test=None,  experiment=None, configfile=None):
     data,status = make_poms_call( 
         method =  'ini_to_campaign',
@@ -22,7 +33,8 @@ def upload_wf(file_name, test=None,  experiment=None, configfile=None):
         test_client = test,
         configfile = configfile)
 
-    return status == 303
+    return status in (200,201), json.loads(data)
+
 
 def upload_file(file_name, test=None,  experiment=None, configfile=None):
     data,status = make_poms_call(
@@ -78,14 +90,35 @@ def get_task_id_for(campaign, user=None, command_executed=None, input_dataset=No
 
 
 def launch_jobs(campaign, test=None, experiment=None, configfile=None):
-    logging.debug("in get launch_jobs test = " + repr(test))
+    ''' backward compatible call '''
+    return launch_campaign_stage_jobs(campaign, test, experiment, configfile)[1] == 303
+
+def launch_campaign_stage_jobs(campaign_stage_id, test=None, experiment=None, configfile=None):
     data, status = make_poms_call(
         method='launch_jobs',
-        campaign_id=campaign,
+        campaign_stage_id=campaign_stage_id,
         test=test,
         configfile=configfile,
         experiment=experiment)
-    return data, status
+    if status == 303:
+        submission_id = os.path.basename(data)
+    else:
+        submission_id = None
+    return data, status, submission_id
+
+def launch_campaign_jobs(campaign_id, test=None, experiment=None, configfile=None):
+    data, status = make_poms_call(
+        method='launch_campaign',
+        campaign_id=campaign_id,
+        test=test,
+        configfile=configfile,
+        experiment=experiment)
+    if status == 303:
+        submission_id = os.path.basename(data)
+    else:
+        submission_id = None
+        
+    return data, status, submission_id
 
 
 def launch_template_edit(action=None, launch_name=None, launch_host=None, user_account=None, launch_setup=None,
