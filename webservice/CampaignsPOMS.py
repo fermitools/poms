@@ -311,9 +311,9 @@ class CampaignsPOMS:
                                                 .filter(LoginSetup.name == "generic",
                                                         LoginSetup.experiment == 'samdev')
                                                 .scalar()),
-                                param_overrides="[]",
+                                param_overrides=[],
                                 software_version="v1_0",
-                                test_param_overrides="[]",
+                                test_param_overrides=[],
                                 vo_role="Production",
                                 #
                                 creator=seshandle('experimenter').experimenter_id,
@@ -427,7 +427,7 @@ class CampaignsPOMS:
             if isinstance(rec.param_overrides, str):
                 logit.log("get_recoveries(%d) -- saw string param_overrides" % cid)
                 if rec.param_overrides in ('', '{}', '[]'):
-                    rec.param_overrides = "[]"
+                    rec.param_overrides = []
                 rec_vals = [rec.recovery_type.name, json.loads(rec.param_overrides)]
             else:
                 rec_vals = [rec.recovery_type.name, rec.param_overrides]
@@ -1304,7 +1304,7 @@ class CampaignsPOMS:
 
         res.append("")
 
-        return "\n".join(res).replace("%", "%%")
+        return "\n".join(res)
 
     def campaign_deps_svg(self, dbhandle, config_get,
                           campaign_name=None, campaign_stage_id=None):
