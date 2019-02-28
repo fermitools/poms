@@ -19,10 +19,11 @@ def show_campaigns(test=None, experiment=None, configfile=None):
 
     data,status = make_poms_call( 
         method =  'show_campaigns',
-        format = json,
+        format = 'json',
         test_client = test,
         configfile = configfile)
 
+    print("got data: |%s|" % repr(data))
     return status in (200, 201), json.loads(data)
 
 def submission_details(submission_id, test=None, experiment=None, configfile=None):
@@ -30,7 +31,7 @@ def submission_details(submission_id, test=None, experiment=None, configfile=Non
     data,status = make_poms_call( 
         method =  'submission_details',
         submission_id = submission_id,
-        format = json,
+        format = 'json',
         test_client = test,
         configfile = configfile)
 
