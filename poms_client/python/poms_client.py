@@ -15,6 +15,16 @@ except:
 
 rs = requests.Session()
 
+def show_campaigns(test=None, experiment=None, configfile=None):
+
+    data,status = make_poms_call( 
+        method =  'show_campaigns',
+        format = json,
+        test_client = test,
+        configfile = configfile)
+
+    return status in (200, 201), json.loads(data)
+
 def submission_details(submission_id, test=None, experiment=None, configfile=None):
 
     data,status = make_poms_call( 
