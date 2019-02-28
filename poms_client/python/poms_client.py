@@ -112,7 +112,7 @@ def launch_campaign_stage_jobs(campaign_stage_id, test=None, experiment=None, co
         configfile=configfile,
         experiment=experiment)
     if status == 303:
-        submission_id = os.path.basename(data)
+        submission_id = int(data[data.rfind("_")+1:])
     else:
         submission_id = None
     return data, status, submission_id
@@ -125,7 +125,7 @@ def launch_campaign_jobs(campaign_id, test=None, experiment=None, configfile=Non
         configfile=configfile,
         experiment=experiment)
     if status == 303:
-        submission_id = os.path.basename(data)
+        submission_id = int(data[data.rfind("_")+1:])
     else:
         submission_id = None
         
