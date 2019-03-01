@@ -113,7 +113,7 @@ def launch_jobs(campaign, test=None, experiment=None, configfile=None):
     return launch_campaign_stage_jobs(campaign, test, experiment, configfile)[1] == 303
 
 def launch_campaign_stage_jobs(campaign_stage_id, test=None, experiment=None, configfile=None):
-    ''' launch jobs for a cammpaign stage: returns 
+    ''' launch jobs for a cammpaign stage: returns '''
     data, status = make_poms_call(
         method='launch_jobs',
         campaign_stage_id=campaign_stage_id,
