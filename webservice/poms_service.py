@@ -1071,7 +1071,7 @@ class PomsService:
         if parent_task_id and not parent_submission_id:
             parent_submission_id = parent_task_id
         if cherrypy.session.get('experimenter').username and (
-                'poms' != cherrypy.session.get('experimenter').username or launcher == ''):
+                'poms' != cherrypy.session.get('experimenter').username or not launcher ):
             launch_user = cherrypy.session.get('experimenter').experimenter_id
         else:
             launch_user = launcher

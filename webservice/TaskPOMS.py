@@ -987,7 +987,8 @@ class TaskPOMS:
         
 
         # at the moment we're inconsistent about whether we pass
-        # launcher as a username or experimenter_id...
+        # launcher as a username or experimenter_id or if its a string
+        # of the integer or  an integer... sigh
         if str(launcher)[0] in ('0','1','2','3','4','5','6','7','8','9'):
             launcher_experimenter = dbhandle.query(Experimenter).filter(
                 Experimenter.experimenter_id == int(launcher)).first()
