@@ -291,10 +291,10 @@ json_field_editor.save = function(fid) {
     dest.value = JSON.stringify(res).replace(/([,:])/g,'$1 ');      // To comply with Python json.dumps() format
     /* also update xxx_text if there is one */
     console.log(["updating", id, dest, res]);
-    dest = document.getElementById(id + '_text')
+    dest = document.getElementById(id + '_text');
     if (dest) {
-        dest.value = JSON.stringify(res)
-        console.log(["also updating", id+'_text', dest, res])
+        dest.value = JSON.stringify(res).replace(/([,:])/g,'$1 ');  // To comply with Python json.dumps() format;
+        console.log(["also updating", id+'_text', dest, res]);
     }
     json_field_editor.cancel(fid);
 }

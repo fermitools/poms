@@ -367,13 +367,16 @@ class TaskPOMS:
                 project = m.group(1)
                 break
 
-        if user is None:
-            user = 4
-        else:
+        if user:
             u = dbhandle.query(Experimenter).filter(
                 Experimenter.username == user).first()
             if u:
                 user = u.experimenter_id
+            else:
+                user = None
+
+        if user is None:
+            user =  390  # default to 'poms'
 
         q = dbhandle.query(CampaignStage)
         if str(campaign)[0] in "0123456789":
@@ -391,16 +394,20 @@ class TaskPOMS:
             tim = datetime.now(utc)
 
         if submission_id:
+
             s = dbhandle.query(Submission).filter(
                 Submission.submission_id == submission_id).one()
             s.command_executed = command_executed
+            if user != 390:
+                s.creator=user
+           
             s.updated = tim
         else:
             s = Submission(campaign_stage_id=cs.campaign_stage_id,
                            submission_params={},
                            project=project,
-                           updater=4,
-                           creator=4,
+                           updater=user,
+                           creator=user,
                            created=tim,
                            updated=tim,
                            command_executed=command_executed)
@@ -728,7 +735,7 @@ class TaskPOMS:
                     err_res,
                     basedir,
                     cd.provides_campaign_stage_id,
-                    launch_user.username,
+                    launch_user.username,   # XXX should be id here...
                     test_launch=s.submission_params.get(
                         'test',
                         False))
@@ -868,6 +875,7 @@ class TaskPOMS:
                 launch_user = dbhandle.query(Experimenter).filter(
                     Experimenter.experimenter_id == s.creator).first()
 
+                # XXX launch_user.username -- should be id...
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
                                  err_res, basedir, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username, dataset_override=rname,
                                  parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch=s.submission_params.get('test', False))
