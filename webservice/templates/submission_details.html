@@ -109,11 +109,18 @@ View the <a href="https://{{schedd}}:8443/jobsub/acctgroups/{{experiment|replace
 Hold Condor Jobs <a href="{{pomspath}}/kill_jobs?submission_id={{submission.submission_id}}&act=hold"><i class="pause icon"></i></a> <br>
 Release Condor Jobs <a href="{{pomspath}}/kill_jobs?submission_id={{submission.submission_id}}&act=release"><i class="play icon"></i></a> <br>
 Kill Condor Jobs <a href="{{pomspath}}/kill_jobs?submission_id={{submission.submission_id}}&act=kill"><i class="trash icon"></i></a> <br>
-{%else%}
-{%if history[-1].status_id == 7000 %}
+Kick to Located  <i class="ui forward icon  grey">&nbsp;&nbspb;
+{%elif history[-1].status_id == 7000 %}
+Hold Condor Jobs <i class="ui pause icon grey">&nbsp;&nbspb;
+Release Condor Jobs  <i class="ui play icon grey">&nbsp;&nbspb;
+Kill Condor Jobs   <i class="ui trash icon grey">&nbsp;&nbspb;
 Kick to Located 
 <a href="{{pomspath}}/force_locate_submission?submission_id={{submission.submission_id}}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>
-{%endif%}
+{%else%}
+Hold Condor Jobs <i class="ui pause icon grey">&nbsp;&nbspb;
+Release Condor Jobs  <i class="ui play icon grey">&nbsp;&nbspb;
+Kill Condor Jobs   <i class="ui trash icon grey">&nbsp;&nbspb;
+Kick to Located  <i class="ui forward icon  grey">&nbsp;&nbspb;
 {%endif%}
 <br>
 

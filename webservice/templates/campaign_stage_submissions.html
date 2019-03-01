@@ -62,9 +62,17 @@ Campaign Stage:&nbsp;&nbsp;&nbsp; {{data.stage_name}}
                     <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>&nbsp;&nbsp;
                     <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=release" alt="Release"><i class="ui play icon"></i></a>&nbsp;&nbsp;
                     <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>
-                    {% endif %}
-                    {% if rec.status == 'Completed' %}
+                       <i class="ui forward icon  grey">&nbsp;&nbspb;
+                    {% elif rec.status == 'Completed' %}
+                       <i class="ui pause icon grey">&nbsp;&nbspb;
+                       <i class="ui play icon grey">&nbsp;&nbspb;
+                       <i class="ui trash icon grey">&nbsp;&nbspb;
                     <a href="{{pomspath}}/force_locate_submission?submission_id={{rec.submission_id}}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>
+                    {% else %}
+                       <i class="ui pause icon grey">&nbsp;&nbspb;
+                       <i class="ui play icon grey">&nbsp;&nbspb;
+                       <i class="ui trash icon grey">&nbsp;&nbspb;
+                       <i class="ui forward icon  grey">&nbsp;&nbspb;
                     {% endif %}
                 {% endif %}
             </td>
