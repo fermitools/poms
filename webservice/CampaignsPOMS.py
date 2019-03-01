@@ -1468,9 +1468,9 @@ class CampaignsPOMS:
         if data['view_active'] and data['view_inactive']:
             pass
         elif data['view_active']:
-            q = q.filter(Campaign.active)
+            q = q.filter(Campaign.active == True)
         elif data['view_inactive']:
-            q = q.filter(not Campaign.active)
+            q = q.filter(Campaign.active == False)
 
         csl = q.all()
 
@@ -1572,10 +1572,10 @@ class CampaignsPOMS:
             pass
         elif data['view_active']:
             csq = csq.filter(
-                CampaignStage.campaign_obj.has(Campaign.active))
+                CampaignStage.campaign_obj.has(Campaign.active == True))
         elif data['view_inactive']:
             csq = csq.filter(
-                CampaignStage.campaign_obj.has(not Campaign.active))
+                CampaignStage.campaign_obj.has(Campaign.active == False))
 
         if campaign_ids:
             campaign_ids = campaign_ids.split(",")
