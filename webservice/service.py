@@ -198,8 +198,8 @@ class SessionTool(cherrypy.Tool):
                             )
 
         elif cherrypy.config.get('standalone_test_user', None):
-            logit.log("standalone_test_user case")
             username = cherrypy.config.get('standalone_test_user', None)
+            logit.log("standalone_test_user case: user %s" % username)
             experimenter = (cherrypy.request.db.query(Experimenter)
                             .filter(ExperimentsExperimenters.active == True)
                             .filter(Experimenter.username == username)

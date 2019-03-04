@@ -15,25 +15,53 @@ except:
 
 rs = requests.Session()
 
+def show_campaigns(test=None, experiment=None, configfile=None):
+    ''' Return data about campaigns for the current experiment. '''
+
+    data,status = make_poms_call( 
+        method =  'show_campaigns',
+        format = 'json',
+        test_client = test,
+        configfile = configfile)
+
+    print("got data: |%s|" % repr(data))
+    return status in (200, 201), json.loads(data)
+
+def submission_details(submission_id, test=None, experiment=None, configfile=None):
+    ''' return details about a certain submission '''
+
+    data,status = make_poms_call( 
+        method =  'submission_details',
+        submission_id = submission_id,
+        format = 'json',
+        test_client = test,
+        configfile = configfile)
+
+    return status in (200, 201), json.loads(data)
+
 def upload_wf(file_name, test=None,  experiment=None, configfile=None):
+    ''' upload a campaign .ini file to the server, returns boolan OK flag, and json data from server '''
     data,status = make_poms_call( 
         method =  'ini_to_campaign',
         files = {'upload': (os.path.basename(file_name), open(file_name, 'rb'))},
-        test = test,
+        test_client = test,
         configfile = configfile)
 
-    return status == 303
+    return status in (200,201), json.loads(data)
+
 
 def upload_file(file_name, test=None,  experiment=None, configfile=None):
+    ''' upload a file to your $UPLOADS area on the poms server to be used in jo b launches.  returns boolean "Ok" value '''
     data,status = make_poms_call(
         method = 'upload_file',
         files = {'filename': (os.path.basename(file_name), open(file_name, 'rb'))},
-        test = test,
+        test_client = test,
         configfile = configfile)
 
     return status == 303
 
 def get_campaign_id(campaign_name, test=None, user=None, experiment=None, configfile=None):
+    ''' deprecated: get a campaign stage id by name. Returns integer campaign_stage_id '''
     data, status = make_poms_call(
         method='get_campaign_id',
         campaign_name=campaign_name,
@@ -44,6 +72,7 @@ def get_campaign_id(campaign_name, test=None, user=None, experiment=None, config
     return int(data)
 
 def register_poms_campaign(campaign_name, user=None, experiment=None, version=None, dataset=None, campaign_definition=None, test=None, configfile=None):
+    ''' deprecated: register campaign stage. returns "Campaign=<stage_id>"  '''
     data, status = make_poms_call(
         method='register_poms_campaign',
         campaign_name=campaign_name,
@@ -62,6 +91,8 @@ def register_poms_campaign(campaign_name, user=None, experiment=None, version=No
 
 def get_task_id_for(campaign, user=None, command_executed=None, input_dataset=None, parent_task_id=None,
                     task_id=None, test=None, experiment=None, configfile=None):
+    ''' get a submission id for a submission / or register the command 
+        executed for an existing submission.  Returns "Task=<submission_id>" '''
     logging.debug("in get task_id_for test = " + repr(test))
     data, status = make_poms_call(
         method='get_task_id_for',
@@ -78,14 +109,36 @@ def get_task_id_for(campaign, user=None, command_executed=None, input_dataset=No
 
 
 def launch_jobs(campaign, test=None, experiment=None, configfile=None):
-    logging.debug("in get launch_jobs test = " + repr(test))
+    '''depecated: backward compatible call to launch jobs for a campaign stage '''
+    return launch_campaign_stage_jobs(campaign, test, experiment, configfile)[1] == 303
+
+def launch_campaign_stage_jobs(campaign_stage_id, test=None, experiment=None, configfile=None):
+    ''' launch jobs for a cammpaign stage: returns '''
     data, status = make_poms_call(
         method='launch_jobs',
-        campaign_id=campaign,
+        campaign_stage_id=campaign_stage_id,
         test=test,
         configfile=configfile,
         experiment=experiment)
-    return data, status
+    if status == 303:
+        submission_id = int(data[data.rfind("_")+1:])
+    else:
+        submission_id = None
+    return data, status, submission_id
+
+def launch_campaign_jobs(campaign_id, test=None, experiment=None, configfile=None):
+    data, status = make_poms_call(
+        method='launch_campaign',
+        campaign_id=campaign_id,
+        test=test,
+        configfile=configfile,
+        experiment=experiment)
+    if status == 303:
+        submission_id = int(data[data.rfind("_")+1:])
+    else:
+        submission_id = None
+        
+    return data, status, submission_id
 
 
 def launch_template_edit(action=None, launch_name=None, launch_host=None, user_account=None, launch_setup=None,
@@ -374,6 +427,8 @@ def make_poms_call(**kwargs):
 
 
     test_client=kwargs.get("test_client",None)
+    if kwargs.has_key("test_client"):
+        del kwargs["test_client"]
 
     logging.debug("in make_poms_call test_client = " + repr(test_client))
 
@@ -384,7 +439,6 @@ def make_poms_call(**kwargs):
             base=config.get('url','base_dev_ssl')
 
         logging.debug("base = " + base)
-        del kwargs["test_client"]
     else:
         #base=config['url']['base_prod']
         base = config.get('url', 'base_prod')

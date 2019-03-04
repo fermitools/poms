@@ -824,7 +824,7 @@ gui_editor.prototype.ini2json = function (s) {
           }
       } else {                                              // Section body
           l = mwm_utils.trim_blanks(l);
-          l = l.replace(/%%/g,'%');
+          // l = l.replace(/%%/g,'%'); no longer doubling percent signs
           k_v = l.match(/([^ =:]*) *[=:] *(.*)/);
           console.log(k_v);
           k_v.shift();

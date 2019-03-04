@@ -17,6 +17,7 @@ from collections import OrderedDict, deque
 from datetime import datetime, timedelta
 from .SessionExperimenter import SessionExperimenter
 
+from mail import Mail
 from psycopg2.extensions import QueryCanceledError
 from sqlalchemy import case, func, text, and_, or_
 from sqlalchemy.orm import joinedload
@@ -366,13 +367,16 @@ class TaskPOMS:
                 project = m.group(1)
                 break
 
-        if user is None:
-            user = 4
-        else:
+        if user:
             u = dbhandle.query(Experimenter).filter(
                 Experimenter.username == user).first()
             if u:
                 user = u.experimenter_id
+            else:
+                user = None
+
+        if user is None:
+            user =  390  # default to 'poms'
 
         q = dbhandle.query(CampaignStage)
         if str(campaign)[0] in "0123456789":
@@ -390,16 +394,20 @@ class TaskPOMS:
             tim = datetime.now(utc)
 
         if submission_id:
+
             s = dbhandle.query(Submission).filter(
                 Submission.submission_id == submission_id).one()
             s.command_executed = command_executed
+            if user != 390:
+                s.creator=user
+           
             s.updated = tim
         else:
             s = Submission(campaign_stage_id=cs.campaign_stage_id,
                            submission_params={},
                            project=project,
-                           updater=4,
-                           creator=4,
+                           updater=user,
+                           creator=user,
                            created=tim,
                            updated=tim,
                            command_executed=command_executed)
@@ -727,7 +735,7 @@ class TaskPOMS:
                     err_res,
                     basedir,
                     cd.provides_campaign_stage_id,
-                    launch_user.username,
+                    launch_user.username,   # XXX should be id here...
                     test_launch=s.submission_params.get(
                         'test',
                         False))
@@ -867,6 +875,7 @@ class TaskPOMS:
                 launch_user = dbhandle.query(Experimenter).filter(
                     Experimenter.experimenter_id == s.creator).first()
 
+                # XXX launch_user.username -- should be id...
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
                                  err_res, basedir, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username, dataset_override=rname,
                                  parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch=s.submission_params.get('test', False))
@@ -902,9 +911,9 @@ class TaskPOMS:
                                 dataset="from_parent",
                                 job_type_id=(dbhandle.query(JobType.job_type_id) .limit(1).scalar()),
                                 login_setup_id=(dbhandle.query(LoginSetup.login_setup_id).limit(1).scalar()),
-                                param_overrides="[]",
+                                param_overrides=[],
                                 software_version="v1_0",
-                                test_param_overrides="[]",
+                                test_param_overrides=[],
                                 vo_role="Production",
                                 creator=4,
                                 creator_role='production',
@@ -928,6 +937,12 @@ class TaskPOMS:
             parent_submission_id = hl.parent_submission_id
             param_overrides = hl.param_overrides
             launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == hl.launcher).first()
+            if not launch_user:
+                logit.log("bogus experimenter_id : %s aborting held launch"  % hl.launcher)
+                 
+                dbhandle.delete(hl)
+                dbhandle.commit()
+                return "Fail: invalid queued user"
             dbhandle.delete(hl)
             dbhandle.commit()
             cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
@@ -980,7 +995,8 @@ class TaskPOMS:
         
 
         # at the moment we're inconsistent about whether we pass
-        # launcher as a username or experimenter_id...
+        # launcher as a username or experimenter_id or if its a string
+        # of the integer or  an integer... sigh
         if str(launcher)[0] in ('0','1','2','3','4','5','6','7','8','9'):
             launcher_experimenter = dbhandle.query(Experimenter).filter(
                 Experimenter.experimenter_id == int(launcher)).first()
@@ -1097,7 +1113,7 @@ class TaskPOMS:
             raise err_res(403, output)
 
 
-        if se_role == 'analysis' and not (lt.launch_host in ('pomsgpvm01.fnal.gov' ,'fermicloud045.fnal.gov','pomsint.fnal.gov')):
+        if se_role == 'analysis' and not (lt.launch_host in ('pomsgpvm01.fnal.gov' ,'fermicloud045.fnal.gov','poms-int.fnal.gov','pomsint.fnal.gov')):
             output = "Not Authorized: {} is not a analysis launch node".format(
                 lt.launch_host, exp)
             raise err_res(403, output)
@@ -1127,7 +1143,7 @@ class TaskPOMS:
                        "Due to an invalid proxy, we had to queue a job launch\n"
 
                        "Please upload a new proxy, and release queued jobs for this campaign",
-                       "%s@fnal.gov" % cs.experiment_creator_obj.username)
+                       "%s@fnal.gov" % cs.experimenter_creator_obj.username)
                 cs.hold_experimenter_id = cs.creator
                 cs.role_held_with = se_role
 
@@ -1264,7 +1280,10 @@ class TaskPOMS:
                 params.update(c_param_overrides)
 
         if test_launch and cs.test_param_overrides is not None:
-            params.update(cs.test_param_overrides)
+            try:
+                params.update(cs.test_param_overrides)
+            except:
+                pass
 
         if param_overrides is not None and param_overrides != "":
             if isinstance(param_overrides, str):

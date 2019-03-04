@@ -21,8 +21,8 @@ POMS:Campaign Stage Submissions
 
 
 {%block subheader%}
-Campaign:&nbsp;&nbsp;&nbsp; {{data.campaign_name}} <br>
-Campaign Stage:&nbsp;&nbsp;&nbsp; {{data.stage_name}}
+Campaign:&nbsp;&nbsp; {{data.campaign_name}} <br>
+Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
 {%endblock%}
 
 {%block content%}
@@ -59,12 +59,22 @@ Campaign Stage:&nbsp;&nbsp;&nbsp; {{data.stage_name}}
             <td>
                 {% if rec.jobsub_job_id is not none %}
                     {% if rec.status in ('New', 'Idle', 'Running', 'Held') %}
-                    <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>&nbsp;&nbsp;
-                    <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=release" alt="Release"><i class="ui play icon"></i></a>&nbsp;&nbsp;
+                    <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>&nbsp;
+                    <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=release" alt="Release"><i class="ui play icon"></i></a>&nbsp;
                     <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>
-                    {% endif %}
-                    {% if rec.status == 'Completed' %}
+                       <i class="ui forward icon  grey"></i>&nbsp;
+                    {% elif rec.status == 'Completed' %}
+                       <i class="ui pause icon grey"></i>&nbsp; 
+                       <i class="ui play icon grey"></i>&nbsp;
+                       <i class="ui trash icon grey"></i>&nbsp;
                     <a href="{{pomspath}}/force_locate_submission?submission_id={{rec.submission_id}}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>
+                    {% else %}
+                     <span>
+                       <i class="ui pause icon grey"></i>&nbsp;
+                       <i class="ui play icon grey"></i>&nbsp;
+                       <i class="ui trash icon grey"></i>&nbsp;
+                       <i class="ui forward icon  grey"></i>&nbsp;
+                     <span>
                     {% endif %}
                 {% endif %}
             </td>

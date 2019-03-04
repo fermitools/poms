@@ -97,7 +97,7 @@ View the <a href="http://samweb.fnal.gov:8480/station_monitor/{{experiment}}/sta
 {%endif%}
 
 {%if submission.jobsub_job_id %}
-View the <a href="https://{{schedd}}:8443/jobsub/acctgroups/{{experiment|replace('samdev','fermilab')}}/sandboxes/{{"%spro"|format(experiment)|replace("samdevpro","mengel")}}/{{submission.jobsub_job_id|replace("@",".0@")|replace(".0.0@",".0@")}}/">Job Logs</a> <br>
+View the <a href="https://{{schedd}}:8443/jobsub/acctgroups/{{experiment|replace('samdev','fermilab')}}/sandboxes/{%if submission.campaign_stage_snapshot_obj.vo_role == 'Production' %}{{"%spro"|format(experiment)|replace("samdevpro","mengel")}}{%else%}{{submission.experimenter_creator_obj.username}}{%endif%}/{{submission.jobsub_job_id|replace("@",".0@")|replace(".0.0@",".0@")}}/">Job Logs</a> <br>
 {%endif%}
 
 </div>
@@ -109,11 +109,18 @@ View the <a href="https://{{schedd}}:8443/jobsub/acctgroups/{{experiment|replace
 Hold Condor Jobs <a href="{{pomspath}}/kill_jobs?submission_id={{submission.submission_id}}&act=hold"><i class="pause icon"></i></a> <br>
 Release Condor Jobs <a href="{{pomspath}}/kill_jobs?submission_id={{submission.submission_id}}&act=release"><i class="play icon"></i></a> <br>
 Kill Condor Jobs <a href="{{pomspath}}/kill_jobs?submission_id={{submission.submission_id}}&act=kill"><i class="trash icon"></i></a> <br>
-{%else%}
-{%if history[-1].status_id == 7000 %}
+Kick to Located  <i class="ui forward icon  grey"></i>&nbsp;
+{%elif history[-1].status_id == 7000 %}
+Hold Condor Jobs <i class="ui pause icon grey"></i>&nbsp;<br>
+Release Condor Jobs  <i class="ui play icon grey"></i>&nbsp;<br>
+Kill Condor Jobs   <i class="ui trash icon grey"></i>&nbsp;<br>
 Kick to Located 
 <a href="{{pomspath}}/force_locate_submission?submission_id={{submission.submission_id}}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>
-{%endif%}
+{%else%}
+Hold Condor Jobs <i class="ui pause icon grey"></i>&nbsp;<br>
+Release Condor Jobs  <i class="ui play icon grey"></i>&nbsp;<br>
+Kill Condor Jobs   <i class="ui trash icon grey"></i>&nbsp;<br>
+Kick to Located  <i class="ui forward icon  grey"></i>&nbsp;
 {%endif%}
 <br>
 

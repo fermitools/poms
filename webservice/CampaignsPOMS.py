@@ -311,9 +311,9 @@ class CampaignsPOMS:
                                                 .filter(LoginSetup.name == "generic",
                                                         LoginSetup.experiment == 'samdev')
                                                 .scalar()),
-                                param_overrides="[]",
+                                param_overrides=[],
                                 software_version="v1_0",
-                                test_param_overrides="[]",
+                                test_param_overrides=[],
                                 vo_role="Production",
                                 #
                                 creator=seshandle('experimenter').experimenter_id,
@@ -427,7 +427,7 @@ class CampaignsPOMS:
             if isinstance(rec.param_overrides, str):
                 logit.log("get_recoveries(%d) -- saw string param_overrides" % cid)
                 if rec.param_overrides in ('', '{}', '[]'):
-                    rec.param_overrides = "[]"
+                    rec.param_overrides = []
                 rec_vals = [rec.recovery_type.name, json.loads(rec.param_overrides)]
             else:
                 rec_vals = [rec.recovery_type.name, rec.param_overrides]
@@ -1304,7 +1304,7 @@ class CampaignsPOMS:
 
         res.append("")
 
-        return "\n".join(res).replace("%", "%%")
+        return "\n".join(res)
 
     def campaign_deps_svg(self, dbhandle, config_get,
                           campaign_name=None, campaign_stage_id=None):
@@ -1468,9 +1468,9 @@ class CampaignsPOMS:
         if data['view_active'] and data['view_inactive']:
             pass
         elif data['view_active']:
-            q = q.filter(Campaign.active)
+            q = q.filter(Campaign.active == True)
         elif data['view_inactive']:
-            q = q.filter(not Campaign.active)
+            q = q.filter(Campaign.active == False)
 
         csl = q.all()
 
@@ -1572,10 +1572,10 @@ class CampaignsPOMS:
             pass
         elif data['view_active']:
             csq = csq.filter(
-                CampaignStage.campaign_obj.has(Campaign.active))
+                CampaignStage.campaign_obj.has(Campaign.active == True))
         elif data['view_inactive']:
             csq = csq.filter(
-                CampaignStage.campaign_obj.has(not Campaign.active))
+                CampaignStage.campaign_obj.has(Campaign.active == False))
 
         if campaign_ids:
             campaign_ids = campaign_ids.split(",")
@@ -2195,15 +2195,14 @@ class CampaignsPOMS:
                     try:
                         print(f"*** Creating: JobType '{name}'.")
                         dbhandle.commit()
+                        recoveries = form.get('recoveries')
+                        if recoveries:
+                            self.fixup_recoveries(dbhandle, job_type.job_type_id, recoveries)
+                        dbhandle.commit()
                     except IntegrityError:
                         message.append(f"Warning: JobType '{name}' already exists and will not change.")
                         print(f"*** DB error: {message}")
                         dbhandle.rollback()
-
-                    recoveries = form.get('recoveries')
-                    if recoveries:
-                        self.fixup_recoveries(dbhandle, job_type.job_type_id, recoveries)
-                    dbhandle.commit()
 
                 elif eid.startswith("login_setup "):
                     login_setup = LoginSetup(name=name,
@@ -2347,9 +2346,6 @@ class CampaignsPOMS:
                 return {'status': "400 Bad Request", 'message': message}
 
             if old_name in old_stage_names:
-                # VP~ obj =
-                # dbhandle.query(CampaignStage).filter(CampaignStage.name ==
-                # old_name).scalar()  # Get stage by the old name
                 obj = (dbhandle.query(CampaignStage)
                        .filter(CampaignStage.campaign_id == the_campaign.campaign_id)
                        .filter(CampaignStage.name == old_name).scalar())  # Get stage by the old name
@@ -2405,12 +2401,10 @@ class CampaignsPOMS:
             to_name = dependency['toId']
             form = dependency.get('form')
             from_id = (dbhandle.query(CampaignStage.campaign_stage_id)
-                       # VP~ .filter(CampaignStage.campaign_id != None)
                        .filter(CampaignStage.campaign_id == the_campaign.campaign_id)
                        .filter(CampaignStage.experiment == exp)
                        .filter(CampaignStage.name == from_name).scalar())
             to_id = (dbhandle.query(CampaignStage.campaign_stage_id)
-                     # VP~ .filter(CampaignStage.campaign_id != None)
                      .filter(CampaignStage.campaign_id == the_campaign.campaign_id)
                      .filter(CampaignStage.experiment == exp)
                      .filter(CampaignStage.name == to_name).scalar())
@@ -2423,7 +2417,7 @@ class CampaignsPOMS:
             dbhandle.flush()
         dbhandle.commit()
         print("+++++++++++++++ Campaign saved")
-        return {'status': "201 Created", 'message': message or "OK"}
+        return {'status': "201 Created", 'message': message or "OK", 'campaign_id': the_campaign.campaign_id}
 
 
     def get_jobtype_id(self, dbhandle, sesshandle, name):
@@ -2477,9 +2471,7 @@ class CampaignsPOMS:
                 else:
                     auth_error = True
                 if auth:
-                    campaign.active = (
-                        is_active in (
-                            'True', 'Active', 'true', '1'))
+                    campaign.active = (is_active in ('True', 'Active', 'true', '1'))
                     dbhandle.add(campaign)
                     dbhandle.commit()
                 else:
