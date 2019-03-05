@@ -60,13 +60,11 @@ def upload_file(file_name, test=None,  experiment=None, configfile=None):
 
     return status == 303
 
-def get_campaign_id(campaign_name, test=None, user=None, experiment=None, configfile=None):
+def get_campaign_id(campaign_name, test=None, configfile=None):
     ''' deprecated: get a campaign stage id by name. Returns integer campaign_stage_id '''
     data, status = make_poms_call(
         method='get_campaign_id',
         campaign_name=campaign_name,
-        user=user,
-        experiment=experiment,
         test=test,
         configfile=configfile)
     return int(data)
@@ -344,8 +342,9 @@ def get_campaign_list(test_client=False):
     logging.debug("in get get_campaign_list  test_client = " + repr(test_client))
     res, sc = make_poms_call(method='campaign_list_json', test_client=test_client)
     d = {}
+    logging.debug("got back: %s", res)
     for nid in json.loads(res):
-        d[nid['name']] = nid['campaign_id']
+        d[nid['name']] = nid['campaign_stage_id']
     return d
 
 
