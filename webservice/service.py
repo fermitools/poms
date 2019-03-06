@@ -208,7 +208,7 @@ class SessionTool(cherrypy.Tool):
 
         if not experimenter:
             raise cherrypy.HTTPError(
-                401, 'POMS account does not exist.  To be added you must registered in VOMS.')
+                401, 'POMS account does not exist for %s.  To be added you must registered in FERRY.' % username)
 
         e = cherrypy.request.db.query(Experimenter).filter(
             Experimenter.username == username).one()
