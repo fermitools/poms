@@ -221,6 +221,7 @@ class PomsService:
 
 # h4. quick_search
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def quick_search(self, search_term):
         self.utilsPOMS.quick_search(cherrypy.HTTPRedirect, search_term)
@@ -282,6 +283,7 @@ class PomsService:
 
 # h4. launch_template_edit
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def launch_template_edit(self, *args, **kwargs):
         # v3_2_0 backward compatabilty
@@ -289,6 +291,7 @@ class PomsService:
 
 # h4. login_setup_edit
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def login_setup_edit(self, *args, **kwargs):
         data = self.campaignsPOMS.login_setup_edit(
@@ -339,6 +342,7 @@ class PomsService:
 
 
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def job_type_edit(self, *args, **kwargs):
         data = self.campaignsPOMS.job_type_edit(
@@ -397,6 +401,7 @@ class PomsService:
 
 # h4. campaign_stage_edit
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def campaign_stage_edit(self, *args, **kwargs):
         """
@@ -473,6 +478,7 @@ class PomsService:
 
 
     @cherrypy.expose
+    @error_rewrite
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def campaign_stage_edit_query(self, *args, **kwargs):
@@ -493,6 +499,7 @@ class PomsService:
 
 # h4. show_campaigns
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def show_campaigns(self, *args, **kwargs):
         experimenter = cherrypy.session.get('experimenter')
@@ -511,6 +518,7 @@ class PomsService:
 
 
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def show_campaign_stages(self, tmin=None, tmax=None, tdays=7, active=True, campaign_name=None, holder=None, role_held_with=None,
                              se_role=None, cl=None, **kwargs):
@@ -576,6 +584,7 @@ class PomsService:
 
 # h4. submission_details
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def submission_details(self, submission_id, format = 'html'):
         submission, history, dataset, rmap, smap, ds, submission_log_format  = self.taskPOMS.submission_details(
@@ -647,6 +656,7 @@ class PomsService:
 
 #   h4. campaign_stage_submissions
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def campaign_stage_submissions(self, campaign_name, stage_name, campaign_stage_id = None, campaign_id = None, tmin=None, tmax=None, tdays=1):
         data = self.campaignsPOMS.campaign_stage_submissions(cherrypy.request.db, campaign_name, stage_name, campaign_stage_id, campaign_id, tmin, tmax, tdays)
@@ -662,24 +672,6 @@ class PomsService:
     def session_status_history(self, submission_id):
         rows = self.campaignsPOMS.session_status_history(cherrypy.request.db, submission_id)
         return rows
-
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def campaign_time_bars(self, campaign_stage_id=None,
-                           campaign=None, tag=None, tmin=None, tmax=None, tdays=1):
-        experimenter = cherrypy.session.get('experimenter')
-        (
-            job_counts, blob, name, tmin, tmax, nextlink, prevlink, tdays, key, extramap
-        ) = self.campaignsPOMS.campaign_time_bars(cherrypy.request.db,
-                                                  experimenter=experimenter,
-                                                  campaign_stage_id=campaign_stage_id,
-                                                  campaign=campaign or tag,
-                                                  tmin=tmin, tmax=tmax, tdays=tdays)
-        template = self.jinja_env.get_template('campaign_time_bars.html')
-        return template.render(job_counts=job_counts, blob=blob, name=name, tmin=tmin, tmax=tmax,
-                               do_refresh=1200, next=nextlink, prev=prevlink, tdays=tdays, key=key,
-                               extramap=extramap, help_page="CampaignTimeBarsHelp")
 
 
 # h4. register_poms_campaign
@@ -704,9 +696,10 @@ class PomsService:
                                                                       cherrypy.session.get, params)
         return "CampaignStage=%d" % campaign_stage_id
 
-    @cherrypy.expose
 # h4. list_launch_file
+    @cherrypy.expose
     @logit.logstartstop
+    @error_rewrite
     @logit.logstartstop
     def list_launch_file(self, campaign_stage_id=None, fname=None,
                          login_setup_id=None, launch_template_id=None):
@@ -727,6 +720,7 @@ class PomsService:
 
 
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def schedule_launch(self, campaign_stage_id):
         cs, job, launch_flist = self.campaignsPOMS.schedule_launch(
@@ -741,6 +735,7 @@ class PomsService:
 
 
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def update_launch_schedule(self, campaign_stage_id, dowlist=None, domlist=None,
                                monthly=None, month=None, hourlist=None, submit=None, minlist=None, delete=None):
@@ -901,6 +896,7 @@ class PomsService:
 
 
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def force_locate_submission(self, submission_id):
         return self.taskPOMS.force_locate_submission(
@@ -945,6 +941,7 @@ class PomsService:
 #
 # h4. file_uploads
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def file_uploads(self):
         quota = cherrypy.config.get('base_uploads_quota')
@@ -963,6 +960,7 @@ class PomsService:
 
 # h4. upload_files
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def upload_file(self, filename):
         res = self.filesPOMS.upload_file(
@@ -976,6 +974,7 @@ class PomsService:
 
 # h4. remove_uploaded_files
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def remove_uploaded_files(self, filename, action):
         res = self.filesPOMS.remove_uploaded_files(
@@ -994,6 +993,7 @@ class PomsService:
 
 
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def kill_jobs(self, campaign_id = None, campaign_stage_id=None, submission_id=None,
                   task_id=None, job_id=None, confirm=None, act='kill'):
@@ -1043,6 +1043,7 @@ class PomsService:
                                                )
 # h4. launch_campaign
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def launch_campaign(self, campaign_id=None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
                     experiment=None, launcher=None, test_launch=False, output_commands=None):
@@ -1091,6 +1092,7 @@ class PomsService:
 
 # h4. launch_jobs
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def launch_jobs(self, campaign_stage_id=None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
                     experiment=None, launcher=None, test_launch=False, test_launch_template=None, campaign_id=None, test=None, output_commands=None):
@@ -1146,6 +1148,7 @@ class PomsService:
 
 
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def launch_recovery_for(self, submission_id=None,
                             campaign_stage_id=None, recovery_type=None, launch=None):
@@ -1239,24 +1242,6 @@ class PomsService:
                                tmin=tmins, tmax=tmaxs,
                                prev=prevlink, next=nextlink, tdays=tdays,
                                campaign_stage_id=campaign_stage_id, help_page="CampaignTaskFilesHelp")
-
-# h4. inflight_files
-    @cherrypy.expose
-    @logit.logstartstop
-    def inflight_files(self, campaign_stage_id=None,
-                       submission_id=None, task_id=None):
-        if task_id is not None and submission_id is None:
-            submission_id = task_id
-        outlist, statusmap, cs = self.filesPOMS.inflight_files(cherrypy.request.db,
-                                                               cherrypy.response.status,
-                                                               cherrypy.request.app.config['POMS'].get,
-                                                               campaign_stage_id, submission_id)
-        template = self.jinja_env.get_template('inflight_files.html')
-        return template.render(flist=outlist,
-                               statusmap=statusmap, cs=cs,
-                               jjid='fix_me',
-                               campaign_stage_id=campaign_stage_id, submission_id=submission_id,
-                               help_page="PendingFilesJobsHelp")
 
 
 # h4. show_dimension_files
