@@ -28,6 +28,7 @@ import socket
 import datetime
 import time
 import json
+import re
 from configparser import ConfigParser
 from sqlalchemy.inspection import inspect
 
@@ -36,6 +37,8 @@ from sqlalchemy.inspection import inspect
 
 import cherrypy
 from jinja2 import Environment, PackageLoader
+import jinja2.exceptions
+import logging
 
 # we import our logic modules, so we can attach an instance each to
 # our overall poms_service class.
@@ -103,9 +106,34 @@ def error_response():
     logit.log(dump)
 
 #
-# h2. overall PomsService class
+# h2. decorator to rewrite common errors for a better error page
 #
 
+
+def error_rewrite(f):
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except TypeError as e:
+            logging.exception("rewriting:")
+            raise cherrypy.HTTPError(400, repr(e))
+        except KeyError as e:
+            logging.exception("rewriting:")
+            raise cherrypy.HTTPError(400, "Missing form field: %s" % repr(e))
+        except ValueError as e:
+            logging.exception("rewriting:")
+            raise cherrypy.HTTPError(400, "Invalid argument: %s" % repr(e))
+        except jinja2.exceptions.UndefinedError as e:
+            logging.exception("rewriting:")
+            raise cherrypy.HTTPError(400, "Missing arguments")
+        except:
+            raise
+
+    return wrapper
+
+#
+# h2. overall PomsService class
+#
 
 class PomsService:
 
@@ -115,9 +143,10 @@ class PomsService:
     # cherrypy config bits for error handling
     #
     _cp_config = {'request.error_response': error_response,
-                  'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/page_not_found.html'),
-                  'error_page.401': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/unauthorized_user.html'),
-                  'error_page.429': "%s/%s" % (os.path.abspath(os.getcwd()), 'poms/webservice/templates/too_many.html')
+                  'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), 'templates/page_not_found.html'),
+                  'error_page.401': "%s/%s" % (os.path.abspath(os.getcwd()), 'templates/unauthorized_user.html'),
+                  'error_page.429': "%s/%s" % (os.path.abspath(os.getcwd()), 'templates/too_many.html'),
+                  'error_page.400': "%s/%s" % (os.path.abspath(os.getcwd()), 'templates/bad_parameters.html'),
                   }
 
 
@@ -577,6 +606,7 @@ class PomsService:
 
     @cherrypy.expose
     @cherrypy.tools.response_headers(headers=[('Content-Language', 'en')])
+    @error_rewrite
     @logit.logstartstop
     def campaign_stage_info(self, campaign_stage_id,
                             tmin=None, tmax=None, tdays=None):
@@ -1193,6 +1223,7 @@ class PomsService:
 # h4. campaign_task_files
 
     @cherrypy.expose
+    @error_rewrite
     @logit.logstartstop
     def campaign_task_files(self, campaign_stage_id=None,
                             campaign_id=None, tmin=None, tmax=None, tdays=1):
@@ -1203,7 +1234,7 @@ class PomsService:
                                                                          tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_task_files.html')
         return template.render(name=cs.name if cs else "",
-                               CampaignStageSnapshot = cs,
+                               CampaignStage = cs,
                                columns=columns, datarows=datarows,
                                tmin=tmins, tmax=tmaxs,
                                prev=prevlink, next=nextlink, tdays=tdays,

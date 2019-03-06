@@ -173,7 +173,7 @@ $('#template_add_edit_form')
     fields: {
       ae_launch_name      : {rules: [{type: 'empty',prompt: 'field cannot be blank'}]},
       ae_launch_host      : {rules: [{type: 'regExp',
-                                      value: /{{session_experiment|replace('samdev','.*')}}/i,
+                                      value: /{{session_experiment|replace('samdev','.*')}}|pomsint|pomsgpvm01|fermicloud045/i,
                                       prompt: 'Please enter a hostname with {{session_experiment}} in it'
                                       },
                                      {type: 'empty', prompt: 'field cannot be blank'}]},
