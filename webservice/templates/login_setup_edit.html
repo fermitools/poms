@@ -134,14 +134,18 @@ Login/Setup {% include 'help_button.html' %}
       <div class="field">
         <label>Host {{ show_hint('#Host', 'Host name') }}</label>
         <input type="text" id="ae_launch_host" name="ae_launch_host" placeholder="Launch Host" 
-            {{ 'value="{{hostname}}" readonly' if (session_role=='analysis') }}
+            {%if session_role=='analysis' %}
+            value="{{hostname}}" readonly 
+            {%endif%}
          >
       </div>
       <div class="field">
         <label>Account {{ show_hint('#Account', 'Account name') }}</label>
         <input type="text" id="ae_launch_account" name="ae_launch_account" placeholder="Launch Account"
 
-            {{ 'value="poms_launcher" readonly' if (session_role=='analysis') }}
+            {%if session_role=='analysis'%}
+            value="poms_launcher" readonly
+            {%endif%}
         >
       </div>
     </div>
