@@ -38,6 +38,7 @@ from sqlalchemy.inspection import inspect
 import cherrypy
 from jinja2 import Environment, PackageLoader
 import jinja2.exceptions
+import psycopg2
 import logging
 
 # we import our logic modules, so we can attach an instance each to
@@ -120,6 +121,9 @@ def error_rewrite(f):
         except KeyError as e:
             logging.exception("rewriting:")
             raise cherrypy.HTTPError(400, "Missing form field: %s" % repr(e))
+        except psycopg2.DataError as e:
+            logging.exception("rewriting:")
+            raise cherrypy.HTTPError(400, "Invalid argument: %s" % repr(e))
         except ValueError as e:
             logging.exception("rewriting:")
             raise cherrypy.HTTPError(400, "Invalid argument: %s" % repr(e))
