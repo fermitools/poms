@@ -3,7 +3,7 @@
 """
 This module contain the methods that allow to modify the raw database
 List of methods: experiment_members, experiment edit, experiment_authorize.
-Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version 
+Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version
    of functions in poms_service.py written by Stephen White.
 Date: September 30, 2016.
 """
@@ -23,7 +23,7 @@ class DBadminPOMS:
         members = (dbhandle.query(Experiment, ExperimentsExperimenters, Experimenter)
                    .join(ExperimentsExperimenters).join(Experimenter)
                    .filter(Experiment.experiment == experiment)
-                   .filter(ExperimentsExperimenters.active)
+                   .filter(ExperimentsExperimenters.active == True)
                    .order_by(ExperimentsExperimenters.active.desc(), Experimenter.last_name)
                    ).all()
         data = {'members': members}

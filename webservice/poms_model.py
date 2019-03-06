@@ -81,12 +81,12 @@ class CampaignStage(Base):
     param_overrides = Column(JSON)
     test_param_overrides = Column(JSON)
     completion_type = Column(Text, nullable=False, server_default=text("located"))
-    # completion_pct = Column(Text, nullable=False, server_default="95")
     completion_pct = Column(Integer, nullable=False, server_default="95")
     hold_experimenter_id = Column(ForeignKey("experimenters.experimenter_id"), nullable=True)
     creator_role = Column(Text, nullable=False)
     role_held_with = Column(Text, nullable=True)
     campaign_stage_type = Column(Text, nullable=False)
+    merge_overrides = Column(Boolean, nullable=True)
 
     campaign_id = Column(ForeignKey("campaigns.campaign_id"), nullable=True, index=True)
 
