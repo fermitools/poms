@@ -71,7 +71,7 @@ class FilesStatus:
         # find any submissions in that window, look it up
         #
         if tl:
-            cs = tl[0].campaign_stage_snapshot_obj
+            cs = tl[0].campaign_stage_snapshot_obj.campaign_stage
             # cs = tl[0].campaign_stage_snapshot_obj
         else:
             cs = dbhandle.query(CampaignStage).filter(
