@@ -27,6 +27,7 @@ from .poms_model import (CampaignStage,
                          JobType,
                          JobTypeSnapshot,
                          CampaignDependency,
+                         CampaignRecovery,
                          CampaignStageSnapshot,
                          Campaign,
                          Experimenter,
@@ -796,8 +797,10 @@ class TaskPOMS:
 
         if recovery_type_override is not None:
             s.recovery_position = 0
-            rlist = dbhandle.query(RecoveryType).filter(
+            rt = dbhandle.query(RecoveryType).filter(
                 RecoveryType.recovery_type_id == int(recovery_type_override)).all()
+            # need to make a temporary CampaignRecovery 
+            rlist = [ CampaignRecovery(job_type_id = s.campaign_stage_obj.job_type_id, recovery_order = 0, param_overrides = [], recovery_type_id = rt[0].recovery_type_id, recovery_type = rt[0])]
         else:
             rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(
                 dbhandle, s.job_type_snapshot_obj)

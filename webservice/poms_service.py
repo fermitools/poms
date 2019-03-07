@@ -61,6 +61,7 @@ from . import (
 #
 
 from .poms_model import Campaign, CampaignStage, Submission, Experiment, LoginSetup, Base
+from .utc import utc
 
 class JSONORMEncoder(json.JSONEncoder):
 
@@ -1160,26 +1161,34 @@ class PomsService:
         # we don't actually get the logfile, etc back from
         # launch_recovery_if_needed, so guess what it will be:
 
-        ds = time.strftime("%Y%m%d_%H%M%S")
-        e = cherrypy.session.get('experimenter')
-        launcher_experimenter = e
-        outdir = "%s/private/logs/poms/launches/campaign_%s" % (
-            os.environ["HOME"], campaign_stage_id)
-        outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
         s = cherrypy.request.db.query(Submission).filter(
             Submission.submission_id == submission_id).first()
+        stime = datetime.datetime.now(uct)
 
-        self.taskPOMS.launch_recovery_if_needed(
+        res = self.taskPOMS.launch_recovery_if_needed(
             cherrypy.request.db,
             cherrypy.request.samweb_lite,
             cherrypy.config.get,
             cherrypy.request.headers.get,
-            cherrypy.session.get,
+            cherrypy.session,
             cherrypy.HTTPError,
             s,
             recovery_type)
-        raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (
+
+        if res:
+            new = cherrypy.request.db.query(Submission).filter(
+               Submission.recovery_tasks_parent == submission_id, 
+               Submission.created >= stime).first()
+
+            ds = new.created.strftime("%Y%m%d_%H%M%S")
+            launcher_experimenter = new.experimenter_creator_obj
+            outdir = "%s/private/logs/poms/launches/campaign_%s" % (
+                os.environ["HOME"], campaign_stage_id)
+            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
+            raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (
             self.path, campaign_stage_id, os.path.basename(outfile)))
+        else:
+            return "No recovery needed, launch skipped."
 
 # h4. jobtype_list
     @cherrypy.expose
