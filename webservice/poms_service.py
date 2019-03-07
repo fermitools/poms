@@ -1169,7 +1169,7 @@ class PomsService:
         s = cherrypy.request.db.query(Submission).filter(
             Submission.submission_id == submission_id).first()
 
-        self.taskPOMS.launch_recovery_if_needed(
+        res = self.taskPOMS.launch_recovery_if_needed(
             cherrypy.request.db,
             cherrypy.request.samweb_lite,
             cherrypy.config.get,
@@ -1178,8 +1178,11 @@ class PomsService:
             cherrypy.HTTPError,
             s,
             recovery_type)
-        raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (
+        if res:
+            raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (
             self.path, campaign_stage_id, os.path.basename(outfile)))
+        else:
+            return "No recovery needed, launch skipped."
 
 # h4. jobtype_list
     @cherrypy.expose
