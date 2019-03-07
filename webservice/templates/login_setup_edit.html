@@ -121,7 +121,7 @@ Login/Setup {% include 'help_button.html' %}
 <div class="ui modal" id="template_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header"><span id="template_header">
-    Login/Setup Editor </span> {% include 'help_button.html' %} 
+    Login/Setup Editor </span> {% include 'help_button.html' %}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
@@ -133,9 +133,9 @@ Login/Setup {% include 'help_button.html' %}
       </div>
       <div class="field">
         <label>Host {{ show_hint('#Host', 'Host name') }}</label>
-        <input type="text" id="ae_launch_host" name="ae_launch_host" placeholder="Launch Host" 
+        <input type="text" id="ae_launch_host" name="ae_launch_host" placeholder="Launch Host"
             {%if session_role=='analysis' %}
-            value="{{hostname}}" readonly 
+            value="{{hostname}}" readonly
             {%endif%}
          >
       </div>
@@ -180,9 +180,9 @@ $('#template_add_edit_form')
                                       value: /{{session_experiment|replace('samdev','.*')}}|pomsint|pomsgpvm01|fermicloud045/i,
                                       prompt: 'Please enter a hostname with {{session_experiment}} in it'
                                       },
-                                     {type: 'empty', prompt: 'field cannot be blank'}]},
-      ae_launch_account   : {rules: [{type: 'empty', prompt: 'field cannot be blank'}]},
-      ae_launch_setup     : {rules: [{type: 'empty', prompt: 'field cannot be blank'}]}
+                                     {type: 'empty', prompt: 'Host cannot be blank'}]},
+      ae_launch_account   : {rules: [{type: 'empty', prompt: 'Account cannot be blank'}]},
+      ae_launch_setup     : {rules: [{type: 'empty', prompt: 'Setup cannot be blank'}]}
     }
   })
 ;
@@ -206,6 +206,7 @@ $("#experiment").change(function() {
   }
 
   function edit_template(index, clone) {
+    var hostname = "{{hostname}}"
     login_setup_id = $("#ldf_launch_id_"+index).text()
     name = $("#ldf_name_"+index).text()
     launch_host = $("#ldf_launch_host_"+index).text()
@@ -216,7 +217,7 @@ $("#experiment").change(function() {
       $("#ae_launch_name").val(name)
     } else {
       $("#ae_launch_action").val("add");
-      $("#ae_launch_name").val("CLONE OF: " + name)
+      $("#ae_launch_name").val("CLONE OF: " + name);
     }
     $("#template_header").text("Login/Setup Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
     $("#ae_launch_id").val(login_setup_id);
@@ -235,6 +236,11 @@ $("#experiment").change(function() {
     } else {
       $("#ae_submit").prop("value","Clone");
       $("#ae_submit").prop("disabled",false);
+      var the_role = $("#current_role").val();
+      if ( the_role == "analysis" ) {
+        $("#ae_launch_host").val(hostname);
+        $("#ae_launch_account").val("poms_launcher");
+      }
     }
   }
 
@@ -256,9 +262,6 @@ $('.ui.dropdown')
   .dropdown()
 ;
 
-  $(document).ready(function(){
-    $('#double-scroll').doubleScroll();
-  });
 </script>
 
 

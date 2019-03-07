@@ -72,7 +72,7 @@ class JSONORMEncoder(json.JSONEncoder):
 
         if isinstance(obj, Base):
             # smash ORM objects into dictionaries
-            obj = {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.column_attrs} 
+            obj = {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.column_attrs}
             return obj
 
         if isinstance(obj, datetime.datetime):
@@ -300,7 +300,7 @@ class PomsService:
     @logit.logstartstop
     def login_setup_edit(self, *args, **kwargs):
         data = self.campaignsPOMS.login_setup_edit(
-            cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+            cherrypy.request.db, cherrypy.session.get, cherrypy.config.get, *args, **kwargs)
 
         if kwargs.get('test_template'):
             raise cherrypy.HTTPRedirect(
@@ -515,7 +515,7 @@ class PomsService:
         if kwargs.get('format','') == 'json':
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')
-        else: 
+        else:
             return template.render( **values )
 
 
