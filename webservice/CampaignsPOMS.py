@@ -109,18 +109,8 @@ class CampaignsPOMS:
                                     .filter(LoginSetup.name == name)
                                     .first()).login_setup_id
                 ae_launch_host = kwargs.pop('ae_launch_host', None)
-
-                if se_role == 'analysis' and  ae_launch_host not in ('pomsgpvm01.fnal.gov', 'fermicloud045.fnal.gov', 'pomsint.fnal.gov'):
-                    raise AssertionError("Invalid analysis launch host")
-
                 ae_launch_account = kwargs.pop('ae_launch_account', None)
                 ae_launch_setup = kwargs.pop('ae_launch_setup', None)
-
-                if ae_launch_host in [None, ""]:
-                    raise AssertionError("launch host cannot be empty")
-                if ae_launch_account in [None, ""]:
-                    raise AssertionError("launch account cannot be empty")
-
             else:
                 ae_launch_name = kwargs.pop('ae_launch_name')
                 if isinstance(ae_launch_name, str):
@@ -128,9 +118,6 @@ class CampaignsPOMS:
                 ae_launch_id = kwargs.pop('ae_launch_id')
                 experimenter_id = kwargs.pop('experimenter_id')
                 ae_launch_host = kwargs.pop('ae_launch_host')
-                if se_role == 'analysis' and  ae_launch_host not in ('pomsgpvm01.fnal.gov', 'fermicloud045.fnal.gov', 'pomsint.fnal.gov'):
-                    raise AssertionError("Invalid analysis launch host")
-
                 ae_launch_account = kwargs.pop('ae_launch_account')
                 ae_launch_setup = kwargs.pop('ae_launch_setup')
 
