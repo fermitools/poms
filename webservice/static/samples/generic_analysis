@@ -1,0 +1,33 @@
+[campaign]
+experiment=samdev
+poms_role=analysis
+name=generic_analysis
+state=Active
+campaign_stage_list=analyze
+
+[campaign_defaults]
+vo_role=Analysis
+software_version=v1_0
+dataset_or_split_data=None
+cs_split_type=None
+completion_type=located
+completion_pct=95
+param_overrides=[]
+test_param_overrides=[]
+login_setup=generic_analysis_launch
+job_type=generic_analysis_job
+
+[campaign_stage analyze]
+dataset_or_split_data=my_data_1
+param_overrides=[["-Oglobal.sam_dataset=", "%(dataset)s"], ["-Oglobal.dest=","/pnfs/%(experiment)s/scratch/users/%(experimenter)s/output"], ["-Oglobal.release=", "%(version)s"], ["-Osubmit.n_files_per_job=", "1"], ["-Osubmit.tar_file_name=","/%(experiment)s/app/users/%(experimenter)s/xyz-1.2.3-tar.gz"]]
+
+[login_setup generic_analysis_launch]
+host=pomsgpvm01.fnal.gov
+account=poms_launcher
+setup=setup fife_utils
+
+[job_type generic_analysis_job]
+launch_script=fife_launch -c $UPLOADS/generic_analysis.cfg --stage=analyze
+parameters=[["-Oglobal.sam_dataset=", "%(dataset)s"], ["-Oglobal.release=", "%(version)s"], ["-Osubmit.n_files_per_job=", "1"], ["-Osubmit.tar_file_name=","/%(experiment)s/app/users/%(experimenter)s/xyz-1.2.3-tar.gz"], ["-Ojob_setup.prescript_1=", "'for f in $(ups list -aK+ -z localProducts_*|while read p v f q c; do echo ups setup -j -z localProducts* $p $v -f $f -q $q; done|sh);do source $f; done'"]]
+output_file_patterns=%root
+recoveries = [["consumed_status",[]]]
