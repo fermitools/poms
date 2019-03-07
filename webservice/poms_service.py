@@ -61,6 +61,7 @@ from . import (
 #
 
 from .poms_model import Campaign, CampaignStage, Submission, Experiment, LoginSetup, Base
+from .utc import utc
 
 class JSONORMEncoder(json.JSONEncoder):
 
