@@ -1163,7 +1163,7 @@ class PomsService:
 
         s = cherrypy.request.db.query(Submission).filter(
             Submission.submission_id == submission_id).first()
-        stime = datetime.datetime.now(uct)
+        stime = datetime.datetime.now(utc)
 
         res = self.taskPOMS.launch_recovery_if_needed(
             cherrypy.request.db,
@@ -1184,7 +1184,7 @@ class PomsService:
             launcher_experimenter = new.experimenter_creator_obj
             outdir = "%s/private/logs/poms/launches/campaign_%s" % (
                 os.environ["HOME"], campaign_stage_id)
-            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
+            outfile = "%s/%s_%s_%s" % (outdir, ds, launcher_experimenter.username, new.submission_id)
             raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (
             self.path, campaign_stage_id, os.path.basename(outfile)))
         else:
