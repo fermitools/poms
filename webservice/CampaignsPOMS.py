@@ -128,17 +128,23 @@ class CampaignsPOMS:
                     if role in ('root', 'superuser'):
                         raise cherrypy.HTTPError(
                             status=401, message='You are not authorized to add launch template.')
-                    template = LoginSetup(experiment=exp,
-                                          name=ae_launch_name,
-                                          launch_host=ae_launch_host,
-                                          launch_account=ae_launch_account,
-                                          launch_setup=ae_launch_setup,
-                                          creator=experimenter_id,
-                                          created=datetime.now(utc),
-                                          creator_role=role)
-                    dbhandle.add(template)
-                    dbhandle.commit()
-                    data['login_setup_id'] = template.login_setup_id
+                    exists = (dbhandle.query(LoginSetup)
+                              .filter(LoginSetup.experiment == exp)
+                              .filter(LoginSetup.name == ae_launch_name)).first()
+                    if exists:
+                        message = "A login setup named %s already exists." % ae_launch_name
+                    else:
+                        template = LoginSetup(experiment=exp,
+                                              name=ae_launch_name,
+                                              launch_host=ae_launch_host,
+                                              launch_account=ae_launch_account,
+                                              launch_setup=ae_launch_setup,
+                                              creator=experimenter_id,
+                                              created=datetime.now(utc),
+                                              creator_role=role)
+                        dbhandle.add(template)
+                        dbhandle.commit()
+                        data['login_setup_id'] = template.login_setup_id
                 else:
                     logit.log("editing existing LoginSetup...")
                     columns = {
