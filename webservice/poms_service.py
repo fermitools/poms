@@ -923,8 +923,7 @@ class PomsService:
     @error_rewrite
     @logit.logstartstop
     def force_locate_submission(self, submission_id):
-        return self.taskPOMS.force_locate_submission(
-            cherrypy.request.db, submission_id)
+        return self.taskPOMS.force_locate_submission(cherrypy.request.db, cherrypy.session.get, submission_id)
 
 # h4. mark_failed_submissions
     @cherrypy.expose

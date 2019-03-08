@@ -625,12 +625,18 @@ class TaskPOMS:
 
         return res
 
-    def force_locate_submission(self, dbhandle, submission_id):
+    def force_locate_submission(self, dbhandle, seshandle_get, submission_id):
         # this doesn't actually mark it located, rather it bumps
         # the timestamp backwards so it will look timed out...
 
+        e = seshandle_get('experimenter')
+        exp = e.session_experiment
         s = dbhandle.query(Submission).filter(
             Submission.submission_id == submission_id).first()
+        cs = s.campaign_stage_obj
+        if not exp == cs.experiment:
+            raise PermissionError("You are not acting as the right experiment")
+
         s.updated = s.updated - timedelta(days=2)
         dbhandle.add(s)
         dbhandle.commit()

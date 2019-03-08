@@ -48,6 +48,8 @@ class JobsPOMS:
         se_role = e.session_role
         exp = e.session_experiment
 
+         
+
         if campaign_id:
             what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
             cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).first()
@@ -65,6 +67,9 @@ class JobsPOMS:
 
         if not (submission_id or campaign_id or campaign_stage_id):
             raise SyntaxError("called with out submission, campaign, or stage id" % act)
+
+        if not exp == cs.experiment:
+            raise PermissionError("You are not acting as the right experiment")
 
         if confirm is None:
             return what, s, campaign_stage_id, submission_id, job_id
