@@ -76,13 +76,15 @@ class CampaignsPOMS:
         if isinstance(pc_username, str):
             pc_username = pc_username.strip()
 
+        ae_launch_name = kwargs.pop('ae_launch_name')
+        ae_launch_name = ae_launch_name.strip()
         ls = dbhandle.query(LoginSetup).filter(LoginSetup.experiment == exp).filter(
-                    LoginSetup.name == name).first()
-        if not exp == ls.experiment:
+                    LoginSetup.name == ae_launch_name).first()
+
+        if ls and not exp == ls.experiment:
             raise PermissionError("You are not acting as the right experiment")
 
         if action == 'delete':
-            ae_launch_name = kwargs.pop('ae_launch_name')
             name = ae_launch_name
             try:
                 dbhandle.query(LoginSetup).filter(LoginSetup.experiment == exp).filter(
@@ -97,7 +99,6 @@ class CampaignsPOMS:
         if action in ('add', 'edit'):
             logit.log('login_setup_edit: add,edit case')
             if pcl_call == 1:
-                ae_launch_name = kwargs.pop('ae_launch_name')
                 if isinstance(ae_launch_name, str):
                     ae_launch_name = ae_launch_name.strip()
                 name = ae_launch_name
@@ -117,7 +118,6 @@ class CampaignsPOMS:
                 ae_launch_account = kwargs.pop('ae_launch_account', None)
                 ae_launch_setup = kwargs.pop('ae_launch_setup', None)
             else:
-                ae_launch_name = kwargs.pop('ae_launch_name')
                 if isinstance(ae_launch_name, str):
                     ae_launch_name = ae_launch_name.strip()
                 ae_launch_id = kwargs.pop('ae_launch_id')
