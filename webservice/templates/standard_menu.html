@@ -24,10 +24,13 @@
   <div data-ecl class="item">
     <div class="header">External Links</div>
     <div class="menu">
-        <a class="item" href="{{exp_obj.logbook if exp_obj else '#'}}" target="_blank">{{session_experiment|capitalize}} Logbook</a>
+        <a class="item" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/POMS_User_Documentation" target="_blank">POMS User Documentation</a>
     </div>
     <div class="menu">
         <a class="item" href="{{exp_obj.snow_url if exp_obj else '#'}}" target="_blank">POMS ServiceNow Page</a>
+    </div>
+    <div class="menu">
+        <a class="item" href="{{exp_obj.logbook if exp_obj else '#'}}" target="_blank">{{session_experiment|capitalize}} Logbook</a>
     </div>
     <div class="menu">
         <a class="item" href="https://fermi.service-now.com/home.do?sysparm_view=scd_outage_calendar&sysparm_auto_request=true" target="_popup" >Downtime Calendar</a>
