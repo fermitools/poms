@@ -15,16 +15,49 @@ except:
 
 rs = requests.Session()
 
-def show_campaigns(test=None, experiment=None, configfile=None):
+def show_campaigns(test=None, experiment=None, configfile=None, view_active=None, view_mine=None, view_others=None, view_production=None, update_view=None ):
     ''' Return data about campaigns for the current experiment. '''
 
     data,status = make_poms_call( 
         method =  'show_campaigns',
         format = 'json',
         test_client = test,
-        configfile = configfile)
+        configfile = configfile,
+        view_mine=view_mine,
+        view_others=view_others,
+        view_production=view_production,
+        update_view=update_view
+    )
+    return status in (200, 201), json.loads(data)
 
-    print("got data: |%s|" % repr(data))
+def show_campaign_stages(campaign_name, test=None, experiment=None, configfile=None,  view_active=None, view_mine=None, view_others=None, view_production=None, update_view=None ):
+    ''' Return campaign stages for campaign for the current experiment. '''
+    data,status = make_poms_call( 
+        method =  'show_campaign_stages',
+        format = 'json',
+        campaign_name = campaign_name,
+        test_client = test,
+        configfile = configfile,
+        view_mine=view_mine,
+        view_others=view_others,
+        view_production=view_production,
+        update_view=update_view
+    )
+    return status in (200, 201), json.loads(data)
+
+def campaign_stage_submissions(campaign_id,  campaign_name, stage_name, campaign_stage_id = None, test=None, experiment=None, configfile=None):
+    ''' Return data about campaigns for the current experiment. '''
+
+    data,status = make_poms_call( 
+        method =  'campaign_stage_submissions',
+        format = 'json',
+        test_client = test,
+        configfile = configfile,
+        campaign_id = campaign_id,
+        campaign_stage_id = campaign_stage_id,
+        campaign_name = campaign_name,
+        stage_name = stage_name,
+    )
     return status in (200, 201), json.loads(data)
 
 def submission_details(submission_id, test=None, experiment=None, configfile=None):
