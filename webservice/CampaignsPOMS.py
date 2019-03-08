@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+ #!/usr/bin/env python
 
 """
 This module contain the methods that allow to create campaign_stages, definitions and templates.
@@ -75,6 +75,11 @@ class CampaignsPOMS:
         pc_username = kwargs.pop('pc_username', None)
         if isinstance(pc_username, str):
             pc_username = pc_username.strip()
+
+        ls = dbhandle.query(LoginSetup).filter(LoginSetup.experiment == exp).filter(
+                    LoginSetup.name == name).first()
+        if not exp == ls.experiment:
+            raise PermissionError("You are not acting as the right experiment")
 
         if action == 'delete':
             ae_launch_name = kwargs.pop('ae_launch_name')
@@ -253,6 +258,7 @@ class CampaignsPOMS:
                 .filter(Campaign.name == campaign_name,
                         Campaign.experiment == seshandle('experimenter').session_experiment)
                 .first())
+
         if not camp:
             camp = Campaign(name=campaign_name,
                             experiment=seshandle('experimenter').session_experiment,
@@ -330,11 +336,20 @@ class CampaignsPOMS:
             dbhandle.commit()
         return json.dumps(data)
 
-    def campaign_rename_name(self, dbhandle, seshandle, *args, **kwargs):
+    def campaign_rename_name(self, dbhandle, seshandle_get, *args, **kwargs):
         '''
            rename a campaign
         '''
-        # XXX need to check permissions here
+        e = seshandle_get('experimenter')
+        se_role = e.session_role
+        exp = e.session_experiment
+
+        camp = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        if not exp == camp.experiment:
+            raise PermissionError("You are not acting as the right experiment")
+        if not se_role == camp.creator_role:
+            raise PermissionError("You are not acting as the right role")
+
         data = {}
         data['message'] = "ok"
         try:
@@ -379,8 +394,6 @@ class CampaignsPOMS:
             Find the starting stage in a campaign, and launch it with
             launch_jobs(campaign_stage_id=...)
         '''
-
-        logit.log("Entering launch_campaign(...)")
 
         # subquery to count dependencies
         q = text("select campaign_stage_id from campaign_stages "

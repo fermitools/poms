@@ -121,6 +121,9 @@ def error_rewrite(f):
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
+        except PermissionError as e:
+            logging.exception("rewriting:")
+            raise cherrypy.HTTPError(401, repr(e))
         except TypeError as e:
             logging.exception("rewriting:")
             raise cherrypy.HTTPError(400, repr(e))
