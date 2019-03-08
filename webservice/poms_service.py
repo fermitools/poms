@@ -678,12 +678,16 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def campaign_stage_submissions(self, campaign_name, stage_name, campaign_stage_id = None, campaign_id = None, tmin=None, tmax=None, tdays=1):
+    def campaign_stage_submissions(self, campaign_name, stage_name, campaign_stage_id = None, campaign_id = None, tmin=None, tmax=None, tdays=1, **kwargs):
         data = self.campaignsPOMS.campaign_stage_submissions(cherrypy.request.db, campaign_name, stage_name, campaign_stage_id, campaign_id, tmin, tmax, tdays)
         data['campaign_name'] = campaign_name
         data['stage_name'] = stage_name
         template = self.jinja_env.get_template('campaign_stage_submissions.html')
-        return template.render(data=data)
+        if kwargs.get('format','') == 'json':
+            cherrypy.response.headers['Content-Type'] = 'application/json'
+            return json.dumps(data, cls=JSONORMEncoder).encode('utf-8')
+        else:
+            return template.render(data=data)
 
 #   h4. session_status_history
     @cherrypy.expose
