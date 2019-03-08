@@ -1515,8 +1515,9 @@ class CampaignsPOMS:
                .options(joinedload('experiment_obj'))
                .options(joinedload('campaign_obj'))
                .options(joinedload(CampaignStage.experimenter_holder_obj))
-               .order_by(CampaignStage.experiment)
                .options(joinedload(CampaignStage.experimenter_creator_obj))
+               .options(joinedload(CampaignStage.experimenter_updater_obj))
+               .order_by(CampaignStage.experiment)
               )
 
         if experiment:

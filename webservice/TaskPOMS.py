@@ -17,7 +17,7 @@ from collections import OrderedDict, deque
 from datetime import datetime, timedelta
 from .SessionExperimenter import SessionExperimenter
 
-from mail import Mail
+from .mail import Mail
 from psycopg2.extensions import QueryCanceledError
 from sqlalchemy import case, func, text, and_, or_
 from sqlalchemy.orm import joinedload

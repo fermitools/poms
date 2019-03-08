@@ -72,8 +72,13 @@ class JSONORMEncoder(json.JSONEncoder):
 
         if isinstance(obj, Base):
             # smash ORM objects into dictionaries
-            obj = {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.column_attrs}
-            return obj
+            res = {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.column_attrs}
+            # first put in relationship keys, but not loaded
+            res.update( {c.key: None for c in inspect(obj).mapper.relationships } )
+            # load specific relationships that won't cause cycles
+            res.update( {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if c.key.find('experimenter') >= 0} )
+
+            return res
 
         if isinstance(obj, datetime.datetime):
             return(obj.strftime("%Y-%m-%dT%H:%M:%S"))
@@ -551,13 +556,23 @@ class PomsService:
             template = self.jinja_env.get_template(
                 'show_campaign_stages_stats.html')
 
-        return template.render(limit_experiment=current_experimenter.session_experiment,
-                               campaign_stages=campaign_stages, tmins=tmins, tmaxs=tmaxs, tmin=str(tmin)[
-                                   :16], tmax=str(tmax)[:16],
-                               do_refresh=1200, data=data,
-                               next=nextlink, prev=prevlink, tdays=tdays, time_range_string=time_range_string,
-                               key='', help_page="ShowCampaignsHelp", dbg=kwargs)
+        values = {
+           'limit_experiment': current_experimenter.session_experiment,
+           'campaign_stages': campaign_stages,
+           'tmins': tmins, 'tmaxs': tmaxs,
+           'tmin': str(tmin)[:16], 'tmax': str(tmax)[:16], 'tdays': tdays,
+           'next': nextlink, 'prev': prevlink,
+           'do_refresh': 1200,
+           'data': data,
+           'time_range_string': time_range_string,
+           'key': '', 'help_page': "ShowCampaignsHelp", 'dbg': kwargs,
+        }
 
+        if kwargs.get('format','') == 'json':
+            cherrypy.response.headers['Content-Type'] = 'application/json'
+            return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')
+        else:
+            return template.render( **values )
 
 # h4. reset_campaign_split
 
