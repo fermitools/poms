@@ -36,7 +36,7 @@ def show_campaigns(test=None, experiment=None, configfile=None, view_active=None
 
 
 def show_campaign_stages(campaign_name, test=None, experiment=None, configfile=None,
-        view_active=None, view_mine=None, view_others=None, view_production=None, update_view=None):
+                         view_active=None, view_mine=None, view_others=None, view_production=None, update_view=None):
     '''
     Return campaign stages for campaign for the current experiment.
     '''
