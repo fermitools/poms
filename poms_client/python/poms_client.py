@@ -307,17 +307,17 @@ def campaign_definition_edit(output_file_patterns, launch_script, def_parameter=
     # You can not modify the recovery_type from the poms_client (future feature)
     logging.debug("in get launch_jobs test_client = " + repr(test_client))
     method = "campaign_definition_edit"
-    pc_username = pc_username
-    action = action
+    # pc_username = pc_username
+    # action = action
     ae_definition_name = name
-    experiment = experiment
+    # experiment = experiment
     ae_definition_recovery = recoveries
     ae_output_file_patterns = output_file_patterns
     ae_launch_script = launch_script
     if launch_script is not None:
         ae_launch_script = ""
         for arg_setup in launch_script:
-                ae_launch_script = ae_launch_script + str(arg_setup) + " "
+            ae_launch_script = ae_launch_script + str(arg_setup) + " "
         logging.info("The ae_launch_setup is: " + str(ae_launch_script))
     else:
         ae_launch_script = launch_script
