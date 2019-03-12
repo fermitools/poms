@@ -546,6 +546,7 @@ def make_poms_call(**kwargs):
         raise RuntimeError("POMS call %s error: HTTP status: %d\n%s" % (method, status_code, res))
     return res, status_code
 
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     # simple tests...
