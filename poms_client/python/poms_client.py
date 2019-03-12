@@ -127,7 +127,9 @@ def get_campaign_id(campaign_name, test=None, configfile=None):
 
 
 def register_poms_campaign(campaign_name, user=None, experiment=None, version=None, dataset=None, campaign_definition=None, test=None, configfile=None):
-    ''' deprecated: register campaign stage. returns "Campaign=<stage_id>"  '''
+    '''
+    deprecated: register campaign stage. returns "Campaign=<stage_id>"
+    '''
     data, status = make_poms_call(
         method='register_poms_campaign',
         campaign_name=campaign_name,
@@ -238,9 +240,9 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
                     method=method,
                     action=action,
                     ae_launch_name=ae_launch_name,
-                    ae_launch_host = ae_launch_host,
-                    ae_launch_account = ae_launch_account,
-                    ae_launch_setup = ae_launch_setup,
+                    ae_launch_host=ae_launch_host,
+                    ae_launch_account=ae_launch_account,
+                    ae_launch_setup=ae_launch_setup,
                     experiment=experiment,
                     test_client=test_client,
                     configfile=configfile)
@@ -271,7 +273,7 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
 
 
         elif action == 'edit':
-            if ae_launch_name == None:
+            if ae_launch_name is None:
                 logging.error("Your should provide the launch_name in order to edit\n\
                     Currently you provide name = " + str(ae_launch_name))
             else:
@@ -300,8 +302,8 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
         return "failed", -1
 
 
-def campaign_definition_edit(output_file_patterns, launch_script,
-                             def_parameter=None, pc_username=None, action=None, name=None, experiment=None, recoveries = None, test_client=False, configfile=None):
+def campaign_definition_edit(output_file_patterns, launch_script, def_parameter=None, pc_username=None,
+                             action=None, name=None, experiment=None, recoveries=None, test_client=False, configfile=None):
     # You can not modify the recovery_type from the poms_client (future feature)
     logging.debug("in get launch_jobs test_client = " + repr(test_client))
     method = "campaign_definition_edit"
@@ -320,7 +322,7 @@ def campaign_definition_edit(output_file_patterns, launch_script,
     else:
         ae_launch_script = launch_script
 
-    if isinstance(def_parameter, basestring):
+    if isinstance(def_parameter, str):
         try:
             def_parameter = json.loads(def_parameter)
         except:
@@ -360,7 +362,7 @@ def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experim
     logging.debug(ae_param_overrides)
 
     # if already packed as a string, unpack it so we can repack it...
-    if isinstance(ae_param_overrides, basestring):
+    if isinstance(ae_param_overrides, str):
         try:
             ae_param_overrides = json.loads(ae_param_overrides)
         except:
@@ -470,6 +472,7 @@ def getconfig(kwargs):
     _foundconfig = config
     return config
 
+
 def make_poms_call(**kwargs):
 
     config = getconfig(kwargs)
@@ -490,7 +493,7 @@ def make_poms_call(**kwargs):
         del kwargs["test"]
 
 
-    test_client=kwargs.get("test_client",None)
+    test_client = kwargs.get("test_client", None)
     if kwargs.has_key("test_client"):
         del kwargs["test_client"]
 
@@ -540,7 +543,7 @@ def make_poms_call(**kwargs):
             logging.debug("Server: " + res)
         else:
             logging.debug("Error text" + res)
-        raise RuntimeError( "POMS call %s error: HTTP status: %d\n%s" % ( method, status_code, res ))
+        raise RuntimeError("POMS call %s error: HTTP status: %d\n%s" % (method, status_code, res))
     return res, status_code
 
 if __name__ == '__main__':
