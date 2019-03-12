@@ -317,7 +317,7 @@ def campaign_definition_edit(output_file_patterns, launch_script, def_parameter=
     if launch_script is not None:
         ae_launch_script = ""
         for arg_setup in launch_script:
-                ae_launch_script= ae_launch_script+str(arg_setup)+" "
+                ae_launch_script = ae_launch_script + str(arg_setup) + " "
         logging.info("The ae_launch_setup is: " + str(ae_launch_script))
     else:
         ae_launch_script = launch_script
