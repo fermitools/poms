@@ -519,12 +519,12 @@ class PomsService:
         tl, last_activity, msg, data = self.campaignsPOMS.show_campaigns(
             cherrypy.request.db, cherrypy.session, experimenter, *args, **kwargs)
         template = self.jinja_env.get_template('show_campaigns.html')
-        values =  { 'tl': tl, 'last_activity': last_activity, 'msg': msg, 'data': data, 'help_page': "ShowCampaignTagsHelp" }
-        if kwargs.get('format','') == 'json':
+        values = {'tl': tl, 'last_activity': last_activity, 'msg': msg, 'data': data, 'help_page': "ShowCampaignTagsHelp"}
+        if kwargs.get('format', '') == 'json':
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')
         else:
-            return template.render( **values )
+            return template.render(**values)
 
 
 # h4. show_campaign_stages
@@ -1198,7 +1198,7 @@ class PomsService:
 
         if res:
             new = cherrypy.request.db.query(Submission).filter(
-               Submission.recovery_tasks_parent == submission_id, 
+               Submission.recovery_tasks_parent == submission_id,
                Submission.created >= stime).first()
 
             ds = new.created.strftime("%Y%m%d_%H%M%S")
