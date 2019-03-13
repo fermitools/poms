@@ -76,7 +76,7 @@ class CampaignsPOMS:
         if isinstance(pc_username, str):
             pc_username = pc_username.strip()
 
-        ae_launch_name = kwargs.pop('ae_launch_name')
+        ae_launch_name = kwargs.get('ae_launch_name','')
         ae_launch_name = ae_launch_name.strip()
         ls = dbhandle.query(LoginSetup).filter(LoginSetup.experiment == exp).filter(
                     LoginSetup.name == ae_launch_name).first()
@@ -1744,6 +1744,9 @@ class CampaignsPOMS:
         subq = (dbhandle.query(func.max(subhist.created))
                 .filter(SubmissionHistory.submission_id == subhist.submission_id)
                )
+
+        if campaign_id in (None, 'None','') and campaign_stage_id in (None, 'None',''):
+            raise AssertionError("campaign_stage_submissions needs either campaign_id or campaign_stage_id not None")
 
         if not campaign_id in (None, 'None',''):
             campaign_stage_ids = (dbhandle.query(CampaignStage.campaign_stage_id)                                 .filter(CampaignStage.campaign_id == campaign_id)

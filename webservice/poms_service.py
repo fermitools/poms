@@ -970,7 +970,7 @@ class PomsService:
     @error_rewrite
     @logit.logstartstop
     def file_uploads(self):
-        quota = cherrypy.config.get('base_uploads_quota')
+        quota = cherrypy.config.get('base_uploads_quota', 10485760)
         file_stat_list, total = self.filesPOMS.file_uploads(
             cherrypy.config.get('base_uploads_dir'),
             cherrypy.session.get,
@@ -979,22 +979,22 @@ class PomsService:
 
         template = self.jinja_env.get_template('file_uploads.html')
         return template.render(
-            file_stat_list = file_stat_list,
-            total = total,
-            quota = quota,
-            time = time)
+            file_stat_list=file_stat_list,
+            total=total,
+            quota=quota,
+            time=time)
 
 # h4. upload_files
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def upload_file(self, filename):
+    def upload_file(self, filenames):
         res = self.filesPOMS.upload_file(
             cherrypy.config.get('base_uploads_dir'),
             cherrypy.session.get,
             cherrypy.HTTPError,
             cherrypy.config.get('base_uploads_quota'),
-            filename
+            filenames
         )
         raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
 
