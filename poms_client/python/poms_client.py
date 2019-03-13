@@ -16,7 +16,8 @@ except:
 rs = requests.Session()
 
 
-def show_campaigns(test=None, experiment=None, configfile=None, view_active=None, view_mine=None, view_others=None, view_production=None, update_view=None):
+def show_campaigns(test=None, experiment=None, configfile=None, view_active=None, view_inactive=None,
+                   view_mine=None, view_others=None, view_production=None, update_view=None):
     '''
     Return data about campaigns for the current experiment.
     '''
@@ -27,11 +28,13 @@ def show_campaigns(test=None, experiment=None, configfile=None, view_active=None
         test_client=test,
         configfile=configfile,
         view_active=view_active,
+        view_inactive=view_inactive,
         view_mine=view_mine,
         view_others=view_others,
         view_production=view_production,
         update_view=update_view
     )
+    print(f"data = '{data}'", file=open("output.txt", "w"))   # DEBUG
     return status in (200, 201), json.loads(data)
 
 
@@ -451,18 +454,21 @@ def auth_cert():
                           "If you have a proxy please provide the location at the enviroment variable X509_USER_PROXY")
     return cert
 
+
 _foundconfig = None
+
+
 def getconfig(kwargs):
     global _foundconfig
     if _foundconfig:
         return _foundconfig
     config = ConfigParser.ConfigParser()
-    p0 = kwargs.get('configfile','')
-    p1 = os.path.dirname(sys.argv[0])+'/client.cfg'
-    p2 = os.environ.get('POMS_CLIENT_DIR','') +'/bin/client.cfg'
-    p3 = os.environ.get('POMS_CLIENT_DIR','') +'/etc/client.cfg'
+    p0 = kwargs.get('configfile', '')
+    p1 = os.path.dirname(sys.argv[0]) + '/client.cfg'
+    p2 = os.environ.get('POMS_CLIENT_DIR', '') + '/bin/client.cfg'
+    p3 = os.environ.get('POMS_CLIENT_DIR', '') + '/etc/client.cfg'
     for p in (p0, p1, p2, p3):
-        if p and os.access(p,os.R_OK):
+        if p and os.access(p, os.R_OK):
             cfgfile = p
 
     if kwargs.get('configfile', 'xx') != 'xx':
@@ -482,11 +488,11 @@ def make_poms_call(**kwargs):
     del kwargs["method"]
 
     files = None
-    if kwargs.get("files",None):
-        files=kwargs["files"]
+    if kwargs.get("files", None):
+        files = kwargs["files"]
         del kwargs["files"]
 
-    if kwargs.get("test", None) and not kwargs.get("test_client",None):
+    if kwargs.get("test", None) and not kwargs.get("test_client", None):
         kwargs["test_client"] = kwargs["test"]
 
     if kwargs.get("test", None):
@@ -494,16 +500,16 @@ def make_poms_call(**kwargs):
 
 
     test_client = kwargs.get("test_client", None)
-    if kwargs.has_key("test_client"):
+    if "test_client" in kwargs:
         del kwargs["test_client"]
 
     logging.debug("in make_poms_call test_client = " + repr(test_client))
 
     if test_client:
         if test_client == "int":
-            base=config.get('url','base_int_ssl')
+            base = config.get('url', 'base_int_ssl')
         else:
-            base=config.get('url','base_dev_ssl')
+            base = config.get('url', 'base_dev_ssl')
 
         logging.debug("base = " + base)
     else:
@@ -538,7 +544,7 @@ def make_poms_call(**kwargs):
     elif status_code not in (200, 202):
         if res.find("Traceback"):
             res = res[res.find("Traceback"):]
-            res = res.replace("<br/>","\n")
+            res = res.replace("<br/>", "\n")
             res = res[:res.find("</label>")]
             logging.debug("Server: " + res)
         else:
