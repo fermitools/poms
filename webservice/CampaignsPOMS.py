@@ -1449,8 +1449,8 @@ class CampaignsPOMS:
         else:
             data['view_active'] = kwargs.get('view_active', None)
             data['view_inactive'] = kwargs.get('view_inactive', None)
-            data['view_mine'] = experimenter.experimenter_id if kwargs.get('view_mine') else None
-            data['view_others'] = experimenter.experimenter_id if kwargs.get('view_others') else None
+            data['view_mine'] = kwargs.get('view_mine', None)
+            data['view_others'] = kwargs.get('view_others', None)
             data['view_analysis'] = kwargs.get('view_analysis', None)
             data['view_production'] = kwargs.get('view_production', None)
 
@@ -1464,9 +1464,9 @@ class CampaignsPOMS:
         if data['view_mine'] and data['view_others']:
             pass
         elif data['view_mine']:
-            q = q.filter(Campaign.creator == data['view_mine'])
+            q = q.filter(Campaign.creator == experimenter.experimenter_id)
         elif data['view_others']:
-            q = q.filter(Campaign.creator != data['view_others'])
+            q = q.filter(Campaign.creator != experimenter.experimenter_id)
 
         if data['view_active'] and data['view_inactive']:
             pass

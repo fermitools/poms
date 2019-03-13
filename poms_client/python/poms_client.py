@@ -16,8 +16,9 @@ except:
 rs = requests.Session()
 
 
-def show_campaigns(test=None, experiment=None, configfile=None, view_active=None, view_inactive=None,
-                   view_mine=None, view_others=None, view_production=None, update_view=None):
+def show_campaigns(test=None, **kwargs):
+    # experiment=None, configfile=None, view_active=None, view_inactive=None,
+    #                view_mine=None, view_others=None, view_production=None, update_view=None):
     '''
     Return data about campaigns for the current experiment.
     '''
@@ -26,15 +27,16 @@ def show_campaigns(test=None, experiment=None, configfile=None, view_active=None
         method='show_campaigns',
         format='json',
         test_client=test,
-        configfile=configfile,
-        view_active=view_active,
-        view_inactive=view_inactive,
-        view_mine=view_mine,
-        view_others=view_others,
-        view_production=view_production,
-        update_view=update_view
+        # configfile=configfile,
+        # view_active=view_active,
+        # view_inactive=view_inactive,
+        # view_mine=view_mine,
+        # view_others=view_others,
+        # view_production=view_production,
+        # update_view=update_view
+        **kwargs
     )
-    print(f"data = '{data}'", file=open("output.txt", "w"))   # DEBUG
+    # print(f"data = '{data}'", file=open("output.txt", "w"))   # DEBUG
     return status in (200, 201), json.loads(data)
 
 
