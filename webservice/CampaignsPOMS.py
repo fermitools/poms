@@ -1749,15 +1749,14 @@ class CampaignsPOMS:
             raise AssertionError("campaign_stage_submissions needs either campaign_id or campaign_stage_id not None")
 
         if not campaign_id in (None, 'None',''):
-            campaign_stage_ids = (dbhandle.query(CampaignStage.campaign_stage_id)                                 .filter(CampaignStage.campaign_id == campaign_id)
+            campaign_stage_ids = (dbhandle.query(CampaignStage.campaign_stage_id)
+                                  .filter(CampaignStage.campaign_id == campaign_id)
                                   .all())
 
         if not campaign_stage_id in (None, 'None',''):
             campaign_stage_ids = [campaign_stage_id]
 
         tuples = (dbhandle.query(Submission, SubmissionHistory, SubmissionStatus)
-                  .join(SubmissionHistory)
-                  .join(SubmissionStatus)
                   .join('experimenter_creator_obj')
                   .filter(Submission.campaign_stage_id.in_(campaign_stage_ids),
                           SubmissionHistory.submission_id == Submission.submission_id,
