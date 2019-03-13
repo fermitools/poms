@@ -368,22 +368,25 @@ class FilesStatus:
             total += statout.st_size
         return res, total
 
-    def upload_file(self, basedir, sesshandle_get, err_res, quota, filename):
-        outf = self.get_file_upload_path(basedir, sesshandle_get, filename.filename)
-        os.makedirs(os.path.dirname(outf), exist_ok=True)
-        f = open(outf, "wb")
-        size = 0
-        while True:
-            data = filename.file.read(8192)
-            if not data:
-                break
-            f.write(data)
-            size += len(data)
-        f.close()
-        fstatlist, total = self.file_uploads(basedir, sesshandle_get, quota)
-        if total > quota:
-            unlink(outf)
-            raise err_res("Upload exeeds quota of %d kbi" % quota/1024)
+    def upload_file(self, basedir, sesshandle_get, err_res, quota, filenames):
+        print("*"*80)
+        for filename in filenames:
+            print("***** filname: %s", filename)
+            outf = self.get_file_upload_path(basedir, sesshandle_get, filename.filename)
+            os.makedirs(os.path.dirname(outf), exist_ok=True)
+            f = open(outf, "wb")
+            size = 0
+            while True:
+                data = filename.file.read(8192)
+                if not data:
+                    break
+                f.write(data)
+                size += len(data)
+            f.close()
+            fstatlist, total = self.file_uploads(basedir, sesshandle_get, quota)
+            if total > quota:
+                unlink(outf)
+                raise err_res("Upload exeeds quota of %d kbi" % quota/1024)
         return "Ok."
 
 

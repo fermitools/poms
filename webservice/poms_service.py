@@ -519,12 +519,12 @@ class PomsService:
         tl, last_activity, msg, data = self.campaignsPOMS.show_campaigns(
             cherrypy.request.db, cherrypy.session, experimenter, *args, **kwargs)
         template = self.jinja_env.get_template('show_campaigns.html')
-        values =  { 'tl': tl, 'last_activity': last_activity, 'msg': msg, 'data': data, 'help_page': "ShowCampaignTagsHelp" }
-        if kwargs.get('format','') == 'json':
+        values = {'tl': tl, 'last_activity': last_activity, 'msg': msg, 'data': data, 'help_page': "ShowCampaignTagsHelp"}
+        if kwargs.get('format', '') == 'json':
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')
         else:
-            return template.render( **values )
+            return template.render(**values)
 
 
 # h4. show_campaign_stages
@@ -970,7 +970,7 @@ class PomsService:
     @error_rewrite
     @logit.logstartstop
     def file_uploads(self):
-        quota = cherrypy.config.get('base_uploads_quota')
+        quota = cherrypy.config.get('base_uploads_quota', 10485760)
         file_stat_list, total = self.filesPOMS.file_uploads(
             cherrypy.config.get('base_uploads_dir'),
             cherrypy.session.get,
@@ -979,22 +979,22 @@ class PomsService:
 
         template = self.jinja_env.get_template('file_uploads.html')
         return template.render(
-            file_stat_list = file_stat_list,
-            total = total,
-            quota = quota,
-            time = time)
+            file_stat_list=file_stat_list,
+            total=total,
+            quota=quota,
+            time=time)
 
 # h4. upload_files
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def upload_file(self, filename):
+    def upload_file(self, filenames):
         res = self.filesPOMS.upload_file(
             cherrypy.config.get('base_uploads_dir'),
             cherrypy.session.get,
             cherrypy.HTTPError,
             cherrypy.config.get('base_uploads_quota'),
-            filename
+            filenames
         )
         raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
 
@@ -1198,7 +1198,7 @@ class PomsService:
 
         if res:
             new = cherrypy.request.db.query(Submission).filter(
-               Submission.recovery_tasks_parent == submission_id, 
+               Submission.recovery_tasks_parent == submission_id,
                Submission.created >= stime).first()
 
             ds = new.created.strftime("%Y%m%d_%H%M%S")
