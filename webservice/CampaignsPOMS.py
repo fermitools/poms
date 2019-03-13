@@ -1746,6 +1746,9 @@ class CampaignsPOMS:
                 .filter(SubmissionHistory.submission_id == subhist.submission_id)
                )
 
+        if campaign_id in (None, 'None','') and campaign_stage_id in (None, 'None',''):
+            raise AssertionError("campaign_stage_submissions needs either campaign_id or campaign_stage_id not None")
+
         if not campaign_id in (None, 'None',''):
             campaign_stage_ids = (dbhandle.query(CampaignStage.campaign_stage_id)                                 .filter(CampaignStage.campaign_id == campaign_id)
                                   .all())
