@@ -1444,15 +1444,13 @@ class CampaignsPOMS:
             data['view_inactive'] = None
             data['view_mine'] = experimenter.experimenter_id
             data['view_others'] = experimenter.experimenter_id
-            data['view_analysis'] = 'view_analysis' if se_role in (
-                'analysis', 'superuser') else None
-            data['view_production'] = 'view_production' if se_role in (
-                'production', 'superuser') else None
+            data['view_analysis'] = 'view_analysis' if se_role in ('analysis', 'superuser') else None
+            data['view_production'] = 'view_production' if se_role in ('production', 'superuser') else None
         else:
             data['view_active'] = kwargs.get('view_active', None)
             data['view_inactive'] = kwargs.get('view_inactive', None)
-            data['view_mine'] = kwargs.get('view_mine', None)
-            data['view_others'] = kwargs.get('view_others', None)
+            data['view_mine'] = experimenter.experimenter_id if kwargs.get('view_mine') else None
+            data['view_others'] = experimenter.experimenter_id if kwargs.get('view_others') else None
             data['view_analysis'] = kwargs.get('view_analysis', None)
             data['view_production'] = kwargs.get('view_production', None)
 
@@ -1473,9 +1471,9 @@ class CampaignsPOMS:
         if data['view_active'] and data['view_inactive']:
             pass
         elif data['view_active']:
-            q = q.filter(Campaign.active == True)       # Do NOT optimze the condition!
+            q = q.filter(Campaign.active == True)       # Do NOT optimize the condition!
         elif data['view_inactive']:
-            q = q.filter(Campaign.active == False)      # Do NOT optimze the condition!
+            q = q.filter(Campaign.active == False)      # Do NOT optimize the condition!
 
         csl = q.all()
 
