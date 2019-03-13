@@ -1473,9 +1473,9 @@ class CampaignsPOMS:
         if data['view_active'] and data['view_inactive']:
             pass
         elif data['view_active']:
-            q = q.filter(Campaign.active == True)
+            q = q.filter(Campaign.active == True)       # Do NOT optimze the condition!
         elif data['view_inactive']:
-            q = q.filter(Campaign.active == False)
+            q = q.filter(Campaign.active == False)      # Do NOT optimze the condition!
 
         csl = q.all()
 
@@ -1503,9 +1503,9 @@ class CampaignsPOMS:
         last_activity = ""
         if last_activity_l and last_activity_l and last_activity_l[0]:
             if datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
-                last_activity = last_activity_l[0].strftime(
-                    "%Y-%m-%d %H:%M:%S")
+                last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         return csl, last_activity, msg, data
+
 
     def show_campaign_stages(self, dbhandle, campaign_ids=None,
                              tmin=None, tmax=None, tdays=7,
