@@ -76,7 +76,7 @@ class CampaignsPOMS:
         if isinstance(pc_username, str):
             pc_username = pc_username.strip()
 
-        ae_launch_name = kwargs.pop('ae_launch_name')
+        ae_launch_name = kwargs.get('ae_launch_name','')
         ae_launch_name = ae_launch_name.strip()
         ls = dbhandle.query(LoginSetup).filter(LoginSetup.experiment == exp).filter(
                     LoginSetup.name == ae_launch_name).first()
