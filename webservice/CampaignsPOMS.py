@@ -1567,9 +1567,9 @@ class CampaignsPOMS:
         if data['view_mine'] and data['view_others']:
             pass
         elif data['view_mine']:
-            csq = csq.filter(CampaignStage.creator == data['view_mine'])
+            csq = csq.filter(CampaignStage.creator == experimenter.experimenter_id)
         elif data['view_others']:
-            csq = csq.filter(CampaignStage.creator != data['view_others'])
+            csq = csq.filter(CampaignStage.creator != experimenter.experimenter_id)
 
         if data['view_active'] and data['view_inactive']:
             pass
