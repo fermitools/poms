@@ -34,7 +34,7 @@ def show_campaigns(test=None, **kwargs):
         # view_others=view_others,
         # view_production=view_production,
         # update_view=update_view,
-        **kwargs,
+        **kwargs
     )
     # print(f"data = '{data}'", file=open("output.txt", "w"))   # DEBUG
     return status in (200, 201), json.loads(data)
@@ -57,7 +57,7 @@ def show_campaign_stages(campaign_name, test=None, **kwargs):
         # view_others=view_others,
         # view_production=view_production,
         # update_view=update_view,
-        **kwargs,
+        **kwargs
     )
     return status in (200, 201), json.loads(data)
 
