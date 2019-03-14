@@ -217,11 +217,9 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
                          experiment=None, pc_username=None, test_client=False, configfile=None):
     logging.debug("in get launch_jobs test_client = " + repr(test_client))
     method = 'launch_template_edit'
-    action = action
     ae_launch_name = launch_name
     ae_launch_host = launch_host
     ae_launch_account = user_account
-    experiment = experiment
     # ae_launch_setup = launch_setup
     if launch_setup is not None:
         ae_launch_setup = ""
@@ -314,10 +312,7 @@ def campaign_definition_edit(output_file_patterns, launch_script, def_parameter=
     # You can not modify the recovery_type from the poms_client (future feature)
     logging.debug("in get launch_jobs test_client = " + repr(test_client))
     method = "campaign_definition_edit"
-    # pc_username = pc_username
-    # action = action
     ae_definition_name = name
-    # experiment = experiment
     ae_definition_recovery = recoveries
     ae_output_file_patterns = output_file_patterns
     ae_launch_script = launch_script
