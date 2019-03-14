@@ -40,7 +40,7 @@ def show_campaigns(test=None, **kwargs):
     return status in (200, 201), json.loads(data)
 
 
-def show_campaign_stages(campaign_name, test=None, **kwargs):
+def show_campaign_stages(campaign_name=None, test=None, **kwargs):
                         #  experiment=None, configfile=None,
                         #  view_active=None, view_mine=None, view_others=None, view_production=None, update_view=None):
     '''
