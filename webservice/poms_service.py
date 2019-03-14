@@ -560,22 +560,22 @@ class PomsService:
                 'show_campaign_stages_stats.html')
 
         values = {
-           'limit_experiment': current_experimenter.session_experiment,
-           'campaign_stages': campaign_stages,
-           'tmins': tmins, 'tmaxs': tmaxs,
-           'tmin': str(tmin)[:16], 'tmax': str(tmax)[:16], 'tdays': tdays,
-           'next': nextlink, 'prev': prevlink,
-           'do_refresh': 1200,
-           'data': data,
-           'time_range_string': time_range_string,
-           'key': '', 'help_page': "ShowCampaignsHelp", 'dbg': kwargs,
+            'limit_experiment': current_experimenter.session_experiment,
+            'campaign_stages': campaign_stages,
+            'tmins': tmins, 'tmaxs': tmaxs,
+            'tmin': str(tmin)[:16], 'tmax': str(tmax)[:16], 'tdays': tdays,
+            'next': nextlink, 'prev': prevlink,
+            'do_refresh': 1200,
+            'data': data,
+            'time_range_string': time_range_string,
+            'key': '', 'help_page': "ShowCampaignsHelp", 'dbg': kwargs,
         }
 
-        if kwargs.get('format','') == 'json':
+        if kwargs.get('format', '') == 'json':
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')
         else:
-            return template.render( **values )
+            return template.render(**values)
 
 # h4. reset_campaign_split
 

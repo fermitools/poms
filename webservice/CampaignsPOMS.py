@@ -1520,8 +1520,7 @@ class CampaignsPOMS:
          nextlink,
          prevlink,
          time_range_string,
-         tdays) = (self.poms_service.utilsPOMS
-                   .handle_dates(tmin, tmax, tdays, 'show_campaign_stages?'))
+         tdays) = (self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaign_stages?'))
 
         experimenter = sesshandler('experimenter')
         experiment = experimenter.session_experiment
