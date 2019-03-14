@@ -984,7 +984,7 @@ class PomsService:
             quota=quota,
             time=time)
 
-# h4. upload_files
+# h4. upload_file
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop

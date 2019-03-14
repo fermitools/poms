@@ -369,10 +369,18 @@ class FilesStatus:
         return res, total
 
     def upload_file(self, basedir, sesshandle_get, err_res, quota, filenames):
-        print("*"*80)
+
+        # if they pick multiple files, we get a list, otherwise just one
+        # item, so if its not a list, make it a list of one item...
+        if not isinstance(filenames, list):
+            filenames = [ filenames ]
+
+        logit.log("upload_file: files: %d" , len(filenames))
+
         for filename in filenames:
-            print("***** filname: %s", filename)
+            logit.log("upload_file: filename: %s", filename.filename)
             outf = self.get_file_upload_path(basedir, sesshandle_get, filename.filename)
+            logit.log("upload_file: outf: %s", outf)
             os.makedirs(os.path.dirname(outf), exist_ok=True)
             f = open(outf, "wb")
             size = 0
@@ -383,6 +391,7 @@ class FilesStatus:
                 f.write(data)
                 size += len(data)
             f.close()
+            logit.log("upload_file: closed")
             fstatlist, total = self.file_uploads(basedir, sesshandle_get, quota)
             if total > quota:
                 unlink(outf)
