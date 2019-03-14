@@ -33,29 +33,31 @@ def show_campaigns(test=None, **kwargs):
         # view_mine=view_mine,
         # view_others=view_others,
         # view_production=view_production,
-        # update_view=update_view
-        **kwargs
+        # update_view=update_view,
+        **kwargs,
     )
     # print(f"data = '{data}'", file=open("output.txt", "w"))   # DEBUG
     return status in (200, 201), json.loads(data)
 
 
-def show_campaign_stages(campaign_name, test=None, experiment=None, configfile=None,
-                         view_active=None, view_mine=None, view_others=None, view_production=None, update_view=None):
+def show_campaign_stages(campaign_name, test=None, **kwargs):
+                        #  experiment=None, configfile=None,
+                        #  view_active=None, view_mine=None, view_others=None, view_production=None, update_view=None):
     '''
     Return campaign stages for campaign for the current experiment.
     '''
     data, status = make_poms_call(
         method='show_campaign_stages',
         format='json',
-        campaign_name=campaign_name,
         test_client=test,
-        configfile=configfile,
-        view_active=view_active,
-        view_mine=view_mine,
-        view_others=view_others,
-        view_production=view_production,
-        update_view=update_view
+        campaign_name=campaign_name,
+        # configfile=configfile,
+        # view_active=view_active,
+        # view_mine=view_mine,
+        # view_others=view_others,
+        # view_production=view_production,
+        # update_view=update_view,
+        **kwargs,
     )
     return status in (200, 201), json.loads(data)
 
