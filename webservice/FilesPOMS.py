@@ -368,12 +368,14 @@ class FilesStatus:
             total += statout.st_size
         return res, total
 
-    def upload_file(self, basedir, sesshandle_get, err_res, quota, filenames):
+    def upload_file(self, basedir, sesshandle_get, err_res, quota, filename):
 
         # if they pick multiple files, we get a list, otherwise just one
         # item, so if its not a list, make it a list of one item...
-        if not isinstance(filenames, list):
-            filenames = [ filenames ]
+        if not isinstance(filename, list):
+            filenames = [ filename ]
+        else:
+            filenames = filename
 
         logit.log("upload_file: files: %d" , len(filenames))
 
