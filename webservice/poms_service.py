@@ -988,13 +988,13 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def upload_file(self, filenames):
+    def upload_file(self, filename):
         res = self.filesPOMS.upload_file(
             cherrypy.config.get('base_uploads_dir'),
             cherrypy.session.get,
             cherrypy.HTTPError,
             cherrypy.config.get('base_uploads_quota'),
-            filenames
+            filename
         )
         raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
 
