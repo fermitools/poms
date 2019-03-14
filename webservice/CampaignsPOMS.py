@@ -1575,10 +1575,10 @@ class CampaignsPOMS:
             pass
         elif data['view_active']:
             csq = csq.filter(
-                CampaignStage.campaign_obj.has(Campaign.active == True))
+                CampaignStage.campaign_obj.has(Campaign.active == True))    # Do NOT optimize the condition!
         elif data['view_inactive']:
             csq = csq.filter(
-                CampaignStage.campaign_obj.has(Campaign.active == False))
+                CampaignStage.campaign_obj.has(Campaign.active == False))   # Do NOT optimize the condition!
 
         if campaign_ids:
             campaign_ids = campaign_ids.split(",")
