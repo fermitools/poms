@@ -76,7 +76,8 @@ class JSONORMEncoder(json.JSONEncoder):
             # first put in relationship keys, but not loaded
             res.update( {c.key: None for c in inspect(obj).mapper.relationships } )
             # load specific relationships that won't cause cycles
-            res.update( {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if c.key.find('experimenter') >= 0} )
+            res.update( {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if c.key.find('experimenter') >= 0 } )
+            res.update( {c.key: list(getattr(obj,c.key))for c in inspect(obj).mapper.relationships if c.key == 'stages'} )
 
             return res
 
@@ -681,7 +682,7 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def campaign_stage_submissions(self, campaign_name, stage_name, campaign_stage_id = None, campaign_id = None, tmin=None, tmax=None, tdays=1, **kwargs):
+    def campaign_stage_submissions(self, campaign_name, stage_name, campaign_stage_id = None, campaign_id = None, tmin=None, tmax=None, tdays=None, **kwargs):
         data = self.campaignsPOMS.campaign_stage_submissions(cherrypy.request.db, campaign_name, stage_name, campaign_stage_id, campaign_id, tmin, tmax, tdays)
         data['campaign_name'] = campaign_name
         data['stage_name'] = stage_name
