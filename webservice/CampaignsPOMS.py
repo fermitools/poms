@@ -1473,7 +1473,7 @@ class CampaignsPOMS:
         elif data['view_active']:
             q = q.filter(Campaign.active == True)       # Do NOT optimize the condition!
         elif data['view_inactive']:
-            q = q.filter(Campaign.active == False)      # Do NOT optimize the condition!
+            q = q.filter(Campaign.active != True)       # Do NOT optimize the condition!
 
         csl = q.all()
 
@@ -1567,18 +1567,18 @@ class CampaignsPOMS:
         if data['view_mine'] and data['view_others']:
             pass
         elif data['view_mine']:
-            csq = csq.filter(CampaignStage.creator == data['view_mine'])
+            csq = csq.filter(CampaignStage.creator == experimenter.experimenter_id)
         elif data['view_others']:
-            csq = csq.filter(CampaignStage.creator != data['view_others'])
+            csq = csq.filter(CampaignStage.creator != experimenter.experimenter_id)
 
         if data['view_active'] and data['view_inactive']:
             pass
         elif data['view_active']:
             csq = csq.filter(
-                CampaignStage.campaign_obj.has(Campaign.active == True))
+                CampaignStage.campaign_obj.has(Campaign.active == True))    # Do NOT optimize the condition!
         elif data['view_inactive']:
             csq = csq.filter(
-                CampaignStage.campaign_obj.has(Campaign.active == False))
+                CampaignStage.campaign_obj.has(Campaign.active != True))    # Do NOT optimize the condition!
 
         if campaign_ids:
             campaign_ids = campaign_ids.split(",")
