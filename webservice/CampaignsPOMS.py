@@ -2170,9 +2170,17 @@ class CampaignsPOMS:
         user = sesshandle.get('experimenter').username
         exp = sesshandle.get('experimenter').session_experiment
 
+
         data = kwargs.get('form', None)
         everything = json.loads(data)
         message = []
+  
+        # check permissions here, because we need to parse the json
+        # to tell
+        c_old_name = campaign.get('id').split(' ', 1)[1]
+
+        # permissions check, deferred from top level...
+        self.poms_service.permissions.can_modify(dbhandle,user, exp, role, "Campaign", name=c_old_name, experiment=exp)
 
         # Process job types and login setups first
         misc = everything['misc']

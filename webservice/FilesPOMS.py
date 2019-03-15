@@ -3,7 +3,7 @@
 
  This module contain the methods that handle the file status accounting
  List of methods: def list_task_logged_files, campaign_task_files, job_file_list, get_inflight,
- inflight_files, show_dimension_files, campaign_sheet, actual_pending_files
+ inflight_files, show_dimension_files, campaign_sheet
  ALso now includes file upload and analysis user launch sandbox code.
  Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions
  in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
@@ -214,28 +214,6 @@ class FilesStatus:
         except ValueError:
             flist = deque()
         return flist
-
-    def actual_pending_file_dims(
-            self, dbhandle, samhandle, campaign_stage_id=None, tmin=None, tmax=None, tdays=1):
-        (tmin, tmax,
-         tmins, tmaxs,
-         nextlink, prevlink,
-         time_range_string, tdays
-         ) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays,
-                                                      'actual_pending_files?%s=%s&' %
-                                                      ('campaign_stage_id', campaign_stage_id))
-
-        tl = (dbhandle.query(Submission).
-              options(joinedload(Submission.campaign_stage_obj)).
-              options(joinedload(Submission.jobs).joinedload(Job.job_files)).
-              filter(Submission.campaign_stage_id == campaign_stage_id,
-                     Submission.created >= tmin, Submission.created < tmax).
-              all())
-
-        explist, dimlist = self.get_pending_dims_for_task_lists(
-            dbhandle, samhandle, [tl])
-        return explist, dimlist
-
 
     @pomscache.cache_on_arguments()
     def get_pending_dict_for_campaigns(
