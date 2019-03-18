@@ -569,6 +569,7 @@ class TaskPOMS:
         pattern2 = '{}/{}*'.format(dirname, ds2[:-2])
         flist.extend(glob.glob(pattern2))
 
+        logit.log("datestamps: '%s' '%s'" % (ds, ds2))
         logit.log("found list of submission files:(%s -> %s)" % (pattern,repr(flist)))
         
         submission_log_format = 0
