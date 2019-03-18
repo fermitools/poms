@@ -27,7 +27,7 @@ account=poms_launcher
 setup=setup fife_utils
 
 [job_type generic_analysis_job]
-launch_script=fife_launch -c $FIFE_UTILS_DIR/cfg/template_launch.cfg --stage=analyze
-parameters=[["-Oglobal.sam_dataset=", "%(dataset)s"], ["-Oglobal.release=", "%(version)s"], ["-Osubmit.n_files_per_job=", "1"], ["-Osubmit.tar_file_name=","/%(experiment)s/app/users/%(experimenter)s/xyz-1.2.3-tar.gz"]]
+launch_script=setup fife_utils -g analysis; fife_launch -c $FIFE_UTILS_DIR/cfg/template_launch.cfg --stage=analyze
+parameters=[["-Oglobal.sam_dataset=", "%(dataset)s"], ["-Oglobal.release=", "%(version)s"], ["-Osubmit.n_files_per_job=", "1"], ["-Oglobal.tar_file=","/%(experiment)s/app/users/%(experimenter)s/xyz-1.2.3-tar.gz"]]
 output_file_patterns=%root
 recoveries = [["consumed_status",[]]]
