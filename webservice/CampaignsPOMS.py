@@ -1726,10 +1726,32 @@ class CampaignsPOMS:
                 )
 
 
-    def campaign_stage_submissions(self, dbhandle, campaign_name='', stage_name='', campaign_stage_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
+    def campaign_stage_submissions(self, dbhandle, campaign_name='', stage_name='', campaign_stage_id=None, campaign_id=None, tmin=None, tmax=None, tdays=None):
         '''
            Show submissions from a campaign stage
         '''
+        if campaign_id in (None, 'None','') and campaign_stage_id in (None, 'None',''):
+            raise AssertionError("campaign_stage_submissions needs either campaign_id or campaign_stage_id not None")
+
+        if not campaign_id in (None, 'None',''):
+            campaign_stage_rows = (dbhandle.query(CampaignStage.campaign_stage_id)
+                                  .filter(CampaignStage.campaign_id == campaign_id)
+                                  .all())
+            campaign_stage_ids = [row[0] for row in campaign_stage_rows]
+
+        if not campaign_stage_id in (None, 'None',''):
+            campaign_stage_ids = [campaign_stage_id]
+
+        # if we're not given any time info, do from start of campaign stage
+        if not (tmin or tmax or tdays):
+             logit.log("=== no time info, picking...")
+             crows = (dbhandle.query(CampaignStage.created)
+                    .filter(CampaignStage.campaign_stage_id.in_(campaign_stage_ids))
+                    .all())
+             tmin = crows[0][0].strftime('%Y-%m-%d %H:%M:%S')
+             tmax = datetime.now(utc).strftime('%Y-%m-%d %H:%M:%S')
+             logit.log("picking campaign date range %s .. %s" % (tmin, tmax))
+
         base_link = 'campaign_stage_submissions?campaign_name={}&stage_name={}&campaign_stage_id={}&campaign_id={}&'.format(campaign_name, stage_name, campaign_stage_id ,campaign_id)
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, base_link)
         print("  tmin:%s\n   tmax:%s\n   tmins:%s\n   tmaxs:%s\n   nextlink:%s\n   prevlink:%s\n   time_range_string:%s\n   tdays:%s\n" %
@@ -1741,17 +1763,6 @@ class CampaignsPOMS:
         subq = (dbhandle.query(func.max(subhist.created))
                 .filter(SubmissionHistory.submission_id == subhist.submission_id)
                )
-
-        if campaign_id in (None, 'None','') and campaign_stage_id in (None, 'None',''):
-            raise AssertionError("campaign_stage_submissions needs either campaign_id or campaign_stage_id not None")
-
-        if not campaign_id in (None, 'None',''):
-            campaign_stage_ids = (dbhandle.query(CampaignStage.campaign_stage_id)
-                                  .filter(CampaignStage.campaign_id == campaign_id)
-                                  .all())
-
-        if not campaign_stage_id in (None, 'None',''):
-            campaign_stage_ids = [campaign_stage_id]
 
         tuples = (dbhandle.query(Submission, SubmissionHistory, SubmissionStatus)
                   .join('experimenter_creator_obj')
@@ -2159,9 +2170,19 @@ class CampaignsPOMS:
         user = sesshandle.get('experimenter').username
         exp = sesshandle.get('experimenter').session_experiment
 
+
         data = kwargs.get('form', None)
         everything = json.loads(data)
         message = []
+  
+        # check permissions here, because we need to parse the json
+        # to tell
+        stages = everything['stages']
+        campaign = [s for s in stages if s.get('id').startswith('campaign ')][0]
+        c_old_name = campaign.get('id').split(' ', 1)[1]
+
+        # permissions check, deferred from top level...
+        self.poms_service.permissions.can_modify(dbhandle,user, exp, role, "Campaign", name=c_old_name, experiment=exp)
 
         # Process job types and login setups first
         misc = everything['misc']
@@ -2228,8 +2249,7 @@ class CampaignsPOMS:
 
         # Now process all stages
         stages = everything['stages']
-        print("############## stages: {}".format([s.get('id') for s in stages]))
-
+        logit.log("############## stages: {}".format([s.get('id') for s in stages]))
         campaign = [s for s in stages if s.get('id').startswith('campaign ')][0]
         c_old_name = campaign.get('id').split(' ', 1)[1]
         c_new_name = campaign.get('label')

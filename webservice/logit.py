@@ -13,7 +13,7 @@ logger = logging.getLogger('cherrypy.error')
 
 def logstartstop(function):
     def wrapper(*args, **kwargs):
-        logger.info("poms_service.%s Method Start" % function.__name__)
+        logger.info("poms_service.%s( %s %s ) Method Start" % (function.__name__, repr(args), repr(kwargs)))
         try:
             return function(*args, **kwargs)
         finally:
