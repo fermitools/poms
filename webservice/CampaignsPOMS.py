@@ -2177,6 +2177,8 @@ class CampaignsPOMS:
   
         # check permissions here, because we need to parse the json
         # to tell
+        stages = everything['stages']
+        campaign = [s for s in stages if s.get('id').startswith('campaign ')][0]
         c_old_name = campaign.get('id').split(' ', 1)[1]
 
         # permissions check, deferred from top level...
@@ -2247,8 +2249,7 @@ class CampaignsPOMS:
 
         # Now process all stages
         stages = everything['stages']
-        print("############## stages: {}".format([s.get('id') for s in stages]))
-
+        logit.log("############## stages: {}".format([s.get('id') for s in stages]))
         campaign = [s for s in stages if s.get('id').startswith('campaign ')][0]
         c_old_name = campaign.get('id').split(' ', 1)[1]
         c_new_name = campaign.get('label')
