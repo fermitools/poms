@@ -255,6 +255,7 @@ class Agent:
 
         haveerrors = ddict.get('errors',None) != None
         count = 0
+        ignore = set()
         while count < 2 and haveerrors:
             count = count + 1
             haveerrors = False      
@@ -263,16 +264,13 @@ class Agent:
                 m = re.match('unable to find info for (.*)', entry['message'])
                 if m:
                     jobid = m.group(1)
-                    LOGIT.info("checking jobid: %s", jobid)
-                    entry = self.get_individual_submission(jobid)
-                    if entry:
-                        ddict['data']['submissions'].insert(0,entry)
-                    else:
-                        LOGIT.info("errors  jobid: %s", jobid)
-                        haveerrors = True
+                    ignore.add(jobid)
 
         for entry in ddict['data']['submissions']:
 
+            if entry.get('id') in ignore:
+                LOGIT.info("ignoring: %s due to error", entry)
+                continue
 
             # skip if we don't have a pomsTaskID...
             if not entry.get('pomsTaskID', None):

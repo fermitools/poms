@@ -36,7 +36,7 @@ def show_campaigns(test=None, **kwargs):
         # update_view=update_view,
         **kwargs
     )
-    # print(f"data = '{data}'", file=open("output.txt", "w"))   # DEBUG
+    # print("data = '{}'".format(data), file=open("output.txt", "w"))   # DEBUG
     return status in (200, 201), json.loads(data)
 
 
