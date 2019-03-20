@@ -368,7 +368,7 @@ class PomsService:
     @logit.logstartstop
     def job_type_edit(self, *args, **kwargs):
         e = cherrypy.session.get('experimenter')
-        self.permissions.can_modify(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "LoginSetup", name=kwargs['ae_launch_name'], experiment=e.session_experiment)
+        self.permissions.can_modify(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "LoginSetup", name=kwargs.get('ae_launch_name',None), experiment=e.session_experiment)
         data = self.campaignsPOMS.job_type_edit(
             cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
 
