@@ -621,7 +621,7 @@ gui_editor.prototype.make_poms_call = function (url) {
     return new wf_uploader().make_poms_call(url, null);
 }
 
-gui_editor.prototype.set_state = function (ini_dump) {
+gui_editor.prototype.set_state = function (ini_dump, experiment, role) {
 
     const prep_jobtype_list = (data) => {
         for (const val of data) {

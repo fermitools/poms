@@ -175,11 +175,11 @@ function main() {
                 if (to_name.includes('/'))
                     to_name = to_name.split('/')[1];
                 to_name = to_name.replace(from, to);
-                ge.set_state_clone(data, from, to,'{{session_experiment}}','{{session_role}}');
+                ge.set_state_clone(data, from, to, '{{session_experiment}}', '{{session_role}}');
                 $("#camp_header1").html(`${to_name}`);
                 $("#camp_header2").html(`${to_name}`);
             } else {
-                ge.set_state(data);
+                ge.set_state(data, '{{session_experiment}}', '{{session_role}}');
             }
        })
    };
