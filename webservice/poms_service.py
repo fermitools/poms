@@ -235,7 +235,7 @@ class PomsService:
 
         template = self.jinja_env.get_template('index.html')
         return template.render(services='',
-                               experiment = experiment, role = role, 
+                               experiment=experiment, role=role,
                                version=self.version,
                                launches=self.taskPOMS.get_job_launches(
                                    cherrypy.request.db),
@@ -343,8 +343,8 @@ class PomsService:
     @logit.logstartstop
     def campaign_deps_ini(self, experiment, role, tag=None, camp_id=None, login_setup=None,
                           campaign_definition=None, launch_template=None, name=None, stage_id=None, job_type=None, full=None):
-        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Campaign", item_id = stage_id or camp_id)
-        res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, experiment,
+        self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "Campaign", item_id = stage_id or camp_id)
+        res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, experiment, role,
                                                    name=name or tag,
                                                    stage_id=stage_id or camp_id,
                                                    login_setup=login_setup or launch_template,
@@ -382,7 +382,7 @@ class PomsService:
             cherrypy.request.db, get_user(), experiment, role, *args, **kwargs)
 
         if kwargs.get('test_template'):
-            test_campaign = self.campaignsPOMS.make_test_campaign_for(cherrypy.request.db, get_user(), experiment, role, 
+            test_campaign = self.campaignsPOMS.make_test_campaign_for(cherrypy.request.db, get_user(), experiment, role,
                                                                       kwargs.get(
                                                                           "ae_campaign_definition_id"),
                                                                       kwargs.get("ae_definition_name"))
@@ -477,10 +477,12 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def gui_wf_edit(self, experiment, role, *args, **kwargs):
-        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "Campaign", name = kwargs.get('campaign',None), experiment= experiment)
+        self.permissions.can_modify(cherrypy.request.db, get_user(), experiment, role, "Campaign", name=kwargs.get('campaign', None), experiment=experiment)
         template = self.jinja_env.get_template('gui_wf_edit.html')
-        return template.render(
-            help_page="GUI_Workflow_Editor_User_Guide", campaign=kwargs.get('campaign'))
+        return template.render(help_page="GUI_Workflow_Editor_User_Guide",
+                               experiment=experiment,
+                               role=role,
+                               campaign=kwargs.get('campaign'))
 
 
 # h4. sample_workflows
