@@ -602,7 +602,7 @@ gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment,
         }
     };
 
-    this.make_poms_call('jobtype_list')
+    this.make_poms_call(`jobtype_list/${experiment}/${role}`)
         .then(prep_jobtype_list)
         .then( _ => this.make_poms_call('loginsetup_list'))
         .then(prep_loginsetup_list)
