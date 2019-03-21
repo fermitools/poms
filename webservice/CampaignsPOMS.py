@@ -55,10 +55,12 @@ class CampaignsPOMS:
         """
         self.poms_service = ps
 
-    def login_setup_edit(self, dbhandle, seshandle, *args, **kwargs):
+    def login_setup_edit(self, dbhandle, username, exp, se_role, *args, **kwargs):
         """
             callback to actually change launch templates from edit screen
         """
+       
+        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == username).first()
         data = {}
         template = None
         message = None
@@ -68,9 +70,6 @@ class CampaignsPOMS:
                                   .order_by(Experiment.experiment))
         action = kwargs.pop('action', None)
         logit.log("login_setup_edit: action is: %s , args %s" % (action, repr(args)))
-        exp = seshandle('experimenter').session_experiment
-        experimenter = seshandle('experimenter')
-        se_role = experimenter.session_role
         pcl_call = int(kwargs.pop('pcl_call', 0))
         pc_username = kwargs.pop('pc_username', None)
         if isinstance(pc_username, str):
@@ -129,7 +128,7 @@ class CampaignsPOMS:
             try:
                 if action == 'add':
                     logit.log("adding new LoginSetup...")
-                    role = seshandle('experimenter').session_role
+                    role = se_role
                     if role in ('root', 'superuser'):
                         raise cherrypy.HTTPError(
                             status=401, message='You are not authorized to add launch template.')
@@ -206,7 +205,6 @@ class CampaignsPOMS:
                 data['view_production'] = kwargs.get('view_production', None)
             data['curr_experiment'] = exp
             data['authorized'] = []
-            se_role = seshandle('experimenter').session_role
 
             q = (dbhandle.query(LoginSetup, Experiment).join(Experiment)
                  .filter(LoginSetup.experiment == exp)
@@ -243,45 +241,46 @@ class CampaignsPOMS:
                     data['authorized'].append(True)
                 elif (se_role == 'analysis' and
                       l_t.LoginSetup.creator ==
-                      seshandle('experimenter').experimenter_id):
+                      experimenter.experimenter_id):
                     data['authorized'].append(True)
                 else:
                     data['authorized'].append(False)
         data['message'] = message
         return data
 
-    def get_campaign_id(self, dbhandle, seshandle, campaign_name):
+    def get_campaign_id(self, dbhandle, user, experiment, role, campaign_name):
         '''
             return the campaing id for a campaign name in our experiment
         '''
+        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
         camp = (dbhandle.query(Campaign)
                 .filter(Campaign.name == campaign_name,
-                        Campaign.experiment == seshandle('experimenter').session_experiment)
+                        Campaign.experiment == experiment)
                 .first())
 
         if not camp:
             camp = Campaign(name=campaign_name,
-                            experiment=seshandle('experimenter').session_experiment,
-                            creator=seshandle('experimenter').experimenter_id,
-                            creator_role=seshandle('experimenter').session_role)
+                            experiment=experiment,
+                            creator=experimenter.experimenter_id,
+                            creator_role=role)
             dbhandle.add(camp)
             dbhandle.commit()
 
         return camp.campaign_id
 
-    def campaign_add_name(self, dbhandle, seshandle, **kwargs):
+    def campaign_add_name(self, dbhandle, user, experiment, role, **kwargs):
         """
             Add a new campaign name.
         """
+        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
         data = {}
         name = kwargs.get('campaign_name')
         data['message'] = "ok"
         try:
-            experiment = seshandle('experimenter').session_experiment
             camp = Campaign(name=name,
                             experiment=experiment,
-                            creator=seshandle('experimenter').experimenter_id,
-                            creator_role=seshandle('experimenter').session_role)
+                            creator=experimenter.experimenter_id,
+                            creator_role=role)
             dbhandle.add(camp)
             dbhandle.commit()
             c_s = CampaignStage(name="stage0", experiment=experiment,
@@ -315,8 +314,8 @@ class CampaignsPOMS:
                                 test_param_overrides=[],
                                 vo_role="Production",
                                 #
-                                creator=seshandle('experimenter').experimenter_id,
-                                creator_role=seshandle('experimenter').session_role,
+                                creator=experimenter.experimenter_id,
+                                creator_role=role,
                                 created=datetime.now(utc),
                                 campaign_stage_type="regular")
             dbhandle.add(c_s)
@@ -336,13 +335,11 @@ class CampaignsPOMS:
             dbhandle.commit()
         return json.dumps(data)
 
-    def campaign_rename_name(self, dbhandle, seshandle_get, *args, **kwargs):
+    def campaign_rename_name(self, dbhandle, user, exp, se_role, *args, **kwargs):
         '''
            rename a campaign
         '''
-        e = seshandle_get('experimenter')
-        se_role = e.session_role
-        exp = e.session_experiment
+        e = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
 
         camp = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
         if not exp == camp.experiment:
@@ -386,9 +383,9 @@ class CampaignsPOMS:
             CampaignStage.experiment).all()
         return [r._asdict() for r in data]
 
-    def launch_campaign(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
+    def launch_campaign(self, dbhandle, getconfig, gethead, samhandle, experiment, role, user,
                         err_res, basedir, campaign_id, launcher, dataset_override=None, parent_submission_id=None,
-                        param_overrides=None, test_login_setup=None, experiment=None, test_launch=False, output_commands=False):
+                        param_overrides=None, test_login_setup=None, test_launch=False, output_commands=False):
 
         '''
             Find the starting stage in a campaign, and launch it with
@@ -409,7 +406,7 @@ class CampaignsPOMS:
 
         if len(stages) == 1:
             return self.poms_service.taskPOMS.launch_jobs(
-                dbhandle, getconfig, gethead, seshandle_get, samhandle,
+                dbhandle, getconfig, gethead, samhandle, experiment, role, user,
                 err_res, basedir, stages[0][0], launcher, dataset_override,
                 parent_submission_id, param_overrides, test_login_setup,
                 experiment, test_launch, output_commands
@@ -468,7 +465,7 @@ class CampaignsPOMS:
             i = i + 1
             dbhandle.add(cr)
 
-    def job_type_edit(self, dbhandle, seshandle, *args, **kwargs):
+    def job_type_edit(self, dbhandle, username, exp, ses_role,  *args, **kwargs):
         """
             callback from edit screen/client.
         """
@@ -478,9 +475,7 @@ class CampaignsPOMS:
                                   .filter(~Experiment.experiment.in_(["root", "public"]))
                                   .order_by(Experiment.experiment))
         action = kwargs.pop('action', None)
-        experimenter = seshandle('experimenter')
-        exp = seshandle('experimenter').session_experiment
-        ses_role = seshandle('experimenter').session_role
+        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == username).first()
         data['curr_experiment'] = exp
         pcl_call = int(kwargs.pop('pcl_call', 0))
         # email is the info we know about the user in POMS DB.
@@ -563,7 +558,7 @@ class CampaignsPOMS:
                 recoveries = kwargs.pop('ae_definition_recovery')
             try:
                 if action == 'add':
-                    role = seshandle('experimenter').session_role
+                    role = sess_role
                     if role in ('root', 'superuser'):
                         raise cherrypy.HTTPError(
                             status=401,
@@ -680,7 +675,7 @@ class CampaignsPOMS:
                       ses_role == "production"):
                     data['authorized'].append(True)
                 elif (df.JobType.creator_role == ses_role and
-                      df.JobType.creator == seshandle('experimenter').experimenter_id):
+                      df.JobType.creator == experimenter.experimenter_id):
                     data['authorized'].append(True)
                 else:
                     data['authorized'].append(False)
@@ -697,28 +692,29 @@ class CampaignsPOMS:
         data['message'] = message
         return data
 
-    def make_test_campaign_for(self, dbhandle, sesshandle, campaign_def_id, campaign_def_name):
+    def make_test_campaign_for(self, dbhandle, user, experiment, role, campaign_def_id, campaign_def_name):
         """
             Build a test_campaign for a given campaign definition
         """
+        experimenter_id = dbhandle.query(Experimenter.experimenter_id).filter(Experimenter.username == user).first()
+
         c_s = (dbhandle.query(CampaignStage)
                .filter(CampaignStage.job_type_id == campaign_def_id,
                        CampaignStage.name == "_test_%s" % campaign_def_name)
                .first())
         if not c_s:
             l_t = (dbhandle.query(LoginSetup)
-                   .filter(LoginSetup.experiment ==
-                           sesshandle.get('experimenter').session_experiment)
+                   .filter(LoginSetup.experiment == experiment)
                    .first())
             c_s = CampaignStage()
             c_s.job_type_id = campaign_def_id
             c_s.name = "_test_%s" % campaign_def_name
-            c_s.experiment = sesshandle.get('experimenter').session_experiment
-            c_s.creator = sesshandle.get('experimenter').experimenter_id
+            c_s.experiment = experiment
+            c_s.creator = experimenter_id
             c_s.created = datetime.now(utc)
             c_s.updated = datetime.now(utc)
-            c_s.vo_role = "Production"
-            c_s.creator_role = "production"
+            c_s.vo_role = "Production" if role == "production" else "Analysis"
+            c_s.creator_role = role
             c_s.dataset = ""
             c_s.login_setup_id = l_t.login_setup_id
             c_s.software_version = ""
@@ -732,18 +728,16 @@ class CampaignsPOMS:
         return c_s.campaign_stage_id
 
 
-    def campaign_stage_edit(self, dbhandle, sesshandle, *args, **kwargs):
+    def campaign_stage_edit(self, dbhandle, user, exp, role, *args, **kwargs):
         """
             callback for campaign stage edit screens to update campaign record
             takes action = 'edit'/'add'/ etc.
             sesshandle is the cherrypy.session instead of cherrypy.session.get method
         """
         data = {}
-        experimenter = sesshandle.get('experimenter')
-        role = sesshandle.get('experimenter').session_role or 'production'
+        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
 
         message = None
-        exp = sesshandle.get('experimenter').session_experiment
         data['exp_selections'] = dbhandle.query(Experiment).filter(
             ~Experiment.experiment.in_(["root", "public"])).order_by(Experiment.experiment)
         # for k,v in kwargs.items():
@@ -979,12 +973,7 @@ class CampaignsPOMS:
             # for testing ui...
             # data['authorized'] = True
             state = kwargs.pop('state', None)
-            if state is None:
-                state = sesshandle.get('campaign_edit.state', 'state_active')
-
             jumpto = kwargs.pop('jump_to_campaign', None)
-
-            sesshandle['campaign_edit.state'] = state
             data['state'] = state
             data['curr_experiment'] = exp
             data['authorized'] = []
@@ -1035,11 +1024,10 @@ class CampaignsPOMS:
             for c_s in csq:
                 if role in ('root', 'superuser'):
                     data['authorized'].append(True)
-                elif (c_s.CampaignStage.creator_role == 'production' and
-                      sesshandle.get('experimenter').session_role == 'production'):
+                elif (c_s.CampaignStage.creator_role == 'production' and role == 'production'):
                     data['authorized'].append(True)
                 elif (c_s.CampaignStage.creator_role == role and
-                      c_s.CampaignStage.creator == sesshandle.get('experimenter').experimenter_id):
+                      c_s.CampaignStage.creator == experimenter.experimenter_id):
                     data['authorized'].append(True)
                 else:
                     data['authorized'].append(False)
@@ -1390,10 +1378,11 @@ class CampaignsPOMS:
         # return bytes(ptext, encoding="utf-8")
         return ptext
 
-    def show_campaigns(self, dbhandle, sesshandle, experimenter, **kwargs):
+    def show_campaigns(self, dbhandle, user, experiment, role,  **kwargs):
         '''
             Return data for campaigns table for current experiment, etc.
         '''
+        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
         action = kwargs.get('action', None)
         msg = "OK"
         se_role = experimenter.session_role
@@ -1479,14 +1468,13 @@ class CampaignsPOMS:
 
         if not csl:
             return csl, "", msg, data
-        role = sesshandle.get('experimenter').session_role
         for c_s in csl:
             if role == 'superuser':
                 data['authorized'].append(True)
             elif c_s.creator_role == 'production' and role == 'production':
                 data['authorized'].append(True)
             elif (c_s.creator_role == role and
-                  c_s.creator == sesshandle.get('experimenter').experimenter_id):
+                  c_s.creator == experimenter.experimenter_id):
                 data['authorized'].append(True)
             else:
                 data['authorized'].append(False)
@@ -1505,9 +1493,9 @@ class CampaignsPOMS:
         return csl, last_activity, msg, data
 
 
-    def show_campaign_stages(self, dbhandle, campaign_ids=None,
+    def show_campaign_stages(self, dbhandle, user, experiment, se_role, campaign_ids=None,
                              tmin=None, tmax=None, tdays=7,
-                             campaign_name=None, sesshandler=None, **kwargs):
+                             campaign_name=None, **kwargs):
         """
             give campaign information about campaign_stages with activity
             in the time window for a given experiment
@@ -1520,11 +1508,8 @@ class CampaignsPOMS:
          nextlink,
          prevlink,
          time_range_string,
-         tdays) = (self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaign_stages?'))
-
-        experimenter = sesshandler('experimenter')
-        experiment = experimenter.session_experiment
-        se_role = experimenter.session_role
+         tdays) = (self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, 'show_campaign_stages/%s/%s?' %(experiment, se_role)))
+        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
 
         csq = (dbhandle.query(CampaignStage)
                .options(joinedload('experiment_obj'))
@@ -1603,7 +1588,7 @@ class CampaignsPOMS:
         for c_s in campaign_stages:
             if se_role != 'analysis':
                 data['authorized'].append(True)
-            elif c_s.creator == sesshandler('experimenter').experimenter_id:
+            elif c_s.creator == experimenter.experimenter_id:
                 data['authorized'].append(True)
             else:
                 data['authorized'].append(False)
@@ -1623,8 +1608,8 @@ class CampaignsPOMS:
         dbhandle.commit()
 
     # @pomscache.cache_on_arguments()
-    def campaign_stage_info(self, dbhandle,
-                            config_get, campaign_stage_id, tmin=None, tmax=None, tdays=None):
+    def campaign_stage_info(self, dbhandle, config_get, experiment, role,
+                             campaign_stage_id, tmin=None, tmax=None, tdays=None):
         """
            Give information related to a campaign stage for the campaign_stage_info page
         """
@@ -1641,7 +1626,7 @@ class CampaignsPOMS:
             tmax = datetime.now(utc)
 
         tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(
-            tmin, tmax, tdays, 'campaign_stage_info?')
+            tmin, tmax, tdays, 'campaign_stage_info/%s/%s?' % (experiment, role))
 
         last_activity_l = dbhandle.query(func.max(Submission.updated)).filter(
             Submission.campaign_stage_id == campaign_stage_id).first()
@@ -1726,7 +1711,7 @@ class CampaignsPOMS:
                 )
 
 
-    def campaign_stage_submissions(self, dbhandle, campaign_name='', stage_name='', campaign_stage_id=None, campaign_id=None, tmin=None, tmax=None, tdays=None):
+    def campaign_stage_submissions(self, dbhandle, experiment, role, campaign_name='', stage_name='', campaign_stage_id=None, campaign_id=None, tmin=None, tmax=None, tdays=None):
         '''
            Show submissions from a campaign stage
         '''
@@ -1752,7 +1737,7 @@ class CampaignsPOMS:
              tmax = datetime.now(utc).strftime('%Y-%m-%d %H:%M:%S')
              logit.log("picking campaign date range %s .. %s" % (tmin, tmax))
 
-        base_link = 'campaign_stage_submissions?campaign_name={}&stage_name={}&campaign_stage_id={}&campaign_id={}&'.format(campaign_name, stage_name, campaign_stage_id ,campaign_id)
+        base_link = 'campaign_stage_submissions/{}/{}?campaign_name={}&stage_name={}&campaign_stage_id={}&campaign_id={}&'.format(experiment, role, campaign_name, stage_name, campaign_stage_id ,campaign_id)
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, base_link)
         print("  tmin:%s\n   tmax:%s\n   tmins:%s\n   tmaxs:%s\n   nextlink:%s\n   prevlink:%s\n   time_range_string:%s\n   tdays:%s\n" %
               (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays))
@@ -1818,7 +1803,7 @@ class CampaignsPOMS:
 
 
     def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None,
-                               dataset="", role="Production", cr_role="production", sesshandler=None, params=[]):
+                               dataset="", role="Production", cr_role="production", params=[]):
         """
             update or add a campaign by experiment and name...
         """
@@ -2089,7 +2074,7 @@ class CampaignsPOMS:
         dbhandle.commit()
         return []
 
-    def split_type_javascript(self, dbhandle, sesshandle, samhandle, *args, **kwargs):
+    def split_type_javascript(self, dbhandle, samhandle, *args, **kwargs):
 
         class fake_campaign_stage:
             def __init__(self, dataset="", cs_split_type=""):
@@ -2151,25 +2136,14 @@ class CampaignsPOMS:
         rlist.append(';')
         return '\n'.join(rlist)
 
-    def echo(self, dbhandle, sesshandle, *args, **kwargs):
-        form = kwargs.get('form', None)
-        print("******************* Get the kwargs: '{}'".format(kwargs))
-        print("******************* Get the form: '{}'".format(form))
-        everything = json.loads(form)
-        # print("******************* Get the JSON: '{}'".format(cherrypy.request.json))
-        # everything = cherrypy.request.json['form']
-        stages = everything['stages']
-        # print("############## {}".format([s.get('id') for s in stages]))
-        return stages
-
-    def save_campaign(self, dbhandle, sesshandle, *args, **kwargs):
+    def save_campaign(self, dbhandle, user, *args, **kwargs):
         """
         """
-        role = sesshandle.get('experimenter').session_role or 'production'
-        user_id = sesshandle.get('experimenter').experimenter_id
-        user = sesshandle.get('experimenter').username
-        exp = sesshandle.get('experimenter').session_experiment
-
+        
+        exp = args[0]
+        role = args[1] or 'production'
+        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
+        user_id = experimenter.experimenter_id
 
         data = kwargs.get('form', None)
         everything = json.loads(data)
@@ -2445,28 +2419,26 @@ class CampaignsPOMS:
         return {'status': "201 Created", 'message': message or "OK", 'campaign_id': the_campaign.campaign_id}
 
 
-    def get_jobtype_id(self, dbhandle, sesshandle, name):
+    def get_jobtype_id(self, dbhandle, user, exp, role,  name):
         """
            lookup job type id for name in current experiment
         """
-        role = sesshandle.get('experimenter').session_role or 'production'
-        user_id = sesshandle.get('experimenter').experimenter_id
-        user = sesshandle.get('experimenter').username
-        exp = sesshandle.get('experimenter').session_experiment
+        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
+        user_id = experimenter.experimenter_id
 
         return (dbhandle.query(JobType.job_type_id)
                 .filter(JobType.experiment == exp)
                 .filter(JobType.name == name).scalar())
 
 
-    def get_loginsetup_id(self, dbhandle, sesshandle, name):
+    def get_loginsetup_id(self, dbhandle, user, exp, role, name):
         """
            lookup login setup id by name for current experiment
         """
-        role = sesshandle.get('experimenter').session_role or 'production'
-        user_id = sesshandle.get('experimenter').experimenter_id
-        user = sesshandle.get('experimenter').username
-        exp = sesshandle.get('experimenter').session_experiment
+        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
+        role = role
+        user_id = experimenter.experimenter_id
+        exp 
 
         return (dbhandle.query(LoginSetup.login_setup_id)
                 .filter(LoginSetup.experiment == exp)

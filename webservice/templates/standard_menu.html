@@ -3,7 +3,7 @@
 <div class="toc">
 <div class="ui vertical menu">
 
-  <a class="active item"href="{{pomspath}}/">
+  <a class="active item"href="{{pomspath}}/{{session_experiment}}/{{session_role}}/">
     <div class="ui float left">
     <i class="large black home icon"><b>&nbsp;POMS</b></i>
     </div>
@@ -11,7 +11,7 @@
 
   <div class="item">
     <div class="ui icon input">
-      <form action="{{pomspath}}/quick_search" style="width: 99%">
+      <form action="{{pomspath}}/quick_search/{{session_experiment}}/{{session_role}}" style="width: 99%">
        <input type="text" name="search_term" placeholder="Campaign Search..." style="width: 95%">
       <button type="submit" style="border:none; background-color:transparent; margin-left: -2.5em; height: 1.5em;">
          <i class="ui icon search"></i>
@@ -40,7 +40,7 @@
   <div class="item">
     <div class="header">Experiment</div>
     <div class="menu">
-      <a class="item" href="{{pomspath}}/experiment_membership">
+      <a class="item" href="{{pomspath}}/experiment_membership/{{session_experiment}}/{{session_role}}">
         Membership (POMS)
       </a>
     </div>
@@ -50,7 +50,7 @@
   <div class="item">
     <div class="header">User Data</div>
     <div class="menu">
-      <a class="item" href="{{pomspath}}/file_uploads">
+      <a class="item" href="{{pomspath}}/file_uploads/{{session_experiment}}/{{session_role}}">
         Uploaded Files
       </a>
      </div>
@@ -59,17 +59,17 @@
   <div class="item">
     <div class="header">Campaign Data</div>
     <div class="menu">
-      <a class="item" href="{{pomspath}}/show_campaigns">
+      <a class="item" href="{{pomspath}}/show_campaigns/{{session_experiment}}/{{session_role}}">
         Campaigns
       </a>
-      <a class="item" href="{{pomspath}}/show_campaign_stages">
+      <a class="item" href="{{pomspath}}/show_campaign_stages/{{session_experiment}}/{{session_role}}">
         Campaign Stages
       </a>
-      <a class="item" href="{{pomspath}}/sample_workflows">
+      <a class="item" href="{{pomspath}}/sample_workflows/{{session_experiment}}/{{session_role}}">
         Sample Campaigns
       </a>
 <!--
-      <a class="item" href="{{pomspath}}/show_campaigns?active=False">
+      <a class="item" href="{{pomspath}}/show_campaigns/{{session_experiment}}/{{session_role}}?active=False">
         InActive Campaign Stages
       </a>
 -->
@@ -79,13 +79,13 @@
   <div class="item">
     <div class="header">Configure Work</div>
     <div class="menu">
-      <a class="item" href="{{pomspath}}/login_setup_edit">
+      <a class="item" href="{{pomspath}}/login_setup_edit/{{session_experiment}}/{{session_role}}">
         Compose Login/Setup
       </a>
-      <a class="item" href="{{pomspath}}/job_type_edit">
+      <a class="item" href="{{pomspath}}/job_type_edit/{{session_experiment}}/{{session_role}}">
         Compose Job Type
       </a>
-      <a class="item" href="{{pomspath}}/campaign_stage_edit">
+      <a class="item" href="{{pomspath}}/campaign_stage_edit/{{session_experiment}}/{{session_role}}">
         Compose Campaign Stages
       </a>
       <a class="item" target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/LaunchConfigFileTemplates">

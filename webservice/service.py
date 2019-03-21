@@ -166,98 +166,7 @@ class SessionTool(cherrypy.Tool):
         pass
 
     def establish_session(self):
-
-        if cherrypy.session.get('id', None):
-            #logit.log("EXISTING SESSION: %s" % str(cherrypy.session['experimenter']))
-            return
-
-        logit.log("establish_session startup -- mengel")
-
-        # The session ID from the users cookie.
-        cherrypy.session['id'] = cherrypy.session.originalid
-        cherrypy.session['X-Forwarded-For'] = cherrypy.request.headers.get(
-            'X-Forwarded-For', None)
-        # someone had all these SHIB- headers mixed case, which is not
-        # how they are on fermicloud045 or on pomsgpvm01...
-        cherrypy.session['Remote-Addr'] = cherrypy.request.headers.get(
-            'Remote-Addr', None)
-        cherrypy.session['X-Shib-Userid'] = cherrypy.request.headers.get(
-            'X-Shib-Userid', None)
-
-        experimenter = None
-        username = None
-
-        if cherrypy.request.headers.get('X-Shib-Userid', None):
-            logit.log("Shib-Userid case")
-            username = cherrypy.request.headers['X-Shib-Userid']
-            experimenter = None
-            experimenter = (cherrypy.request.db.query(Experimenter)
-                            .filter(ExperimentsExperimenters.active == True)
-                            .filter(Experimenter.username == username)
-                            .first()
-                            )
-
-        elif cherrypy.config.get('standalone_test_user', None):
-            username = cherrypy.config.get('standalone_test_user', None)
-            logit.log("standalone_test_user case: user %s" % username)
-            experimenter = (cherrypy.request.db.query(Experimenter)
-                            .filter(ExperimentsExperimenters.active == True)
-                            .filter(Experimenter.username == username)
-                            .first()
-                            )
-
-        if not experimenter:
-            raise cherrypy.HTTPError(
-                401, 'POMS account does not exist for %s.  To be added you must registered in FERRY.' % username)
-
-        e = cherrypy.request.db.query(Experimenter).filter(
-            Experimenter.username == username).one()
-
-        # Retrieve what experiments a user is ACTIVE in and the level of access right to each experiment.
-        # and construct security role data on each active experiment
-        # Not that root is a FLAG not a ROLE. Take care not to make it a role.
-        # Ordered by how they will appear in the form dropdown.
-        roles = ['analysis', 'production', 'superuser']
-        exps = {}
-        e2e = None
-        if e.root is True:
-            e2e = (cherrypy.request.db.query(Experiment))
-            for row in e2e:
-                exps[row.experiment] = {'roles': roles}
-        else:
-            e2e = (cherrypy.request.db.query(ExperimentsExperimenters)
-                   .filter(ExperimentsExperimenters.experimenter_id == e.experimenter_id)
-                   .filter(ExperimentsExperimenters.active == True))
-            for row in e2e:
-                position = 0
-                if e.root is True:
-                    position = 3
-                elif row.role == 'superuser':
-                    position = 3
-                elif row.role == 'production':
-                    position = 2
-                else:  # analysis
-                    position = 1
-                exps[row.experiment] = {'roles': roles[:position]}
-
-        if e.session_experiment == "":
-            # don's choke on blank session_experiment, just pick one...
-            e.session_experiment = next(iter(exps.keys()))
-
-        cherrypy.session['experimenter'] = SessionExperimenter(e.experimenter_id,
-                                                               e.first_name, e.last_name, e.username, exps,
-                                                               e.session_experiment, e.session_role, e.root)
-
-        cherrypy.session.save()
-        cherrypy.request.db.query(Experimenter).filter(
-            Experimenter.username == username).update({'last_login': datetime.now(utc)})
-        cherrypy.request.db.commit()
-        cherrypy.log.error("New Session: %s %s %s %s %s" % (cherrypy.request.headers.get('X-Forwarded-For', 'Unknown'),
-                                                            cherrypy.session['id'],
-                                                            experimenter.username if experimenter else 'none',
-                                                            experimenter.first_name if experimenter else 'none',
-                                                            experimenter.last_name if experimenter else 'none'))
-
+        pass
 
 #
 # non ORM class to cache an experiment
@@ -278,22 +187,55 @@ def urlencode_filter(s):
     s = urllib.parse.quote(s)
     return Markup(s)
 
+from poms.webservice.get_user import get_user
 
 def augment_params():
-    experiment = cherrypy.session.get('experimenter').session_experiment
-    exp_obj = cherrypy.request.db.query(Experiment).filter(
-        Experiment.experiment == experiment).first()
-    current_experimenter = cherrypy.session.get('experimenter')
+    e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == get_user()).first()
+    roles = ['analysis', 'production', 'superuser']
+    exps = {}
+    e2e = None
+    if e.root is True:
+        e2e = (cherrypy.request.db.query(Experiment))
+        for row in e2e:
+            exps[row.experiment] = roles
+    else:
+        e2e = (cherrypy.request.db.query(ExperimentsExperimenters)
+               .filter(ExperimentsExperimenters.experimenter_id == e.experimenter_id)
+               .filter(ExperimentsExperimenters.active == True))
+        for row in e2e:
+            position = 0
+            if e.root is True:
+                position = 3
+            elif row.role == 'superuser':
+                position = 3
+            elif row.role == 'production':
+                position = 2
+            else:  # analysis
+                position = 1
+            exps[row.experiment] = roles[:position]
+
+    pathv = cherrypy.request.path_info.split('/')
+    if len(pathv) >= 4:
+        session_experiment = pathv[2]
+        session_role = pathv[3]
+    else:
+        session_role = None
+        session_experiment = None
+
     root = cherrypy.request.app.root
-    root.jinja_env.globals.update(dict(exp_obj=SessionExperiment(exp_obj),
-                                       current_experimenter=current_experimenter,
-                                       user_authorization=current_experimenter.user_authorization(),
-                                       session_experiment=current_experimenter.session_experiment,
-                                       session_role=current_experimenter.session_role,
-                                       allowed_roles=current_experimenter.get_allowed_roles(),
+    root.jinja_env.globals.update(dict(session_role = session_role,
+                                       session_experiment = session_experiment,
+                                       user_authorization=exps.keys(),
+                                       allowed_roles= exps,
+                                       is_root = e.root,
+                                       experimenter_id = e.experimenter_id,
+                                       last_name = e.last_name,
+                                       first_name = e.first_name,
+                                       username = e.username,
                                        version=root.version,
                                        pomspath=root.path,
                                        hostname=socket.gethostname()))
+
     # logit.log("jinja_env.globals: {}".format(str(root.jinja_env.globals)))
     # # DEBUG
     root.jinja_env.filters['urlencode'] = urlencode_filter

@@ -41,7 +41,7 @@ Campaign Stages{%include 'help_button.html'%}
         display:none;
     }
 </style>
-<!--<form method="GET" action="{{pomspath}}/show_campaign_stages">-->
+<!--<form method="GET" action="{{pomspath}}/show_campaign_stages/{{experiment}}/{{role}}">-->
 <form id="view_picker" method="POST">
   {% set has_active=True %}
   {%include "view_picker.html" %}
@@ -86,7 +86,7 @@ Campaign Stages{%include 'help_button.html'%}
                     <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}" {{ 'disabled' if data.authorized[loop.index-1]!=True }}></td>
                     <td>{{stage.campaign_obj.name}}</td>
                     <td style="width: 4em; text-align:right">{{stage.campaign_obj.campaign_id}}</td>
-                    <td><a href="{{pomspath}}/campaign_stage_info?campaign_stage_id={{stage.campaign_stage_id}}">{{stage.name}}</a></td>
+                    <td><a href="{{pomspath}}/campaign_stage_info/{{experiment}}/{{role}}?campaign_stage_id={{stage.campaign_stage_id}}">{{stage.name}}</a></td>
                     <td style="width: 4em; text-align:right">{{stage.campaign_stage_id}}</td>
                     <td>{{ 'Yes' if stage.campaign_obj.active else 'No' }}</td>
                     <td>{{stage.experimenter_holder_obj.username}}</td>

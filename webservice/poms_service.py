@@ -150,6 +150,8 @@ def error_rewrite(f):
 # h2. overall PomsService class
 #
 
+from .get_user import get_user
+
 class PomsService:
 
     #
@@ -224,9 +226,16 @@ class PomsService:
 # h4. index
     @cherrypy.expose
     @logit.logstartstop
-    def index(self):
+    def index(self, experiment = None, role = None):
+
+        if experiment == None or role == None:
+            experiment, role = self.utilsPOMS.getSavedExperimentRole(cherrypy.request.db, get_user())
+            raise cherrypy.HTTPRedirect(
+                "%s/index/%s/%s" % (self.path, experiment, role))
+
         template = self.jinja_env.get_template('index.html')
         return template.render(services='',
+                               experiment = experiment, role = role, 
                                version=self.version,
                                launches=self.taskPOMS.get_job_launches(
                                    cherrypy.request.db),
@@ -239,22 +248,28 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def quick_search(self, search_term):
-        self.utilsPOMS.quick_search(cherrypy.HTTPRedirect, search_term)
+    def quick_search(self, experiment, role, search_term):
+        return self.utilsPOMS.quick_search(cherrypy.HTTPRedirect, search_term)
 
 # h4. update_session_experiment
     @cherrypy.expose
     @logit.logstartstop
-    def update_session_experiment(self, *args, **kwargs):
+    def update_session_experiment(self, experiment, role, *args, **kwargs):
         self.utilsPOMS.update_session_experiment(
-            cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+            cherrypy.request.db, get_user(), experiment, *args, **kwargs)
+
+        raise cherrypy.HTTPRedirect(
+                cherrypy.request.headers.get('Referer', '%s/index/%s/%s' % (self.path, experiment, role)).replace(experiment, kwargs['session_experiment']))
 
 # h4. update_session_role
     @cherrypy.expose
     @logit.logstartstop
-    def update_session_role(self, *args, **kwargs):
-        return self.utilsPOMS.update_session_role(
-            cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+    def update_session_role(self, experiment, role,  *args, **kwargs):
+        self.utilsPOMS.update_session_role(
+            cherrypy.request.db, get_user(), role, *args, **kwargs)
+
+        raise cherrypy.HTTPRedirect(
+                cherrypy.request.headers.get('Referer', '%s/index/%s/%s' % (self.path, experiment, role)).replace(role, kwargs['session_role']))
 
     #####
     # DBadminPOMS
@@ -263,7 +278,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def raw_tables(self):
-        if not self.permissions.is_superuser(cherrypy.request.db, cherrypy.session.get('experimenter').username):
+        if not self.permissions.is_superuser(cherrypy.request.db, get_user()):
             raise cherrypy.HTTPError(
                 401, 'You are not authorized to access this resource')
         template = self.jinja_env.get_template('raw_tables.html')
@@ -286,8 +301,8 @@ class PomsService:
 
     @cherrypy.expose
     @logit.logstartstop
-    def experiment_membership(self, *args, **kwargs):
-        experiment = cherrypy.session.get('experimenter').session_experiment
+    def experiment_membership(self, experiment, role, *args, **kwargs):
+        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Experiment", item_id = experiment)
         data = self.dbadminPOMS.experiment_membership(
             cherrypy.request.db, experiment, *args, **kwargs)
         template = self.jinja_env.get_template('experiment_membership.html')
@@ -309,30 +324,26 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def login_setup_edit(self, *args, **kwargs):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_modify(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "LoginSetup", name=kwargs['ae_launch_name'], experiment=e.session_experiment)
+    def login_setup_edit(self, experiment, role, *args, **kwargs):
+        self.permissions.can_modify(cherrypy.request.db, get_user(), experiment, role, "LoginSetup", name=kwargs.get('ae_launch_name', None), experiment=experiment)
         data = self.campaignsPOMS.login_setup_edit(
-            cherrypy.request.db, cherrypy.session.get, cherrypy.config.get, *args, **kwargs)
+            cherrypy.request.db, get_user(), experiment, role,  cherrypy.config.get, *args, **kwargs)
 
         if kwargs.get('test_template'):
             raise cherrypy.HTTPRedirect(
-                "%s/launch_jobs?campaign_stage_id=None&test_login_setup=%s" % (self.path, data['login_setup_id']))
+                "%s/launch_jobs/%s/%s?campaign_stage_id=None&test_login_setup=%s" % (self.path, experiment, role, data['login_setup_id']))
 
         template = self.jinja_env.get_template('login_setup_edit.html')
-        return template.render(data=data, jquery_ui=False, help_page="LaunchTemplateEditHelp")
+        return template.render(data=data, experiment=experiment, role = role, jquery_ui=False, help_page="LaunchTemplateEditHelp")
 
 
 # h4. campaign_deps_ini
 
-
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_deps_ini(self, tag=None, camp_id=None, login_setup=None,
+    def campaign_deps_ini(self, experiment, role, tag=None, camp_id=None, login_setup=None,
                           campaign_definition=None, launch_template=None, name=None, stage_id=None, job_type=None, full=None):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_view(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "Campaign", item_id = stage_id or camp_id)
-        experiment = cherrypy.session.get('experimenter').session_experiment
+        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Campaign", item_id = stage_id or camp_id)
         res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, experiment,
                                                    name=name or tag,
                                                    stage_id=stage_id or camp_id,
@@ -347,11 +358,10 @@ class PomsService:
 
     @cherrypy.expose
     @logit.logstartstop
-    def campaign_deps(self, campaign_name=None,
+    def campaign_deps(self, experiment, role, campaign_name=None,
                       campaign_stage_id=None, tag=None, camp_id=None):
 
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_view(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "Campaign", name = campaign_name or tag, experiment = e.session_experiment)
+        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Campaign", name = campaign_name or tag, experiment = experiment)
         template = self.jinja_env.get_template('campaign_deps.html')
         svgdata = self.campaignsPOMS.campaign_deps_svg(cherrypy.request.db, cherrypy.config.get,
                                                        campaign_name=campaign_name or tag,
@@ -366,22 +376,22 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def job_type_edit(self, *args, **kwargs):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_modify(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "LoginSetup", name=kwargs['ae_launch_name'], experiment=e.session_experiment)
+    def job_type_edit(self, experiment, role, *args, **kwargs):
+        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "LoginSetup", name=kwargs.get('ae_launch_name',None), experiment=experiment)
         data = self.campaignsPOMS.job_type_edit(
-            cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+            cherrypy.request.db, get_user(), experiment, role, *args, **kwargs)
 
         if kwargs.get('test_template'):
-            test_campaign = self.campaignsPOMS.make_test_campaign_for(cherrypy.request.db, cherrypy.session,
+            test_campaign = self.campaignsPOMS.make_test_campaign_for(cherrypy.request.db, get_user(), experiment, role, 
                                                                       kwargs.get(
                                                                           "ae_campaign_definition_id"),
                                                                       kwargs.get("ae_definition_name"))
             raise cherrypy.HTTPRedirect(
-                "%s/campaign_stage_edit?jump_to_campaign=%d&extra_edit_flag=launch_test_job" % (self.path, test_campaign))
+                "%s/%s/%s/campaign_stage_edit?jump_to_campaign=%d&extra_edit_flag=launch_test_job" % (self.path, experiment, role, test_campaign))
 
         template = self.jinja_env.get_template('job_type_edit.html')
         return template.render(jquery_ui=False,
+            experiment=experiment, role=role,
             data=data, help_page="CampaignDefinitionEditHelp")
 
 
@@ -390,55 +400,55 @@ class PomsService:
 
     @cherrypy.expose
     @logit.logstartstop
-    def make_test_campaign_for(self, campaign_def_id, campaign_def_name):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_modify(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "JobType", name=campaign_def_name, experiment=e.session_experiment)
-        cid = self.campaignsPOMS.make_test_campaign_for(cherrypy.request.db, cherrypy.session, campaign_def_id,
+    def make_test_campaign_for(self, experiment, role, campaign_def_id, campaign_def_name):
+        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "JobType", name=campaign_def_name, experiment=experiment)
+        cid = self.campaignsPOMS.make_test_campaign_for(cherrypy.request.db, get_user(), experiment, role, campaign_def_id,
                                                         campaign_def_name)
         raise cherrypy.HTTPRedirect(
-            "%s/campaign_stage_edit?campaign_stage_id=%d&extra_edit_flag=launch_test_job" % (self.path, cid))
+            "%s/campaign_stage_edit/%s/%s?campaign_stage_id=%d&extra_edit_flag=launch_test_job" % (self.path, experiment, role, cid))
 
     @cherrypy.expose
 # h4. get_campaign_id
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def get_campaign_id(self, campaign_name):
+    def get_campaign_id(self, experiment, role, campaign_name):
         cid = self.campaignsPOMS.get_campaign_id(
-            cherrypy.request.db, cherrypy.session.get, campaign_name)
+            cherrypy.request.db, user, experiment, role, campaign_name)
         return cid
 
 # h4. campaign_add_name
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def campaign_add_name(self, *args, **kwargs):
+    def campaign_add_name(self, experiment, role, *args, **kwargs):
         data = self.campaignsPOMS.campaign_add_name(
-            cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+            cherrypy.request.db, get_user(), experiment, role, *args, **kwargs)
         return data
 
 # h4. campaign_rename_name
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def campaign_rename_name(self, *args, **kwargs):
+    def campaign_rename_name(self, experiment, role, *args, **kwargs):
         data = self.campaignsPOMS.campaign_rename_name(
-            cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+            cherrypy.request.db, get_user(), experiment, role, *args, **kwargs)
         return data
 
 # h4. campaign_stage_edit
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def campaign_stage_edit(self, *args, **kwargs):
+    def campaign_stage_edit(self, experiment, role, *args, **kwargs):
         """
         :param args:
         :param kwargs:
         :return:
         """
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_modify(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "CampaignStage", item_id = kwargs.get('campaign_stage_id',None))
+        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "CampaignStage", item_id = kwargs.get('campaign_stage_id',None))
+
         data = self.campaignsPOMS.campaign_stage_edit(
-            cherrypy.request.db, cherrypy.session, *args, **kwargs)
+            cherrypy.request.db, get_user(), experiment, role, *args, **kwargs)
+
         template = self.jinja_env.get_template('campaign_stage_edit.html')
 
         if kwargs.get('pcl_call', '0') == '1':
@@ -448,10 +458,11 @@ class PomsService:
         if kwargs.get('launch_test_job', None) and kwargs.get(
                 'ae_campaign_id', None):
             raise cherrypy.HTTPRedirect(
-                "%s/launch_jobs?campaign_stage_id=%s" %
-                (self.path, kwargs.get('ae_campaign_id')))
+                "%s/%s/%s/launch_jobs?campaign_stage_id=%s" %
+                (self.path, experiment, role,  kwargs.get('ae_campaign_id')))
 
         return template.render(data=data, help_page="CampaignEditHelp",
+                               experiment=experiment, role=role,
                                jquery_ui=False,
                                extra_edit_flag=kwargs.get(
                                    "extra_edit_flag", None),
@@ -465,9 +476,8 @@ class PomsService:
 
     @cherrypy.expose
     @logit.logstartstop
-    def gui_wf_edit(self, *args, **kwargs):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_modify(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "Campaign", name = kwargs.get('campaign',None), experiment= e.session_experiment)
+    def gui_wf_edit(self, experiment, role, *args, **kwargs):
+        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "Campaign", name = kwargs.get('campaign',None), experiment= experiment)
         template = self.jinja_env.get_template('gui_wf_edit.html')
         return template.render(
             help_page="GUI_Workflow_Editor_User_Guide", campaign=kwargs.get('campaign'))
@@ -511,35 +521,26 @@ class PomsService:
     @error_rewrite
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def campaign_stage_edit_query(self, *args, **kwargs):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_view(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "LaunchSetup", item_id = kwargs.get('ae_launch_id',None))
-        self.permissions.can_viewy(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "JobType", item_id = kwargs.get('ae_campaign_definition_id',None))
+    def campaign_stage_edit_query(self, experiment, role, *arg, **kwargs):
+        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "LaunchSetup", item_id = kwargs.get('ae_launch_id',None))
+        self.permissions.can_viewy(cherrypy.request.db,get_user(), experiment, role, "JobType", item_id = kwargs.get('ae_campaign_definition_id',None))
         data = self.campaignsPOMS.campaign_stage_edit_query(
             cherrypy.request.db, *args, **kwargs)
         return data
 
 
-# h4. new_task_for_campaign
-
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def new_task_for_campaign(
-            self, campaign_name, command_executed, experimenter_name, dataset_name=None):
-        return self.campaignsPOMS.new_task_for_campaign(cherrypy.request.db, campaign_name, command_executed,
-                                                        experimenter_name, dataset_name)
-
 # h4. show_campaigns
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def show_campaigns(self, *args, **kwargs):
-        experimenter = cherrypy.session.get('experimenter')
+    def show_campaigns(self, experiment, role, *args, **kwargs):
+        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Experiment", item_id = experiment)
+
         tl, last_activity, msg, data = self.campaignsPOMS.show_campaigns(
-            cherrypy.request.db, cherrypy.session, experimenter, *args, **kwargs)
+            cherrypy.request.db, get_user(), experiment, role, *args, **kwargs)
+
         template = self.jinja_env.get_template('show_campaigns.html')
-        values = {'tl': tl, 'last_activity': last_activity, 'msg': msg, 'data': data, 'help_page': "ShowCampaignTagsHelp"}
+        values = {'tl': tl, 'last_activity': last_activity, 'experiment':experiment, 'role':role, 'msg': msg, 'data': data, 'help_page': "ShowCampaignTagsHelp"}
         if kwargs.get('format', '') == 'json':
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')
@@ -553,25 +554,15 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def show_campaign_stages(self, tmin=None, tmax=None, tdays=7, active=True, campaign_name=None, holder=None, role_held_with=None,
+    def show_campaign_stages(self, experiment, role, tmin=None, tmax=None, tdays=7, active=True, campaign_name=None, holder=None, role_held_with=None,
                              se_role=None, cl=None, **kwargs):
         (
             campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
         ) = self.campaignsPOMS.show_campaign_stages(cherrypy.request.db,
+                                                    get_user(), experiment, role,
                                                     tmin=tmin, tmax=tmax, tdays=tdays, active=active, campaign_name=campaign_name,
                                                     holder=holder, role_held_with=role_held_with,
-                                                    campaign_ids=cl, sesshandler=cherrypy.session.get, **kwargs)
-
-        current_experimenter = cherrypy.session.get('experimenter')
-        # ~ logit.log("current_experimenter.extra before: "+str(current_experimenter.extra))     # DEBUG
-        if 'exp_selected' in kwargs:
-            current_experimenter.extra = {'selected': kwargs['exp_selected']}
-            cherrypy.session.acquire_lock()
-            cherrypy.session['experimenter'] = current_experimenter
-            cherrypy.session.save()
-            cherrypy.session.release_lock()
-            # ~ logit.log("current_experimenter.extra update... ")                               # DEBUG
-        # ~ logit.log("current_experimenter.extra after: "+str(current_experimenter.extra))      # DEBUG
+                                                    campaign_ids=cl, **kwargs)
 
         if cl is None:
             template = self.jinja_env.get_template('show_campaign_stages.html')
@@ -580,7 +571,9 @@ class PomsService:
                 'show_campaign_stages_stats.html')
 
         values = {
-            'limit_experiment': current_experimenter.session_experiment,
+            'experiment': experiment,
+            'role': role,
+            'limit_experiment': experiment,
             'campaign_stages': campaign_stages,
             'tmins': tmins, 'tmaxs': tmaxs,
             'tmin': str(tmin)[:16], 'tmax': str(tmax)[:16], 'tdays': tdays,
@@ -602,22 +595,15 @@ class PomsService:
 
     @cherrypy.expose
     @logit.logstartstop
-    def reset_campaign_split(self, campaign_stage_id):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_modify(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "CampaignStage", item_id = campaign_stage_id)
-        campaign = cherrypy.request.db.query(CampaignStage).filter(
-            CampaignStage.campaign_stage_id == campaign_stage_id).first()
-        if campaign and cherrypy.session.get(
-                'experimenter').is_authorized(campaign):
-            res = self.campaignsPOMS.reset_campaign_split(
-                cherrypy.request.db,
-                campaign_stage_id)
-            raise cherrypy.HTTPRedirect(
-                "campaign_stage_info?campaign_stage_id=%s" %
-                campaign_stage_id)
-        else:
-            raise cherrypy.HTTPError(
-                401, 'You are not authorized to access this resource')
+    def reset_campaign_split(self, experiment, role, campaign_stage_id):
+        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "CampaignStage", item_id = campaign_stage_id)
+        res = self.campaignsPOMS.reset_campaign_split(
+            cherrypy.request.db,
+            campaign_stage_id)
+        raise cherrypy.HTTPRedirect(
+            "campaign_stage_info/%s/%s?campaign_stage_id=%s" %(
+            experiment, role,
+            campaign_stage_id))
 
 # h4. campaign_stage_datasets
     @cherrypy.expose
@@ -630,13 +616,14 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def submission_details(self, submission_id, format = 'html'):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_view(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "Submission", item_id = submission_id)
+    def submission_details(self, experiment, role, submission_id, format = 'html'):
+        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Submission", item_id = submission_id)
         submission, history, dataset, rmap, smap, ds, submission_log_format  = self.taskPOMS.submission_details(
             cherrypy.request.db, cherrypy.request.samweb_lite, cherrypy.HTTPError, cherrypy.config.get, submission_id)
         template = self.jinja_env.get_template('submission_details.html')
         values = {
+            'experiment': experiment,
+            'role': role,
             'submission': submission,
             'history': history,
             'dataset': dataset,
@@ -663,10 +650,9 @@ class PomsService:
     @cherrypy.tools.response_headers(headers=[('Content-Language', 'en')])
     @error_rewrite
     @logit.logstartstop
-    def campaign_stage_info(self, campaign_stage_id,
+    def campaign_stage_info(self, experiment, role, campaign_stage_id,
                             tmin=None, tmax=None, tdays=None):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_view(cherrypy.request.db, e.username, e.session_experiment, e.session_role, "CampaignStage", item_id = campaign_stage_id)
+        self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "CampaignStage", item_id = campaign_stage_id)
         (campaign_stage_info,
          time_range_string,
          tmins, tmaxs, tdays,
@@ -680,10 +666,13 @@ class PomsService:
          dep_svg,
          last_activity,
          recent_submissions) = self.campaignsPOMS.campaign_stage_info(cherrypy.request.db,
-                                                                                       cherrypy.config.get,
-                                                                                       campaign_stage_id, tmin, tmax, tdays)
+                                                                      cherrypy.config.get,
+                                                                      experiment, role,
+                                                                      campaign_stage_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_stage_info.html')
         return template.render(
+            experiment=experiment,
+            role=role,
             Campaign_info=campaign_stage_info,
             time_range_string=time_range_string,
             tmins=tmins,
@@ -706,11 +695,10 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def campaign_stage_submissions(self, campaign_name, stage_name, campaign_stage_id = None, campaign_id = None, tmin=None, tmax=None, tdays=None, **kwargs):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_view(cherrypy.request.db, e.username, e.session_experiment, e.session_role, "CampaignStage",  item_id = campaign_stage_id)
-        self.permissions.can_view(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "Campaign",  item_id = campaign_id)
-        data = self.campaignsPOMS.campaign_stage_submissions(cherrypy.request.db, campaign_name, stage_name, campaign_stage_id, campaign_id, tmin, tmax, tdays)
+    def campaign_stage_submissions(self, experiment, role, campaign_name, stage_name, campaign_stage_id = None, campaign_id = None, tmin=None, tmax=None, tdays=None, **kwargs):
+        self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "CampaignStage",  item_id = campaign_stage_id)
+        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Campaign",  item_id = campaign_id)
+        data = self.campaignsPOMS.campaign_stage_submissions(cherrypy.request.db, experiment, role, campaign_name, stage_name, campaign_stage_id, campaign_id, tmin, tmax, tdays)
         data['campaign_name'] = campaign_name
         data['stage_name'] = stage_name
         template = self.jinja_env.get_template('campaign_stage_submissions.html')
@@ -718,50 +706,26 @@ class PomsService:
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(data, cls=JSONORMEncoder).encode('utf-8')
         else:
-            return template.render(data=data)
+            return template.render(experiment=experiment, role=role, data=data)
 
 #   h4. session_status_history
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def session_status_history(self, submission_id):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_view(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "Submission", item_id = submission_id)
+    def session_status_history(self, experiment, role, submission_id):
+        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Submission", item_id = submission_id)
         rows = self.campaignsPOMS.session_status_history(cherrypy.request.db, submission_id)
         return rows
 
-
-# h4. register_poms_campaign
-
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def register_poms_campaign(self, experiment, campaign_name, version, user=None,
-                               campaign_definition=None, dataset="", role="Analysis",
-                               params=[]):
-        loguser = cherrypy.session.get('experimenter')
-
-        if loguser.username != 'poms':
-            user = loguser.username
-
-        campaign_stage_id = self.campaignsPOMS.register_poms_campaign(cherrypy.request.db,
-                                                                      experiment,
-                                                                      campaign_name,
-                                                                      version, user,
-                                                                      campaign_definition,
-                                                                      dataset, role, loguser.session_role,
-                                                                      cherrypy.session.get, params)
-        return "CampaignStage=%d" % campaign_stage_id
 
 # h4. list_launch_file
     @cherrypy.expose
     @logit.logstartstop
     @error_rewrite
     @logit.logstartstop
-    def list_launch_file(self, campaign_stage_id=None, fname=None,
+    def list_launch_file(self, experiment, role, campaign_stage_id=None, fname=None,
                          login_setup_id=None, launch_template_id=None):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_view(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "CampaignStage", item_id = campaign_stage_id)
+        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "CampaignStage", item_id = campaign_stage_id)
         if login_setup_id is None and launch_template_id is not None:
             login_setup_id = launch_template_id
         lines, refresh, campaign_name, stage_name = self.campaignsPOMS.list_launch_file(
@@ -769,6 +733,7 @@ class PomsService:
         output = "".join(lines)
         template = self.jinja_env.get_template('launch_jobs.html')
         res = template.render(command='', output=output, do_refresh=refresh,
+                              experiment=experiment, role=role,
                               cs=None, campaign_stage_id=campaign_stage_id,
                               campaign_name=campaign_name, stage_name=stage_name,
                               help_page="LaunchedJobsHelp")
@@ -781,11 +746,10 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def schedule_launch(self, campaign_stage_id):
+    def schedule_launch(self, experiment, role, campaign_stage_id):
         cs, job, launch_flist = self.campaignsPOMS.schedule_launch(
             cherrypy.request.db, campaign_stage_id)
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_modify(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "CampaignStage", item_id = campaign_stage_id)
+        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "CampaignStage", item_id = campaign_stage_id)
         template = self.jinja_env.get_template('schedule_launch.html')
         return template.render(cs=cs, campaign_stage_id=campaign_stage_id, job=job,
                                do_refresh=0, help_page="ScheduleLaunchHelp",
@@ -798,15 +762,14 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def update_launch_schedule(self, campaign_stage_id, dowlist=None, domlist=None,
+    def update_launch_schedule(self, experiment, role, campaign_stage_id, dowlist=None, domlist=None,
                                monthly=None, month=None, hourlist=None, submit=None, minlist=None, delete=None):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_modify(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "CampaignStage", item_id = campaign_stage_id)
+        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "CampaignStage", item_id = campaign_stage_id)
         self.campaignsPOMS.update_launch_schedule(campaign_stage_id, dowlist, domlist, monthly, month, hourlist, submit,
                                                   minlist, delete, user=cherrypy.session.get('experimenter').experimenter_id)
         raise cherrypy.HTTPRedirect(
-            "schedule_launch?campaign_stage_id=%s" %
-            campaign_stage_id)
+            "schedule_launch/%s/%s?campaign_stage_id=%s" %
+            experiment, role, campaign_stage_id)
 
 
 # h4. mark_campaign_active
@@ -814,23 +777,19 @@ class PomsService:
 
     @cherrypy.expose
     @logit.logstartstop
-    def mark_campaign_active(self, campaign_id=None, is_active="", cl=None):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_modify(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "Campaign", item_id = campaign_id)
-        auth_error = self.campaignsPOMS.mark_campaign_active(
+    def mark_campaign_active(self, experiment, role, campaign_id=None, is_active="", cl=None):
+        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "Campaign", item_id = campaign_id)
+        self.campaignsPOMS.mark_campaign_active(
             campaign_id,
             is_active,
             cl,
             cherrypy.request.db,
             user=cherrypy.session.get('experimenter'))
-        if auth_error:
-            raise cherrypy.HTTPError(
-                401, 'You are not authorized to access this resource')
 
 # h4. mark_campaign_hold
     @cherrypy.expose
     @logit.logstartstop
-    def mark_campaign_hold(self, ids2HR=None, is_hold=''):
+    def mark_campaign_hold(self, experiment, role, ids2HR=None, is_hold=''):
         """
             Who can hold/release a campaign:
             The creator can hold/release her/his own campaign_stages.
@@ -853,13 +812,13 @@ class PomsService:
             mayIChangeIt = False
             if sessionExperimenter.is_root():
                 mayIChangeIt = True
-            elif sessionExperimenter.is_superuser() and sessionExperimenter.session_experiment == campaign.experiment:
+            elif sessionExperimenter.is_superuser() and experiment == campaign.experiment:
                 mayIChangeIt = True
-            elif sessionExperimenter.is_production() and sessionExperimenter.session_experiment == campaign.experiment \
+            elif sessionExperimenter.is_production() and experiment == campaign.experiment \
                     and campaign.creator_role == "production":
                 mayIChangeIt = True
-            elif campaign.creator == sessionExperimenter.experimenter_id and campaign.experiment == sessionExperimenter.session_experiment \
-                    and campaign.creator_role == sessionExperimenter.session_role:
+            elif campaign.creator == sessionExperimenter.experimenter_id and campaign.experiment == experiment \
+                    and campaign.creator_role == role:
                 mayIChangeIt = True
             else:
                 raise cherrypy.HTTPError(
@@ -868,7 +827,7 @@ class PomsService:
             if mayIChangeIt:
                 if is_hold in ("Hold","Queue"):
                     campaign.hold_experimenter_id = sessionExperimenter.experimenter_id
-                    campaign.role_held_with = sessionExperimenter.session_role
+                    campaign.role_held_with = role
                 elif is_hold == "Release":
                     campaign.hold_experimenter_id = None
                     campaign.role_held_with = None
@@ -882,11 +841,11 @@ class PomsService:
                     401, 'You are not authorized to hold or release this campaign_stages. ')
 
         if ids2HR:
-            referrer = cherrypy.request.headers.get('Referer')
-            if referrer:
-                raise cherrypy.HTTPRedirect(referrer[referrer.rfind('/')+1:])
+            referer = cherrypy.request.headers.get('Referer')
+            if referer:
+                raise cherrypy.HTTPRedirect(referer[referer.rfind('/')+1:])
 
-            raise cherrypy.HTTPRedirect("show_campaign_stages")
+            raise cherrypy.HTTPRedirect("show_campaign_stages/%s/%s" % (experiment, role))
 
 
 # h4. make_stale_campaigns_inactive
@@ -909,11 +868,10 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def list_generic(self, classname):
-        if not self.permissions.is_superuser(cherrypy.request.db, cherrypy.session.get('experimenter').username):
+        if not self.permissions.is_superuser(cherrypy.request.db, get_user()):
             raise cherrypy.HTTPError(
                 401, 'You are not authorized to access this resource')
-        l = self.tablesPOMS.list_generic(cherrypy.request.db, cherrypy.HTTPError, cherrypy.request.headers.get,
-                                         cherrypy.session, classname)
+        l = self.tablesPOMS.list_generic(cherrypy.request.db, classname)
         template = self.jinja_env.get_template('list_generic.html')
         return template.render(classname=classname,
                                list=l, edit_screen="edit_screen_generic",
@@ -924,33 +882,29 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def edit_screen_generic(self, classname, id=None):
-        if not self.permissions.is_superuser(cherrypy.request.db, cherrypy.session.get('experimenter').username):
+        if not self.permissions.is_superuser(cherrypy.request.db, get_user()):
             raise cherrypy.HTTPError(
                 401, 'You are not authorized to access this resource')
-        return self.tablesPOMS.edit_screen_generic(cherrypy.HTTPError, cherrypy.request.headers.get, cherrypy.session,
-                                                   classname, id)
+        return self.tablesPOMS.edit_screen_generic(classname, id)
 
 # h4. update_generic
     @cherrypy.expose
     @logit.logstartstop
     def update_generic(self, classname, *args, **kwargs):
-        if not self.permissions.is_superuser(cherrypy.request.db, cherrypy.session.get('experimenter').username):
+        if not self.permissions.is_superuser(cherrypy.request.db, get_user()):
             raise cherrypy.HTTPError(
                 401, 'You are not authorized to access this resource')
-        return self.tablesPOMS.update_generic(cherrypy.request.db, cherrypy.request.headers.get, cherrypy.session,
-                                              classname, *args, **kwargs)
+        return self.tablesPOMS.update_generic(cherrypy.request.db, classname, *args, **kwargs)
 
 # h4. edit_screen_for
     @cherrypy.expose
     @logit.logstartstop
     def edit_screen_for(self, classname, eclass,
                         update_call, primkey, primval, valmap):
-        if not self.permissions.is_superuser(cherrypy.request.db, cherrypy.session.get('experimenter').username):
+        if not self.permissions.is_superuser(cherrypy.request.db, get_user()):
             raise cherrypy.HTTPError(
                 401, 'You are not authorized to access this resource')
-        screendata = self.tablesPOMS.edit_screen_for(cherrypy.request.db,
-                                                     cherrypy.request.headers.get,
-                                                     cherrypy.session, classname, eclass,
+        screendata = self.tablesPOMS.edit_screen_for(cherrypy.request.db, classname, eclass,
                                                      update_call, primkey, primval, valmap)
         template = self.jinja_env.get_template('edit_screen_for.html')
         return template.render(screendata=screendata, action="./" + update_call,
@@ -975,10 +929,9 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def force_locate_submission(self, submission_id):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_view(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "Submission", item_id = submission_id)
-        return self.taskPOMS.force_locate_submission(cherrypy.request.db, cherrypy.session.get, submission_id)
+    def force_locate_submission(self, experiment, role, submission_id):
+        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Submission", item_id = submission_id)
+        return self.taskPOMS.force_locate_submission(cherrypy.request.db, get_user(), experiment, role, submission_id)
 
 # h4. mark_failed_submissions
     @cherrypy.expose
@@ -999,8 +952,7 @@ class PomsService:
     @logit.logstartstop
     def update_submission(self, submission_id, jobsub_job_id,
                           pct_complete=None, status=None, project=None):
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_modify(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "Submission", item_id = submission_id)
+        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "Submission", item_id = submission_id)
         res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id,
                                               status=status, project=project, pct_complete=pct_complete)
         return res
@@ -1023,16 +975,19 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def file_uploads(self):
+    def file_uploads(self, experiment, role, username):
+        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Experimenter", item_id = username)
+
         quota = cherrypy.config.get('base_uploads_quota', 10485760)
         file_stat_list, total = self.filesPOMS.file_uploads(
             cherrypy.config.get('base_uploads_dir'),
-            cherrypy.session.get,
+            username, experiment,
             quota
         )
 
         template = self.jinja_env.get_template('file_uploads.html')
         return template.render(
+            experiment, role, username,
             file_stat_list=file_stat_list,
             total=total,
             quota=quota,
@@ -1042,21 +997,23 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def upload_file(self, filename):
+    def upload_file(self, experiment, role, username, filename):
+        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "Experimenter", item_id = username)
         res = self.filesPOMS.upload_file(
             cherrypy.config.get('base_uploads_dir'),
-            cherrypy.session.get,
-            cherrypy.HTTPError,
+            username,
+            experiment,
             cherrypy.config.get('base_uploads_quota'),
             filename
         )
-        raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
+        raise cherrypy.HTTPRedirect("%s/file_uploads/%s/%s/%s" % (self.path, experiment, role, username))
 
 # h4. remove_uploaded_files
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def remove_uploaded_files(self, filename, action):
+    def remove_uploaded_files(self, experiment, role, experimenter, filename, action):
+        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "Experimenter", item_id = experimenter)
         res = self.filesPOMS.remove_uploaded_files(
             cherrypy.config.get('base_uploads_dir'),
             cherrypy.session.get,
@@ -1075,27 +1032,32 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def kill_jobs(self, campaign_id = None, campaign_stage_id=None, submission_id=None,
+    def kill_jobs(self, experiment, role, campaign_id = None, campaign_stage_id=None, submission_id=None,
                   task_id=None, job_id=None, confirm=None, act='kill'):
+
+        # backwards combatability...
         if task_id is not None and submission_id is None:
             submission_id = task_id
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_do(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "Submission", item_id = submission_id)
-        self.permissions.can_do(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "CampaignStage", item_id = campaign_stage_id)
-        self.permissions.can_do(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "Campaign", item_id = campaign_id)
+
+        self.permissions.can_do(cherrypy.request.db,get_user(), experiment, role, "Submission", item_id = submission_id)
+        self.permissions.can_do(cherrypy.request.db,get_user(), experiment, role, "CampaignStage", item_id = campaign_stage_id)
+        self.permissions.can_do(cherrypy.request.db,get_user(), experiment, role, "Campaign", item_id = campaign_id)
+
         if confirm is None:
-            what, s, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, cherrypy.session.get, campaign_id, campaign_stage_id, submission_id,
+            what, s, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, campaign_id, campaign_stage_id, submission_id,
              job_id, confirm, act)
             template = self.jinja_env.get_template('kill_jobs_confirm.html')
             return template.render(what = what, task=s, campaign_stage_id=campaign_stage_id,
                                    submission_id=submission_id, job_id=job_id, act=act,
+                                   experiment=experiment, role=role,
                                    help_page="KilledJobsHelp")
 
         else:
-            output, cs, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, cherrypy.session.get, campaign_id, campaign_stage_id, submission_id,
+            output, cs, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(cherrypy.request.db, get_user(), experiment, role, campaign_id, campaign_stage_id, submission_id,
                                                                                            job_id, confirm, act)
             template = self.jinja_env.get_template('kill_jobs.html')
             return template.render(output=output,
+                                   experiment=experiment, role=role,
                                    cs=cs, campaign_stage_id=campaign_stage_id, submission_id=submission_id,
                                    job_id=job_id, act=act,
                                    help_page="KilledJobsHelp")
@@ -1122,9 +1084,7 @@ class PomsService:
     def launch_queued_job(self):
         return self.taskPOMS.launch_queued_job(cherrypy.request.db,
                                                cherrypy.request.samweb_lite,
-                                               cherrypy.session,
                                                cherrypy.request.headers.get,
-                                               cherrypy.session,
                                                cherrypy.response.status,
                                                cherrypy.config.get('base_uploads_dir')
                                                )
@@ -1132,8 +1092,8 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def launch_campaign(self, campaign_id=None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
-                    experiment=None, launcher=None, test_launch=False, output_commands=None):
+    def launch_campaign(self, experiment, role, campaign_id=None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
+                    launcher=None, test_launch=False, output_commands=None):
         if cherrypy.session.get('experimenter').username and (
                 'poms' != cherrypy.session.get('experimenter').username or launcher == ''):
             launch_user = cherrypy.session.get('experimenter').experimenter_id
@@ -1141,14 +1101,13 @@ class PomsService:
             launch_user = launcher
 
         logit.log( "calling launch_campaign with campaign_id='%s'" % campaign_id)
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_do(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "Campaign", item_id = campaign_id)
+        self.permissions.can_do(cherrypy.request.db,get_user(), experiment, role, "Campaign", item_id = campaign_id)
 
         vals = self.campaignsPOMS.launch_campaign(cherrypy.request.db,
                                          cherrypy.config.get,
                                          cherrypy.request.headers.get,
-                                         cherrypy.session.get,
                                          cherrypy.request.samweb_lite,
+                                         experiment, role, get_user(),
                                          cherrypy.HTTPError,
                                          cherrypy.config.get('base_uploads_dir'),
                                          campaign_id,
@@ -1177,16 +1136,15 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def launch_jobs(self, campaign_stage_id=None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
-                    experiment=None, launcher=None, test_launch=False, test_launch_template=None, campaign_id=None, test=None, output_commands=None):
+    def launch_jobs(self, experiment, role, campaign_stage_id=None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
+                    launcher=None, test_launch=False, test_launch_template=None, campaign_id=None, test=None, output_commands=None):
         if not campaign_stage_id and campaign_id:
             campaign_stage_id = campaign_id
         if not test_login_setup and test_launch_template:
             test_login_setup = test_launch_template
         if parent_task_id and not parent_submission_id:
             parent_submission_id = parent_task_id
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_do(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "CampaignStage", item_id = campaign_stage_id)
+        self.permissions.can_do(cherrypy.request.db,get_user(), experiment, role, "CampaignStage", item_id = campaign_stage_id)
         if cherrypy.session.get('experimenter').username and (
                 'poms' != cherrypy.session.get('experimenter').username or not launcher ):
             launch_user = cherrypy.session.get('experimenter').experimenter_id
@@ -1200,8 +1158,8 @@ class PomsService:
         vals = self.taskPOMS.launch_jobs(cherrypy.request.db,
                                          cherrypy.config.get,
                                          cherrypy.request.headers.get,
-                                         cherrypy.session.get,
                                          cherrypy.request.samweb_lite,
+                                         experiment, role, get_user(),
                                          cherrypy.HTTPError,
                                          cherrypy.config.get('base_uploads_dir'),
                                          campaign_stage_id,
@@ -1222,11 +1180,11 @@ class PomsService:
             return outfile
         else:
             if test_login_setup:
-                raise cherrypy.HTTPRedirect("%s/list_launch_file?login_setup_id=%s&fname=%s" % (
-                    self.path, test_login_setup, os.path.basename(outfile)))
+                raise cherrypy.HTTPRedirect("%s/%s/%slist_launch_file?login_setup_id=%s&fname=%s" % (
+                    self.path, experiment, role, test_login_setup, os.path.basename(outfile)))
             else:
                 raise cherrypy.HTTPRedirect(
-                    "%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (self.path, campaign_stage_id, os.path.basename(outfile)))
+                    "%s/list_launch_file/%s/%s?campaign_stage_id=%s&fname=%s" % (self.path, experiment, role,  campaign_stage_id, os.path.basename(outfile)))
 
 
 # h4. launch_recovery_for
@@ -1235,11 +1193,10 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def launch_recovery_for(self, submission_id=None,
+    def launch_recovery_for(self, getconfig, experiment, role, submission_id=None,
                             campaign_stage_id=None, recovery_type=None, launch=None):
 
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_do(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "CampaignStage", item_id = campaign_stage_id)
+        self.permissions.can_do(cherrypy.request.db,get_user(), experiment, role, "CampaignStage", item_id = campaign_stage_id)
         # we don't actually get the logfile, etc back from
         # launch_recovery_if_needed, so guess what it will be:
 
@@ -1251,8 +1208,7 @@ class PomsService:
             cherrypy.request.db,
             cherrypy.request.samweb_lite,
             cherrypy.config.get,
-            cherrypy.request.headers.get,
-            cherrypy.session,
+            experiment, role, get_user(),
             cherrypy.HTTPError,
             s,
             recovery_type)
@@ -1267,8 +1223,8 @@ class PomsService:
             outdir = "%s/private/logs/poms/launches/campaign_%s" % (
                 os.environ["HOME"], campaign_stage_id)
             outfile = "%s/%s_%s_%s" % (outdir, ds, launcher_experimenter.username, new.submission_id)
-            raise cherrypy.HTTPRedirect("%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (
-            self.path, campaign_stage_id, os.path.basename(outfile)))
+            raise cherrypy.HTTPRedirect("%s/list_launch_file/%s/%s?campaign_stage_id=%s&fname=%s" % (
+            self.path, experiment, role, campaign_stage_id, os.path.basename(outfile)))
         else:
             return "No recovery needed, launch skipped."
 
@@ -1276,9 +1232,9 @@ class PomsService:
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def jobtype_list(self, *args, **kwargs):
+    def jobtype_list(self, experiment , role, *args, **kwargs):
         data = self.jobsPOMS.jobtype_list(
-            cherrypy.request.db, cherrypy.session.get)
+            cherrypy.request.db, experiment)
         return data
 
     # ----------------------
@@ -1317,8 +1273,7 @@ class PomsService:
             submission_id = task_id
         if parent_task_id is not None and parent_submission_id is None:
             parent_submission_id = parent_task_id
-        e = cherrypy.session.get('experimenter')
-        self.permissions.can_modify(cherrypy.request.db,e.username, e.session_experiment, e.session_role, "Campaign", item_id = campaign_id)
+        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "Campaign", item_id = campaign_id)
         submission_id = self.taskPOMS.get_task_id_for(cherrypy.request.db, campaign, user,
                                                       experiment, command_executed, input_dataset, parent_submission_id, submission_id)
         return "Task=%d" % submission_id
@@ -1328,15 +1283,17 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def campaign_task_files(self, campaign_stage_id=None,
+    def campaign_task_files(self, experiment, role, campaign_stage_id=None,
                             campaign_id=None, tmin=None, tmax=None, tdays=1):
+        self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "CampaignStage", item_id = campaign_stage_id)
         (cs, columns, datarows,
          tmins, tmaxs,
          prevlink, nextlink, tdays) = self.filesPOMS.campaign_task_files(cherrypy.request.db,
-                                                                         cherrypy.request.samweb_lite, campaign_stage_id, campaign_id,
+                                                                         cherrypy.request.samweb_lite, experiment, role, campaign_stage_id, campaign_id,
                                                                          tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_task_files.html')
         return template.render(name=cs.name if cs else "",
+                               experiment=experimnent, role=role,
                                CampaignStage = cs,
                                columns=columns, datarows=datarows,
                                tmin=tmins, tmax=tmaxs,
@@ -1349,12 +1306,12 @@ class PomsService:
 
     @cherrypy.expose
     @logit.logstartstop
-    def show_dimension_files(self, experiment, dims):
+    def show_dimension_files(self, experiment, role, dims):
         flist = self.filesPOMS.show_dimension_files(cherrypy.request.samweb_lite, experiment, dims,
                                                     dbhandle=cherrypy.request.db)
         template = self.jinja_env.get_template('show_dimension_files.html')
         return template.render(flist=flist, dims=dims, statusmap=[
-        ], help_page="ShowDimensionFilesHelp")
+        ], experiment=experiment, role=role, help_page="ShowDimensionFilesHelp")
 
 
 
@@ -1362,7 +1319,7 @@ class PomsService:
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def link_tags(self, campaign_id=None, tag_name=None, experiment=None):
+    def link_tags(self, experiment, role, campaign_id=None, tag_name=None):
         return self.tagsPOMS.link_tags(cherrypy.request.db, cherrypy.session.get,
                                        campaign_id=campaign_id, tag_name=tag_name, experiment=experiment)
 
@@ -1374,7 +1331,7 @@ class PomsService:
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def delete_campaigns_tags(
-            self, campaign_id, tag_id, experiment, delete_unused_tag=False):
+            self, experiment, role, campaign_id, tag_id,  delete_unused_tag=False):
         return self.tagsPOMS.delete_campaigns_tags(cherrypy.request.db, cherrypy.session.get, campaign_id, tag_id,
                                                    experiment, delete_unused_tag)
 
@@ -1427,7 +1384,7 @@ class PomsService:
     @cherrypy.tools.response_headers(headers=[('Content-Type', 'text/javascript')])
     def split_type_javascript(self, *args, **kwargs):
         data = self.campaignsPOMS.split_type_javascript(
-            cherrypy.request.db, cherrypy.session, cherrypy.request.samweb_lite,*args, **kwargs)
+            cherrypy.request.db, cherrypy.request.samweb_lite, *args, **kwargs)
         return data
 
 # h4. save_campaign
@@ -1437,30 +1394,30 @@ class PomsService:
         # Note: permissions check deferred to body because we
         #       have to unpack the json...
         data = self.campaignsPOMS.save_campaign(
-            cherrypy.request.db, cherrypy.session, *args, **kwargs)
+            cherrypy.request.db, get_user(), *args, **kwargs)
         return data
 
 # h4. get_jobtype_id
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def get_jobtype_id(self, name):
+    def get_jobtype_id(self, experiment, role, name):
         data = self.campaignsPOMS.get_jobtype_id(
-            cherrypy.request.db, cherrypy.session, name)
+            cherrypy.request.db, get_user(), experiment, role, name)
         return data
 
 # h4. get_loginsetup_id
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def get_loginsetup_id(self, name):
+    def get_loginsetup_id(self, experiment, role, name):
         data = self.campaignsPOMS.get_loginsetup_id(
-            cherrypy.request.db, cherrypy.session, name)
+            cherrypy.request.db, get_user(), experiment, role, name)
         return data
 
 # h4. loginsetup_list
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def loginsetup_list(self, name=None, full=None, **kwargs):
-        exp = cherrypy.session.get('experimenter').session_experiment
+    def loginsetup_list(self, experiment, role, name=None, full=None, **kwargs):
+        exp = experiment
         if full:
             data = cherrypy.request.db.query(LoginSetup.name,
                                              LoginSetup.launch_host,

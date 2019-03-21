@@ -20,11 +20,11 @@
 
             <div class="column">
                 <div class="ui checkbox">
-                <input type="checkbox" name="view_mine" id="view_mine" value="{{current_experimenter.experimenter_id}}" {{ 'checked' if (data.view_mine is not defined or data.view_mine|string == current_experimenter.experimenter_id|string) }}>
+                <input type="checkbox" name="view_mine" id="view_mine" value="{{experimenter_id}}" {{ 'checked' if (data.view_mine is not defined or data.view_mine|string == experimenter_id|string) }}>
                 <label>Mine</label>
                 </div><br/>
                 <div class="ui checkbox">
-                <input type="checkbox" name="view_others" id="view_others" value="{{current_experimenter.experimenter_id}}" {{ 'checked' if (data.view_others is not defined or data.view_others|string == current_experimenter.experimenter_id|string ) }}>
+                <input type="checkbox" name="view_others" id="view_others" value="{{experimenter_id}}" {{ 'checked' if (data.view_others is not defined or data.view_others|string == experimenter_id|string ) }}>
                 <label>Others</label>
                 </div>
             </div>

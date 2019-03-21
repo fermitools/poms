@@ -39,16 +39,13 @@ class JobsPOMS:
             (cid, sid))
         pass
 
-    def kill_jobs(self, dbhandle, seshandle_get, campaign_id = None, campaign_stage_id=None,
+    def kill_jobs(self, dbhandle, username, exp, se_role, campaign_id = None, campaign_stage_id=None,
                   submission_id=None, job_id=None, confirm=None, act='kill'):
         s = None
         cs = None
 
-        e = seshandle_get('experimenter')
-        se_role = e.session_role
-        exp = e.session_experiment
-
-         
+        if not (submission_id or campaign_id or campaign_stage_id):
+            raise SyntaxError("called with out submission, campaign, or stage id" % act)
 
         if campaign_id:
             what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
@@ -64,12 +61,6 @@ class JobsPOMS:
                  .first())
             what = "--constraint=POMS4_SUBMISSION_ID==%s" % s.submission_id
             cs = s.campaign_stage_obj
-
-        if not (submission_id or campaign_id or campaign_stage_id):
-            raise SyntaxError("called with out submission, campaign, or stage id" % act)
-
-        if not exp == cs.experiment:
-            raise PermissionError("You are not acting as the right experiment")
 
         if confirm is None:
             return what, s, campaign_stage_id, submission_id, job_id
@@ -90,8 +81,8 @@ class JobsPOMS:
                 raise SyntaxError("called with unknown action %s" % act)
 
             if se_role == 'analysis':
-                sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, seshandle_get)
-                proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (exp,experimenter_login)
+                sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, username, exp)
+                proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (exp,username)
             else:
                 sandbox = '$HOME'
                 proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
@@ -151,13 +142,10 @@ class JobsPOMS:
         logit.log("got list: %s" % repr(efflist))
         return efflist
 
-    def jobtype_list(self, dbhandle, seshandle, name=None, full=None):
+    def jobtype_list(self, dbhandle, exp,  name=None, full=None):
         """
             Return list of all jobtypes for the experiment.
         """
-        exp = seshandle('experimenter').session_experiment
-        #data = dbhandle.query(JobType).filter(JobType.experiment == exp).order_by(JobType.name).all()
-        # return ["%s" % r for r in data]
         if full:
             data = dbhandle.query(JobType.name,
                                   JobType.launch_script,

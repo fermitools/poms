@@ -128,9 +128,11 @@
 		      {% endfor %}
 	      </select>
 	      <select class="ui dropdown" name="current_role" id="current_role" style="margin-left: 1em;">
-		      {% for role in allowed_roles %}
+                      {% if allowed_roles is defined %}
+		      {% for role in allowed_roles[session_experiment] %}
 		      <option value="{{role}}" {{ 'selected="selected"' if (session_role == role) }}>{{role}}</option>
 		      {% endfor %}
+                      {% endif %}
 	      </select>
          <br>
         &nbsp;
@@ -170,27 +172,11 @@
   });
 
   $("#session_experiment_id").change(function() {
-    var formdata = {'session_experiment': $("#session_experiment_id").val()};
-    $.ajax({
-      url: "{{pomspath}}/update_session_experiment",
-      type: 'GET',
-      data: formdata,
-      success: function(data){
-        location.reload(true);
-      }
-    });
+    window.location.replace('{{pomspath}}/update_session_experiment/{{experiment}}/{{role}}?session_experiment=' +  $("#session_experiment_id").val());
   });
 
   $("#current_role").change(function() {
-    var formdata = {'session_role': $("#current_role").val()};
-    $.ajax({
-      url: "{{pomspath}}/update_session_role",
-      type: 'GET',
-      data: formdata,
-      success: function(data){
-          location.reload(true);
-        }
-    });
+    window.location.replace('{{pomspath}}/update_session_role/{{experiment}}/{{role}}?session_role=' + $("#current_role").val());
   });
 
   $('.tbox').popup({

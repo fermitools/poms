@@ -126,8 +126,7 @@ class TaskPOMS:
         return res
 
 
-    def wrapup_tasks(self, dbhandle, samhandle, getconfig,
-                     gethead, seshandle, err_res, basedir):
+    def wrapup_tasks(self, dbhandle, samhandle, getconfig, basedir):
         # this function call another function that is not in this module, it
         # use a poms_service object passed as an argument at the init.
 
@@ -332,20 +331,10 @@ class TaskPOMS:
             # the current task in the role of the submission
             # so launch actions get done as them.
 
-            seshandle['experimenter'] = SessionExperimenter(
-                submission.experimenter_creator_obj.experimenter_id,
-                submission.experimenter_creator_obj.first_name,
-                submission.experimenter_creator_obj.last_name,
-                submission.experimenter_creator_obj.username,
-                {},
-                submission.experimenter_creator_obj.session_experiment,
-                submission.campaign_stage_obj.creator_role,
-                submission.experimenter_creator_obj.root)
-
             if not self.launch_recovery_if_needed(
-                    dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission, None, basedir):
+                    dbhandle, samhandle, getconfig, gethead, experiment, role, user, err_res, submission, None, basedir):
                 self.launch_dependents_if_needed(
-                    dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission, basedir)
+                    dbhandle, samhandle, getconfig, gethead, experiment, role, user, err_res, submission, basedir)
 
         return res
 
@@ -626,12 +615,11 @@ class TaskPOMS:
 
         return res
 
-    def force_locate_submission(self, dbhandle, seshandle_get, submission_id):
+    def force_locate_submission(self, dbhandle, user, exp, se_role, submission_id):
         # this doesn't actually mark it located, rather it bumps
         # the timestamp backwards so it will look timed out...
 
-        e = seshandle_get('experimenter')
-        exp = e.session_experiment
+        e = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
         s = dbhandle.query(Submission).filter(
             Submission.submission_id == submission_id).first()
         cs = s.campaign_stage_obj
@@ -710,7 +698,7 @@ class TaskPOMS:
         dbhandle.commit()
 
     def launch_dependents_if_needed(
-            self, dbhandle, samhandle, getconfig, gethead, seshandle, err_res, s, basedir):
+            self, dbhandle, samhandle, getconfig, user, experiment, role, s, basedir):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
 
         # if this is itself a recovery job, we go back to our parent
@@ -728,22 +716,21 @@ class TaskPOMS:
 
         launch_user = dbhandle.query(Experimenter).filter(
             Experimenter.experimenter_id == s.creator).first()
+
         i = 0
         for cd in cdlist:
             if cd.provides_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id:
                 # self-reference, just do a normal launch
                 # be the role the job we're launching based from was...
-                seshandle.get('experimenter').role = s.creator_role
                 self.launch_jobs(
                     dbhandle,
                     getconfig,
-                    gethead,
-                    seshandle.get,
                     samhandle,
+                    experiment, s.creator_role, user,
                     err_res,
                     basedir,
                     cd.provides_campaign_stage_id,
-                    launch_user.username,   # XXX should be id here...
+                    launch_user.experimenter_id,
                     test_launch=s.submission_params.get(
                         'test',
                         False))
@@ -778,9 +765,8 @@ class TaskPOMS:
                 self.launch_jobs(
                     dbhandle,
                     getconfig,
-                    gethead,
-                    seshandle.get,
                     samhandle,
+                    experiment, role, user,
                     err_res,
                     basedir,
                     cd.provides_campaign_stage_id,
@@ -790,7 +776,7 @@ class TaskPOMS:
         return 1
 
     def launch_recovery_if_needed(self, dbhandle, samhandle, getconfig,
-                                  gethead, seshandle, err_res, s, recovery_type_override=None, basedir = ''):
+                                  gethead, experiment, role, user, err_res, s, recovery_type_override=None, basedir = ''):
         logit.log("Entering launch_recovery_if_needed(%s)" % s.submission_id)
         if not getconfig("poms.launch_recovery_jobs", False):
             logit.log("recovery launches disabled")
@@ -886,14 +872,14 @@ class TaskPOMS:
                     Experimenter.experimenter_id == s.creator).first()
 
                 # XXX launch_user.username -- should be id...
-                self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
+                self.launch_jobs(dbhandle, getconfig, samhandle, experiment,  role, user,
                                  err_res, basedir, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username, dataset_override=rname,
                                  parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch=s.submission_params.get('test', False))
                 return 1
 
         return 0
 
-    def set_job_launches(self, dbhandle, seshandle_get, hold):
+    def set_job_launches(self, dbhandle, user, hold):
         if hold not in ["hold", "allowed"]:
             return
         # keep held launches in campaign stage w/ campaign_stage_id == 0
@@ -935,7 +921,7 @@ class TaskPOMS:
         return ("hold" if c.hold_experimenter_id else "allowed")
 
     def launch_queued_job(self, dbhandle, samhandle,
-                          getconfig, gethead, seshandle, err_res, basedir):
+                          getconfig, gethead, err_res, basedir):
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
@@ -961,19 +947,10 @@ class TaskPOMS:
             # the current task in the role of the submission
             # so launch actions get done as them.
 
-            seshandle['experimenter'] = SessionExperimenter(
-                launch_user.experimenter_id,
-                launch_user.first_name,
-                launch_user.last_name,
-                launch_user.username,
-                {},
-                cs.experiment,
-                cs.creator_role,
-                launch_user.root)
-         
             self.launch_jobs(dbhandle,
                              getconfig, gethead,
-                             seshandle.get, samhandle,
+                              samhandle,
+                             experiment,  role, user,
                              err_res, 
                              basedir,
                              campaign_stage_id,
@@ -991,17 +968,17 @@ class TaskPOMS:
         logit.log("system(voms-proxy-info... returns %d" % res)
         return os.WIFEXITED(res) and os.WEXITSTATUS(res) == 0
 
-    def launch_jobs(self, dbhandle, getconfig, gethead, seshandle_get, samhandle,
+    def launch_jobs(self, dbhandle, getconfig, gethead, samhandle, experiment, role, user,
                     err_res, basedir, campaign_stage_id, launcher, dataset_override=None, parent_submission_id=None,
-                    param_overrides=None, test_login_setup=None, experiment=None, test_launch=False, output_commands=False):
+                    param_overrides=None, test_login_setup=None, test_launch=False, output_commands=False):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" %
                   (campaign_stage_id, dataset_override, parent_submission_id))
 
         launch_time = datetime.now(utc)
         ds = launch_time.strftime("%Y%m%d_%H%M%S")
-        e = seshandle_get('experimenter')
-        se_role = e.session_role
+        e = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
+        se_role = role
         
 
         # at the moment we're inconsistent about whether we pass
@@ -1029,7 +1006,7 @@ class TaskPOMS:
             vers = 'v0_0'
             dataset = "-"
             definition_parameters = []
-            exp = e.session_experiment
+            exp = experiment
             launch_script = """echo "Environment"; printenv; echo "jobsub is`which jobsub`;  echo "login_setup successful!"""
             outdir = "%s/private/logs/poms/launches/template_tests_%d" % (
                 os.environ["HOME"], int(test_login_setup))
@@ -1128,10 +1105,10 @@ class TaskPOMS:
                 lt.launch_host, exp)
             raise err_res(403, output)
 
-        experimenter_login = e.username
+        experimenter_login = user
 
         if se_role == 'analysis':
-            sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, seshandle_get)
+            sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, experimenter_login, exp)
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox,exp,experimenter_login)
         else:
             sandbox = '$HOME'

@@ -28,7 +28,7 @@ Campaign Samples
             <tr>
                 <td>{{sample}}</td>
                 <td>
-                    <a href="{{pomspath}}/gui_wf_edit?campaign={{sample}}&readonly=true">
+                    <a href="{{pomspath}}/gui_wf_edit/{{experiment}}/{{role}}?campaign={{sample}}&readonly=true">
                         <button type="button">
                             <i class="file icon"></i>View Campaign
                         </button>
@@ -60,7 +60,7 @@ Campaign Samples
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <form id="sample_clone_form" class="ui form" method="GET" action="{{pomspath}}/gui_wf_edit?">
+    <form id="sample_clone_form" class="ui form" method="GET" action="{{pomspath}}/gui_wf_edit/{{experiment}}/{{role}}?">
       <div class="two fields">
         <div class="field">
           <label>Sample Campaign Name</label>

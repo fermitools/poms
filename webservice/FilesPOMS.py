@@ -35,7 +35,7 @@ class FilesStatus:
         """ just hook it in """
         self.poms_service = ps
 
-    def campaign_task_files(self, dbhandle, samhandle, campaign_stage_id=None,
+    def campaign_task_files(self, dbhandle, samhandle, experiment, role, campaign_stage_id=None,
                             campaign_id=None, tmin=None, tmax=None, tdays=1):
         '''
             Report of file counts for campaign stage with links to details
@@ -46,7 +46,7 @@ class FilesStatus:
          time_range_string, tdays
         ) = self.poms_service.utilsPOMS.handle_dates(
             tmin, tmax, tdays,
-            'campaign_task_files?campaign_stage_id=%s&' %campaign_stage_id)
+            'campaign_task_files/%s/%s?campaign_stage_id=%s&' %(experiment, role, campaign_stage_id))
 
         # inhale all the campaign related task info for the time window
         # in one fell swoop
@@ -331,13 +331,11 @@ class FilesStatus:
 
         return dimlist, count_list
 
-    def get_file_upload_path(self, basedir, sesshandle_get, filename):
-        username = sesshandle_get('experimenter').username
-        experiment = sesshandle_get('experimenter').session_experiment
+    def get_file_upload_path(self, basedir, username, experiment, filename):
         return "%s/uploads/%s/%s/%s" % (basedir, experiment, username, filename)
 
-    def file_uploads(self, basedir, sesshandle_get, quota):
-        flist = glob.glob(self.get_file_upload_path(basedir, sesshandle_get, '*'))
+    def file_uploads(self, basedir, user, experiment, quota):
+        flist = glob.glob(self.get_file_upload_path(basedir, user, experiment, '*'))
         res = []
         total = 0
         for fname in flist:
@@ -346,7 +344,7 @@ class FilesStatus:
             total += statout.st_size
         return res, total
 
-    def upload_file(self, basedir, sesshandle_get, err_res, quota, filename):
+    def upload_file(self, basedir, experiment, username, quota, filename):
 
         # if they pick multiple files, we get a list, otherwise just one
         # item, so if its not a list, make it a list of one item...
@@ -359,7 +357,7 @@ class FilesStatus:
 
         for filename in filenames:
             logit.log("upload_file: filename: %s", filename.filename)
-            outf = self.get_file_upload_path(basedir, sesshandle_get, filename.filename)
+            outf = self.get_file_upload_path(basedir, username, experiment, filename.filename)
             logit.log("upload_file: outf: %s", outf)
             os.makedirs(os.path.dirname(outf), exist_ok=True)
             f = open(outf, "wb")
@@ -372,30 +370,30 @@ class FilesStatus:
                 size += len(data)
             f.close()
             logit.log("upload_file: closed")
-            fstatlist, total = self.file_uploads(basedir, sesshandle_get, quota)
+            fstatlist, total = self.file_uploads(basedir, username, experiment, quota)
             if total > quota:
                 unlink(outf)
-                raise err_res("Upload exeeds quota of %d kbi" % quota/1024)
+                raise ValueError("Upload exeeds quota of %d kbi" % quota/1024)
         return "Ok."
 
 
-    def remove_uploaded_files(self, basedir, sesshandle_get, err_res, filename, actio):
+    def remove_uploaded_files(self, basedir, experiment, username, err_res, filename, actio):
         # if there's only one entry the web page will not send a list...
         if isinstance(filename, str):
             filename = [filename]
 
         for f in filename:
-            outf = self.get_file_upload_path(basedir, sesshandle_get, f)
+            outf = self.get_file_upload_path(basedir, username, experiment, f)
             os.unlink(outf)
         return "Ok."
 
-    def get_launch_sandbox(self, basedir, sesshandle_get):
+    def get_launch_sandbox(self, basedir, username, experiment):
 
-        uploads = self.get_file_upload_path(basedir, sesshandle_get, '')
+        uploads = self.get_file_upload_path(basedir, username, experiment, '')
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
         sandbox = "%s/sandboxes/%s" % (basedir, str(uu))
         os.makedirs(sandbox, exist_ok=False)
-        upload_path = self.get_file_upload_path(basedir, sesshandle_get, '*')
+        upload_path = self.get_file_upload_path(basedir, username, experiment,  '*')
         logit.log("get_launch_sandbox linking items from upload_path %s into %s" % (upload_path, sandbox))
         flist = glob.glob(upload_path)
         for f in flist:

@@ -326,7 +326,7 @@ Campaign Stages
 
       <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
       <input type="hidden" name="action" id="ae_definition_action" value="add">
-      <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id|default('unknown')}}">
+      <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{experimenter_id|default('unknown')}}">
       <input type="hidden" id="ae_campaign_stage_id" name="ae_campaign_stage_id" value="0">
       <input type="hidden" id="ae_param_overrides" name="ae_param_overrides" value="[]">
       <input type="hidden" id="ae_test_param_overrides" name="ae_test_param_overrides" value="[]">
@@ -446,7 +446,7 @@ setup_form_validation()
 $("#ae_launch_id").change(function() {
   var formdata = {'ae_launch_id': $("#ae_launch_id").val()};
   $.ajax({
-      url: "{{pomspath}}/campaign_stage_edit_query",
+      url: "{{pomspath}}/campaign_stage_edit_query/{{experiment}}/{{role}}",
       type: 'GET',
       data: formdata,
       success: function(dat){
@@ -461,7 +461,7 @@ $("#ae_launch_id").change(function() {
 $("#ae_campaign_definition_id").change(function() {
   var formdata = {'ae_campaign_definition_id': $("#ae_campaign_definition_id").val()};
   $.ajax({
-      url: "{{pomspath}}/campaign_stage_edit_query",
+      url: "{{pomspath}}/campaign_stage_edit_query/{{experiment}}/{{role}}",
       type: 'GET',
       data: formdata,
       success: function(dat){

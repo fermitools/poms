@@ -14,7 +14,7 @@
 
 {%block header%}
 Job Launches: {{launches}}
-{% if (current_experimenter.is_root()) %}
+{% if (is_root) %}
 <br>
 <div class="ui icon buttons">
   <a class="ui button" href="set_job_launches?hold=hold">

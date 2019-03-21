@@ -92,22 +92,24 @@ class UtilsPOMS():
             "%s/search_campaigns?search_term=%s" %
             (self.poms_service.path, search_term))
 
-    def update_session_experiment(self, db, seshandle, *args, **kwargs):
-        sess = seshandle('experimenter')
-        if kwargs.get('session_experiment', None) == sess.session_experiment:
+    def getSavedExperimentRole(self, dbhandle, username):
+        experiment, role = dbhandle.query(Experimenter.session_experiment,Experimenter.session_role).filter(Experimenter.username == username).first()
+        return experiment, role
+
+    def update_session_experiment(self, db, user, experiment,  *args, **kwargs):
+        if kwargs.get('session_experiment', None) == experiment:
             return
-        sess.session_experiment = kwargs.pop('session_experiment', None)
-        fields = {'session_experiment': sess.session_experiment,
+        fields = {'session_experiment': kwargs.get('session_experiment'),
                   }
         db.query(Experimenter).filter(
-            Experimenter.experimenter_id == sess.experimenter_id).update(fields)
+            Experimenter.username == user).update(fields)
         db.commit()
 
-    def update_session_role(self, db, seshandle, *args, **kwargs):
-        sess = seshandle('experimenter')
-        if kwargs.get('session_role', None) == sess.session_role:
+    def update_session_role(self, db, user, role, *args, **kwargs):
+        experimenter = db.query(Experimenter).filter(Experimenter.username == user).first()
+        if kwargs.get('session_role', None) == role:
             return
-        sess.session_role = kwargs.pop('session_role', None)
-        db.query(Experimenter).filter(Experimenter.experimenter_id ==
-                                      sess.experimenter_id).update({'session_role': sess.session_role})
+
+        db.query(Experimenter).filter(Experimenter.username == user).update({'session_role': kwargs.get('session_role')})
+
         db.commit()

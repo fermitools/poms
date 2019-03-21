@@ -24,26 +24,16 @@ class TablesPOMS:
         self.poms_service = ps
         self.make_admin_map()
 
-    def list_generic(self, dbhandle, err_res, gethead, seshandle, classname):
-        if not seshandle.get('experimenter').is_root():
-            raise err_res(
-                401, 'You are not authorized to access this resource')
+    def list_generic(self, dbhandle, classname):
         l = self.make_list_for(
             dbhandle, self.admin_map[classname], self.pk_map[classname])
         return l
 
-    def edit_screen_generic(self, err_res, gethead,
-                            seshandle, classname, id=None):
-        if not seshandle.get('experimenter').is_root():
-            raise err_res(
-                401, 'You are not authorized to access this resource')
+    def edit_screen_generic(self,  classname, id=None):
         return self.poms_service.edit_screen_for(
             classname, self.admin_map[classname], 'update_generic', self.pk_map[classname], id, {})
 
-    def update_generic(self, dbhandle, gethead, seshandle,
-                       classname, *args, **kwargs):
-        if not seshandle.get('experimenter').is_root():
-            return "Not allowed"
+    def update_generic(self, dbhandle, classname, *args, **kwargs):
         return self.update_for(
             dbhandle, classname, self.admin_map[classname], self.pk_map[classname], *args, **kwargs)
 
@@ -117,11 +107,7 @@ class TablesPOMS:
             self.poms_service.snapshot_parts(found. campaign_stage_id)
         return "%s=%s" % (classname, getattr(found, primkey))
 
-    def edit_screen_for(self, dbhandle, gethead, seshandle,
-                        classname, eclass, update_call, primkey, primval, valmap):
-        if not seshandle.get('experimenter').is_root():
-            raise err_res(
-                401, 'You are not authorized to access this resource')
+    def edit_screen_for(self, dbhandle, classname, eclass, update_call, primkey, primval, valmap):
 
         found = None
         sample = eclass()
