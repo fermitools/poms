@@ -142,7 +142,7 @@ class JobsPOMS:
         logit.log("got list: %s" % repr(efflist))
         return efflist
 
-    def jobtype_list(self, dbhandle, exp,  name=None, full=None):
+    def jobtype_list(self, dbhandle, exp, role, name=None, full=None):
         """
             Return list of all jobtypes for the experiment.
         """

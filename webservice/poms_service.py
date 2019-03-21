@@ -1214,8 +1214,8 @@ class PomsService:
 
         if res:
             new = cherrypy.request.db.query(Submission).filter(
-               Submission.recovery_tasks_parent == submission_id,
-               Submission.created >= stime).first()
+                Submission.recovery_tasks_parent == submission_id,
+                Submission.created >= stime).first()
 
             ds = new.created.strftime("%Y%m%d_%H%M%S")
             launcher_experimenter = new.experimenter_creator_obj
@@ -1223,7 +1223,7 @@ class PomsService:
                 os.environ["HOME"], campaign_stage_id)
             outfile = "%s/%s_%s_%s" % (outdir, ds, launcher_experimenter.username, new.submission_id)
             raise cherrypy.HTTPRedirect("%s/list_launch_file/%s/%s?campaign_stage_id=%s&fname=%s" % (
-            self.path, experiment, role, campaign_stage_id, os.path.basename(outfile)))
+                self.path, experiment, role, campaign_stage_id, os.path.basename(outfile)))
         else:
             return "No recovery needed, launch skipped."
 
@@ -1231,9 +1231,10 @@ class PomsService:
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def jobtype_list(self, experiment , role, *args, **kwargs):
+    def jobtype_list(self, experiment, role, *args, **kwargs):
         data = self.jobsPOMS.jobtype_list(
-            cherrypy.request.db, experiment)
+            cherrypy.request.db,
+            experiment, role)
         return data
 
     # ----------------------
