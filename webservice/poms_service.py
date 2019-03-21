@@ -524,8 +524,8 @@ class PomsService:
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def campaign_stage_edit_query(self, experiment, role, *arg, **kwargs):
-        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "LaunchSetup", item_id = kwargs.get('ae_launch_id',None))
-        self.permissions.can_viewy(cherrypy.request.db,get_user(), experiment, role, "JobType", item_id = kwargs.get('ae_campaign_definition_id',None))
+        self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "LaunchSetup", item_id=kwargs.get('ae_launch_id', None))
+        self.permissions.can_viewy(cherrypy.request.db, get_user(), experiment, role, "JobType", item_id=kwargs.get('ae_campaign_definition_id', None))
         data = self.campaignsPOMS.campaign_stage_edit_query(
             cherrypy.request.db, *args, **kwargs)
         return data
@@ -542,7 +542,8 @@ class PomsService:
             cherrypy.request.db, get_user(), experiment, role, *args, **kwargs)
 
         template = self.jinja_env.get_template('show_campaigns.html')
-        values = {'tl': tl, 'last_activity': last_activity, 'experiment':experiment, 'role':role, 'msg': msg, 'data': data, 'help_page': "ShowCampaignTagsHelp"}
+        values = {'tl': tl, 'last_activity': last_activity, 'experiment': experiment,
+                  'role': role, 'msg': msg, 'data': data, 'help_page': "ShowCampaignTagsHelp"}
         if kwargs.get('format', '') == 'json':
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')
