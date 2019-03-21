@@ -21,7 +21,8 @@ class DBadminPOMS:
             return members of experiment
         """
         members = (dbhandle.query(Experiment, ExperimentsExperimenters, Experimenter)
-                   .join(ExperimentsExperimenters).join(Experimenter)
+                   .join(ExperimentsExperimenters.experiment_obj)
+                   .join(ExperimentsExperimenters.experimenter_obj)
                    .filter(Experiment.experiment == experiment)
                    .filter(ExperimentsExperimenters.active == True)
                    .order_by(ExperimentsExperimenters.active.desc(), Experimenter.last_name)
