@@ -536,7 +536,7 @@ class PomsService:
     @error_rewrite
     @logit.logstartstop
     def show_campaigns(self, experiment, role, *args, **kwargs):
-        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Experiment", item_id = experiment)
+        self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "Experiment", item_id=experiment)
 
         tl, last_activity, msg, data = self.campaignsPOMS.show_campaigns(
             cherrypy.request.db, get_user(), experiment, role, *args, **kwargs)

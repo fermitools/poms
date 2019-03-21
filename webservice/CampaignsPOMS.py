@@ -1378,7 +1378,7 @@ class CampaignsPOMS:
         # return bytes(ptext, encoding="utf-8")
         return ptext
 
-    def show_campaigns(self, dbhandle, user, experiment, role,  **kwargs):
+    def show_campaigns(self, dbhandle, user, experiment, role, **kwargs):
         '''
             Return data for campaigns table for current experiment, etc.
         '''
