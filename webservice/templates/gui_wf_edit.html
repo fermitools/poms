@@ -161,7 +161,7 @@ function main() {
        if (campaign.startsWith('samples')) {
           url = base + '/static/' + campaign.replace(/%2F/g, '/');
        } else {
-          url = base +'/campaign_deps_ini?full=1&name=' + campaign;
+          url = base +'/campaign_deps_ini{{experiment}}/{{role}}?full=1&name=' + campaign;
        }
        $.ajax( {
           url: url
