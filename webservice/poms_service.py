@@ -1229,8 +1229,8 @@ class PomsService:
 
 # h4. jobtype_list
     @cherrypy.expose
-    @logit.logstartstop
     @cherrypy.tools.json_out()
+    @logit.logstartstop
     def jobtype_list(self, experiment, role, *args, **kwargs):
         data = self.jobsPOMS.jobtype_list(
             cherrypy.request.db,
