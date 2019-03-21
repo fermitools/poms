@@ -604,7 +604,7 @@ gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment,
 
     this.make_poms_call(`jobtype_list/${experiment}/${role}`)
         .then(prep_jobtype_list)
-        .then( _ => this.make_poms_call('loginsetup_list'))
+        .then( _ => this.make_poms_call(`loginsetup_list/${experiment}/${role}`))
         .then(prep_loginsetup_list)
         .then(
             _ => {
@@ -637,9 +637,9 @@ gui_editor.prototype.set_state = function (ini_dump) {
         }
     };
 
-    this.make_poms_call('jobtype_list')
+    this.make_poms_call(`jobtype_list/${experiment}/${role}`)
         .then(prep_jobtype_list)
-        .then( _ => this.make_poms_call('loginsetup_list'))
+        .then( _ => this.make_poms_call(`loginsetup_list/${experiment}/${role}`))
         .then(prep_loginsetup_list)
         .then(
             _ => {
