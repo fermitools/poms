@@ -1968,6 +1968,10 @@ class CampaignsPOMS:
             callback for changing the launch schedule
         '''
 
+         
+        if user:
+            experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
+
         # deal with single item list silliness
         if isinstance(minlist, str):
             minlist = minlist.split(',')
@@ -2017,7 +2021,7 @@ class CampaignsPOMS:
                 if os.path.exists(tpdir):
                     pdir = tpdir
 
-            job = my_crontab.new(command='{}/cron/launcher --campaign_stage_id={} --launcher={}'.format(pdir, campaign_stage_id, user),
+            job = my_crontab.new(command='{}/cron/launcher --campaign_stage_id={} --launcher={}'.format(pdir, campaign_stage_id, experimenter.experimenter_id),
                                  comment='POMS_CAMPAIGN_ID={}'.format(campaign_stage_id))
 
             # set timing...

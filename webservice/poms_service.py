@@ -766,7 +766,7 @@ class PomsService:
                                monthly=None, month=None, hourlist=None, submit=None, minlist=None, delete=None):
         self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "CampaignStage", item_id = campaign_stage_id)
         self.campaignsPOMS.update_launch_schedule(campaign_stage_id, dowlist, domlist, monthly, month, hourlist, submit,
-                                                  minlist, delete, user=cherrypy.session.get('experimenter').experimenter_id)
+                                                  minlist, delete, user=get_user())
         raise cherrypy.HTTPRedirect(
             "schedule_launch/%s/%s?campaign_stage_id=%s" %
             experiment, role, campaign_stage_id)
@@ -854,7 +854,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def make_stale_campaigns_inactive(self):
-        if not cherrypy.session.get('experimenter').is_root():
+        if not self.permissions.is_superuser(cherrypy.request.db, get_user()):
             raise cherrypy.HTTPError(
                 401, 'You are not authorized to access this resource')
         res = self.campaignsPOMS.make_stale_campaigns_inactive(
@@ -1069,7 +1069,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def set_job_launches(self, hold):
-        if not self.permissions.is_superuser(cherrypy.request.db, cherrypy.session.get('experimenter').username):
+        if not self.permissions.is_superuser(cherrypy.request.db, get_user()):
             raise cherrypy.HTTPError(
                 401, 'You are not authorized to access this resource')
         self.taskPOMS.set_job_launches(cherrypy.request.db, cherrypy.session.get, hold)
@@ -1094,9 +1094,8 @@ class PomsService:
     @logit.logstartstop
     def launch_campaign(self, experiment, role, campaign_id=None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
                     launcher=None, test_launch=False, output_commands=None):
-        if cherrypy.session.get('experimenter').username and (
-                'poms' != cherrypy.session.get('experimenter').username or launcher == ''):
-            launch_user = cherrypy.session.get('experimenter').experimenter_id
+        if 'poms' != get_user() or launcher == '':
+            launch_user = get_user()
         else:
             launch_user = launcher
 
@@ -1145,9 +1144,8 @@ class PomsService:
         if parent_task_id and not parent_submission_id:
             parent_submission_id = parent_task_id
         self.permissions.can_do(cherrypy.request.db,get_user(), experiment, role, "CampaignStage", item_id = campaign_stage_id)
-        if cherrypy.session.get('experimenter').username and (
-                'poms' != cherrypy.session.get('experimenter').username or not launcher ):
-            launch_user = cherrypy.session.get('experimenter').experimenter_id
+        if 'poms' != get_user() or not launcher:
+            launch_user = get_user()
         else:
             launch_user = launcher
 
@@ -1166,7 +1164,6 @@ class PomsService:
                                          launch_user,
                                          dataset_override=dataset_override,
                                          parent_submission_id=parent_submission_id, test_login_setup=test_login_setup,
-                                         experiment=experiment,
                                          test_launch=test_launch,
                                          output_commands=output_commands)
         logit.log("Got vals: %s" % repr(vals))
@@ -1246,7 +1243,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def wrapup_tasks(self):
-        if not self.permissions.is_superuser(cherrypy.request.db, cherrypy.session.get('experimenter').username):
+        if not self.permissions.is_superuser(cherrypy.request.db, get_user()):
             raise cherrypy.HTTPError(
                 401, 'You are not authorized to access this resource')
         cherrypy.response.headers['Content-Type'] = "text/plain"
