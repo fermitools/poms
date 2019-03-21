@@ -343,7 +343,7 @@ class PomsService:
     @logit.logstartstop
     def campaign_deps_ini(self, experiment, role, tag=None, camp_id=None, login_setup=None,
                           campaign_definition=None, launch_template=None, name=None, stage_id=None, job_type=None, full=None):
-        self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "Campaign", item_id = stage_id or camp_id)
+        self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "Campaign", item_id=stage_id or camp_id)
         res = self.campaignsPOMS.campaign_deps_ini(cherrypy.request.db, experiment, role,
                                                    name=name or tag,
                                                    stage_id=stage_id or camp_id,
