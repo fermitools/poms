@@ -36,7 +36,8 @@ Campaigns {%include 'help_button.html'%}
  }
 </script>
 
-<form name="view_picker_form" id="view_picker_form" method="GET" action="show_campaigns">
+<!-- <form name="view_picker_form" id="view_picker_form" method="GET" action="show_campaigns"> -->
+<form name="view_picker_form" id="view_picker_form" method="GET">
 {% set has_active=True %}
 {% set data = data|default({}) %}
 {%include "view_picker.html" %}
