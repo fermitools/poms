@@ -1292,7 +1292,7 @@ class PomsService:
                                                                          tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_task_files.html')
         return template.render(name=cs.name if cs else "",
-                               experiment=experimnent, role=role,
+                               experiment=experiment, role=role,
                                CampaignStage = cs,
                                columns=columns, datarows=datarows,
                                tmin=tmins, tmax=tmaxs,
@@ -1306,8 +1306,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def show_dimension_files(self, experiment, role, dims):
-        flist = self.filesPOMS.show_dimension_files(cherrypy.request.samweb_lite, experiment, dims,
-                                                    dbhandle=cherrypy.request.db)
+        flist = self.filesPOMS.show_dimension_files(cherrypy.request.samweb_lite, experiment, dims, dbhandle=cherrypy.request.db)
         template = self.jinja_env.get_template('show_dimension_files.html')
         return template.render(flist=flist, dims=dims, statusmap=[
         ], experiment=experiment, role=role, help_page="ShowDimensionFilesHelp")
