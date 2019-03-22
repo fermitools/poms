@@ -55,10 +55,10 @@ class FilesStatus:
              .options(joinedload(Submission.campaign_stage_snapshot_obj))
              .filter(Submission.created >= tmin, Submission.created < tmax))
 
-        if campaign_stage_id:
+        if campaign_stage_id not in [ '', None, 'None' ]:
             q = q.filter(Submission.campaign_stage_id == campaign_stage_id)
 
-        elif campaign_id:
+        elif campaign_id not in [ '', None, 'None' ]:
             q = (q.join(CampaignStage,
                         Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
                  .filter(CampaignStage.campaign_id == campaign_id))
