@@ -220,7 +220,8 @@ def augment_params():
         session_role = pathv[3]
     else:
         # pick saved experiment/role 
-        session_experiment, session_role = self.utilsPOMS.getSavedExperimentRole(cherrypy.request.db, get_user())
+        session_experiment = None
+        session_role = None
 
     root = cherrypy.request.app.root
     root.jinja_env.globals.update(dict(session_role = session_role,
