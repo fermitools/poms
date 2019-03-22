@@ -1071,12 +1071,12 @@ class PomsService:
 
     @cherrypy.expose
     @logit.logstartstop
-    def set_job_launches(self, hold):
+    def set_job_launches(self, experiment, role, hold):
         if not self.permissions.is_superuser(cherrypy.request.db, get_user()):
             raise cherrypy.HTTPError(
                 401, 'You are not authorized to access this resource')
-        self.taskPOMS.set_job_launches(cherrypy.request.db, cherrypy.session.get, hold)
-        raise cherrypy.HTTPRedirect(self.path + "/")
+        self.taskPOMS.set_job_launches(cherrypy.request.db, cherrypy.session.get, get_user(), experimenter, role, hold)
+        raise cherrypy.HTTPRedirect(self.path + "/index/%s/%s" % experiment, role)
 
 
 # h4. launch_queued_job

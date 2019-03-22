@@ -17,10 +17,10 @@ Job Launches: {{launches}}
 {% if (is_root) %}
 <br>
 <div class="ui icon buttons">
-  <a class="ui button" href="set_job_launches?hold=hold">
+  <a class="ui button" href="set_job_launches/{{experiment}}/{{role}}?hold=hold">
     <i class="pause icon"></i>
   </a>
-  <a class="ui button" href="set_job_launches?hold=allowed">
+  <a class="ui button" href="set_job_launches/{{experiment}}/{{role}}?hold=allowed">
     <i class="play icon"></i>
   </a>
 </div>

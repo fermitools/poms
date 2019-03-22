@@ -758,14 +758,13 @@ class TaskPOMS:
                     "About to launch jobs, test_launch = %s" %
                     test_launch)
 
-                # take on role of job we're launching based on..
-                seshandle.get('experimenter').role = s.campaign_stage_obj.creator_role
-
                 self.launch_jobs(
                     dbhandle,
                     getconfig,
                     samhandle,
-                    experiment, role, user,
+                    s.campaign_stage_obj.experiment, 
+                    s.campaign_stage_obj.owner_role, 
+                    s.experimenter_creator_obj.username,
                     basedir,
                     cd.provides_campaign_stage_id,
                     s.creator,
@@ -870,21 +869,23 @@ class TaskPOMS:
                     Experimenter.experimenter_id == s.creator).first()
 
                 # XXX launch_user.username -- should be id...
-                self.launch_jobs(dbhandle, getconfig, samhandle, experiment,  role, user,
+                self.launch_jobs(dbhandle, getconfig, samhandle, s.campaign_stage_obj.experiment, s.campaign_stage_obj.owner_role, s.experimenter_owner_obj.username,
                                  basedir, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username, dataset_override=rname,
                                  parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch=s.submission_params.get('test', False))
                 return 1
 
         return 0
 
-    def set_job_launches(self, dbhandle, user, hold):
+    def set_job_launches(self, dbhandle, experiment, role, user, hold):
+
+        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
         if hold not in ["hold", "allowed"]:
             return
         # keep held launches in campaign stage w/ campaign_stage_id == 0
         c = dbhandle.query(CampaignStage).with_for_update().filter(CampaignStage.campaign_stage_id == 0).first()
         if hold == "hold":
-            c.hold_experimenter_id = seshandle_get('experimenter').experimenter_id
-            c.role_held_wtih = seshandle_get('experimenter').session_role
+            c.hold_experimenter_id = experimenter.experimenter_id
+            c.role_held_wtih = get('experimenter').session_role
         else:
             c.hold_experimenter_id = None
             c.role_held_wtih = None
