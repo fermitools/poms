@@ -16,7 +16,10 @@ class Permissions:
 
     def is_superuser(self, dbhandle, user):
         if not user in self.sucache:
-            rows = dbhandle.query(Experimenter.root).filter(Experimenter.username == user).all()
+            if str(user)[0] in ['0','1','2','3','4','5','6','7','8','9']:
+                rows = dbhandle.query(Experimenter.root).filter(Experimenter.experimenter_id == user).all()
+            else:
+                rows = dbhandle.query(Experimenter.root).filter(Experimenter.username == user).all()
             self.sucache[user] = rows[0].root
         logit.log("is_superuser(%s) returning %s" %( user, self.sucache[user]))
         return self.sucache[user]
