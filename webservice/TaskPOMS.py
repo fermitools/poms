@@ -698,7 +698,7 @@ class TaskPOMS:
         dbhandle.commit()
 
     def launch_dependents_if_needed(
-            self, dbhandle, samhandle, getconfig, user, experiment, role, s, basedir):
+            self, dbhandle, samhandle, getconfig, gethead, user, experiment, role, s, basedir):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
 
         # if this is itself a recovery job, we go back to our parent
