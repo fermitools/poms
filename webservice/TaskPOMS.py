@@ -332,9 +332,9 @@ class TaskPOMS:
             # so launch actions get done as them.
 
             if not self.launch_recovery_if_needed(
-                    dbhandle, samhandle, getconfig, gethead, experiment, role, user, err_res, submission, None, basedir):
+                    dbhandle, samhandle, getconfig, gethead, submission.experimenter_creator_obj.username, submission.campaign_stage_obj.experiment, submission.campaign_stage_obj.creator_role, submission, None, basedir):
                 self.launch_dependents_if_needed(
-                    dbhandle, samhandle, getconfig, gethead, experiment, role, user, err_res, submission, basedir)
+                    dbhandle, samhandle, getconfig, gethead, submission.experimenter_creator_obj.username, submission.campaign_stage_obj.experiment, submission.campaign_stage_obj.creator_role, submission, basedir)
 
         return res
 
@@ -727,7 +727,6 @@ class TaskPOMS:
                     getconfig,
                     samhandle,
                     experiment, s.creator_role, user,
-                    err_res,
                     basedir,
                     cd.provides_campaign_stage_id,
                     launch_user.experimenter_id,
@@ -767,7 +766,6 @@ class TaskPOMS:
                     getconfig,
                     samhandle,
                     experiment, role, user,
-                    err_res,
                     basedir,
                     cd.provides_campaign_stage_id,
                     s.creator,
@@ -776,7 +774,7 @@ class TaskPOMS:
         return 1
 
     def launch_recovery_if_needed(self, dbhandle, samhandle, getconfig,
-                                  gethead, experiment, role, user, err_res, s, recovery_type_override=None, basedir = ''):
+                                  gethead, user, experiment, role, s, recovery_type_override=None, basedir = ''):
         logit.log("Entering launch_recovery_if_needed(%s)" % s.submission_id)
         if not getconfig("poms.launch_recovery_jobs", False):
             logit.log("recovery launches disabled")
@@ -873,7 +871,7 @@ class TaskPOMS:
 
                 # XXX launch_user.username -- should be id...
                 self.launch_jobs(dbhandle, getconfig, samhandle, experiment,  role, user,
-                                 err_res, basedir, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username, dataset_override=rname,
+                                 basedir, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username, dataset_override=rname,
                                  parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch=s.submission_params.get('test', False))
                 return 1
 
@@ -921,7 +919,7 @@ class TaskPOMS:
         return ("hold" if c.hold_experimenter_id else "allowed")
 
     def launch_queued_job(self, dbhandle, samhandle,
-                          getconfig, gethead, err_res, basedir):
+                          getconfig, gethead, basedir):
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
@@ -951,7 +949,6 @@ class TaskPOMS:
                              getconfig, gethead,
                               samhandle,
                              experiment,  role, user,
-                             err_res, 
                              basedir,
                              campaign_stage_id,
                              launcher,
@@ -969,7 +966,7 @@ class TaskPOMS:
         return os.WIFEXITED(res) and os.WEXITSTATUS(res) == 0
 
     def launch_jobs(self, dbhandle, getconfig, gethead, samhandle, experiment, role, user,
-                    err_res, basedir, campaign_stage_id, launcher, dataset_override=None, parent_submission_id=None,
+                    basedir, campaign_stage_id, launcher, dataset_override=None, parent_submission_id=None,
                     param_overrides=None, test_login_setup=None, test_launch=False, output_commands=False):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" %
@@ -1034,9 +1031,7 @@ class TaskPOMS:
             se_role = cs.creator_role
 
             if not cs:
-                raise err_res(
-                    404, "CampaignStage id %s not found" %
-                    campaign_stage_id)
+                raise KeyError("CampaignStage id %s not found" % campaign_stage_id)
 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
@@ -1090,20 +1085,20 @@ class TaskPOMS:
 
         if not e and not (ra == '127.0.0.1' and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
-            raise err_res(403, "Permission denied.")
+            raise PermissionsError("non experimenter launch not on localhost")
 
         if se_role == 'production' and not lt.launch_host.find(exp) >= 0 and exp != 'samdev':
             logit.log(
                 "launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
             output = "Not Authorized: {} is not a {} experiment node".format(
                 lt.launch_host, exp)
-            raise err_res(403, output)
+            raise AssertionError(output)
 
 
         if se_role == 'analysis' and not (lt.launch_host in ('pomsgpvm01.fnal.gov' ,'fermicloud045.fnal.gov','poms-int.fnal.gov','pomsint.fnal.gov')):
             output = "Not Authorized: {} is not a analysis launch node".format(
                 lt.launch_host, exp)
-            raise err_res(403, output)
+            raise AssertionError(output)
 
         experimenter_login = user
 
@@ -1152,7 +1147,7 @@ class TaskPOMS:
             dataset = dataset_override
         else:
             dataset = self.poms_service.campaignsPOMS.get_dataset_for(
-                dbhandle, samhandle, err_res, cs)
+                dbhandle, samhandle, cs)
 
         group = exp
         if group == 'samdev':

@@ -384,7 +384,7 @@ class CampaignsPOMS:
         return [r._asdict() for r in data]
 
     def launch_campaign(self, dbhandle, getconfig, gethead, samhandle, experiment, role, user,
-                        err_res, basedir, campaign_id, launcher, dataset_override=None, parent_submission_id=None,
+                        basedir, campaign_id, launcher, dataset_override=None, parent_submission_id=None,
                         param_overrides=None, test_login_setup=None, test_launch=False, output_commands=False):
 
         '''
@@ -407,12 +407,12 @@ class CampaignsPOMS:
         if len(stages) == 1:
             return self.poms_service.taskPOMS.launch_jobs(
                 dbhandle, getconfig, gethead, samhandle, experiment, role, user,
-                err_res, basedir, stages[0][0], launcher, dataset_override,
+                basedir, stages[0][0], launcher, dataset_override,
                 parent_submission_id, param_overrides, test_login_setup,
                 test_launch, output_commands
             )
 
-        raise err_res(429, "Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
+        raise AssertionError("Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
 
     def get_recoveries(self, dbhandle, cid):
         '''
@@ -1864,7 +1864,7 @@ class CampaignsPOMS:
         return c_s.campaign_stage_id
 
 
-    def get_dataset_for(self, dbhandle, samhandle, err_res, camp):
+    def get_dataset_for(self, dbhandle, samhandle, camp):
         '''
             use the split_type modules to get the next dataset for
             launch for a given campaign
@@ -1902,7 +1902,7 @@ class CampaignsPOMS:
         try:
             res = splitter.next()
         except StopIteration:
-            raise err_res(404, 'No more splits in this campaign.')
+            raise AssertError('No more splits in this campaign.')
 
         dbhandle.commit()
         return res
@@ -2058,7 +2058,7 @@ class CampaignsPOMS:
 
         return rlist
 
-    def make_stale_campaigns_inactive(self, dbhandle, err_res):
+    def make_stale_campaigns_inactive(self, dbhandle):
         '''
             turn off active flag on campaigns without recent activity
         '''
