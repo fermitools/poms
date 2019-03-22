@@ -405,7 +405,7 @@ gui_editor.new_name = function (before, from, to) {
 }
 
 
-gui_editor.exportNetwork = function () {
+gui_editor.prototype.exportNetwork = function () {
     // var nodes = gui_editor.network.body.nodeIndices.map(x => ({id: x}));
 
     const node2JSON = (e) => {
@@ -471,8 +471,10 @@ gui_editor.exportNetwork = function () {
     console.log(exportValue);
     //VP~ return exportValue;
     //VP~ new wf_uploader().make_poms_call('echo', {form: exportValue});     // Send to the server
+    const experiment = this.state['campaign']['experiment'];
+    const role = this.state['campaign']['poms_role'];
     const wfu = new wf_uploader();
-    return wfu.make_poms_call('save_campaign', {form: exportValue});     // Send to the server
+    return wfu.make_poms_call(`save_campaign/${experiment}/${role}`, {form: exportValue});     // Send to the server
 }
 
 gui_editor.update_jobtypes = function() {
@@ -1976,7 +1978,7 @@ gui_editor.prototype.add_dependency = function(frm, to, id) {
 gui_editor.prototype.save_state = function () {
     var sb = document.getElementById("savebusy");
     sb.innerHTML = "Saving...";
-    gui_editor.exportNetwork()
+    this.exportNetwork()
         .done((data, textStatus, jqXHR) => {
             sb.innerHTML = "";
             gui_editor.unmodified();
@@ -1992,7 +1994,9 @@ gui_editor.prototype.save_state = function () {
                 const base = mwm_utils.getBaseURL();
                 console.log(["args:", args, "base:", base]);
                 const campaign = encodeURIComponent(this.nodes.get().filter(x => x.id.startsWith('campaign '))[0].label);
-                location.href = `${base}gui_wf_edit?campaign=${campaign}`;
+                const experiment = this.state['campaign']['experiment'];
+                const role = this.state['campaign']['poms_role'];
+                location.href = `${base}gui_wf_edit/${experiment}/${role}?campaign=${campaign}`;
             }, 1500);
         });
 }
