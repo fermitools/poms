@@ -1114,7 +1114,6 @@ class PomsService:
                                          cherrypy.config.get('base_uploads_dir'),
                                          campaign_id,
                                          launch_user,
-                                         experiment=experiment,
                                          test_launch=test_launch,
                                          output_commands=output_commands)
 
@@ -1129,7 +1128,7 @@ class PomsService:
             return "Launches held, job queued..."
         else:
             raise cherrypy.HTTPRedirect(
-                    "%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (self.path, campaign_stage_id, os.path.basename(outfile)))
+                    "%s/list_launch_file/%s/%s?campaign_stage_id=%s&fname=%s" % (self.path, experiment, role, campaign_stage_id, os.path.basename(outfile)))
 
 
 # h4. test_split_type_editors

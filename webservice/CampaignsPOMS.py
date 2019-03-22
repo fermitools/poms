@@ -409,7 +409,7 @@ class CampaignsPOMS:
                 dbhandle, getconfig, gethead, samhandle, experiment, role, user,
                 err_res, basedir, stages[0][0], launcher, dataset_override,
                 parent_submission_id, param_overrides, test_login_setup,
-                experiment, test_launch, output_commands
+                test_launch, output_commands
             )
 
         raise err_res(429, "Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
