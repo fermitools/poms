@@ -955,7 +955,7 @@ class PomsService:
     @logit.logstartstop
     def update_submission(self, submission_id, jobsub_job_id,
                           pct_complete=None, status=None, project=None):
-        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "Submission", item_id = submission_id)
+        self.permissions.can_modify(cherrypy.request.db,get_user(), None, None, "Submission", item_id = submission_id)
         res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id,
                                               status=status, project=project, pct_complete=pct_complete)
         return res
@@ -1179,8 +1179,7 @@ class PomsService:
             return outfile
         else:
             if test_login_setup:
-                raise cherrypy.HTTPRedirect("%s/%s/%slist_launch_file?login_setup_id=%s&fname=%s" % (
-                    self.path, experiment, role, test_login_setup, os.path.basename(outfile)))
+                raise cherrypy.HTTPRedirect("%s/%s/%slist_launch_file?login_setup_id=%s&fname=%s" % (self.path, experiment, role, test_login_setup, os.path.basename(outfile)))
             else:
                 raise cherrypy.HTTPRedirect(
                     "%s/list_launch_file/%s/%s?campaign_stage_id=%s&fname=%s" % (self.path, experiment, role,  campaign_stage_id, os.path.basename(outfile)))
@@ -1273,7 +1272,7 @@ class PomsService:
             submission_id = task_id
         if parent_task_id is not None and parent_submission_id is None:
             parent_submission_id = parent_task_id
-        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, role, "Campaign", item_id = campaign_id)
+        self.permissions.can_modify(cherrypy.request.db,get_user(), experiment, None, "Campaign", item_id = campaign_id)
         submission_id = self.taskPOMS.get_task_id_for(cherrypy.request.db, campaign, user,
                                                       experiment, command_executed, input_dataset, parent_submission_id, submission_id)
         return "Task=%d" % submission_id
