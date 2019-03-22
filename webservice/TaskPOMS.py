@@ -761,9 +761,10 @@ class TaskPOMS:
                 self.launch_jobs(
                     dbhandle,
                     getconfig,
+                    gethead,
                     samhandle,
                     s.campaign_stage_obj.experiment, 
-                    s.campaign_stage_obj.owner_role, 
+                    s.campaign_stage_obj.creator_role, 
                     s.experimenter_creator_obj.username,
                     basedir,
                     cd.provides_campaign_stage_id,
@@ -869,7 +870,7 @@ class TaskPOMS:
                     Experimenter.experimenter_id == s.creator).first()
 
                 # XXX launch_user.username -- should be id...
-                self.launch_jobs(dbhandle, getconfig, samhandle, s.campaign_stage_obj.experiment, s.campaign_stage_obj.owner_role, s.experimenter_owner_obj.username,
+                self.launch_jobs(dbhandle, getconfig, samhandle, s.campaign_stage_obj.experiment, s.campaign_stage_obj.creator_role, s.experimenter_owner_obj.username,
                                  basedir, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username, dataset_override=rname,
                                  parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch=s.submission_params.get('test', False))
                 return 1
@@ -946,10 +947,14 @@ class TaskPOMS:
             # the current task in the role of the submission
             # so launch actions get done as them.
 
+
             self.launch_jobs(dbhandle,
-                             getconfig, gethead,
-                              samhandle,
-                             experiment,  role, user,
+                             getconfig,
+                             gethead,
+                             samhandle,
+                             cs.experiment, 
+                             cs.creator_role, 
+                             launcher,
                              basedir,
                              campaign_stage_id,
                              launcher,
