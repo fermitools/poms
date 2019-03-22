@@ -1253,8 +1253,6 @@ class PomsService:
                                                     cherrypy.request.samweb_lite,
                                                     cherrypy.config.get,
                                                     cherrypy.request.headers.get,
-                                                    cherrypy.session,
-                                                    cherrypy.response.status,
                                                     cherrypy.config.get('base_uploads_dir')
                                                     ))
 

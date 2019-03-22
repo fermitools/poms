@@ -126,7 +126,7 @@ class TaskPOMS:
         return res
 
 
-    def wrapup_tasks(self, dbhandle, samhandle, getconfig, basedir):
+    def wrapup_tasks(self, dbhandle, samhandle, getconfig, gethead, basedir):
         # this function call another function that is not in this module, it
         # use a poms_service object passed as an argument at the init.
 
