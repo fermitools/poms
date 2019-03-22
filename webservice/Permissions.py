@@ -143,9 +143,17 @@ class Permissions:
                raise PermissionError("Only user %s can change this" % item_id)
             return
 
-        self.check_experiment_role(dbhandle, user, cur_exp, cur_role)
 
         exp, owner, role = self.get_exp_owner_role(dbhandle, t, item_id = item_id, name = name, experiment = experiment)
+
+        # if no owner, role passed in from url, default to one in item
+        if cur_exp == None:
+            cur_exp = exp 
+        if cur_role == None:
+            cur_role = role
+
+        self.check_experiment_role(dbhandle, user, cur_exp, cur_role)
+
 
         logit.log("can_modify: cur: %s, %s, %s; item: %s, %s, %s" % (username, cur_exp, cur_role, owner, exp, role))
         if exp and exp != cur_exp:

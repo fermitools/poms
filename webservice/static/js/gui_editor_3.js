@@ -602,9 +602,9 @@ gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment,
         }
     };
 
-    this.make_poms_call('jobtype_list')
+    this.make_poms_call(`jobtype_list/${experiment}/${role}`)
         .then(prep_jobtype_list)
-        .then( _ => this.make_poms_call('loginsetup_list'))
+        .then( _ => this.make_poms_call(`loginsetup_list/${experiment}/${role}`))
         .then(prep_loginsetup_list)
         .then(
             _ => {
@@ -621,7 +621,7 @@ gui_editor.prototype.make_poms_call = function (url) {
     return new wf_uploader().make_poms_call(url, null);
 }
 
-gui_editor.prototype.set_state = function (ini_dump) {
+gui_editor.prototype.set_state = function (ini_dump, experiment, role) {
 
     const prep_jobtype_list = (data) => {
         for (const val of data) {
@@ -637,9 +637,9 @@ gui_editor.prototype.set_state = function (ini_dump) {
         }
     };
 
-    this.make_poms_call('jobtype_list')
+    this.make_poms_call(`jobtype_list/${experiment}/${role}`)
         .then(prep_jobtype_list)
-        .then( _ => this.make_poms_call('loginsetup_list'))
+        .then( _ => this.make_poms_call(`loginsetup_list/${experiment}/${role}`))
         .then(prep_loginsetup_list)
         .then(
             _ => {

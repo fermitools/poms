@@ -59,7 +59,7 @@ class CampaignsPOMS:
         """
             callback to actually change launch templates from edit screen
         """
-       
+
         experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == username).first()
         data = {}
         template = None
@@ -409,7 +409,7 @@ class CampaignsPOMS:
                 dbhandle, getconfig, gethead, samhandle, experiment, role, user,
                 err_res, basedir, stages[0][0], launcher, dataset_override,
                 parent_submission_id, param_overrides, test_login_setup,
-                experiment, test_launch, output_commands
+                test_launch, output_commands
             )
 
         raise err_res(429, "Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
@@ -1108,7 +1108,7 @@ class CampaignsPOMS:
         return "Submission=%d" % s.submission_id
 
 
-    def campaign_deps_ini(self, dbhandle, session_experiment, name=None, stage_id=None, login_setup=None, job_type=None, full=None):
+    def campaign_deps_ini(self, dbhandle, session_experiment, role, name=None, stage_id=None, login_setup=None, job_type=None, full=None):
         '''
             Generate ini-format dump of campaign and dependencies
         '''
@@ -1378,7 +1378,7 @@ class CampaignsPOMS:
         # return bytes(ptext, encoding="utf-8")
         return ptext
 
-    def show_campaigns(self, dbhandle, user, experiment, role,  **kwargs):
+    def show_campaigns(self, dbhandle, user, experiment, role, **kwargs):
         '''
             Return data for campaigns table for current experiment, etc.
         '''
@@ -1968,7 +1968,7 @@ class CampaignsPOMS:
             callback for changing the launch schedule
         '''
 
-         
+
         if user:
             experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
 
@@ -2143,7 +2143,7 @@ class CampaignsPOMS:
     def save_campaign(self, dbhandle, user, *args, **kwargs):
         """
         """
-        
+
         exp = args[0]
         role = args[1] or 'production'
         experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
@@ -2152,7 +2152,7 @@ class CampaignsPOMS:
         data = kwargs.get('form', None)
         everything = json.loads(data)
         message = []
-  
+
         # check permissions here, because we need to parse the json
         # to tell
         stages = everything['stages']
@@ -2442,7 +2442,7 @@ class CampaignsPOMS:
         experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
         role = role
         user_id = experimenter.experimenter_id
-        exp 
+        exp
 
         return (dbhandle.query(LoginSetup.login_setup_id)
                 .filter(LoginSetup.experiment == exp)

@@ -138,7 +138,10 @@ class FilesStatus:
         all_kids_decl_list = samhandle.count_files_list(cs.experiment, all_kids_decl_needed)
         # all_kids_list = samhandle.count_files_list(cs.experiment, all_kids_needed)
 
-        columns = ["submission<br>jobsub_jobid", "project", "date",
+        columns = ["campign<br>stage",
+                   "submission<br>jobsub_jobid", 
+                   "project", 
+                   "date",
                    "available<br>output",
                    "submit-<br>ted",
                    "deliv-<br>ered<br>SAM",
@@ -149,7 +152,7 @@ class FilesStatus:
                    "w/kids<br>located",
                    "pending"]
 
-        listfiles = "show_dimension_files?experiment=%s&dims=%%s" % cs.experiment
+        listfiles = "../../show_dimension_files/%s/%s?dims=%%s" % (cs.experiment,role)
         datarows = deque()
         i = -1
         for s in tl:
@@ -166,8 +169,9 @@ class FilesStatus:
                 task_jobsub_job_id = "s%s" % s.submission_id
             datarows.append(
                 [
+                    [s.campaign_stage_obj.name, "../../campaign_stage_info/%s/%s?campaign_stage_id=%s" % (experiment, role, s.campaign_stage_id)],
                     [task_jobsub_job_id.replace('@', '@<br>'),
-                     "submission_details?submission_id=%s" % s.submission_id],
+                     "../../submission_details/%s/%s/?submission_id=%s" % (experiment, role, s.submission_id)],
                     [
                         s.project,
                         "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s" %
