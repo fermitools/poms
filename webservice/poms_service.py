@@ -1105,12 +1105,12 @@ class PomsService:
         logit.log( "calling launch_campaign with campaign_id='%s'" % campaign_id)
         self.permissions.can_do(cherrypy.request.db,get_user(), experiment, role, "Campaign", item_id = campaign_id)
 
+
         vals = self.campaignsPOMS.launch_campaign(cherrypy.request.db,
                                          cherrypy.config.get,
                                          cherrypy.request.headers.get,
                                          cherrypy.request.samweb_lite,
                                          experiment, role, get_user(),
-                                         cherrypy.HTTPError,
                                          cherrypy.config.get('base_uploads_dir'),
                                          campaign_id,
                                          launch_user,
