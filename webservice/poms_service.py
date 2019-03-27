@@ -77,7 +77,7 @@ class JSONORMEncoder(json.JSONEncoder):
             # first put in relationship keys, but not loaded
             res.update({c.key: None for c in inspect(obj).mapper.relationships})
             # load specific relationships that won't cause cycles
-            res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if c.key.find('experimenter') >= 0})
+            res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if 'experimenter' in c.key})
             res.update({c.key: list(getattr(obj, c.key)) for c in inspect(obj).mapper.relationships if c.key == 'stages'})
 
             return res
