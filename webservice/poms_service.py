@@ -78,6 +78,10 @@ class JSONORMEncoder(json.JSONEncoder):
             res.update({c.key: None for c in inspect(obj).mapper.relationships})
             # load specific relationships that won't cause cycles
             res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if 'experimenter' in c.key})
+            res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if 'snapshot_obj' in c.key})
+            res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if c.key == 'campaign_stage_obj'})
+            # Limit to the name only for campaign_obj to prevent circular reference error
+            res.update({c.key: {'name': getattr(obj, c.key).name} for c in inspect(obj).mapper.relationships if c.key == 'campaign_obj'})
             res.update({c.key: list(getattr(obj, c.key)) for c in inspect(obj).mapper.relationships if c.key == 'stages'})
 
             return res
