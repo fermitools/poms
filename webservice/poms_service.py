@@ -451,7 +451,7 @@ class PomsService:
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def get_campaign_id(self, experiment, role, campaign_name):
-        cid = self.campaignsPOMS.get_campaign_id(cherrypy.request.db, user, experiment, role, campaign_name)
+        cid = self.campaignsPOMS.get_campaign_id(cherrypy.request.db, get_user(), experiment, role, campaign_name)
         return cid
 
     # h4. campaign_add_name
