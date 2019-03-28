@@ -370,7 +370,6 @@ class PomsService:
         res = self.campaignsPOMS.campaign_deps_ini(
             cherrypy.request.db,
             experiment,
-            role,
             name=name or tag,
             stage_id=stage_id or camp_id,
             login_setup=login_setup or launch_template,

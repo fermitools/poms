@@ -1092,9 +1092,7 @@ class CampaignsPOMS:
         dbhandle.commit()
         return "Submission=%d" % s.submission_id
 
-    def campaign_deps_ini(
-        self, dbhandle, session_experiment, role, name=None, stage_id=None, login_setup=None, job_type=None, full=None
-    ):
+    def campaign_deps_ini(self, dbhandle, experiment, name=None, stage_id=None, login_setup=None, job_type=None, full=None):
         '''
             Generate ini-format dump of campaign and dependencies
         '''
@@ -1106,7 +1104,7 @@ class CampaignsPOMS:
 
         if job_type is not None:
             res.append("# with job_type %s" % job_type)
-            j_t = dbhandle.query(JobType).filter(JobType.name == job_type, JobType.experiment == session_experiment).first()
+            j_t = dbhandle.query(JobType).filter(JobType.name == job_type, JobType.experiment == experiment).first()
             if j_t:
                 jts.add(j_t)
 
@@ -1114,7 +1112,7 @@ class CampaignsPOMS:
             res.append("# with login_setup: %s" % login_setup)
             l_t = (
                 dbhandle.query(LoginSetup)
-                .filter(LoginSetup.name == login_setup, LoginSetup.experiment == session_experiment)
+                .filter(LoginSetup.name == login_setup, LoginSetup.experiment == experiment)
                 .first()
             )
             if l_t:
@@ -1122,11 +1120,11 @@ class CampaignsPOMS:
 
         if name is not None:
             the_campaign = (
-                dbhandle.query(Campaign).filter(Campaign.name == name, Campaign.experiment == session_experiment).scalar()
+                dbhandle.query(Campaign).filter(Campaign.name == name, Campaign.experiment == experiment).scalar()
             )
 
             if the_campaign is None:
-                return f"Error: Campaign '{name}' was not found for '{session_experiment}' experiment"
+                return f"Error: Campaign '{name}' was not found for '{experiment}' experiment"
             #
             # campaign_stages = dbhandle.query(CampaignStage).join(Campaign).filter(
             #     Campaign.name == name,
@@ -1279,6 +1277,7 @@ class CampaignsPOMS:
         res.append("")
 
         return "\n".join(res)
+
 
     def campaign_deps_svg(self, dbhandle, config_get, campaign_name=None, campaign_stage_id=None):
         """
