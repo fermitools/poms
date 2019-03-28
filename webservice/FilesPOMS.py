@@ -16,12 +16,13 @@ import shelve
 import glob
 import uuid
 from datetime import datetime, timedelta
+import time
 
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy import distinct, func
 
 from . import logit
-from .poms_model import Submission, CampaignStage
+from .poms_model import Submission, CampaignStage, Experimenter, ExperimentsExperimenters
 from .utc import utc
 from .pomscache import pomscache
 
@@ -139,8 +140,8 @@ class FilesStatus:
         # all_kids_list = samhandle.count_files_list(cs.experiment, all_kids_needed)
 
         columns = ["campign<br>stage",
-                   "submission<br>jobsub_jobid", 
-                   "project", 
+                   "submission<br>jobsub_jobid",
+                   "project",
                    "date",
                    "available<br>output",
                    "submit-<br>ted",
@@ -338,17 +339,26 @@ class FilesStatus:
     def get_file_upload_path(self, basedir, username, experiment, filename):
         return "%s/uploads/%s/%s/%s" % (basedir, experiment, username, filename)
 
-    def file_uploads(self, basedir, user, experiment, quota):
-        flist = glob.glob(self.get_file_upload_path(basedir, user, experiment, '*'))
-        res = []
+    def file_uploads(self, basedir, experiment, user, dbhandle, checkuser=None):
+        ckuser = user
+        if checkuser is not None:
+            ckuser = checkuser
+        flist = glob.glob(self.get_file_upload_path(basedir, ckuser, experiment, '*'))
+        file_stat_list = []
         total = 0
         for fname in flist:
             statout = os.stat(fname)
-            res.append([os.path.basename(fname), statout])
+            uploaded = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(statout.st_mtime))
+            file_stat_list.append([os.path.basename(fname), statout.st_size, uploaded])
             total += statout.st_size
-        return res, total
+        experimenters = (dbhandle.query(Experimenter, ExperimentsExperimenters)
+                         .join(ExperimentsExperimenters.experimenter_obj)
+                         .filter(ExperimentsExperimenters.experiment == experiment)
+                        ).all()
+        return file_stat_list, total, experimenters
 
-    def upload_file(self, basedir, experiment, username, quota, filename):
+
+    def upload_file(self, basedir, experiment, username, quota, filename, dbhandle):
 
         # if they pick multiple files, we get a list, otherwise just one
         # item, so if its not a list, make it a list of one item...
@@ -374,7 +384,7 @@ class FilesStatus:
                 size += len(data)
             f.close()
             logit.log("upload_file: closed")
-            fstatlist, total = self.file_uploads(basedir, username, experiment, quota)
+            fstatlist, total, experimenters = self.file_uploads(basedir, experiment, username, dbhandle)
             if total > quota:
                 unlink(outf)
                 raise ValueError("Upload exeeds quota of %d kbi" % quota/1024)

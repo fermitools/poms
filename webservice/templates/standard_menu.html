@@ -3,7 +3,7 @@
 <div class="toc">
 <div class="ui vertical menu">
 
-  <a class="active item"href="{{pomspath}}/{{session_experiment}}/{{session_role}}/">
+  <a class="active item"href="{{pomspath}}/index/{{session_experiment}}/{{session_role}}/">
     <div class="ui float left">
     <i class="large black home icon"><b>&nbsp;POMS</b></i>
     </div>
@@ -46,7 +46,7 @@
     </div>
   </div>
 
-  {%if session_role == 'analysis' %}
+  {%if session_role == 'analysis' or session_role == 'superuser' %}
   <div class="item">
     <div class="header">User Data</div>
     <div class="menu">
