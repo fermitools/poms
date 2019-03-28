@@ -42,7 +42,7 @@ in Campaign <a href="{{pomspath}}/show_campaigns/{{experiment}}/{{role}}?just_on
 
 Submission was:
 {%if submission.recovery_tasks_parent %}
-a recovery launch for <a href="./submission_details?submission_id={{submission.recovery_tasks_parent}}">Submission #{{submission.recovery_tasks_parent}}</a>
+a recovery launch for <a href="./submission_details/{{experiment}}/{{role}}?submission_id={{submission.recovery_tasks_parent}}">Submission #{{submission.recovery_tasks_parent}}</a>
 {%else%}
 a regular launch
 {%endif%}
@@ -50,7 +50,7 @@ a regular launch
 
 {%if dataset %}
 {%if dataset[:13] == 'poms_depends_' %}
-...launched on completion of  <a href="./submission_details?submission_id={{dataset[13:-2]}}">Submission #{{dataset[13:-2]}}</a>
+...launched on completion of  <a href="./submission_details/{{experiment}}/{{role}}?submission_id={{dataset[13:-2]}}">Submission #{{dataset[13:-2]}}</a>
 {%endif%}
 {%endif%}
 
