@@ -1058,23 +1058,39 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def file_uploads(self, experiment, role, username):
-        self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "Experimenter", item_id=username)
-
-        quota = cherrypy.config.get('base_uploads_quota', 10_485_760)
-        file_stat_list, total = self.filesPOMS.file_uploads(cherrypy.config.get('base_uploads_dir'), username, experiment, quota)
-
+    def file_uploads(self, experiment, role, checkuser=None):
+        # FIXME WHAT is item_id ??? self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Experimenter", item_id = username)
+        quota = cherrypy.config.get('base_uploads_quota', 10485760)
+        file_stat_list, total, experimenters = self.filesPOMS.file_uploads(cherrypy.config.get('base_uploads_dir'), experiment, get_user(),
+                                                                           cherrypy.request.db, checkuser)
         template = self.jinja_env.get_template('file_uploads.html')
-        return template.render(experiment, role, username, file_stat_list=file_stat_list, total=total, quota=quota, time=time)
+        return template.render(experiment=experiment, role=role, experimenters=experimenters, file_stat_list=file_stat_list, total=total,
+                               quota=quota, time=time, checkuser=checkuser)
+
+# h4. file_uploads
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def file_uploads_json(self, experiment, role, checkuser=None):
+        # FIXME WHAT is item_id ??? self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Experimenter", item_id = username)
+        quota = cherrypy.config.get('base_uploads_quota', 10485760)
+        file_stat_list, total, experimenters = self.filesPOMS.file_uploads(cherrypy.config.get('base_uploads_dir'), experiment, get_user(),
+                                                                           cherrypy.request.db, checkuser)
+        return {"file_stat_list": file_stat_list, "total": total, "quota": quota}
 
     # h4. upload_file
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
     def upload_file(self, experiment, role, username, filename):
-        self.permissions.can_modify(cherrypy.request.db, get_user(), experiment, role, "Experimenter", item_id=username)
+        self.permissions.can_modify(cherrypy.request.db, get_user(), experiment, role, "Experimenter", item_id = username)
         res = self.filesPOMS.upload_file(
-            cherrypy.config.get('base_uploads_dir'), username, experiment, cherrypy.config.get('base_uploads_quota'), filename
+            cherrypy.config.get('base_uploads_dir'),
+            username,
+            experiment,
+            cherrypy.config.get('base_uploads_quota'),
+            filename,
+            cherrypy.request.db
         )
         raise cherrypy.HTTPRedirect("%s/file_uploads/%s/%s/%s" % (self.path, experiment, role, username))
 
