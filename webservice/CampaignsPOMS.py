@@ -1462,7 +1462,7 @@ class CampaignsPOMS:
             .first()
         )
         last_activity = ""
-        if last_activity_l and last_activity_l and last_activity_l[0]:
+        if last_activity_l and last_activity_l[0]:
             if datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
                 last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         return csl, last_activity, msg, data
