@@ -50,12 +50,13 @@ class JobsPOMS:
         '''
         s = None
         cs = None
+        group = exp
 
         if not (submission_id or campaign_id or campaign_stage_id):
             raise SyntaxError("called with out submission, campaign, or stage id" % act)
 
         # start a query to get the session jobsub job_id's ...
-        jjidq = dbhandle.Query(Submission.jobsub_job_id)
+        jjidq = dbhandle.query(Submission.jobsub_job_id)
 
         if campaign_id:
             what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
@@ -77,21 +78,32 @@ class JobsPOMS:
             cs = s.campaign_stage_obj
             jjidq = jjidq.filter(Submission.submission_id == submission_id)
 
+        sq = dbhandle.query(func.max(SubmissionHistory.status_id).label('status')).correlate(Submission).filter(SubmissionHistory.submission_id == Submission.submission_id).subquery()
+
+        # note 4000 == Running
+
+        jjidq = jjidq.filter(sq.c.status <= 4000)
+        rows = jjidq.all()
+        if rows:
+            jjids = [x[0] for x in rows]
+            jidbits = "--jobid=%s" % ','.join(jjids)
+        else:
+            jidbits = what
+
         if confirm is None:
+            if jidbits != what:
+                what = '%s %s' % (what, jidbits)
             return what, s, campaign_stage_id, submission_id, job_id
 
         else:
             # finish up the jobsub job_id query, and make a --jobid=list
             # parameter out of it.
-            jjids = jjidq.all()
 
-            jidbits = "--jobid=%s" % ','.join(jjids)
-
-            group = cs.experiment
             lts = cs.login_setup_obj
             if group == 'samdev':
 
                 group = 'fermilab'
+
 
             subcmd = 'q'
             if act == 'kill':

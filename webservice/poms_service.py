@@ -1134,18 +1134,19 @@ class PomsService:
 
         if confirm is None:
             what, s, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(
-                cherrypy.request.db, campaign_id, campaign_stage_id, submission_id, job_id, confirm, act
+                cherrypy.request.db, get_user(), experiment, role, 
+                campaign_id, campaign_stage_id, submission_id, job_id, confirm, act
             )
             template = self.jinja_env.get_template('kill_jobs_confirm.html')
             return template.render(
                 what=what,
+                experiment = experiment,
+                role = role,
                 task=s,
                 campaign_stage_id=campaign_stage_id,
                 submission_id=submission_id,
                 job_id=job_id,
                 act=act,
-                experiment=experiment,
-                role=role,
                 help_page="KilledJobsHelp",
             )
 
@@ -1297,7 +1298,6 @@ class PomsService:
             experiment,
             role,
             get_user(),
-            cherrypy.HTTPError,
             cherrypy.config.get('base_uploads_dir'),
             campaign_stage_id,
             launch_user,
