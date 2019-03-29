@@ -9,7 +9,7 @@ version of functions in poms_service.py written by Marc Mengel, Michael Gueith a
 from collections import deque
 import re
 from .poms_model import Submission, SubmissionHistory, CampaignStage, JobType
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func, not_, and_, or_, desc
 from .utc import utc
@@ -50,15 +50,13 @@ class JobsPOMS:
         '''
         s = None
         cs = None
+        group = exp
 
         if not (submission_id or campaign_id or campaign_stage_id):
             raise SyntaxError("called with out submission, campaign, or stage id" % act)
-        e = seshandle_get('experimenter')
-        se_role = e.session_role
-        exp = e.session_experiment
 
         # start a query to get the session jobsub job_id's ...
-        jjidq = dbhandle.Query(Submission.jobsub_job_id)
+        jjidq = dbhandle.query(Submission.jobsub_job_id)
 
         if campaign_id:
             what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
@@ -80,21 +78,32 @@ class JobsPOMS:
             cs = s.campaign_stage_obj
             jjidq = jjidq.filter(Submission.submission_id == submission_id)
 
+        shq = dbhandle.query(SubmissionHistory.submission_id.label('submission_id'), func.max(SubmissionHistory.status_id).label('max_status')).filter(SubmissionHistory.submission_id == Submission.submission_id).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id.label('submission_id'))
+        sq = shq.subquery()
+        logit.log("submission history query finds: %s" % repr([x for x in shq.all()]))
+        jjidq = jjidq.join(sq, sq.c.submission_id == Submission.submission_id).filter(sq.c.max_status <= 4000)
+        rows = jjidq.all()
+
+        if rows:
+            jjids = [x[0] for x in rows]
+            jidbits = "--jobid=%s" % ','.join(jjids)
+        else:
+            jidbits = what
+
         if confirm is None:
+            if jidbits != what:
+                what = '%s %s' % (what, jidbits)
             return what, s, campaign_stage_id, submission_id, job_id
 
         else:
             # finish up the jobsub job_id query, and make a --jobid=list
             # parameter out of it.
-            jjids = jjidq.all()
 
-            jidbits = "--jobid=%s" % ','.join(jjids)
-
-            group = cs.experiment
             lts = cs.login_setup_obj
             if group == 'samdev':
 
                 group = 'fermilab'
+
 
             subcmd = 'q'
             if act == 'kill':
