@@ -51,17 +51,14 @@ class JobsPOMS:
         s = None
         cs = None
 
-<<<<<<< HEAD
         if not (submission_id or campaign_id or campaign_stage_id):
             raise SyntaxError("called with out submission, campaign, or stage id" % act)
-=======
         e = seshandle_get('experimenter')
         se_role = e.session_role
         exp = e.session_experiment
 
         # start a query to get the session jobsub job_id's ...
         jjidq = dbhandle.Query(Submission.jobsub_job_id)
->>>>>>> db31544... draft of jobid fix
 
         if campaign_id:
             what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
