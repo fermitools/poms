@@ -38,7 +38,7 @@ try:
              os.system("cp %s %s" % (ipf, proxyfile))
         args.append(proxyfile)
         os.system("chmod 400 %s" % proxyfile)
-        os.system('myproxy-init -c 0 -s myproxy.fnal.gov -xZ "/DC=org/DC=opensciencegrid/O=Open Science Grid/OU=Services/CN=fifebatch.fnal.gov" -t 24 -l "`openssl x509 -in %s -noout -subject | cut -d " " -f 2-`"' % proxyfile)
+        os.system('myproxy-store -c %s -y %s -s myproxy.fnal.gov -xZ "/DC=org/DC=opensciencegrid/O=Open Science Grid/OU=Services/CN=fifebatch.fnal.gov" -t 24 -l "`openssl x509 -in %s -noout -subject | cut -d " " -f 2-`"' % (proxyfile, proxyfile,proxyfile))
              
 except:
     logging.exception(sys.argv[0] + ": while getting proxy:")
@@ -51,6 +51,7 @@ try:
     for f in args:
          logging.debug("uploading: %s " % f)
          poms_client.upload_file(f, test=options.test)
+         print("uploaded: %s to POMS server" % f) 
 
 except:
     logging.exception(sys.argv[0])

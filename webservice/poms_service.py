@@ -1379,7 +1379,7 @@ class PomsService:
                 .first()
             )
 
-            ds = new.created.strftime("%Y%m%d_%H%M%S")
+            ds = new.created.astimezone(utc).strftime("%Y%m%d_%H%M%S")
             launcher_experimenter = new.experimenter_creator_obj
             outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_stage_id)
             outfile = "%s/%s_%s_%s" % (outdir, ds, launcher_experimenter.username, new.submission_id)
