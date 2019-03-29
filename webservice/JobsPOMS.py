@@ -41,19 +41,39 @@ class JobsPOMS:
 
     def kill_jobs(self, dbhandle, username, exp, se_role, campaign_id = None, campaign_stage_id=None,
                   submission_id=None, job_id=None, confirm=None, act='kill'):
+        '''
+            kill jobs from the campaign, stage, or particular submission
+            we want to do this all with --constraint on the POMS4_XXX_ID
+            values we put in the classadd, but this doesn't get set on the
+            dagman jobs (currently) so we have to kill the session leader
+            jobids too to be sure we get them all.
+        '''
         s = None
         cs = None
 
+<<<<<<< HEAD
         if not (submission_id or campaign_id or campaign_stage_id):
             raise SyntaxError("called with out submission, campaign, or stage id" % act)
+=======
+        e = seshandle_get('experimenter')
+        se_role = e.session_role
+        exp = e.session_experiment
+
+        # start a query to get the session jobsub job_id's ...
+        jjidq = dbhandle.Query(Submission.jobsub_job_id)
+>>>>>>> db31544... draft of jobid fix
 
         if campaign_id:
             what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
             cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).first()
+            csids = dbhandle.query(CampaignStage.campaign_stage_id).filter(CampaignStage.campaign_id == campaign_id).first()
+            csids = list(csids)
+            jjidq = jjidq.filter(Submission.campaign_stage_id.in_(csids))
 
         if campaign_stage_id:
             what = "--constraint=POMS4_CAMPAIGN_STAGE_ID==%s" % campaign_stage_id
             cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+            jjidq = jjidq.filter(Submission.campaign_stage_id == campaign_stage_id)
 
         if submission_id:
             s = (dbhandle.query(Submission)
@@ -61,11 +81,18 @@ class JobsPOMS:
                  .first())
             what = "--constraint=POMS4_SUBMISSION_ID==%s" % s.submission_id
             cs = s.campaign_stage_obj
+            jjidq = jjidq.filter(Submission.submission_id == submission_id)
 
         if confirm is None:
             return what, s, campaign_stage_id, submission_id, job_id
 
         else:
+            # finish up the jobsub job_id query, and make a --jobid=list
+            # parameter out of it.
+            jjids = jjidq.all()
+
+            jidbits = "--jobid=%s" % ','.join(jjids)
+
             group = cs.experiment
             lts = cs.login_setup_obj
             if group == 'samdev':
@@ -101,7 +128,7 @@ class JobsPOMS:
                 exec 2>&1
                 export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s
                 kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true
-                ssh %s@%s '%s; set -x; jobsub_%s -G %s --role %s %s'
+                ssh %s@%s '%s; set -x; jobsub_%s -G %s --role %s %s ;  jobsub_%s -G %s --role %s %s ; '
             """ % (
                 group,
                 lts.launch_account,
@@ -110,7 +137,11 @@ class JobsPOMS:
                 subcmd,
                 group,
                 cs.vo_role,
-                what
+                what,
+                subcmd,
+                group,
+                cs.vo_role,
+                jidbits
             )
 
             cmd = cmd % {
