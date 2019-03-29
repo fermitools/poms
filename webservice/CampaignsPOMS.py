@@ -243,19 +243,32 @@ class CampaignsPOMS:
         data['message'] = message
         return data
 
-    def get_campaign_id(self, dbhandle, user, experiment, role, campaign_name):
+    def get_campaign_id(self, dbhandle, experiment, campaign_name):
         '''
-            return the campaing id for a campaign name in our experiment
+            return the campaign id for a campaign name in our experiment
         '''
-        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
-        camp = dbhandle.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == experiment).first()
+        camp = dbhandle.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == experiment).scalar()
+        return camp.campaign_id if camp else None
 
-        if not camp:
-            camp = Campaign(name=campaign_name, experiment=experiment, creator=experimenter.experimenter_id, creator_role=role)
-            dbhandle.add(camp)
-            dbhandle.commit()
 
-        return camp.campaign_id
+    def get_campaign_name(self, dbhandle, experiment, campaign_id):
+        '''
+            return the campaign name for a campaign id in our experiment
+        '''
+        camp = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id, Campaign.experiment == experiment).scalar()
+        return camp.name if camp else None
+
+
+    def get_campaign_stage_name(self, dbhandle, experiment, campaign_stage_id):
+        '''
+            return the campaign stage name for a stage id in our experiment
+        '''
+        stage = dbhandle.query(CampaignStage).filter(
+            CampaignStage.campaign_stage_id == campaign_stage_id,
+            CampaignStage.experiment == experiment,
+        ).scalar()
+        return stage.name if stage else None
+
 
     def campaign_add_name(self, dbhandle, user, experiment, role, **kwargs):
         """
@@ -322,7 +335,7 @@ class CampaignsPOMS:
         '''
         e = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
 
-        camp = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
+        camp = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()     # FIXME: not finished!
         if not exp == camp.experiment:
             raise PermissionError("You are not acting as the right experiment")
         if not se_role == camp.creator_role:
