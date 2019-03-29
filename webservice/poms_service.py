@@ -1201,7 +1201,7 @@ class PomsService:
                Submission.recovery_tasks_parent == submission_id,
                Submission.created >= stime).first()
 
-            ds = new.created.strftime("%Y%m%d_%H%M%S")
+            ds = new.created.astimezone(utc).strftime("%Y%m%d_%H%M%S")
             launcher_experimenter = new.experimenter_creator_obj
             outdir = "%s/private/logs/poms/launches/campaign_%s" % (
                 os.environ["HOME"], campaign_stage_id)
