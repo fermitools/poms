@@ -84,13 +84,12 @@ def submission_details(experiment, role, submission_id, test=None, configfile=No
     '''
     return details about a certain submission
     '''
-
     data, status = make_poms_call(
         method='submission_details',
         experiment=experiment,
         role=role,
         submission_id=submission_id,
-        format='json',
+        fmt='json',
         test_client=test,
         configfile=configfile)
 
@@ -123,16 +122,43 @@ def upload_file(file_name, test=None, experiment=None, configfile=None):
     return status == 303
 
 
-def get_campaign_id(campaign_name, test=None, configfile=None):
+def get_campaign_id(experiment, campaign_name, test=None, configfile=None):
     '''
-    deprecated: get a campaign stage id by name. Returns integer campaign_stage_id
+    Get a campaign id by name. Returns integer campaign_id
     '''
     data, status = make_poms_call(
         method='get_campaign_id',
+        experiment=experiment,
         campaign_name=campaign_name,
         test=test,
         configfile=configfile)
     return int(data)
+
+
+def get_campaign_name(experiment, campaign_id, test=None, configfile=None):
+    '''
+    Get a campaign name by id. Returns campaign name
+    '''
+    data, status = make_poms_call(
+        method='get_campaign_name',
+        experiment=experiment,
+        campaign_id=campaign_id,
+        test=test,
+        configfile=configfile)
+    return data
+
+
+def get_campaign_stage_name(experiment, campaign_stage_id, test=None, configfile=None):
+    '''
+    Get a campaign stage name by id. Returns stage name
+    '''
+    data, status = make_poms_call(
+        method='get_campaign_stage_name',
+        experiment=experiment,
+        campaign_stage_id=campaign_stage_id,
+        test=test,
+        configfile=configfile)
+    return data
 
 
 def register_poms_campaign(campaign_name, user=None, experiment=None, version=None, dataset=None, campaign_definition=None, test=None, configfile=None):

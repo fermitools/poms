@@ -450,9 +450,25 @@ class PomsService:
     # h4. get_campaign_id
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def get_campaign_id(self, experiment, role, campaign_name):
-        cid = self.campaignsPOMS.get_campaign_id(cherrypy.request.db, get_user(), experiment, role, campaign_name)
+    def get_campaign_id(self, experiment, campaign_name):
+        cid = self.campaignsPOMS.get_campaign_id(cherrypy.request.db, experiment, campaign_name)
         return cid
+
+    @cherrypy.expose
+    # h4. get_campaign_name
+    # @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def get_campaign_name(self, experiment, campaign_id):
+        name = self.campaignsPOMS.get_campaign_name(cherrypy.request.db, experiment, campaign_id)
+        return name
+
+    @cherrypy.expose
+    # h4. get_campaign_stage_name
+    # @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def get_campaign_stage_name(self, experiment, campaign_stage_id):
+        name = self.campaignsPOMS.get_campaign_stage_name(cherrypy.request.db, experiment, campaign_stage_id)
+        return name
 
     # h4. campaign_add_name
     @cherrypy.expose
@@ -683,7 +699,7 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def submission_details(self, experiment, role, submission_id, format='html'):
+    def submission_details(self, experiment, role, submission_id, fmt='html'):
         self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "Submission", item_id=submission_id)
         submission, history, dataset, rmap, smap, ds, submission_log_format = self.taskPOMS.submission_details(
             cherrypy.request.db, cherrypy.request.samweb_lite, cherrypy.HTTPError, cherrypy.config.get, submission_id
@@ -703,7 +719,7 @@ class PomsService:
             'do_refresh': 0,
             'help_page': "SubmissionDetailsHelp",
         }
-        if format == 'json':
+        if fmt == 'json':
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')
         else:
