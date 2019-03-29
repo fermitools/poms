@@ -9,7 +9,7 @@ version of functions in poms_service.py written by Marc Mengel, Michael Gueith a
 from collections import deque
 import re
 from .poms_model import Submission, SubmissionHistory, CampaignStage, JobType
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func, not_, and_, or_, desc
 from .utc import utc
@@ -78,12 +78,12 @@ class JobsPOMS:
             cs = s.campaign_stage_obj
             jjidq = jjidq.filter(Submission.submission_id == submission_id)
 
-        sq = dbhandle.query(func.max(SubmissionHistory.status_id).label('status')).correlate(Submission).filter(SubmissionHistory.submission_id == Submission.submission_id).subquery()
-
-        # note 4000 == Running
-
-        jjidq = jjidq.filter(sq.c.status <= 4000)
+        shq = dbhandle.query(SubmissionHistory.submission_id.label('submission_id'), func.max(SubmissionHistory.status_id).label('max_status')).filter(SubmissionHistory.submission_id == Submission.submission_id).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id.label('submission_id'))
+        sq = shq.subquery()
+        logit.log("submission history query finds: %s" % repr([x for x in shq.all()]))
+        jjidq = jjidq.join(sq, sq.c.submission_id == Submission.submission_id).filter(sq.c.max_status <= 4000)
         rows = jjidq.all()
+
         if rows:
             jjids = [x[0] for x in rows]
             jidbits = "--jobid=%s" % ','.join(jjids)
