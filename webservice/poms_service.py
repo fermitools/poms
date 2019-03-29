@@ -227,7 +227,7 @@ class PomsService:
     @logit.logstartstop
     def index(self, experiment=None, role=None):
 
-        if experiment == None or role == None:
+        if experiment is None or role is None:
             experiment, role = self.utilsPOMS.getSavedExperimentRole(cherrypy.request.db, get_user())
             raise cherrypy.HTTPRedirect("%s/index/%s/%s" % (self.path, experiment, role))
 
