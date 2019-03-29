@@ -595,7 +595,7 @@ class PomsService:
             'data': data,
             'help_page': "ShowCampaignTagsHelp",
         }
-        if kwargs.get('format', '') == 'json':
+        if kwargs.get('fmt', '') == 'json':
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')
         else:
@@ -673,7 +673,7 @@ class PomsService:
             'dbg': kwargs,
         }
 
-        if kwargs.get('format', '') == 'json':
+        if kwargs.get('fmt', '') == 'json':
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')
         else:
@@ -805,7 +805,7 @@ class PomsService:
         data['campaign_name'] = campaign_name
         data['stage_name'] = stage_name
         template = self.jinja_env.get_template('campaign_stage_submissions.html')
-        if kwargs.get('format', '') == 'json':
+        if kwargs.get('fmt', '') == 'json':
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(data, cls=JSONORMEncoder).encode('utf-8')
         else:

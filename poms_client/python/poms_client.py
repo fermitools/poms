@@ -25,7 +25,7 @@ def show_campaigns(test=None, **kwargs):
 
     data, status = make_poms_call(
         method='show_campaigns',
-        format='json',
+        fmt='json',
         test_client=test,
         # configfile=configfile,
         # view_active=view_active,
@@ -48,7 +48,7 @@ def show_campaign_stages(campaign_name=None, test=None, **kwargs):
     '''
     data, status = make_poms_call(
         method='show_campaign_stages',
-        format='json',
+        fmt='json',
         test_client=test,
         campaign_name=campaign_name,
         # configfile=configfile,
@@ -62,20 +62,20 @@ def show_campaign_stages(campaign_name=None, test=None, **kwargs):
     return status in (200, 201), json.loads(data)
 
 
-def campaign_stage_submissions(campaign_id, campaign_name, stage_name, campaign_stage_id=None, test=None, experiment=None, configfile=None):
+def campaign_stage_submissions(experiment, role, campaign_name, stage_name, test=None, configfile=None, **kwargs):
     '''
-    Return data about campaigns for the current experiment.
+    Return data about campaigns for the given experiment.
     '''
-
     data, status = make_poms_call(
         method='campaign_stage_submissions',
-        format='json',
-        test_client=test,
-        configfile=configfile,
-        campaign_id=campaign_id,
-        campaign_stage_id=campaign_stage_id,
+        fmt='json',
+        experiment=experiment,
+        role=role,
         campaign_name=campaign_name,
         stage_name=stage_name,
+        test_client=test,
+        configfile=configfile,
+        **kwargs
     )
     return status in (200, 201), json.loads(data)
 
@@ -407,7 +407,7 @@ def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experim
             raise
         logging.debug("#"*10)
         logging.debug("type" + str(type(ae_param_overrides)))
-        logging.debug("The ae_param_overrides is: " +  ae_param_overrides)
+        logging.debug("The ae_param_overrides is: " + ae_param_overrides)
     else:
         logging.debug("conserving params, not override anything.")
     data, status_code = make_poms_call(pcl_call=1,
