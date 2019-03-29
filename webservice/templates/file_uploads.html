@@ -19,16 +19,39 @@ Uploaded Files
 
 {%block content%}
 
-  These files are available as <tt>$UPLOADS/filename</tt> to your launch commands.
+<a class="ui orange ribbon label">These files are available as <tt>$UPLOADS/filename</tt> to your launch commands.</a>
   <p>
-
   <div class="ui raised segment">
+  {% if session_role == 'superuser' %}
+    <div class="ui floating dropdown labeled icon blue button search">
+        <i class="filter icon"></i>
+        <span class="text">Select Experimenter</span>
+        <div class="menu">
+          <div class="ui icon search input">
+            <i class="search icon"></i>
+            <input type="text" name="search" placeholder="Search issues...">
+          </div>
+          <div class="divider"></div>
+          <div class="header">
+            <i class="tags icon"></i>
+            Tag Label
+          </div>
+          {% for e in experimenters %}
+          <div class="item" data-value="{{e.Experimenter.username}}">
+              <div class="ui blue empty circular label"></div>
+              {{e.Experimenter.first_name}} {{e.Experimenter.last_name}}
+          </div>
+          {% endfor %}
+        </div>
+    </div>
+  {% else %}
   <h3> Upload a file </h3>
   <form action="{{pomspath}}/upload_file/{{experiment}}/{{role}}/{{experimenter}}" method="POST" enctype="multipart/form-data">
   Filename: <input type="file" name="filename" multiple />
             <input type="submit" value="Upload" />
             </form>
   </form>
+  {% endif %}
   </div>
 
   <div class="ui raised segment">
@@ -38,24 +61,63 @@ Uploaded Files
   <thead>
   <tr><th><input name="file_all" id="file_all" type="checkbox"><th>Name</th><th>Size</th><th>Uploaded</th></tr>
   </thead>
-  <tbody>
+  <tbody id="filesbody" name="filesbody">
   {% for fs in file_stat_list %}
       {%set file = fs[0] %}
-      {%set stat = fs[1] %}
+      {%set size = fs[1] %}
+      {%set mtime = fs[2] %}
       <tr>
          <td><input id="filename" name="filename" value="{{file}}" type="checkbox"></td>
-         <td> {{file}} </td><td> {{stat.st_size}} </td><td> {{time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime(stat.st_mtime))}} </td>
+         <td> {{file}} </td><td> {{size}} </td><td> {{mtime}}</td>
       </tr>
   {% endfor %}
-      <tr><td colspan=4></td></tr>
-      <tr><td style="text-align: right;" colspan=2>Total:</td><td>{{total}}b</td><td>{{(total* 1000.0/quota)|int/10}}% of {{(quota/1024)|int}}k quota</td></tr>
+  <tr><td colspan=4></td></tr>
+  <tr><td style="text-align: right;" colspan=2>Total:</td><td>{{total}}b</td><td>{{(total* 1000.0/quota)|int/10}}% of {{(quota/1024)|int}}k quota</td></tr>
       <tr><td colspan=4>
-           <input type="submit" name="action" value="Delete Checked">
+           {% if session_role == 'analysis' %}
+           <input class="ui basic button red" type="submit" name="action" value="Delete"> {{session_role}}
+           {% endif %}
       </td></tr>
   </tbody>
   </table>
   </form>
   </div>
 
+  <script>
+    $('.ui.dropdown').dropdown();
 
+    $(".search").dropdown({
+        onChange: function(value) {
+            //$('body').load("{{pomspath}}/file_uploads/{{experiment}}/{{role}}/{{experimenter}}", {'checkuser': value});
+            $.ajax({
+                url: "{{pomspath}}/file_uploads_json/{{experiment}}/{{role}}/{{experimenter}}",
+                type: 'GET',
+                data: {'checkuser': value},
+                success:  function(data){
+                    var html = "<tr><td colspan=4></td></tr>";
+                    for (i = 0; i < data.file_stat_list.length; i++) {
+                        var file = data.file_stat_list[i][0];
+                        var st_size = data.file_stat_list[i][1];
+                        var mtime = data.file_stat_list[i][2];
+                        html = html + '<tr>';
+                        html = html +   '<td><input id="filename" name="filename" value="' +file+ '" type="checkbox"></td>';
+                        html = html +   '<td>' + file + '</td>';
+                        html = html +   '<td>' + st_size + '</td>';
+                        html = html +   '<td>' + mtime + '</td>';
+                        html = html + '</tr>';
+                      }
+                      var quota = data.quota;
+                      var total = data.total;
+                      var pct = Math.round(total* 1000.0/quota) /10;
+                      var quotak = Math.round(quota/1024);
+                      html = html + '<tr><td colspan=4></td></tr>';
+                      html = html + '<tr><td style="text-align: right;" colspan=2>Total:</td><td>' +total+ 'b</td><td>' +pct+ '% of ' +quotak+ 'k quota</td></tr>';
+                      html = html + '<tr><td colspan=4></td></tr>';
+                      $("#filesbody").html(html);
+                    }
+            });
+        }
+    });
+
+  </script>
 {%endblock%}

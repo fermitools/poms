@@ -80,13 +80,15 @@ def campaign_stage_submissions(campaign_id, campaign_name, stage_name, campaign_
     return status in (200, 201), json.loads(data)
 
 
-def submission_details(submission_id, test=None, experiment=None, configfile=None):
+def submission_details(experiment, role, submission_id, test=None, configfile=None):
     '''
     return details about a certain submission
     '''
 
     data, status = make_poms_call(
         method='submission_details',
+        experiment=experiment,
+        role=role,
         submission_id=submission_id,
         format='json',
         test_client=test,

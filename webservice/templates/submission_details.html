@@ -15,7 +15,7 @@ Submission Details {%include 'help_button.html'%}
 
 {%block extracss%}
 <style type="text/css">
- 
+
 .fn {
    display: inline-block;
    min-width: 12em;
@@ -28,7 +28,7 @@ Submission Details {%include 'help_button.html'%}
 <h3>
 Submission #{{submission.submission_id}}<br>
 jobsub_job_Id: {{submission.jobsub_job_id}} <br>
-Campaign Stage <a href="{{pomspath}}/campaign_stage_info/{{experiment}}/{{role}}?campaign_stage_id={{submission.campaign_stage_snapshot_obj.campaign_stage_id}}">{{submission.campaign_stage_snapshot_obj.name}}</a> 
+Campaign Stage <a href="{{pomspath}}/campaign_stage_info/{{experiment}}/{{role}}?campaign_stage_id={{submission.campaign_stage_snapshot_obj.campaign_stage_id}}">{{submission.campaign_stage_snapshot_obj.name}}</a>
 <span class="ui label">{{submission.campaign_stage_snapshot_obj.campaign_stage_id}}</span> <br/>
 in Campaign <a href="{{pomspath}}/show_campaigns/{{experiment}}/{{role}}?just_one={{submission.campaign_stage_obj.campaign_obj.name}}">{{submission.campaign_stage_obj.campaign_obj.name}}</a>
 <span class="ui label">{{submission.campaign_stage_obj.campaign_obj.campaign_id}}</span>
@@ -40,9 +40,9 @@ in Campaign <a href="{{pomspath}}/show_campaigns/{{experiment}}/{{role}}?just_on
 
 <h3>Information</h3>
 
-Submission was: 
+Submission was:
 {%if submission.recovery_tasks_parent %}
-a recovery launch for <a href="./submission_details?submission_id={{submission.recovery_tasks_parent}}">Submission #{{submission.recovery_tasks_parent}}</a> 
+a recovery launch for <a href="./submission_details/{{experiment}}/{{role}}?submission_id={{submission.recovery_tasks_parent}}">Submission #{{submission.recovery_tasks_parent}}</a>
 {%else%}
 a regular launch
 {%endif%}
@@ -50,7 +50,7 @@ a regular launch
 
 {%if dataset %}
 {%if dataset[:13] == 'poms_depends_' %}
-...launched on completion of  <a href="./submission_details?submission_id={{dataset[13:-2]}}">Submission #{{dataset[13:-2]}}</a> 
+...launched on completion of  <a href="./submission_details/{{experiment}}/{{role}}?submission_id={{dataset[13:-2]}}">Submission #{{dataset[13:-2]}}</a>
 {%endif%}
 {%endif%}
 
@@ -66,14 +66,14 @@ a regular launch
 
 {%set experiment=submission.campaign_stage_snapshot_obj.experiment %}
 
-<!-- we take a half second off of the create time to get the logfile time, 
+<!-- we take a half second off of the create time to get the logfile time,
     probably this should be looked up for real, or we should make it the
     rule when we're launching jobs that it uses the submission created time
     minus half a sec  -->
 
 {%set owner=submission.experimenter_creator_obj.username %}
 
-<!-- submission_log_format {{submission_log_format}}  
+<!-- submission_log_format {{submission_log_format}}
 View <a href="{{pomspath}}/list_launch_file?/{{experiment}}/{{role}}campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}_{{submission.submission_id}}">launch output </a> <br>
 -->
 
@@ -85,7 +85,7 @@ View <a href="{{pomspath}}/list_launch_file/{{experiment}}/{{role}}?campaign_sta
 View <a href="{{pomspath}}/list_launch_file/{{experiment}}/{{role}}?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}">launch output </a> <br>
 {%endif%}
 
-View in 
+View in
 {%if submission.jobsub_job_id %}
 {%if submission.project %}
   <a href="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster={{cluster}}&var-schedd={{schedd}}&from={{submission.created}}s000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
@@ -118,7 +118,7 @@ Kick to Located  <i class="ui forward icon  grey"></i>&nbsp;
 Hold Condor Jobs <i class="ui pause icon grey"></i>&nbsp;<br>
 Release Condor Jobs  <i class="ui play icon grey"></i>&nbsp;<br>
 Kill Condor Jobs   <i class="ui trash icon grey"></i>&nbsp;<br>
-Kick to Located 
+Kick to Located
 <a href="{{pomspath}}/force_locate_submission/{{experiment}}/{{role}}?submission_id={{submission.submission_id}}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>
 {%else%}
 Hold Condor Jobs <i class="ui pause icon grey"></i>&nbsp;<br>
@@ -133,7 +133,7 @@ Re-Launch Submission on dataset {{dataset}} <a href="{{pomspath}}/launch_jobs/{{
 {%endif%}
 
 {%if history[-1].status_id >= 7000 %}
-Launch Recovery for Submission 
+Launch Recovery for Submission
 <form style="display: inline-block;" action="{{pomspath}}/launch_recovery_for/{{experiment}}/{{role}}">
 <select name="recovery_type">
 {% for r in recoverymap %}
@@ -234,19 +234,19 @@ Launch Recovery for Submission
 <h3>Login/Setup Snapshot</h3>
 
 
- <span class="fn">job_type_snapshot_id:</span> <span class="val">{{submission.login_setup_snap_obj.job_type_snapshot_id}}</span> <br>
- <span class="fn">job_type_id:</span> <span class="val">{{submission.login_setup_snap_obj.job_type_id}}</span> <br>
- <span class="fn">name:</span> <span class="val">{{submission.login_setup_snap_obj.name}}</span> <br>
- <span class="fn">experiment:</span> <span class="val">{{submission.login_setup_snap_obj.experiment}}</span> <br>
- <span class="fn">launch_script:</span> <span class="val">{{submission.login_setup_snap_obj.launch_script}}</span> <br>
- <span class="fn">definition_parameters:</span> <span class="val">{{submission.login_setup_snap_obj.definition_parameters}}</span> <br>
- <span class="fn">input_files_per_job:</span> <span class="val">{{submission.login_setup_snap_obj.input_files_per_job}}</span> <br>
- <span class="fn">output_files_per_job:</span> <span class="val">{{submission.login_setup_snap_obj.output_files_per_job}}</span> <br>
- <span class="fn">output_file_patterns:</span> <span class="val">{{submission.login_setup_snap_obj.output_file_patterns}}</span> <br>
- <span class="fn">creator:</span> <span class="val">{{submission.login_setup_snap_obj.creator}}</span> <br>
- <span class="fn">created:</span> <span class="val">{{submission.login_setup_snap_obj.created}}</span> <br>
- <span class="fn">updater:</span> <span class="val">{{submission.login_setup_snap_obj.updater}}</span> <br>
- <span class="fn">updated:</span> <span class="val">{{submission.login_setup_snap_obj.updated}}</span> <br>
+ <span class="fn">job_type_snapshot_id:</span> <span class="val">{{submission.login_setup_snapshot_obj.job_type_snapshot_id}}</span> <br>
+ <span class="fn">job_type_id:</span> <span class="val">{{submission.login_setup_snapshot_obj.job_type_id}}</span> <br>
+ <span class="fn">name:</span> <span class="val">{{submission.login_setup_snapshot_obj.name}}</span> <br>
+ <span class="fn">experiment:</span> <span class="val">{{submission.login_setup_snapshot_obj.experiment}}</span> <br>
+ <span class="fn">launch_script:</span> <span class="val">{{submission.login_setup_snapshot_obj.launch_script}}</span> <br>
+ <span class="fn">definition_parameters:</span> <span class="val">{{submission.login_setup_snapshot_obj.definition_parameters}}</span> <br>
+ <span class="fn">input_files_per_job:</span> <span class="val">{{submission.login_setup_snapshot_obj.input_files_per_job}}</span> <br>
+ <span class="fn">output_files_per_job:</span> <span class="val">{{submission.login_setup_snapshot_obj.output_files_per_job}}</span> <br>
+ <span class="fn">output_file_patterns:</span> <span class="val">{{submission.login_setup_snapshot_obj.output_file_patterns}}</span> <br>
+ <span class="fn">creator:</span> <span class="val">{{submission.login_setup_snapshot_obj.creator}}</span> <br>
+ <span class="fn">created:</span> <span class="val">{{submission.login_setup_snapshot_obj.created}}</span> <br>
+ <span class="fn">updater:</span> <span class="val">{{submission.login_setup_snapshot_obj.updater}}</span> <br>
+ <span class="fn">updated:</span> <span class="val">{{submission.login_setup_snapshot_obj.updated}}</span> <br>
 
 </div>
 </div>
