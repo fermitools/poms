@@ -16,7 +16,8 @@ class Permissions:
 
     def is_superuser(self, dbhandle, user):
         if not user in self.sucache:
-            if str(user)[0] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+            # Is this a username or user_id?
+            if str(user).isdecimal():
                 rows = dbhandle.query(Experimenter.root).filter(Experimenter.experimenter_id == user).all()
             else:
                 rows = dbhandle.query(Experimenter.root).filter(Experimenter.username == user).all()
