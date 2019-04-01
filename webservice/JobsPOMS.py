@@ -9,7 +9,7 @@ version of functions in poms_service.py written by Marc Mengel, Michael Gueith a
 from collections import deque
 import re
 from .poms_model import Submission, SubmissionHistory, CampaignStage, JobType
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func, not_, and_, or_, desc
 from .utc import utc
@@ -56,7 +56,7 @@ class JobsPOMS:
         exp = e.session_experiment
 
         # start a query to get the session jobsub job_id's ...
-        jjidq = dbhandle.Query(Submission.jobsub_job_id, Submission.submission_id)
+        jjidq = dbhandle.query(Submission.jobsub_job_id, Submission.submission_id)
 
         if campaign_id:
             what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
@@ -106,7 +106,7 @@ class JobsPOMS:
         else:
             # finish up the jobsub job_id query, and make a --jobid=list
             # parameter out of it.
-            jjids = jjidq.all()
+            jjids = [x[0] for x in jjidq.all()]
 
             jidbits = "--jobid=%s" % ','.join(jjids)
 
@@ -176,8 +176,7 @@ class JobsPOMS:
             f.close()
 
             if status_set:
-                submissions = dbhandle.query(Submission).filter(Submission.submission_id.in_(sids)).order_by(Submission.submission_id).with_for_update().all()
-                for s in submissions
+                for s in sids:
                     self.poms_service.taskPOMS.update_submission_status(dbhandle, s, status_set)
             dbhandle.commit()
 
