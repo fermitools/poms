@@ -232,11 +232,19 @@ class TaskPOMS:
                         pat = '%'
 
                     if pat.find(' ') > 0:
-                        allkiddims = "%s and isparentof: ( %s and version '%s' with availability physical ) " % (
-                            allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
+                        allkiddims = "%s and isparentof: ( %s and version '%s' and create_date > '%s'  with availability physical ) " % (
+                            allkiddims,
+                            pat,
+                            s.campaign_stage_snapshot_obj.software_version,
+                            s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                        )
                     else:
-                        allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (
-                            allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
+                        allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' and create_date > '%s' with availability physical ) " % (
+                            allkiddims,
+                            pat,
+                            s.campaign_stage_snapshot_obj.software_version,
+                            s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                        )
 
                 lookup_exp_list.append(
                     s.campaign_stage_snapshot_obj.experiment)
