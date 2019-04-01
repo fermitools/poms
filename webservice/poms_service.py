@@ -1074,7 +1074,7 @@ class PomsService:
     @error_rewrite
     @logit.logstartstop
     def file_uploads(self, experiment, role, checkuser=None):
-        # FIXME WHAT is item_id ??? self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Experimenter", item_id = username)
+        self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "Experimenter", item_id=get_user())
         quota = cherrypy.config.get('base_uploads_quota', 10485760)
         file_stat_list, total, experimenters = self.filesPOMS.file_uploads(cherrypy.config.get('base_uploads_dir'), experiment, get_user(),
                                                                            cherrypy.request.db, checkuser)
@@ -1087,11 +1087,11 @@ class PomsService:
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def file_uploads_json(self, experiment, role, checkuser=None):
-        # FIXME WHAT is item_id ??? self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Experimenter", item_id = username)
+        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Experimenter", item_id=get_user())
         quota = cherrypy.config.get('base_uploads_quota', 10485760)
         file_stat_list, total, experimenters = self.filesPOMS.file_uploads(cherrypy.config.get('base_uploads_dir'), experiment, get_user(),
                                                                            cherrypy.request.db, checkuser)
-        return {"file_stat_list": file_stat_list, "total": total, "quota": quota}
+        return {"file_stat_list": file_stat_list, "total": total, "quota": quota, "experimenters:": experimenters}
 
     # h4. upload_file
     @cherrypy.expose
