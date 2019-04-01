@@ -56,7 +56,7 @@ class JobsPOMS:
         exp = e.session_experiment
 
         # start a query to get the session jobsub job_id's ...
-        jjidq = dbhandle.Query(Submission.jobsub_job_id)
+        jjidq = dbhandle.Query(Submission.jobsub_job_id, Submission.submission_id)
 
         if campaign_id:
             what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
@@ -92,9 +92,11 @@ class JobsPOMS:
   
         if rows:
             jjids = [x[0] for x in rows]
+            sids = [x[1] for x in rows]
             jidbits = "--jobid=%s" % ','.join(jjids)
         else:
             jidbits = what
+            sids = []
   
         if confirm is None:
             if jidbits != what:
@@ -115,8 +117,10 @@ class JobsPOMS:
                 group = 'fermilab'
 
             subcmd = 'q'
+            status_set = None
             if act == 'kill':
                 subcmd = 'rm'
+                status_set = "Removed"
             elif act in ('hold', 'release'):
                 subcmd = act
             else:
@@ -170,6 +174,12 @@ class JobsPOMS:
             f = os.popen(cmd, "r")
             output = f.read()
             f.close()
+
+            if status_set:
+                submissions = dbhandle.query(Submission).filter(Submission.submission_id.in_(sids)).order_by(Submission.submission_id).with_for_update().all()
+                for s in submissions
+                    self.poms_service.taskPOMS.update_submission_status(dbhandle, s, status_set)
+            dbhandle.commit()
 
             return output, cs, campaign_stage_id, submission_id, job_id
 
