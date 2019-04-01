@@ -63,6 +63,7 @@ from . import (
 from .poms_model import Campaign, CampaignStage, Submission, Experiment, LoginSetup, Base
 from .utc import utc
 
+#
 class JSONORMEncoder(json.JSONEncoder):
 
     def default(self, obj):
@@ -74,17 +75,23 @@ class JSONORMEncoder(json.JSONEncoder):
             # smash ORM objects into dictionaries
             res = {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.column_attrs}
             # first put in relationship keys, but not loaded
-            res.update( {c.key: None for c in inspect(obj).mapper.relationships } )
+            res.update({c.key: None for c in inspect(obj).mapper.relationships})
             # load specific relationships that won't cause cycles
-            res.update( {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if c.key.find('experimenter') >= 0} )
+            res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if 'experimenter' in c.key})
+            res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if 'snapshot_obj' in c.key})
+            res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if c.key == 'campaign_stage_obj'})
+            # Limit to the name only for campaign_obj to prevent circular reference error
+            res.update({c.key: {'name': getattr(obj, c.key).name} for c in inspect(obj).mapper.relationships if c.key == 'campaign_obj'})
+            res.update({c.key: list(getattr(obj, c.key)) for c in inspect(obj).mapper.relationships if c.key == 'stages'})
 
             return res
 
         if isinstance(obj, datetime.datetime):
-            return(obj.strftime("%Y-%m-%dT%H:%M:%S"))
+            return obj.strftime("%Y-%m-%dT%H:%M:%S")
 
         return super(JSONORMEncoder, self).default(obj)
-#
+
+
 # h3. Error handling
 #
 # we have a routine here we give to cherrypy to format errors
