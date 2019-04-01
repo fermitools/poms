@@ -564,11 +564,11 @@ class PomsService:
     @error_rewrite
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def campaign_stage_edit_query(self, experiment, role, *arg, **kwargs):
+    def campaign_stage_edit_query(self, experiment, role, *args, **kwargs):
         self.permissions.can_view(
             cherrypy.request.db, get_user(), experiment, role, "LaunchSetup", item_id=kwargs.get('ae_launch_id', None)
         )
-        self.permissions.can_viewy(
+        self.permissions.can_view(
             cherrypy.request.db, get_user(), experiment, role, "JobType", item_id=kwargs.get('ae_campaign_definition_id', None)
         )
         data = self.campaignsPOMS.campaign_stage_edit_query(cherrypy.request.db, *args, **kwargs)
@@ -685,7 +685,7 @@ class PomsService:
     @logit.logstartstop
     def reset_campaign_split(self, experiment, role, campaign_stage_id):
         self.permissions.can_modify(cherrypy.request.db, get_user(), experiment, role, "CampaignStage", item_id=campaign_stage_id)
-        res = self.campaignsPOMS.reset_campaign_split(cherrypy.request.db, campaign_stage_id)
+        self.campaignsPOMS.reset_campaign_split(cherrypy.request.db, campaign_stage_id)
         raise cherrypy.HTTPRedirect("campaign_stage_info/%s/%s?campaign_stage_id=%s" % (experiment, role, campaign_stage_id))
 
     # h4. campaign_stage_datasets
@@ -968,7 +968,7 @@ class PomsService:
     def make_stale_campaigns_inactive(self):
         if not self.permissions.is_superuser(cherrypy.request.db, get_user()):
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
-        res = self.campaignsPOMS.make_stale_campaigns_inactive(cherrypy.request.db, cherrypy.HTTPError)
+        res = self.campaignsPOMS.make_stale_campaigns_inactive(cherrypy.request.db)
         return "Marked inactive stale: " + ",".join(res)
 
     # h4. list_generic
@@ -1074,6 +1074,8 @@ class PomsService:
     @error_rewrite
     @logit.logstartstop
     def file_uploads(self, experiment, role, checkuser=None):
+        if role == 'production':
+            raise cherrypy.HTTPRedirect(self.path + "/index")
         self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "Experimenter", item_id=get_user())
         quota = cherrypy.config.get('base_uploads_quota', 10485760)
         file_stat_list, total, experimenters = self.filesPOMS.file_uploads(cherrypy.config.get('base_uploads_dir'), experiment, get_user(),
@@ -1087,7 +1089,6 @@ class PomsService:
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def file_uploads_json(self, experiment, role, checkuser=None):
-        self.permissions.can_view(cherrypy.request.db,get_user(), experiment, role, "Experimenter", item_id=get_user())
         quota = cherrypy.config.get('base_uploads_quota', 10485760)
         file_stat_list, total, experimenters = self.filesPOMS.file_uploads(cherrypy.config.get('base_uploads_dir'), experiment, get_user(),
                                                                            cherrypy.request.db, checkuser)
@@ -1115,9 +1116,7 @@ class PomsService:
     @logit.logstartstop
     def remove_uploaded_files(self, experiment, role, experimenter, filename, action):
         self.permissions.can_modify(cherrypy.request.db, get_user(), experiment, role, "Experimenter", item_id=experimenter)
-        res = self.filesPOMS.remove_uploaded_files(
-            cherrypy.config.get('base_uploads_dir'), cherrypy.session.get, cherrypy.HTTPError, filename, action
-        )
+        res = self.filesPOMS.remove_uploaded_files(cherrypy.config.get('base_uploads_dir'), cherrypy.session.get, cherrypy.HTTPError, filename, action)
         raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
 
     # h3. Job actions

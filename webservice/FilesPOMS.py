@@ -391,7 +391,7 @@ class FilesStatus:
         return "Ok."
 
 
-    def remove_uploaded_files(self, basedir, experiment, username, err_res, filename, actio):
+    def remove_uploaded_files(self, basedir, experiment, username, err_res, filename, action):
         # if there's only one entry the web page will not send a list...
         if isinstance(filename, str):
             filename = [filename]
