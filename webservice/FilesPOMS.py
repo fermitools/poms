@@ -391,7 +391,7 @@ class FilesStatus:
         return "Ok."
 
 
-    def remove_uploaded_files(self, basedir, experiment, username, err_res, filename, action):
+    def remove_uploaded_files(self, basedir, experiment, username, filename):
         # if there's only one entry the web page will not send a list...
         if isinstance(filename, str):
             filename = [filename]
@@ -399,7 +399,6 @@ class FilesStatus:
         for f in filename:
             outf = self.get_file_upload_path(basedir, username, experiment, f)
             os.unlink(outf)
-        return "Ok."
 
     def get_launch_sandbox(self, basedir, username, experiment):
 
