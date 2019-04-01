@@ -473,14 +473,6 @@ class PomsService:
         data = self.campaignsPOMS.campaign_add_name(cherrypy.request.db, get_user(), experiment, role, *args, **kwargs)
         return data
 
-    # h4. campaign_rename_name
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def campaign_rename_name(self, experiment, role, *args, **kwargs):
-        data = self.campaignsPOMS.campaign_rename_name(cherrypy.request.db, get_user(), experiment, role, *args, **kwargs)
-        return data
-
     # h4. campaign_stage_edit
     @cherrypy.expose
     @error_rewrite
@@ -868,24 +860,11 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def update_launch_schedule(
-            self,
-            experiment,
-            role,
-            campaign_stage_id,
-            dowlist=None,
-            domlist=None,
-            monthly=None,
-            month=None,
-            hourlist=None,
-            submit=None,
-            minlist=None,
-            delete=None,
-    ):
+    def update_launch_schedule(self, experiment, role, campaign_stage_id, dowlist=None, domlist=None, monthly=None, month=None, hourlist=None,
+                               submit=None, minlist=None, delete=None):
         self.permissions.can_modify(cherrypy.request.db, get_user(), experiment, role, "CampaignStage", item_id=campaign_stage_id)
-        self.campaignsPOMS.update_launch_schedule(
-            campaign_stage_id, dowlist, domlist, monthly, month, hourlist, submit, minlist, delete, user=get_user()
-        )
+        self.campaignsPOMS.update_launch_schedule(cherrypy.request.db, campaign_stage_id, dowlist, domlist, monthly, month,
+                                                  hourlist, submit, minlist, delete, user=get_user())
         raise cherrypy.HTTPRedirect("schedule_launch/%s/%s?campaign_stage_id=%s" % experiment, role, campaign_stage_id)
 
     # h4. mark_campaign_active
@@ -1393,7 +1372,7 @@ class PomsService:
 
     @cherrypy.expose
     @logit.logstartstop
-    def get_task_id_for(self, campaign, user=None, experiment=None, command_executed="", input_dataset="",parent_task_id=None,
+    def get_task_id_for(self, campaign, user=None, experiment=None, command_executed="", input_dataset="", parent_task_id=None,
                         task_id=None, parent_submission_id=None, submission_id=None, campaign_id=None, test=None,):
         if not campaign and campaign_id:
             campaign = campaign_id

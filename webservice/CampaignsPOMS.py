@@ -329,38 +329,6 @@ class CampaignsPOMS:
             dbhandle.commit()
         return json.dumps(data)
 
-    def campaign_rename_name(self, dbhandle, user, exp, se_role, *args, **kwargs):
-        '''
-           rename a campaign
-        '''
-        e = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
-
-        camp = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()     # FIXME: not finished!
-        if not exp == camp.experiment:
-            raise PermissionError("You are not acting as the right experiment")
-        if not se_role == camp.creator_role:
-            raise PermissionError("You are not acting as the right role")
-
-        data = {}
-        data['message'] = "ok"
-        try:
-            campaign_id = kwargs.get('campaign_id')
-            new_name = kwargs.get('new_campaign_name')
-            new_name = new_name.strip()
-            if new_name == "":
-                data['message'] = "Please supply a new name."
-            else:
-                columns = {"name": new_name}
-                dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).update(columns)
-                dbhandle.commit()
-        except SQLAlchemyError as exc:
-            data['message'] = "SQLAlchemyError: " "Please report this to the administrator. " "Message: %s" % ' '.join(exc.args)
-            logit.log(' '.join(exc.args))
-            dbhandle.rollback()
-        else:
-            dbhandle.commit()
-        return json.dumps(data)
-
     def campaign_list(self, dbhandle):
         """
             Return list of all campaign_stage_id s and names. --
@@ -369,25 +337,8 @@ class CampaignsPOMS:
         data = dbhandle.query(CampaignStage.campaign_stage_id, CampaignStage.name, CampaignStage.experiment).all()
         return [r._asdict() for r in data]
 
-    def launch_campaign(
-        self,
-        dbhandle,
-        getconfig,
-        gethead,
-        samhandle,
-        experiment,
-        role,
-        user,
-        basedir,
-        campaign_id,
-        launcher,
-        dataset_override=None,
-        parent_submission_id=None,
-        param_overrides=None,
-        test_login_setup=None,
-        test_launch=False,
-        output_commands=False,
-    ):
+    def launch_campaign(self, dbhandle, getconfig, gethead, samhandle, experiment, role, user, basedir, campaign_id, launcher,
+                        dataset_override=None, parent_submission_id=None, param_overrides=None, test_login_setup=None, test_launch=False, output_commands=False):
 
         '''
             Find the starting stage in a campaign, and launch it with
@@ -412,25 +363,8 @@ class CampaignsPOMS:
         logit.log("launch_campaign: got stages %s" % repr(stages))
 
         if len(stages) == 1:
-            return self.poms_service.taskPOMS.launch_jobs(
-                dbhandle,
-                getconfig,
-                gethead,
-                samhandle,
-                experiment,
-                role,
-                user,
-                basedir,
-                stages[0][0],
-                launcher,
-                dataset_override,
-                parent_submission_id,
-                param_overrides,
-                test_login_setup,
-                test_launch,
-                output_commands,
-            )
-
+            return self.poms_service.taskPOMS.launch_jobs(dbhandle, getconfig, gethead, samhandle, experiment, role, user, basedir, stages[0][0], launcher, dataset_override,
+                                                          parent_submission_id, param_overrides, test_login_setup, test_launch, output_commands)
         raise AssertionError("Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
 
     def get_recoveries(self, dbhandle, cid):
@@ -564,7 +498,7 @@ class CampaignsPOMS:
                 recoveries = kwargs.pop('ae_definition_recovery')
             try:
                 if action == 'add':
-                    role = sess_role
+                    role = ses_role
                     if role in ('root', 'superuser'):
                         raise cherrypy.HTTPError(status=401, message=('You are not authorized ' 'to add campaign definition.'))
                     else:
@@ -1479,9 +1413,7 @@ class CampaignsPOMS:
                 last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         return csl, last_activity, msg, data
 
-    def show_campaign_stages(
-        self, dbhandle, user, experiment, se_role, campaign_ids=None, tmin=None, tmax=None, tdays=7, campaign_name=None, **kwargs
-    ):
+    def show_campaign_stages(self, dbhandle, user, experiment, se_role, campaign_ids=None, tmin=None, tmax=None, tdays=7, campaign_name=None, **kwargs):
         """
             give campaign information about campaign_stages with activity
             in the time window for a given experiment
@@ -1699,19 +1631,8 @@ class CampaignsPOMS:
             recent_submissions,
         )
 
-    def campaign_stage_submissions(
-        self,
-        dbhandle,
-        experiment,
-        role,
-        campaign_name='',
-        stage_name='',
-        campaign_stage_id=None,
-        campaign_id=None,
-        tmin=None,
-        tmax=None,
-        tdays=None,
-    ):
+    def campaign_stage_submissions(self, dbhandle, experiment, role, campaign_name='', stage_name='', campaign_stage_id=None, campaign_id=None,
+                                   tmin=None, tmax=None, tdays=None):
         '''
            Show submissions from a campaign stage
         '''
@@ -1818,19 +1739,8 @@ class CampaignsPOMS:
             rows.append({'created': created, 'status': status})
         return rows
 
-    def register_poms_campaign(
-        self,
-        dbhandle,
-        experiment,
-        campaign_name,
-        version,
-        user=None,
-        campaign_definition=None,
-        dataset="",
-        role="Production",
-        cr_role="production",
-        params=[],
-    ):
+    def register_poms_campaign(self, dbhandle, experiment, campaign_name, version, user=None, campaign_definition=None, dataset="",
+                               role="Production", cr_role="production", params=[]):
         """
             update or add a campaign by experiment and name...
         """
@@ -1935,7 +1845,7 @@ class CampaignsPOMS:
         try:
             res = splitter.next()
         except StopIteration:
-            raise AssertError('No more splits in this campaign.')
+            raise AssertionError('No more splits in this campaign.')
 
         dbhandle.commit()
         return res
@@ -1988,19 +1898,8 @@ class CampaignsPOMS:
         launch_flist = list(map(os.path.basename, launch_flist))
         return c_s, job, launch_flist
 
-    def update_launch_schedule(
-        self,
-        campaign_stage_id,
-        dowlist='',
-        domlist='',
-        monthly='',
-        month='',
-        hourlist='',
-        submit='',
-        minlist='',
-        delete='',
-        user='',
-    ):
+    def update_launch_schedule(self, dbhandle, campaign_stage_id, dowlist='', domlist='', monthly='', month='', hourlist='', submit='',
+                               minlist='',delete='', user=''):
         '''
             callback for changing the launch schedule
         '''
