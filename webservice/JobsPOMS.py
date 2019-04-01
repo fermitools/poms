@@ -96,10 +96,10 @@ class JobsPOMS:
         else:
             jidbits = what
   
-         if confirm is None:
-             if jidbits != what:
-                 what = '%s %s' % (what, jidbits)
-             return what, s, campaign_stage_id, submission_id, job_id
+        if confirm is None:
+            if jidbits != what:
+                what = '%s %s' % (what, jidbits)
+            return what, s, campaign_stage_id, submission_id, job_id
 
         else:
             # finish up the jobsub job_id query, and make a --jobid=list
