@@ -24,23 +24,23 @@ class Permissions:
         logit.log("is_superuser(%s) returning %s" % (user, self.sucache[user]))
         return self.sucache[user]
 
-    def check_experiment_role(self, dbhandle, user, experiment, desired_role):
-        key = "%s:%s" %(user, experiment)
+    def check_experiment_role(self, dbhandle, username, experiment, desired_role):
+        key = "%s:%s" %(username, experiment)
         if not key in self.excache:
             rows = (dbhandle.query(ExperimentsExperimenters.role)
                     .join(Experimenter, Experimenter.experimenter_id == ExperimentsExperimenters.experimenter_id)
-                    .filter(Experimenter.username == user, ExperimentsExperimenters.experiment == experiment)).all()
+                    .filter(Experimenter.username == username, ExperimentsExperimenters.experiment == experiment)).all()
             if rows:
                 self.excache[key] = rows[0]
             else:
                 self.excache[key] = None
-        logit.log("experiment_role(%s,%s) returning: %s" % (user, experiment, self.excache[key]))
+        logit.log("experiment_role(%s,%s) returning: %s" % (username, experiment, self.excache[key]))
         if not self.excache[key]:
-            raise PermissionError("user %s is not in experiment %s" % (user, experiment))
+            raise PermissionError("username %s is not in experiment %s" % (username, experiment))
         if self.excache[key] == "analysis" and desired_role != self.excache[key]:
-            raise PermissionError("user %s cannot have role %s in experiment %s" % (user, desired_role, experiment))
+            raise PermissionError("username %s cannot have role %s in experiment %s" % (username, desired_role, experiment))
         if self.excache[key] == "production" and desired_role == 'superuser':
-            raise PermissionError("user %s cannot have role %s in experiment %s" % (user, desired_role, experiment))
+            raise PermissionError("username %s cannot have role %s in experiment %s" % (username, desired_role, experiment))
 
         return self.excache[key]
 
@@ -123,7 +123,7 @@ class Permissions:
                 raise PermissionError("Only user %s can view this" % item_id)
             return
 
-        self.check_experiment_role(dbhandle, user, cur_exp, cur_role)
+        self.check_experiment_role(dbhandle, username, cur_exp, cur_role)
 
         if not item_id and not name:
             return
@@ -154,7 +154,7 @@ class Permissions:
         if cur_role is None:
             cur_role = role
 
-        self.check_experiment_role(dbhandle, user, cur_exp, cur_role)
+        self.check_experiment_role(dbhandle, username, cur_exp, cur_role)
 
 
         logit.log("can_modify: cur: %s, %s, %s; item: %s, %s, %s" % (username, cur_exp, cur_role, owner, exp, role))
@@ -178,7 +178,7 @@ class Permissions:
                 raise PermissionError("Only user %s can view this" % item_id)
             return
 
-        self.check_experiment_role(dbhandle, user, cur_exp, cur_role)
+        self.check_experiment_role(dbhandle, username, cur_exp, cur_role)
 
         exp, owner, role = self.get_exp_owner_role(dbhandle, t, item_id=item_id, name=name, experiment=experiment)
 
