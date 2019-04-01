@@ -56,7 +56,7 @@ class JobsPOMS:
             raise SyntaxError("called with out submission, campaign, or stage id" % act)
 
         # start a query to get the session jobsub job_id's ...
-        jjidq = dbhandle.Query(Submission.jobsub_job_id, Submission.submission_id)
+        jjidq = dbhandle.query(Submission.jobsub_job_id, Submission.submission_id)
 
         if campaign_id:
             what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
