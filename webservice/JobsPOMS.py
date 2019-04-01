@@ -56,7 +56,7 @@ class JobsPOMS:
             raise SyntaxError("called with out submission, campaign, or stage id" % act)
 
         # start a query to get the session jobsub job_id's ...
-        jjidq = dbhandle.query(Submission.jobsub_job_id)
+        jjidq = dbhandle.query(Submission.jobsub_job_id, Submission.submission_id)
 
         if campaign_id:
             what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
@@ -86,10 +86,12 @@ class JobsPOMS:
 
         if rows:
             jjids = [x[0] for x in rows]
+            sids = [x[1] for x in rows]
             jidbits = "--jobid=%s" % ','.join(jjids)
         else:
             jidbits = what
-
+            sids = []
+  
         if confirm is None:
             if jidbits != what:
                 what = '%s %s' % (what, jidbits)
@@ -106,8 +108,10 @@ class JobsPOMS:
 
 
             subcmd = 'q'
+            status_set = None
             if act == 'kill':
                 subcmd = 'rm'
+                status_set = "Removed"
             elif act in ('hold', 'release'):
                 subcmd = act
             else:
@@ -161,6 +165,11 @@ class JobsPOMS:
             f = os.popen(cmd, "r")
             output = f.read()
             f.close()
+
+            if status_set:
+                for sid in sids:
+                    self.poms_service.taskPOMS.update_submission_status(dbhandle, sid, status_set)
+            dbhandle.commit()
 
             return output, cs, campaign_stage_id, submission_id, job_id
 

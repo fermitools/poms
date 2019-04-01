@@ -810,8 +810,10 @@ class PomsService:
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @logit.logstartstop
-    def session_status_history(self, experiment, role, submission_id):
-        self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "Submission", item_id=submission_id)
+    def session_status_history(self, submission_id):
+        # we would take experiment and role, and check,but we do not really
+        # care who sees submission history timelines..
+        # self.permissions.can_view(cherrypy.request.db, get_user(), experiment, role, "Submission", item_id=submission_id)
         rows = self.campaignsPOMS.session_status_history(cherrypy.request.db, submission_id)
         return rows
 
