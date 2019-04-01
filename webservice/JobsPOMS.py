@@ -92,10 +92,10 @@ class JobsPOMS:
             jidbits = what
             sids = []
   
-         if confirm is None:
-             if jidbits != what:
-                 what = '%s %s' % (what, jidbits)
-             return what, s, campaign_stage_id, submission_id, job_id
+        if confirm is None:
+            if jidbits != what:
+                what = '%s %s' % (what, jidbits)
+            return what, s, campaign_stage_id, submission_id, job_id
 
         else:
             # finish up the jobsub job_id query, and make a --jobid=list
@@ -167,9 +167,8 @@ class JobsPOMS:
             f.close()
 
             if status_set:
-                submissions = dbhandle.query(Submission).filter(Submission.submission_id.in_(sids)).order_by(Submission.submission_id).with_for_update().all()
-                for s in submissions
-                    self.poms_service.taskPOMS.update_submission_status(dbhandle, s, status_set)
+                for sid in sids:
+                    self.poms_service.taskPOMS.update_submission_status(dbhandle, sid, status_set)
             dbhandle.commit()
 
             return output, cs, campaign_stage_id, submission_id, job_id
