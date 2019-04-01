@@ -21,7 +21,7 @@ class Permissions:
             else:
                 rows = dbhandle.query(Experimenter.root).filter(Experimenter.username == user).all()
             self.sucache[user] = rows[0].root
-        logit.log("is_superuser(%s) returning %s" %( user, self.sucache[user]))
+        logit.log("is_superuser(%s) returning %s" % (user, self.sucache[user]))
         return self.sucache[user]
 
     def check_experiment_role(self, dbhandle, user, experiment, desired_role):
@@ -44,7 +44,7 @@ class Permissions:
 
         return self.excache[key]
 
-    def get_exp_owner_role(self, dbhandle, t, item_id = None, name = None, experiment = None):
+    def get_exp_owner_role(self, dbhandle, t, item_id=None, name=None, experiment=None):
         if not name and not item_id:
             raise AssertionError("need either item_id or name")
 
@@ -87,7 +87,7 @@ class Permissions:
             if item_id:
                 q = q.filter(LoginSetup.login_setup_id == item_id)
             if name:
-                q = q.filter(LoginSetup.name == name , LoginSetup.experiment == experiment)
+                q = q.filter(LoginSetup.name == name, LoginSetup.experiment == experiment)
         elif t == "JobType":
             k = "c:%s" % item_id
             q = (dbhandle.query(JobType.experiment,
@@ -96,7 +96,7 @@ class Permissions:
             if item_id:
                 q = q.filter(JobType.job_type_id == item_id)
             if name:
-                q = q.filter(JobType.name == name , JobType.experiment == experiment)
+                q = q.filter(JobType.name == name, JobType.experiment == experiment)
         else:
             raise Exception("unknown item type '%s'" % t)
 
@@ -113,7 +113,7 @@ class Permissions:
 
         return self.icache[k]
 
-    def can_view(self, dbhandle, username, cur_exp, cur_role, t, item_id = None, name = None, experiment = None):
+    def can_view(self, dbhandle, username, cur_exp, cur_role, t, item_id=None, name=None, experiment=None):
         if self.is_superuser(dbhandle, username):
             return
 
@@ -160,13 +160,13 @@ class Permissions:
         logit.log("can_modify: cur: %s, %s, %s; item: %s, %s, %s" % (username, cur_exp, cur_role, owner, exp, role))
         if exp and exp != cur_exp:
             raise PermissionError("Must be acting as experiment %s to change this" % exp)
-        if role and cur_role not in ('coordinator','superuser') and role != cur_role:
+        if role and cur_role not in ('coordinator', 'superuser') and role != cur_role:
             raise PermissionError("Must be role %s to change this" % role)
 
         if cur_role == 'analysis' and owner != username:
             raise PermissionError("Must be user %s to change this" % exp)
 
-    def can_do(self, dbhandle, username, cur_exp, cur_role, t, item_id = None, name = None, experiment = None ):
+    def can_do(self, dbhandle, username, cur_exp, cur_role, t, item_id=None, name=None, experiment=None):
         if self.is_superuser(dbhandle, username):
             return
         if not item_id and not name:
@@ -185,7 +185,7 @@ class Permissions:
         logit.log("can_do: cur: %s, %s, %s; item: %s, %s, %s" % (username, cur_exp, cur_role, owner, exp, role))
         if exp and exp != cur_exp:
             raise PermissionError("Must be acting as experiment %s to do this" % exp)
-        if role and cur_role not in ('coordinator','superuser') and role != cur_role:
+        if role and cur_role not in ('coordinator', 'superuser') and role != cur_role:
             raise PermissionError("Must be role %s to do this" % role)
 
         if role and cur_role == 'analysis' and owner != username:
