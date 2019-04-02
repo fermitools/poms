@@ -2422,7 +2422,7 @@ class CampaignsPOMS:
             dbhandle.flush()
         dbhandle.commit()
         print("+++++++++++++++ Campaign saved")
-        return {'status': "201 Created", 'message': message or "OK", 'campaign_id': the_campaign.campaign_id, 'campaign_stage_ids': [x.campaign_stage_id for x in the_campaign.stages]}
+        return {'status': "201 Created", 'message': message or "OK", 'campaign_id': the_campaign.campaign_id, 'campaign_stage_ids': [(x.campaign_stage_id, x.name)  for x in the_campaign.stages]}
 
 
 
