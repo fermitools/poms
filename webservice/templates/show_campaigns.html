@@ -319,26 +319,6 @@ Campaigns {%include 'help_button.html'%}
         </div>
     </div> <!-- Ends Modal -->
 
-    <div class="ui modal small" id="rename_campaign_modal" style="padding: 0px 20px;">
-        <i class="close icon"></i>
-        <div class="header">
-            <span style="font-size: 1.3em;">Rename a campaign.</span>
-        </div>
-        <form class="ui form" action="" method="GET">
-            <div class="field">
-                <lable>From:</lable>
-                <input type="text" id="original_campaign_name" name="original_campaign_name" readonly>
-                <lable>To:</lable>
-                <input type="text" id="new_campaign_name" name="new_campaign_name">
-            </div>
-            <div class="ui hidden divider"></div>
-        </form>
-        <div class="actions">
-            <div class="ui button deny red">Cancel</div>
-            <div class="ui button approve teal">Save</div>
-        </div>
-    </div> <!-- Ends Modal -->
-
 <script>
 
 $(document).ready(function() {
@@ -478,36 +458,6 @@ function pop_add_campaign_modal() {
       })
     .modal('show');
   }
-
-function rename_campaign(name, campaign_id) {
-    $('#original_campaign_name').val(name);
-    $('#new_campaign_name').val("");
-    $('#rename_campaign_modal')
-        .modal({
-            closable : false,
-            onApprove : function() {
-                var formdata = {'campaign_id': campaign_id,
-                                'new_campaign_name': $('#new_campaign_name').val()
-                               };
-                $.ajax({
-                    url: "{{pomspath}}/campaign_rename_name/{{experiment}}/{{role}}",
-                    type: 'GET',
-                    data: formdata,
-                    success: function(data){
-                        data = JSON.parse(data);
-                        if (data.message != "ok") {
-                            mod_form= $("#display_message_modal").modal('show');
-                            $("#poms_message_data").text(data.message);
-                        } else {
-                            location.reload(true);
-                        }
-                    }
-                });
-            }
-        })
-    .modal('show');
-}
-
 
 function pop_tag_untag_modal() {
     var csv = [];
