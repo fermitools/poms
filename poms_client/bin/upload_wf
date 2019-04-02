@@ -25,6 +25,7 @@ try:
     for f in args:
          logging.debug("uploading: %s " % f)
          ok, data = poms_client.upload_wf(f, test=options.test)
+         logging.debug("got data: %s" % repr(data))
          if data.has_key('message'):
              for m in data['message']:
                  print( m )
