@@ -27,7 +27,6 @@ import socket
 import datetime
 import time
 import json
-import re
 import logging
 from configparser import ConfigParser
 
@@ -63,7 +62,10 @@ from .poms_model import CampaignStage, Submission, Experiment, LoginSetup, Base
 from .utc import utc
 
 
+
 class JSONORMEncoder(json.JSONEncoder):
+    # This will show up as an error in pylint.   Appears to be a bug in pyling:
+    #    pylint #89092 @property.setter raises an E0202 when attribute is set
     def default(self, obj):
 
         if obj == datetime:
@@ -1067,7 +1069,7 @@ class PomsService:
     @logit.logstartstop
     def upload_file(self, experiment, role, username, filename):
         self.permissions.can_modify(cherrypy.request.db, get_user(), experiment, role, "Experimenter", item_id=username)
-        res = self.filesPOMS.upload_file(
+        self.filesPOMS.upload_file(
             cherrypy.config.get('base_uploads_dir'),
             username,
             experiment,
@@ -1083,7 +1085,7 @@ class PomsService:
     @logit.logstartstop
     def remove_uploaded_files(self, experiment, role, experimenter, filename, action):
         self.permissions.can_modify(cherrypy.request.db, get_user(), experiment, role, "Experimenter", item_id=experimenter)
-        self.filesPOMS.remove_uploaded_files(cherrypy.config.get('base_uploads_dir'), cherrypy.session.get, filename)
+        self.filesPOMS.remove_uploaded_files(cherrypy.config.get('base_uploads_dir'), experiment, get_user(), filename)
         raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
 
     # h3. Job actions
@@ -1284,7 +1286,7 @@ class PomsService:
             cherrypy.response.headers['Content-Type'] = "text/plain"
             return vals
 
-        lcmd, cs, campaign_stage_id, outdir, outfile = vals
+        lcmd, campaign_stage_id, outfile = vals
         if lcmd == "":
             return outfile
         else:

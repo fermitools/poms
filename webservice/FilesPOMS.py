@@ -12,14 +12,12 @@
 
 from collections import deque, defaultdict
 import os
-import shelve
 import glob
 import uuid
 from datetime import datetime, timedelta
 import time
 
-from sqlalchemy.orm import subqueryload, joinedload
-from sqlalchemy import distinct, func
+from sqlalchemy.orm import joinedload
 
 from . import logit
 from .poms_model import Submission, CampaignStage, Experimenter, ExperimentsExperimenters
@@ -56,10 +54,10 @@ class FilesStatus:
              .options(joinedload(Submission.campaign_stage_snapshot_obj))
              .filter(Submission.created >= tmin, Submission.created < tmax))
 
-        if campaign_stage_id not in [ '', None, 'None' ]:
+        if campaign_stage_id not in ['', None, 'None']:
             q = q.filter(Submission.campaign_stage_id == campaign_stage_id)
 
-        elif campaign_id not in [ '', None, 'None' ]:
+        elif campaign_id not in ['', None, 'None']:
             q = (q.join(CampaignStage,
                         Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
                  .filter(CampaignStage.campaign_id == campaign_id))
@@ -153,7 +151,7 @@ class FilesStatus:
                    "w/kids<br>located",
                    "pending"]
 
-        listfiles = "../../show_dimension_files/%s/%s?dims=%%s" % (cs.experiment,role)
+        listfiles = "../../show_dimension_files/%s/%s?dims=%%s" % (cs.experiment, role)
         datarows = deque()
         i = -1
         for s in tl:
@@ -316,7 +314,7 @@ class FilesStatus:
 
             dimlist.append(" ".join(diml))
 
-            if len(tl):
+            if tl:
                 explist.append(tl[0].job_type_snapshot_obj.experiment)
             else:
                 explist.append("samdev")
@@ -363,11 +361,11 @@ class FilesStatus:
         # if they pick multiple files, we get a list, otherwise just one
         # item, so if its not a list, make it a list of one item...
         if not isinstance(filename, list):
-            filenames = [ filename ]
+            filenames = [filename]
         else:
             filenames = filename
 
-        logit.log("upload_file: files: %d" , len(filenames))
+        logit.log("upload_file: files: %d", len(filenames))
 
         for filename in filenames:
             logit.log("upload_file: filename: %s", filename.filename)
@@ -386,9 +384,8 @@ class FilesStatus:
             logit.log("upload_file: closed")
             fstatlist, total, experimenters = self.file_uploads(basedir, experiment, username, dbhandle)
             if total > quota:
-                unlink(outf)
+                os.unlink(outf)
                 raise ValueError("Upload exeeds quota of %d kbi" % quota/1024)
-        return "Ok."
 
 
     def remove_uploaded_files(self, basedir, experiment, username, filename):
@@ -406,7 +403,7 @@ class FilesStatus:
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
         sandbox = "%s/sandboxes/%s" % (basedir, str(uu))
         os.makedirs(sandbox, exist_ok=False)
-        upload_path = self.get_file_upload_path(basedir, username, experiment,  '*')
+        upload_path = self.get_file_upload_path(basedir, username, experiment, '*')
         logit.log("get_launch_sandbox linking items from upload_path %s into %s" % (upload_path, sandbox))
         flist = glob.glob(upload_path)
         for f in flist:
