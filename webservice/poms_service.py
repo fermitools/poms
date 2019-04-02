@@ -528,6 +528,10 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def sample_workflows(self, *args, **kwargs):
+
+        import mimetypes
+        mimetypes.types_map['.ini'] = 'text/plain'
+
         sl = [
             x.replace(os.environ['POMS_DIR'] + '/webservice/static/', '')
             for x in glob.glob(os.environ['POMS_DIR'] + '/webservice/static/samples/*')
