@@ -450,16 +450,20 @@ def tag_campaigns(tag, cids, experiment, test_client=False):
     res, sc = make_poms_call(method='link_tags', campaign_id=cids, tag_name=tag, experiment=experiment, test_client=test_client)
     return sc == 200
 
+global_role = None
+global_experiment = None
 
 def update_session_experiment(experiment, test_client=False):
     logging.debug("in update_session_experiment test_client = " + repr(test_client))
-    res, sc = make_poms_call(method='update_session_experiment', session_experiment = experiment, test_client=test_client)
-    return sc == 200
+    global global_experiment
+    global_experiment = experiment
+    return True
 
 def update_session_role(role, test_client=False):
     logging.debug("in update_session_role test_client = " + repr(test_client))
-    res, sc = make_poms_call(method='update_session_role', session_role=role, test_client=test_client)
-    return sc == 200
+    global global_role
+    global_role = role
+    return True
 
 def auth_cert():
     # rs.cert = '/tmp/x509up_u`id -u`'
@@ -525,6 +529,11 @@ def make_poms_call(**kwargs):
     if kwargs.get("test", None):
         del kwargs["test"]
 
+    if not "experiment" in kwargs:
+        kwargs["experiment" ] = global_experiment
+
+    if not "role" in kwargs:
+        kwargs["role" ] = global_role
 
     test_client = kwargs.get("test_client", None)
     if "test_client" in kwargs:

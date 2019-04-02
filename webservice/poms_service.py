@@ -531,6 +531,10 @@ class PomsService:
     @logit.logstartstop
     def sample_workflows(self, *args, **kwargs):
 
+        #
+        # black magic stolen from _setup_mimetypes() in
+        # http://docs.cherrypy.org/en/latest/_modules/cherrypy/lib/static.html
+        #
         import mimetypes
         mimetypes.types_map['.ini'] = 'text/plain'
 
