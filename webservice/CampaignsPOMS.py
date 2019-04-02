@@ -2089,8 +2089,13 @@ class CampaignsPOMS:
         """
         """
 
-        exp = args[0]
-        role = args[1] or 'production'
+        if args:
+            exp = args[0]
+            role = args[1] or 'production'
+        else:
+            exp = kwargs['experiment']
+            role = kwargs['role'] 
+
         experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
         user_id = experimenter.experimenter_id
 
@@ -2389,7 +2394,7 @@ class CampaignsPOMS:
             dbhandle.flush()
         dbhandle.commit()
         print("+++++++++++++++ Campaign saved")
-        return {'status': "201 Created", 'message': message or "OK", 'campaign_id': the_campaign.campaign_id}
+        return {'status': "201 Created", 'message': message or "OK", 'campaign_id': the_campaign.campaign_id, 'campaign_stage_ids': [(x.campaign_stage_id, x.name)  for x in the_campaign.stages]}
 
     def get_jobtype_id(self, dbhandle, user, exp, role, name):
         """

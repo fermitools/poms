@@ -1598,6 +1598,6 @@ class PomsService:
             sn = name.split(' ', 1)[1]
             campaign_d["misc"].append({"id": name, "label": sn, "clean": False, "form": section})
         # Save the campaign
-        data = self.campaignsPOMS.save_campaign(cherrypy.request.db, cherrypy.session, form=json.dumps(campaign_d), **kwargs)
+        data = self.campaignsPOMS.save_campaign(cherrypy.request.db, get_user(), form=json.dumps(campaign_d), **kwargs)
 
         return data
