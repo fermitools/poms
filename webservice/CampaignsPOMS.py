@@ -2089,8 +2089,8 @@ class CampaignsPOMS:
         """
         """
 
-        exp = args[0]
-        role = args[1] or 'production'
+        exp = args[0] or kwargs['experiment']
+        role = args[1] or kwargs['role'] or  'production'
         experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
         user_id = experimenter.experimenter_id
 
