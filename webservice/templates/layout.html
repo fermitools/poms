@@ -172,11 +172,11 @@
   });
 
   $("#session_experiment_id").change(function() {
-    window.location.replace('{{pomspath}}/update_session_experiment/{{experiment}}/{{role}}?session_experiment=' +  $("#session_experiment_id").val());
+    window.location.replace('{{pomspath}}/update_session_experiment/{{session_experiment}}/{{session_role}}?session_experiment=' +  $("#session_experiment_id").val());
   });
 
   $("#current_role").change(function() {
-    window.location.replace('{{pomspath}}/update_session_role/{{experiment}}/{{role}}?session_role=' + $("#current_role").val());
+    window.location.replace('{{pomspath}}/update_session_role/{{session_experiment}}/{{session_role}}?session_role=' + $("#current_role").val());
   });
 
   $('.tbox').popup({
