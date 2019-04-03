@@ -61,6 +61,15 @@ def show_campaign_stages(campaign_name=None, test=None, **kwargs):
     )
     return status in (200, 201), json.loads(data)
 
+def update_submission(submission_id,status, test=None,configfile=None, **kwargs ):
+    data, status = make_poms_call(
+        method = 'update_submission',
+        submission_id = submission_id,
+        status = status,
+        test_client=test,
+        configfile=configfile,
+        **kwargs)
+    return status in (200, 201), data
 
 def campaign_stage_submissions(experiment, role, campaign_name, stage_name, test=None, configfile=None, **kwargs):
     '''
@@ -109,7 +118,7 @@ def upload_wf(file_name, test=None, experiment=None, configfile=None):
     return status in (200, 201), json.loads(data)
 
 
-def upload_file(file_name, test=None, experiment=None, configfile=None):
+def upload_file(file_name, test=None, configfile=None):
     '''
     upload a file to your $UPLOADS area on the poms server to be used in jo b launches.  returns boolean "Ok" value
     '''
