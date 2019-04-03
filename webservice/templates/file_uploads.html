@@ -46,7 +46,7 @@ Uploaded Files
     </div>
   {% else %}
   <h3> Upload a file </h3>
-  <form action="{{pomspath}}/upload_file/{{experiment}}/{{role}}/{{experimenter}}" method="POST" enctype="multipart/form-data">
+  <form action="{{pomspath}}/upload_file/{{experiment}}/{{role}}/{{session_experimenter}}" method="POST" enctype="multipart/form-data">
   Filename: <input type="file" name="filename" multiple />
             <input type="submit" value="Upload" />
             </form>
@@ -56,7 +56,7 @@ Uploaded Files
 
   <div class="ui raised segment">
   <h3> Uploaded files </h3>
-  <form action="{{pomspath}}/remove_uploaded_files/{{experiment}}/{{role}}/{{experimenter}}">
+  <form action="{{pomspath}}/remove_uploaded_files/{{experiment}}/{{role}}/{{session_experimenter}}">
   <table class="ui celled table raised">
   <thead>
   <tr><th><input name="file_all" id="file_all" type="checkbox"><th>Name</th><th>Size</th><th>Uploaded</th></tr>
@@ -88,9 +88,9 @@ Uploaded Files
 
     $(".search").dropdown({
         onChange: function(value) {
-            //$('body').load("{{pomspath}}/file_uploads/{{experiment}}/{{role}}/{{experimenter}}", {'checkuser': value});
+            //$('body').load("{{pomspath}}/file_uploads/{{experiment}}/{{role}}/{{checkuser}}", {'checkuser': value});
             $.ajax({
-                url: "{{pomspath}}/file_uploads_json/{{experiment}}/{{role}}/{{experimenter}}",
+                url: "{{pomspath}}/file_uploads_json/{{experiment}}/{{role}}/{{checkuser}}",
                 type: 'GET',
                 data: {'checkuser': value},
                 success:  function(data){

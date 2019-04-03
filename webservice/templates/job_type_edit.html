@@ -182,7 +182,7 @@ JobTypes {%include 'help_button.html'%}
 	<input type="submit" value="Save" id="ae_submit" class="ui button teal" />
 	<input type="submit" name="test_template" value="Test" id="ae_test"class="ui button orange" />
       </div>
-      <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
+      <!-- <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}"> -->
       <input type="hidden" name="action" id="ae_definition_action" value="add">
       <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{experimenter_id|default('unknown')}}">
       <input type="hidden" id="ae_campaign_definition_id" name="ae_campaign_definition_id" value="0">
