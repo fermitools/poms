@@ -408,7 +408,7 @@ class PomsService:
     # @cherrypy.tools.json_out()
     @logit.logstartstop
     def get_campaign_name(self, campaign_id):
-        name = self.campaignsPOMS.get_campaign_name(cherrypy.request.db, campaign_id)
+        name = self.campaignsPOMS.get_campaign_name(cherrypy.request.db, cherrypy.session.get, campaign_id)
         return name
 
 
@@ -417,7 +417,7 @@ class PomsService:
     # @cherrypy.tools.json_out()
     @logit.logstartstop
     def get_campaign_stage_name(self, campaign_stage_id):
-        name = self.campaignsPOMS.get_campaign_stage_name(cherrypy.request.db, campaign_stage_id)
+        name = self.campaignsPOMS.get_campaign_stage_name(cherrypy.request.db, cherrypy.session.get, campaign_stage_id)
         return name
 
     # h4. campaign_add_name
