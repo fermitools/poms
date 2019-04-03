@@ -46,7 +46,7 @@ Uploaded Files
     </div>
   {% else %}
   <h3> Upload a file </h3>
-  <form action="{{pomspath}}/upload_file/{{experiment}}/{{role}}/{{session_experimenter}}" method="POST" enctype="multipart/form-data">
+  <form action="{{pomspath}}/upload_file/{{experiment}}/{{role}}/{{username}}" method="POST" enctype="multipart/form-data">
   Filename: <input type="file" name="filename" multiple />
             <input type="submit" value="Upload" />
             </form>
@@ -56,7 +56,7 @@ Uploaded Files
 
   <div class="ui raised segment">
   <h3> Uploaded files </h3>
-  <form action="{{pomspath}}/remove_uploaded_files/{{experiment}}/{{role}}/{{session_experimenter}}">
+  <form action="{{pomspath}}/remove_uploaded_files/{{experiment}}/{{role}}/{{username}}">
   <table class="ui celled table raised">
   <thead>
   <tr><th><input name="file_all" id="file_all" type="checkbox"><th>Name</th><th>Size</th><th>Uploaded</th></tr>
