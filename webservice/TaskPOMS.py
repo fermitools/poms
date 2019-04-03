@@ -114,12 +114,12 @@ class TaskPOMS:
             if cs_id != old_cs_id:
                 if this_plist:
                     res[old_cs_id] = [exp, this_plist]
-                    # make one for old_cs_id which is this_plist 
+                    # make one for old_cs_id which is this_plist
                     this_plist = []
             if project:
                 this_plist.append(project)
             old_cs_id = cs_id
- 
+
         if this_plist:
             res[old_cs_id] = [exp, this_plist]
 
@@ -409,7 +409,7 @@ class TaskPOMS:
             s.command_executed = command_executed
             if user != 390:
                 s.creator=user
-           
+
             s.updated = tim
         else:
             s = Submission(campaign_stage_id=cs.campaign_stage_id,
@@ -531,7 +531,7 @@ class TaskPOMS:
                            error_exception, config_get, submission_id):
         submission = (dbhandle.query(Submission)
                       .options(joinedload(Submission.campaign_stage_snapshot_obj))
-                      .options(joinedload(Submission.login_setup_snap_obj))
+                      .options(joinedload(Submission.login_setup_snapshot_obj))
                       .options(joinedload(Submission.job_type_snapshot_obj))
                       .filter(Submission.submission_id == submission_id)
                       .first())
@@ -578,7 +578,7 @@ class TaskPOMS:
         flist.extend(glob.glob(pattern2))
 
         logit.log("found list of submission files:(%s -> %s)" % (pattern,repr(flist)))
-        
+
         submission_log_format = 0
         if "{}/{}_{}_{}".format(dirname,ds, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
             submission_log_format = 3
@@ -595,7 +595,7 @@ class TaskPOMS:
         elif "{}/{}".format(dirname,ds2) in flist:
             ds = ds2
             submission_log_format = 1
-           
+
         return submission, history, dataset, rmap, smap, ds, submission_log_format
 
     def running_submissions(self, dbhandle, campaign_id_list, status_list=[
@@ -695,7 +695,7 @@ class TaskPOMS:
                 [LoginSetup, LoginSetupSnapshot,
                  LoginSetup.login_setup_id,
                  LoginSetupSnapshot.login_setup_id,
-                 cs.login_setup_id, 'login_setup_snap_obj'
+                 cs.login_setup_id, 'login_setup_snapshot_obj'
                  ]]:
 
             i = dbhandle.query(
@@ -813,7 +813,7 @@ class TaskPOMS:
             s.recovery_position = 0
             rt = dbhandle.query(RecoveryType).filter(
                 RecoveryType.recovery_type_id == int(recovery_type_override)).all()
-            # need to make a temporary CampaignRecovery 
+            # need to make a temporary CampaignRecovery
             rlist = [ CampaignRecovery(job_type_id = s.campaign_stage_obj.job_type_id, recovery_order = 0, param_overrides = [], recovery_type_id = rt[0].recovery_type_id, recovery_type = rt[0])]
         else:
             rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(
@@ -853,7 +853,7 @@ class TaskPOMS:
                         dim_bits = oft
                     else:
                         dim_bits = "file_name like %s" % oft
-                       
+
                     recovery_dims += "%s isparentof: ( version %s and %s and create_date > '%s' ) " % (
                         sep, s.campaign_stage_snapshot_obj.software_version, dim_bits, cdate)
                     sep = 'and'
@@ -920,7 +920,7 @@ class TaskPOMS:
         c = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == 0).first()
         if not c:
              c = CampaignStage(campaign_stage_id = 0,
-                                name="DummyLaunchStatusHOlder", 
+                                name="DummyLaunchStatusHOlder",
                                 experiment='samdev',
                                 completion_pct="95",
                                 completion_type="complete",
@@ -956,7 +956,7 @@ class TaskPOMS:
             launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == hl.launcher).first()
             if not launch_user:
                 logit.log("bogus experimenter_id : %s aborting held launch"  % hl.launcher)
-                 
+
                 dbhandle.delete(hl)
                 dbhandle.commit()
                 return "Fail: invalid queued user"
@@ -977,11 +977,11 @@ class TaskPOMS:
                 cs.experiment,
                 cs.creator_role,
                 launch_user.root)
-         
+
             self.launch_jobs(dbhandle,
                              getconfig, gethead,
                              seshandle.get, samhandle,
-                             err_res, 
+                             err_res,
                              basedir,
                              campaign_stage_id,
                              launcher,
@@ -1009,7 +1009,7 @@ class TaskPOMS:
         ds = launch_time.strftime("%Y%m%d_%H%M%S")
         e = seshandle_get('experimenter')
         se_role = e.session_role
-        
+
 
         # at the moment we're inconsistent about whether we pass
         # launcher as a username or experimenter_id or if its a string
@@ -1058,7 +1058,7 @@ class TaskPOMS:
 
             cs = cq.options(
                 joinedload(CampaignStage.campaign_obj),
-                joinedload(CampaignStage.login_setup_obj), 
+                joinedload(CampaignStage.login_setup_obj),
                 joinedload(CampaignStage.job_type_obj)).first()
 
             se_role = cs.creator_role
@@ -1144,11 +1144,11 @@ class TaskPOMS:
             sandbox = '$HOME'
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
 
-        allheld = self.get_job_launches(dbhandle) == "hold" 
+        allheld = self.get_job_launches(dbhandle) == "hold"
         csheld = bool(cs.hold_experimenter_id)
         proxyheld =(se_role == 'analysis' and not self.has_valid_proxy(proxyfile))
         if allheld or csheld or proxyheld:
-            
+
             if allheld:
                 output = "Job launches currently held.... queuing this request"
             if csheld:

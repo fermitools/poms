@@ -19,13 +19,13 @@ rs = requests.Session()
 def show_campaigns(test=None, **kwargs):
     # experiment=None, configfile=None, view_active=None, view_inactive=None,
     #                view_mine=None, view_others=None, view_production=None, update_view=None):
-    '''
+    """
     Return data about campaigns for the current experiment.
-    '''
+    """
 
     data, status = make_poms_call(
         method='show_campaigns',
-        format='json',
+        fmt='json',
         test_client=test,
         # configfile=configfile,
         # view_active=view_active,
@@ -43,12 +43,12 @@ def show_campaigns(test=None, **kwargs):
 def show_campaign_stages(campaign_name=None, test=None, **kwargs):
                         #  experiment=None, configfile=None,
                         #  view_active=None, view_mine=None, view_others=None, view_production=None, update_view=None):
-    '''
+    """
     Return campaign stages for campaign for the current experiment.
-    '''
+    """
     data, status = make_poms_call(
         method='show_campaign_stages',
-        format='json',
+        fmt='json',
         test_client=test,
         campaign_name=campaign_name,
         # configfile=configfile,
@@ -62,33 +62,32 @@ def show_campaign_stages(campaign_name=None, test=None, **kwargs):
     return status in (200, 201), json.loads(data)
 
 
-def campaign_stage_submissions(campaign_id, campaign_name, stage_name, campaign_stage_id=None, test=None, experiment=None, configfile=None):
-    '''
+def campaign_stage_submissions(campaign_name, stage_name, test=None, configfile=None, **kwargs):
+    """
     Return data about campaigns for the current experiment.
-    '''
+    """
 
     data, status = make_poms_call(
         method='campaign_stage_submissions',
-        format='json',
-        test_client=test,
-        configfile=configfile,
-        campaign_id=campaign_id,
-        campaign_stage_id=campaign_stage_id,
+        fmt='json',
         campaign_name=campaign_name,
         stage_name=stage_name,
+        test_client=test,
+        configfile=configfile,
+        **kwargs
     )
     return status in (200, 201), json.loads(data)
 
 
 def submission_details(submission_id, test=None, experiment=None, configfile=None):
-    '''
+    """
     return details about a certain submission
-    '''
+    """
 
     data, status = make_poms_call(
         method='submission_details',
         submission_id=submission_id,
-        format='json',
+        fmt='json',
         test_client=test,
         configfile=configfile)
 
@@ -123,7 +122,7 @@ def upload_file(file_name, test=None, experiment=None, configfile=None):
 
 def get_campaign_id(campaign_name, test=None, configfile=None):
     '''
-    deprecated: get a campaign stage id by name. Returns integer campaign_stage_id
+    Get a campaign id by name. Returns integer campaign_id
     '''
     data, status = make_poms_call(
         method='get_campaign_id',
@@ -133,7 +132,32 @@ def get_campaign_id(campaign_name, test=None, configfile=None):
     return int(data)
 
 
-def register_poms_campaign(campaign_name, user=None, experiment=None, version=None, dataset=None, campaign_definition=None, test=None, configfile=None):
+def get_campaign_name(campaign_id, test=None, configfile=None):
+    """
+    Get a campaign name by id. Returns campaign name
+    """
+    data, status = make_poms_call(
+        method='get_campaign_name',
+        campaign_id=campaign_id,
+        test=test,
+        configfile=configfile)
+    return data
+
+
+def get_campaign_stage_name(campaign_stage_id, test=None, configfile=None):
+    """
+    Get a campaign stage name by id. Returns stage name
+    """
+    data, status = make_poms_call(
+        method='get_campaign_stage_name',
+        campaign_stage_id=campaign_stage_id,
+        test=test,
+        configfile=configfile)
+    return data
+
+
+def register_poms_campaign(campaign_name, user=None, experiment=None, version=None, dataset=None,
+                           campaign_definition=None, test=None, configfile=None):
     '''
     deprecated: register campaign stage. returns "Campaign=<stage_id>"
     '''
@@ -350,6 +374,7 @@ def campaign_definition_edit(output_file_patterns, launch_script, def_parameter=
 
     #return data['message']
 
+
 def campaign_edit(**kwargs):
     print("campaign_edit has been replaced by campaign_stage_edit")
 
@@ -425,13 +450,15 @@ def tag_campaigns(tag, cids, experiment, test_client=False):
 
 def update_session_experiment(experiment, test_client=False):
     logging.debug("in update_session_experiment test_client = " + repr(test_client))
-    res, sc = make_poms_call(method='update_session_experiment', session_experiment = experiment, test_client=test_client)
+    res, sc = make_poms_call(method='update_session_experiment', session_experiment=experiment, test_client=test_client)
     return sc == 200
+
 
 def update_session_role(role, test_client=False):
     logging.debug("in update_session_role test_client = " + repr(test_client))
     res, sc = make_poms_call(method='update_session_role', session_role=role, test_client=test_client)
     return sc == 200
+
 
 def auth_cert():
     # rs.cert = '/tmp/x509up_u`id -u`'
