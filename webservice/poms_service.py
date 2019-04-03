@@ -1069,14 +1069,14 @@ class PomsService:
 
     # h4. upload_file
     @cherrypy.expose
-    @error_rewrite
+    #@error_rewrite
     @logit.logstartstop
-    def upload_file(self, experiment, role, username, filename):
+    def upload_file(self, experiment, role, username, filename, **kwargs):
         self.permissions.can_modify(cherrypy.request.db, get_user(), experiment, role, "Experimenter", item_id=username)
         self.filesPOMS.upload_file(
             cherrypy.config.get('base_uploads_dir'),
-            username,
             experiment,
+            username,
             cherrypy.config.get('base_uploads_quota'),
             filename,
             cherrypy.request.db

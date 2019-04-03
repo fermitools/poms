@@ -366,12 +366,12 @@ class FilesStatus:
         else:
             filenames = filename
 
-        logit.log("upload_file: files: %d", len(filenames))
+        logit.log("upload_file: files: %d" % len(filenames))
 
         for filename in filenames:
-            logit.log("upload_file: filename: %s", filename.filename)
+            logit.log("upload_file: filename: %s" % filename.filename)
             outf = self.get_file_upload_path(basedir, username, experiment, filename.filename)
-            logit.log("upload_file: outf: %s", outf)
+            logit.log("upload_file: outf: %s" % outf)
             os.makedirs(os.path.dirname(outf), exist_ok=True)
             f = open(outf, "wb")
             size = 0
