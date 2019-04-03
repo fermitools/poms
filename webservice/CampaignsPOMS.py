@@ -252,22 +252,36 @@ class CampaignsPOMS:
 
     def get_campaign_id(self, dbhandle, seshandle, campaign_name):
         '''
-            return the campaing id for a campaign name in our experiment
+            return the campaign id for a campaign name in our experiment
         '''
         camp = (dbhandle.query(Campaign)
                 .filter(Campaign.name == campaign_name,
                         Campaign.experiment == seshandle('experimenter').session_experiment)
-                .first())
+                .scalar())
 
-        if not camp:
-            camp = Campaign(name=campaign_name,
-                            experiment=seshandle('experimenter').session_experiment,
-                            creator=seshandle('experimenter').experimenter_id,
-                            creator_role=seshandle('experimenter').session_role)
-            dbhandle.add(camp)
-            dbhandle.commit()
+        return camp.campaign_id if camp else None
 
-        return camp.campaign_id
+
+    def get_campaign_name(self, dbhandle, seshandle, campaign_id):
+        """
+            return the campaign name for a campaign id in our experiment
+        """
+        camp = (dbhandle.query(Campaign)
+                .filter(Campaign.campaign_id == campaign_id,
+                        Campaign.experiment == seshandle('experimenter').session_experiment)
+                .scalar())
+        return camp.name if camp else None
+
+
+    def get_campaign_stage_name(self, dbhandle, seshandle, campaign_stage_id):
+        """
+            return the campaign stage name for a stage id in our experiment
+        """
+        stage = (dbhandle.query(CampaignStage)
+                 .filter(CampaignStage.campaign_stage_id == campaign_stage_id,
+                         CampaignStage.experiment == seshandle('experimenter').session_experiment)
+                 .scalar())
+        return stage.name if stage else None
 
     def campaign_add_name(self, dbhandle, seshandle, **kwargs):
         """
@@ -1499,7 +1513,7 @@ class CampaignsPOMS:
                            .filter(Campaign.experiment == experimenter.session_experiment)
                            .first())
         last_activity = ""
-        if last_activity_l and last_activity_l and last_activity_l[0]:
+        if last_activity_l and last_activity_l[0]:
             if datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
                 last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         return csl, last_activity, msg, data
@@ -2228,8 +2242,7 @@ class CampaignsPOMS:
 
         # Now process all stages
         stages = everything['stages']
-        print("############## stages: {}".format([s.get('id') for s in stages]))
-
+        logit.log("############## stages: {}".format([s.get('id') for s in stages]))
         campaign = [s for s in stages if s.get('id').startswith('campaign ')][0]
         c_old_name = campaign.get('id').split(' ', 1)[1]
         c_new_name = campaign.get('label')

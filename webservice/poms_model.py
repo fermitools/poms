@@ -242,7 +242,7 @@ class Submission(Base):
         "Experimenter", primaryjoin="Submission.updater == Experimenter.experimenter_id"
     )
     parent_obj = relationship("Submission", remote_side=[submission_id], foreign_keys=recovery_tasks_parent)
-    login_setup_snap_obj = relationship("LoginSetupSnapshot", foreign_keys=login_setup_snapshot_id)
+    login_setup_snapshot_obj = relationship("LoginSetupSnapshot", foreign_keys=login_setup_snapshot_id)
     campaign_stage_snapshot_obj = relationship("CampaignStageSnapshot", foreign_keys=campaign_stage_snapshot_id)
     job_type_snapshot_obj = relationship("JobTypeSnapshot", foreign_keys=job_type_snapshot_id)
     status_history = relationship(
