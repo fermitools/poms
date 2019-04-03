@@ -357,6 +357,7 @@ class FilesStatus:
 
 
     def upload_file(self, basedir, experiment, username, quota, filename, dbhandle):
+        logit.log("upload_file: entry")
 
         # if they pick multiple files, we get a list, otherwise just one
         # item, so if its not a list, make it a list of one item...
