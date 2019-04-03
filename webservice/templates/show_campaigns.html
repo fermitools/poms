@@ -86,7 +86,6 @@ Campaigns {%include 'help_button.html'%}
                 <th data-sorter="false" data-filter="false">Clone<br>Campaign</th>
                 <th data-sorter="false" data-filter="false">.ini File</th>
                 <th>Tags</th>
-                <th data-sorter="false" data-filter="false">Rename<br>Campaign</th>
                 <th data-sorter="false" data-filter="false">Delete<br>Campaign</th>
                 <th>Creator</th>
             </tr>
@@ -151,11 +150,6 @@ Campaigns {%include 'help_button.html'%}
                     {% for tag in s.tags %}
                         {{tag.tag_name}}
                     {% endfor %}
-                </td>
-                <td>
-                    <button {{ 'class="ui disabled button"' if (data.authorized[loop.index] == false) }}>
-                        <i class="exchange blue icon" onclick="rename_campaign('{{s.name}}', '{{s.campaign_id}}');"></i>
-                    </button>
                 </td>
                 <td>
                     <button {{ 'class="ui disabled button"' if (data.authorized[loop.index] == false) }}>
