@@ -30,8 +30,8 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
     <table class="ui sortable celled table">
         <thead>
             <tr>
-                {%if data.stage_name=='*' %} 
-                <th>Stage Name</th> 
+                {%if data.stage_name=='*' %}
+                <th>Stage Name</th>
                 {%endif%}
                 <th>Submission Id</th>
                 <th>Jobsub Id</th>
@@ -44,7 +44,7 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
         <tbody>
         {% for rec in data.submissions %}
         <tr>
-            {%if data.stage_name=='*' %} 
+            {%if data.stage_name=='*' %}
             <td>{{rec.campaign_stage_name}}</td>
             {%endif%}
             <td>{{rec.submission_id}}</td>
@@ -57,26 +57,33 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
                 {% endif %}
             </td>
             <td>
-                {% if rec.jobsub_job_id is not none %}
-                    {% if rec.status in ('New', 'Idle', 'Running', 'Held') %}
-                    <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>&nbsp;
-                    <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=release" alt="Release"><i class="ui play icon"></i></a>&nbsp;
-                    <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>
-                       <i class="ui forward icon  grey"></i>&nbsp;
-                    {% elif rec.status == 'Completed' %}
-                       <i class="ui pause icon grey"></i>&nbsp; 
-                       <i class="ui play icon grey"></i>&nbsp;
-                       <i class="ui trash icon grey"></i>&nbsp;
-                    <a href="{{pomspath}}/force_locate_submission/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>
-                    {% else %}
-                     <span>
-                       <i class="ui pause icon grey"></i>&nbsp;
-                       <i class="ui play icon grey"></i>&nbsp;
-                       <i class="ui trash icon grey"></i>&nbsp;
-                       <i class="ui forward icon  grey"></i>&nbsp;
-                     <span>
-                    {% endif %}
-                {% endif %}
+            {% if rec.status in ('New', 'Idle', 'Running', 'Held') %}
+                <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>&nbsp;
+                <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=release" alt="Release"><i class="ui play icon"></i></a>&nbsp;
+                <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>
+                <i class="ui forward icon  grey"></i>&nbsp;
+                <i class="ui checkmark icon  grey"></i>&nbsp;
+            {% elif rec.status == 'Completed' %}
+                <i class="ui pause icon grey"></i>&nbsp;
+                <i class="ui play icon grey"></i>&nbsp;
+                <i class="ui trash icon grey"></i>&nbsp;
+                <a href="{{pomspath}}/force_locate_submission/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>
+                <i class="ui checkmark icon  grey"></i>&nbsp;
+            {% elif rec.status == 'Awaiting Approval' %}
+                <i class="ui pause icon grey"></i>&nbsp;
+                <i class="ui play icon grey"></i>&nbsp;
+                <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>
+                <i class="ui forward icon  grey"></i>&nbsp;
+                <a href="{{pomspath}}/update_submission_status/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=approved" alt="Approved"><i class="ui checkmark icon"></i></a>
+            {% else %}
+                <span>
+                <i class="ui pause icon grey"></i>&nbsp;
+                <i class="ui play icon grey"></i>&nbsp;
+                <i class="ui trash icon grey"></i>&nbsp;
+                <i class="ui forward icon  grey"></i>&nbsp;
+                <i class="ui checkmark icon  grey"></i>&nbsp;
+                <span>
+            {% endif %}
             </td>
             <td>
                 <button class="teal tiny ui button" onclick="get_status_history({{rec.submission_id}})">
