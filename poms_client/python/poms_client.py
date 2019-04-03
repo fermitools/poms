@@ -118,7 +118,7 @@ def upload_wf(file_name, test=None, experiment=None, configfile=None):
     return status in (200, 201), json.loads(data)
 
 
-def upload_file(file_name, test=None, experiment=None, configfile=None):
+def upload_file(file_name, test=None, configfile=None):
     '''
     upload a file to your $UPLOADS area on the poms server to be used in jo b launches.  returns boolean "Ok" value
     '''
