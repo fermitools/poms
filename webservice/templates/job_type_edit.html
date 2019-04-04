@@ -29,7 +29,7 @@ JobTypes {%include 'help_button.html'%}
 	{# {% include 'help_button.html' %} task #21477 #}
 {% endmacro %}
 
-<form id="campaign_definition_form" class="ui form" action="job_type_edit/{{experiment}}/{{role}}" method="POST">
+<form id="campaign_definition_form" class="ui form" action="{{pomspath}}/job_type_edit/{{session_experiment}}/{{session_role}}" method="POST">
 
   {% set data = data|default({}) %}
   {%include "view_picker.html" %}
@@ -135,7 +135,7 @@ JobTypes {%include 'help_button.html'%}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <form id="definition_add_edit_form" class="ui form" method="POST" action="job_type_edit/{{experiment}}/{{role}}">
+    <form id="definition_add_edit_form" class="ui form" method="POST" action="{{pomspath}}/job_type_edit/{{session_experiment}}/{{session_role}}">
       <div class="two fields">
 		<div class="field">
 			<label>Name</label>
