@@ -72,8 +72,12 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
                         <i class="ui pause icon grey"></i>&nbsp;
                         <i class="ui play icon grey"></i>&nbsp;
                         <i class="ui forward icon  grey"></i>&nbsp;
-                       <i class="ui trash icon grey"></i>&nbsp;
-                        <a href="{{pomspath}}/update_submission_status?submission_id={{rec.submission_id}}&status=Completed&jobsub_job_id=&redirect=1" alt="Approve"><i class="ui checkmark icon"></i></a>
+                        <a onclick="confirm_call('Are you sure you want to UnApprove ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Removed&redirect=1')" alt="UnApprove">
+                        <i class="ui trash icon blue"></i>
+                        </a>
+                        <a onclick="confirm_call('Are you sure you want to approve ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed&redirect=1')" alt="Approve">
+                        <i class="ui checkmark icon blue"></i>
+                        </a>
                     {% else %}
                      <span>
                        <i class="ui pause icon grey"></i>&nbsp;
