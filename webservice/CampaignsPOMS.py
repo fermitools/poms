@@ -357,6 +357,7 @@ class CampaignsPOMS:
         e = seshandle_get('experimenter')
         se_role = e.session_role
         exp = e.session_experiment
+        campaign_id = kwargs.get('campaign_id')
 
         camp = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).first()
         if not exp == camp.experiment:
@@ -367,7 +368,6 @@ class CampaignsPOMS:
         data = {}
         data['message'] = "ok"
         try:
-            campaign_id = kwargs.get('campaign_id')
             new_name = kwargs.get('new_campaign_name')
             new_name = new_name.strip()
             if new_name == "":
@@ -376,8 +376,7 @@ class CampaignsPOMS:
                 columns = {
                     "name": new_name,
                 }
-                dbhandle.query(Campaign).filter(
-                    Campaign.campaign_id == campaign_id).update(columns)
+                dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).update(columns)
                 dbhandle.commit()
         except SQLAlchemyError as exc:
             data['message'] = ("SQLAlchemyError: "
