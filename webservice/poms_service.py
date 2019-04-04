@@ -1292,7 +1292,7 @@ class PomsService:
             cherrypy.response.headers['Content-Type'] = "text/plain"
             return vals
 
-        lcmd, campaign_stage_id, outfile = vals
+        lcmd, cs, campaign_stage_id, outfile = vals
         if lcmd == "":
             return outfile
         else:
