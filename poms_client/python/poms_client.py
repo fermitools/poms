@@ -520,7 +520,6 @@ def make_poms_call(**kwargs):
 
     config = getconfig(kwargs)
 
-
     method = kwargs.get("method")
     del kwargs["method"]
 

@@ -30,8 +30,8 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
     <table class="ui sortable celled table">
         <thead>
             <tr>
-                {%if data.stage_name=='*' %} 
-                <th>Stage Name</th> 
+                {%if data.stage_name=='*' %}
+                <th>Stage Name</th>
                 {%endif%}
                 <th>Submission Id</th>
                 <th>Jobsub Id</th>
@@ -44,7 +44,7 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
         <tbody>
         {% for rec in data.submissions %}
         <tr>
-            {%if data.stage_name=='*' %} 
+            {%if data.stage_name=='*' %}
             <td>{{rec.campaign_stage_name}}</td>
             {%endif%}
             <td>{{rec.submission_id}}</td>
@@ -68,6 +68,16 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
                        <i class="ui play icon grey"></i>&nbsp;
                        <i class="ui trash icon grey"></i>&nbsp;
                     <a href="{{pomspath}}/force_locate_submission?submission_id={{rec.submission_id}}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>
+                    {% elif rec.status == 'Awaiting Approval' %}
+                        <i class="ui pause icon grey"></i>&nbsp;
+                        <i class="ui play icon grey"></i>&nbsp;
+                        <i class="ui forward icon  grey"></i>&nbsp;
+                        <a onclick="confirm_call('Are you sure you want to UnApprove ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Removed&redirect=1')" alt="UnApprove">
+                        <i class="ui trash icon blue"></i>
+                        </a>
+                        <a onclick="confirm_call('Are you sure you want to approve ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed&redirect=1')" alt="Approve">
+                        <i class="ui checkmark icon blue"></i>
+                        </a>
                     {% else %}
                      <span>
                        <i class="ui pause icon grey"></i>&nbsp;

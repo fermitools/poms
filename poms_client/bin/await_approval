@@ -15,7 +15,12 @@ parser = optparse.OptionParser(usage="usage: %prog [options] \n mark submission 
 parser.add_option('--submission_id', help="submission id", default = os.environ['POMS4_SUBMISSION_ID'])
 parser.add_option('--experiment', help="experiment name", default = None)
 parser.add_option('--verbose', '-v', action='store_true', default = None)
-parser.add_argument('--dataset', help="dataset to propagate for dependencies", default = None)
+parser.add_option('--dataset', help="dataset to propagate for dependencies", default = None)
+parser.add_option('--test',  help="use test server", default = None)
+parser.add_option('--poms_role', type=str, help='use to test the client URL query', default = 'production')
+parser.add_option('--dev', action='store_const', const='dev', dest='test_client' , metavar='',  help='use the dev/test instance of POMS')
+parser.add_option('--int', action='store_const', const='int', dest='test_client' , metavar='',  help='use the int/integration instance of POMS')
+
 
 (options, args ) = parser.parse_args()
 if options.verbose:
@@ -30,4 +35,4 @@ if options.dataset:
            name = "poms_depends_%s_%d" %( options.submission_id, i)
            samweb.createDefinition(name, dims)
 
-update_submission(options.submission_id,'Awaiting Approval', jobsub_job_id = "%d@fakebatch.fnal.gov"%time.time())
+update_submission(options.submission_id,'Awaiting Approval', jobsub_job_id = "%d@fakebatch.fnal.gov"%time.time(), test=options.test_client)
