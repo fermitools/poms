@@ -14,5 +14,5 @@ set client_min_messages to warning;
 
 ALTER TABLE campaign_stages ADD merge_overrides bool DEFAULT false;
 
-insert into submission_statuses (status_id, status) values (10000, 'Awating Approval');
+insert into submission_statuses (status_id, status) values (10000, 'Awaiting Approval');
 insert into submission_statuses (status_id, status) values (11000, 'Approved');
