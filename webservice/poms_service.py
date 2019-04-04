@@ -945,9 +945,11 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def update_submission(self, submission_id, jobsub_job_id,
-                          pct_complete=None, status=None, project=None):
+                          pct_complete=None, status=None, project=None,redirect=None):
         res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id,
                                               status=status, project=project, pct_complete=pct_complete)
+        if redirect:
+            raise cherrypy.HTTPRedirect(cherrypy.request.headers.get('Referer')) 
         return res
 
 
