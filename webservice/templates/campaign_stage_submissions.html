@@ -77,7 +77,9 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
             {% elif rec.status == 'Awaiting Approval' %}
                 <i class="ui pause icon grey"></i>&nbsp;
                 <i class="ui play icon grey"></i>&nbsp;
-                <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>
+                <a onclick="confirm_call('Are you sure you want to UnApprove ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Removed&redirect=1')" alt="UnApprove">
+                <i class="ui trash icon blue"></i>
+                </a>
                 <i class="ui forward icon  grey"></i>&nbsp;
                 <a onclick="confirm_call('Are you sure you want to approve ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed&redirect=1')" alt="Approve">
                 <i class="ui checkmark icon blue"></i>
