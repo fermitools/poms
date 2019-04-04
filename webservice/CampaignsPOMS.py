@@ -1660,8 +1660,7 @@ class CampaignsPOMS:
         last_activity_l = dbhandle.query(func.max(Submission.updated)).filter(
             Submission.campaign_stage_id == campaign_stage_id).first()
         logit.log("got last_activity_l %s" % repr(last_activity_l))
-        if last_activity_l[0] and datetime.now(
-                utc) - last_activity_l[0] > timedelta(days=7):
+        if last_activity_l[0] and datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
             last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         else:
             last_activity = ""
@@ -1744,7 +1743,10 @@ class CampaignsPOMS:
         '''
            Show submissions from a campaign stage
         '''
-        base_link = 'campaign_stage_submissions?campaign_name={}&stage_name={}&campaign_stage_id={}&campaign_id={}&'.format(campaign_name, stage_name, campaign_stage_id ,campaign_id)
+        exp = cherrypy.session.get('experimenter').session_experiment
+        base_link = 'campaign_stage_submissions?campaign_name={}&stage_name={}&campaign_stage_id={}&campaign_id={}&'.format(
+            campaign_name, stage_name, campaign_stage_id ,campaign_id
+        )
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(tmin, tmax, tdays, base_link)
         print("  tmin:%s\n   tmax:%s\n   tmins:%s\n   tmaxs:%s\n   nextlink:%s\n   prevlink:%s\n   time_range_string:%s\n   tdays:%s\n" %
               (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays))
@@ -1756,15 +1758,28 @@ class CampaignsPOMS:
                 .filter(SubmissionHistory.submission_id == subhist.submission_id)
                )
 
-        if campaign_id in (None, 'None','') and campaign_stage_id in (None, 'None',''):
+        if campaign_name and campaign_id in (None, 'None', ''):
+            campaign_id = dbhandle.query(Campaign.campaign_id).filter(
+                Campaign.name == campaign_name,
+                Campaign.experiment == exp,
+                ).scalar()
+
+        if stage_name and campaign_stage_id in (None, 'None', ''):
+            campaign_stage_id = dbhandle.query(CampaignStage.campaign_stage_id).filter(
+                CampaignStage.name == stage_name,
+                CampaignStage.experiment == exp,
+                CampaignStage.campaign_id == campaign_id,
+            ).scalar()
+
+        if campaign_id in (None, 'None', '') and campaign_stage_id in (None, 'None', ''):
             raise AssertionError("campaign_stage_submissions needs either campaign_id or campaign_stage_id not None")
 
-        if not campaign_id in (None, 'None',''):
+        if not campaign_id in (None, 'None', ''):
             campaign_stage_ids = (dbhandle.query(CampaignStage.campaign_stage_id)
                                   .filter(CampaignStage.campaign_id == campaign_id)
                                   .all())
 
-        if not campaign_stage_id in (None, 'None',''):
+        if not campaign_stage_id in (None, 'None', ''):
             campaign_stage_ids = [campaign_stage_id]
 
         tuples = (dbhandle.query(Submission, SubmissionHistory, SubmissionStatus)
