@@ -1631,21 +1631,35 @@ class CampaignsPOMS:
             recent_submissions,
         )
 
-    def campaign_stage_submissions(self, dbhandle, experiment, role, campaign_name='', stage_name='', campaign_stage_id=None, campaign_id=None,
+    def campaign_stage_submissions(self, dbhandle, experiment, role, campaign_name='', stage_name='',
+                                   campaign_stage_id=None, campaign_id=None,
                                    tmin=None, tmax=None, tdays=None):
-        '''
+        """
            Show submissions from a campaign stage
-        '''
+        """
+        if campaign_name and campaign_id in (None, 'None', ''):
+            campaign_id = dbhandle.query(Campaign.campaign_id).filter(
+                Campaign.name == campaign_name,
+                Campaign.experiment == experiment,
+                ).scalar()
+
+        if stage_name and campaign_stage_id in (None, 'None', ''):
+            campaign_stage_id = dbhandle.query(CampaignStage.campaign_stage_id).filter(
+                CampaignStage.name == stage_name,
+                CampaignStage.experiment == experiment,
+                CampaignStage.campaign_id == campaign_id,
+            ).scalar()
+
         if campaign_id in (None, 'None', '') and campaign_stage_id in (None, 'None', ''):
             raise AssertionError("campaign_stage_submissions needs either campaign_id or campaign_stage_id not None")
 
-        if not campaign_id in (None, 'None', ''):
+        if campaign_id not in (None, 'None', ''):
             campaign_stage_rows = (
                 dbhandle.query(CampaignStage.campaign_stage_id).filter(CampaignStage.campaign_id == campaign_id).all()
             )
             campaign_stage_ids = [row[0] for row in campaign_stage_rows]
 
-        if not campaign_stage_id in (None, 'None', ''):
+        if campaign_stage_id not in (None, 'None', ''):
             campaign_stage_ids = [campaign_stage_id]
 
         # if we're not given any time info, do from start of campaign stage
@@ -1714,7 +1728,7 @@ class CampaignsPOMS:
                 'creator': tup.Submission.experimenter_creator_obj.username,
                 'status': tup.SubmissionStatus.status,
                 'jobsub_cluster': full_jjid[: full_jjid.find('@')],
-                'jobsub_schedd': full_jjid[full_jjid.find('@') + 1 :],
+                'jobsub_schedd': full_jjid[full_jjid.find('@') + 1:],
                 'campaign_stage_name': tup.Submission.campaign_stage_obj.name,
             }
             submissions.append(row)
@@ -2094,7 +2108,7 @@ class CampaignsPOMS:
             role = args[1] or 'production'
         else:
             exp = kwargs['experiment']
-            role = kwargs['role'] 
+            role = kwargs['role']
 
         experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
         user_id = experimenter.experimenter_id
