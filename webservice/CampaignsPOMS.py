@@ -1773,12 +1773,13 @@ class CampaignsPOMS:
         if campaign_id in (None, 'None', '') and campaign_stage_id in (None, 'None', ''):
             raise AssertionError("campaign_stage_submissions needs either campaign_id or campaign_stage_id not None")
 
-        if not campaign_id in (None, 'None', ''):
-            campaign_stage_ids = (dbhandle.query(CampaignStage.campaign_stage_id)
-                                  .filter(CampaignStage.campaign_id == campaign_id)
-                                  .all())
+        if campaign_id not in (None, 'None', ''):
+            campaign_stage_rows = (
+                dbhandle.query(CampaignStage.campaign_stage_id).filter(CampaignStage.campaign_id == campaign_id).all()
+            )
+            campaign_stage_ids = [row[0] for row in campaign_stage_rows]
 
-        if not campaign_stage_id in (None, 'None', ''):
+        if campaign_stage_id not in (None, 'None', ''):
             campaign_stage_ids = [campaign_stage_id]
 
         tuples = (dbhandle.query(Submission, SubmissionHistory, SubmissionStatus)
