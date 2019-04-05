@@ -280,7 +280,7 @@ all the time...
    <ul>
    {%for f in launch_flist|sort(reverse=True)%}
       <li>
-      <a href="list_launch_file?campaign_stage_id={{CampaignStage.campaign_stage_id}}&fname={{f}}">{{f}}</a>
+      <a href="{{pomspath}}/list_launch_file/{{experiment}}/{{role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&fname={{f}}">{{f}}</a>
       {%if f|length > 22 %}
           {%set submission_id = f.split('_')[3]|default('0')|int %}
           {%if submission_id != 0 %}
