@@ -2109,7 +2109,7 @@ class CampaignsPOMS:
 
     def split_type_javascript(self, dbhandle, sesshandle, samhandle, *args, **kwargs):
 
-        class fake_campaign_stage:
+        class FakeCampaignStage:
             def __init__(self, dataset="", cs_split_type=""):
                 self.dataset = dataset
                 self.cs_split_type = cs_split_type
@@ -2133,7 +2133,7 @@ class CampaignsPOMS:
 
         modnames = [os.path.basename(x).replace('.py', '') for x in split_list]
 
-        fake_cs = fake_campaign_stage(dataset='null', cs_split_type='')
+        fake_cs = FakeCampaignStage(dataset='null', cs_split_type='')
 
         for modname in modnames:
 
