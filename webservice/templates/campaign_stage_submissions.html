@@ -59,23 +59,23 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
             <td>
                 {% if rec.jobsub_job_id is not none %}
                     {% if rec.status in ('New', 'Idle', 'Running', 'Held') %}
-                    <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>&nbsp;
-                    <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=release" alt="Release"><i class="ui play icon"></i></a>&nbsp;
-                    <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>
+                    <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=hold" title="Hold"><i class="ui pause icon"></i></a>&nbsp;
+                    <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=release" title="Release"><i class="ui play icon"></i></a>&nbsp;
+                    <a href="{{pomspath}}/kill_jobs?submission_id={{rec.submission_id}}&act=kill" title="Kill"><i class="ui trash icon"></i></a>
                        <i class="ui forward icon  grey"></i>&nbsp;
                     {% elif rec.status == 'Completed' %}
                        <i class="ui pause icon grey"></i>&nbsp; 
                        <i class="ui play icon grey"></i>&nbsp;
                        <i class="ui trash icon grey"></i>&nbsp;
-                    <a href="{{pomspath}}/force_locate_submission?submission_id={{rec.submission_id}}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>
+                    <a href="{{pomspath}}/force_locate_submission?submission_id={{rec.submission_id}}" title="Skip ahead to Located"><i class="ui forward icon"></i></a>
                     {% elif rec.status == 'Awaiting Approval' %}
                         <i class="ui pause icon grey"></i>&nbsp;
                         <i class="ui play icon grey"></i>&nbsp;
                         <i class="ui forward icon  grey"></i>&nbsp;
-                        <a onclick="confirm_call('Are you sure you want to UnApprove ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Removed&redirect=1')" alt="UnApprove">
+                        <a onclick="confirm_call('Are you sure you want to UnApprove ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Removed&redirect=1')" title="UnApprove">
                         <i class="ui trash icon blue"></i>
                         </a>
-                        <a onclick="confirm_call('Are you sure you want to approve ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed&redirect=1')" alt="Approve">
+                        <a onclick="confirm_call('Are you sure you want to approve ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed&redirect=1')" title="Approve">
                         <i class="ui checkmark icon blue"></i>
                         </a>
                     {% else %}
