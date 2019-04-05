@@ -288,16 +288,16 @@ all the time...
           {%if recent_submissions[submission_id]|default(9999) < 7000 and recent_submissions[submission_id]|default(9999) != 2000 %}
 
     
-              <a href="/poms/kill_jobs/{{experiment}}/{{role}}?submission_id={{submission_id}}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>&nbsp;
-              <a href="/poms/kill_jobs/{{experiment}}/{{role}}?submission_id={{submission_id}}&act=release" alt="Release"><i class="ui play icon"></i></a>&nbsp;
-              <a href="/poms/kill_jobs/{{experiment}}/{{role}}?submission_id={{submission_id}}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>
+              <a href="/poms/kill_jobs/{{experiment}}/{{role}}?submission_id={{submission_id}}&act=hold" title="Hold"><i class="ui pause icon"></i></a>&nbsp;
+              <a href="/poms/kill_jobs/{{experiment}}/{{role}}?submission_id={{submission_id}}&act=release" title="Release"><i class="ui play icon"></i></a>&nbsp;
+              <a href="/poms/kill_jobs/{{experiment}}/{{role}}?submission_id={{submission_id}}&act=kill" title="Kill"><i class="ui trash icon"></i></a>
                <i class="ui forward icon  grey"></i>&nbsp;
                     
           {%elif recent_submissions[submission_id]|default(9999) == 7000 %}
                <i class="ui pause icon grey"></i>&nbsp;
                <i class="ui play icon grey"></i>&nbsp;
                <i class="ui trash icon grey"></i>&nbsp;
-                    <a href="{{pomspath}}/force_locate_submission/{{experiment}}/{{role}}?submission_id={{submission_id}}" alt="Skip ahead to Located"><i class="ui forward icon"></i></a>
+                    <a href="{{pomspath}}/force_locate_submission/{{experiment}}/{{role}}?submission_id={{submission_id}}" title="Skip ahead to Located"><i class="ui forward icon"></i></a>
           {%else%}
                <i class="ui pause icon grey"></i>&nbsp;
                <i class="ui play icon grey"></i>&nbsp;
