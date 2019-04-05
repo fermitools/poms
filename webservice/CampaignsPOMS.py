@@ -1737,11 +1737,12 @@ class CampaignsPOMS:
                 recent_submissions
                 )
 
-
-    def campaign_stage_submissions(self, dbhandle, campaign_name='', stage_name='', campaign_stage_id=None, campaign_id=None, tmin=None, tmax=None, tdays=1):
-        '''
+    def campaign_stage_submissions(self, dbhandle, campaign_name='', stage_name='',
+                                   campaign_stage_id=None, campaign_id=None,
+                                   tmin=None, tmax=None, tdays=1):
+        """
            Show submissions from a campaign stage
-        '''
+        """
         exp = cherrypy.session.get('experimenter').session_experiment
         base_link = 'campaign_stage_submissions?campaign_name={}&stage_name={}&campaign_stage_id={}&campaign_id={}&'.format(
             campaign_name, stage_name, campaign_stage_id ,campaign_id
@@ -1762,6 +1763,9 @@ class CampaignsPOMS:
                 Campaign.name == campaign_name,
                 Campaign.experiment == exp,
                 ).scalar()
+            if not campaign_id:
+                data['submissions'] = []
+                return data
 
         if stage_name and campaign_stage_id in (None, 'None', ''):
             campaign_stage_id = dbhandle.query(CampaignStage.campaign_stage_id).filter(
@@ -1769,6 +1773,9 @@ class CampaignsPOMS:
                 CampaignStage.experiment == exp,
                 CampaignStage.campaign_id == campaign_id,
             ).scalar()
+            if not campaign_stage_id:
+                data['submissions'] = []
+                return data
 
         if campaign_id in (None, 'None', '') and campaign_stage_id in (None, 'None', ''):
             raise AssertionError("campaign_stage_submissions needs either campaign_id or campaign_stage_id not None")
