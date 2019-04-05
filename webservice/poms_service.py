@@ -433,8 +433,7 @@ class PomsService:
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def campaign_rename_name(self, *args, **kwargs):
-        data = self.campaignsPOMS.campaign_rename_name(
-            cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
+        data = self.campaignsPOMS.campaign_rename_name(cherrypy.request.db, cherrypy.session.get, *args, **kwargs)
         return data
 
 # h4. campaign_stage_edit
@@ -949,7 +948,7 @@ class PomsService:
         res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id,
                                               status=status, project=project, pct_complete=pct_complete)
         if redirect:
-            raise cherrypy.HTTPRedirect(cherrypy.request.headers.get('Referer')) 
+            raise cherrypy.HTTPRedirect(cherrypy.request.headers.get('Referer'))
         return res
 
 
