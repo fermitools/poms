@@ -27,6 +27,15 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
 
 {%block content%}
 
+<script>
+ function confirm_call(msg, url) {
+         var r = confirm(msg);
+     if ( r ) {
+         location.assign(url)
+     }
+ }
+</script>
+
     <table class="ui sortable celled table">
         <thead>
             <tr>
@@ -72,10 +81,10 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
                         <i class="ui pause icon grey"></i>&nbsp;
                         <i class="ui play icon grey"></i>&nbsp;
                         <i class="ui forward icon  grey"></i>&nbsp;
-                        <a onclick="confirm_call('Are you sure you want to UnApprove ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Removed&redirect=1')" alt="UnApprove">
+                        <a alt="Reject" onclick="confirm_call('Are you sure you want to Reject?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Removed&redirect=1')" >
                         <i class="ui trash icon blue"></i>
                         </a>
-                        <a onclick="confirm_call('Are you sure you want to approve ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed&redirect=1')" alt="Approve">
+                        <a alt="Approve" onclick="confirm_call('Are you sure you want to Approve ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed&redirect=1')" >
                         <i class="ui checkmark icon blue"></i>
                         </a>
                     {% else %}
