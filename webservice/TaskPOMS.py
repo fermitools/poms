@@ -156,6 +156,8 @@ class TaskPOMS:
 
         completed_sids = [x[0] for x in cpairs]
 
+        logit.log("wrapup_tasks: completed sids 1: %s" % repr(completed_sids))
+
         # lock them all before updating...
         ll = dbhandle.query(Submission).filter(Submission.submission_id.in_(completed_sids)).with_for_update(read=True).all()
         # now find the ones that are still completed now that we have the lock
@@ -169,6 +171,7 @@ class TaskPOMS:
         )
 
         completed_sids = [x[0] for x in cpairs]
+        logit.log("wrapup_tasks: completed sids 2: %s" % repr(completed_sids))
 
         res.append("Completed submissions_ids: %s" % repr(list(completed_sids)))
 
