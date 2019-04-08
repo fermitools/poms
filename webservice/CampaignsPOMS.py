@@ -1650,7 +1650,7 @@ class CampaignsPOMS:
                 data['submissions'] = []
                 return data
 
-        if stage_name and campaign_stage_id in (None, 'None', ''):
+        if stage_name not in (None, 'None', '*', '') and campaign_stage_id in (None, 'None', ''):
             campaign_stage_id = dbhandle.query(CampaignStage.campaign_stage_id).filter(
                 CampaignStage.name == stage_name,
                 CampaignStage.experiment == experiment,
