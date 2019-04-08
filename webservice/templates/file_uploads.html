@@ -78,7 +78,7 @@ Uploaded Files
   <tr><td style="text-align: right;" colspan=2>Total:</td><td>{{total}}b</td><td>{{(total* 1000.0/quota)|int/10}}% of {{(quota/1024)|int}}k quota</td></tr>
       <tr><td colspan=4>
            {% if session_role == 'analysis' %}
-           <input class="ui basic button red" type="submit" name="action" value="Delete"> {{session_role}}
+           <input class="ui basic button red" type="submit" name="action" value="Delete">
            {% endif %}
       </td></tr>
   </tbody>
