@@ -1640,6 +1640,7 @@ class CampaignsPOMS:
         """
            Show submissions from a campaign stage
         """
+        data = {'tmin': tmin, 'tmax': tmax, 'tdays': tdays}
         if campaign_name and campaign_id in (None, 'None', ''):
             campaign_id = dbhandle.query(Campaign.campaign_id).filter(
                 Campaign.name == campaign_name,
