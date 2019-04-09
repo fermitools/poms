@@ -45,11 +45,10 @@
     <thead>
       <tr>
         <th></th>
-        <th> Name {{ show_hint('#Name', 'Login/Setup name') }}    </th>
-        <th> Host {{ show_hint('#Host', 'Host name') }}    </th>
-        <th> Account {{ show_hint('#Account', 'Account name') }} </th>
-        <th> Setup (The entire shell command must be a single line.) {{ show_hint('#Setup', 'Shell commands to set up login environment for running campaign stage<br>') }}
-        </th>
+        <th> Name </th>
+        <th> Host </th>
+        <th> Account </th>
+        <th> Setup (The entire shell command must be a single line.) </th>
       </tr>
     </thead>
     <tbody>
@@ -128,11 +127,11 @@
   <form id="template_add_edit_form" class="ui form" method="POST" action="login_setup_edit">
     <div class="three fields">
       <div class="field">
-        <label>Name {{ show_hint('#Name', 'CampaignStage name') }}</label>
+        <label>Name</label>
         <input type="text" id="ae_launch_name" name="ae_launch_name" placeholder="Template Name">
       </div>
       <div class="field">
-        <label>Host {{ show_hint('#Host', 'Host name') }}</label>
+        <label>Host</label>
         <input type="text" id="ae_launch_host" name="ae_launch_host" placeholder="Launch Host"
             {%if session_role=='analysis' %}
             value="{{hostname}}" readonly
@@ -140,7 +139,7 @@
          >
       </div>
       <div class="field">
-        <label>Account {{ show_hint('#Account', 'Account name') }}</label>
+        <label>Account</label>
         <input type="text" id="ae_launch_account" name="ae_launch_account" placeholder="Launch Account"
 
             {%if session_role=='analysis'%}
@@ -151,7 +150,7 @@
     </div>
     <div class="one field">
       <div class="field">
-        <label>Setup {{ show_hint('#Setup', 'Shell commands to set up campaign environment<br>') }}</label>
+        <label>Setup</label>
         <textarea id="ae_launch_setup" name="ae_launch_setup" placeholder="Launch Setup"></textarea>
       </div>
     </div>
