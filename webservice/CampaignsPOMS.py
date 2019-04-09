@@ -2187,7 +2187,7 @@ class CampaignsPOMS:
         # print("############## {}".format([s.get('id') for s in stages]))
         return stages
 
-    def save_campaign(self, dbhandle, sesshandle, *args, **kwargs):
+    def save_campaign(self, dbhandle, sesshandle, *args, replace=False, pcl_call=0, **kwargs):
         """
         """
         role = sesshandle.get('experimenter').session_role or 'production'
@@ -2274,13 +2274,16 @@ class CampaignsPOMS:
         print("##############Campaign: i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(
             c_old_name, c_new_name, campaign_clean, defaults, position))
 
-        the_campaign = dbhandle.query(Campaign).filter(
-            Campaign.name == c_old_name, Campaign.experiment == exp).scalar()
+        the_campaign = dbhandle.query(Campaign).filter(Campaign.name == c_old_name, Campaign.experiment == exp).scalar()
         if the_campaign:
             # the_campaign.defaults = defaults    # Store the defaults unconditionally as they may be not stored yet
             the_campaign.defaults = {"defaults": defaults, "positions": position}   # Store the defaults unconditionally as they may be not be stored yet
             if c_new_name != c_old_name:
                 the_campaign.name = c_new_name
+            if pcl_call in ('1', 'True', 't', 'true') and replace not in ('1', 'True', 't', 'true'):
+                dbhandle.rollback()
+                message = [f"Error: Campaign '{the_campaign.name}' already exists!"]
+                return {'status': "400 Bad Request", 'message': message}
         else:   # we do not have a campaign in the db for this experiment so create the campaign and then do the linking
             the_campaign = Campaign()
             the_campaign.name = c_new_name
