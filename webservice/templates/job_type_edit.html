@@ -16,8 +16,12 @@ POMS
   }
 </style>
 
+{% macro show_hint(anchor, hint) %}
+	{% include 'help_button.html' %}
+{% endmacro %}
+
 {%block header%}
-JobTypes {%include 'help_button.html'%}
+JobTypes {{ show_hint('#Compose-a-job-type', 'Job Type') }}
 {%endblock%}
 
 {%block subheader%}
@@ -25,9 +29,6 @@ JobTypes {%include 'help_button.html'%}
 
 {%block content%}
 
-{% macro show_hint(anchor, hint) %}
-	{# {% include 'help_button.html' %} task #21477 #}
-{% endmacro %}
 
 <form id="campaign_definition_form" class="ui form" action="job_type_edit" method="POST">
 

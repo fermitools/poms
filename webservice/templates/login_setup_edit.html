@@ -1,7 +1,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-POMS Login/Setup Editor
+ POMS Login/Setup Editor
 {%endblock%}
 
 <style type="text/css">
@@ -15,11 +15,11 @@ POMS Login/Setup Editor
 </style>
 
 {% macro show_hint(anchor, hint) %}
-    {# {% include 'help_button.html' %} task #21477 #}
+    {% include 'help_button.html' %}
 {% endmacro %}
 
 {%block header%}
-Login/Setup {% include 'help_button.html' %}
+ Login/Setup {{ show_hint('#Compose-a-loginsetup-script', 'Help page') }}
 {%endblock%}
 
 {%block subheader%}
