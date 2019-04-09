@@ -345,7 +345,7 @@ class PomsService:
             )
 
         template = self.jinja_env.get_template('login_setup_edit.html')
-        return template.render(data=data, experiment=experiment, role=role, jquery_ui=False, help_page="LaunchTemplateEditHelp")
+        return template.render(data=data, experiment=experiment, role=role, jquery_ui=False,  help_page="POMS_User_Documentation")
 
     # h4. campaign_deps_ini
 
@@ -428,7 +428,7 @@ class PomsService:
             )
 
         template = self.jinja_env.get_template('job_type_edit.html')
-        return template.render(jquery_ui=False, experiment=experiment, role=role, data=data, help_page="CampaignDefinitionEditHelp")
+        return template.render(jquery_ui=False, experiment=experiment, role=role, data=data, help_page="POMS_User_Documentation")
 
     # h4. make_test_campaign_for
 
@@ -504,7 +504,9 @@ class PomsService:
                 "%s/%s/%s/launch_jobs?campaign_stage_id=%s" % (self.path, experiment, role, kwargs.get('ae_campaign_id'))
             )
 
+        #mvi point to new POMS doc
         return template.render(
+<<<<<<< HEAD
             data=data,
             help_page="CampaignEditHelp",
             experiment=experiment,
@@ -513,6 +515,17 @@ class PomsService:
             extra_edit_flag=kwargs.get("extra_edit_flag", None),
             jump_to_campaign=kwargs.get("jump_to_campaign", None),
         )
+=======
+            data=data, help_page="POMS_User_Documentation",
+            jquery_ui=False,
+            extra_edit_flag=kwargs.get("extra_edit_flag", None),
+            jump_to_campaign=kwargs.get("jump_to_campaign", None),
+       )
+       #     data=data, help_page="CampaignEditHelp",
+
+
+# h4. gui_wf_edit
+>>>>>>> 38a31e8... poinitng to new doc pages
 
     # h4. gui_wf_edit
 
@@ -586,6 +599,8 @@ class PomsService:
         )
 
         template = self.jinja_env.get_template('show_campaigns.html')
+        #mvi point to new POMS doc
+
         values = {
             'tl': tl,
             'last_activity': last_activity,
@@ -593,8 +608,10 @@ class PomsService:
             'role': role,
             'msg': msg,
             'data': data,
-            'help_page': "ShowCampaignTagsHelp",
+            'help_page': "POMS_User_Documentation",
         }
+        #    'help_page': "ShowCampaignTagsHelp",
+
         if kwargs.get('fmt', '') == 'json':
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')

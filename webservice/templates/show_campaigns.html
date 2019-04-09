@@ -1,11 +1,11 @@
 {%extends "layout.html"%}
 
 {% macro show_hint(anchor, hint) %}
-  {#    {% include 'help_button.html' %}  task #21477 #}
+  {% include 'help_button.html' %}
 {% endmacro %}
 
 {%block header%}
-Campaigns {%include 'help_button.html'%}
+Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
 {%endblock%}
 
 {%block subheader%}
