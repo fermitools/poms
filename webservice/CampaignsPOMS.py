@@ -2280,7 +2280,7 @@ class CampaignsPOMS:
             the_campaign.defaults = {"defaults": defaults, "positions": position}   # Store the defaults unconditionally as they may be not be stored yet
             if c_new_name != c_old_name:
                 the_campaign.name = c_new_name
-            if pcl_call and not replace:
+            if pcl_call in ('1', 'True', 't', 'true') and replace not in ('1', 'True', 't', 'true'):
                 dbhandle.rollback()
                 message = [f"Error: Campaign '{the_campaign.name}' already exists!"]
                 return {'status': "400 Bad Request", 'message': message}
