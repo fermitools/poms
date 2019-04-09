@@ -504,7 +504,7 @@ class PomsService:
             "from %s think we got sl of %s" %
             (os.environ['POMS_DIR'], ",".join(sl)))
         template = self.jinja_env.get_template('sample_workflows.html')
-        return template.render(help_page="Sample Workflows", sl=sl)
+        return template.render(help_page="POMS_User_Documentation", sl=sl)
 
 
 # h4. campaign_list_json
@@ -600,6 +600,7 @@ class PomsService:
             template = self.jinja_env.get_template(
                 'show_campaign_stages_stats.html')
 
+        #mvi point to new POMS doc
         values = {
             'limit_experiment': current_experimenter.session_experiment,
             'campaign_stages': campaign_stages,
@@ -609,7 +610,7 @@ class PomsService:
             'do_refresh': 1200,
             'data': data,
             'time_range_string': time_range_string,
-            'key': '', 'help_page': "ShowCampaignsHelp", 'dbg': kwargs,
+            'key': '', 'help_page': "POMS_User_Documentation", 'dbg': kwargs,
         }
 
         if kwargs.get('fmt', '') == 'json':
