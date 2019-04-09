@@ -428,6 +428,7 @@ class PomsService:
             )
 
         template = self.jinja_env.get_template('job_type_edit.html')
+        #mvi, using new POMS doc
         return template.render(jquery_ui=False, experiment=experiment, role=role, data=data, help_page="POMS_User_Documentation")
 
     # h4. make_test_campaign_for
