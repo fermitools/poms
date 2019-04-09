@@ -105,7 +105,7 @@ def submission_details(submission_id, test=None, experiment=None, configfile=Non
     return status in (200, 201), json.loads(data)
 
 
-def upload_wf(file_name, test=None, experiment=None, configfile=None):
+def upload_wf(file_name, test=None, experiment=None, configfile=None, replace=False):
     '''
     upload a campaign .ini file to the server, returns boolan OK flag, and json data from server
     '''
@@ -113,14 +113,17 @@ def upload_wf(file_name, test=None, experiment=None, configfile=None):
         method='ini_to_campaign',
         files={'upload': (os.path.basename(file_name), open(file_name, 'rb'))},
         test_client=test,
-        configfile=configfile)
+        configfile=configfile,
+        pcl_call=1,
+        replace=replace
+    )
 
     return status in (200, 201), json.loads(data)
 
 
 def upload_file(file_name, test=None, experiment=None, configfile=None):
     '''
-    upload a file to your $UPLOADS area on the poms server to be used in jo b launches.  returns boolean "Ok" value
+    upload a file to your $UPLOADS area on the poms server to be used in job launches.  returns boolean "Ok" value
     '''
     data, status = make_poms_call(
         method='upload_file',
