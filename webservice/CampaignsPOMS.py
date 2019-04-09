@@ -1640,7 +1640,6 @@ class CampaignsPOMS:
         """
            Show submissions from a campaign stage
         """
-        data = {'tmin': tmin, 'tmax': tmax, 'tdays': tdays, 'tminsec': tmin.strftime("%s")}
         if campaign_name and campaign_id in (None, 'None', ''):
             campaign_id = dbhandle.query(Campaign.campaign_id).filter(
                 Campaign.name == campaign_name,
@@ -1686,11 +1685,6 @@ class CampaignsPOMS:
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(
             tmin, tmax, tdays, base_link
         )
-        print(
-            "  tmin:%s\n   tmax:%s\n   tmins:%s\n   tmaxs:%s\n   nextlink:%s\n   prevlink:%s\n   time_range_string:%s\n   tdays:%s\n"
-            % (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays)
-        )
-
         data = {
             'tmin': tmin,
             'tmax': tmax,
