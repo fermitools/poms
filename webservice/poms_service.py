@@ -334,7 +334,9 @@ class PomsService:
                 "%s/launch_jobs?campaign_stage_id=None&test_login_setup=%s" % (self.path, data['login_setup_id']))
 
         template = self.jinja_env.get_template('login_setup_edit.html')
-        return template.render(data=data, jquery_ui=False, help_page="LaunchTemplateEditHelp")
+        #mvi point to new POMS doc
+        return template.render(data=data, jquery_ui=False, help_page="POMS_User_Documentation")
+        #return template.render(data=data, jquery_ui=False, help_page="LaunchTemplateEditHelp")
 
 
 # h4. campaign_deps_ini
@@ -404,7 +406,9 @@ class PomsService:
                 "%s/campaign_stage_edit?jump_to_campaign=%d&extra_edit_flag=launch_test_job" % (self.path, test_campaign))
 
         template = self.jinja_env.get_template('job_type_edit.html')
-        return template.render(jquery_ui=False, data=data, help_page="CampaignDefinitionEditHelp")
+        #mvi, using new POMS doc
+        return template.render(data=data, help_page="POMS_User_Documentation")
+        #return template.render(jquery_ui=False, data=data, help_page="CampaignDefinitionEditHelp")
 
 
 # h4. make_test_campaign_for
@@ -482,12 +486,14 @@ class PomsService:
                 "%s/launch_jobs?campaign_stage_id=%s" %
                 (self.path, kwargs.get('ae_campaign_id')))
 
+        #mvi point to new POMS doc
         return template.render(
-            data=data, help_page="CampaignEditHelp",
+            data=data, help_page="POMS_User_Documentation",
             jquery_ui=False,
             extra_edit_flag=kwargs.get("extra_edit_flag", None),
             jump_to_campaign=kwargs.get("jump_to_campaign", None),
        )
+       #     data=data, help_page="CampaignEditHelp",
 
 
 # h4. gui_wf_edit
@@ -521,7 +527,7 @@ class PomsService:
             "from %s think we got sl of %s" %
             (os.environ['POMS_DIR'], ",".join(sl)))
         template = self.jinja_env.get_template('sample_workflows.html')
-        return template.render(help_page="Sample Workflows", sl=sl)
+        return template.render(help_page="POMS_User_Documentation", sl=sl)
 
 
 # h4. campaign_list_json
@@ -567,13 +573,17 @@ class PomsService:
             cherrypy.request.db, cherrypy.session, experimenter, *args, **kwargs
         )
         template = self.jinja_env.get_template('show_campaigns.html')
+        #mvi point to new POMS doc
+
         values = {
             'tl': tl,
             'last_activity': last_activity,
             'msg': msg,
             'data': data,
-            'help_page': "ShowCampaignTagsHelp",
+            'help_page': "POMS_User_Documentation",
         }
+        #    'help_page': "ShowCampaignTagsHelp",
+
         if kwargs.get('fmt', '') == 'json':
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')
@@ -613,6 +623,7 @@ class PomsService:
             template = self.jinja_env.get_template(
                 'show_campaign_stages_stats.html')
 
+        #mvi point to new POMS doc
         values = {
             'limit_experiment': current_experimenter.session_experiment,
             'campaign_stages': campaign_stages,
@@ -622,7 +633,7 @@ class PomsService:
             'do_refresh': 1200,
             'data': data,
             'time_range_string': time_range_string,
-            'key': '', 'help_page': "ShowCampaignsHelp", 'dbg': kwargs,
+            'key': '', 'help_page': "POMS_User_Documentation", 'dbg': kwargs,
         }
 
         if kwargs.get('fmt', '') == 'json':
