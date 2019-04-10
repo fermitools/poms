@@ -704,6 +704,7 @@ gui_editor.prototype.set_state = function (ini_dump, experiment, role) {
                     return;
                 }
                 console.log("State:\n", this.state);    // DEBUG
+                this.extras();
                 this.defaultify_state();
                 this.draw_state();
             }
