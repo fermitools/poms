@@ -122,16 +122,30 @@ def upload_wf(file_name, test=None, experiment=None, configfile=None, replace=Fa
 
 
 def upload_file(file_name, test=None, experiment=None, configfile=None):
-    '''
+    """
     upload a file to your $UPLOADS area on the poms server to be used in job launches.  returns boolean "Ok" value
-    '''
+    """
     data, status = make_poms_call(
         method='upload_file',
         files={'filename': (os.path.basename(file_name), open(file_name, 'rb'))},
         test_client=test,
         configfile=configfile)
-
     return status == 303
+
+
+def remove_uploaded_files(filename, test=None, experiment=None, configfile=None):
+    """
+    remove file(s) from your $UPLOADS area on the poms server.
+    """
+    data, status = make_poms_call(
+        method='remove_uploaded_files',
+        filename=filename,
+        action='delete',
+        redirect=0,
+        test_client=test,
+        configfile=configfile,
+    )
+    return data, status
 
 
 def get_campaign_id(campaign_name, test=None, configfile=None):

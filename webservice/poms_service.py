@@ -978,7 +978,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def update_submission(self, submission_id, jobsub_job_id,
-                          pct_complete=None, status=None, project=None,redirect=None):
+                          pct_complete=None, status=None, project=None, redirect=None):
         res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id,
                                               status=status, project=project, pct_complete=pct_complete)
         if redirect:
@@ -1037,7 +1037,7 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def remove_uploaded_files(self, filename, action):
+    def remove_uploaded_files(self, filename, action, redirect=1):
         res = self.filesPOMS.remove_uploaded_files(
             cherrypy.config.get('base_uploads_dir'),
             cherrypy.session.get,
@@ -1045,7 +1045,9 @@ class PomsService:
             filename,
             action,
         )
-        raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
+        if int(redirect) == 1:
+            raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
+        return res
 
 
 # h3. Job actions
