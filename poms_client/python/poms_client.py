@@ -251,6 +251,26 @@ def launch_campaign_jobs(campaign_id, test=None, experiment=None, configfile=Non
     return data, status, submission_id
 
 
+def job_type_rm(name, test=False, configfile=None):
+    data, status = make_poms_call(
+        method='job_type_rm',
+        pcl_call=1,
+        ae_definition_name=name,
+        test=test,
+        configfile=configfile)
+    return data, status
+
+
+def login_setup_rm(name, test=False, configfile=None):
+    data, status = make_poms_call(
+        method='login_setup_rm',
+        pcl_call=1,
+        ae_launch_name=name,
+        test=test,
+        configfile=configfile)
+    return data, status
+
+
 def launch_template_edit(action=None, launch_name=None, launch_host=None, user_account=None, launch_setup=None,
                          experiment=None, pc_username=None, test_client=False, configfile=None):
     logging.debug("in get launch_jobs test_client = " + repr(test_client))
@@ -267,7 +287,7 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
     else:
         ae_launch_setup = launch_setup
 
-    #pc_email = pc_email #no useing pc_username
+    # pc_email = pc_email # no useing pc_username
 
     if experiment is None or pc_username is None:
         logging.error(" You should provide an experiment name and email")
@@ -381,7 +401,7 @@ def campaign_definition_edit(output_file_patterns, launch_script, def_parameter=
                                        ae_output_file_patterns=ae_output_file_patterns,
                                        ae_launch_script=ae_launch_script,
                                        ae_definition_parameters=ae_definition_parameters,
-                                       ae_definition_recovery = ae_definition_recovery,
+                                       ae_definition_recovery=ae_definition_recovery,
                                        test_client=test_client,
                                        configfile=configfile)
     return "status_code", status_code
@@ -391,6 +411,18 @@ def campaign_definition_edit(output_file_patterns, launch_script, def_parameter=
 
 def campaign_edit(**kwargs):
     print("campaign_edit has been replaced by campaign_stage_edit")
+
+
+def campaign_rm(name, test=False, configfile=None):
+    data, status = make_poms_call(
+        pcl_call=1,
+        method='show_campaigns',
+        action='delete',
+        fmt='json',
+        del_campaign_name=name,
+        test=test,
+        configfile=configfile)
+    return data, status
 
 
 def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experiment, vo_role,
@@ -418,7 +450,7 @@ def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experim
             raise
         logging.debug("#"*10)
         logging.debug("type" + str(type(ae_param_overrides)))
-        logging.debug("The ae_param_overrides is: " +  ae_param_overrides)
+        logging.debug("The ae_param_overrides is: " + ae_param_overrides)
     else:
         logging.debug("conserving params, not override anything.")
     data, status_code = make_poms_call(pcl_call=1,

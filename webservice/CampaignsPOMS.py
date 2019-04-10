@@ -76,7 +76,7 @@ class CampaignsPOMS:
         if isinstance(pc_username, str):
             pc_username = pc_username.strip()
 
-        ae_launch_name = kwargs.get('ae_launch_name','')
+        ae_launch_name = kwargs.get('ae_launch_name', '')
         ae_launch_name = ae_launch_name.strip()
         ls = dbhandle.query(LoginSetup).filter(LoginSetup.experiment == exp).filter(
                     LoginSetup.name == ae_launch_name).first()
@@ -87,16 +87,22 @@ class CampaignsPOMS:
         if action == 'delete':
             name = ae_launch_name
             try:
-                dbhandle.query(LoginSetup).filter(LoginSetup.experiment == exp).filter(
-                    LoginSetup.name == name).delete(synchronize_session=False)
+                dbhandle.query(LoginSetup).filter(
+                    LoginSetup.experiment == exp,
+                    LoginSetup.name == name,
+                    LoginSetup.creator == experimenter.experimenter_id,
+                ).delete(synchronize_session=False)
                 dbhandle.commit()
+                message = "The login setup '%s' has been deleted." % name
             except SQLAlchemyError as exc:
-                message = "The launch template, %s, has been used and may not be deleted." % name
+                dbhandle.rollback()
+                message = "The login setup '%s' has been used and may not be deleted." % name
                 logit.log(message)
                 logit.log(' '.join(exc.args))
-                dbhandle.rollback()
+            finally:
+                return {'message': message}
 
-        if action in ('add', 'edit'):
+        elif action in ('add', 'edit'):
             logit.log('login_setup_edit: add,edit case')
             if pcl_call == 1:
                 if isinstance(ae_launch_name, str):
@@ -193,10 +199,8 @@ class CampaignsPOMS:
                 data['view_inactive'] = None
                 data['view_mine'] = experimenter.experimenter_id
                 data['view_others'] = experimenter.experimenter_id
-                data['view_analysis'] = 'view_analysis' if se_role in (
-                    'analysis', 'superuser') else None
-                data['view_production'] = 'view_production' if se_role in (
-                    'production', 'superuser') else None
+                data['view_analysis'] = 'view_analysis' if se_role in ('analysis', 'superuser') else None
+                data['view_production'] = 'view_production' if se_role in ('production', 'superuser') else None
             else:
                 data['view_active'] = kwargs.get('view_active', None)
                 data['view_inactive'] = kwargs.get('view_inactive', None)
@@ -504,8 +508,11 @@ class CampaignsPOMS:
             if isinstance(name, str):
                 name = name.strip()
             if pcl_call == 1:  # Enter here if the access was from the poms_client
-                cid = job_type_id = dbhandle.query(JobType).filter(
-                    JobType.name == name).first().job_type_id
+                cid = dbhandle.query(JobType).filter(
+                    JobType.experiment == exp,
+                    JobType.name == name,
+                    JobType.creator == experimenter.experimenter_id,
+                ).scalar().job_type_id
             else:
                 cid = kwargs.pop('job_type_id')
             try:
@@ -516,14 +523,17 @@ class CampaignsPOMS:
                  .filter(JobType.job_type_id == cid)
                  .delete(synchronize_session=False))
                 dbhandle.commit()
+                message = "The job type '%s' has been deleted." % name
             except SQLAlchemyError as exc:
-                message = ('The campaign definition, %s, '
-                           'has been used and may not be deleted.') % name
+                dbhandle.rollback()
+                message = ('The job type, %s, '
+                           'has been used and may not be deleted.') % name  # Was: campaign definition
                 logit.log(message)
                 logit.log(' '.join(exc.args))
-                dbhandle.rollback()
+            finally:
+                return {'message': message}
 
-        if action in ('add', 'edit'):
+        elif action in ('add', 'edit'):
             logit.log("job_type_edit: add or exit case")
             job_type_id = None
             definition_parameters = kwargs.pop('ae_definition_parameters')
@@ -1404,14 +1414,26 @@ class CampaignsPOMS:
         return ptext
 
     def show_campaigns(self, dbhandle, sesshandle, experimenter, **kwargs):
-        '''
+        """
             Return data for campaigns table for current experiment, etc.
-        '''
+        """
         action = kwargs.get('action', None)
         msg = "OK"
         se_role = experimenter.session_role
         if action == 'delete':
-            campaign_id = kwargs.get('del_campaign_id')
+            name = kwargs.get('del_campaign_name')
+            if kwargs.get('pcl_call') in ('1', 't', 'True', 'true'):
+                campaign_id = dbhandle.query(Campaign.campaign_id).filter(
+                    Campaign.experiment == experimenter.session_experiment,
+                    Campaign.creator == experimenter.experimenter_id,
+                    Campaign.name == name,
+                ).scalar()
+            else:
+                campaign_id = kwargs.get('del_campaign_id')
+            if not campaign_id:
+                msg = f"The campaign '{name}' does not exist."
+                return None, "", msg, None
+
             campaign = (dbhandle.query(Campaign)
                         .filter(Campaign.campaign_id == campaign_id)
                         .scalar())
@@ -1442,6 +1464,8 @@ class CampaignsPOMS:
                            "and related CampagnStages were deleted.") % (kwargs.get('del_campaign_name'), campaign_id)
             else:
                 msg = "You are not authorized to delete campaigns."
+            if kwargs.get('pcl_call') in ('1', 't', 'True', 'true'):
+                return None, "", msg, None
 
         data = {
             'authorized': []
@@ -1492,6 +1516,7 @@ class CampaignsPOMS:
 
         if not csl:
             return csl, "", msg, data
+
         role = sesshandle.get('experimenter').session_role
         for c_s in csl:
             if role == 'superuser':
@@ -2321,7 +2346,7 @@ class CampaignsPOMS:
                     CampaignDependency.provider.has(CampaignStage.campaign_id == the_campaign.campaign_id),
                     CampaignDependency.consumer.has(CampaignStage.campaign_id == the_campaign.campaign_id)
                 ),
-            ).delete(synchronize_session=False)         # Delete the stage dependencies if any
+            ).delete(synchronize_session=False)         # Delete stage dependencies if any
             dbhandle.commit()
 
         for stage in new_stages:
