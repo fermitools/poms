@@ -1,7 +1,7 @@
 {%extends "layout.html"%}
 
 {%block title%}
-POMS Login/Setup Editor
+ POMS Login/Setup Editor
 {%endblock%}
 
 <style type="text/css">
@@ -15,21 +15,17 @@ POMS Login/Setup Editor
 </style>
 
 {% macro show_hint(anchor, hint) %}
-    {# {% include 'help_button.html' %} task #21477 #}
+    {% include 'help_button.html' %}
 {% endmacro %}
 
 {%block header%}
-Login/Setup {% include 'help_button.html' %}
+ Login/Setup {{ show_hint('#Compose-a-loginsetup-script', 'Help page') }}
 {%endblock%}
 
 {%block subheader%}
 {%endblock%}
 
 {%block content%}
-
-{% macro show_hint(anchor, hint) %}
-    {# {% include 'help_button.html' %} task #21477 #}
-{% endmacro %}
 
 
 <form id="login_setup_form" class="ui form" action="login_setup_edit" method="POST">
@@ -45,11 +41,10 @@ Login/Setup {% include 'help_button.html' %}
     <thead>
       <tr>
         <th></th>
-        <th> Name {{ show_hint('#Name', 'Login/Setup name') }}    </th>
-        <th> Host {{ show_hint('#Host', 'Host name') }}    </th>
-        <th> Account {{ show_hint('#Account', 'Account name') }} </th>
-        <th> Setup (The entire shell command must be a single line.) {{ show_hint('#Setup', 'Shell commands to set up login environment for running campaign stage<br>') }}
-        </th>
+        <th> Name </th>
+        <th> Host </th>
+        <th> Account </th>
+        <th> Setup (The entire shell command must be a single line.) </th>
       </tr>
     </thead>
     <tbody>
@@ -121,18 +116,18 @@ Login/Setup {% include 'help_button.html' %}
 <div class="ui modal" id="template_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header"><span id="template_header">
-    Login/Setup Editor </span> {% include 'help_button.html' %}
+    Login/Setup Editor </span> {{ show_hint('#Compose-a-loginsetup-script', 'Edit template') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
   <form id="template_add_edit_form" class="ui form" method="POST" action="login_setup_edit">
     <div class="three fields">
       <div class="field">
-        <label>Name {{ show_hint('#Name', 'CampaignStage name') }}</label>
+        <label>Name</label>
         <input type="text" id="ae_launch_name" name="ae_launch_name" placeholder="Template Name">
       </div>
       <div class="field">
-        <label>Host {{ show_hint('#Host', 'Host name') }}</label>
+        <label>Host</label>
         <input type="text" id="ae_launch_host" name="ae_launch_host" placeholder="Launch Host"
             {%if session_role=='analysis' %}
             value="{{hostname}}" readonly
@@ -140,7 +135,7 @@ Login/Setup {% include 'help_button.html' %}
          >
       </div>
       <div class="field">
-        <label>Account {{ show_hint('#Account', 'Account name') }}</label>
+        <label>Account</label>
         <input type="text" id="ae_launch_account" name="ae_launch_account" placeholder="Launch Account"
 
             {%if session_role=='analysis'%}
@@ -151,7 +146,7 @@ Login/Setup {% include 'help_button.html' %}
     </div>
     <div class="one field">
       <div class="field">
-        <label>Setup {{ show_hint('#Setup', 'Shell commands to set up campaign environment<br>') }}</label>
+        <label>Setup</label>
         <textarea id="ae_launch_setup" name="ae_launch_setup" placeholder="Launch Setup"></textarea>
       </div>
     </div>

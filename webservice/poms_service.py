@@ -305,23 +305,38 @@ class PomsService:
     @error_rewrite
     @logit.logstartstop
     def launch_template_edit(self, *args, **kwargs):
-        # v3_2_0 backward compatabilty
+        # v3_2_0 backward compatibility
         return self.login_setup_edit(*args, **kwargs)
+
+# h4. login_setup_rm
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def login_setup_rm(self, **kwargs):
+        data = self.campaignsPOMS.login_setup_edit(
+            cherrypy.request.db,
+            cherrypy.session.get,
+            cherrypy.config.get,
+            action='delete',
+            **kwargs
+        )
+        return data
 
 # h4. login_setup_edit
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
     def login_setup_edit(self, *args, **kwargs):
-        data = self.campaignsPOMS.login_setup_edit(
-            cherrypy.request.db, cherrypy.session.get, cherrypy.config.get, *args, **kwargs)
+        data = self.campaignsPOMS.login_setup_edit(cherrypy.request.db, cherrypy.session.get, cherrypy.config.get, *args, **kwargs)
 
         if kwargs.get('test_template'):
             raise cherrypy.HTTPRedirect(
                 "%s/launch_jobs?campaign_stage_id=None&test_login_setup=%s" % (self.path, data['login_setup_id']))
 
         template = self.jinja_env.get_template('login_setup_edit.html')
-        return template.render(data=data, jquery_ui=False, help_page="LaunchTemplateEditHelp")
+        #mvi point to new POMS doc
+        return template.render(data=data, jquery_ui=False, help_page="POMS_User_Documentation")
+        #return template.render(data=data, jquery_ui=False, help_page="LaunchTemplateEditHelp")
 
 
 # h4. campaign_deps_ini
@@ -357,13 +372,23 @@ class PomsService:
             campaign_name=campaign_name or tag,
             campaign_stage_id=campaign_stage_id or camp_id,
         )
-        return template.render(tag=tag, svgdata=svgdata,
-                               help_page="CampaignDepsHelp")
+        return template.render(tag=tag, svgdata=svgdata, help_page="CampaignDepsHelp")
 
+
+    # h4. job_type_rm
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def job_type_rm(self, **kwargs):
+        data = self.campaignsPOMS.job_type_edit(
+            cherrypy.request.db,
+            cherrypy.session.get,
+            action='delete',
+            **kwargs
+        )
+        return data
 
 # h4. job_type_edit
-
-
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
@@ -381,7 +406,9 @@ class PomsService:
                 "%s/campaign_stage_edit?jump_to_campaign=%d&extra_edit_flag=launch_test_job" % (self.path, test_campaign))
 
         template = self.jinja_env.get_template('job_type_edit.html')
-        return template.render(jquery_ui=False, data=data, help_page="CampaignDefinitionEditHelp")
+        #mvi, using new POMS doc
+        return template.render(data=data, help_page="POMS_User_Documentation")
+        #return template.render(jquery_ui=False, data=data, help_page="CampaignDefinitionEditHelp")
 
 
 # h4. make_test_campaign_for
@@ -459,12 +486,14 @@ class PomsService:
                 "%s/launch_jobs?campaign_stage_id=%s" %
                 (self.path, kwargs.get('ae_campaign_id')))
 
+        #mvi point to new POMS doc
         return template.render(
-            data=data, help_page="CampaignEditHelp",
+            data=data, help_page="POMS_User_Documentation",
             jquery_ui=False,
             extra_edit_flag=kwargs.get("extra_edit_flag", None),
             jump_to_campaign=kwargs.get("jump_to_campaign", None),
        )
+       #     data=data, help_page="CampaignEditHelp",
 
 
 # h4. gui_wf_edit
@@ -498,7 +527,7 @@ class PomsService:
             "from %s think we got sl of %s" %
             (os.environ['POMS_DIR'], ",".join(sl)))
         template = self.jinja_env.get_template('sample_workflows.html')
-        return template.render(help_page="Sample Workflows", sl=sl)
+        return template.render(help_page="POMS_User_Documentation", sl=sl)
 
 
 # h4. campaign_list_json
@@ -544,13 +573,17 @@ class PomsService:
             cherrypy.request.db, cherrypy.session, experimenter, *args, **kwargs
         )
         template = self.jinja_env.get_template('show_campaigns.html')
+        #mvi point to new POMS doc
+
         values = {
             'tl': tl,
             'last_activity': last_activity,
             'msg': msg,
             'data': data,
-            'help_page': "ShowCampaignTagsHelp",
+            'help_page': "POMS_User_Documentation",
         }
+        #    'help_page': "ShowCampaignTagsHelp",
+
         if kwargs.get('fmt', '') == 'json':
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return json.dumps(values, cls=JSONORMEncoder).encode('utf-8')
@@ -590,6 +623,7 @@ class PomsService:
             template = self.jinja_env.get_template(
                 'show_campaign_stages_stats.html')
 
+        #mvi point to new POMS doc
         values = {
             'limit_experiment': current_experimenter.session_experiment,
             'campaign_stages': campaign_stages,
@@ -599,7 +633,7 @@ class PomsService:
             'do_refresh': 1200,
             'data': data,
             'time_range_string': time_range_string,
-            'key': '', 'help_page': "ShowCampaignsHelp", 'dbg': kwargs,
+            'key': '', 'help_page': "POMS_User_Documentation", 'dbg': kwargs,
         }
 
         if kwargs.get('fmt', '') == 'json':
@@ -944,7 +978,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def update_submission(self, submission_id, jobsub_job_id,
-                          pct_complete=None, status=None, project=None,redirect=None):
+                          pct_complete=None, status=None, project=None, redirect=None):
         res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id,
                                               status=status, project=project, pct_complete=pct_complete)
         if redirect:
@@ -1003,7 +1037,7 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def remove_uploaded_files(self, filename, action):
+    def remove_uploaded_files(self, filename, action, redirect=1):
         res = self.filesPOMS.remove_uploaded_files(
             cherrypy.config.get('base_uploads_dir'),
             cherrypy.session.get,
@@ -1011,7 +1045,9 @@ class PomsService:
             filename,
             action,
         )
-        raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
+        if int(redirect) == 1:
+            raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
+        return res
 
 
 # h3. Job actions
@@ -1227,8 +1263,7 @@ class PomsService:
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def jobtype_list(self, *args, **kwargs):
-        data = self.jobsPOMS.jobtype_list(
-            cherrypy.request.db, cherrypy.session.get)
+        data = self.jobsPOMS.jobtype_list(cherrypy.request.db, cherrypy.session.get)
         return data
 
     # ----------------------
