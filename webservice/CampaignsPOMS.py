@@ -446,7 +446,7 @@ class CampaignsPOMS:
             if isinstance(rec.param_overrides, str):
                 logit.log("get_recoveries(%d) -- saw string param_overrides" % cid)
                 if rec.param_overrides in ('', '{}', '[]'):
-                    rec.param_overrides = []
+                    rec.param_overrides = '[]'
                 rec_vals = [rec.recovery_type.name, json.loads(rec.param_overrides)]
             else:
                 rec_vals = [rec.recovery_type.name, rec.param_overrides]
