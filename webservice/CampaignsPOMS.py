@@ -2196,6 +2196,7 @@ class CampaignsPOMS:
         exp = sesshandle.get('experimenter').session_experiment
 
         data = kwargs.get('form', None)
+        logit.log("save_campaigns: data: %s" % data)
         everything = json.loads(data)
         message = []
 
@@ -2294,10 +2295,12 @@ class CampaignsPOMS:
         old_stages = dbhandle.query(CampaignStage).filter(
             CampaignStage.campaign_obj.has(Campaign.name == c_new_name)).all()
         old_stage_names = set([s.name for s in old_stages])
+        logit.log("############## old_stage_names: {}".format(old_stage_names))
 
         # new_stages = tuple(filter(lambda s: not s.get('id').startswith('campaign '), stages))
         new_stages = [s for s in stages if not s.get('id').startswith('campaign ')]
         new_stage_names = set([s.get('id') for s in new_stages])
+        logit.log("############## new_stage_names: {}".format(new_stage_names))
 
         deleted_stages = old_stage_names - new_stage_names
         if deleted_stages:
@@ -2323,6 +2326,7 @@ class CampaignsPOMS:
 
         for stage in new_stages:
             old_name = stage.get('id')
+            logit.log("save_campaign: for stage loop: %s" % old_name)
             new_name = stage.get('label')
             position = stage.get('position')    # Ignore for now
             clean = stage.get('clean')
@@ -2370,6 +2374,7 @@ class CampaignsPOMS:
                               .filter(LoginSetup.name == login_setup).scalar()
                               )
             if not login_setup_id:
+                logit.log("save_campaign: Error: bailing on not login_setup_id login_id '%s'" % login_setup)
                 message.append(f"Error: LoginSetup '{login_setup}' not found! Campaign is incomplete!")
                 return {'status': "400 Bad Request", 'message': message}
 
@@ -2382,13 +2387,20 @@ class CampaignsPOMS:
                            .filter(JobType.name == job_type).scalar()
                            )
             if not job_type_id:
+                logit.log("save_campaign: Error bailing on not job_type_id: job_type: '%s'" % job_type)
                 message.append(f"Error: JobType '{job_type}' not found! Campaign is incomplete!")
                 return {'status': "400 Bad Request", 'message': message}
 
+            logit.log("save_campaign: for stage loop: here1")
+            # when we just cloned a stage, we think there's old one, but there
+            # isn't , hence the if obj: below
+            obj = None
             if old_name in old_stage_names:
                 obj = (dbhandle.query(CampaignStage)
                        .filter(CampaignStage.campaign_id == the_campaign.campaign_id)
                        .filter(CampaignStage.name == old_name).scalar())  # Get stage by the old name
+            if obj:
+                logit.log("save_campaign: for stage loop: found campaign stage obj")
                 obj.name = new_name     # Update the name using provided new_name
                 if not clean or not campaign_clean:           # Update all fields from the form
                     obj.completion_pct = completion_pct
@@ -2408,6 +2420,7 @@ class CampaignsPOMS:
 
                     dbhandle.flush()
             else:       # If this is a new stage then create and store it
+                logit.log("for_stage_loop: new campaign stage...")
                 c_s = CampaignStage(name=new_name, experiment=exp,
                                     campaign_id=the_campaign.campaign_id,
                                     # active=active,
@@ -2427,7 +2440,10 @@ class CampaignsPOMS:
                                     creator_role=role, campaign_stage_type=stage_type)
                 dbhandle.add(c_s)
                 dbhandle.flush()
-            dbhandle.commit()
+
+        dbhandle.commit()
+
+        logit.log("save_campaign: for stage loop: here2")
 
         # Now process all dependencies
         dependencies = everything['dependencies']
@@ -2456,6 +2472,7 @@ class CampaignsPOMS:
             dbhandle.add(dep)
             dbhandle.flush()
         dbhandle.commit()
+        logit.log("save_campaign: for stage loop: here3")
         print("+++++++++++++++ Campaign saved")
         return {
             'status':             "201 Created",
