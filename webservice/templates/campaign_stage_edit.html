@@ -1,6 +1,8 @@
 {%extends "layout.html"%}
 
 {% macro show_hint(anchor, hint) %}
+	{% include 'help_button.html' %}
+
 {% endmacro %}
 
 {%block title%}
@@ -23,7 +25,7 @@ POMS
 
 {%block header%}
 Campaign Stages
-    {% include 'help_button.html' %}
+    {{ show_hint('#Compose-a-campaign-stage', 'Help page') }}
 {%endblock%}
 
 {%block subheader%}
@@ -163,7 +165,7 @@ Campaign Stages
 <div class="ui modal" id="campaign_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header"><span id="ae_experiment">Campaign Stage Editor </span>
-    {% include 'help_button.html' %}
+    {{ show_hint('#Compose-a-campaign-stage', 'Help page') }}
 </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
@@ -177,16 +179,16 @@ Campaign Stages
 
       <div class="three fields">
         <div class="field">
-            <label>Stage Name {{ show_hint('#Stage-Name', 'Stage name') }}</label>
+            <label>Stage Name</label>
             <input type="text" id="ae_stage_name" name="ae_stage_name" placeholder="Campaign Stage Name">
         </div>
         <div class="field">
-            <label>Jobsub VO Role {{ show_hint('#VO-Role', 'Role name') }}</label>
+            <label>Jobsub VO Role </label>
             <input type="text" id="ae_vo_role" name="ae_vo_role">
         </div>
         <!--
         <div class="field">
-          <label>State {{ show_hint('#State', 'Select state') }}</label>
+          <label>State </label>
           <select class="ui dropdown" name="ae_active" id="ae_active">
             <option value="True">Active</option>
             <option value="False">Inactive</option>
@@ -194,20 +196,20 @@ Campaign Stages
         </div>
         -->
         <div class="field">
-            <label>Exp. Software Version {{ show_hint('#Software-Version', 'Version tag') }}</label>
+            <label>Exp. Software Version </label>
             <input type="text" id="ae_software_version" name="ae_software_version">
         </div>
       </div>
 
       <div class="two fields">
         <div class="field">
-            <label>Dataset or Split Data {{ show_hint('#Dataset', 'Dataset name') }}</label>
+            <label>Dataset or Split Data </label>
             <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset" style="width: 90%"></input>
 
             <i class="edit link blue icon split_type_picker_custom_edit" onclick="split_type_picker.custom_edit('ae_split_type','ae_dataset')"></i>
         </div>
         <div class="field">
-            <label>(Dataset) Split Type {{ show_hint('#Dataset-Split-Type', 'Set type') }}</label>
+            <label>(Dataset) Split Type </label>
             <input type="text" id="ae_split_type" name="ae_split_type" style="width:90%">
             <i class="edit link blue icon" onclick="split_type_picker.start('ae_split_type')"></i>
         </div>
@@ -215,14 +217,14 @@ Campaign Stages
 
       <div class="two fields">
         <div class="field">
-          <label>Completion Type {{ show_hint('#Completion-Type', 'Select type') }}</label>
+          <label>Completion Type </label>
           <select class="ui dropdown" name="ae_completion_type" id="ae_completion_type">
             <option value="located" >Located</option>
             <option value="complete" >Complete</option>
           </select>
         </div>
         <div class="field">
-            <label>Completion % {{ show_hint('#Completion', 'Integer') }}</label>
+            <label>Completion % </label>
             <input type="text" id="ae_completion_pct" name="ae_completion_pct" placeholder="95">
         </div>
       </div>
@@ -248,11 +250,11 @@ Campaign Stages
         </div>
       </div>
 
-      <h4 class="ui horizontal divider">Launch/Setup</h4>
+      <h4 class="ui horizontal divider">Login/Setup {{ show_hint('#Compose-a-loginsetup-script', 'Help page') }}</h4>
 
       <div class="one field">
         <div class="field">
-          <label>Launch/Setup Name {{ show_hint('#Launch-Template', 'Select template name') }}</label>
+          <label>Login/Setup Name </label>
           <select class="ui dropdown" name="ae_launch_id" id="ae_launch_id">
             <option value=""></option>
             {% for row in data.templates %}
@@ -263,27 +265,27 @@ Campaign Stages
       </div>
       <div class="two fields">
         <div class="field">
-            <label>Host {{ show_hint('#Host', 'Host name') }}</label>
+            <label>Host </label>
             <input type="text" id="ae_launch_host" disabled>
         </div>
         <div class="field">
-            <label>Account {{ show_hint('#Account', 'Account name') }}</label>
+            <label>Account </label>
             <input type="text" id="ae_launch_account" disabled>
         </div>
       </div>
 
       <div class="one field">
         <div class="field">
-            <label>Setup {{ show_hint('#Setup', 'Setup commands') }}</label>
+            <label>Setup </label>
             <textarea rows="3" id="ae_launch_setup" disabled></textarea>
         </div>
       </div>
 
-      <h4 class="ui horizontal divider">Job Type</h4>
+      <h4 class="ui horizontal divider">Job Type {{ show_hint('#Compose-a-job-type', 'Job Type') }}</h4>
 
       <div class="one field">
         <div class="field">
-          <label>Job Type Name {{ show_hint('#Job-Type', 'Select job type') }}</label>
+          <label>Job Type Name </label>
           <!--<br/>-->
           <select class="ui dropdown" name="ae_campaign_definition_id" id="ae_campaign_definition_id">
             <option value=""></option>
@@ -294,22 +296,22 @@ Campaign Stages
         </div>
       <div class="two fields">
         <div class="field">
-              <label>Input Files/Job {{ show_hint('#Input-Files', 'Integer') }}</label>
+              <label>Input Files/Job </label>
               <input type="text" id="ae_input_files_per_job" disabled>
         </div>
         <div class="field">
-              <label>Output Files/Job {{ show_hint('#Output-Files', 'Integer') }}</label>
+              <label>Output Files/Job </label>
               <input type="text" id="ae_output_files_per_job" disabled>
         </div>
       </div>
 
       <div class="two fields">
         <div class="field">
-          <label>Launch/Setup Script {{ show_hint('#Launch-Script', 'Script name with arguments') }}</label>
+          <label>Launch/Setup Script </label>
           <textarea rows="3" id="ae_launch_script" disabled></textarea>
         </div>
         <div class="field">
-          <label>Definition Parameters {{ show_hint('#Definition-Parameters', 'Parameter set') }}</label>
+          <label>Definition Parameters </label>
           <textarea rows="3" id="ae_launch_definition_parameters" disabled></textarea>
         </div>
       </div>

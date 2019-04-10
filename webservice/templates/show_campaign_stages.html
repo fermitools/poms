@@ -4,8 +4,13 @@
 POMS: Campaign Stages
 {%endblock%}
 
+{% macro show_hint(anchor, hint) %}
+  {% include 'help_button.html' %}
+{% endmacro %}
+
+
 {%block header%}
-Campaign Stages{%include 'help_button.html'%}
+Campaign Stages {{ show_hint('#Campaigns-Stages', 'Campaigns Stages') }}
 <script>
     function do_checkall() {
         // console.log("In do_changeall");

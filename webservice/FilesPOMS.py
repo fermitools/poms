@@ -373,18 +373,21 @@ class FilesStatus:
             logit.log("upload_file: closed")
             fstatlist, total = self.file_uploads(basedir, sesshandle_get, quota)
             if total > quota:
-                unlink(outf)
+                os.unlink(outf)
                 raise err_res("Upload exeeds quota of %d kbi" % quota / 1024)
         return "Ok."
 
-    def remove_uploaded_files(self, basedir, sesshandle_get, err_res, filename, actio):
+    def remove_uploaded_files(self, basedir, sesshandle_get, err_res, filename, action):
         # if there's only one entry the web page will not send a list...
         if isinstance(filename, str):
             filename = [filename]
 
         for f in filename:
             outf = self.get_file_upload_path(basedir, sesshandle_get, f)
-            os.unlink(outf)
+            try:
+                os.unlink(outf)
+            except FileNotFoundError:
+                pass
         return "Ok."
 
     def get_launch_sandbox(self, basedir, sesshandle_get):
