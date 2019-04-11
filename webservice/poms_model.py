@@ -146,6 +146,7 @@ class Experiment(Base):
     logbook = Column(Text, nullable=True)
     snow_url = Column(Text, nullable=True)
     restricted = Column(Boolean, nullable=False, server_default=text("false"))
+    active = Column(Boolean, nullable=False, server_default=text("true"))
 
 
 class LoginSetup(Base):

@@ -296,7 +296,7 @@ class PomsService:
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def experiment_list(self):
-        return list(map((lambda x: x[0]), cherrypy.request.db.query(Experiment.experiment).all()))
+        return list(map((lambda x: x[0]), cherrypy.request.db.query(Experiment.experiment).filter(Experiment.active == True).all()))
 
     # h4. experiment_membership
 
