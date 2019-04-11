@@ -506,26 +506,14 @@ class PomsService:
 
         #mvi point to new POMS doc
         return template.render(
-<<<<<<< HEAD
             data=data,
-            help_page="CampaignEditHelp",
+            help_page="POMS_User_Documentation",
             experiment=experiment,
             role=role,
             jquery_ui=False,
             extra_edit_flag=kwargs.get("extra_edit_flag", None),
             jump_to_campaign=kwargs.get("jump_to_campaign", None),
         )
-=======
-            data=data, help_page="POMS_User_Documentation",
-            jquery_ui=False,
-            extra_edit_flag=kwargs.get("extra_edit_flag", None),
-            jump_to_campaign=kwargs.get("jump_to_campaign", None),
-       )
-       #     data=data, help_page="CampaignEditHelp",
-
-
-# h4. gui_wf_edit
->>>>>>> 38a31e8... poinitng to new doc pages
 
     # h4. gui_wf_edit
 
