@@ -1114,7 +1114,7 @@ class PomsService:
         file_stat_list, total, experimenters = self.filesPOMS.file_uploads(
             cherrypy.config.get('base_uploads_dir'), experiment, get_user(), cherrypy.request.db, checkuser
         )
-        return {"file_stat_list": file_stat_list, "total": total, "quota": quota, "experimenters:": experimenters}
+        return {"file_stat_list": file_stat_list, "total": total, "quota": quota}
 
     # h4. upload_file
     @cherrypy.expose
@@ -1358,7 +1358,7 @@ class PomsService:
             cherrypy.response.headers['Content-Type'] = "text/plain"
             return vals
 
-        lcmd, campaign_stage_id, outfile = vals
+        lcmd, cs, campaign_stage_id, outfile = vals
         if lcmd == "":
             return outfile
         else:

@@ -346,7 +346,7 @@ class FilesStatus:
         total = 0
         for fname in flist:
             statout = os.stat(fname)
-            uploaded = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(statout.st_mtime))
+            uploaded = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.localtime(statout.st_mtime))
             file_stat_list.append([os.path.basename(fname), statout.st_size, uploaded])
             total += statout.st_size
         experimenters = (dbhandle.query(Experimenter, ExperimentsExperimenters)

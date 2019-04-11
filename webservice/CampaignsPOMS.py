@@ -338,7 +338,8 @@ class CampaignsPOMS:
         return [r._asdict() for r in data]
 
     def launch_campaign(self, dbhandle, getconfig, gethead, samhandle, experiment, role, user, basedir, campaign_id, launcher,
-                        dataset_override=None, parent_submission_id=None, param_overrides=None, test_login_setup=None, test_launch=False, output_commands=False):
+                        dataset_override=None, parent_submission_id=None, param_overrides=None,
+                        test_login_setup=None, test_launch=False, output_commands=False):
 
         '''
             Find the starting stage in a campaign, and launch it with
@@ -363,8 +364,10 @@ class CampaignsPOMS:
         logit.log("launch_campaign: got stages %s" % repr(stages))
 
         if len(stages) == 1:
-            return self.poms_service.taskPOMS.launch_jobs(dbhandle, getconfig, gethead, samhandle, experiment, role, user, basedir, stages[0][0], launcher, dataset_override,
-                                                          parent_submission_id, param_overrides, test_login_setup, test_launch, output_commands)
+            return self.poms_service.taskPOMS.launch_jobs(dbhandle, getconfig, gethead, samhandle, experiment, role,
+                                                          user, basedir, stages[0][0], launcher, dataset_override,
+                                                          parent_submission_id, param_overrides,
+                                                          test_login_setup, test_launch, output_commands)
         raise AssertionError("Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
 
     def get_recoveries(self, dbhandle, cid):
@@ -1637,18 +1640,25 @@ class CampaignsPOMS:
         """
            Show submissions from a campaign stage
         """
+        data = {'tmin': tmin, 'tmax': tmax, 'tdays': tdays}
         if campaign_name and campaign_id in (None, 'None', ''):
             campaign_id = dbhandle.query(Campaign.campaign_id).filter(
                 Campaign.name == campaign_name,
                 Campaign.experiment == experiment,
                 ).scalar()
+            if not campaign_id:
+                data['submissions'] = []
+                return data
 
-        if stage_name and campaign_stage_id in (None, 'None', ''):
+        if stage_name not in (None, 'None', '*', '') and campaign_stage_id in (None, 'None', ''):
             campaign_stage_id = dbhandle.query(CampaignStage.campaign_stage_id).filter(
                 CampaignStage.name == stage_name,
                 CampaignStage.experiment == experiment,
                 CampaignStage.campaign_id == campaign_id,
             ).scalar()
+            if not campaign_stage_id:
+                data['submissions'] = []
+                return data
 
         if campaign_id in (None, 'None', '') and campaign_stage_id in (None, 'None', ''):
             raise AssertionError("campaign_stage_submissions needs either campaign_id or campaign_stage_id not None")
@@ -1676,11 +1686,6 @@ class CampaignsPOMS:
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(
             tmin, tmax, tdays, base_link
         )
-        print(
-            "  tmin:%s\n   tmax:%s\n   tmins:%s\n   tmaxs:%s\n   nextlink:%s\n   prevlink:%s\n   time_range_string:%s\n   tdays:%s\n"
-            % (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays)
-        )
-
         data = {
             'tmin': tmin,
             'tmax': tmax,
@@ -2025,7 +2030,7 @@ class CampaignsPOMS:
         # Turn off the active flag on stale campaigns.
         stale = (
             dbhandle.query(Campaign)
-            .filter(Campaign.active == True, Campaign.campaign_id.notin_(active_campaigns))
+            .filter(Campaign.active == True, Campaign.campaign_id.notin_(active_campaigns))     # Do NOT optimize condition!
             .update({"active": False}, synchronize_session=False)
         )
 
@@ -2424,7 +2429,13 @@ class CampaignsPOMS:
         dbhandle.commit()
         logit.log("save_campaign: for stage loop: here3")
         print("+++++++++++++++ Campaign saved")
-        return {'status': "201 Created", 'message': message or "OK", 'campaign_id': the_campaign.campaign_id, 'campaign_stage_ids': [(x.campaign_stage_id, x.name)  for x in the_campaign.stages]}
+        return {
+            'status': "201 Created",
+            'message': message or "OK",
+            'campaign_id': the_campaign.campaign_id,
+            'campaign_stage_ids': [(x.campaign_stage_id, x.name) for x in the_campaign.stages]
+        }
+
 
     def get_jobtype_id(self, dbhandle, user, exp, role, name):
         """

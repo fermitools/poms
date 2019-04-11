@@ -78,7 +78,7 @@ Uploaded Files
   <tr><td style="text-align: right;" colspan=2>Total:</td><td>{{total}}b</td><td>{{(total* 1000.0/quota)|int/10}}% of {{(quota/1024)|int}}k quota</td></tr>
       <tr><td colspan=4>
            {% if session_role == 'analysis' %}
-           <input class="ui basic button red" type="submit" name="action" value="Delete"> {{session_role}}
+           <input class="ui basic button red" type="submit" name="action" value="Delete">
            {% endif %}
       </td></tr>
   </tbody>
@@ -91,17 +91,16 @@ Uploaded Files
 
     $(".search").dropdown({
         onChange: function(value) {
-            //$('body').load("{{pomspath}}/file_uploads/{{experiment}}/{{role}}/{{checkuser}}", {'checkuser': value});
             $.ajax({
-                url: "{{pomspath}}/file_uploads_json/{{experiment}}/{{role}}/{{checkuser}}",
+                url: "{{pomspath}}/file_uploads_json/{{session_experiment}}/{{session_role}}",
                 type: 'GET',
                 data: {'checkuser': value},
-                success:  function(data){
+                success:  function(rdata){
                     var html = "<tr><td colspan=4></td></tr>";
-                    for (i = 0; i < data.file_stat_list.length; i++) {
-                        var file = data.file_stat_list[i][0];
-                        var st_size = data.file_stat_list[i][1];
-                        var mtime = data.file_stat_list[i][2];
+                    for (i = 0; i < rdata.file_stat_list.length; i++) {
+                        var file = rdata.file_stat_list[i][0];
+                        var st_size = rdata.file_stat_list[i][1];
+                        var mtime = rdata.file_stat_list[i][2];
                         html = html + '<tr>';
                         html = html +   '<td><input id="filename" name="filename" value="' +file+ '" type="checkbox"></td>';
                         html = html +   '<td>' + file + '</td>';
@@ -109,8 +108,8 @@ Uploaded Files
                         html = html +   '<td>' + mtime + '</td>';
                         html = html + '</tr>';
                       }
-                      var quota = data.quota;
-                      var total = data.total;
+                      var quota = rdata.quota;
+                      var total = rdata.total;
                       var pct = Math.round(total* 1000.0/quota) /10;
                       var quotak = Math.round(quota/1024);
                       html = html + '<tr><td colspan=4></td></tr>';
