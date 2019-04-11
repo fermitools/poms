@@ -1312,37 +1312,34 @@ class CampaignsPOMS:
         if action == 'delete':
             campaign_id = kwargs.get('del_campaign_id')
             campaign = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).scalar()
-            if experimenter.is_authorized(campaign):
-                subs = (
-                    dbhandle.query(Submission)
-                    .join(CampaignStage, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
-                    .filter(CampaignStage.campaign_id == campaign_id)
-                )
-                if subs.count() > 0:
-                    msg = "This campaign has been submitted.  It cannot be deleted."
-                else:
-                    # Delete all dependency records for all campaign stages
-                    dbhandle.query(CampaignDependency).filter(
-                        or_(
-                            CampaignDependency.provider.has(CampaignStage.campaign_id == campaign_id),
-                            CampaignDependency.consumer.has(CampaignStage.campaign_id == campaign_id),
-                        )
-                    ).delete(synchronize_session=False)
-                    # Delete all campaign stages
-                    # dbhandle.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).delete(synchronize_session=False)
-                    campaign.stages.delete()
-                    # Delete all campaign tag records
-                    dbhandle.query(CampaignsTag).filter(CampaignsTag.campaign_id == campaign_id).delete()
-                    # Delete the campaign
-                    # dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete(synchronize_session=False)
-                    dbhandle.delete(campaign)
-                    dbhandle.commit()
-                    msg = ("Campaign named %s with campaign_id %s " "and related CampagnStages were deleted.") % (
-                        kwargs.get('del_campaign_name'),
-                        campaign_id,
-                    )
+            subs = (
+                dbhandle.query(Submission)
+                .join(CampaignStage, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
+                .filter(CampaignStage.campaign_id == campaign_id)
+            )
+            if subs.count() > 0:
+                msg = "This campaign has been submitted.  It cannot be deleted."
             else:
-                msg = "You are not authorized to delete campaigns."
+                # Delete all dependency records for all campaign stages
+                dbhandle.query(CampaignDependency).filter(
+                    or_(
+                        CampaignDependency.provider.has(CampaignStage.campaign_id == campaign_id),
+                        CampaignDependency.consumer.has(CampaignStage.campaign_id == campaign_id),
+                    )
+                ).delete(synchronize_session=False)
+                # Delete all campaign stages
+                # dbhandle.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).delete(synchronize_session=False)
+                campaign.stages.delete()
+                # Delete all campaign tag records
+                dbhandle.query(CampaignsTag).filter(CampaignsTag.campaign_id == campaign_id).delete()
+                # Delete the campaign
+                # dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).delete(synchronize_session=False)
+                dbhandle.delete(campaign)
+                dbhandle.commit()
+                msg = ("Campaign named %s with campaign_id %s " "and related CampagnStages were deleted.") % (
+                    kwargs.get('del_campaign_name'),
+                    campaign_id,
+                )
 
         data = {'authorized': []}
         q = (

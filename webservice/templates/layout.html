@@ -117,8 +117,8 @@
       </div>
 	    <div class="column">
         <br>
-        {% if current_experimenter is defined %}
-	      <i class="user icon" style="margin-left: 1em"></i>{{current_experimenter.first_name}} {{current_experimenter.last_name}}
+        {% if first_name is defined %}
+	      <i class="user icon" style="margin-left: 1em"></i>{{first_name}} {{last_name}}
         {% endif %}
         <br>
         <br>
