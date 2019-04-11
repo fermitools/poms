@@ -434,8 +434,8 @@ class CampaignsPOMS:
         pc_username = kwargs.pop('pc_username', None)
 
         if action == 'delete':
-            self.poms_service.permissions.can_modify(dbhandle, user, experiment, se_role, "JobType", name=name, experiment=experiment)
             name = kwargs.pop('ae_definition_name')
+            self.poms_service.permissions.can_modify(dbhandle, user, experiment, se_role, "JobType", name=name, experiment=experiment)
             if isinstance(name, str):
                 name = name.strip()
             if pcl_call == 1:  # Enter here if the access was from the poms_client
