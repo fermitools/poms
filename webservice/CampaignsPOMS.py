@@ -85,6 +85,7 @@ class CampaignsPOMS:
             raise PermissionError("You are not acting as the right experiment")
 
         if action == 'delete':
+            self.poms_service.permissions.can_modify(dbhandle, user, experiment, se_role, "LoginSetup", name = name, experiment = experiment)
             name = ae_launch_name
             try:
                 dbhandle.query(LoginSetup).filter(LoginSetup.experiment == exp).filter(LoginSetup.name == name).delete(
@@ -433,6 +434,7 @@ class CampaignsPOMS:
         pc_username = kwargs.pop('pc_username', None)
 
         if action == 'delete':
+            self.poms_service.permissions.can_modify(dbhandle, user, experiment, se_role, "JobType", name=name, experiment=experiment)
             name = kwargs.pop('ae_definition_name')
             if isinstance(name, str):
                 name = name.strip()
@@ -675,6 +677,7 @@ class CampaignsPOMS:
         campaign_id = kwargs.pop('ae_campaign_id', None)
 
         if action == 'delete':
+            self.poms_service.permissions.can_modify(dbhandle, user, experiment, se_role, "CampaignStage", name=name, campaign_id=campaign_id, experiment=experiment)
             name = kwargs.get('ae_stage_name', kwargs.get('name', None))
             if isinstance(name, str):
                 name = name.strip()
@@ -1311,6 +1314,8 @@ class CampaignsPOMS:
         se_role = experimenter.session_role
         if action == 'delete':
             campaign_id = kwargs.get('del_campaign_id')
+            self.poms_service.permissions.can_modify(dbhandle, user, experiment, se_role, "Campaign", item_id=campaign_id)
+
             campaign = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).scalar()
             subs = (
                 dbhandle.query(Submission)
