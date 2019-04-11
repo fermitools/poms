@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+  This script is used as a last resort - if and when landscape is not functioning.
+  Please see submission_agen.py for normal operations.
+"""
 
 import sys
 import os
@@ -42,7 +46,7 @@ class jobsub_q_scraper:
         self.poms_uri = poms_uri
         gc.enable()
 
-        self.statusmap = { 
+        self.statusmap = {
           '0': 'Unexpanded',
           '1': 'Idle',
           '2': 'Running',
@@ -54,7 +58,7 @@ class jobsub_q_scraper:
         self.psess = requests.Session()
         self.known_submissions = {}
         self.jobsub_q_cmd = "condor_q -pool gpcollector03.fnal.gov -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID"
-    
+
 
     def update_submission(self, submission_id, jobsub_job_id, project = None, status = None):
         logit.info('update_submission: %s' % repr({'submission_id': submission_id, 'jobsub_job_id': jobsub_job_id, 'project': project, 'status': status}))
@@ -81,12 +85,12 @@ class jobsub_q_scraper:
     def scan(self):
 
         '''
-             Loop through jobsub output, update task info as we look at 
+             Loop through jobsub output, update task info as we look at
              individual jobs.
              Then loop through tasks, report missing ones as completed
              Loop through seen tasks, report changed ones
         '''
-        
+
         p = Popen(self.jobsub_q_cmd, shell = True, stdout = PIPE, close_fds = True, universal_newlines=True)
         f = p.stdout
 
@@ -97,7 +101,7 @@ class jobsub_q_scraper:
         for line in f:
 
             line = line.rstrip('\n')
-                
+
             # if self.debug: print("saw line: " , line)
 
             del jobenv
@@ -114,13 +118,13 @@ class jobsub_q_scraper:
                     jobenv['PROCESS'],
                     jobenv['SCHEDD']
                   )
-            
+
 
             if "SAM_PROJECT_NAME" not in jobenv and "Args" in jobenv  and jobenv["Args"].find("--sam_project") > 0:
                 spv = jobenv["Args"][jobenv["Args"].find("--sam_project")+14:]
                 spv = spv[0:spv.find(" ")]
                 jobenv["SAM_PROJECT_NAME"] = spv
- 
+
             d = pass_submissions.get(jobenv.get('POMS_TASK_ID',''),{})
 
             # we want the min jobsub job_id for the POMS_TASK_ID...
@@ -131,7 +135,7 @@ class jobsub_q_scraper:
 
             if 'SAM_PROJECT_NAME' in jobenv:
                d['project'] = jobenv['SAM_PROJECT_NAME']
- 
+
             if 'JOBSTATUS' in jobenv:
                if jobenv['JOBSTATUS'] > d.get('status','0') and d.get('status','0') != '2' or jobenv['JOBSTATUS'] == '2':
                     d['status'] = jobenv['JOBSTATUS']
@@ -169,13 +173,13 @@ class jobsub_q_scraper:
         while(1):
             print("top of poll", file=sys.stderr)
             sys.stderr.flush()
-            
+
             try:
                 self.scan()
-                         
+
             except KeyboardInterrupt:
                 raise
- 
+
             except OSError as e:
                 print("Exception!\n", file=sys.stderr)
                 traceback.print_exc(file=sys.stderr)
