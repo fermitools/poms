@@ -200,9 +200,9 @@ def get_submission_id_for(campaign_stage_id, user=None, command_executed=None, i
     get a submission id for a submission / or register the command
         executed for an existing submission.  Returns "Task=<submission_id>"
     '''
-    logging.debug("in get task_id_for test = " + repr(test))
+    logging.debug("in get_submission_id_for test = " + repr(test))
     data, status = make_poms_call(
-        method='get_task_id_for',
+        method='get_submission_id_for',
         campaign_stage_id=campaign_stage_id,
         user=user,
         command_executed=command_executed,
