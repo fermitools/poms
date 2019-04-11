@@ -20,6 +20,8 @@ def get_status(entry):
         given a dictionary from the Landscape service,
         return the status for our submission
     '''
+    if entry['done'] and entry['failed'] * 2 > entry['completed']:
+        return "Failed"
     if entry['done']:
         return "Completed"
     if entry['held'] > 0:
@@ -37,7 +39,7 @@ class Agent:
         recent submissions and reports them to POMS
     '''
     full_query = '''
-         {"query":"{submissions(group: \\"%s\\" %s){id pomsTaskID done running idle   held } }","operationName":null}
+         {"query":"{submissions(group: \\"%s\\" %s){id pomsTaskID done running idle held failed completed } }","operationName":null}
          '''
 
     submission_project_query = '''
@@ -45,7 +47,7 @@ class Agent:
         '''
 
     submission_info_query = '''
-          {"query":"{submission(id:\\"%s\\"){id pomsTaskID done running idle held} }","operationName":null}
+          {"query":"{submission(id:\\"%s\\"){id pomsTaskID done running idle held failed completed } }","operationName":null}
         '''
 
 
@@ -286,6 +288,7 @@ class Agent:
                 report_status_flag = False
             else:
                 report_status_flag = True
+
             report_status = get_status(entry)
 
             ntot = int(entry['running']) + int(entry['idle']) + int(entry['held'])
