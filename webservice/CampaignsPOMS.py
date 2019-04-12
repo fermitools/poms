@@ -1579,16 +1579,6 @@ class CampaignsPOMS:
         campaign_stage = campaign_stage_info[0]
         counts = {}
         counts_keys = {}
-        # cil = [c_s.campaign_stage_id for c_s in csl]
-        # dimlist, pendings = self.poms_service.filesPOMS.get_pending_for_campaigns(dbhandle, samhandle, cil, tmin, tmax)
-        # effs = self.poms_service.jobsPOMS.get_efficiency(dbhandle, cil,tmin, tmax)
-        # counts[campaign_stage_id]['efficiency'] = effs[0]
-        # if pendings:
-        #    counts[campaign_stage_id]['pending'] = pendings[0]
-        # counts_keys[campaign_stage_id] = list(counts[campaign_stage_id].keys())
-        #
-        # any launch outputs to look at?
-        #
         dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ['HOME'], campaign_stage_id)
         launch_flist = glob.glob('{}/*'.format(dirname))
         launch_flist = list(map(os.path.basename, launch_flist))
