@@ -1172,6 +1172,7 @@ class PomsService:
         if confirm is None:
             what, s, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(
                 cherrypy.request.db,
+                cherrypy.config.get('base_uploads_dir'),
                 get_user(),
                 experiment,
                 role,

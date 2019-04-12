@@ -39,7 +39,7 @@ class JobsPOMS:
             (cid, sid))
         pass
 
-    def kill_jobs(self, dbhandle, username, exp, se_role, campaign_id = None, campaign_stage_id=None,
+    def kill_jobs(self, dbhandle, basedir, username, exp, se_role, campaign_id = None, campaign_stage_id=None,
                   submission_id=None, job_id=None, confirm=None, act='kill'):
         '''
             kill jobs from the campaign, stage, or particular submission
