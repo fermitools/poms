@@ -720,6 +720,9 @@ class PomsService:
             cherrypy.request.db, cherrypy.config.get, campaign_stage_id, tmin, tmax, tdays
         )
         template = self.jinja_env.get_template('campaign_stage_info.html')
+
+        #mvi point to new POMS doc
+
         return template.render(
             Campaign_info=campaign_stage_info,
             time_range_string=time_range_string,
@@ -735,12 +738,13 @@ class PomsService:
             counts=counts,
             launch_flist=launch_flist,
             do_refresh=0,
-            help_page="CampaignInfoHelp",
+            help_page="POMS_User_Documentation",
             kibana_link=kibana_link,
             dep_svg=dep_svg,
             last_activity=last_activity,
             recent_submissions=recent_submissions,
         )
+            #help_page="CampaignInfoHelp",
 
 #   h4. campaign_stage_submissions
     @cherrypy.expose
