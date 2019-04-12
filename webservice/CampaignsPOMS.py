@@ -2160,8 +2160,8 @@ class CampaignsPOMS:
                             self.fixup_recoveries(dbhandle, job_type.job_type_id, recoveries)
                         dbhandle.commit()
                     except IntegrityError:
-                        message.append("Warning: JobType '{name}' already exists and will not change.")
-                        logit.log("*** DB error: {message}")
+                        message.append(f"Warning: JobType '{name}' already exists and will not change.")
+                        logit.log(f"*** DB error: {message}")
                         dbhandle.rollback()
 
                 elif eid.startswith("login_setup "):
