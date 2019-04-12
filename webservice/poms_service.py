@@ -506,7 +506,6 @@ class PomsService:
         # http://docs.cherrypy.org/en/latest/_modules/cherrypy/lib/static.html
         #
         import mimetypes
-
         mimetypes.types_map['.ini'] = 'text/plain'
 
         sl = [x.replace(os.environ['POMS_DIR'] + '/webservice/static/', '') for x in glob.glob(os.environ['POMS_DIR'] + '/webservice/static/samples/*')]
@@ -632,7 +631,7 @@ class PomsService:
             'data': data,
             'time_range_string': time_range_string,
             'key': '',
-            'help_page': "ShowCampaignsHelp",
+            'help_page': "POMS_UserDocumentation",
             'dbg': kwargs,
         }
 
@@ -733,7 +732,7 @@ class PomsService:
             counts=counts,
             launch_flist=launch_flist,
             do_refresh=0,
-            help_page="CampaignInfoHelp",
+            help_page="POMS_UserDocumentation",
             kibana_link=kibana_link,
             dep_svg=dep_svg,
             last_activity=last_activity,
