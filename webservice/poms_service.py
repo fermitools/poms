@@ -305,16 +305,29 @@ class PomsService:
     @error_rewrite
     @logit.logstartstop
     def launch_template_edit(self, *args, **kwargs):
-        # v3_2_0 backward compatabilty
+        # v3_2_0 backward compatibility
         return self.login_setup_edit(*args, **kwargs)
+
+# h4. login_setup_rm
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def login_setup_rm(self, **kwargs):
+        data = self.campaignsPOMS.login_setup_edit(
+            cherrypy.request.db,
+            cherrypy.session.get,
+            cherrypy.config.get,
+            action='delete',
+            **kwargs
+        )
+        return data
 
 # h4. login_setup_edit
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
     def login_setup_edit(self, *args, **kwargs):
-        data = self.campaignsPOMS.login_setup_edit(
-            cherrypy.request.db, cherrypy.session.get, cherrypy.config.get, *args, **kwargs)
+        data = self.campaignsPOMS.login_setup_edit(cherrypy.request.db, cherrypy.session.get, cherrypy.config.get, *args, **kwargs)
 
         if kwargs.get('test_template'):
             raise cherrypy.HTTPRedirect(
@@ -359,13 +372,23 @@ class PomsService:
             campaign_name=campaign_name or tag,
             campaign_stage_id=campaign_stage_id or camp_id,
         )
-        return template.render(tag=tag, svgdata=svgdata,
-                               help_page="CampaignDepsHelp")
+        return template.render(tag=tag, svgdata=svgdata, help_page="CampaignDepsHelp")
 
+
+    # h4. job_type_rm
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def job_type_rm(self, **kwargs):
+        data = self.campaignsPOMS.job_type_edit(
+            cherrypy.request.db,
+            cherrypy.session.get,
+            action='delete',
+            **kwargs
+        )
+        return data
 
 # h4. job_type_edit
-
-
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
@@ -959,7 +982,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def update_submission(self, submission_id, jobsub_job_id,
-                          pct_complete=None, status=None, project=None,redirect=None):
+                          pct_complete=None, status=None, project=None, redirect=None):
         res = self.taskPOMS.update_submission(cherrypy.request.db, submission_id, jobsub_job_id,
                                               status=status, project=project, pct_complete=pct_complete)
         if redirect:
@@ -1018,7 +1041,7 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def remove_uploaded_files(self, filename, action):
+    def remove_uploaded_files(self, filename, action, redirect=1):
         res = self.filesPOMS.remove_uploaded_files(
             cherrypy.config.get('base_uploads_dir'),
             cherrypy.session.get,
@@ -1026,7 +1049,9 @@ class PomsService:
             filename,
             action,
         )
-        raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
+        if int(redirect) == 1:
+            raise cherrypy.HTTPRedirect(self.path + "/file_uploads")
+        return res
 
 
 # h3. Job actions
@@ -1242,8 +1267,7 @@ class PomsService:
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def jobtype_list(self, *args, **kwargs):
-        data = self.jobsPOMS.jobtype_list(
-            cherrypy.request.db, cherrypy.session.get)
+        data = self.jobsPOMS.jobtype_list(cherrypy.request.db, cherrypy.session.get)
         return data
 
     # ----------------------
@@ -1274,8 +1298,14 @@ class PomsService:
 
     @cherrypy.expose
     @logit.logstartstop
-    def get_task_id_for(self, campaign, user=None, experiment=None, command_executed="", input_dataset="",
-                        parent_task_id=None, task_id=None, parent_submission_id=None, submission_id=None, campaign_id=None, test=None):
+    def get_task_id_for(self, campaign, user=None, experiment=None, command_executed="", input_dataset="", parent_task_id=None, task_id=None, parent_submission_id=None, submission_id=None, campaign_id=None, test=None):
+
+        return get_submisison_id_for(self, campaign, user, experiment, command_executed, input_dataset, parent_task_id, task_id, parent_submission_id, submission_id, campaign_id, test)
+
+# h4. get_submission_id_for
+    @cherrypy.expose
+    @logit.logstartstop
+    def get_submisison_id_for(self, campaign, user=None, experiment=None, command_executed="", input_dataset="", parent_task_id=None, task_id=None, parent_submission_id=None, submission_id=None, campaign_id=None, test=None):
         if not campaign and campaign_id:
             campaign = campaign_id
         if task_id is not None and submission_id is None:

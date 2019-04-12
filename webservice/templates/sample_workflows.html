@@ -80,7 +80,7 @@
         <div class="ui button deny red">Cancel</div>
         <input type="submit" id="clone" name="clone" value="Clone" class="ui button teal" />
       </div>
-      <input type="hidden" id="from" name="from" value="sample">
+      <input type="hidden" id="from" name="from">
     </form>
   </div>
   <div class="ui hidden divider"></div>
@@ -123,6 +123,7 @@
 function clone_template(sample) {
     $("#sample_clone_modal").modal({}).modal('show');
     $("#campaign").val(sample)
+    $("#from").val(sample)
 }
 
 $('#sample_clone_form')

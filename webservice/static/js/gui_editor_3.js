@@ -507,11 +507,27 @@ gui_editor.update_loginsetups = function() {
 
 /* instance methods */
 
+gui_editor.prototype.extras = function() {
+    var k, stages, before, lsjt;
+    for (k in this.state) {
+        console.log("extras: checking", k)
+        if (k.substr(0,12) == 'login_setup ') {
+            lsjt = k.substr(12)
+            console.log("extras: login_setup ", lsjt )
+            this.loginsetups.push(lsjt);
+        }
+        if (k.substr(0,9) == 'job_type ') {
+            lsjt = k.substr(9)
+            console.log("extras: job_type ", lsjt )
+            this.jobtypes.push(lsjt);
+        }
+   }
+}
 
 /* rename stages for a workflow clone */
 gui_editor.prototype.clone_rename = function (from, to, experiment, role) {
     console.log(["clone_rename:", from, to, experiment, role]);
-    var stages, before, after;
+    var stages, before, after, lsjt;
     // stages = this.state['campaign']['campaign_stage_list'].split(/  */);
     stages = this.state['campaign']['campaign_stage_list'].split(/,+/);
     console.log(["clone_rename: stage list", stages]);
@@ -527,6 +543,7 @@ gui_editor.prototype.clone_rename = function (from, to, experiment, role) {
     console.log(["clone_rename: campaign fields", this.state['campaign']]);
     for (let i in stages) {
         before = stages[i];
+
         console.log("fixing: " + before);
         // after = gui_editor.new_name(before, from, to);
         // this.rename_entity('campaign_stage ' + before, 'campaign_stage ' + after);
@@ -609,12 +626,42 @@ gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment,
         .then(
             _ => {
                 this.state = JSON.parse(this.ini2json(ini_dump));
+                this.extras();
                 this.clone_rename(from, to, experiment, role);
                 console.log("Cloned State:\n", this.state);    // DEBUG
                 this.defaultify_state();
                 this.draw_state();
+                gui_editor.smudge_setups_jobtypes();
             }
         );
+}
+
+
+gui_editor.smudge_setups_jobtypes = function () {
+    /*
+ *      * change the hash on all the popups for login_setup/job_type
+ *           * so that we think they're changed, and try to save them later
+ *                */
+    var el, e, id, i, name;
+    console.log("smudge_setups_jobtypes: starting");
+    el = document.getElementsByClassName("popup_form");
+    console.log("el:", el);
+    for (i = 0 ; i < el.length; i++) {
+        id = el[i].id;
+        e = el[i]
+        if ( id.match(/fields_/)) {
+            console.log("trying to mark " , id , " dirty...");
+            console.log("before: ", e.attributes['data-hash'])
+            e.setAttribute('data-hash','1')
+            e.setAttribute('data-clean','0')
+            if (e.parentNode && e.parentNode.gui_box) {
+                e.parentNode.gui_box.save_values();
+            }
+            console.log("after: ", e.attributes['data-hash'])
+        }
+    }
+    gui_editor.modified();
+    console.log("smudge_setups_jobtypes: finished");
 }
 
 gui_editor.prototype.make_poms_call = function (url) {
@@ -655,6 +702,7 @@ gui_editor.prototype.set_state = function (ini_dump) {
                     return;
                 }
                 console.log("State:\n", this.state);    // DEBUG
+                this.extras();
                 this.defaultify_state();
                 this.draw_state();
             }
