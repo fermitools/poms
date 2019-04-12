@@ -20,7 +20,7 @@ class DBadminPOMS:
         """
             return members of experiment
         """
-        members = (dbhandle.query(Experiment, ExperimentsExperimenters, Experimenter)
+        members = (dbhandle.query(Experiment, ExperimentsExperimenters, Experimenter) #
                    .join(ExperimentsExperimenters.experiment_obj)
                    .join(ExperimentsExperimenters.experimenter_obj)
                    .filter(Experiment.experiment == experiment)

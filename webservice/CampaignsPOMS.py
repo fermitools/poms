@@ -407,7 +407,9 @@ class CampaignsPOMS:
          recoveriy entries, add new ones.  It probably should
          check if they're actually different before doing this..
         '''
-        (dbhandle.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == job_type_id).delete(synchronize_session=False))
+        (dbhandle.query(CampaignRecovery) #
+            .filter(CampaignRecovery.job_type_id == job_type_id)
+            .delete(synchronize_session=False))
         i = 0
         for rtn in json.loads(recoveries):
             rect = rtn[0]
@@ -443,8 +445,12 @@ class CampaignsPOMS:
             else:
                 cid = kwargs.pop('job_type_id')
             try:
-                (dbhandle.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == cid).delete(synchronize_session=False))
-                (dbhandle.query(JobType).filter(JobType.job_type_id == cid).delete(synchronize_session=False))
+                (dbhandle.query(CampaignRecovery) #
+                    .filter(CampaignRecovery.job_type_id == cid)
+                    .delete(synchronize_session=False))
+                (dbhandle.query(JobType) #
+                    .filter(JobType.job_type_id == cid)
+                    .delete(synchronize_session=False))
                 dbhandle.commit()
             except SQLAlchemyError as exc:
                 message = ('The campaign definition, %s, ' 'has been used and may not be deleted.') % name
@@ -2309,7 +2315,7 @@ class CampaignsPOMS:
             # isn't , hence the if obj: below
             obj = None
             if old_name in old_stage_names:
-                obj = (dbhandle.query(CampaignStage)
+                obj = (dbhandle.query(CampaignStage) #
                        .filter(CampaignStage.campaign_id == the_campaign.campaign_id)
                        .filter(CampaignStage.name == old_name)
                        .scalar()

@@ -28,7 +28,7 @@ class Permissions:
     def check_experiment_role(self, dbhandle, username, experiment, desired_role):
         key = "%s:%s" %(username, experiment)
         if not key in self.excache:
-            rows = (dbhandle.query(ExperimentsExperimenters.role)
+            rows = (dbhandle.query(ExperimentsExperimenters.role) #
                     .join(Experimenter, Experimenter.experimenter_id == ExperimentsExperimenters.experimenter_id)
                     .filter(Experimenter.username == username, ExperimentsExperimenters.experiment == experiment)).all()
             if rows:
@@ -56,7 +56,7 @@ class Permissions:
             k = "sub:%s" % (item_id or name)
             q = (dbhandle.query(CampaignStage.experiment,
                                 CampaignStage.creator,
-                                CampaignStage.creator_role)
+                                CampaignStage.creator_role) #
                  .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id))
             if item_id:
                 q = q.filter(Submission.submission_id == item_id)

@@ -71,7 +71,7 @@ class JobsPOMS:
             jjidq = jjidq.filter(Submission.campaign_stage_id == campaign_stage_id)
 
         if submission_id:
-            s = (dbhandle.query(Submission)
+            s = (dbhandle.query(Submission) #
                  .filter(Submission.submission_id == submission_id)
                  .first())
             what = "--constraint=POMS4_SUBMISSION_ID==%s" % s.submission_id
