@@ -2,13 +2,11 @@
 
 import sys
 import os
-from os import system as os_system
-import threading
-from poms.webservice.logit import log, logstartstop
-import requests
 import re
 import traceback
 from collections import deque
+import requests
+from poms.webservice.logit import log, logstartstop
 
 
 class jobsub_fetcher():
@@ -69,7 +67,7 @@ class jobsub_fetcher():
                 # strip campaigns...
                 line = re.sub('<[^>]*>', '', line)
                 fields = line.strip().split()
-                if len(fields):
+                if fields:
                     fname = fields[0]
                     fields[0] = ""
                     fields[2] = fields[1]
