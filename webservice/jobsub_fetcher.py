@@ -25,18 +25,21 @@ class jobsub_fetcher():
 
     @logstartstop
     def index(self, jobsubjobid, group, role="Production",
-              force_reload=False, retries=3):
+              force_reload=False, retries=3, user=None):
 
         res = deque()
         if retries == -1:
             return res
 
+        if user == None:
+            # if old code calls without a username, guess
+            if group == "samdev":
+                user = "mengel"  
+            else:
+                user = "%spro" % group
+
         if group == "samdev":
             group = "fermilab"
-            user = "mengel"  # kluge alert
-        else:
-            # XXX this will be wrong when we have real Analysis jobs...
-            user = "%spro" % group
 
         fifebatch = jobsubjobid[jobsubjobid.find("@") + 1:]
 
@@ -84,17 +87,21 @@ class jobsub_fetcher():
 
     @logstartstop
     def contents(self, filename, jobsubjobid, group,
-                 role="Production", retries=3):
+                 role="Production", retries=3, user = None):
 
         if retries == -1:
             return []
 
+
+        if user == None:
+            # if old code calls without a username, guess
+            if group == "samdev":
+                user = "mengel"  # kluge alert
+            else:
+                user = "%spro" % group
+
         if group == "samdev":
             group = "fermilab"
-            user = "mengel"  # kluge alert
-        else:
-            # XXX this will be wrong when we have real Analysis jobs...
-            user = "%spro" % group
 
         fifebatch = jobsubjobid[jobsubjobid.find("@") + 1:]
 

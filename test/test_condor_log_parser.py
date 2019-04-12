@@ -12,4 +12,3 @@ def test_condor_log_parser():
     experiment = "nova"
     role = "Production"
     get_joblogs(dbh.get(), jobsub_job_id, cert, key, experiment, role)
-
