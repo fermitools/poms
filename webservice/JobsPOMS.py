@@ -91,7 +91,7 @@ class JobsPOMS:
         else:
             jidbits = what
             sids = []
-  
+
         if confirm is None:
             if jidbits != what:
                 what = '%s %s' % (what, jidbits)
@@ -172,21 +172,6 @@ class JobsPOMS:
             dbhandle.commit()
 
             return output, cs, campaign_stage_id, submission_id, job_id
-
-    # This method was deleted from the main script
-
-    def get_efficiency(self, dbhandle, id_list, tmin, tmax):
-
-        if isinstance(id_list, str):
-            id_list = [int(cid) for cid in id_list.split(',') if cid]
-
-        mapem = self.get_efficiency_map(dbhandle, id_list, tmin, tmax)
-        efflist = deque()
-        for cid in id_list:
-            efflist.append(mapem.get(cid, -2))
-
-        logit.log("got list: %s" % repr(efflist))
-        return efflist
 
     def jobtype_list(self, dbhandle, exp, role, name=None, full=None):
         """

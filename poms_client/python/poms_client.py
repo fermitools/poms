@@ -174,7 +174,6 @@ def register_poms_campaign(campaign_name, user=None, experiment=None, version=No
     '''
     deprecated: register campaign stage. returns "Campaign=<stage_id>"
     '''
-    logging.warning("Notice: poms_client.register_poms_campaign() is deprecatead")
     data, status = make_poms_call(
         method='register_poms_campaign',
         campaign_name=campaign_name,
@@ -190,25 +189,22 @@ def register_poms_campaign(campaign_name, user=None, experiment=None, version=No
     data = data.replace('Campaign=', '')
     return int(data)
 
-def get_task_id_for(campaign, user=None, command_executed=None, input_dataset=None, parent_task_id=None, task_id=None, test=None, experiment=None, configfile=None):
 
-    logging.warning("Notice: poms_client.get_task_id_for() is deprecated, use get_submission_id")
-    return get_submission_id_for(campaign, user, command_executed, input_dataset, parent_task_id, task_id, test, experiment, configfile)
-
-def get_submission_id_for(campaign_stage_id, user=None, command_executed=None, input_dataset=None, parent_submission_id=None, submission_id=None, test=None, experiment=None, configfile=None):
+def get_task_id_for(campaign, user=None, command_executed=None, input_dataset=None, parent_task_id=None,
+                    task_id=None, test=None, experiment=None, configfile=None):
     '''
     get a submission id for a submission / or register the command
         executed for an existing submission.  Returns "Task=<submission_id>"
     '''
-    logging.debug("in get_submission_id_for test = " + repr(test))
+    logging.debug("in get task_id_for test = " + repr(test))
     data, status = make_poms_call(
-        method='get_submission_id_for',
-        campaign_stage_id=campaign_stage_id,
+        method='get_task_id_for',
+        campaign=campaign,
         user=user,
         command_executed=command_executed,
         input_dataset=input_dataset,
-        parent_submission_id=parent_submission_id,
-        submission_id=submission_id,
+        parent_task_id=parent_task_id,
+        task_id=task_id,
         test=test,
         configfile=configfile)
     data = data.replace('Task=', '')
@@ -219,7 +215,6 @@ def launch_jobs(campaign, test=None, experiment=None, configfile=None):
     '''
     depecated: backward compatible call to launch jobs for a campaign stage
     '''
-    logging.warning("Notice: poms_client.launch_jobs() is deprecated, use launch_campaign_stage_jobs")
     return launch_campaign_stage_jobs(campaign, test, experiment, configfile)[1] == 303
 
 
@@ -350,12 +345,6 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
 
 
 def campaign_definition_edit(output_file_patterns, launch_script, def_parameter=None, pc_username=None,
-                             action=None, name=None, experiment=None, recoveries=None, test_client=False, configfile=None):
-    logging.warning("Notice: poms_client.campaign_definition_edit() is deprecated, use job_type_edit")
-    return job_type_edit(output_file_patterns, launch_script, def_parameter, pc_username,
-                             action, name, experiment, recoveries, test_client, configfile)
-
-def job_type_edit(output_file_patterns, launch_script, def_parameter=None, pc_username=None,
                              action=None, name=None, experiment=None, recoveries=None, test_client=False, configfile=None):
     # You can not modify the recovery_type from the poms_client (future feature)
     logging.debug("in get launch_jobs test_client = " + repr(test_client))
