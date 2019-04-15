@@ -101,7 +101,11 @@ View the <a href="http://samweb.fnal.gov:8480/station_monitor/{{experiment}}/sta
 {%endif%}
 
 {%if submission.jobsub_job_id %}
-View the <a href="https://{{schedd}}:8443/jobsub/acctgroups/{{experiment|replace('samdev','fermilab')}}/sandboxes/{%if submission.campaign_stage_snapshot_obj.vo_role == 'Production' %}{{"%spro"|format(experiment)|replace("samdevpro","mengel")}}{%else%}{{submission.experimenter_creator_obj.username}}{%endif%}/{{submission.jobsub_job_id|replace("@",".0@")|replace(".0.0@",".0@")}}/">Job Logs</a> <br>
+View the 
+<a href="https://landscape.fnal.gov/lens/view/job/{{submission.jobsub_job_id|replace("@",".0@")|replace(".0.0@",".0@")}}/">
+<!-- <a href="https://{{schedd}}:8443/jobsub/acctgroups/{{experiment|replace('samdev','fermilab')}}/sandboxes/{%if submission.campaign_stage_snapshot_obj.vo_role == 'Production' %}{{"%spro"|format(experiment)|replace("samdevpro","mengel")}}{%else%}{{submission.experimenter_creator_obj.username}}{%endif%}/{{submission.jobsub_job_id|replace("@",".0@")|replace(".0.0@",".0@")}}/"> -->
+Job Logs
+</a> <br>
 {%endif%}
 
 </div>
