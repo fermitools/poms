@@ -133,7 +133,7 @@ def upload_file(file_name, test=None, experiment=None, configfile=None):
     return status == 303
 
 
-def uploaded_files_rm(filename, test=None, experiment=None, configfile=None):
+def uploaded_files_rm(filename, test=None, configfile=None):
     """
     remove file(s) from your $UPLOADS area on the poms server.
     """
