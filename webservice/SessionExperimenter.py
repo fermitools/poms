@@ -1,10 +1,5 @@
 #!/usr/bin/env python
-from collections import deque
 
-import sys
-import os
-import socket
-from datetime import datetime
 
 class SessionExperimenter:
 
