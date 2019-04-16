@@ -31,10 +31,10 @@ class jobsub_fetcher():
         if retries == -1:
             return res
 
-        if user == None:
+        if user is None:
             # if old code calls without a username, guess
             if group == "samdev":
-                user = "mengel"  
+                user = "mengel"
             else:
                 user = "%spro" % group
 
@@ -87,13 +87,13 @@ class jobsub_fetcher():
 
     @logstartstop
     def contents(self, filename, jobsubjobid, group,
-                 role="Production", retries=3, user = None):
+                 role="Production", retries=3, user=None):
 
         if retries == -1:
             return []
 
 
-        if user == None:
+        if user is None:
             # if old code calls without a username, guess
             if group == "samdev":
                 user = "mengel"  # kluge alert
