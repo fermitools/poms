@@ -484,8 +484,11 @@ class TaskPOMS:
             % (submission_id, status_id, lasthist.status_id, lasthist.created)
         )
 
-        # don't roll back Located
-        if lasthist and lasthist.status_id == self.status_Located:
+        # don't roll back Located or Removed (final states)
+        # note that we *don't* have LaunchFailed here, as we *could*
+        # have a launch that took a Really Long Time, and we might have
+        # falsely concluded that the launch failed...
+        if lasthist and lasthist.status_id in (self.status_Located, self.status_Removed):
             return
 
         # don't roll back Completed

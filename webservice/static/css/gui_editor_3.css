@@ -94,7 +94,7 @@ div.box.selected {
    width: 100%;
 }
 .popup_form input, select {
-    width: 60%;
+    width: 20em;
 }
 .popup_form label {
     display: inline-block;
