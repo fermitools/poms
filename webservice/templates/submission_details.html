@@ -84,9 +84,9 @@ View <a href="{{pomspath}}/list_launch_file?campaign_stage_id={{submission.campa
 View in
 {%if submission.jobsub_job_id %}
 {%if submission.project %}
-  <a href="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster={{cluster}}&var-schedd={{schedd}}&from={{submission.created}}s000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
+  <a href="https://fifemon.fnal.gov/monitor/d/000000188/dag-cluster-summary?var-cluster={{cluster}}&var-schedd={{schedd}}&from={{submission.created}}000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
 {% else %}
-  <a href="https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster={{cluster}}s&var-schedd={{schedd}}&from={{submission.created}}s000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
+  <a href="https://fifemon.fnal.gov/monitor/d/000000115/job-cluster-summary?var-cluster={{cluster}}&var-schedd={{schedd}}&from={{submission.created}}000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
 {%endif%}
 {%else%}
 Landscape (disabled, no info found) <br>
