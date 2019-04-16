@@ -71,6 +71,7 @@ def update_submission(submission_id,status, test=None,configfile=None, **kwargs 
         **kwargs)
     return status in (200, 201), data
 
+
 def campaign_stage_submissions(experiment, role, campaign_name, stage_name, test=None, configfile=None, **kwargs):
     '''
     Return data about campaigns for the given experiment.
@@ -105,7 +106,7 @@ def submission_details(experiment, role, submission_id, test=None, configfile=No
     return status in (200, 201), json.loads(data)
 
 
-def upload_wf(file_name, test=None, experiment=None, configfile=None):
+def upload_wf(file_name, test=None, experiment=None, configfile=None, replace=False):
     '''
     upload a campaign .ini file to the server, returns boolan OK flag, and json data from server
     '''
@@ -113,22 +114,42 @@ def upload_wf(file_name, test=None, experiment=None, configfile=None):
         method='ini_to_campaign',
         files={'upload': (os.path.basename(file_name), open(file_name, 'rb'))},
         test_client=test,
-        configfile=configfile)
+        configfile=configfile,
+        pcl_call=1,
+        replace=replace
+    )
 
     return status in (200, 201), json.loads(data)
 
 
-def upload_file(file_name, test=None, configfile=None):
+def upload_file(file_name, test=None, experiment=None, configfile=None):
     '''
-    upload a file to your $UPLOADS area on the poms server to be used in jo b launches.  returns boolean "Ok" value
+    upload a file to your $UPLOADS area on the poms server to be used in job launches.  returns boolean "Ok" value
     '''
     data, status = make_poms_call(
         method='upload_file',
         files={'filename': (os.path.basename(file_name), open(file_name, 'rb'))},
         test_client=test,
+        experiment=experiment,
         configfile=configfile)
 
     return status == 303
+
+
+def uploaded_files_rm(experiment, filename, test=None, configfile=None):
+    """
+    remove file(s) from your $UPLOADS area on the poms server.
+    """
+    data, status = make_poms_call(
+        method='remove_uploaded_files',
+        experiment=experiment,
+        filename=filename,
+        action='delete',
+        redirect=0,
+        test_client=test,
+        configfile=configfile,
+    )
+    return data, status
 
 
 def get_campaign_id(experiment, campaign_name, test=None, configfile=None):
@@ -174,6 +195,7 @@ def register_poms_campaign(campaign_name, user=None, experiment=None, version=No
     '''
     deprecated: register campaign stage. returns "Campaign=<stage_id>"
     '''
+    logging.warning("Notice: poms_client.register_poms_campaign() is deprecated")
     data, status = make_poms_call(
         method='register_poms_campaign',
         campaign_name=campaign_name,
@@ -215,6 +237,7 @@ def launch_jobs(campaign, test=None, experiment=None, configfile=None):
     '''
     depecated: backward compatible call to launch jobs for a campaign stage
     '''
+    logging.warning("Notice: poms_client.launch_jobs() is deprecated, use launch_campaign_stage_jobs")
     return launch_campaign_stage_jobs(campaign, test, experiment, configfile)[1] == 303
 
 
@@ -248,6 +271,28 @@ def launch_campaign_jobs(campaign_id, test=None, experiment=None, configfile=Non
         submission_id = None
 
     return data, status, submission_id
+
+
+def job_type_rm(experiment, name, test=False, configfile=None):
+    data, status = make_poms_call(
+        method='job_type_rm',
+        pcl_call=1,
+        experiment=experiment,
+        ae_definition_name=name,
+        test=test,
+        configfile=configfile)
+    return data, status
+
+
+def login_setup_rm(experiment, name, test=False, configfile=None):
+    data, status = make_poms_call(
+        method='login_setup_rm',
+        pcl_call=1,
+        experiment=experiment,
+        ae_launch_name=name,
+        test=test,
+        configfile=configfile)
+    return data, status
 
 
 def launch_template_edit(action=None, launch_name=None, launch_host=None, user_account=None, launch_setup=None,
@@ -389,6 +434,19 @@ def campaign_definition_edit(output_file_patterns, launch_script, def_parameter=
 
 def campaign_edit(**kwargs):
     print("campaign_edit has been replaced by campaign_stage_edit")
+
+
+def campaign_rm(experiment, name, test=False, configfile=None):
+    data, status = make_poms_call(
+        pcl_call=1,
+        method='show_campaigns',
+        action='delete',
+        fmt='json',
+        experiment=experiment,
+        del_campaign_name=name,
+        test=test,
+        configfile=configfile)
+    return data, status
 
 
 def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experiment, vo_role,
@@ -537,11 +595,11 @@ def make_poms_call(**kwargs):
     if kwargs.get("test", None):
         del kwargs["test"]
 
-    if not "experiment" in kwargs:
-        kwargs["experiment" ] = global_experiment
+    if "experiment" not in kwargs:
+        kwargs["experiment"] = global_experiment
 
-    if not "role" in kwargs:
-        kwargs["role" ] = global_role
+    if "role" not in kwargs:
+        kwargs["role"] = global_role
 
     test_client = kwargs.get("test_client", None)
     if "test_client" in kwargs:
