@@ -838,7 +838,8 @@ class PomsService:
         if login_setup_id is None and launch_template_id is not None:
             login_setup_id = launch_template_id
         lines, refresh, campaign_name, stage_name = self.campaignsPOMS.list_launch_file(
-            cherrypy.request.db, campaign_stage_id, fname, login_setup_id
+            cherrypy.request.db, campaign_stage_id, fname, login_setup_id)
+        output = "".join(lines)
         template = self.jinja_env.get_template('launch_jobs.html')
         res = template.render(
             command='',
