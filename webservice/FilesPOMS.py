@@ -50,7 +50,7 @@ class FilesStatus:
         # inhale all the campaign related task info for the time window
         # in one fell swoop
 
-        q = (dbhandle.query(Submission)
+        q = (dbhandle.query(Submission) #
              .options(joinedload(Submission.campaign_stage_snapshot_obj))
              .filter(Submission.created >= tmin, Submission.created < tmax))
 
@@ -242,12 +242,12 @@ class FilesStatus:
             campaign_id_list = [
                 cid for cid in campaign_id_list.split(',') if cid]
 
-        task_list = (dbhandle.query(Submission).
-                     options(joinedload(Submission.campaign_stage_snapshot_obj)).
-                     options(joinedload(Submission.job_type_snapshot_obj)).
-                     filter(Submission.campaign_stage_id.in_(campaign_id_list),
-                            Submission.created >= tmin, Submission.created < tmax).
-                     all())
+        task_list = (dbhandle.query(Submission) #
+                     .options(joinedload(Submission.campaign_stage_snapshot_obj))
+                     .options(joinedload(Submission.job_type_snapshot_obj))
+                     .filter(Submission.campaign_stage_id.in_(campaign_id_list),
+                            Submission.created >= tmin, Submission.created < tmax)
+                     .all())
 
         # To prepare the list of task lists
         tll = defaultdict(lambda: [])
@@ -349,7 +349,7 @@ class FilesStatus:
             uploaded = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.localtime(statout.st_mtime))
             file_stat_list.append([os.path.basename(fname), statout.st_size, uploaded])
             total += statout.st_size
-        experimenters = (dbhandle.query(Experimenter, ExperimentsExperimenters)
+        experimenters = (dbhandle.query(Experimenter, ExperimentsExperimenters) #
                          .join(ExperimentsExperimenters.experimenter_obj)
                          .filter(ExperimentsExperimenters.experiment == experiment)
                         ).all()

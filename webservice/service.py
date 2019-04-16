@@ -1,43 +1,27 @@
 #!/usr/bin/env python
-from collections import deque
-
 import sys
 import os
+import os.path
 import socket
-from datetime import datetime
-from utc import utc
 import atexit
 from textwrap import dedent
 import io
 import urllib.parse
-from markupsafe import Markup
-
-from poms.webservice.SessionExperimenter import SessionExperimenter
-#import dowser
-import poms.webservice.pomscache as pomscache
-
-#
-# if os.environ.get("SETUP_POMS", "") == "":
-#    sys.path.insert(0, os.environ.get('SETUPS_DIR', os.environ.get('HOME') + '/products'))
-#    import setups
-#    ups = setups.setups()
-#    ups.use_package("poms", "", "SETUP_POMS")
-
-from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment
-# from sqlalchemy.orm import subqueryload, joinedload, contains_eager
-import os.path
 import argparse
 import logging
 import logging.config
+from markupsafe import Markup
+
 import cherrypy
-from cherrypy.process import wspbus, plugins
+from cherrypy.process import plugins
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 import sqlalchemy.exc
 
+from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment
+from poms.webservice.get_user import get_user
 from poms.webservice import poms_service
-
 from poms.webservice import jobsub_fetcher
 from poms.webservice import samweb_lite
 from poms.webservice import logging_conf
@@ -67,14 +51,13 @@ class SAEnginePlugin(plugins.SimplePlugin):
         print("destroy worker")
 
     def start(self):
-        section = self.app.config['Databases']
+        section = self.app.config["Databases"]
         db = section["db"]
         dbuser = section["dbuser"]
         dbhost = section["dbhost"]
         dbport = section["dbport"]
         db_path = "postgresql://%s:@%s:%s/%s" % (dbuser, dbhost, dbport, db)
-        self.sa_engine = create_engine(
-            db_path, echo=False, echo_pool=False, pool_size=40)
+        self.sa_engine = create_engine(db_path, echo=False, echo_pool=False, pool_size=40)
         atexit.register(self.destroy)
 
     def stop(self):
@@ -100,25 +83,19 @@ class SATool(cherrypy.Tool):
         a requests starts and commits/rollbacks whenever
         the request terminates.
         """
-        cherrypy.Tool.__init__(self, 'on_start_resource',
-                               self.bind_session,
-                               priority=20)
-        self.session = scoped_session(
-            sessionmaker(
-                autoflush=True,
-                autocommit=False))
-        self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher(cherrypy.config.get('elasticsearch_cert'),
-                                                            cherrypy.config.get('elasticsearch_key'))
+        cherrypy.Tool.__init__(self, "on_start_resource", self.bind_session, priority=20)
+        self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
+        self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher(
+            cherrypy.config.get("elasticsearch_cert"), cherrypy.config.get("elasticsearch_key")
+        )
         self.samweb_lite = samweb_lite.samweb_lite()
 
     def _setup(self):
         cherrypy.Tool._setup(self)
-        cherrypy.request.hooks.attach('on_end_resource',
-                                      self.release_session,
-                                      priority=80)
+        cherrypy.request.hooks.attach("on_end_resource", self.release_session, priority=80)
 
     def bind_session(self):
-        cherrypy.engine.publish('bind', self.session)
+        cherrypy.engine.publish("bind", self.session)
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
@@ -127,10 +104,7 @@ class SATool(cherrypy.Tool):
             self.session.execute("SET SESSION statement_timeout = '240s';")
             self.session.commit()
         except sqlalchemy.exc.UnboundExecutionError:
-            self.session = scoped_session(
-                sessionmaker(
-                    autoflush=True,
-                    autocommit=False))
+            self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
             self.session.execute("SET SESSION lock_timeout = '360s';")
             self.session.execute("SET SESSION statement_timeout = '240s';")
             self.session.commit()
@@ -147,20 +121,16 @@ class SATool(cherrypy.Tool):
 
 
 class SessionTool(cherrypy.Tool):
-        # will be created for each request.
+    # will be created for each request.
 
     def __init__(self):
-        cherrypy.Tool.__init__(self, 'before_request_body',
-                               self.establish_session,
-                               priority=90)
+        cherrypy.Tool.__init__(self, "before_request_body", self.establish_session, priority=90)
 
     # Here is how to add aditional hooks. Left as example
 
     def _setup(self):
         cherrypy.Tool._setup(self)
-        cherrypy.request.hooks.attach('before_finalize',
-                                      self.finalize_session,
-                                      priority=10)
+        cherrypy.request.hooks.attach("before_finalize", self.finalize_session, priority=10)
 
     def finalize_session(self):
         pass
@@ -168,10 +138,11 @@ class SessionTool(cherrypy.Tool):
     def establish_session(self):
         pass
 
+
 #
 # non ORM class to cache an experiment
 #
-class SessionExperiment():
+class SessionExperiment:
     def __init__(self, exp):
         self.experiment = exp.experiment
         self.name = exp.name
@@ -181,65 +152,70 @@ class SessionExperiment():
 
 
 def urlencode_filter(s):
-    if type(s) == 'Markup':
+    if isinstance(s, Markup):
         s = s.unescape()
-    s = s.encode('utf8')
+    s = s.encode("utf8")
     s = urllib.parse.quote(s)
     return Markup(s)
 
-from poms.webservice.get_user import get_user
 
 def augment_params():
     e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == get_user()).first()
-    roles = ['analysis', 'production', 'superuser']
+    roles = ["analysis", "production", "superuser"]
     exps = {}
     e2e = None
     if e.root is True:
-        e2e = (cherrypy.request.db.query(Experiment))
+        e2e = cherrypy.request.db.query(Experiment)
         for row in e2e:
             exps[row.experiment] = roles
     else:
-        e2e = (cherrypy.request.db.query(ExperimentsExperimenters)
-               .filter(ExperimentsExperimenters.experimenter_id == e.experimenter_id)
-               .filter(ExperimentsExperimenters.active == True))
+        e2e = (
+            cherrypy.request.db.query(ExperimentsExperimenters)
+            .filter(ExperimentsExperimenters.experimenter_id == e.experimenter_id)
+            .filter(ExperimentsExperimenters.active.is_(True))
+        )
         for row in e2e:
             position = 0
             if e.root is True:
                 position = 3
-            elif row.role == 'superuser':
+            elif row.role == "superuser":
                 position = 3
-            elif row.role == 'production':
+            elif row.role == "production":
                 position = 2
             else:  # analysis
                 position = 1
             exps[row.experiment] = roles[:position]
 
-    pathv = cherrypy.request.path_info.split('/')
+    pathv = cherrypy.request.path_info.split("/")
     if len(pathv) >= 4:
         session_experiment = pathv[2]
         session_role = pathv[3]
     else:
-        # pick saved experiment/role 
+        # pick saved experiment/role
         session_experiment = None
         session_role = None
 
     root = cherrypy.request.app.root
-    root.jinja_env.globals.update(dict(session_role = session_role,
-                                       session_experiment = session_experiment,
-                                       user_authorization=exps.keys(),
-                                       allowed_roles= exps,
-                                       is_root = e.root,
-                                       experimenter_id = e.experimenter_id,
-                                       last_name = e.last_name,
-                                       first_name = e.first_name,
-                                       username = e.username,
-                                       version=root.version,
-                                       pomspath=root.path,
-                                       hostname=socket.gethostname()))
+    root.jinja_env.globals.update(
+        dict(
+            session_role=session_role,
+            session_experiment=session_experiment,
+            user_authorization=exps.keys(),
+            allowed_roles=exps,
+            is_root=e.root,
+            experimenter_id=e.experimenter_id,
+            last_name=e.last_name,
+            first_name=e.first_name,
+            username=e.username,
+            version=root.version,
+            pomspath=root.path,
+            hostname=socket.gethostname(),
+        )
+    )
 
     # logit.log("jinja_env.globals: {}".format(str(root.jinja_env.globals)))
     # # DEBUG
-    root.jinja_env.filters['urlencode'] = urlencode_filter
+    root.jinja_env.filters["urlencode"] = urlencode_filter
 
 
 def pidfile():
@@ -247,7 +223,7 @@ def pidfile():
     pid = os.getpid()
     cherrypy.log.error("PID: %s" % pid)
     if pidfile:
-        fd = open(pidfile, 'w')
+        fd = open(pidfile, "w")
         fd.write("%s" % pid)
         fd.close()
         cherrypy.log.error("Pid File: %s" % pidfile)
@@ -255,20 +231,9 @@ def pidfile():
 
 def parse_command_line():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '-cs',
-        '--config',
-        help="Filepath for POMS config file.")
-    parser.add_argument(
-        '--use-wsgi',
-        dest='use_wsgi',
-        action='store_true',
-        help="Run behind WSGI. (Default)")
-    parser.add_argument(
-        '--no-wsgi',
-        dest='use_wsgi',
-        action='store_false',
-        help="Run without WSGI.")
+    parser.add_argument("-cs", "--config", help="Filepath for POMS config file.")
+    parser.add_argument("--use-wsgi", dest="use_wsgi", action="store_true", help="Run behind WSGI. (Default)")
+    parser.add_argument("--no-wsgi", dest="use_wsgi", action="store_false", help="Run without WSGI.")
     parser.set_defaults(use_wsgi=True)
     args = parser.parse_args()
     return parser, args
@@ -285,15 +250,18 @@ if True:
     #
     # make %(HOME) and %(POMS_DIR) work in various sections
     #
-    confs = dedent("""
+    confs = dedent(
+        """
        [DEFAULT]
        HOME="%(HOME)s"
        POMS_DIR="%(POMS_DIR)s"
-    """ % os.environ)
+    """
+        % os.environ
+    )
 
     cf = open(configfile, "r")
     confs = confs + cf.read()
-    cf.close
+    cf.close()
 
     try:
         cherrypy.config.update(io.StringIO(confs))
@@ -307,23 +275,18 @@ if True:
     # dapp = cherrypy.tree.mount(dowser.Root(), '/dowser')
 
     poms_instance = poms_service.PomsService()
-    app = cherrypy.tree.mount(
-        poms_instance,
-        poms_instance.path,
-        io.StringIO(confs))
-    # app = cherrypy.tree.mount(pomsInstance, pomsInstance.path, configfile)
+    app = cherrypy.tree.mount(poms_instance, poms_instance.path, io.StringIO(confs))
 
     SAEnginePlugin(cherrypy.engine, app).subscribe()
     cherrypy.tools.db = SATool()
     cherrypy.tools.psess = SessionTool()
 
-    cherrypy.tools.augment_params = cherrypy.Tool(
-        'before_handler', augment_params, None, priority=30)
+    cherrypy.tools.augment_params = cherrypy.Tool("before_handler", augment_params, None, priority=30)
 
-    cherrypy.engine.unsubscribe('graceful', cherrypy.log.reopen_files)
+    cherrypy.engine.unsubscribe("graceful", cherrypy.log.reopen_files)
 
     logging.config.dictConfig(logging_conf.LOG_CONF)
-    section = app.config['POMS']
+    section = app.config["POMS"]
     log_level = section["log_level"]
     logit.setlevel(log_level)
     logit.log("POMSPATH: %s" % poms_instance.path)
@@ -337,16 +300,9 @@ if True:
     cherrypy.engine.start()
 
     if not args.use_wsgi:
-        cherrypy.engine.block()         # Disable built-in HTTP server when behind wsgi
+        cherrypy.engine.block()  # Disable built-in HTTP server when behind wsgi
         logit.log("Starting Cherrypy HTTP")
 
     application = cherrypy.tree
-    if 0:
-        # from paste.exceptions.errormiddleware import ErrorMiddleware
-        # application = ErrorMiddleware(application, debug=True)
-        pass
-    if 0:
-        # from repoze.errorlog import ErrorLog
-        # application = ErrorLog(application, channel=None, keep=20, path='/__error_log__', ignored_exceptions=())
-        pass
+
     # END

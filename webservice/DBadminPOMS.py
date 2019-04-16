@@ -20,11 +20,11 @@ class DBadminPOMS:
         """
             return members of experiment
         """
-        members = (dbhandle.query(Experiment, ExperimentsExperimenters, Experimenter)
+        members = (dbhandle.query(Experiment, ExperimentsExperimenters, Experimenter) #
                    .join(ExperimentsExperimenters.experiment_obj)
                    .join(ExperimentsExperimenters.experimenter_obj)
                    .filter(Experiment.experiment == experiment)
-                   .filter(ExperimentsExperimenters.active == True)
+                   .filter(ExperimentsExperimenters.active.is_(True))
                    .order_by(ExperimentsExperimenters.active.desc(), Experimenter.last_name)
                    ).all()
         data = {'members': members}

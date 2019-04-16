@@ -55,7 +55,7 @@ class TagsPOMS:
             return response
 
     def search_campaigns(self, dbhandle, search_term):
-        query = (dbhandle.query(Campaign, CampaignStage)
+        query = (dbhandle.query(Campaign, CampaignStage) #
                  .filter(CampaignStage.campaign_id == Campaign.campaign_id, Campaign.name.like(search_term))
                  .order_by(Campaign.campaign_id, CampaignStage.campaign_stage_id))
         results = query.all()
@@ -93,7 +93,7 @@ class TagsPOMS:
         if ses_get('experimenter').session_experiment == experiment:
             campaign_ids = str(campaign_id).split(',')
             for cid in campaign_ids:
-                (dbhandle.query(CampaignsTag)
+                (dbhandle.query(CampaignsTag) #
                  .filter(CampaignsTag.campaign_id == cid, CampaignsTag.tag_id == tag_id)
                  ).delete(synchronize_session=False)
                 if delete_unused_tag:
@@ -112,7 +112,7 @@ class TagsPOMS:
 
     def search_all_tags(self, dbhandle, cl):
         cids = cl.split(',')        # Campaign IDs list
-        result = (dbhandle.query(Tag)
+        result = (dbhandle.query(Tag) #
                   .filter(Tag.campaigns.any(Campaign.campaign_id.in_(cids)))
                   .order_by(Tag.tag_name)
                   ).all()
@@ -126,7 +126,7 @@ class TagsPOMS:
         q.replace('*', '%')  # So the unix folks are happy
         response = {}
         results = deque()
-        rows = (dbhandle.query(Tag)
+        rows = (dbhandle.query(Tag) #
                 .filter(Tag.tag_name.like('%' + q + '%'), Tag.experiment == experiment)
                 .order_by(desc(Tag.tag_name))
                 ).all()

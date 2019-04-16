@@ -2,13 +2,11 @@
 
 import sys
 import os
-from os import system as os_system
-import threading
-from poms.webservice.logit import log, logstartstop
-import requests
 import re
 import traceback
 from collections import deque
+import requests
+from poms.webservice.logit import log, logstartstop
 
 
 class jobsub_fetcher():
@@ -27,18 +25,21 @@ class jobsub_fetcher():
 
     @logstartstop
     def index(self, jobsubjobid, group, role="Production",
-              force_reload=False, retries=3):
+              force_reload=False, retries=3, user=None):
 
         res = deque()
         if retries == -1:
             return res
 
+        if user is None:
+            # if old code calls without a username, guess
+            if group == "samdev":
+                user = "mengel"
+            else:
+                user = "%spro" % group
+
         if group == "samdev":
             group = "fermilab"
-            user = "mengel"  # kluge alert
-        else:
-            # XXX this will be wrong when we have real Analysis jobs...
-            user = "%spro" % group
 
         fifebatch = jobsubjobid[jobsubjobid.find("@") + 1:]
 
@@ -69,7 +70,7 @@ class jobsub_fetcher():
                 # strip campaigns...
                 line = re.sub('<[^>]*>', '', line)
                 fields = line.strip().split()
-                if len(fields):
+                if fields:
                     fname = fields[0]
                     fields[0] = ""
                     fields[2] = fields[1]
@@ -86,17 +87,21 @@ class jobsub_fetcher():
 
     @logstartstop
     def contents(self, filename, jobsubjobid, group,
-                 role="Production", retries=3):
+                 role="Production", retries=3, user=None):
 
         if retries == -1:
             return []
 
+
+        if user is None:
+            # if old code calls without a username, guess
+            if group == "samdev":
+                user = "mengel"  # kluge alert
+            else:
+                user = "%spro" % group
+
         if group == "samdev":
             group = "fermilab"
-            user = "mengel"  # kluge alert
-        else:
-            # XXX this will be wrong when we have real Analysis jobs...
-            user = "%spro" % group
 
         fifebatch = jobsubjobid[jobsubjobid.find("@") + 1:]
 

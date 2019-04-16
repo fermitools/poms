@@ -21,13 +21,18 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
         return
     fetcher = jobsub_fetcher.jobsub_fetcher(cert, key)
     log("DEBUG", "checking index")
-    files = fetcher.index(jobsub_job_id, experiment, role, True)
     task = dbhandle.query(Submission.submission_id).filter(
         Submission.jobsub_job_id == jobsub_job_id).first()
+
+
     if task is None:
         submission_id = 14
+        username = "mengel"
     else:
         submission_id = task.submission_id
+        username = task.experimenter_owner_obj.username
+
+    files = fetcher.index(jobsub_job_id, experiment, role, True, user=username)
 
     if files is None:
         return
@@ -38,7 +43,7 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
             # that goes with xyz.cmd, or the dag.nodes.log, which has
             # the individual job.logs in it.
             log("DEBUG", "checking file %s " % row[5])
-            lines = fetcher.contents(row[5], jobsub_job_id, experiment, role)
+            lines = fetcher.contents(row[5], jobsub_job_id, experiment, role, user=username)
             parse_condor_log(dbhandle,
                              lines,
                              jobsub_job_id[jobsub_job_id.find("@") + 1:],
