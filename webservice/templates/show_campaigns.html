@@ -636,7 +636,7 @@ $('#tag_field').keypress(function (event) {
         params = getSearchParams();
         if ( params['just_one'] ) {
             inp= $("input.tablesorter-filter[data-column=2]");
-            inp.val(params['just_one']);
+            inp.val(params['just_one'].replace('%20',' ');
             setTimeout(function(){inp.trigger('change')}, 500);
         }
     };
