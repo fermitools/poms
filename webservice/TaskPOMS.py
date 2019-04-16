@@ -57,7 +57,7 @@ def popen_read_with_timeout(cmd, totaltime=30):
     block = " "
 
     # read the file, with select timeout of total time remaining
-    while totaltime > 0 and block > 0:
+    while totaltime > 0 and block:
         t1 = time.time()
         r, w, e = select.select([f], [], [], totaltime)
         if f not in r:
@@ -224,7 +224,7 @@ class TaskPOMS:
                     else:
                         plist.append("%")
 
-                if plist == 0:
+                if not plist:
                     plist = str(s.job_type_snapshot_obj.output_file_patterns).split(",")
 
                 logit.log("got file pattern list: %s" % repr(plist))
