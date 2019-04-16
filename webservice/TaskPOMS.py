@@ -15,14 +15,12 @@ import subprocess
 import time
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta
-from .SessionExperimenter import SessionExperimenter
 
-from .mail import Mail
-from psycopg2.extensions import QueryCanceledError
-from sqlalchemy import case, func, text, and_, or_
+from sqlalchemy import func, and_
 from sqlalchemy.orm import joinedload
+from .mail import Mail
 
-from . import condor_log_parser, logit
+from . import logit
 from .poms_model import (
     CampaignStage,
     JobType,
@@ -30,7 +28,6 @@ from .poms_model import (
     CampaignDependency,
     CampaignRecovery,
     CampaignStageSnapshot,
-    Campaign,
     Experimenter,
     HeldLaunch,
     LoginSetup,
@@ -60,7 +57,7 @@ def popen_read_with_timeout(cmd, totaltime=30):
     block = " "
 
     # read the file, with select timeout of total time remaining
-    while totaltime > 0 and len(block) > 0:
+    while totaltime > 0 and block > 0:
         t1 = time.time()
         r, w, e = select.select([f], [], [], totaltime)
         if f not in r:
@@ -74,7 +71,7 @@ def popen_read_with_timeout(cmd, totaltime=30):
         outlist.append(block)
 
     pp.wait()
-    output = ''.join(outlist)
+    output = "".join(outlist)
     return output
 
 
@@ -83,12 +80,16 @@ class TaskPOMS:
         self.poms_service = ps
         # keep some status vales around so we don't have to look them up...
         self.init_status_done = False
+        self.status_Located = None
+        self.status_Completed = None
+        self.status_New = None
 
     def init_statuses(self, dbhandle):
         if self.init_status_done:
             return
         self.status_Located = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Located").first()[0]
         self.status_Completed = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Completed").first()[0]
+        self.status_Removed = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Removed").first()[0]
         self.status_New = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()[0]
         self.init_status_done = True
 
@@ -147,7 +148,7 @@ class TaskPOMS:
         # move launch stuff etc, to one place, so we can keep the table rows
 
         cpairs = (
-            dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label('maxstat'))
+            dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label("maxstat"))
             .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
             .group_by(SubmissionHistory.submission_id)
             .having(func.max(SubmissionHistory.status_id) == self.status_Completed)
@@ -162,7 +163,7 @@ class TaskPOMS:
         ll = dbhandle.query(Submission).filter(Submission.submission_id.in_(completed_sids)).with_for_update(read=True).all()
         # now find the ones that are still completed now that we have the lock
         cpairs = (
-            dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label('maxstat'))
+            dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label("maxstat"))
             .filter(SubmissionHistory.submission_id.in_(completed_sids))
             .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
             .group_by(SubmissionHistory.submission_id)
@@ -177,8 +178,10 @@ class TaskPOMS:
 
         for s in (
             dbhandle.query(Submission)
-            .join(CampaignStageSnapshot, Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id)
-            .filter(Submission.submission_id.in_(completed_sids), CampaignStageSnapshot.completion_type == 'complete')
+            .join(
+                CampaignStageSnapshot, Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id
+            )
+            .filter(Submission.submission_id.in_(completed_sids), CampaignStageSnapshot.completion_type == "complete")
             .all()
         ):
             res.append("completion type completed: %s" % s.submission_id)
@@ -187,8 +190,10 @@ class TaskPOMS:
         n_project = 0
         for s in (
             dbhandle.query(Submission)
-            .join(CampaignStageSnapshot, Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id)
-            .filter(Submission.submission_id.in_(completed_sids), CampaignStageSnapshot.completion_type == 'located')
+            .join(
+                CampaignStageSnapshot, Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id
+            )
+            .filter(Submission.submission_id.in_(completed_sids), CampaignStageSnapshot.completion_type == "located")
             .all()
         ):
 
@@ -215,32 +220,38 @@ class TaskPOMS:
                     .all()
                 ):
                     if dcd.file_patterns:
-                        plist.extend(dcd.file_patterns.split(','))
+                        plist.extend(dcd.file_patterns.split(","))
                     else:
                         plist.append("%")
 
-                if len(plist) == 0:
-                    plist = str(s.job_type_snapshot_obj.output_file_patterns).split(',')
+                if plist == 0:
+                    plist = str(s.job_type_snapshot_obj.output_file_patterns).split(",")
 
                 logit.log("got file pattern list: %s" % repr(plist))
 
                 for pat in plist:
-                    if pat == 'None':
-                        pat = '%'
+                    if pat == "None":
+                        pat = "%"
 
-                    if pat.find(' ') > 0:
-                        allkiddims = "%s and isparentof: ( %s and version '%s' and create_date > '%s'  with availability physical ) " % (
-                            allkiddims,
-                            pat,
-                            s.campaign_stage_snapshot_obj.software_version,
-                            s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                    if pat.find(" ") > 0:
+                        allkiddims = (
+                            "%s and isparentof: ( %s and version '%s' and create_date > '%s'  with availability physical ) "
+                            % (
+                                allkiddims,
+                                pat,
+                                s.campaign_stage_snapshot_obj.software_version,
+                                s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                            )
                         )
                     else:
-                        allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' and create_date > '%s' with availability physical ) " % (
-                            allkiddims,
-                            pat,
-                            s.campaign_stage_snapshot_obj.software_version,
-                            s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                        allkiddims = (
+                            "%s and isparentof: ( file_name '%s' and version '%s' and create_date > '%s' with availability physical ) "
+                            % (
+                                allkiddims,
+                                pat,
+                                s.campaign_stage_snapshot_obj.software_version,
+                                s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                            )
                         )
 
                 lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
@@ -270,12 +281,12 @@ class TaskPOMS:
             submission = lookup_submission_list[i]
             cfrac = submission.campaign_stage_snapshot_obj.completion_pct / 100.0
             if submission.project:
-                threshold = summary_list[i].get('tot_consumed', 0) * cfrac
+                threshold = summary_list[i].get("tot_consumed", 0) * cfrac
             else:
                 # no project, so guess based on number of jobs in submit
                 # command?
-                p1 = submission.command_executed.find('-N')
-                p2 = submission.command_executed.find(' ', p1 + 3)
+                p1 = submission.command_executed.find("-N")
+                p2 = submission.command_executed.find(" ", p1 + 3)
                 try:
                     threshold = int(submission.command_executed[p1 + 3 : p2]) * cfrac
                 except BaseException:
@@ -373,7 +384,7 @@ class TaskPOMS:
         # try to extract the project name from the launch command...
         #
         project = None
-        for projre in ('-e SAM_PROJECT=([^ ]*)', '-e SAM_PROJECT_NAME=([^ ]*)', '--sam_project ([^ ]*)'):
+        for projre in ("-e SAM_PROJECT=([^ ]*)", "-e SAM_PROJECT_NAME=([^ ]*)", "--sam_project ([^ ]*)"):
             m = re.search(projre, command_executed)
             if m:
                 project = m.group(1)
@@ -455,7 +466,7 @@ class TaskPOMS:
 
         # get our latest history...
         sq = (
-            dbhandle.query(func.max(SubmissionHistory.created).label('latest'))
+            dbhandle.query(func.max(SubmissionHistory.created).label("latest"))
             .filter(SubmissionHistory.submission_id == submission_id)
             .subquery()
         )
@@ -472,8 +483,11 @@ class TaskPOMS:
             % (submission_id, status_id, lasthist.status_id, lasthist.created)
         )
 
-        # don't roll back Located
-        if lasthist and lasthist.status_id == self.status_Located:
+        # don't roll back Located or Removed (final states)
+        # note that we *don't* have LaunchFailed here, as we *could*
+        # have a launch that took a Really Long Time, and we might have
+        # falsely concluded that the launch failed...
+        if lasthist and lasthist.status_id in (self.status_Located, self.status_Removed):
             return
 
         # don't roll back Completed
@@ -495,18 +509,18 @@ class TaskPOMS:
             dbhandle.add(s)
 
     def mark_failed_submissions(self, dbhandle):
-        '''
+        """
             find all the recent submissions that are still "New" but more
             than two hours old, and mark them "LaunchFailed"
-        '''
+        """
         self.init_statuses(dbhandle)
         now = datetime.now(utc)
 
         newtups = (
             dbhandle.query(
                 SubmissionHistory.submission_id,
-                func.max(SubmissionHistory.status_id).label('maxstat'),
-                func.min(SubmissionHistory.created).label('firsttime'),
+                func.max(SubmissionHistory.status_id).label("maxstat"),
+                func.min(SubmissionHistory.created).label("firsttime"),
             )
             .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=7))
             .group_by(SubmissionHistory.submission_id)
@@ -524,7 +538,7 @@ class TaskPOMS:
         res = []
         for submission_id in failed_sids:
             res.append("updating %s" % submission_id)
-            self.update_submission_status(dbhandle, submission_id, status='LaunchFailed')
+            self.update_submission_status(dbhandle, submission_id, status="LaunchFailed")
         dbhandle.commit()
         return "\n".join(res)
 
@@ -556,27 +570,27 @@ class TaskPOMS:
         # newer submissions should have dataset recorded in submission_params.
         # but for older ones, we can often look it up...
         #
-        if submission and submission.submission_params and submission.submission_params.get('dataset'):
-            dataset = submission.submission_params.get('dataset')
-        elif submission and submission.command_executed.find('--dataset') > 0:
-            pos = submission.command_executed.find('--dataset')
+        if submission and submission.submission_params and submission.submission_params.get("dataset"):
+            dataset = submission.submission_params.get("dataset")
+        elif submission and submission.command_executed.find("--dataset") > 0:
+            pos = submission.command_executed.find("--dataset")
             dataset = submission.command_executed[pos + 10 :]
-            pos = dataset.find(' ')
+            pos = dataset.find(" ")
             dataset = dataset[:pos]
         elif submission and submission.project:
             details = samhandle.fetch_info(submission.campaign_stage_snapshot_obj.experiment, submission.project, dbhandle)
             logit.log("got details = %s" % repr(details))
-            dataset = details.get('dataset_def_name', None)
+            dataset = details.get("dataset_def_name", None)
         else:
             dataset = None
 
         ds = (submission.created.astimezone(utc)).strftime("%Y%m%d_%H%M%S")
         ds2 = (submission.created - timedelta(seconds=0.5)).strftime("%Y%m%d_%H%M%S")
-        dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ['HOME'], submission.campaign_stage_id)
+        dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], submission.campaign_stage_id)
 
-        pattern = '{}/{}*'.format(dirname, ds[:-2])
+        pattern = "{}/{}*".format(dirname, ds[:-2])
         flist = glob.glob(pattern)
-        pattern2 = '{}/{}*'.format(dirname, ds2[:-2])
+        pattern2 = "{}/{}*".format(dirname, ds2[:-2])
         flist.extend(glob.glob(pattern2))
 
         logit.log("datestamps: '%s' '%s'" % (ds, ds2))
@@ -601,13 +615,13 @@ class TaskPOMS:
 
         return submission, history, dataset, rmap, smap, ds, submission_log_format
 
-    def running_submissions(self, dbhandle, campaign_id_list, status_list=['New', 'Idle', 'Running']):
+    def running_submissions(self, dbhandle, campaign_id_list, status_list=["New", "Idle", "Running"]):
 
         cl = campaign_id_list
 
         logit.log("INFO", "running_submissions(%s)" % repr(cl))
         sq = (
-            dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label('latest'))
+            dbhandle.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label("latest"))
             .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
             .group_by(SubmissionHistory.submission_id)
             .subquery()
@@ -672,12 +686,12 @@ class TaskPOMS:
 
         # amend status for completion percent
         if (
-            status == 'Running'
+            status == "Running"
             and pct_complete
             and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct
-            and s.campaign_stage_snapshot_obj.completion_type == 'complete'
+            and s.campaign_stage_snapshot_obj.completion_type == "complete"
         ):
-            status = 'Completed'
+            status = "Completed"
 
         if status is not None:
             self.update_submission_status(dbhandle, submission_id, status=status)
@@ -695,16 +709,23 @@ class TaskPOMS:
                 CampaignStage.campaign_stage_id,
                 CampaignStageSnapshot.campaign_stage_id,
                 cs.campaign_stage_id,
-                'campaign_stage_snapshot_obj',
+                "campaign_stage_snapshot_obj",
             ],
-            [JobType, JobTypeSnapshot, JobType.job_type_id, JobTypeSnapshot.job_type_id, cs.job_type_id, 'job_type_snapshot_obj'],
+            [
+                JobType,
+                JobTypeSnapshot,
+                JobType.job_type_id,
+                JobTypeSnapshot.job_type_id,
+                cs.job_type_id,
+                "job_type_snapshot_obj",
+            ],
             [
                 LoginSetup,
                 LoginSetupSnapshot,
                 LoginSetup.login_setup_id,
                 LoginSetupSnapshot.login_setup_id,
                 cs.login_setup_id,
-                'login_setup_snapshot_obj',
+                "login_setup_snapshot_obj",
             ],
         ]:
 
@@ -758,11 +779,11 @@ class TaskPOMS:
                     basedir,
                     cd.provides_campaign_stage_id,
                     launch_user.experimenter_id,
-                    test_launch=s.submission_params.get('test', False),
+                    test_launch=s.submission_params.get("test", False),
                 )
             else:
                 i = i + 1
-                if cd.file_patterns.find(' ') > 0:
+                if cd.file_patterns.find(" ") > 0:
                     # it is a dimension fragment, not just a file pattern
                     dim_bits = cd.file_patterns
                 else:
@@ -778,8 +799,8 @@ class TaskPOMS:
                 dname = "poms_depends_%d_%d" % (s.submission_id, i)
 
                 samhandle.create_definition(s.campaign_stage_snapshot_obj.experiment, dname, dims)
-                if s.submission_params and s.submission_params.get('test', False):
-                    test_launch = s.submission_params.get('test', False)
+                if s.submission_params and s.submission_params.get("test", False):
+                    test_launch = s.submission_params.get("test", False)
                 else:
                     test_launch = False
 
@@ -802,7 +823,7 @@ class TaskPOMS:
         return 1
 
     def launch_recovery_if_needed(
-        self, dbhandle, samhandle, getconfig, gethead, user, experiment, role, s, recovery_type_override=None, basedir=''
+        self, dbhandle, samhandle, getconfig, gethead, user, experiment, role, s, recovery_type_override=None, basedir=""
     ):
         logit.log("Entering launch_recovery_if_needed(%s)" % s.submission_id)
         if not getconfig("poms.launch_recovery_jobs", False):
@@ -842,25 +863,25 @@ class TaskPOMS:
 
             # uncomment when we get db fields:
             param_overrides = rlist[s.recovery_position].param_overrides
-            if rtype.name == 'consumed_status':
+            if rtype.name == "consumed_status":
                 recovery_dims = samhandle.recovery_dimensions(
                     s.job_type_snapshot_obj.experiment, s.project, useprocess=0, dbhandle=dbhandle
                 )
-            elif rtype.name == 'proj_status':
+            elif rtype.name == "proj_status":
                 recovery_dims = samhandle.recovery_dimensions(
                     s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=dbhandle
                 )
-            elif rtype.name == 'pending_files':
+            elif rtype.name == "pending_files":
                 recovery_dims = "snapshot_for_project_name %s minus ( " % s.project
                 if s.job_type_snapshot_obj.output_file_patterns:
                     oftypelist = s.job_type_snapshot_obj.output_file_patterns.split(",")
                 else:
                     oftypelist = ["%"]
 
-                sep = ''
+                sep = ""
                 cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
                 for oft in oftypelist:
-                    if oft.find(' ') > 0:
+                    if oft.find(" ") > 0:
                         # it is a dimension not a file_name pattern
                         dim_bits = oft
                     else:
@@ -872,8 +893,8 @@ class TaskPOMS:
                         dim_bits,
                         cdate,
                     )
-                    sep = 'and'
-                recovery_dims += ')'
+                    sep = "and"
+                recovery_dims += ")"
             else:
                 # default to consumed status(?)
                 recovery_dims = "project_name %s and consumed_status != 'consumed'" % s.project
@@ -917,7 +938,7 @@ class TaskPOMS:
                     dataset_override=rname,
                     parent_submission_id=s.submission_id,
                     param_overrides=param_overrides,
-                    test_launch=s.submission_params.get('test', False),
+                    test_launch=s.submission_params.get("test", False),
                 )
                 return 1
 
@@ -947,7 +968,7 @@ class TaskPOMS:
             c = CampaignStage(
                 campaign_stage_id=0,
                 name="DummyLaunchStatusHOlder",
-                experiment='samdev',
+                experiment="samdev",
                 completion_pct="95",
                 completion_type="complete",
                 cs_split_type="None",
@@ -959,7 +980,7 @@ class TaskPOMS:
                 test_param_overrides=[],
                 vo_role="Production",
                 creator=4,
-                creator_role='production',
+                creator_role="production",
                 created=datetime.now(utc),
                 campaign_stage_type="regular",
             )
@@ -1049,7 +1070,7 @@ class TaskPOMS:
         # at the moment we're inconsistent about whether we pass
         # launcher as a username or experimenter_id or if its a string
         # of the integer or  an integer... sigh
-        if str(launcher)[0] in ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9'):
+        if str(launcher)[0] in ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"):
             launcher_experimenter = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == int(launcher)).first()
         else:
             launcher_experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == launcher).first()
@@ -1065,7 +1086,7 @@ class TaskPOMS:
             sid = "-"
             cs = None
             c_param_overrides = []
-            vers = 'v0_0'
+            vers = "v0_0"
             dataset = "-"
             definition_parameters = []
             exp = experiment
@@ -1104,8 +1125,8 @@ class TaskPOMS:
                 cs.campaign_obj.active = True
                 dbhandle.add(cs.campaign_obj)
 
-            xff = gethead('X-Forwarded-For', None)
-            ra = gethead('Remote-Addr', None)
+            xff = gethead("X-Forwarded-For", None)
+            ra = gethead("Remote-Addr", None)
             exp = cs.experiment
             vers = cs.software_version
             launch_script = cd.launch_script
@@ -1132,9 +1153,9 @@ class TaskPOMS:
 
             # now quoting in poms_jobsub_wrapper, but blanks still make
             # it sad so replace them
-            cname = cname.replace(' ', '_')
-            csname = csname.replace(' ', '_')
-            ccname = ccname.replace(' ', '_')
+            cname = cname.replace(" ", "_")
+            csname = csname.replace(" ", "_")
+            ccname = ccname.replace(" ", "_")
 
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
@@ -1145,33 +1166,33 @@ class TaskPOMS:
             # and flag the task as a test (secretly relies on poms_client
             # v3_0_0)
 
-        if not e and not (ra == '127.0.0.1' and xff is None):
+        if not e and not (ra == "127.0.0.1" and xff is None):
             logit.log("launch_jobs -- experimenter not authorized")
-            raise PermissionsError("non experimenter launch not on localhost")
+            raise PermissionError("non experimenter launch not on localhost")
 
-        if se_role == 'production' and not lt.launch_host.find(exp) >= 0 and exp != 'samdev':
+        if se_role == "production" and not lt.launch_host.find(exp) >= 0 and exp != "samdev":
             logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
             output = "Not Authorized: {} is not a {} experiment node".format(lt.launch_host, exp)
             raise AssertionError(output)
 
-        if se_role == 'analysis' and not (
-            lt.launch_host in ('pomsgpvm01.fnal.gov', 'fermicloud045.fnal.gov', 'poms-int.fnal.gov', 'pomsint.fnal.gov')
+        if se_role == "analysis" and not (
+            lt.launch_host in ("pomsgpvm01.fnal.gov", "fermicloud045.fnal.gov", "poms-int.fnal.gov", "pomsint.fnal.gov")
         ):
-            output = "Not Authorized: {} is not a analysis launch node".format(lt.launch_host, exp)
+            output = "Not Authorized: {} is not a analysis launch node for exp {}".format(lt.launch_host, exp)
             raise AssertionError(output)
 
         experimenter_login = user
 
-        if se_role == 'analysis':
+        if se_role == "analysis":
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, experimenter_login, exp)
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
         else:
-            sandbox = '$HOME'
+            sandbox = "$HOME"
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
 
         allheld = self.get_job_launches(dbhandle) == "hold"
         csheld = bool(cs.hold_experimenter_id)
-        proxyheld = se_role == 'analysis' and not self.has_valid_proxy(proxyfile)
+        proxyheld = se_role == "analysis" and not self.has_valid_proxy(proxyfile)
         if allheld or csheld or proxyheld:
 
             if allheld:
@@ -1210,8 +1231,8 @@ class TaskPOMS:
             dataset = self.poms_service.campaignsPOMS.get_dataset_for(dbhandle, samhandle, cs)
 
         group = exp
-        if group == 'samdev':
-            group = 'fermilab'
+        if group == "samdev":
+            group = "fermilab"
 
         if "poms" in self.poms_service.hostname:
             poms_test = ""
@@ -1237,10 +1258,10 @@ class TaskPOMS:
         # keep some bookkeeping flags
         #
         pdict = {}
-        if dataset and dataset != 'None':
-            pdict['dataset'] = dataset
+        if dataset and dataset != "None":
+            pdict["dataset"] = dataset
         if test_launch:
-            pdict['test'] = 1
+            pdict["test"] = 1
 
         if test_launch or dataset_override:
             dbhandle.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict})
@@ -1290,19 +1311,19 @@ class TaskPOMS:
                     "experimenter": experimenter_login,
                 }
             ).replace("'", """'"'"'"""),
-            "UPS_OVERRIDE=\"\" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db",
+            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db',
             "ups active",
             # POMS4 'properly named' items for poms_jobsub_wrapper
             "export POMS4_CAMPAIGN_STAGE_ID=%s" % csid,
-            "export POMS4_CAMPAIGN_STAGE_NAME=\"%s\"" % csname,
+            'export POMS4_CAMPAIGN_STAGE_NAME="%s"' % csname,
             "export POMS4_CAMPAIGN_STAGE_TYPE=%s" % cstype,
             "export POMS4_CAMPAIGN_ID=%s" % cid,
-            "export POMS4_CAMPAIGN_NAME=\"%s\"" % cname,
+            'export POMS4_CAMPAIGN_NAME="%s"' % cname,
             "export POMS4_SUBMISSION_ID=%s" % sid,
             "export POMS4_CAMPAIGN_ID=%s" % cid,
             "export POMS4_TEST_LAUNCH=%s" % test_launch_flag,
             "export POMS_CAMPAIGN_ID=%s" % csid,
-            "export POMS_CAMPAIGN_NAME=\"%s\"" % ccname,
+            'export POMS_CAMPAIGN_NAME="%s"' % ccname,
             "export POMS_PARENT_TASK_ID=%s" % (parent_submission_id if parent_submission_id else ""),
             "export POMS_TASK_ID=%s" % sid,
             "export POMS_LAUNCHER=%s" % launcher_experimenter.username,
@@ -1336,7 +1357,7 @@ class TaskPOMS:
             else:
                 params.update(param_overrides)
 
-        lcmd = launch_script + " " + ' '.join((x[0] + x[1]) for x in list(params.items()))
+        lcmd = launch_script + " " + " ".join((x[0] + x[1]) for x in list(params.items()))
         lcmd = lcmd % {
             "dataset": dataset,
             "parameter": dataset,
@@ -1348,17 +1369,17 @@ class TaskPOMS:
         lcmd = lcmd.replace("'", """'"'"'""")
         if output_commands:
             cmdl.append('echo "\n=========\nrun the following to launch the job:\n%s"' % lcmd)
-            cmdl.append('/bin/bash -i')
+            cmdl.append("/bin/bash -i")
         else:
             cmdl.append(lcmd)
-        cmdl.append('exit')
+        cmdl.append("exit")
         cmdl.append("' &")
-        cmd = '\n'.join(cmdl)
+        cmd = "\n".join(cmdl)
 
-        cmd = cmd.replace('\r', '')
+        cmd = cmd.replace("\r", "")
 
         if output_commands:
-            cmd = cmd[cmd.find('ssh -tx') :]
+            cmd = cmd[cmd.find("ssh -tx") :]
             cmd = cmd[:-2]
             return cmd
 

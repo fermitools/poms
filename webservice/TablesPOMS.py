@@ -10,12 +10,11 @@
 ### November, 2016.
 
 from collections import deque
-from . import logit
 from datetime import datetime
-from sqlalchemy import Integer, DateTime, ForeignKey, text, JSON
-
-from .utc import utc
 import json
+from sqlalchemy import text
+from . import logit
+from .utc import utc
 
 
 class TablesPOMS:
@@ -29,7 +28,7 @@ class TablesPOMS:
             dbhandle, self.admin_map[classname], self.pk_map[classname])
         return l
 
-    def edit_screen_generic(self,  classname, id=None):
+    def edit_screen_generic(self, classname, id=None):
         return self.poms_service.edit_screen_for(
             classname, self.admin_map[classname], 'update_generic', self.pk_map[classname], id, {})
 
@@ -118,7 +117,6 @@ class TablesPOMS:
                 pred = "%s = %d" % (primkey, primval)
             except BaseException:
                 pred = "%s = '%s'" % (primkey, primval)
-                pass
             found = dbhandle.query(eclass).filter(text(pred)).first()
             logit.log("found %s" % found)
         if not found:

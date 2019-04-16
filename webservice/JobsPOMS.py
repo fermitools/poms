@@ -1,23 +1,18 @@
 #!/usr/bin/env python
-'''
+"""
 This module contain the methods that handle the Calendar.
 List of methods: active_jobs, output_pending_jobs, update_jobs
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify
 version of functions in poms_service.py written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
-'''
+"""
 
-from collections import deque
-import re
-from .poms_model import Submission, SubmissionHistory, CampaignStage, JobType
-from datetime import datetime, timedelta
-from sqlalchemy.orm import joinedload
-from sqlalchemy import func, not_, and_, or_, desc
-from .utc import utc
-import json
 import os
-
+import re
+from datetime import datetime, timedelta
+from sqlalchemy import func
+from .poms_model import Submission, SubmissionHistory, CampaignStage, JobType
+from .utc import utc
 from . import logit
-from .pomscache import pomscache, pomscache_10
 
 
 class JobsPOMS:
@@ -26,28 +21,36 @@ class JobsPOMS:
 
     def __init__(self, poms_service):
         self.poms_service = poms_service
-        self.junkre = re.compile(
-            r'.*fcl|log.*|.*\.log$|ana_hist\.root$|.*\.sh$|.*\.tar$|.*\.json$|[-_0-9]*$')
+        self.junkre = re.compile(r".*fcl|log.*|.*\.log$|ana_hist\.root$|.*\.sh$|.*\.tar$|.*\.json$|[-_0-9]*$")
 
     def update_SAM_project(self, samhandle, j, projname):
         logit.log("Entering update_SAM_project(%s)" % projname)
         sid = j.submission_obj.submission_id
         exp = j.submission_obj.campaign_stage_snapshot_obj.experiment
         cid = j.submission_obj.campaign_stage_snapshot_obj.campaign_stage_id
-        samhandle.update_project_description(
-            exp, projname, "POMS CampaignStage %s Submission %s" %
-            (cid, sid))
-        pass
+        samhandle.update_project_description(exp, projname, "POMS CampaignStage %s Submission %s" % (cid, sid))
 
-    def kill_jobs(self, dbhandle, basedir, username, exp, se_role, campaign_id = None, campaign_stage_id=None,
-                  submission_id=None, job_id=None, confirm=None, act='kill'):
-        '''
+    def kill_jobs(
+        self,
+        dbhandle,
+        basedir,
+        username,
+        exp,
+        se_role,
+        campaign_id=None,
+        campaign_stage_id=None,
+        submission_id=None,
+        job_id=None,
+        confirm=None,
+        act="kill",
+    ):
+        """
             kill jobs from the campaign, stage, or particular submission
             we want to do this all with --constraint on the POMS4_XXX_ID
             values we put in the classadd, but this doesn't get set on the
             dagman jobs (currently) so we have to kill the session leader
             jobids too to be sure we get them all.
-        '''
+        """
         s = None
         cs = None
         group = exp
@@ -71,14 +74,20 @@ class JobsPOMS:
             jjidq = jjidq.filter(Submission.campaign_stage_id == campaign_stage_id)
 
         if submission_id:
-            s = (dbhandle.query(Submission) #
-                 .filter(Submission.submission_id == submission_id)
-                 .first())
+            s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()  #
             what = "--constraint=POMS4_SUBMISSION_ID==%s" % s.submission_id
             cs = s.campaign_stage_obj
             jjidq = jjidq.filter(Submission.submission_id == submission_id)
 
-        shq = dbhandle.query(SubmissionHistory.submission_id.label('submission_id'), func.max(SubmissionHistory.status_id).label('max_status')).filter(SubmissionHistory.submission_id == Submission.submission_id).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id.label('submission_id'))
+        shq = (
+            dbhandle.query(
+                SubmissionHistory.submission_id.label("submission_id"),
+                func.max(SubmissionHistory.status_id).label("max_status"),
+            )
+            .filter(SubmissionHistory.submission_id == Submission.submission_id)
+            .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
+            .group_by(SubmissionHistory.submission_id.label("submission_id"))
+        )
         sq = shq.subquery()
         logit.log("submission history query finds: %s" % repr([x for x in shq.all()]))
         jjidq = jjidq.join(sq, sq.c.submission_id == Submission.submission_id).filter(sq.c.max_status <= 4000)
@@ -87,14 +96,14 @@ class JobsPOMS:
         if rows:
             jjids = [x[0] for x in rows]
             sids = [x[1] for x in rows]
-            jidbits = "--jobid=%s" % ','.join(jjids)
+            jidbits = "--jobid=%s" % ",".join(jjids)
         else:
             jidbits = what
             sids = []
 
         if confirm is None:
             if jidbits != what:
-                what = '%s %s' % (what, jidbits)
+                what = "%s %s" % (what, jidbits)
             return what, s, campaign_stage_id, submission_id, job_id
 
         else:
@@ -102,26 +111,25 @@ class JobsPOMS:
             # parameter out of it.
 
             lts = cs.login_setup_obj
-            if group == 'samdev':
+            if group == "samdev":
 
-                group = 'fermilab'
+                group = "fermilab"
 
-
-            subcmd = 'q'
+            subcmd = "q"
             status_set = None
-            if act == 'kill':
-                subcmd = 'rm'
+            if act == "kill":
+                subcmd = "rm"
                 status_set = "Removed"
-            elif act in ('hold', 'release'):
+            elif act in ("hold", "release"):
                 subcmd = act
             else:
                 raise SyntaxError("called with unknown action %s" % act)
 
-            if se_role == 'analysis':
+            if se_role == "analysis":
                 sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, username, exp)
-                proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (exp,username)
+                proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (exp, username)
             else:
-                sandbox = '$HOME'
+                sandbox = "$HOME"
                 proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
 
             # expand launch setup %{whatever}s campaigns...
@@ -131,8 +139,15 @@ class JobsPOMS:
             launch_setup = launch_setup.strip()
             launch_setup = launch_setup.replace("\n", ";")
             launch_setup = launch_setup.strip(";")
-            launch_setup = "source /grid/fermiapp/products/common/etc/setups;setup poms_client -g poms31 -z /grid/fermiapp/products/common/db;" + launch_setup
-            launchsetup  = ("cp $X509_USER_PROXY /tmp/proxy$$ && export X509_USER_PROXY=/tmp/proxy$$  && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY;" if se_role == "analysis" else "") + launch_setup
+            launch_setup = (
+                "source /grid/fermiapp/products/common/etc/setups;setup poms_client -g poms31 -z /grid/fermiapp/products/common/db;"
+                + launch_setup
+            )
+            launchsetup = (
+                "cp $X509_USER_PROXY /tmp/proxy$$ && export X509_USER_PROXY=/tmp/proxy$$  && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY;"
+                if se_role == "analysis"
+                else ""
+            ) + launch_setup
             launch_setup = "export X509_USER_PROXY=%s;" % proxyfile + launch_setup
             cmd = """
                 exec 2>&1
@@ -151,7 +166,7 @@ class JobsPOMS:
                 subcmd,
                 group,
                 cs.vo_role,
-                jidbits
+                jidbits,
             )
 
             cmd = cmd % {
@@ -178,13 +193,12 @@ class JobsPOMS:
             Return list of all jobtypes for the experiment.
         """
         if full:
-            data = dbhandle.query(JobType.name,
-                                  JobType.launch_script,
-                                  JobType.definition_parameters,
-                                  JobType.output_file_patterns).filter(JobType.experiment == exp).order_by(JobType.name).all()
+            data = (
+                dbhandle.query(JobType.name, JobType.launch_script, JobType.definition_parameters, JobType.output_file_patterns)
+                .filter(JobType.experiment == exp)
+                .order_by(JobType.name)
+                .all()
+            )
         else:
-            data = dbhandle.query(
-                JobType.name).filter(
-                JobType.experiment == exp).order_by(
-                JobType.name).all()
+            data = dbhandle.query(JobType.name).filter(JobType.experiment == exp).order_by(JobType.name).all()
         return [r._asdict() for r in data]

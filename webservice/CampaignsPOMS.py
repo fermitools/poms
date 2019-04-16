@@ -1440,7 +1440,7 @@ class CampaignsPOMS:
         q = (
             dbhandle.query(Campaign)
             .options(joinedload(Campaign.experimenter_creator_obj))
-            .filter(Campaign.experiment == experimenter.session_experiment)
+            .filter(Campaign.experiment == experiment)
             .order_by(Campaign.name)
         )
 
@@ -1499,7 +1499,7 @@ class CampaignsPOMS:
             dbhandle.query(func.max(Submission.updated))
             .join(CampaignStage, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
             .join(Campaign, CampaignStage.campaign_id == Campaign.campaign_id)
-            .filter(Campaign.experiment == experimenter.session_experiment)
+            .filter(Campaign.experiment == experiment)
             .first()
         )
         last_activity = ""

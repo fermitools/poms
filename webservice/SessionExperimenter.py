@@ -1,10 +1,5 @@
 #!/usr/bin/env python
-from collections import deque
 
-import sys
-import os
-import socket
-from datetime import datetime
 
 class SessionExperimenter:
 
@@ -87,4 +82,3 @@ class SessionExperimenter:
 
     def __str__(self):
         return "%s %s %s" % (self.first_name, self.last_name, self.username)
-
