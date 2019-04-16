@@ -45,7 +45,7 @@ class FilesStatus:
          time_range_string, tdays
         ) = self.poms_service.utilsPOMS.handle_dates(
             tmin, tmax, tdays,
-            'campaign_task_files/%s/%s?campaign_stage_id=%s&campaign_id=%s&' %(experiment, role, campaign_stage_id, campaign_id))
+            'campaign_task_files/%s/%s?campaign_stage_id=%s&campaign_id=%s&' % (experiment, role, campaign_stage_id, campaign_id))
 
         # inhale all the campaign related task info for the time window
         # in one fell swoop
@@ -160,7 +160,7 @@ class FilesStatus:
             psummary = summary_list[i]
             partpending = psummary.get(
                 'files_in_snapshot', 0) - some_kids_list[i]
-            #pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
+            # pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
             pending = partpending
 
             task_jobsub_job_id = s.jobsub_job_id
@@ -389,14 +389,18 @@ class FilesStatus:
                 raise ValueError("Upload exeeds quota of %d kbi" % quota/1024)
 
 
-    def remove_uploaded_files(self, basedir, experiment, username, filename):
+    def remove_uploaded_files(self, basedir, experiment, username, filename, action=None):
         # if there's only one entry the web page will not send a list...
         if isinstance(filename, str):
             filename = [filename]
 
         for f in filename:
             outf = self.get_file_upload_path(basedir, username, experiment, f)
-            os.unlink(outf)
+            try:
+                os.unlink(outf)
+            except FileNotFoundError:
+                pass
+        return "Ok."
 
     def get_launch_sandbox(self, basedir, username, experiment):
 

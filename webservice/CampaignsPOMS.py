@@ -94,17 +94,22 @@ class CampaignsPOMS:
             )
             name = ae_launch_name
             try:
-                dbhandle.query(LoginSetup).filter(LoginSetup.experiment == experiment).filter(LoginSetup.name == name).delete(
-                    synchronize_session=False
-                )
+                dbhandle.query(LoginSetup).filter(
+                    LoginSetup.experiment == experiment,
+                    LoginSetup.name == name,
+                    LoginSetup.creator == experimenter.experimenter_id,
+                ).delete(synchronize_session=False)
                 dbhandle.commit()
+                message = "The login setup '%s' has been deleted." % name
             except SQLAlchemyError as exc:
-                message = "The launch template, %s, has been used and may not be deleted." % name
+                dbhandle.rollback()
+                message = "The login setup '%s' has been used and may not be deleted." % name
                 logit.log(message)
                 logit.log(" ".join(exc.args))
-                dbhandle.rollback()
+            finally:
+                return {"message": message}
 
-        if action in ("add", "edit"):
+        elif action in ("add", "edit"):
             logit.log("login_setup_edit: add,edit case")
             if pcl_call == 1:
                 if isinstance(ae_launch_name, str):
@@ -471,7 +476,7 @@ class CampaignsPOMS:
             dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root", "public"])).order_by(Experiment.experiment)
         )
         action = kwargs.pop("action", None)
-        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == username).first()
+        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == username).scalar()
         data["curr_experiment"] = experiment
         pcl_call = int(kwargs.pop("pcl_call", 0))
         # email is the info we know about the user in POMS DB.
@@ -485,24 +490,30 @@ class CampaignsPOMS:
             if isinstance(name, str):
                 name = name.strip()
             if pcl_call == 1:  # Enter here if the access was from the poms_client
-                cid = job_type_id = dbhandle.query(JobType).filter(JobType.name == name).first().job_type_id
+                cid = (
+                    dbhandle.query(JobType)
+                    .filter(
+                        JobType.experiment == experiment, JobType.name == name, JobType.creator == experimenter.experimenter_id
+                    )
+                    .scalar()
+                    .job_type_id
+                )
             else:
                 cid = kwargs.pop("job_type_id")
             try:
-                (
-                    dbhandle.query(CampaignRecovery)
-                    .filter(CampaignRecovery.job_type_id == cid)
-                    .delete(synchronize_session=False)
-                )  #
-                (dbhandle.query(JobType).filter(JobType.job_type_id == cid).delete(synchronize_session=False))  #
+                (dbhandle.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == cid).delete(synchronize_session=False))
+                (dbhandle.query(JobType).filter(JobType.job_type_id == cid).delete(synchronize_session=False))
                 dbhandle.commit()
+                message = "The job type '%s' has been deleted." % name
             except SQLAlchemyError as exc:
-                message = ("The campaign definition, %s, " "has been used and may not be deleted.") % name
+                dbhandle.rollback()
+                message = ("The job type, %s, " "has been used and may not be deleted.") % name  # Was: campaign definition
                 logit.log(message)
                 logit.log(" ".join(exc.args))
-                dbhandle.rollback()
+            finally:
+                return {"message": message}
 
-        if action in ("add", "edit"):
+        elif action in ("add", "edit"):
             logit.log("job_type_edit: add or exit case")
             job_type_id = None
             definition_parameters = kwargs.pop("ae_definition_parameters")
@@ -716,7 +727,7 @@ class CampaignsPOMS:
             sesshandle is the cherrypy.session instead of cherrypy.session.get method
         """
         data = {}
-        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
+        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).scalar()
 
         message = None
         data["exp_selections"] = (
@@ -1377,7 +1388,22 @@ class CampaignsPOMS:
         msg = "OK"
         se_role = experimenter.session_role
         if action == "delete":
-            campaign_id = kwargs.get("del_campaign_id")
+            name = kwargs.get("del_campaign_name")
+            if kwargs.get("pcl_call") in ("1", "t", "True", "true"):
+                campaign_id = (
+                    dbhandle.query(Campaign.campaign_id)
+                    .filter(
+                        Campaign.experiment == experiment,
+                        Campaign.creator == experimenter.experimenter_id,
+                        Campaign.name == name,
+                    )
+                    .scalar()
+                )
+            else:
+                campaign_id = kwargs.get("del_campaign_id")
+            if not campaign_id:
+                msg = f"The campaign '{name}' does not exist."
+                return None, "", msg, None
             self.poms_service.permissions.can_modify(dbhandle, user, experiment, se_role, "Campaign", item_id=campaign_id)
 
             campaign = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).scalar()
@@ -1407,6 +1433,8 @@ class CampaignsPOMS:
                     kwargs.get("del_campaign_name"),
                     campaign_id,
                 )
+            if kwargs.get("pcl_call") in ("1", "t", "True", "true"):
+                return None, "", msg, None
 
         data = {"authorized": []}
         q = (
@@ -2210,7 +2238,7 @@ class CampaignsPOMS:
         rlist.append(";")
         return "\n".join(rlist)
 
-    def save_campaign(self, dbhandle, user, *args, **kwargs):
+    def save_campaign(self, dbhandle, user, *args, replace=False, pcl_call=0, **kwargs):
 
         if args:
             exp = args[0]
@@ -2314,6 +2342,12 @@ class CampaignsPOMS:
             }  # Store the defaults unconditionally as they may be not be stored yet
             if c_new_name != c_old_name:
                 the_campaign.name = c_new_name
+
+            if pcl_call in ("1", "True", "t", "true") and replace not in ("1", "True", "t", "true"):
+                dbhandle.rollback()
+                message = [f"Error: Campaign '{the_campaign.name}' already exists!"]
+                return {"status": "400 Bad Request", "message": message}
+
         else:  # we do not have a campaign in the db for this experiment so create the campaign and then do the linking
             the_campaign = Campaign()
             the_campaign.name = c_new_name
@@ -2528,28 +2562,25 @@ class CampaignsPOMS:
             "campaign_stage_ids": [(x.campaign_stage_id, x.name) for x in the_campaign.stages],
         }
 
-    def get_jobtype_id(self, dbhandle, user, exp, role, name):
+    def get_jobtype_id(self, dbhandle, user, experiment, role, name):
         """
            lookup job type id for name in current experiment
         """
-        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
-        user_id = experimenter.experimenter_id
+        # experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).scalar()
+        # user_id = experimenter.experimenter_id
 
-        return dbhandle.query(JobType.job_type_id).filter(JobType.experiment == exp).filter(JobType.name == name).scalar()
+        return dbhandle.query(JobType.job_type_id).filter(JobType.experiment == experiment, JobType.name == name).scalar()
 
-    def get_loginsetup_id(self, dbhandle, user, exp, role, name):
+    def get_loginsetup_id(self, dbhandle, user, experiment, role, name):
         """
            lookup login setup id by name for current experiment
         """
-        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
-        role = role
-        user_id = experimenter.experimenter_id
-        exp
+        # experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).scalar()
+        # user_id = experimenter.experimenter_id
 
         return (
             dbhandle.query(LoginSetup.login_setup_id)
-            .filter(LoginSetup.experiment == exp)
-            .filter(LoginSetup.name == name)
+            .filter(LoginSetup.experiment == experiment, LoginSetup.name == name)
             .scalar()
         )
 

@@ -63,7 +63,7 @@ from .utc import utc
 
 
 class JSONORMEncoder(json.JSONEncoder):
-    # This will show up as an error in pylint.   Appears to be a bug in pyling:
+    # This will show up as an error in pylint.   Appears to be a bug in pylint:
     #    pylint #89092 @property.setter raises an E0202 when attribute is set
     def default(self, obj):
 
@@ -307,8 +307,22 @@ class PomsService:
     @error_rewrite
     @logit.logstartstop
     def launch_template_edit(self, *args, **kwargs):
-        # v3_2_0 backward compatabilty
+        # v3_2_0 backward compatibility
         return self.login_setup_edit(*args, **kwargs)
+
+# h4. login_setup_rm
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def login_setup_rm(self, **kwargs):
+        data = self.campaignsPOMS.login_setup_edit(
+            cherrypy.request.db,
+            cherrypy.session.get,
+            cherrypy.config.get,
+            action='delete',
+            **kwargs
+        )
+        return data
 
     # h4. login_setup_edit
     @cherrypy.expose
@@ -378,6 +392,20 @@ class PomsService:
             campaign_stage_id=campaign_stage_id or camp_id,
         )
         return template.render(tag=tag, svgdata=svgdata, help_page="CampaignDepsHelp")
+
+
+    # h4. job_type_rm
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    @logit.logstartstop
+    def job_type_rm(self, **kwargs):
+        data = self.campaignsPOMS.job_type_edit(
+            cherrypy.request.db,
+            cherrypy.session.get,
+            action='delete',
+            **kwargs
+        )
+        return data
 
     # h4. job_type_edit
 
@@ -1071,10 +1099,18 @@ class PomsService:
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
-    def remove_uploaded_files(self, experiment, role, experimenter, filename, action):
+    def remove_uploaded_files(self, experiment, role, experimenter, filename, action, redirect=1):
         self.permissions.can_modify(cherrypy.request.db, get_user(), experiment, role, "Experimenter", item_id=experimenter)
-        self.filesPOMS.remove_uploaded_files(cherrypy.config.get('base_uploads_dir'), experiment, get_user(), filename)
-        raise cherrypy.HTTPRedirect("%s/file_uploads/%s/%s/%s" % (self.path, experiment, role, experimenter))
+        res = self.filesPOMS.remove_uploaded_files(
+            cherrypy.config.get('base_uploads_dir'),
+            experiment,
+            get_user(),
+            filename,
+            action,
+        )
+        if int(redirect) == 1:
+            raise cherrypy.HTTPRedirect("%s/file_uploads/%s/%s/%s" % (self.path, experiment, role, experimenter))
+        return res
 
     # h3. Job actions
     #
@@ -1096,7 +1132,7 @@ class PomsService:
             act='kill',
     ):
 
-        # backwards combatability...
+        # backward compatibility...
         if task_id is not None and submission_id is None:
             submission_id = task_id
 
