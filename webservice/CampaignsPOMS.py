@@ -872,7 +872,7 @@ class CampaignsPOMS:
             else:
                 depends = {"campaign_stages": [], "file_patterns": []}
 
-            # backwards combatability
+            # backward compatibility
             if "campaigns" in depends and "campaign_stages" not in depends:
                 depends["campaign_stages"] = depends["campaigns"]
 
@@ -2101,7 +2101,7 @@ class CampaignsPOMS:
 
             # make job for new -- use current link for product
             pdir = os.environ.get("POMS_DIR", "/etc/poms")
-            if pdir.find("/current/") <= 0:
+            if "/current/" not in pdir:
                 # try to find a current symlink path that points here
                 tpdir = pdir[: pdir.rfind("poms", 0, len(pdir) - 1) + 4] + "/current"
                 if os.path.exists(tpdir):
