@@ -87,17 +87,13 @@ class UtilsPOMS:
         )
         return experiment, role
 
-    def update_session_experiment(self, db, user, experiment, *args, **kwargs):
-        if kwargs.get("session_experiment", None) == experiment:
-            return
-        fields = {"session_experiment": kwargs.get("session_experiment")}
+    def update_session_experiment(self, db, user, experiment):
+        fields = {"session_experiment": experiment}
         db.query(Experimenter).filter(Experimenter.username == user).update(fields)
         db.commit()
 
-    def update_session_role(self, db, user, role, *args, **kwargs):
-        if kwargs.get("session_role", None) == role:
-            return
+    def update_session_role(self, db, user, role):
 
-        db.query(Experimenter).filter(Experimenter.username == user).update({"session_role": kwargs.get("session_role")})
+        db.query(Experimenter).filter(Experimenter.username == user).update({"session_role": role})
 
         db.commit()

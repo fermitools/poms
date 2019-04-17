@@ -252,18 +252,18 @@ class PomsService:
     # h4. update_session_experiment
     @cherrypy.expose
     @logit.logstartstop
-    def update_session_experiment(self, experiment, role, *args, **kwargs):
-        self.utilsPOMS.update_session_experiment(cherrypy.request.db, get_user(), experiment, *args, **kwargs)
+    def update_session_experiment(self, experiment, role, session_experiment ):
+        self.utilsPOMS.update_session_experiment(cherrypy.request.db, get_user(), session_experiment)
 
-        raise cherrypy.HTTPRedirect(cherrypy.request.headers.get('Referer', '%s/index/%s/%s' % (self.path, experiment, role)).replace(experiment, kwargs['session_experiment']))
+        raise cherrypy.HTTPRedirect(cherrypy.request.headers.get('Referer', '%s/index/%s/%s' % (self.path, experiment, role)).replace(experiment, session_experiment))
 
     # h4. update_session_role
     @cherrypy.expose
     @logit.logstartstop
-    def update_session_role(self, experiment, role, *args, **kwargs):
-        self.utilsPOMS.update_session_role(cherrypy.request.db, get_user(), role, *args, **kwargs)
+    def update_session_role(self, experiment, role, session_role):
+        self.utilsPOMS.update_session_role(cherrypy.request.db, get_user(), session_role)
 
-        raise cherrypy.HTTPRedirect(cherrypy.request.headers.get('Referer', '%s/index/%s/%s' % (self.path, experiment, role)).replace(role, kwargs['session_role']))
+        raise cherrypy.HTTPRedirect(cherrypy.request.headers.get('Referer', '%s/index/%s/%s' % (self.path, experiment, role)).replace(role, session_role))
 
     #####
     # DBadminPOMS
