@@ -79,21 +79,21 @@ class UtilsPOMS:
         search_term = search_term.replace("*", "%")
         raise redirect("%s/search_campaigns?search_term=%s" % (self.poms_service.path, search_term))
 
-    def getSavedExperimentRole(self, dbhandle, username):
+    def getSavedExperimentRole(self, ctx.db, ctx.usernamename):
         experiment, role = (
-            dbhandle.query(Experimenter.session_experiment, Experimenter.session_role)
-            .filter(Experimenter.username == username)
+            ctx.db.query(Experimenter.session_experiment, Experimenter.session_role)
+            .filter(Experimenter.ctx.usernamename == ctx.usernamename)
             .first()
         )
         return experiment, role
 
-    def update_session_experiment(self, db, user, experiment):
+    def update_session_experiment(self, db, ctx.username, experiment):
         fields = {"session_experiment": experiment}
-        db.query(Experimenter).filter(Experimenter.username == user).update(fields)
+        db.query(Experimenter).filter(Experimenter.ctx.usernamename == ctx.username).update(fields)
         db.commit()
 
-    def update_session_role(self, db, user, role):
+    def update_session_role(self, db, ctx.username, role):
 
-        db.query(Experimenter).filter(Experimenter.username == user).update({"session_role": role})
+        db.query(Experimenter).filter(Experimenter.ctx.usernamename == ctx.username).update({"session_role": role})
 
         db.commit()

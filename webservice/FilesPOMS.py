@@ -4,7 +4,7 @@
  This module contain the methods that handle the file status accounting
  List of methods: def list_task_logged_files, campaign_task_files, job_file_list, get_inflight,
  inflight_files, show_dimension_files, campaign_sheet
- ALso now includes file upload and analysis user launch sandbox code.
+ ALso now includes file upload and analysis ctx.username launch sandbox code.
  Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions
  in poms_service.py written by Marc Mengel, Stephen White and Michael Gueith.
  October, 2016.
@@ -34,8 +34,7 @@ class FilesStatus:
         """ just hook it in """
         self.poms_service = ps
 
-    def campaign_task_files(self, dbhandle, samhandle, experiment, role, campaign_stage_id=None,
-                            campaign_id=None, tmin=None, tmax=None, tdays=1):
+    def campaign_task_files(self, ctx, campaign_stage_id=None, campaign_id=None, ):
         '''
             Report of file counts for campaign stage with links to details
         '''
@@ -44,13 +43,13 @@ class FilesStatus:
          nextlink, prevlink,
          time_range_string, tdays
         ) = self.poms_service.utilsPOMS.handle_dates(
-            tmin, tmax, tdays,
-            'campaign_task_files/%s/%s?campaign_stage_id=%s&campaign_id=%s&' % (experiment, role, campaign_stage_id, campaign_id))
+            ctx,
+            'campaign_task_files/%s/%s?campaign_stage_id=%s&campaign_id=%s&' % (ctx.experiment, ctx.role, campaign_stage_id, campaign_id))
 
         # inhale all the campaign related task info for the time window
         # in one fell swoop
 
-        q = (dbhandle.query(Submission) #
+        q = (ctx.db.query(Submission) #
              .options(joinedload(Submission.campaign_stage_snapshot_obj))
              .filter(Submission.created >= tmin, Submission.created < tmax))
 
@@ -73,7 +72,7 @@ class FilesStatus:
             cs = tl[0].campaign_stage_snapshot_obj.campaign_stage
             # cs = tl[0].campaign_stage_snapshot_obj
         else:
-            cs = dbhandle.query(CampaignStage).filter(
+            cs = ctx.db.query(CampaignStage).filter(
                 CampaignStage.campaign_stage_id == campaign_stage_id).first()
             # cs = cs  # this is klugy -- does this work?
         #
@@ -129,13 +128,13 @@ class FilesStatus:
             output_files.append(outputfiledims)
         #
         # -- now call parallel fetches for items
-        # samhandle = cherrypy.request.samweb_lite ####IMPORTANT
-        summary_list = samhandle.fetch_info_list(summary_needed, dbhandle=dbhandle)
-        output_list = samhandle.count_files_list(cs.experiment, output_files)
-        some_kids_list = samhandle.count_files_list(cs.experiment, some_kids_needed)
-        some_kids_decl_list = samhandle.count_files_list(cs.experiment, some_kids_decl_needed)
-        all_kids_decl_list = samhandle.count_files_list(cs.experiment, all_kids_decl_needed)
-        # all_kids_list = samhandle.count_files_list(cs.experiment, all_kids_needed)
+        # ctx.sam = cherrypy.request.samweb_lite ####IMPORTANT
+        summary_list = ctx.sam.fetch_info_list(summary_needed, ctx.db=ctx.db)
+        output_list = ctx.sam.count_files_list(cs.experiment, output_files)
+        some_kids_list = ctx.sam.count_files_list(cs.experiment, some_kids_needed)
+        some_kids_decl_list = ctx.sam.count_files_list(cs.experiment, some_kids_decl_needed)
+        all_kids_decl_list = ctx.sam.count_files_list(cs.experiment, all_kids_decl_needed)
+        # all_kids_list = ctx.sam.count_files_list(cs.experiment, all_kids_needed)
 
         columns = ["campign<br>stage",
                    "submission<br>jobsub_jobid",
@@ -210,39 +209,36 @@ class FilesStatus:
                 ])
         return cs, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
 
-    def show_dimension_files(self, samhandle, experiment, dims, dbhandle=None):
+    def show_dimension_files(self, ctx, dims):
 
         try:
-            flist = samhandle.list_files(experiment, dims, dbhandle=dbhandle)
+            flist = ctx.sam.list_files(ctx.experiment, dims, dbhandle=ctx.db)
         except ValueError:
             flist = deque()
         return flist
 
     @pomscache.cache_on_arguments()
-    def get_pending_dict_for_campaigns(
-            self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
+    def get_pending_dict_for_campaigns(self, ctx, campaign_id_list):
         if isinstance(campaign_id_list, str):
             campaign_id_list = [
                 cid for cid in campaign_id_list.split(',') if cid]
-        dl, cl = self.get_pending_for_campaigns(
-            dbhandle, samhandle, campaign_id_list, tmin, tmax)
+        dl, cl = self.get_pending_for_campaigns(ctx, campaign_id_list)
         res = {cid: cs for cid, cs in zip(campaign_id_list, cl)}
         logit.log("get_pending_dict_for_campaigns returning: " + repr(res))
         return res
 
-    def get_pending_for_campaigns(
-            self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
+    def get_pending_for_campaigns(self, ctx campaign_id_list):
 
         task_list_list = deque()
 
         logit.log(
             "in get_pending_for_campaigns, tmin %s tmax %s" %
-            (tmin, tmax))
+            (ctx.tmin, ctx.tmax))
         if isinstance(campaign_id_list, str):
             campaign_id_list = [
                 cid for cid in campaign_id_list.split(',') if cid]
 
-        task_list = (dbhandle.query(Submission) #
+        task_list = (ctx.db.query(Submission) #
                      .options(joinedload(Submission.campaign_stage_snapshot_obj))
                      .options(joinedload(Submission.job_type_snapshot_obj))
                      .filter(Submission.campaign_stage_id.in_(campaign_id_list),
@@ -258,13 +254,12 @@ class FilesStatus:
         task_list_list = [tll[int(ci)] for ci in campaign_id_list]
         # logit.log("get_pending_for_campaigns: task_list_list (%d): %s" % (len(task_list_list), task_list_list))
 
-        dl, cl = self.get_pending_for_task_lists(
-            dbhandle, samhandle, task_list_list)
+        dl, cl = self.get_pending_for_task_lists(ctx, task_list_list)
 
         return dl, cl
 
     @staticmethod
-    def get_pending_dims_for_task_lists(dbhandle, samhandle, task_list_list):
+    def get_pending_dims_for_task_lists(ctx, task_list_list):
         reason = 'no_project_info'
         now = datetime.now(utc)
         twodays = timedelta(days=2)
@@ -324,24 +319,23 @@ class FilesStatus:
             (len(dimlist), dimlist))
         return explist, dimlist
 
-    def get_pending_for_task_lists(self, dbhandle, samhandle, task_list_list):
-        explist, dimlist = self.get_pending_dims_for_task_lists(
-            dbhandle, samhandle, task_list_list)
-        count_list = samhandle.count_files_list(explist, dimlist)
+    def get_pending_for_task_lists(self, ctx, task_list_list):
+        explist, dimlist = self.get_pending_dims_for_task_lists(ctx, task_list_list)
+        count_list = ctx.sam.count_files_list(explist, dimlist)
         logit.log(
             "get_pending_for_task_lists: count_list (%d): %s" %
             (len(dimlist), count_list))
 
         return dimlist, count_list
 
-    def get_file_upload_path(self, basedir, username, experiment, filename):
-        return "%s/uploads/%s/%s/%s" % (basedir, experiment, username, filename)
+    def get_file_upload_path(self, ctx, filename):
+        return "%s/uploads/%s/%s/%s" % (ctx.config_get("base_uploads_dir"), ctx.experiment, ctx.username, filename)
 
-    def file_uploads(self, basedir, experiment, user, dbhandle, checkuser=None):
-        ckuser = user
+    def file_uploads(self, ctx, checkuser=None):
+        ckuser = ctx.username
         if checkuser is not None:
             ckuser = checkuser
-        flist = glob.glob(self.get_file_upload_path(basedir, ckuser, experiment, '*'))
+        flist = glob.glob(self.get_file_upload_path(ctx.config_get("base_uploads_dir"), ckuser, ctx.experiment, '*'))
         file_stat_list = []
         total = 0
         for fname in flist:
@@ -349,14 +343,14 @@ class FilesStatus:
             uploaded = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.localtime(statout.st_mtime))
             file_stat_list.append([os.path.basename(fname), statout.st_size, uploaded])
             total += statout.st_size
-        experimenters = (dbhandle.query(Experimenter, ExperimentsExperimenters) #
+        experimenters = (ctx.db.query(Experimenter, ExperimentsExperimenters) #
                          .join(ExperimentsExperimenters.experimenter_obj)
-                         .filter(ExperimentsExperimenters.experiment == experiment)
+                         .filter(ExperimentsExperimenters.experiment == ctx.experiment)
                         ).all()
         return file_stat_list, total, experimenters
 
 
-    def upload_file(self, basedir, experiment, username, quota, filename, dbhandle):
+    def upload_file(self, ctx, quota, filename):
         logit.log("upload_file: entry")
 
         # if they pick multiple files, we get a list, otherwise just one
@@ -370,7 +364,7 @@ class FilesStatus:
 
         for filename in filenames:
             logit.log("upload_file: filename: %s" % filename.filename)
-            outf = self.get_file_upload_path(basedir, username, experiment, filename.filename)
+            outf = self.get_file_upload_path(ctx.config_get("base_uploads_dir"), ctx.usernamename, ctx.experiment, filename.filename)
             logit.log("upload_file: outf: %s" % outf)
             os.makedirs(os.path.dirname(outf), exist_ok=True)
             f = open(outf, "wb")
@@ -383,32 +377,32 @@ class FilesStatus:
                 size += len(data)
             f.close()
             logit.log("upload_file: closed")
-            fstatlist, total, experimenters = self.file_uploads(basedir, experiment, username, dbhandle)
+            fstatlist, total, experimenters = self.file_uploads(ctx.config_get("base_uploads_dir"), experiment, ctx.usernamename, ctx.db)
             if total > quota:
                 os.unlink(outf)
                 raise ValueError("Upload exeeds quota of %d kbi" % quota/1024)
 
 
-    def remove_uploaded_files(self, basedir, experiment, username, filename, action=None):
+    def remove_uploaded_files(self, ctx, filename, action=None):
         # if there's only one entry the web page will not send a list...
         if isinstance(filename, str):
             filename = [filename]
 
         for f in filename:
-            outf = self.get_file_upload_path(basedir, username, experiment, f)
+            outf = self.get_file_upload_path(ctx, f)
             try:
                 os.unlink(outf)
             except FileNotFoundError:
                 pass
         return "Ok."
 
-    def get_launch_sandbox(self, basedir, username, experiment):
+    def get_launch_sandbox(self, ctx):
 
-        uploads = self.get_file_upload_path(basedir, username, experiment, '')
+        uploads = self.get_file_upload_path(ctx, '')
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
-        sandbox = "%s/sandboxes/%s" % (basedir, str(uu))
+        sandbox = "%s/sandboxes/%s" % (ctx.config_get("base_uploads_dir"), str(uu))
         os.makedirs(sandbox, exist_ok=False)
-        upload_path = self.get_file_upload_path(basedir, username, experiment, '*')
+        upload_path = self.get_file_upload_path(ctx, '*')
         logit.log("get_launch_sandbox linking items from upload_path %s into %s" % (upload_path, sandbox))
         flist = glob.glob(upload_path)
         for f in flist:

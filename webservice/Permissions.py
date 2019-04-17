@@ -23,22 +23,22 @@ class Permissions:
         self.sucache = {}
         self.excache = {}
 
-    def is_superuser(self, dbhandle, user):
+    def is_superuser(self, ctx):
         if not user in self.sucache:
             # Is this a username or user_id?
-            if str(user).isdecimal():
-                rows = dbhandle.query(Experimenter.root).filter(Experimenter.experimenter_id == user).all()
+            if str(ctx.username).isdecimal():
+                rows = ctx.db.query(Experimenter.root).filter(Experimenter.experimenter_id == ctx.username).all()
             else:
-                rows = dbhandle.query(Experimenter.root).filter(Experimenter.username == user).all()
+                rows = ctx.db.query(Experimenter.root).filter(Experimenter.username == ctx.username).all()
             self.sucache[user] = rows[0].root
         logit.log("is_superuser(%s) returning %s" % (user, self.sucache[user]))
-        return self.sucache[user]
+        return self.sucache[ctx.username]
 
-    def check_experiment_role(self, dbhandle, username, experiment, desired_role):
-        key = "%s:%s" % (username, experiment)
+    def check_experiment_role(self, ctx):
+        key = "%s:%s" % (ctx.username, ctx.experiment)
         if not key in self.excache:
             rows = (
-                dbhandle.query(ExperimentsExperimenters.role)  #
+                ctx.db.query(ExperimentsExperimenters.role)  #
                 .join(Experimenter, Experimenter.experimenter_id == ExperimentsExperimenters.experimenter_id)
                 .filter(Experimenter.username == username, ExperimentsExperimenters.experiment == experiment)
             ).all()
@@ -46,17 +46,17 @@ class Permissions:
                 self.excache[key] = rows[0]
             else:
                 self.excache[key] = None
-        logit.log("experiment_role(%s,%s) returning: %s" % (username, experiment, self.excache[key]))
+        logit.log("experiment_role(%s,%s) returning: %s" % (ctx.username, ctx.experiment, self.excache[key]))
         if not self.excache[key]:
-            raise PermissionError("username %s is not in experiment %s" % (username, experiment))
-        if self.excache[key] == "analysis" and desired_role != self.excache[key]:
-            raise PermissionError("username %s cannot have role %s in experiment %s" % (username, desired_role, experiment))
-        if self.excache[key] == "production" and desired_role == "superuser":
-            raise PermissionError("username %s cannot have role %s in experiment %s" % (username, desired_role, experiment))
+            raise PermissionError("username %s is not in experiment %s" % (ctx.username, ctx.experiment))
+        if self.excache[key] == "analysis" and ctx.role != self.excache[key]:
+            raise PermissionError("username %s cannot have role %s in experiment %s" % (ctx.username, ctx.role, ctx.experiment))
+        if self.excache[key] == "production" and ctx.role == "superuser":
+            raise PermissionError("username %s cannot have role %s in experiment %s" % (ctx.username, ctx.role, ctx.experiment))
 
         return self.excache[key]
 
-    def get_exp_owner_role(self, dbhandle, t, item_id=None, name=None, experiment=None, campaign_id=None):
+    def get_exp_owner_role(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None):
         if not name and not item_id:
             raise AssertionError("need either item_id or name")
 
@@ -65,7 +65,7 @@ class Permissions:
 
         if t == "Submission":
             k = "sub:%s" % (item_id or name)
-            q = dbhandle.query(CampaignStage.experiment, CampaignStage.creator, CampaignStage.creator_role).join(  #
+            q = ctx.db.query(CampaignStage.experiment, CampaignStage.creator, CampaignStage.creator_role).join(  #
                 Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id
             )
             if item_id:
@@ -73,7 +73,7 @@ class Permissions:
             if name:
                 q = q.filter(Submission.jobsub_job_id == name)
         elif t == "CampaignStage":
-            q = dbhandle.query(CampaignStage.experiment, CampaignStage.creator, CampaignStage.creator_role)
+            q = ctx.db.query(CampaignStage.experiment, CampaignStage.creator, CampaignStage.creator_role)
             if item_id:
                 k = "cs:%s" % item_id
                 q = q.filter(CampaignStage.campaign_stage_id == item_id)
@@ -83,7 +83,7 @@ class Permissions:
                     CampaignStage.name == name, CampaignStage.campaign_id == campaign_id, CampaignStage.experiment == experiment
                 )
         elif t == "Campaign":
-            q = dbhandle.query(Campaign.experiment, Campaign.creator, Campaign.creator_role)
+            q = ctx.db.query(Campaign.experiment, Campaign.creator, Campaign.creator_role)
             if item_id:
                 k = "c:%s" % item_id
                 q = q.filter(Campaign.campaign_id == item_id)
@@ -91,7 +91,7 @@ class Permissions:
                 k = "c:%s_%s" % (experiment, name)
                 q = q.filter(Campaign.name == item_id, Campaign.experiment == experiment)
         elif t == "LoginSetup":
-            q = dbhandle.query(LoginSetup.experiment, LoginSetup.creator, LoginSetup.creator_role)
+            q = ctx.db.query(LoginSetup.experiment, LoginSetup.creator, LoginSetup.creator_role)
             if item_id:
                 k = "ls:%s" % item_id
                 q = q.filter(LoginSetup.login_setup_id == item_id)
@@ -99,7 +99,7 @@ class Permissions:
                 k = "ls:%s_%s" % (experiment, name)
                 q = q.filter(LoginSetup.name == name, LoginSetup.experiment == experiment)
         elif t == "JobType":
-            q = dbhandle.query(JobType.experiment, JobType.creator, JobType.creator_role)
+            q = ctx.db.query(JobType.experiment, JobType.creator, JobType.creator_role)
             if item_id:
                 k = "c:%s" % item_id
                 q = q.filter(JobType.job_type_id == item_id)
@@ -122,84 +122,84 @@ class Permissions:
 
         return self.icache[k]
 
-    def can_view(self, dbhandle, username, cur_exp, cur_role, t, item_id=None, name=None, experiment=None, campaign_id=None):
-        if self.is_superuser(dbhandle, username):
+    def can_view(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None):
+        if self.is_superuser(ctx.db, ctx.username):
             return
 
         # special case for Experimenter checkss
         if t == "Experimenter":
-            if item_id != username:
+            if item_id != ctx.username:
                 raise PermissionError("Only user %s can view this" % item_id)
             return
 
-        self.check_experiment_role(dbhandle, username, cur_exp, cur_role)
+        self.check_experiment_role(ctx)
 
         if not item_id and not name:
             return
 
         exp, owner, role = self.get_exp_owner_role(
-            dbhandle, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id
+            ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id
         )
-        logit.log("can_view: cur: %s, %s, %s; item: %s, %s, %s" % (username, cur_exp, cur_role, owner, exp, role))
-        if exp and exp != cur_exp:
+        logit.log("can_view: cur: %s, %s, %s; item: %s, %s, %s" % (ctx.username, ctx.experiment, ctx.role, owner, exp, role))
+        if exp and exp != ctx.experiment:
             raise PermissionError("Must be acting as experiment %s to see this" % exp)
 
-    def can_modify(self, dbhandle, username, cur_exp, cur_role, t, item_id=None, name=None, experiment=None, campaign_id=None):
-        if self.is_superuser(dbhandle, username):
+    def can_modify(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None):
+        if self.is_superuser(ctx.db, ctx.username):
             return None
         if not item_id and not name:
             return
 
         # special case for experimenter check
         if t == "Experimenter":
-            if item_id != username:
+            if item_id != ctx.username:
                 raise PermissionError("Only user %s can change this" % item_id)
             return
 
         exp, owner, role = self.get_exp_owner_role(
-            dbhandle, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id
+            ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id
         )
 
         # if no owner, role passed in from url, default to one in item
-        if cur_exp is None:
-            cur_exp = exp
-        if cur_role is None:
-            cur_role = role
+        if ctx.experiment is None:
+            ctx.experiment = exp
+        if ctx.role is None:
+            ctx.role = role
 
-        self.check_experiment_role(dbhandle, username, cur_exp, cur_role)
+        self.check_experiment_role(ctx)
 
-        logit.log("can_modify: cur: %s, %s, %s; item: %s, %s, %s" % (username, cur_exp, cur_role, owner, exp, role))
-        if exp and exp != cur_exp:
+        logit.log("can_modify: cur: %s, %s, %s; item: %s, %s, %s" % (ctx.username, ctx.experiment, ctx.role, owner, exp, role))
+        if exp and exp != ctx.experiment:
             raise PermissionError("Must be acting as experiment %s to change this" % exp)
-        if role and cur_role not in ("coordinator", "superuser") and role != cur_role:
+        if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
             raise PermissionError("Must be role %s to change this" % role)
 
-        if cur_role == "analysis" and owner != username:
-            raise PermissionError("Must be user %s to change this" % exp)
+        if ctx.role == "analysis" and owner != ctx.username:
+            raise PermissionError("Must be user %s to change this" % owner)
 
-    def can_do(self, dbhandle, username, cur_exp, cur_role, t, item_id=None, name=None, experiment=None, campaign_id=None):
-        if self.is_superuser(dbhandle, username):
+    def can_do(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None):
+        if self.is_superuser(ctx):
             return
         if not item_id and not name:
             return
 
         # special case for experimenter
         if t == "Experimenter":
-            if item_id != username:
+            if item_id != ctx.username:
                 raise PermissionError("Only user %s can view this" % item_id)
             return
 
-        self.check_experiment_role(dbhandle, username, cur_exp, cur_role)
+        self.check_experiment_role(ctx)
 
         exp, owner, role = self.get_exp_owner_role(
-            dbhandle, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id
+            ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id
         )
 
-        logit.log("can_do: cur: %s, %s, %s; item: %s, %s, %s" % (username, cur_exp, cur_role, owner, exp, role))
-        if exp and exp != cur_exp:
+        logit.log("can_do: cur: %s, %s, %s; item: %s, %s, %s" % (ctx.username, ctx.experiment, ctx.role, owner, exp, role))
+        if exp and exp != ctx.experiment:
             raise PermissionError("Must be acting as experiment %s to do this" % exp)
-        if role and cur_role not in ("coordinator", "superuser") and role != cur_role:
+        if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
             raise PermissionError("Must be role %s to do this" % role)
 
-        if role and cur_role == "analysis" and owner != username:
-            raise PermissionError("Must be user %s to do this" % exp)
+        if role and ctx.role == "analysis" and owner != ctx.username:
+            raise PermissionError("Must be user %s to do this" % owner)

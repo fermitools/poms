@@ -23,20 +23,15 @@ class JobsPOMS:
         self.poms_service = poms_service
         self.junkre = re.compile(r".*fcl|log.*|.*\.log$|ana_hist\.root$|.*\.sh$|.*\.tar$|.*\.json$|[-_0-9]*$")
 
-    def update_SAM_project(self, samhandle, j, projname):
+    def update_SAM_project(self, ctx, j, projname):
         logit.log("Entering update_SAM_project(%s)" % projname)
         sid = j.submission_obj.submission_id
         exp = j.submission_obj.campaign_stage_snapshot_obj.experiment
         cid = j.submission_obj.campaign_stage_snapshot_obj.campaign_stage_id
-        samhandle.update_project_description(exp, projname, "POMS CampaignStage %s Submission %s" % (cid, sid))
+        ctx.sam.update_project_description(exp, projname, "POMS CampaignStage %s Submission %s" % (cid, sid))
 
     def kill_jobs(
         self,
-        dbhandle,
-        basedir,
-        username,
-        exp,
-        se_role,
         campaign_id=None,
         campaign_stage_id=None,
         submission_id=None,
@@ -53,34 +48,34 @@ class JobsPOMS:
         """
         s = None
         cs = None
-        group = exp
+        group = ctx.experiment
 
         if not (submission_id or campaign_id or campaign_stage_id):
             raise SyntaxError("called with out submission, campaign, or stage id" % act)
 
         # start a query to get the session jobsub job_id's ...
-        jjidq = dbhandle.query(Submission.jobsub_job_id, Submission.submission_id)
+        jjidq = ctx.db.query(Submission.jobsub_job_id, Submission.submission_id)
 
         if campaign_id:
             what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
-            cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).first()
-            csids = dbhandle.query(CampaignStage.campaign_stage_id).filter(CampaignStage.campaign_id == campaign_id).first()
+            cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).first()
+            csids = ctx.db.query(CampaignStage.campaign_stage_id).filter(CampaignStage.campaign_id == campaign_id).first()
             csids = list(csids)
             jjidq = jjidq.filter(Submission.campaign_stage_id.in_(csids))
 
         if campaign_stage_id:
             what = "--constraint=POMS4_CAMPAIGN_STAGE_ID==%s" % campaign_stage_id
-            cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+            cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
             jjidq = jjidq.filter(Submission.campaign_stage_id == campaign_stage_id)
 
         if submission_id:
-            s = dbhandle.query(Submission).filter(Submission.submission_id == submission_id).first()  #
+            s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).first()  #
             what = "--constraint=POMS4_SUBMISSION_ID==%s" % s.submission_id
             cs = s.campaign_stage_obj
             jjidq = jjidq.filter(Submission.submission_id == submission_id)
 
         shq = (
-            dbhandle.query(
+            ctx.db.query(
                 SubmissionHistory.submission_id.label("submission_id"),
                 func.max(SubmissionHistory.status_id).label("max_status"),
             )
@@ -125,12 +120,12 @@ class JobsPOMS:
             else:
                 raise SyntaxError("called with unknown action %s" % act)
 
-            if se_role == "analysis":
-                sandbox = self.poms_service.filesPOMS.get_launch_sandbox(basedir, username, exp)
-                proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (exp, username)
+            if ctx.role == "analysis":
+                sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx.config_get("base_uploads_dir"), ctx.usernamename, ctx.experiment)
+                proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (ctx.experiment, ctx.usernamename)
             else:
                 sandbox = "$HOME"
-                proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
+                proxyfile = "/opt/%spro/%spro.Production.proxy" % (ctx.experiment, ctx.experiment)
 
             # expand launch setup %{whatever}s campaigns...
 
@@ -145,7 +140,7 @@ class JobsPOMS:
             )
             launchsetup = (
                 "cp $X509_USER_PROXY /tmp/proxy$$ && export X509_USER_PROXY=/tmp/proxy$$  && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY;"
-                if se_role == "analysis"
+                if ctx.role == "analysis"
                 else ""
             ) + launch_setup
             launch_setup = "export X509_USER_PROXY=%s;" % proxyfile + launch_setup
@@ -173,7 +168,7 @@ class JobsPOMS:
                 "dataset": cs.dataset,
                 "version": cs.software_version,
                 "group": group,
-                "experimenter": cs.experimenter_creator_obj.username,
+                "experimenter": cs.experimenter_creator_obj.ctx.usernamename,
                 "experiment": cs.experiment,
             }
 
@@ -183,22 +178,22 @@ class JobsPOMS:
 
             if status_set:
                 for sid in sids:
-                    self.poms_service.taskPOMS.update_submission_status(dbhandle, sid, status_set)
-            dbhandle.commit()
+                    self.poms_service.taskPOMS.update_submission_status(ctx.db, sid, status_set)
+            ctx.db.commit()
 
             return output, cs, campaign_stage_id, submission_id, job_id
 
-    def jobtype_list(self, dbhandle, exp, role, name=None, full=None):
+    def jobtype_list(self, ctx, name=None, full=None):
         """
             Return list of all jobtypes for the experiment.
         """
         if full:
             data = (
-                dbhandle.query(JobType.name, JobType.launch_script, JobType.definition_parameters, JobType.output_file_patterns)
-                .filter(JobType.experiment == exp)
+                ctx.db.query(JobType.name, JobType.launch_script, JobType.definition_parameters, JobType.output_file_patterns)
+                .filter(JobType.experiment == ctx.experiment)
                 .order_by(JobType.name)
                 .all()
             )
         else:
-            data = dbhandle.query(JobType.name).filter(JobType.experiment == exp).order_by(JobType.name).all()
+            data = ctx.db.query(JobType.name).filter(JobType.experiment == ctx.experiment).order_by(JobType.name).all()
         return [r._asdict() for r in data]

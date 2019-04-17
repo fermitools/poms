@@ -23,21 +23,21 @@ class TablesPOMS:
         self.poms_service = ps
         self.make_admin_map()
 
-    def list_generic(self, dbhandle, classname):
+    def list_generic(self, ctx.db, classname):
         l = self.make_list_for(
-            dbhandle, self.admin_map[classname], self.pk_map[classname])
+            ctx.db, self.admin_map[classname], self.pk_map[classname])
         return l
 
     def edit_screen_generic(self, classname, id=None):
         return self.poms_service.edit_screen_for(
             classname, self.admin_map[classname], 'update_generic', self.pk_map[classname], id, {})
 
-    def update_generic(self, dbhandle, classname, *args, **kwargs):
+    def update_generic(self, ctx.db, classname, *args, **kwargs):
         return self.update_for(
-            dbhandle, classname, self.admin_map[classname], self.pk_map[classname], *args, **kwargs)
+            ctx.db, classname, self.admin_map[classname], self.pk_map[classname], *args, **kwargs)
 
     # this method was deleded from the main script
-    def update_for(self, dbhandle, classname,
+    def update_for(self, ctx.db, classname,
                    eclass, primkey, *args, **kwargs):
         found = None
         kval = None
@@ -48,7 +48,7 @@ class TablesPOMS:
                 pred = "%s = %d" % (primkey, kval)
             except BaseException:
                 pred = "%s = '%s'" % (primkey, kval)
-            found = dbhandle.query(eclass).filter(text(pred)).first()
+            found = ctx.db.query(eclass).filter(text(pred)).first()
             logit.log("update_for: found existing %s" % found)
         if found is None:
             logit.log("update_for: making new %s" % eclass)
@@ -100,13 +100,13 @@ class TablesPOMS:
             else:
                 setattr(found, fieldname, kwargs.get(fieldname, None))
         logit.log("update_for: found is now %s" % found)
-        dbhandle.add(found)
-        dbhandle.commit()
+        ctx.db.add(found)
+        ctx.db.commit()
         if classname == "Submission":
             self.poms_service.snapshot_parts(found. campaign_stage_id)
         return "%s=%s" % (classname, getattr(found, primkey))
 
-    def edit_screen_for(self, dbhandle, classname, eclass, update_call, primkey, primval, valmap):
+    def edit_screen_for(self, ctx.db, classname, eclass, update_call, primkey, primval, valmap):
 
         found = None
         sample = eclass()
@@ -117,7 +117,7 @@ class TablesPOMS:
                 pred = "%s = %d" % (primkey, primval)
             except BaseException:
                 pred = "%s = '%s'" % (primkey, primval)
-            found = dbhandle.query(eclass).filter(text(pred)).first()
+            found = ctx.db.query(eclass).filter(text(pred)).first()
             logit.log("found %s" % found)
         if not found:
             found = sample
@@ -139,11 +139,11 @@ class TablesPOMS:
         return screendata
 
     # this function was eliminated from the main class.
-    def make_list_for(self, dbhandle, eclass, primkey):
+    def make_list_for(self, ctx.db, eclass, primkey):
         res = deque()
-        for i in dbhandle.query(eclass).order_by(primkey).all():
+        for i in ctx.db.query(eclass).order_by(primkey).all():
             res.append({"key": getattr(i, primkey, ''), "value": getattr(
-                i, 'name', getattr(i, 'username', 'unknown'))})
+                i, 'name', getattr(i, 'ctx.usernamename', 'unknown'))})
         return res
 
     def make_admin_map(self):   # This method was deleted from the main script.
