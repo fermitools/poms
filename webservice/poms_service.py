@@ -1686,3 +1686,4 @@ class PomsService:
         data = self.campaignsPOMS.save_campaign(ctx.db, ctx.username, form=json.dumps(campaign_d), **kwargs)
 
         return data
+
