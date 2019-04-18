@@ -63,9 +63,9 @@ from .utc import utc
 
 
 class JSONORMEncoder(json.JSONEncoder):
-    # This will show up as an error in pylint.   Appears to be a bug in pylint:
+    # This will show up as an error in pylint.   Appears to be a bug in pylint, so its disabled:
     #    pylint #89092 @property.setter raises an E0202 when attribute is set
-    def default(self, obj):
+    def default(self, obj):  #pylint: disable=E0202
 
         if obj == datetime:
             return 'datetime'
@@ -253,7 +253,7 @@ class PomsService:
     # h4. update_session_experiment
     @cherrypy.expose
     @logit.logstartstop
-    def update_session_experiment(self, experiment, role, session_experiment ):
+    def update_session_experiment(self, experiment, role, session_experiment):
         self.utilsPOMS.update_session_experiment(cherrypy.request.db, get_user(), session_experiment)
 
         raise cherrypy.HTTPRedirect(cherrypy.request.headers.get('Referer', '%s/index/%s/%s' % (self.path, experiment, role)).replace(experiment, session_experiment))
