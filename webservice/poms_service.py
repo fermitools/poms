@@ -158,13 +158,13 @@ class PomsService:
     #
     # cherrypy config bits for error handling
     #
-
+    tdir = os.environ["POMS_DIR"] + "/webservice/templates"
     _cp_config = {
         'request.error_response': error_response,
-        'error_page.404': "%s/%s" % (os.path.abspath(os.getcwd()), 'webservice/templates/page_not_found.html'),
-        'error_page.401': "%s/%s" % (os.path.abspath(os.getcwd()), 'webservice/templates/unauthorized_user.html'),
-        'error_page.429': "%s/%s" % (os.path.abspath(os.getcwd()), 'webservice/templates/too_many.html'),
-        'error_page.400': "%s/%s" % (os.path.abspath(os.getcwd()), 'webservice/templates/bad_parameters.html'),
+        'error_page.400': "%s/%s" % (tdir, 'bad_parameters.html'),
+        'error_page.401': "%s/%s" % (tdir, 'unauthorized_user.html'),
+        'error_page.404': "%s/%s" % (tdir, 'page_not_found.html'),
+        'error_page.429': "%s/%s" % (tdir, 'too_many.html'),
     }
 
     # h3. Module init

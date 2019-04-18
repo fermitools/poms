@@ -5,7 +5,7 @@ from . import logit
 
 
 def get_version():
-    codedir = os.path.abspath(os.getcwd())
+    codedir = os.environ["POMS_DIR"]
     version = "unknown"
     try:
         devnull = open("/dev/null", "w")
