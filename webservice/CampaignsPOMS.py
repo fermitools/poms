@@ -87,13 +87,17 @@ class CampaignsPOMS:
         if action == 'delete':
             name = ae_launch_name
             try:
-                dbhandle.query(LoginSetup).filter(
+                ls = dbhandle.query(LoginSetup).filter(
                     LoginSetup.experiment == exp,
                     LoginSetup.name == name,
                     LoginSetup.creator == experimenter.experimenter_id,
-                ).delete(synchronize_session=False)
-                dbhandle.commit()
-                message = "The login setup '%s' has been deleted." % name
+                ).scalar()
+                if ls:
+                    dbhandle.delete(ls)
+                    dbhandle.commit()
+                    message = "The login setup '%s' has been deleted." % name
+                else:
+                    message = "The login setup '%s' does not exist." % name
             except SQLAlchemyError as exc:
                 dbhandle.rollback()
                 message = "The login setup '%s' has been used and may not be deleted." % name
@@ -508,11 +512,15 @@ class CampaignsPOMS:
             if isinstance(name, str):
                 name = name.strip()
             if pcl_call == 1:  # Enter here if the access was from the poms_client
-                cid = dbhandle.query(JobType).filter(
+                cid = dbhandle.query(JobType.job_type_id).filter(
                     JobType.experiment == exp,
                     JobType.name == name,
                     JobType.creator == experimenter.experimenter_id,
-                ).scalar().job_type_id
+                ).scalar()
+                if not cid:
+                    message = f"The job type '{name}' does not exist."
+                    return {'message': message}
+
             else:
                 cid = kwargs.pop('job_type_id')
             try:
