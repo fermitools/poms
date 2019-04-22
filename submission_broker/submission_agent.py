@@ -193,6 +193,12 @@ class Agent:
                 pos2 = ddict['args'].find(' ', pos1+15)
                 res = ddict['args'][pos1+14:pos2]
                 LOGIT.info("got: %s", res)
+            pos1 = ddict['args'].find('--dataset_definition')
+            if pos1 > 0:
+                LOGIT.info("saw --dataset_definition in args")
+                pos2 = ddict['args'].find(' ', pos1+21)
+                res = ddict['args'][pos1+20:pos2]
+                LOGIT.info("got: %s", res)
         if not res and ddict.get('SAM_PROJECT_NAME', None):
             res = ddict['SAM_PROJECT_NAME']
         if not res and ddict.get('SAM_PROJECT', None):
