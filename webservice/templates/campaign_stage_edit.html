@@ -1,6 +1,8 @@
 {%extends "layout.html"%}
 
 {% macro show_hint(anchor, hint) %}
+	{% include 'help_button.html' %}
+
 {% endmacro %}
 
 {%block title%}
@@ -22,8 +24,8 @@ POMS
 </style>
 
 {%block header%}
-Campaign Stages 
-    {% include 'help_button.html' %}
+Campaign Stages
+    {{ show_hint('#Compose-a-campaign-stage', 'Help page') }}
 {%endblock%}
 
 {%block subheader%}
@@ -49,12 +51,14 @@ Campaign Stages
   {% if data.curr_experiment is defined %}
   <div id="double-scroll" class="scrollable">
 
-  <table class="ui sortable single line celled table" style="margin-top: 3em;">
+  <table class="ui sortable single line celled table" style="margin-top: 3em;" id="stagetable">
     <thead>
       <tr>
         <th></th>
         <th> Campaign Name</th>
+        <th> C Id</th>
         <th> Stage Name {{ show_hint('#Name', 'Name string') }} </th>
+        <th> S Id</th>
         <!-- <th> Active {{ show_hint('#Active', 'True/False') }} </th> -->
         <th> VO Role {{ show_hint('#VO-Role', 'Role name') }} </th>
         <th> Software<br>Version {{ show_hint('#Software-Version', 'Version tag') }} </th>
@@ -82,20 +86,16 @@ Campaign Stages
         </td>
         <td id="c_campaign_stage_id_{{loop.index}}" style="display:none">{{row.CampaignStage.campaign_stage_id}}</td>
         {% if row.CampaignStage.campaign_stage_id|int == jump_to_campaign|default(-1)|int %}
-        <script type="text/javascript">
-         // jump directly to a particular campaign
-         $(document).ready(function(){
-            edit_campaign({{loop.index}});
-         });
+
         </script>
         {% endif %}
         <td id="c_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
         <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.CampaignStage.job_type_id}}</td>
         <td id="c_launch_id_{{loop.index}}" style="display:none">{{row.CampaignStage.login_setup_id}}</td>
-        <td id="c_campaign_id_{{loop.index}}" style="display:none">{{row.CampaignStage.campaign_id}}</td>
         <td id="c_campaign_name_{{loop.index}}">{{row.Campaign.name}}</td>
+        <td id="c_campaign_id_{{loop.index}}">{{row.CampaignStage.campaign_id}}</td>
         <td id="c_name_{{loop.index}}">{{row.CampaignStage.name}}</td>
-        <!-- <td id="c_active_{{loop.index}}">{{row.CampaignStage.active}}</td> -->
+        <td id="c_campaign_stage_id_{{loop.index}}">{{row.CampaignStage.campaign_stage_id}}</td>
         <td id="c_vo_role_{{loop.index}}">{{row.CampaignStage.vo_role}}</td>
         <td id="c_software_version_{{loop.index}}">{{row.CampaignStage.software_version}}</td>
         <td id="c_dataset_{{loop.index}}">{{row.CampaignStage.dataset}}</td>
@@ -110,8 +110,8 @@ Campaign Stages
         <td id="c_test_param_overrides_{{loop.index}}">{{row.CampaignStage.test_param_overrides|tojson|replace("null","")}}</td>
         <td id="c_depends_{{loop.index}}">
         {% for key, value in data.depends.items() %}
-            {% if key == row.CampaignStage.campaign_stage_id %}
-            {{ value }}
+            {% if key == row.CampaignStage.campaign_stage_id and value|length %}
+                {{ value }}
             {% endif %}
         {% endfor %}
         </td>
@@ -165,7 +165,7 @@ Campaign Stages
 <div class="ui modal" id="campaign_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header"><span id="ae_experiment">Campaign Stage Editor </span>
-    {% include 'help_button.html' %}
+    {{ show_hint('#Compose-a-campaign-stage', 'Help page') }}
 </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
@@ -173,26 +173,22 @@ Campaign Stages
 
       <div class="fields">
         <label>Campaign Name</label>
-        <select name="ae_campaign_name" id="ae_campaign_name" class="ui fluid search dropdown" disabled >
-          <option value=""></option>
-          {% for row in data.campaigns %}
-          <option value={{row.campaign_id}}>{{row.name}}</option>
-          {% endfor %}
-        </select>
+        <input type="text" id="ae_campaign_name" name="ae_campaign_name" value="" readonly>
+        <input type="hidden" id="ae_campaign_id" name="ae_campaign_id" value="0">
       </div>
 
       <div class="three fields">
         <div class="field">
-            <label>Stage Name {{ show_hint('#Stage-Name', 'Stage name') }}</label>
+            <label>Stage Name</label>
             <input type="text" id="ae_stage_name" name="ae_stage_name" placeholder="Campaign Stage Name">
         </div>
         <div class="field">
-            <label>Jobsub VO Role {{ show_hint('#VO-Role', 'Role name') }}</label>
+            <label>Jobsub VO Role </label>
             <input type="text" id="ae_vo_role" name="ae_vo_role">
         </div>
         <!--
         <div class="field">
-          <label>State {{ show_hint('#State', 'Select state') }}</label>
+          <label>State </label>
           <select class="ui dropdown" name="ae_active" id="ae_active">
             <option value="True">Active</option>
             <option value="False">Inactive</option>
@@ -200,20 +196,20 @@ Campaign Stages
         </div>
         -->
         <div class="field">
-            <label>Exp. Software Version {{ show_hint('#Software-Version', 'Version tag') }}</label>
+            <label>Exp. Software Version </label>
             <input type="text" id="ae_software_version" name="ae_software_version">
         </div>
       </div>
 
       <div class="two fields">
         <div class="field">
-            <label>Dataset or Split Data {{ show_hint('#Dataset', 'Dataset name') }}</label>
+            <label>Dataset or Split Data </label>
             <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset" style="width: 90%"></input>
 
             <i class="edit link blue icon split_type_picker_custom_edit" onclick="split_type_picker.custom_edit('ae_split_type','ae_dataset')"></i>
         </div>
         <div class="field">
-            <label>(Dataset) Split Type {{ show_hint('#Dataset-Split-Type', 'Set type') }}</label>
+            <label>(Dataset) Split Type </label>
             <input type="text" id="ae_split_type" name="ae_split_type" style="width:90%">
             <i class="edit link blue icon" onclick="split_type_picker.start('ae_split_type')"></i>
         </div>
@@ -221,14 +217,14 @@ Campaign Stages
 
       <div class="two fields">
         <div class="field">
-          <label>Completion Type {{ show_hint('#Completion-Type', 'Select type') }}</label>
+          <label>Completion Type </label>
           <select class="ui dropdown" name="ae_completion_type" id="ae_completion_type">
             <option value="located" >Located</option>
             <option value="complete" >Complete</option>
           </select>
         </div>
         <div class="field">
-            <label>Completion % {{ show_hint('#Completion', 'Integer') }}</label>
+            <label>Completion % </label>
             <input type="text" id="ae_completion_pct" name="ae_completion_pct" placeholder="95">
         </div>
       </div>
@@ -254,11 +250,11 @@ Campaign Stages
         </div>
       </div>
 
-      <h4 class="ui horizontal divider">Launch/Setup</h4>
+      <h4 class="ui horizontal divider">Login/Setup {{ show_hint('#Compose-a-loginsetup-script', 'Help page') }}</h4>
 
       <div class="one field">
         <div class="field">
-          <label>Launch/Setup Name {{ show_hint('#Launch-Template', 'Select template name') }}</label>
+          <label>Login/Setup Name </label>
           <select class="ui dropdown" name="ae_launch_id" id="ae_launch_id">
             <option value=""></option>
             {% for row in data.templates %}
@@ -269,27 +265,27 @@ Campaign Stages
       </div>
       <div class="two fields">
         <div class="field">
-            <label>Host {{ show_hint('#Host', 'Host name') }}</label>
+            <label>Host </label>
             <input type="text" id="ae_launch_host" disabled>
         </div>
         <div class="field">
-            <label>Account {{ show_hint('#Account', 'Account name') }}</label>
+            <label>Account </label>
             <input type="text" id="ae_launch_account" disabled>
         </div>
       </div>
 
       <div class="one field">
         <div class="field">
-            <label>Setup {{ show_hint('#Setup', 'Setup commands') }}</label>
+            <label>Setup </label>
             <textarea rows="3" id="ae_launch_setup" disabled></textarea>
         </div>
       </div>
 
-      <h4 class="ui horizontal divider">Job Type</h4>
+      <h4 class="ui horizontal divider">Job Type {{ show_hint('#Compose-a-job-type', 'Job Type') }}</h4>
 
       <div class="one field">
         <div class="field">
-          <label>Job Type Name {{ show_hint('#Job-Type', 'Select job type') }}</label>
+          <label>Job Type Name </label>
           <!--<br/>-->
           <select class="ui dropdown" name="ae_campaign_definition_id" id="ae_campaign_definition_id">
             <option value=""></option>
@@ -300,22 +296,22 @@ Campaign Stages
         </div>
       <div class="two fields">
         <div class="field">
-              <label>Input Files/Job {{ show_hint('#Input-Files', 'Integer') }}</label>
+              <label>Input Files/Job </label>
               <input type="text" id="ae_input_files_per_job" disabled>
         </div>
         <div class="field">
-              <label>Output Files/Job {{ show_hint('#Output-Files', 'Integer') }}</label>
+              <label>Output Files/Job </label>
               <input type="text" id="ae_output_files_per_job" disabled>
         </div>
       </div>
 
       <div class="two fields">
         <div class="field">
-          <label>Launch/Setup Script {{ show_hint('#Launch-Script', 'Script name with arguments') }}</label>
+          <label>Launch/Setup Script </label>
           <textarea rows="3" id="ae_launch_script" disabled></textarea>
         </div>
         <div class="field">
-          <label>Definition Parameters {{ show_hint('#Definition-Parameters', 'Parameter set') }}</label>
+          <label>Definition Parameters </label>
           <textarea rows="3" id="ae_launch_definition_parameters" disabled></textarea>
         </div>
       </div>
@@ -431,7 +427,6 @@ function setup_form_validation() {
 $('#campaign_add_edit_form')
   .form({
     fields: {
-      ae_campaign_name :          'empty',
       ae_stage_name :             'empty',
       ae_vo_role :                'empty',
       ae_active :                 'empty',
@@ -708,6 +703,8 @@ function delete_campaign(name,campaign_stage_id) {
 function edit_campaign(index,clone) {
   if (typeof clone === 'undefined') {
     $("#ae_definition_action").val("edit");
+    $("#ae_campaign_name").val( $("#c_campaign_name_"+index).text() );
+    $("#ae_campaign_id").val( $("#c_campaign_id_"+index).text() );
     $("#ae_stage_name").val( $("#c_name_"+index).text() );
     $("#ae_depends").val( $("#c_depends_"+index).text() );
     $("#ae_depends_text").val( $.trim( $("#c_depends_"+index).text() ));
@@ -742,7 +739,6 @@ function edit_campaign(index,clone) {
   $("#ae_completion_pct").val( $("#c_completion_pct_"+index).text() );
 
   $("#campaign_add_edit_modal").modal('show');
-  $("#ae_campaign_name").val( $("#c_campaign_id_"+index).text()  ).trigger('change');
 
   console.log("clone = : " + clone)
   if ( typeof clone === 'undefined' )
@@ -769,18 +765,23 @@ function add_campaign() {
 
 
 $(document).ready(function(){
+  {% if jump_to_campaign is not none %}
+  var rows = $('#stagetable tr').length;
+  var i;
+  var stage_id;
+  for (i = 0; i <= rows; i++) {
+    stage_id = $("#c_campaign_stage_id_"+i).text();
+    if (stage_id == "{{jump_to_campaign}}") {
+      edit_campaign(i);
+    }
+  }
+  {% else %}
   if (`{{ data.message }}` != "None") {
     $("#poms_message_data").text(`{{ data.message }}`);
     $("#display_message_modal").modal('show');
   }
+  {% endif %}
 });
-
-$('#ae_campaign_name')
-  .dropdown({
-    allowAdditions: false,
-    showOnFocus: false
-})
-;
 
 
 </script>

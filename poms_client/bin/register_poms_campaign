@@ -3,6 +3,7 @@
 from poms_client import register_poms_campaign,update_session_role
 import optparse
 import os
+import sys
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -27,13 +28,17 @@ parser.add_option('--int', action='store_const', const='int', dest='test' , meta
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 
-update_session_role(options.poms_role, test_client = options.test )
-res = register_poms_campaign(campaign_name = options.campaign, 
-	user = options.user,
-	experiment = options.experiment,
-	version = options.version,
-	dataset = options.dataset,
-	campaign_definition = options.campaign_definition,
-	test = options.test)
+try:
+    update_session_role(options.poms_role, test_client = options.test )
+    res = register_poms_campaign(campaign_name = options.campaign, 
+            user = options.user,
+            experiment = options.experiment,
+            version = options.version,
+            dataset = options.dataset,
+            campaign_definition = options.campaign_definition,
+            test = options.test)
 
-print res
+    print res
+except:
+    logging.exception(sys.argv[0])
+    sys.exit(1)

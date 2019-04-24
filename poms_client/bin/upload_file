@@ -19,25 +19,40 @@ parser.add_option('--proxy', action='store_true', help='upload a proxy', default
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 
-if options.proxy:
-    proxyfile = "/tmp/x509up_voms_%s_%s_%s" % (options.experiment, options.poms_role.capitalize(),os.environ.get('GRID_USER',os.environ.get('USER','unknown')) )
-    if os.environ.get('X509_USER_PROXY', None):
-         os.system("cp $X509_USER_PROXY %s" % proxyfile)
-    else:
-         os.unlink(proxyfile)
-         import ifdh
-         ih = ifdh.ifdh()
-         os.environ['EXPERIMENT'] = options.experiment
-         ipf = ih.getProxy()
-         logging.debug("got %s from ifdh getProxy" % ipf)
-         os.system("cp %s %s" % (ipf, proxyfile))
-    args.append(proxyfile)
-    os.system("chmod 400 %s" % proxyfile)
-         
+try:
 
-poms_client.update_session_experiment(options.experiment, test_client=options.test)
-poms_client.update_session_role(options.poms_role, test_client=options.test)
+    if options.proxy:
+        proxyfile = "/tmp/x509up_voms_%s_%s_%s" % (options.experiment, options.poms_role.capitalize(),os.environ.get('GRID_USER',os.environ.get('USER','unknown')) )
+        if os.environ.get('X509_USER_PROXY', None):
+             os.system("cp $X509_USER_PROXY %s" % proxyfile)
+        else:
+             try:
+                 os.unlink(proxyfile)
+             except:
+                 pass
+             import ifdh
+             ih = ifdh.ifdh()
+             os.environ['EXPERIMENT'] = options.experiment
+             ipf = ih.getProxy()
+             logging.debug("got %s from ifdh getProxy" % ipf)
+             os.system("cp %s %s" % (ipf, proxyfile))
+        args.append(proxyfile)
+        os.system("chmod 400 %s" % proxyfile)
+        os.system('myproxy-store -c %s -y %s -s myproxy.fnal.gov -xZ "/DC=org/DC=opensciencegrid/O=Open Science Grid/OU=Services/CN=fifebatch.fnal.gov" -t 24 -l "`openssl x509 -in %s -noout -subject | cut -d " " -f 2-`"' % (proxyfile, proxyfile,proxyfile))
+             
+except:
+    logging.exception(sys.argv[0] + ": while getting proxy:")
+    os.exit(1)
 
-for f in args:
-     logging.debug("uploading: %s " % f)
-     poms_client.upload_file(f, test=options.test)
+try:
+    poms_client.update_session_experiment(options.experiment, test_client=options.test)
+    poms_client.update_session_role(options.poms_role, test_client=options.test)
+
+    for f in args:
+         logging.debug("uploading: %s " % f)
+         poms_client.upload_file(f, test=options.test)
+         print("uploaded: %s to POMS server" % f) 
+
+except:
+    logging.exception(sys.argv[0])
+    sys.exit(1)

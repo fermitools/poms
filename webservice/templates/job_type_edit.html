@@ -16,8 +16,12 @@ POMS
   }
 </style>
 
+{% macro show_hint(anchor, hint) %}
+	{% include 'help_button.html' %}
+{% endmacro %}
+
 {%block header%}
-JobTypes {%include 'help_button.html'%}
+JobTypes {{ show_hint('#Compose-a-job-type', 'Job Type') }}
 {%endblock%}
 
 {%block subheader%}
@@ -25,9 +29,6 @@ JobTypes {%include 'help_button.html'%}
 
 {%block content%}
 
-{% macro show_hint(anchor, hint) %}
-	{# {% include 'help_button.html' %} task #21477 #}
-{% endmacro %}
 
 <form id="campaign_definition_form" class="ui form" action="job_type_edit" method="POST">
 
@@ -41,13 +42,13 @@ JobTypes {%include 'help_button.html'%}
     <thead>
       <tr>
 		<th></th>
-		<th> Name {{ show_hint('#Name', 'Name string') }} </th>
-		<th> Input Files Per Job {{ show_hint('#Input-Files-Per-Job', 'Integer number') }} </th>
-		<th> Output Files Per Job {{ show_hint('#Output-Files-Per-Job', 'Integer number') }} </th>
-		<th> Output File Patterns {{ show_hint('#Output-File-Patterns', 'Regex?') }} </th>
-		<th> Launch Script {{ show_hint('#Launch-Script', 'Shell script with arguments') }} </th>
-		<th> Definition Parameters {{ show_hint('#Definition-Parameters', 'List of key/value pairs') }}	</th>
-		<th> Recoveries {{ show_hint('#Recoveries', 'List of key/value pairs') }} </th>
+		<th> Name  </th>
+		<th> Input Files Per Job  </th>
+		<th> Output Files Per Job </th>
+		<th> Output File Patterns  </th>
+		<th> Launch Script  </th>
+		<th> Definition Parameters 	</th>
+		<th> Recoveries  </th>
       </tr>
     </thead>
     <tbody>
@@ -131,7 +132,7 @@ JobTypes {%include 'help_button.html'%}
 <div class="ui large modal" id="definition_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header"><span id="ae_experiment">
-    JobType Editor </span> {%include 'help_button.html'%}
+    JobType Editor </span> {{ show_hint('#Compose-a-job-type', 'Job Type') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">

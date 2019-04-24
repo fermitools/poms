@@ -20,6 +20,8 @@ def get_status(entry):
         given a dictionary from the Landscape service,
         return the status for our submission
     '''
+    if entry['done'] and entry['failed'] * 2 > entry['completed']:
+        return "Failed"
     if entry['done']:
         return "Completed"
     if entry['held'] > 0:
@@ -37,7 +39,7 @@ class Agent:
         recent submissions and reports them to POMS
     '''
     full_query = '''
-         {"query":"{submissions(group: \\"%s\\" %s){id pomsTaskID done running idle   held } }","operationName":null}
+         {"query":"{submissions(group: \\"%s\\" %s){id pomsTaskID done running idle held failed completed } }","operationName":null}
          '''
 
     submission_project_query = '''
@@ -45,7 +47,7 @@ class Agent:
         '''
 
     submission_info_query = '''
-          {"query":"{submission(id:\\"%s\\"){id pomsTaskID done running idle held} }","operationName":null}
+          {"query":"{submission(id:\\"%s\\"){id pomsTaskID done running idle held failed completed } }","operationName":null}
         '''
 
 
@@ -191,6 +193,12 @@ class Agent:
                 pos2 = ddict['args'].find(' ', pos1+15)
                 res = ddict['args'][pos1+14:pos2]
                 LOGIT.info("got: %s", res)
+            pos1 = ddict['args'].find('--dataset_definition')
+            if pos1 > 0:
+                LOGIT.info("saw --dataset_definition in args")
+                pos2 = ddict['args'].find(' ', pos1+21)
+                res = ddict['args'][pos1+20:pos2]
+                LOGIT.info("got: %s", res)
         if not res and ddict.get('SAM_PROJECT_NAME', None):
             res = ddict['SAM_PROJECT_NAME']
         if not res and ddict.get('SAM_PROJECT', None):
@@ -255,6 +263,7 @@ class Agent:
 
         haveerrors = ddict.get('errors',None) != None
         count = 0
+        ignore = set()
         while count < 2 and haveerrors:
             count = count + 1
             haveerrors = False      
@@ -263,16 +272,13 @@ class Agent:
                 m = re.match('unable to find info for (.*)', entry['message'])
                 if m:
                     jobid = m.group(1)
-                    LOGIT.info("checking jobid: %s", jobid)
-                    entry = self.get_individual_submission(jobid)
-                    if entry:
-                        ddict['data']['submissions'].insert(0,entry)
-                    else:
-                        LOGIT.info("errors  jobid: %s", jobid)
-                        haveerrors = True
+                    ignore.add(jobid)
 
         for entry in ddict['data']['submissions']:
 
+            if entry.get('id') in ignore:
+                LOGIT.info("ignoring: %s due to error", entry)
+                continue
 
             # skip if we don't have a pomsTaskID...
             if not entry.get('pomsTaskID', None):
@@ -288,6 +294,7 @@ class Agent:
                 report_status_flag = False
             else:
                 report_status_flag = True
+
             report_status = get_status(entry)
 
             ntot = int(entry['running']) + int(entry['idle']) + int(entry['held'])

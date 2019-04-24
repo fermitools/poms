@@ -4,9 +4,11 @@ import argparse
 import time
 import logging
 import smtplib
+import json
 
 import psycopg2
 import requests
+
 try:
     import requests.packages.urllib3 as urllib3
 except ImportError:
@@ -89,12 +91,21 @@ def query_ferry(cert, ferry_url, exp, role):
     return results.get(exp, {})
 
 def query_superusers(cert, ferry_url, exp, anal_users):
-    # Ferry does not support anyway to check for errors in result from this call. They aslo do
-    # not provide the same data back that getAffiliationMemberRoles does.  Supposedly they will fix all this.
     results = []
     url = ferry_url + "/getSuperUserList?unitname=%s" % (exp)
     r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
-    for row in r.json():
+    if r.status_code != requests.codes.get('ok'):
+        logging.debug("get_ferry_experiment_users -- error status_code: %s  -- %s", r.status_code, url)
+        return results
+    #import pdb
+    #pdb.set_trace()
+    # FERRY does not create a proper json string when no super users are found.   This is a hack
+    # until they fix this.   3/4/2019 - swhite
+    if r.text.find('No super users found.') >= 0:
+        logging.debug("query_superusers -- results:  no superusers found")
+        return results
+    rows = json.loads(r.text)
+    for row in rows:
         uname = row.get('uname')
         su = {}
         for u in anal_users:
@@ -102,6 +113,7 @@ def query_superusers(cert, ferry_url, exp, anal_users):
                 su = u
                 break
         results.append({'username': uname, 'commonname': su.get('commonname', 'not known')})
+    logging.debug("query_superusers -- results: %s", results)
     return results
 
 def get_ferry_data(cert, ferry_url, exp, skip_analysis):

@@ -10,4 +10,6 @@ Action = setup
    PathPrepend(PATH, ${UPS_PROD_DIR}/bin)
    PathPrepend(PYTHONPATH, ${UPS_PROD_DIR}/python)
    SetupRequired(python_request)
+   SetupOptional(ifdh_platform_pkgs)
    SetupOptional(kx509)
+   

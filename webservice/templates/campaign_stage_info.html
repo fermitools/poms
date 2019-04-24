@@ -4,9 +4,15 @@
 POMS:Campaign Stage {{CampaignStage.name}} Info
 {%endblock%}
 
+{% macro show_hint(anchor, hint) %}
+	{% include 'help_button.html' %}
+
+{% endmacro %}
+
 
 {%block header%}
-Campaign Stage Info {%include 'help_button.html'%}
+Campaign Stages
+    {{ show_hint('#Campaigns-Stages', 'Help page') }}
 {%endblock%}
 
 {%block subheader%}
@@ -220,10 +226,10 @@ all the time...
     <b>Software Version</b>: {{CampaignStage.software_version}}<br/>
     <b>VO Role</b>: {{CampaignStage.vo_role}}<br/>
     {% if CampaignStage.param_overrides %}
-    <b>Param Overrides</b>: [{% for pair in CampaignStage.param_overrides %} <br/>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
+    <b>Param Overrides</b>: [{% for pair in CampaignStage.param_overrides %} <br/>&nbsp; {{pair}}  {% endfor %}] <br>
     {% endif %}
     {% if CampaignStage.test_param_overrides %}
-    <b>Test Param Overrides</b>: [{% for pair in CampaignStage.test_param_overrides %} <br/>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
+    <b>Test Param Overrides</b>: [{% for pair in CampaignStage.test_param_overrides %} <br/>&nbsp; {{pair}}  {% endfor %}] <br>
     {% endif %}
     <b>Split Type</b>: {{CampaignStage.cs_split_type}}<br/>
     {# currently unused
@@ -244,7 +250,7 @@ all the time...
     <b>Name</b>: {{Campaign_definition_info.JobType.name}}<br/>
     <!--<b>experiment</b>: {{Campaign_definition_info.JobType.experiment}}<br/>-->
     <b>Launch/Setup</b>: {{Campaign_definition_info.JobType.launch_script}}<br/>
-    <b>Definition Parameters</b>: [{% for pair in Campaign_definition_info.JobType.definition_parameters %} <br/>&nbsp;&nbsp; {{pair}}  {% endfor %}] <br>
+    <b>Definition Parameters</b>: [{% for pair in Campaign_definition_info.JobType.definition_parameters %} <br/>&nbsp; {{pair}}  {% endfor %}] <br>
     <b>Input Files Per Job</b>: {{Campaign_definition_info.JobType.input_files_per_job}}<br/>
     <b>Output Files Per Job</b>: {{Campaign_definition_info.JobType.output_files_per_job}}<br/>
     <b>Output File Patterns</b>: {{Campaign_definition_info.JobType.output_file_patterns}}<br/>
@@ -282,16 +288,27 @@ all the time...
       <li>
       <a href="list_launch_file?campaign_stage_id={{CampaignStage.campaign_stage_id}}&fname={{f}}">{{f}}</a>
       {%if f|length > 22 %}
-          {%set submission_id = f[23:]|int %}
+          {%set submission_id = f.split('_')[3]|default('0')|int %}
           {%if submission_id != 0 %}
           <a href="{{pomspath}}/submission_details?submission_id={{submission_id}}"><span class="ui label green">info</span></a>
           {%if recent_submissions[submission_id]|default(9999) < 7000 and recent_submissions[submission_id]|default(9999) != 2000 %}
 
     
-              <a href="/poms/kill_jobs?submission_id={{submission_id}}&act=hold" alt="Hold"><i class="ui pause icon"></i></a>&nbsp;&nbsp;
-              <a href="/poms/kill_jobs?submission_id={{submission_id}}&act=release" alt="Release"><i class="ui play icon"></i></a>&nbsp;&nbsp;
-              <a href="/poms/kill_jobs?submission_id={{submission_id}}&act=kill" alt="Kill"><i class="ui trash icon"></i></a>
+              <a href="/poms/kill_jobs?submission_id={{submission_id}}&act=hold" title="Hold"><i class="ui pause icon"></i></a>&nbsp;
+              <a href="/poms/kill_jobs?submission_id={{submission_id}}&act=release" title="Release"><i class="ui play icon"></i></a>&nbsp;
+              <a href="/poms/kill_jobs?submission_id={{submission_id}}&act=kill" title="Kill"><i class="ui trash icon"></i></a>
+               <i class="ui forward icon  grey"></i>&nbsp;
                     
+          {%elif recent_submissions[submission_id]|default(9999) == 7000 %}
+               <i class="ui pause icon grey"></i>&nbsp;
+               <i class="ui play icon grey"></i>&nbsp;
+               <i class="ui trash icon grey"></i>&nbsp;
+                    <a href="{{pomspath}}/force_locate_submission?submission_id={{submission_id}}" title="Skip ahead to Located"><i class="ui forward icon"></i></a>
+          {%else%}
+               <i class="ui pause icon grey"></i>&nbsp;
+               <i class="ui play icon grey"></i>&nbsp;
+               <i class="ui trash icon grey"></i>&nbsp;
+               <i class="ui forward icon  grey"></i>&nbsp;
           {%endif%}
           {%endif%}
       {%endif%}

@@ -17,6 +17,7 @@ from collections import OrderedDict, deque
 from datetime import datetime, timedelta
 from .SessionExperimenter import SessionExperimenter
 
+from .mail import Mail
 from psycopg2.extensions import QueryCanceledError
 from sqlalchemy import case, func, text, and_, or_
 from sqlalchemy.orm import joinedload
@@ -26,6 +27,7 @@ from .poms_model import (CampaignStage,
                          JobType,
                          JobTypeSnapshot,
                          CampaignDependency,
+                         CampaignRecovery,
                          CampaignStageSnapshot,
                          Campaign,
                          Experimenter,
@@ -86,6 +88,7 @@ class TaskPOMS:
             return
         self.status_Located = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Located").first()[0]
         self.status_Completed = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Completed").first()[0]
+        self.status_Removed = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Removed").first()[0]
         self.status_New = dbhandle.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()[0]
         self.init_status_done = True
 
@@ -112,12 +115,12 @@ class TaskPOMS:
             if cs_id != old_cs_id:
                 if this_plist:
                     res[old_cs_id] = [exp, this_plist]
-                    # make one for old_cs_id which is this_plist 
+                    # make one for old_cs_id which is this_plist
                     this_plist = []
             if project:
                 this_plist.append(project)
             old_cs_id = cs_id
- 
+
         if this_plist:
             res[old_cs_id] = [exp, this_plist]
 
@@ -230,11 +233,19 @@ class TaskPOMS:
                         pat = '%'
 
                     if pat.find(' ') > 0:
-                        allkiddims = "%s and isparentof: ( %s and version '%s' with availability physical ) " % (
-                            allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
+                        allkiddims = "%s and isparentof: ( %s and version '%s' and create_date > '%s'  with availability physical ) " % (
+                            allkiddims,
+                            pat,
+                            s.campaign_stage_snapshot_obj.software_version,
+                            s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                        )
                     else:
-                        allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' with availability physical ) " % (
-                            allkiddims, pat, s.campaign_stage_snapshot_obj.software_version)
+                        allkiddims = "%s and isparentof: ( file_name '%s' and version '%s' and create_date > '%s' with availability physical ) " % (
+                            allkiddims,
+                            pat,
+                            s.campaign_stage_snapshot_obj.software_version,
+                            s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                        )
 
                 lookup_exp_list.append(
                     s.campaign_stage_snapshot_obj.experiment)
@@ -341,7 +352,7 @@ class TaskPOMS:
                 submission.experimenter_creator_obj.root)
 
             if not self.launch_recovery_if_needed(
-                    dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission, basedir):
+                    dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission, None, basedir):
                 self.launch_dependents_if_needed(
                     dbhandle, samhandle, getconfig, gethead, seshandle, err_res, submission, basedir)
 
@@ -366,13 +377,16 @@ class TaskPOMS:
                 project = m.group(1)
                 break
 
-        if user is None:
-            user = 4
-        else:
+        if user:
             u = dbhandle.query(Experimenter).filter(
                 Experimenter.username == user).first()
             if u:
                 user = u.experimenter_id
+            else:
+                user = None
+
+        if user is None:
+            user =  390  # default to 'poms'
 
         q = dbhandle.query(CampaignStage)
         if str(campaign)[0] in "0123456789":
@@ -390,16 +404,20 @@ class TaskPOMS:
             tim = datetime.now(utc)
 
         if submission_id:
+
             s = dbhandle.query(Submission).filter(
                 Submission.submission_id == submission_id).one()
             s.command_executed = command_executed
+            if user != 390:
+                s.creator=user
+
             s.updated = tim
         else:
             s = Submission(campaign_stage_id=cs.campaign_stage_id,
                            submission_params={},
                            project=project,
-                           updater=4,
-                           creator=4,
+                           updater=user,
+                           creator=user,
                            created=tim,
                            updated=tim,
                            command_executed=command_executed)
@@ -452,8 +470,11 @@ class TaskPOMS:
 
         logit.log("update_submission_status: submission_id: %s  newstatus %s  lasthist: status %s created %s " % (submission_id, status_id, lasthist.status_id, lasthist.created))
 
-        # don't roll back Located
-        if lasthist and lasthist.status_id == self.status_Located:
+        # don't roll back Located or Removed (final states)
+        # note that we *don't* have LaunchFailed here, as we *could*
+        # have a launch that took a Really Long Time, and we might have
+        # falsely concluded that the launch failed...
+        if lasthist and lasthist.status_id in (self.status_Located, self.status_Removed):
             return
 
         # don't roll back Completed
@@ -514,7 +535,7 @@ class TaskPOMS:
                            error_exception, config_get, submission_id):
         submission = (dbhandle.query(Submission)
                       .options(joinedload(Submission.campaign_stage_snapshot_obj))
-                      .options(joinedload(Submission.login_setup_snap_obj))
+                      .options(joinedload(Submission.login_setup_snapshot_obj))
                       .options(joinedload(Submission.job_type_snapshot_obj))
                       .filter(Submission.submission_id == submission_id)
                       .first())
@@ -535,17 +556,17 @@ class TaskPOMS:
         # newer submissions should have dataset recorded in submission_params.
         # but for older ones, we can often look it up...
         #
-        if submission.submission_params and submission.submission_params.get(
+        if submission and submission.submission_params and submission.submission_params.get(
                 'dataset'):
             dataset = submission.submission_params.get('dataset')
-        elif submission.command_executed.find('--dataset') > 0:
+        elif submission and submission.command_executed.find('--dataset') > 0:
             pos = submission.command_executed.find('--dataset')
             dataset = submission.command_executed[pos + 10:]
             pos = dataset.find(' ')
             dataset = dataset[:pos]
-        elif submission.project:
-            details = samhandle.fetch_info( submission.campaign_stage_snapshot_
-            #logit.log("got details = %s" % repr(details))
+        elif submission and submission.project:
+            details = samhandle.fetch_info( submission.campaign_stage_snapshot_obj.experiment, submission.project, dbhandle)
+            logit.log("got details = %s" % repr(details))
             dataset = details.get('dataset_def_name',None)
         else:
             dataset = None
@@ -561,7 +582,7 @@ class TaskPOMS:
         flist.extend(glob.glob(pattern2))
 
         logit.log("found list of submission files:(%s -> %s)" % (pattern,repr(flist)))
-        
+
         submission_log_format = 0
         if "{}/{}_{}_{}".format(dirname,ds, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
             submission_log_format = 3
@@ -578,7 +599,7 @@ class TaskPOMS:
         elif "{}/{}".format(dirname,ds2) in flist:
             ds = ds2
             submission_log_format = 1
-           
+
         return submission, history, dataset, rmap, smap, ds, submission_log_format
 
     def running_submissions(self, dbhandle, campaign_id_list, status_list=[
@@ -616,12 +637,18 @@ class TaskPOMS:
 
         return res
 
-    def force_locate_submission(self, dbhandle, submission_id):
+    def force_locate_submission(self, dbhandle, seshandle_get, submission_id):
         # this doesn't actually mark it located, rather it bumps
         # the timestamp backwards so it will look timed out...
 
+        e = seshandle_get('experimenter')
+        exp = e.session_experiment
         s = dbhandle.query(Submission).filter(
             Submission.submission_id == submission_id).first()
+        cs = s.campaign_stage_obj
+        if not exp == cs.experiment:
+            raise PermissionError("You are not acting as the right experiment")
+
         s.updated = s.updated - timedelta(days=2)
         dbhandle.add(s)
         dbhandle.commit()
@@ -672,7 +699,7 @@ class TaskPOMS:
                 [LoginSetup, LoginSetupSnapshot,
                  LoginSetup.login_setup_id,
                  LoginSetupSnapshot.login_setup_id,
-                 cs.login_setup_id, 'login_setup_snap_obj'
+                 cs.login_setup_id, 'login_setup_snapshot_obj'
                  ]]:
 
             i = dbhandle.query(
@@ -727,7 +754,7 @@ class TaskPOMS:
                     err_res,
                     basedir,
                     cd.provides_campaign_stage_id,
-                    launch_user.username,
+                    launch_user.username,   # XXX should be id here...
                     test_launch=s.submission_params.get(
                         'test',
                         False))
@@ -788,8 +815,10 @@ class TaskPOMS:
 
         if recovery_type_override is not None:
             s.recovery_position = 0
-            rlist = dbhandle.query(RecoveryType).filter(
-                RecoveryType.name == recovery_type_override).all()
+            rt = dbhandle.query(RecoveryType).filter(
+                RecoveryType.recovery_type_id == int(recovery_type_override)).all()
+            # need to make a temporary CampaignRecovery
+            rlist = [ CampaignRecovery(job_type_id = s.campaign_stage_obj.job_type_id, recovery_order = 0, param_overrides = [], recovery_type_id = rt[0].recovery_type_id, recovery_type = rt[0])]
         else:
             rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(
                 dbhandle, s.job_type_snapshot_obj)
@@ -828,7 +857,7 @@ class TaskPOMS:
                         dim_bits = oft
                     else:
                         dim_bits = "file_name like %s" % oft
-                       
+
                     recovery_dims += "%s isparentof: ( version %s and %s and create_date > '%s' ) " % (
                         sep, s.campaign_stage_snapshot_obj.software_version, dim_bits, cdate)
                     sep = 'and'
@@ -867,6 +896,7 @@ class TaskPOMS:
                 launch_user = dbhandle.query(Experimenter).filter(
                     Experimenter.experimenter_id == s.creator).first()
 
+                # XXX launch_user.username -- should be id...
                 self.launch_jobs(dbhandle, getconfig, gethead, seshandle.get, samhandle,
                                  err_res, basedir, s.campaign_stage_snapshot_obj.campaign_stage_id, launch_user.username, dataset_override=rname,
                                  parent_submission_id=s.submission_id, param_overrides=param_overrides, test_launch=s.submission_params.get('test', False))
@@ -894,7 +924,7 @@ class TaskPOMS:
         c = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == 0).first()
         if not c:
              c = CampaignStage(campaign_stage_id = 0,
-                                name="DummyLaunchStatusHOlder", 
+                                name="DummyLaunchStatusHOlder",
                                 experiment='samdev',
                                 completion_pct="95",
                                 completion_type="complete",
@@ -902,9 +932,9 @@ class TaskPOMS:
                                 dataset="from_parent",
                                 job_type_id=(dbhandle.query(JobType.job_type_id) .limit(1).scalar()),
                                 login_setup_id=(dbhandle.query(LoginSetup.login_setup_id).limit(1).scalar()),
-                                param_overrides="[]",
+                                param_overrides=[],
                                 software_version="v1_0",
-                                test_param_overrides="[]",
+                                test_param_overrides=[],
                                 vo_role="Production",
                                 creator=4,
                                 creator_role='production',
@@ -916,7 +946,7 @@ class TaskPOMS:
         return ("hold" if c.hold_experimenter_id else "allowed")
 
     def launch_queued_job(self, dbhandle, samhandle,
-                          getconfig, gethead, seshandle_get, err_res, basedir):
+                          getconfig, gethead, seshandle, err_res, basedir):
         if self.get_job_launches(dbhandle) == "hold":
             return "Held."
 
@@ -928,6 +958,12 @@ class TaskPOMS:
             parent_submission_id = hl.parent_submission_id
             param_overrides = hl.param_overrides
             launch_user = dbhandle.query(Experimenter).filter(Experimenter.experimenter_id == hl.launcher).first()
+            if not launch_user:
+                logit.log("bogus experimenter_id : %s aborting held launch"  % hl.launcher)
+
+                dbhandle.delete(hl)
+                dbhandle.commit()
+                return "Fail: invalid queued user"
             dbhandle.delete(hl)
             dbhandle.commit()
             cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
@@ -945,11 +981,11 @@ class TaskPOMS:
                 cs.experiment,
                 cs.creator_role,
                 launch_user.root)
-         
+
             self.launch_jobs(dbhandle,
                              getconfig, gethead,
-                             seshandle_get, samhandle,
-                             err_res, 
+                             seshandle.get, samhandle,
+                             err_res,
                              basedir,
                              campaign_stage_id,
                              launcher,
@@ -977,10 +1013,17 @@ class TaskPOMS:
         ds = launch_time.strftime("%Y%m%d_%H%M%S")
         e = seshandle_get('experimenter')
         se_role = e.session_role
-        
 
-        launcher_experimenter = dbhandle.query(Experimenter).filter(
-            Experimenter.experimenter_id == launcher).first()
+
+        # at the moment we're inconsistent about whether we pass
+        # launcher as a username or experimenter_id or if its a string
+        # of the integer or  an integer... sigh
+        if str(launcher)[0] in ('0','1','2','3','4','5','6','7','8','9'):
+            launcher_experimenter = dbhandle.query(Experimenter).filter(
+                Experimenter.experimenter_id == int(launcher)).first()
+        else:
+            launcher_experimenter = dbhandle.query(Experimenter).filter(
+                Experimenter.username == launcher).first()
 
         if test_login_setup:
             lt = dbhandle.query(LoginSetup).filter(
@@ -1019,7 +1062,7 @@ class TaskPOMS:
 
             cs = cq.options(
                 joinedload(CampaignStage.campaign_obj),
-                joinedload(CampaignStage.login_setup_obj), 
+                joinedload(CampaignStage.login_setup_obj),
                 joinedload(CampaignStage.job_type_obj)).first()
 
             se_role = cs.creator_role
@@ -1060,13 +1103,15 @@ class TaskPOMS:
                 ccname = cs.name
             elif cs.name[:len(cs.campaign_obj.name)] == cs.campaign_obj.name:
                 ccname = "%s__%s" % (cs.campaign_obj.name,
-                                     cs.name[len(cs.campaign_obj_name):])
+                                     cs.name[len(cs.campaign_obj.name):])
             else:
                 ccname = "%s__%s" % (cs.campaign_obj.name, cs.name)
 
-            cname = cname.replace('.','_').replace(' ','_')
-            csname = csname.replace('.','_').replace(' ','_')
-            ccname = ccname.replace('.','_').replace(' ','_')
+            # now quoting in poms_jobsub_wrapper, but blanks still make
+            # it sad so replace them
+            cname = cname.replace(' ','_')
+            csname = csname.replace(' ','_')
+            ccname = ccname.replace(' ','_')
 
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
@@ -1089,7 +1134,7 @@ class TaskPOMS:
             raise err_res(403, output)
 
 
-        if se_role == 'analysis' and not (lt.launch_host in ('pomsgpvm01.fnal.gov' ,'fermicloud045.fnal.gov','pomsint.fnal.gov')):
+        if se_role == 'analysis' and not (lt.launch_host in ('pomsgpvm01.fnal.gov' ,'fermicloud045.fnal.gov','poms-int.fnal.gov','pomsint.fnal.gov')):
             output = "Not Authorized: {} is not a analysis launch node".format(
                 lt.launch_host, exp)
             raise err_res(403, output)
@@ -1103,11 +1148,11 @@ class TaskPOMS:
             sandbox = '$HOME'
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
 
-        allheld = self.get_job_launches(dbhandle) == "hold" 
+        allheld = self.get_job_launches(dbhandle) == "hold"
         csheld = bool(cs.hold_experimenter_id)
         proxyheld =(se_role == 'analysis' and not self.has_valid_proxy(proxyfile))
         if allheld or csheld or proxyheld:
-            
+
             if allheld:
                 output = "Job launches currently held.... queuing this request"
             if csheld:
@@ -1119,7 +1164,7 @@ class TaskPOMS:
                        "Due to an invalid proxy, we had to queue a job launch\n"
 
                        "Please upload a new proxy, and release queued jobs for this campaign",
-                       "%s@fnal.gov" % cs.experiment_creator_obj.username)
+                       "%s@fnal.gov" % cs.experimenter_creator_obj.username)
                 cs.hold_experimenter_id = cs.creator
                 cs.role_held_with = se_role
 
@@ -1256,7 +1301,10 @@ class TaskPOMS:
                 params.update(c_param_overrides)
 
         if test_launch and cs.test_param_overrides is not None:
-            params.update(cs.test_param_overrides)
+            try:
+                params.update(cs.test_param_overrides)
+            except:
+                pass
 
         if param_overrides is not None and param_overrides != "":
             if isinstance(param_overrides, str):
@@ -1274,8 +1322,8 @@ class TaskPOMS:
             "experimenter": experimenter_login,
             "experiment": exp,
         }
+        lcmd = lcmd.replace("'", """'"'"'""")
         if output_commands:
-            lcmd.replace("'", """'"'"'""")
             cmdl.append(
                 'echo "\n=========\nrun the following to launch the job:\n%s"' %
                 lcmd)

@@ -18,9 +18,18 @@ parser.add_option('--verbose', action='store_true', help="be verbose", default =
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 
-poms_client.update_session_experiment(options.experiment, test_client=options.test)
-poms_client.update_session_role(options.poms_role, test_client=options.test)
+try:
+    poms_client.update_session_experiment(options.experiment, test_client=options.test)
+    poms_client.update_session_role(options.poms_role, test_client=options.test)
 
-for f in args:
-     logging.debug("uploading: %s " % f)
-     poms_client.upload_wf(f, test=options.test)
+    for f in args:
+         logging.debug("uploading: %s " % f)
+         ok, data = poms_client.upload_wf(f, test=options.test)
+         if data.has_key('message'):
+             for m in data['message']:
+                 print( m )
+except:
+    logging.exception(sys.argv[0])
+    sys.exit(1)
+
+sys.exit(0 if ok else 1)

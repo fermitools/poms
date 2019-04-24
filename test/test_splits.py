@@ -64,7 +64,7 @@ def make_split(ds, split,should_hit_end):
          cs.dataset = myds
          cs.cs_split_type = split
          dbhandle.commit()
-         mps.campaignsPOMS.reset_campaign_split(dbhandle, samhandle, cs.campaign_stage_id)
+         mps.campaignsPOMS.reset_campaign_split(dbhandle, cs.campaign_stage_id)
          #logger.debug("testing %s on %s" % (split, ds))
          print("testing %s on %s" % (split, ds))
          hit_end = 0

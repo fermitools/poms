@@ -3,6 +3,7 @@
 import os
 from poms_client import launch_template_edit,update_session_role
 import argparse
+import sys
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -45,20 +46,24 @@ logging.debug( "experiment="+ str(args.experiment ))
 logging.debug( "user="+ str(args.user ))
 logging.debug( "test_client="+ str(args.test_client ))
 
-update_session_role(args.poms_role, test_client = args.test_client)
+try: 
+    update_session_role(args.poms_role, test_client = args.test_client)
 
-res = launch_template_edit(action = args.action,
-                            launch_name = args.launch_name,
-                            launch_host = args.host,
-                            user_account = args.launch_account,
-                            launch_setup = args.setup,
-                            experiment = args.experiment,
-                            pc_username = args.user,
-                            test_client = str(args.test_client))
+    res = launch_template_edit(action = args.action,
+                                launch_name = args.launch_name,
+                                launch_host = args.host,
+                                user_account = args.launch_account,
+                                launch_setup = args.setup,
+                                experiment = args.experiment,
+                                pc_username = args.user,
+                                test_client = str(args.test_client))
 
-if res[0] == 'status_code' and  res[1] == 200:
-     logging.info("Succeeded.")
-     exit(0)
-else:
-     logging.error("Failed: " + repr(res))
-     exit(1)
+    if res[0] == 'status_code' and  res[1] == 200:
+         logging.info("Succeeded.")
+         exit(0)
+    else:
+         logging.error("Failed: " + repr(res))
+         exit(1)
+except:
+    logging.exception(sys.argv[0])
+    sys.exit(1)
