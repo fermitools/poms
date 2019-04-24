@@ -72,9 +72,9 @@ class CampaignsPOMS:
         action = kwargs.pop("action", None)
         logit.log("login_setup_edit: action is: %s , args %s" % (action, repr(kwargs)))
         pcl_call = int(kwargs.pop("pcl_call", 0))
-        pc_username = kwargs.pop("pc_username", None)
-        if isinstance(pc_username, str):
-            pc_username = pc_username.strip()
+        pc_ctx.usernamename = kwargs.pop("pc_ctx.usernamename", None)
+        if isinstance(pc_ctx.usernamename, str):
+            pc_ctx.usernamename = pc_ctx.usernamename.strip()
 
         ae_launch_name = kwargs.get("ae_launch_name", "")
         ae_launch_name = ae_launch_name.strip()
@@ -89,7 +89,7 @@ class CampaignsPOMS:
             raise PermissionError("You are not acting as the right experiment")
 
         if action == "delete":
-            self.poms_service.permissions.can_modify(ctx, "LoginSetup", name=username, experiment=experiment)
+            self.poms_service.permissions.can_modify(ctx, "LoginSetup", name=ctx.usernamename, experiment=ctx.experiment)
             name = ae_launch_name
             try:
                 ctx.db.query(LoginSetup).filter(
@@ -292,7 +292,7 @@ class CampaignsPOMS:
         name = kwargs.get("campaign_name")
         data["message"] = "ok"
         try:
-            camp = Campaign(name=name, experiment=cts.experiment, creator=experimenter.experimenter_id, creator_role=role)
+            camp = Campaign(name=name, experiment=ctx.experiment, creator=experimenter.experimenter_id, creator_role=ctx.role)
             ctx.db.add(camp)
             ctx.db.commit()
             c_s = CampaignStage(
@@ -1795,7 +1795,7 @@ class CampaignsPOMS:
                 "submission_id": tup.Submission.submission_id,
                 "jobsub_job_id": tup.Submission.jobsub_job_id,
                 "created": tup.Submission.created,
-                "creator": tup.Submission.experimenter_creator_obj.username,
+                "creator": tup.Submission.experimenter_creator_obj.ctx.usernamename,
                 "status": tup.SubmissionStatus.status,
                 "jobsub_cluster": full_jjid[: full_jjid.find("@")],
                 "jobsub_schedd": full_jjid[full_jjid.find("@") + 1 :],

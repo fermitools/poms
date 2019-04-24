@@ -143,7 +143,7 @@ class TablesPOMS:
         res = deque()
         for i in ctx.db.query(eclass).order_by(primkey).all():
             res.append({"key": getattr(i, primkey, ''), "value": getattr(
-                i, 'name', getattr(i, 'username', 'unknown'))})
+                i, 'name', getattr(i, 'ctx.usernamename', 'unknown'))})
         return res
 
     def make_admin_map(self):   # This method was deleted from the main script.

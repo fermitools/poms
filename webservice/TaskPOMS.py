@@ -564,14 +564,14 @@ class TaskPOMS:
         logit.log("found list of submission files:(%s -> %s)" % (pattern, repr(flist)))
 
         submission_log_format = 0
-        if "{}/{}_{}_{}".format(dirname, ds, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
+        if "{}/{}_{}_{}".format(dirname, ds, submission.experimenter_creator_obj.ctx.usernamename, submission.submission_id) in flist:
             submission_log_format = 3
-        if "{}/{}_{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
+        if "{}/{}_{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.ctx.usernamename, submission.submission_id) in flist:
             ds = ds2
             submission_log_format = 3
-        elif "{}/{}_{}".format(dirname, ds, submission.experimenter_creator_obj.username) in flist:
+        elif "{}/{}_{}".format(dirname, ds, submission.experimenter_creator_obj.ctx.usernamename) in flist:
             submission_log_format = 2
-        elif "{}/{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.username) in flist:
+        elif "{}/{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.ctx.usernamename) in flist:
             ds = ds2
             submission_log_format = 2
         elif "{}/{}".format(dirname, ds) in flist:
@@ -739,7 +739,7 @@ class TaskPOMS:
                 self.launch_jobs(
                     ctx,
                     cd.provides_campaign_stage_id,
-                    launch_user.experimenter_id,
+                    launch_ctx.username.experimenter_id,
                     test_launch=s.submission_params.get("test", False),
                 )
             else:
@@ -1009,7 +1009,7 @@ class TaskPOMS:
         ctx.role = role
 
         # at the moment we're inconsistent about whether we pass
-        # launcher as a username or experimenter_id or if its a string
+        # launcher as a ctx.usernamename or experimenter_id or if its a string
         # of the integer or  an integer... sigh
         if str(launcher)[0] in ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"):
             launcher_experimenter = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == int(launcher)).first()
@@ -1033,11 +1033,11 @@ class TaskPOMS:
             exp = experiment
             launch_script = """echo "Environment"; printenv; echo "jobsub is`which jobsub`;  echo "login_setup successful!"""
             outdir = "%s/private/logs/poms/launches/template_tests_%d" % (os.environ["HOME"], int(test_login_setup))
-            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
+            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.ctx.usernamename)
             logit.log("trying to record launch in %s" % outfile)
         else:
             outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_stage_id)
-            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
+            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.ctx.usernamename)
             logit.log("trying to record launch in %s" % outfile)
 
             if str(campaign_stage_id)[0] in "0123456789":
@@ -1147,7 +1147,7 @@ class TaskPOMS:
                     "POMS: Queued job launch for %s:%s " % (cs.campaign_obj.name, cs.name),
                     "Due to an invalid proxy, we had to queue a job launch\n"
                     "Please upload a new proxy, and release queued jobs for this campaign",
-                    "%s@fnal.gov" % cs.experimenter_creator_obj.username,
+                    "%s@fnal.gov" % cs.experimenter_creator_obj.ctx.usernamename,
                 )
                 cs.hold_experimenter_id = cs.creator
                 cs.role_held_with = ctx.role
@@ -1265,7 +1265,7 @@ class TaskPOMS:
             'export POMS_CAMPAIGN_NAME="%s"' % ccname,
             "export POMS_PARENT_TASK_ID=%s" % (parent_submission_id if parent_submission_id else ""),
             "export POMS_TASK_ID=%s" % sid,
-            "export POMS_LAUNCHER=%s" % launcher_experimenter.username,
+            "export POMS_LAUNCHER=%s" % launcher_experimenter.ctx.usernamename,
             "export POMS_TEST=%s" % poms_test,
             "export POMS_TASK_DEFINITION_ID=%s" % cdid,
             "export JOBSUB_GROUP=%s" % group,

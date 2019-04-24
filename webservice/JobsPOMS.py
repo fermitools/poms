@@ -182,7 +182,7 @@ class JobsPOMS:
                 "dataset": cs.dataset,
                 "version": cs.software_version,
                 "group": group,
-                "experimenter": cs.experimenter_creator_obj.username,
+                "experimenter": cs.experimenter_creator_obj.ctx.usernamename,
                 "experiment": cs.experiment,
             }
 
