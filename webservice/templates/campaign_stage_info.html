@@ -4,9 +4,15 @@
 POMS:Campaign Stage {{CampaignStage.name}} Info
 {%endblock%}
 
+{% macro show_hint(anchor, hint) %}
+	{% include 'help_button.html' %}
+
+{% endmacro %}
+
 
 {%block header%}
-Campaign Stage Info {%include 'help_button.html'%}
+Campaign Stages
+    {{ show_hint('#Campaigns-Stages', 'Help page') }}
 {%endblock%}
 
 {%block subheader%}

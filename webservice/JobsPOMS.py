@@ -101,6 +101,20 @@ class JobsPOMS:
             jidbits = what
             sids = []
 
+        shq = dbhandle.query(SubmissionHistory.submission_id.label('submission_id'), func.max(SubmissionHistory.status_id).label('max_status')).filter(SubmissionHistory.submission_id == Submission.submission_id).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id.label('submission_id'))
+        sq = shq.subquery()
+        logit.log("submission history query finds: %s" % repr([x for x in shq.all()]))
+        jjidq = jjidq.join(sq, sq.c.submission_id == Submission.submission_id).filter(sq.c.max_status <= 4000)
+        rows = jjidq.all()
+  
+        if rows:
+            jjids = [x[0] for x in rows]
+            sids = [x[1] for x in rows]
+            jidbits = "--jobid=%s" % ','.join(jjids)
+        else:
+            jidbits = what
+            sids = []
+  
         if confirm is None:
             if jidbits != what:
                 what = "%s %s" % (what, jidbits)

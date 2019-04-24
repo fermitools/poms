@@ -73,8 +73,7 @@ class FilesStatus:
             cs = tl[0].campaign_stage_snapshot_obj.campaign_stage
             # cs = tl[0].campaign_stage_snapshot_obj
         else:
-            cs = dbhandle.query(CampaignStage).filter(
-                CampaignStage.campaign_stage_id == campaign_stage_id).first()
+            cs = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
             # cs = cs  # this is klugy -- does this work?
         #
         # fetch needed data in tandem
@@ -93,18 +92,18 @@ class FilesStatus:
             basedims = "snapshot_for_project_name %s " % s.project
             base_dim_list.append(basedims)
 
-            somekiddims = "%s and isparentof: (version %s)" % (
-                basedims, s.campaign_stage_snapshot_obj.software_version)
+            somekiddims = "%s and isparentof: (version %s)" % (basedims, s.campaign_stage_snapshot_obj.software_version)
             some_kids_needed.append(somekiddims)
 
-            somekidsdecldims = ("%s and isparentof: (version %s with availability anylocation )" %
-                                (basedims, s.campaign_stage_snapshot_obj.software_version))
+            somekidsdecldims = "%s and isparentof: (version %s with availability anylocation )" % (
+                basedims,
+                s.campaign_stage_snapshot_obj.software_version,
+            )
             some_kids_decl_needed.append(somekidsdecldims)
 
             allkiddecldims = basedims
             allkiddims = basedims
-            for pat in str(
-                    s.job_type_snapshot_obj.output_file_patterns).split(','):
+            for pat in str(s.job_type_snapshot_obj.output_file_patterns).split(','):
                 if pat == 'None':
                     pat = '%'
                 if pat.find(' ') > 0:
@@ -112,18 +111,25 @@ class FilesStatus:
                 else:
                     dimbits = "file_name like '%s'" % pat
 
-                allkiddims = ("%s and isparentof: ( %s and version '%s' ) " %
-                              (allkiddims, dimbits,
-                               s.campaign_stage_snapshot_obj.software_version))
+                allkiddims = "%s and isparentof: ( %s and version '%s' ) " % (
+                    allkiddims,
+                    dimbits,
+                    s.campaign_stage_snapshot_obj.software_version,
+                )
                 cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
-                allkiddecldims = ("%s and isparentof: "
-                                  "( %s and version '%s' "
-                                  "and create_date > '%s' "
-                                  "with availability anylocation ) " %
-                                  (allkiddecldims, dimbits,
-                                   s.campaign_stage_snapshot_obj.software_version, cdate))
-                outputfiledims = ("ischildof: ( %s ) and create_date > '%s' and  %s and version '%s'" %
-                                  (basedims, s.created.strftime('%Y-%m-%d %H:%M:%S'), dimbits, s.campaign_stage_snapshot_obj.software_version))
+                allkiddecldims = (
+                    "%s and isparentof: "
+                    "( %s and version '%s' "
+                    "and create_date > '%s' "
+                    "with availability anylocation ) "
+                    % (allkiddecldims, dimbits, s.campaign_stage_snapshot_obj.software_version, cdate)
+                )
+                outputfiledims = "ischildof: ( %s ) and create_date > '%s' and  %s and version '%s'" % (
+                    basedims,
+                    s.created.strftime('%Y-%m-%d %H:%M:%S'),
+                    dimbits,
+                    s.campaign_stage_snapshot_obj.software_version,
+                )
             all_kids_needed.append(allkiddims)
             all_kids_decl_needed.append(allkiddecldims)
             output_files.append(outputfiledims)
@@ -173,41 +179,32 @@ class FilesStatus:
                      "../../submission_details/%s/%s/?submission_id=%s" % (experiment, role, s.submission_id)],
                     [
                         s.project,
-                        "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s" %
-                        (cs.experiment,
-                         cs.experiment,
-                         s.project)],
+                        "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s"
+                        % (cs.experiment, cs.experiment, s.project),
+                    ],
                     [s.created.strftime("%Y-%m-%d %H:%M"), None],
                     [output_list[i], listfiles % output_files[i]],
-                    [psummary.get('files_in_snapshot', 0),
-                     listfiles % base_dim_list[i]],
-                    ["%d" % (psummary.get('tot_consumed', 0) +
-                             psummary.get('tot_failed', 0) +
-                             psummary.get('tot_skipped', 0) +
-                             psummary.get('tot_delivered', 0)),
-                     listfiles % base_dim_list[i] +
-                     " and consumed_status consumed,failed,skipped,delivered "],
-                    ["%d" % psummary.get('tot_unknown', 0),
-                     listfiles % base_dim_list[i] + " and consumed_status unknown"],
-                    [psummary.get('tot_consumed', 0), listfiles %
-                     base_dim_list[i] +
-                     " and consumed_status consumed"],
-                    [psummary.get('tot_failed', 0), listfiles %
-                     base_dim_list[i] +
-                     " and consumed_status failed"],
-                    [psummary.get('tot_skipped', 0), listfiles %
-                     base_dim_list[i] +
-                     " and consumed_status skipped"],
-                    [some_kids_decl_list[i], listfiles %
-                     some_kids_needed[i]],
-                    [all_kids_decl_list[i], listfiles %
-                     some_kids_decl_needed[i]],
-                    [all_kids_decl_list[i], listfiles %
-                     all_kids_decl_needed[i]],
-                    [pending, listfiles %
-                     base_dim_list[i] + "minus ( %s ) " %
-                     all_kids_decl_needed[i]],
-                ])
+                    [psummary.get('files_in_snapshot', 0), listfiles % base_dim_list[i]],
+                    [
+                        "%d"
+                        % (
+                            psummary.get('tot_consumed', 0)
+                            + psummary.get('tot_failed', 0)
+                            + psummary.get('tot_skipped', 0)
+                            + psummary.get('tot_delivered', 0)
+                        ),
+                        listfiles % base_dim_list[i] + " and consumed_status consumed,failed,skipped,delivered ",
+                    ],
+                    ["%d" % psummary.get('tot_unknown', 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
+                    [psummary.get('tot_consumed', 0), listfiles % base_dim_list[i] + " and consumed_status consumed"],
+                    [psummary.get('tot_failed', 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
+                    [psummary.get('tot_skipped', 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
+                    [some_kids_decl_list[i], listfiles % some_kids_needed[i]],
+                    [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
+                    [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
+                    [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
+                ]
+            )
         return cs, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
 
     def show_dimension_files(self, samhandle, experiment, dims, dbhandle=None):
@@ -219,28 +216,21 @@ class FilesStatus:
         return flist
 
     @pomscache.cache_on_arguments()
-    def get_pending_dict_for_campaigns(
-            self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
+    def get_pending_dict_for_campaigns(self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
         if isinstance(campaign_id_list, str):
-            campaign_id_list = [
-                cid for cid in campaign_id_list.split(',') if cid]
-        dl, cl = self.get_pending_for_campaigns(
-            dbhandle, samhandle, campaign_id_list, tmin, tmax)
+            campaign_id_list = [cid for cid in campaign_id_list.split(',') if cid]
+        dl, cl = self.get_pending_for_campaigns(dbhandle, samhandle, campaign_id_list, tmin, tmax)
         res = {cid: cs for cid, cs in zip(campaign_id_list, cl)}
         logit.log("get_pending_dict_for_campaigns returning: " + repr(res))
         return res
 
-    def get_pending_for_campaigns(
-            self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
+    def get_pending_for_campaigns(self, dbhandle, samhandle, campaign_id_list, tmin, tmax):
 
         task_list_list = deque()
 
-        logit.log(
-            "in get_pending_for_campaigns, tmin %s tmax %s" %
-            (tmin, tmax))
+        logit.log("in get_pending_for_campaigns, tmin %s tmax %s" % (tmin, tmax))
         if isinstance(campaign_id_list, str):
-            campaign_id_list = [
-                cid for cid in campaign_id_list.split(',') if cid]
+            campaign_id_list = [cid for cid in campaign_id_list.split(',') if cid]
 
         task_list = (dbhandle.query(Submission) #
                      .options(joinedload(Submission.campaign_stage_snapshot_obj))
@@ -258,8 +248,7 @@ class FilesStatus:
         task_list_list = [tll[int(ci)] for ci in campaign_id_list]
         # logit.log("get_pending_for_campaigns: task_list_list (%d): %s" % (len(task_list_list), task_list_list))
 
-        dl, cl = self.get_pending_for_task_lists(
-            dbhandle, samhandle, task_list_list)
+        dl, cl = self.get_pending_for_task_lists(dbhandle, samhandle, task_list_list)
 
         return dl, cl
 
@@ -271,9 +260,7 @@ class FilesStatus:
         dimlist = deque()
         explist = deque()
         # experiment = None
-        logit.log(
-            "get_pending_for_task_lists: task_list_list (%d): %s" %
-            (len(task_list_list), task_list_list))
+        logit.log("get_pending_for_task_lists: task_list_list (%d): %s" % (len(task_list_list), task_list_list))
         for tl in task_list_list:
             diml = ["("]
             for task in tl:
@@ -290,17 +277,16 @@ class FilesStatus:
                     continue
 
                 diml.append("(snapshot_for_project_name %s" % task.project)
-                diml.append(
-                    "minus ( snapshot_for_project_name %s and (" %
-                    task.project)
+                diml.append("minus ( snapshot_for_project_name %s and (" % task.project)
                 sep = ""
-                for pat in str(
-                        task.job_type_snapshot_obj.output_file_patterns).split(','):
+                for pat in str(task.job_type_snapshot_obj.output_file_patterns).split(','):
                     if pat == "None":
                         pat = "%"
                     diml.append(sep)
-                    diml.append("isparentof: ( file_name '%s' and version '%s' with availability physical )" %
-                                (pat, task.campaign_stage_snapshot_obj.software_version))
+                    diml.append(
+                        "isparentof: ( file_name '%s' and version '%s' with availability physical )"
+                        % (pat, task.campaign_stage_snapshot_obj.software_version)
+                    )
                     sep = "or"
                 diml.append(")")
                 diml.append(")")
@@ -319,18 +305,13 @@ class FilesStatus:
             else:
                 explist.append("samdev")
 
-        logit.log(
-            "get_pending_for_task_lists: dimlist (%d): %s" %
-            (len(dimlist), dimlist))
+        logit.log("get_pending_for_task_lists: dimlist (%d): %s" % (len(dimlist), dimlist))
         return explist, dimlist
 
     def get_pending_for_task_lists(self, dbhandle, samhandle, task_list_list):
-        explist, dimlist = self.get_pending_dims_for_task_lists(
-            dbhandle, samhandle, task_list_list)
+        explist, dimlist = self.get_pending_dims_for_task_lists(dbhandle, samhandle, task_list_list)
         count_list = samhandle.count_files_list(explist, dimlist)
-        logit.log(
-            "get_pending_for_task_lists: count_list (%d): %s" %
-            (len(dimlist), count_list))
+        logit.log("get_pending_for_task_lists: count_list (%d): %s" % (len(dimlist), count_list))
 
         return dimlist, count_list
 

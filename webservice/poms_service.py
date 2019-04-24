@@ -61,7 +61,6 @@ from . import (
 from .poms_model import CampaignStage, Submission, Experiment, LoginSetup, Base
 from .utc import utc
 
-
 class JSONORMEncoder(json.JSONEncoder):
     # This will show up as an error in pylint.   Appears to be a bug in pylint, so its disabled:
     #    pylint #89092 @property.setter raises an E0202 when attribute is set
@@ -410,6 +409,7 @@ class PomsService:
 
     # h4. job_type_edit
 
+# h4. job_type_edit
     @cherrypy.expose
     @error_rewrite
     @logit.logstartstop
@@ -644,6 +644,7 @@ class PomsService:
         else:
             template = self.jinja_env.get_template('show_campaign_stages_stats.html')
 
+        #mvi point to new POMS doc
         values = {
             'experiment': experiment,
             'role': role,
@@ -744,6 +745,9 @@ class PomsService:
             recent_submissions,
         ) = self.campaignsPOMS.campaign_stage_info(cherrypy.request.db, cherrypy.config.get, experiment, role, campaign_stage_id, tmin, tmax, tdays)
         template = self.jinja_env.get_template('campaign_stage_info.html')
+
+        #mvi point to new POMS doc
+
         return template.render(
             experiment=experiment,
             role=role,

@@ -27,10 +27,6 @@
 
 {%block content%}
 
-{% macro show_hint(anchor, hint) %}
-    {# {% include 'help_button.html' %} task #21477 #}
-{% endmacro %}
-
 
 <form id="login_setup_form" class="ui form" action="login_setup_edit" method="POST">
 
@@ -120,7 +116,7 @@
 <div class="ui modal" id="template_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header"><span id="template_header">
-    Login/Setup Editor </span> {% include 'help_button.html' %}
+    Login/Setup Editor </span> {{ show_hint('#Compose-a-loginsetup-script', 'Edit template') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">

@@ -35,6 +35,15 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
  }
 </script>
 
+<script>
+ function confirm_call(msg, url) {
+         var r = confirm(msg);
+     if ( r ) {
+         location.assign(url)
+     }
+ }
+</script>
+
     <table class="ui sortable celled table">
         <thead>
             <tr>
