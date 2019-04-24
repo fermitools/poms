@@ -56,21 +56,21 @@ class CampaignsPOMS:
         """
         self.poms_service = ps
 
-    def login_setup_edit(self, dbhandle, username, experiment, se_role, *args, **kwargs):
+    def login_setup_edit(self, ctx, **kwargs):
         """
             callback to actually change launch templates from edit screen
         """
 
-        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == username).first()
+        experimenter = ctx.get_experimenter()
         data = {}
         template = None
         message = None
         ae_launch_id = None
         data["exp_selections"] = (
-            dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root", "public"])).order_by(Experiment.experiment)
+            ctx.db.query(Experiment).filter(~Experiment.experiment.in_(["root", "public"])).order_by(Experiment.experiment)
         )
         action = kwargs.pop("action", None)
-        logit.log("login_setup_edit: action is: %s , args %s" % (action, repr(args)))
+        logit.log("login_setup_edit: action is: %s , args %s" % (action, repr(kwargs)))
         pcl_call = int(kwargs.pop("pcl_call", 0))
         pc_username = kwargs.pop("pc_username", None)
         if isinstance(pc_username, str):
@@ -79,8 +79,8 @@ class CampaignsPOMS:
         ae_launch_name = kwargs.get("ae_launch_name", "")
         ae_launch_name = ae_launch_name.strip()
         ls = (
-            dbhandle.query(LoginSetup)
-            .filter(LoginSetup.experiment == experiment)
+            ctx.db.query(LoginSetup)
+            .filter(LoginSetup.experiment == ctx.experiment)
             .filter(LoginSetup.name == ae_launch_name)
             .first()
         )
@@ -89,20 +89,18 @@ class CampaignsPOMS:
             raise PermissionError("You are not acting as the right experiment")
 
         if action == "delete":
-            self.poms_service.permissions.can_modify(
-                dbhandle, username, experiment, se_role, "LoginSetup", name=username, experiment=experiment
-            )
+            self.poms_service.permissions.can_modify(ctx, "LoginSetup", name=username, experiment=experiment)
             name = ae_launch_name
             try:
-                dbhandle.query(LoginSetup).filter(
+                ctx.db.query(LoginSetup).filter(
                     LoginSetup.experiment == experiment,
                     LoginSetup.name == name,
                     LoginSetup.creator == experimenter.experimenter_id,
                 ).delete(synchronize_session=False)
-                dbhandle.commit()
+                ctx.db.commit()
                 message = "The login setup '%s' has been deleted." % name
             except SQLAlchemyError as exc:
-                dbhandle.rollback()
+                ctx.db.rollback()
                 message = "The login setup '%s' has been used and may not be deleted." % name
                 logit.log(message)
                 logit.log(" ".join(exc.args))
@@ -115,7 +113,7 @@ class CampaignsPOMS:
                 if isinstance(ae_launch_name, str):
                     ae_launch_name = ae_launch_name.strip()
                 name = ae_launch_name
-                experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first()
+                experimenter = ctx.get_experimenter()
                 if experimenter:
                     experimenter_id = experimenter.experimenter_id
                 else:
@@ -123,7 +121,7 @@ class CampaignsPOMS:
 
                 if action == "edit":
                     ae_launch_id = (
-                        dbhandle.query(LoginSetup)
+                        ctx.db.query(LoginSetup)
                         .filter(LoginSetup.experiment == experiment)
                         .filter(LoginSetup.name == name)
                         .first()
@@ -143,11 +141,11 @@ class CampaignsPOMS:
             try:
                 if action == "add":
                     logit.log("adding new LoginSetup...")
-                    role = se_role
-                    if role in ("root", "superuser"):
+                    role = ctx.role
+                    if role in ("root", "superctx.username"):
                         raise cherrypy.HTTPError(status=401, message="You are not authorized to add launch template.")
                     exists = (
-                        dbhandle.query(LoginSetup)
+                        ctx.db.query(LoginSetup)
                         .filter(LoginSetup.experiment == experiment)
                         .filter(LoginSetup.name == ae_launch_name)
                     ).first()
@@ -164,8 +162,8 @@ class CampaignsPOMS:
                             created=datetime.now(utc),
                             creator_role=role,
                         )
-                        dbhandle.add(template)
-                        dbhandle.commit()
+                        ctx.db.add(template)
+                        ctx.db.commit()
                         data["login_setup_id"] = template.login_setup_id
                 else:
                     logit.log("editing existing LoginSetup...")
@@ -177,36 +175,36 @@ class CampaignsPOMS:
                         "updated": datetime.now(utc),
                         "updater": experimenter_id,
                     }
-                    template = dbhandle.query(LoginSetup).filter(LoginSetup.login_setup_id == ae_launch_id).update(columns)
-                    dbhandle.commit()
+                    template = ctx.db.query(LoginSetup).filter(LoginSetup.login_setup_id == ae_launch_id).update(columns)
+                    ctx.db.commit()
                     data["login_setup_id"] = ae_launch_id
 
             except IntegrityError as exc:
                 message = "Integrity error: " "you are most likely using a name which " "already exists in database."
                 logit.log(" ".join(exc.args))
-                dbhandle.rollback()
+                ctx.db.rollback()
                 raise
             except SQLAlchemyError as exc:
                 message = "SQLAlchemyError: " "Please report this to the administrator. " "Message: %s" % " ".join(exc.args)
                 logit.log(" ".join(exc.args))
-                dbhandle.rollback()
+                ctx.db.rollback()
                 raise
             except BaseException:
                 message = "unexpected error ! \n" + traceback.format_exc(4)
                 logit.log(" ".join(message))
-                dbhandle.rollback()
+                ctx.db.rollback()
                 raise
 
         # Find templates
-        if experiment:  # cuz the default is find
+        if ctx.experiment:  # cuz the default is find
             if kwargs.get("update_view", None) is None:
                 # view flags not specified, use defaults
                 data["view_active"] = "view_active"
                 data["view_inactive"] = None
                 data["view_mine"] = experimenter.experimenter_id
                 data["view_others"] = experimenter.experimenter_id
-                data["view_analysis"] = "view_analysis" if se_role in ("analysis", "superuser") else None
-                data["view_production"] = "view_production" if se_role in ("production", "superuser") else None
+                data["view_analysis"] = "view_analysis" if ctx.role in ("analysis", "superctx.username") else None
+                data["view_production"] = "view_production" if ctx.role in ("production", "superctx.username") else None
             else:
                 data["view_active"] = kwargs.get("view_active", None)
                 data["view_inactive"] = kwargs.get("view_inactive", None)
@@ -214,13 +212,13 @@ class CampaignsPOMS:
                 data["view_others"] = kwargs.get("view_others", None)
                 data["view_analysis"] = kwargs.get("view_analysis", None)
                 data["view_production"] = kwargs.get("view_production", None)
-            data["curr_experiment"] = experiment
+            data["curr_experiment"] = ctx.experiment
             data["authorized"] = []
 
             q = (
-                dbhandle.query(LoginSetup, Experiment)
+                ctx.db.query(LoginSetup, Experiment)
                 .join(Experiment)
-                .filter(LoginSetup.experiment == experiment)
+                .filter(LoginSetup.experiment == ctx.experiment)
                 .order_by(LoginSetup.name)
             )
 
@@ -249,57 +247,57 @@ class CampaignsPOMS:
             data["templates"] = q.all()
 
             for l_t in data["templates"]:
-                if se_role in ("root", "superuser"):
+                if ctx.role in ("root", "superctx.username"):
                     data["authorized"].append(True)
-                elif se_role == "production":
+                elif ctx.role == "production":
                     data["authorized"].append(True)
-                elif se_role == "analysis" and l_t.LoginSetup.creator == experimenter.experimenter_id:
+                elif ctx.role == "analysis" and l_t.LoginSetup.creator == experimenter.experimenter_id:
                     data["authorized"].append(True)
                 else:
                     data["authorized"].append(False)
         data["message"] = message
         return data
 
-    def get_campaign_id(self, dbhandle, experiment, campaign_name):
+    def get_campaign_id(self, ctx, campaign_name):
         """
             return the campaign id for a campaign name in our experiment
         """
-        camp = dbhandle.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == experiment).scalar()
+        camp = ctx.db.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == ctx.experiment).scalar()
         return camp.campaign_id if camp else None
 
-    def get_campaign_name(self, dbhandle, experiment, campaign_id):
+    def get_campaign_name(self, ctx, campaign_id):
         """
             return the campaign name for a campaign id in our experiment
         """
-        camp = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id, Campaign.experiment == experiment).scalar()
+        camp = ctx.db.query(Campaign).filter(Campaign.campaign_id == campaign_id, Campaign.experiment == ctx.experiment).scalar()
         return camp.name if camp else None
 
-    def get_campaign_stage_name(self, dbhandle, experiment, campaign_stage_id):
+    def get_campaign_stage_name(self, ctx, campaign_stage_id):
         """
             return the campaign stage name for a stage id in our experiment
         """
         stage = (
-            dbhandle.query(CampaignStage)
-            .filter(CampaignStage.campaign_stage_id == campaign_stage_id, CampaignStage.experiment == experiment)
+            ctx.db.query(CampaignStage)
+            .filter(CampaignStage.campaign_stage_id == campaign_stage_id, CampaignStage.experiment == ctx.experiment)
             .scalar()
         )
         return stage.name if stage else None
 
-    def campaign_add_name(self, dbhandle, user, experiment, role, **kwargs):
+    def campaign_add_name(self, ctx, **kwargs):
         """
             Add a new campaign name.
         """
-        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
+        experimenter = ctx.get_experimenter()
         data = {}
         name = kwargs.get("campaign_name")
         data["message"] = "ok"
         try:
-            camp = Campaign(name=name, experiment=experiment, creator=experimenter.experimenter_id, creator_role=role)
-            dbhandle.add(camp)
-            dbhandle.commit()
+            camp = Campaign(name=name, experiment=cts.experiment, creator=experimenter.experimenter_id, creator_role=role)
+            ctx.db.add(camp)
+            ctx.db.commit()
             c_s = CampaignStage(
                 name="stage0",
-                experiment=experiment,
+                experiment=ctx.experiment,
                 campaign_id=camp.campaign_id,
                 # active=False,
                 #
@@ -308,18 +306,18 @@ class CampaignsPOMS:
                 cs_split_type="None",
                 dataset="from_parent",
                 job_type_id=(
-                    dbhandle.query(JobType.job_type_id)
-                    .filter(JobType.name == "generic", JobType.experiment == experiment)
+                    ctx.db.query(JobType.job_type_id)
+                    .filter(JobType.name == "generic", JobType.experiment == ctx.experiment)
                     .scalar()
-                    or dbhandle.query(JobType.job_type_id)
+                    or ctx.db.query(JobType.job_type_id)
                     .filter(JobType.name == "generic", JobType.experiment == "samdev")
                     .scalar()
                 ),
                 login_setup_id=(
-                    dbhandle.query(LoginSetup.login_setup_id)
-                    .filter(LoginSetup.name == "generic", LoginSetup.experiment == experiment)
+                    ctx.db.query(LoginSetup.login_setup_id)
+                    .filter(LoginSetup.name == "generic", LoginSetup.experiment == ctx.experiment)
                     .scalar()
-                    or dbhandle.query(LoginSetup.login_setup_id)
+                    or ctx.db.query(LoginSetup.login_setup_id)
                     .filter(LoginSetup.name == "generic", LoginSetup.experiment == "samdev")
                     .scalar()
                 ),
@@ -333,37 +331,30 @@ class CampaignsPOMS:
                 created=datetime.now(utc),
                 campaign_stage_type="regular",
             )
-            dbhandle.add(c_s)
+            ctx.db.add(c_s)
         except IntegrityError as exc:
             data["message"] = "Integrity error: " "you are most likely using a name which " "already exists in database."
             logit.log(" ".join(exc.args))
-            dbhandle.rollback()
+            ctx.db.rollback()
         except SQLAlchemyError as exc:
             data["message"] = "SQLAlchemyError: " "Please report this to the administrator. " "Message: %s" % " ".join(exc.args)
             logit.log(" ".join(exc.args))
-            dbhandle.rollback()
+            ctx.db.rollback()
         else:
-            dbhandle.commit()
+            ctx.db.commit()
         return json.dumps(data)
 
-    def campaign_list(self, dbhandle):
+    def campaign_list(self, ctx):
         """
             Return list of all campaign_stage_id s and names. --
             This is actually for Landscape to use.
         """
-        data = dbhandle.query(CampaignStage.campaign_stage_id, CampaignStage.name, CampaignStage.experiment).all()
+        data = ctx.db.query(CampaignStage.campaign_stage_id, CampaignStage.name, CampaignStage.experiment).all()
         return [r._asdict() for r in data]
 
     def launch_campaign(
         self,
-        dbhandle,
-        getconfig,
-        gethead,
-        samhandle,
-        experiment,
-        role,
-        user,
-        basedir,
+        ctx,
         campaign_id,
         launcher,
         dataset_override=None,
@@ -391,20 +382,20 @@ class CampaignsPOMS:
             .columns(campaign_stage_id=Integer)
         )
 
-        stages = dbhandle.execute(q).fetchall()
+        stages = ctx.db.execute(q).fetchall()
 
         logit.log("launch_campaign: got stages %s" % repr(stages))
 
         if len(stages) == 1:
             return self.poms_service.taskPOMS.launch_jobs(
-                dbhandle,
-                getconfig,
-                gethead,
-                samhandle,
-                experiment,
+                ctx.db,
+                ctx.config_get,
+                ctx.headers_get,
+                ctx.sam,
+                ctx.experiment,
                 role,
-                user,
-                basedir,
+                ctx.username,
+                ctx.config_get("base_uploads_dir"),
                 stages[0][0],
                 launcher,
                 dataset_override,
@@ -416,12 +407,12 @@ class CampaignsPOMS:
             )
         raise AssertionError("Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
 
-    def get_recoveries(self, dbhandle, cid):
+    def get_recoveries(self, ctx, cid):
         """
         Build the recoveries dict for job_types cids
         """
         recs = (
-            dbhandle.query(CampaignRecovery)
+            ctx.db.query(CampaignRecovery)
             .filter(CampaignRecovery.job_type_id == cid)
             .order_by(CampaignRecovery.job_type_id, CampaignRecovery.recovery_order)
             .all()
@@ -444,7 +435,7 @@ class CampaignsPOMS:
         logit.log("get_recoveries(%d) returning %s" % (cid, repr(rec_list)))
         return rec_list
 
-    def fixup_recoveries(self, dbhandle, job_type_id, recoveries):
+    def fixup_recoveries(self, ctx, job_type_id, recoveries):
         """
          fixup_recoveries -- factored out so we can use it
             from either edit endpoint.
@@ -453,7 +444,7 @@ class CampaignsPOMS:
          check if they're actually different before doing this..
         """
         (
-            dbhandle.query(CampaignRecovery)
+            ctx.db.query(CampaignRecovery)
             .filter(CampaignRecovery.job_type_id == job_type_id)
             .delete(synchronize_session=False)
         )  #
@@ -461,39 +452,37 @@ class CampaignsPOMS:
         for rtn in json.loads(recoveries):
             rect = rtn[0]
             recpar = rtn[1]
-            rt = dbhandle.query(RecoveryType).filter(RecoveryType.name == rect).first()
+            rt = ctx.db.query(RecoveryType).filter(RecoveryType.name == rect).first()
             cr = CampaignRecovery(job_type_id=job_type_id, recovery_order=i, recovery_type=rt, param_overrides=recpar)
             i = i + 1
-            dbhandle.add(cr)
+            ctx.db.add(cr)
 
-    def job_type_edit(self, dbhandle, username, experiment, ses_role, *args, **kwargs):
+    def job_type_edit(self, ctx, **kwargs):
         """
             callback from edit screen/client.
         """
         data = {}
         message = None
         data["exp_selections"] = (
-            dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root", "public"])).order_by(Experiment.experiment)
+            ctx.db.query(Experiment).filter(~Experiment.experiment.in_(["root", "public"])).order_by(Experiment.experiment)
         )
         action = kwargs.pop("action", None)
-        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == username).scalar()
-        data["curr_experiment"] = experiment
+        experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).scalar()
+        data["curr_experiment"] = ctx.experiment
         pcl_call = int(kwargs.pop("pcl_call", 0))
-        # email is the info we know about the user in POMS DB.
+        # email is the info we know about the ctx.username in POMS DB.
         pc_username = kwargs.pop("pc_username", None)
 
         if action == "delete":
             name = kwargs.pop("ae_definition_name")
-            self.poms_service.permissions.can_modify(
-                dbhandle, username, experiment, ses_role, "JobType", name=name, experiment=experiment
-            )
+            self.poms_service.permissions.can_modify(ctx, "JobType", name=name, experiment=ctx.experiment)
             if isinstance(name, str):
                 name = name.strip()
             if pcl_call == 1:  # Enter here if the access was from the poms_client
                 cid = (
-                    dbhandle.query(JobType)
+                    ctx.db.query(JobType)
                     .filter(
-                        JobType.experiment == experiment, JobType.name == name, JobType.creator == experimenter.experimenter_id
+                        JobType.experiment == ctx.experiment, JobType.name == name, JobType.creator == experimenter.experimenter_id
                     )
                     .scalar()
                     .job_type_id
@@ -501,12 +490,12 @@ class CampaignsPOMS:
             else:
                 cid = kwargs.pop("job_type_id")
             try:
-                (dbhandle.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == cid).delete(synchronize_session=False))
-                (dbhandle.query(JobType).filter(JobType.job_type_id == cid).delete(synchronize_session=False))
-                dbhandle.commit()
+                (ctx.db.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == cid).delete(synchronize_session=False))
+                (ctx.db.query(JobType).filter(JobType.job_type_id == cid).delete(synchronize_session=False))
+                ctx.db.commit()
                 message = "The job type '%s' has been deleted." % name
             except SQLAlchemyError as exc:
-                dbhandle.rollback()
+                ctx.db.rollback()
                 message = ("The job type, %s, " "has been used and may not be deleted.") % name  # Was: campaign definition
                 logit.log(message)
                 logit.log(" ".join(exc.args))
@@ -524,14 +513,14 @@ class CampaignsPOMS:
                 if isinstance(name, str):
                     name = name.strip()
 
-                experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first()
+                experimenter = ctx.get_experimenter()
                 if experimenter:
                     experimenter_id = experimenter.experimenter_id
                 else:
                     experimenter_id = 0
 
                 if action == "edit":
-                    job_type_id = dbhandle.query(JobType).filter(JobType.name == name).first().job_type_id  # Check here!
+                    job_type_id = ctx.db.query(JobType).filter(JobType.name == name).first().job_type_id  # Check here!
                 else:
                     pass
                 input_files_per_job = kwargs.pop("ae_input_files_per_job", 0)
@@ -564,13 +553,13 @@ class CampaignsPOMS:
                 recoveries = kwargs.pop("ae_definition_recovery")
             try:
                 if action == "add":
-                    role = ses_role
-                    if role in ("root", "superuser"):
+                    role = ctx.role
+                    if role in ("root", "superctx.username"):
                         raise cherrypy.HTTPError(status=401, message=("You are not authorized " "to add campaign definition."))
                     else:
                         j_t = JobType(
                             name=name,
-                            experiment=experiment,
+                            experiment=ctx.experiment,
                             input_files_per_job=input_files_per_job,
                             output_files_per_job=output_files_per_job,
                             output_file_patterns=output_file_patterns,
@@ -581,8 +570,8 @@ class CampaignsPOMS:
                             creator_role=role,
                         )
 
-                    dbhandle.add(j_t)
-                    dbhandle.flush()
+                    ctx.db.add(j_t)
+                    ctx.db.flush()
                     job_type_id = j_t.job_type_id
                 else:
                     columns = {
@@ -595,25 +584,25 @@ class CampaignsPOMS:
                         "updated": datetime.now(utc),
                         "updater": experimenter_id,
                     }
-                    j_t = dbhandle.query(JobType).filter(JobType.job_type_id == job_type_id).update(columns)
+                    j_t = ctx.db.query(JobType).filter(JobType.job_type_id == job_type_id).update(columns)
 
                 if recoveries:
-                    self.fixup_recoveries(dbhandle, job_type_id, recoveries)
-                    dbhandle.commit()
+                    self.fixup_recoveries(ctx, job_type_id, recoveries)
+                    ctx.db.commit()
 
             except IntegrityError as exc:
                 message = "Integrity error: " "you are most likely using a name which " "already exists in database."
                 logit.log(" ".join(exc.args))
-                dbhandle.rollback()
+                ctx.db.rollback()
             except SQLAlchemyError as exc:
                 message = "SQLAlchemyError: " "Please report this to the administrator. " "Message: %s" % " ".join(exc.args)
                 logit.log(" ".join(exc.args))
-                dbhandle.rollback()
+                ctx.db.rollback()
             else:
-                dbhandle.commit()
+                ctx.db.commit()
 
         # Find definitions
-        if experiment:  # cuz the default is find
+        if ctx.experiment:  # cuz the default is find
 
             if kwargs.get("update_view", None) is None:
                 # view flags not specified, use defaults
@@ -621,8 +610,8 @@ class CampaignsPOMS:
                 data["view_inactive"] = None
                 data["view_mine"] = experimenter.experimenter_id
                 data["view_others"] = experimenter.experimenter_id
-                data["view_analysis"] = "view_analysis" if ses_role in ("analysis", "superuser") else None
-                data["view_production"] = "view_production" if ses_role in ("production", "superuser") else None
+                data["view_analysis"] = "view_analysis" if ctx.role in ("analysis", "superctx.username") else None
+                data["view_production"] = "view_production" if ctx.role in ("production", "superctx.username") else None
             else:
                 data["view_active"] = kwargs.get("view_active", None)
                 data["view_inactive"] = kwargs.get("view_inactive", None)
@@ -635,9 +624,9 @@ class CampaignsPOMS:
             # for testing ui...
             # data['authorized'] = True
             q = (
-                dbhandle.query(JobType, Experiment)
+                ctx.db.query(JobType, Experiment)
                 .join(Experiment)
-                .filter(JobType.experiment == experiment)
+                .filter(JobType.experiment == ctx.experiment)
                 .order_by(JobType.name)
             )
 
@@ -667,41 +656,41 @@ class CampaignsPOMS:
             cids = []
             for df in data["definitions"]:
                 cids.append(df.JobType.job_type_id)
-                if ses_role in ["root", "superuser"]:
+                if ctx.role in ["root", "superctx.username"]:
                     data["authorized"].append(True)
-                elif df.JobType.creator_role == "production" and ses_role == "production":
+                elif df.JobType.creator_role == "production" and ctx.role == "production":
                     data["authorized"].append(True)
-                elif df.JobType.creator_role == ses_role and df.JobType.creator == experimenter.experimenter_id:
+                elif df.JobType.creator_role == ctx.role and df.JobType.creator == experimenter.experimenter_id:
                     data["authorized"].append(True)
                 else:
                     data["authorized"].append(False)
 
             recs_dict = {}
             for cid in cids:
-                recs_dict[cid] = json.dumps(self.get_recoveries(dbhandle, cid))
+                recs_dict[cid] = json.dumps(self.get_recoveries(ctx, cid))
             data["recoveries"] = recs_dict
-            data["rtypes"] = dbhandle.query(RecoveryType.name, RecoveryType.description).order_by(RecoveryType.name).all()
+            data["rtypes"] = ctx.db.query(RecoveryType.name, RecoveryType.description).order_by(RecoveryType.name).all()
 
         data["message"] = message
         return data
 
-    def make_test_campaign_for(self, dbhandle, user, experiment, role, campaign_def_id, campaign_def_name):
+    def make_test_campaign_for(self, ctx, campaign_def_id, campaign_def_name):
         """
             Build a test_campaign for a given campaign definition
         """
-        experimenter_id = dbhandle.query(Experimenter.experimenter_id).filter(Experimenter.username == user).first()
+        experimenter_id = ctx.db.query(Experimenter.experimenter_id).filter(Experimenter.username == ctx.username).first()
 
         c_s = (
-            dbhandle.query(CampaignStage)
+            ctx.db.query(CampaignStage)
             .filter(CampaignStage.job_type_id == campaign_def_id, CampaignStage.name == "_test_%s" % campaign_def_name)
             .first()
         )
         if not c_s:
-            l_t = dbhandle.query(LoginSetup).filter(LoginSetup.experiment == experiment).first()
+            l_t = ctx.db.query(LoginSetup).filter(LoginSetup.experiment == ctx.experiment).first()
             c_s = CampaignStage()
             c_s.job_type_id = campaign_def_id
             c_s.name = "_test_%s" % campaign_def_name
-            c_s.experiment = experiment
+            c_s.experiment = ctx.experiment
             c_s.creator = experimenter_id
             c_s.created = datetime.now(utc)
             c_s.updated = datetime.now(utc)
@@ -711,50 +700,49 @@ class CampaignsPOMS:
             c_s.login_setup_id = l_t.login_setup_id
             c_s.software_version = ""
             c_s.campaign_stage_type = "regular"
-            dbhandle.add(c_s)
-            dbhandle.commit()
+            ctx.db.add(c_s)
+            ctx.db.commit()
             c_s = (
-                dbhandle.query(CampaignStage)
+                ctx.db.query(CampaignStage)
                 .filter(CampaignStage.job_type_id == campaign_def_id, CampaignStage.name == "_test_%s" % campaign_def_name)
                 .first()
             )
         return c_s.campaign_stage_id
 
-    def campaign_stage_edit(self, dbhandle, user, experiment, role, *args, **kwargs):
+    def campaign_stage_edit(self, ctx, **kwargs):
         """
             callback for campaign stage edit screens to update campaign record
             takes action = 'edit'/'add'/ etc.
             sesshandle is the cherrypy.session instead of cherrypy.session.get method
         """
         data = {}
-        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).scalar()
+        experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).scalar()
+        experiment = ctx.experiment
 
         message = None
         data["exp_selections"] = (
-            dbhandle.query(Experiment).filter(~Experiment.experiment.in_(["root", "public"])).order_by(Experiment.experiment)
+            ctx.db.query(Experiment).filter(~Experiment.experiment.in_(["root", "public"])).order_by(Experiment.experiment)
         )
         # for k,v in kwargs.items():
         #    print ' k=%s, v=%s ' %(k,v)
         action = kwargs.pop("action", None)
         # pcl_call == 1 means the method was access through the poms_client.
         pcl_call = int(kwargs.pop("pcl_call", 0))
-        # email is the info we know about the user in POMS DB.
+        # email is the info we know about the ctx.username in POMS DB.
         pc_username = kwargs.pop("pc_username", None)
         campaign_id = kwargs.pop("ae_campaign_id", None)
 
         if action == "delete":
             name = kwargs.get("ae_stage_name", kwargs.get("name", None))
-            self.poms_service.permissions.can_modify(
-                dbhandle, user, experiment, role, "CampaignStage", name=name, campaign_id=campaign_id, experiment=experiment
-            )
+            self.poms_service.permissions.can_modify(ctx, "CampaignStage", name=name, campaign_id=campaign_id, experiment=ctx.experiment)
             if isinstance(name, str):
                 name = name.strip()
             if pcl_call == 1:
                 campaign_stage_id = (
-                    dbhandle.query(CampaignStage)
+                    ctx.db.query(CampaignStage)
                     .filter(
                         CampaignStage.name == name,
-                        CampaignStage.experiment == experiment,
+                        CampaignStage.experiment == ctx.experiment,
                         CampaignStage.campaign_id == campaign_id,
                     )
                     .first()
@@ -768,7 +756,7 @@ class CampaignsPOMS:
             if campaign_stage_id:
                 try:
                     (
-                        dbhandle.query(CampaignDependency)
+                        ctx.db.query(CampaignDependency)
                         .filter(
                             or_(
                                 CampaignDependency.needs_campaign_stage_id == campaign_stage_id,
@@ -778,16 +766,16 @@ class CampaignsPOMS:
                         .delete(synchronize_session=False)
                     )
                     (
-                        dbhandle.query(CampaignStage)
+                        ctx.db.query(CampaignStage)
                         .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
                         .delete(synchronize_session=False)
                     )
-                    dbhandle.commit()
+                    ctx.db.commit()
                 except SQLAlchemyError as e:
                     message = "The campaign stage {}, has been used and may not be deleted.".format(name)
                     logit.log(message)
                     logit.log(" ".join(e.args))
-                    dbhandle.rollback()
+                    ctx.db.rollback()
                     raise
 
         elif action in ("add", "edit"):
@@ -822,7 +810,7 @@ class CampaignsPOMS:
                 if isinstance(campaign_definition_name, str):
                     campaign_definition_name = campaign_definition_name.strip()
                 # all this variables depend on the arguments passed.
-                experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == pc_username).first()
+                experimenter = ctx.get_experimenter()
 
                 if experimenter:
                     experimenter_id = experimenter.experimenter_id
@@ -832,24 +820,24 @@ class CampaignsPOMS:
                 # print("************* exp={}, launch_name={}, campaign_definition_name={}"
                 #        .format(exp, launch_name, campaign_definition_name))
                 login_setup_id = (
-                    dbhandle.query(LoginSetup)
-                    .filter(LoginSetup.experiment == experiment)
+                    ctx.db.query(LoginSetup)
+                    .filter(LoginSetup.experiment == ctx.experiment)
                     .filter(LoginSetup.name == launch_name)
                     .first()
                     .login_setup_id
                 )
                 job_type_id = (
-                    dbhandle.query(JobType)
-                    .filter(JobType.name == campaign_definition_name, JobType.experiment == experiment)
+                    ctx.db.query(JobType)
+                    .filter(JobType.name == campaign_definition_name, JobType.experiment == ctx.experiment)
                     .first()
                     .job_type_id
                 )
                 if action == "edit":
                     c_s = (
-                        dbhandle.query(CampaignStage)
+                        ctx.db.query(CampaignStage)
                         .filter(
                             CampaignStage.name == name,
-                            CampaignStage.experiment == experiment,
+                            CampaignStage.experiment == ctx.experiment,
                             CampaignStage.campaign_id == campaign_id,
                         )
                         .first()
@@ -894,7 +882,7 @@ class CampaignsPOMS:
                     else:
                         c_s = CampaignStage(
                             name=name,
-                            experiment=experiment,
+                            experiment=ctx.experiment,
                             vo_role=vo_role,
                             # active=active,
                             cs_split_type=split_type,
@@ -912,8 +900,8 @@ class CampaignsPOMS:
                             campaign_stage_type=campaign_type,
                             campaign_id=campaign_id,
                         )
-                        dbhandle.add(c_s)
-                        dbhandle.commit()
+                        ctx.db.add(c_s)
+                        ctx.db.commit()
                         campaign_stage_id = c_s.campaign_stage_id
                 elif action == "edit":
                     columns = {
@@ -933,32 +921,32 @@ class CampaignsPOMS:
                         "completion_pct": completion_pct,
                         "campaign_id": campaign_id,
                     }
-                    dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).update(columns)
+                    ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).update(columns)
                 # now redo dependencies
                 (
-                    dbhandle.query(CampaignDependency)
+                    ctx.db.query(CampaignDependency)
                     .filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id)
                     .delete(synchronize_session=False)
                 )
                 logit.log("depends for %s(%s) are: %s" % (campaign_stage_id, name, depends))
                 if "campaign_stages" in depends:
                     dep_stages = (
-                        dbhandle.query(CampaignStage)
+                        ctx.db.query(CampaignStage)
                         .filter(
                             CampaignStage.name.in_(depends["campaign_stages"]),
                             CampaignStage.campaign_id == campaign_id,
-                            CampaignStage.experiment == experiment,
+                            CampaignStage.experiment == ctx.experiment,
                         )
                         .all()
                     )
                 elif "campaigns" in depends:
                     # backwards compatibility
                     dep_stages = (
-                        dbhandle.query(CampaignStage)
+                        ctx.db.query(CampaignStage)
                         .filter(
                             CampaignStage.name.in_(depends["campaigns"]),
                             CampaignStage.campaign_id == campaign_id,
-                            CampaignStage.experiment == experiment,
+                            CampaignStage.experiment == ctx.experiment,
                         )
                         .all()
                     )
@@ -971,20 +959,20 @@ class CampaignsPOMS:
                         needs_campaign_stage_id=stage.campaign_stage_id,
                         file_patterns=depends["file_patterns"][i],
                     )
-                    dbhandle.add(dep)
-                dbhandle.commit()
+                    ctx.db.add(dep)
+                ctx.db.commit()
             except IntegrityError as exc:
                 message = "Integrity error: " "You are most likely using a name " "which already exists in database."
                 logit.log(" ".join(exc.args))
-                dbhandle.rollback()
+                ctx.db.rollback()
             except SQLAlchemyError as exc:
                 message = (
                     "SQLAlchemyError: " "Please report this to the administrator." "Message: {}".format(" ".join(exc.args))
                 )
                 logit.log(" ".join(exc.args))
-                dbhandle.rollback()
+                ctx.db.rollback()
             else:
-                dbhandle.commit()
+                ctx.db.commit()
 
         # Find campaign_stages
         if experiment:  # cuz the default is find
@@ -994,8 +982,8 @@ class CampaignsPOMS:
                 data["view_inactive"] = None
                 data["view_mine"] = experimenter.experimenter_id
                 data["view_others"] = experimenter.experimenter_id
-                data["view_analysis"] = "view_analysis" if role in ("analysis", "superuser") else None
-                data["view_production"] = "view_production" if role in ("production", "superuser") else None
+                data["view_analysis"] = "view_analysis" if ctx.role in ("analysis", "superctx.username") else None
+                data["view_production"] = "view_production" if ctx.role in ("production", "superctx.username") else None
             else:
                 data["view_active"] = kwargs.get("view_active", None)
                 data["view_inactive"] = kwargs.get("view_inactive", None)
@@ -1008,9 +996,9 @@ class CampaignsPOMS:
             state = kwargs.pop("state", None)
             jumpto = kwargs.pop("jump_to_campaign", None)
             data["state"] = state
-            data["curr_experiment"] = experiment
+            data["curr_experiment"] = ctx.experiment
             data["authorized"] = []
-            cquery = dbhandle.query(CampaignStage, Campaign).outerjoin(Campaign).filter(CampaignStage.experiment == experiment)
+            cquery = ctx.db.query(CampaignStage, Campaign).outerjoin(Campaign).filter(CampaignStage.experiment == ctx.experiment)
             if data["view_analysis"] and data["view_production"]:
                 pass
             elif data["view_analysis"]:
@@ -1031,7 +1019,7 @@ class CampaignsPOMS:
             # that we *have* it in the list...
             if jumpto is not None:
                 c2 = (
-                    dbhandle.query(CampaignStage, Campaign)
+                    ctx.db.query(CampaignStage, Campaign)
                     .filter(CampaignStage.campaign_stage_id == jumpto)
                     .filter(CampaignStage.campaign_id == Campaign.campaign_id)
                 )
@@ -1041,16 +1029,16 @@ class CampaignsPOMS:
                 cquery = c2.union_all(cquery)
 
             data["campaign_stages"] = cquery.all()
-            data["definitions"] = dbhandle.query(JobType).filter(JobType.experiment == experiment).order_by(JobType.name)
-            data["templates"] = dbhandle.query(LoginSetup).filter(LoginSetup.experiment == experiment).order_by(LoginSetup.name)
+            data["definitions"] = ctx.db.query(JobType).filter(JobType.experiment == ctx.experiment).order_by(JobType.name)
+            data["templates"] = ctx.db.query(LoginSetup).filter(LoginSetup.experiment == ctx.experiment).order_by(LoginSetup.name)
             csq = data["campaign_stages"]
 
             for c_s in csq:
-                if role in ("root", "superuser"):
+                if self.poms_service.permissions.is_superuser(ctx):
                     data["authorized"].append(True)
                 elif c_s.CampaignStage.creator_role == "production" and role == "production":
                     data["authorized"].append(True)
-                elif c_s.CampaignStage.creator_role == role and c_s.CampaignStage.creator == experimenter.experimenter_id:
+                elif c_s.CampaignStage.creator_role == ctx.role and c_s.CampaignStage.creator == experimenter.experimenter_id:
                     data["authorized"].append(True)
                 else:
                     data["authorized"].append(False)
@@ -1058,7 +1046,7 @@ class CampaignsPOMS:
             depends = {}
             for c in csq:
                 cid = c.CampaignStage.campaign_stage_id
-                sql = dbhandle.query(
+                sql = ctx.db.query(
                     CampaignDependency.provides_campaign_stage_id, CampaignStage.name, CampaignDependency.file_patterns
                 ).filter(
                     CampaignDependency.provides_campaign_stage_id == cid,
@@ -1071,7 +1059,7 @@ class CampaignsPOMS:
         data["message"] = message
         return data
 
-    def campaign_stage_edit_query(self, dbhandle, **kwargs):
+    def campaign_stage_edit_query(self, ctx, **kwargs):
         """
             return data for a specific stage
         """
@@ -1082,7 +1070,7 @@ class CampaignsPOMS:
 
         if ae_launch_id:
             template = {}
-            temp = dbhandle.query(LoginSetup).filter(LoginSetup.login_setup_id == ae_launch_id).first()
+            temp = ctx.db.query(LoginSetup).filter(LoginSetup.login_setup_id == ae_launch_id).first()
             template["launch_host"] = temp.launch_host
             template["launch_account"] = temp.launch_account
             template["launch_setup"] = temp.launch_setup
@@ -1090,7 +1078,7 @@ class CampaignsPOMS:
 
         if ae_campaign_definition_id:
             definition = {}
-            cdef = dbhandle.query(JobType).filter(JobType.job_type_id == ae_campaign_definition_id).first()
+            cdef = ctx.db.query(JobType).filter(JobType.job_type_id == ae_campaign_definition_id).first()
             definition["input_files_per_job"] = cdef.input_files_per_job
             definition["output_files_per_job"] = cdef.output_files_per_job
             definition["launch_script"] = cdef.launch_script
@@ -1098,30 +1086,7 @@ class CampaignsPOMS:
             data["definition"] = definition
         return json.dumps(data)
 
-    def new_task_for_campaign(self, dbhandle, campaign_name, command_executed, experimenter_name, dataset_name=None):
-        """
-            Get a new task-id for a given campaign
-        """
-        if isinstance(campaign_name, str):
-            campaign_name = campaign_name.strip()
-        c_s = dbhandle.query(CampaignStage).filter(CampaignStage.name == campaign_name).first()
-        who = dbhandle.query(Experimenter).filter(Experimenter.username == experimenter_name).first()
-        s = Submission()
-        s.campaign_stage_id = c_s.campaign_stage_id
-        s.job_type_id = c_s.job_type_id
-        s.status = "started"
-        s.created = datetime.now(utc)
-        s.updated = datetime.now(utc)
-        s.updater = who.experimenter_id
-        s.creator = who.experimenter_id
-        s.command_executed = command_executed
-        if dataset_name:
-            s.input_dataset = dataset_name
-        dbhandle.add(s)
-        dbhandle.commit()
-        return "Submission=%d" % s.submission_id
-
-    def campaign_deps_ini(self, dbhandle, experiment, name=None, stage_id=None, login_setup=None, job_type=None, full=None):
+    def campaign_deps_ini(self, ctx, name=None, stage_id=None, login_setup=None, job_type=None, full=None):
         """
             Generate ini-format dump of campaign and dependencies
         """
@@ -1133,42 +1098,42 @@ class CampaignsPOMS:
 
         if job_type is not None:
             res.append("# with job_type %s" % job_type)
-            j_t = dbhandle.query(JobType).filter(JobType.name == job_type, JobType.experiment == experiment).first()
+            j_t = ctx.db.query(JobType).filter(JobType.name == job_type, JobType.experiment == ctx.experiment).first()
             if j_t:
                 jts.add(j_t)
 
         if login_setup is not None:
             res.append("# with login_setup: %s" % login_setup)
-            l_t = dbhandle.query(LoginSetup).filter(LoginSetup.name == login_setup, LoginSetup.experiment == experiment).first()
+            l_t = ctx.db.query(LoginSetup).filter(LoginSetup.name == login_setup, LoginSetup.experiment == ctx.experiment).first()
             if l_t:
                 lts.add(l_t)
 
         if name is not None:
-            the_campaign = dbhandle.query(Campaign).filter(Campaign.name == name, Campaign.experiment == experiment).scalar()
+            the_campaign = ctx.db.query(Campaign).filter(Campaign.name == name, Campaign.experiment == ctx.experiment).scalar()
 
             if the_campaign is None:
-                return f"Error: Campaign '{name}' was not found for '{experiment}' experiment"
+                return f"Error: Campaign '{name}' was not found for '{ctx.experiment}' experiment"
             #
-            # campaign_stages = dbhandle.query(CampaignStage).join(Campaign).filter(
+            # campaign_stages = ctx.db.query(CampaignStage).join(Campaign).filter(
             #     Campaign.name == name,
             #     CampaignStage.campaign_id == Campaign.campaign_id).all()
             campaign_stages = the_campaign.stages.all()
 
         if stage_id is not None:
             cidl1 = (
-                dbhandle.query(CampaignDependency.needs_campaign_stage_id)
+                ctx.db.query(CampaignDependency.needs_campaign_stage_id)
                 .filter(CampaignDependency.provides_campaign_stage_id == stage_id)
                 .all()
             )
             cidl2 = (
-                dbhandle.query(CampaignDependency.provides_campaign_stage_id)
+                ctx.db.query(CampaignDependency.provides_campaign_stage_id)
                 .filter(CampaignDependency.needs_campaign_stage_id == stage_id)
                 .all()
             )
             s = set([stage_id])
             s.update(cidl1)
             s.update(cidl2)
-            campaign_stages = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id.in_(s)).all()
+            campaign_stages = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id.in_(s)).all()
         cnames = {}
         for c_s in campaign_stages:
             cnames[c_s.campaign_stage_id] = c_s.name
@@ -1181,7 +1146,7 @@ class CampaignsPOMS:
         fpmap = {}
         for cid in cnames:
             c_dl = (
-                dbhandle.query(CampaignDependency)
+                ctx.db.query(CampaignDependency)
                 .filter(CampaignDependency.provides_campaign_stage_id == cid)
                 .filter(CampaignDependency.needs_campaign_stage_id.in_(cnames.keys()))
                 .all()
@@ -1282,7 +1247,7 @@ class CampaignsPOMS:
             res.append("launch_script=%s" % j_t.launch_script)
             res.append("parameters=%s" % json.dumps(j_t.definition_parameters))
             res.append("output_file_patterns=%s" % j_t.output_file_patterns)
-            res.append("recoveries = %s" % json.dumps(self.get_recoveries(dbhandle, j_t.job_type_id)))
+            res.append("recoveries = %s" % json.dumps(self.get_recoveries(ctx, j_t.job_type_id)))
             res.append("")
 
         # still need dependencies
@@ -1301,14 +1266,14 @@ class CampaignsPOMS:
 
         return "\n".join(res)
 
-    def campaign_deps_svg(self, dbhandle, config_get, campaign_name=None, campaign_stage_id=None):
+    def campaign_deps_svg(self, ctx, campaign_name=None, campaign_stage_id=None):
         """
             return campaign dependencies as an SVG graph
             uses "dot" to generate the drawing
         """
         if campaign_name is not None:
             csl = (
-                dbhandle.query(CampaignStage)
+                ctx.db.query(CampaignStage)
                 .join(Campaign)
                 .filter(Campaign.name == campaign_name, CampaignStage.campaign_id == Campaign.campaign_id)
                 .all()
@@ -1316,19 +1281,19 @@ class CampaignsPOMS:
 
         if campaign_stage_id is not None:
             cidl1 = (
-                dbhandle.query(CampaignDependency.needs_campaign_stage_id)
+                ctx.db.query(CampaignDependency.needs_campaign_stage_id)
                 .filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id)
                 .all()
             )
             cidl2 = (
-                dbhandle.query(CampaignDependency.provides_campaign_stage_id)
+                ctx.db.query(CampaignDependency.provides_campaign_stage_id)
                 .filter(CampaignDependency.needs_campaign_stage_id == campaign_stage_id)
                 .all()
             )
             s = set([campaign_stage_id])
             s.update(cidl1)
             s.update(cidl2)
-            csl = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id.in_(s)).all()
+            csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id.in_(s)).all()
 
         c_ids = deque()
         for c_s in csl:
@@ -1346,11 +1311,11 @@ class CampaignsPOMS:
             )
             pdot.stdin.write('digraph "{} Dependencies" {{\n'.format(campaign_name))
             pdot.stdin.write("node [shape=box, style=rounded, " "color=lightgrey, fontcolor=black]\n" 'rankdir = "LR";\n')
-            baseurl = "{}/campaign_stage_info?campaign_stage_id=".format(config_get("pomspath"))
+            baseurl = "{}/campaign_stage_info?campaign_stage_id=".format(ctx.config_get("pomspath"))
 
             for c_s in csl:
                 tot = (
-                    dbhandle.query(func.count(Submission.submission_id))
+                    ctx.db.query(func.count(Submission.submission_id))
                     .filter(Submission.campaign_stage_id == c_s.campaign_stage_id)
                     .one()
                 )[0]
@@ -1361,7 +1326,7 @@ class CampaignsPOMS:
                     )
                 )
 
-            c_dl = dbhandle.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
+            c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
 
             for c_d in c_dl:
                 if c_d.needs_campaign_stage_id in c_ids and c_d.provides_campaign_stage_id in c_ids:
@@ -1379,21 +1344,20 @@ class CampaignsPOMS:
         # return bytes(ptext, encoding="utf-8")
         return ptext
 
-    def show_campaigns(self, dbhandle, user, experiment, role, **kwargs):
+    def show_campaigns(self, ctx, **kwargs):
         """
             Return data for campaigns table for current experiment, etc.
         """
-        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
+        experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).first()
         action = kwargs.get("action", None)
         msg = "OK"
-        se_role = experimenter.session_role
         if action == "delete":
             name = kwargs.get("del_campaign_name")
             if kwargs.get("pcl_call") in ("1", "t", "True", "true"):
                 campaign_id = (
-                    dbhandle.query(Campaign.campaign_id)
+                    ctx.db.query(Campaign.campaign_id)
                     .filter(
-                        Campaign.experiment == experiment,
+                        Campaign.experiment == ctx.experiment,
                         Campaign.creator == experimenter.experimenter_id,
                         Campaign.name == name,
                     )
@@ -1404,11 +1368,11 @@ class CampaignsPOMS:
             if not campaign_id:
                 msg = f"The campaign '{name}' does not exist."
                 return None, "", msg, None
-            self.poms_service.permissions.can_modify(dbhandle, user, experiment, se_role, "Campaign", item_id=campaign_id)
+            self.poms_service.permissions.can_modify(ctx, "Campaign", item_id=campaign_id)
 
-            campaign = dbhandle.query(Campaign).filter(Campaign.campaign_id == campaign_id).scalar()
+            campaign = ctx.db.query(Campaign).filter(Campaign.campaign_id == campaign_id).scalar()
             subs = (
-                dbhandle.query(Submission)
+                ctx.db.query(Submission)
                 .join(CampaignStage, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
                 .filter(CampaignStage.campaign_id == campaign_id)
             )
@@ -1416,7 +1380,7 @@ class CampaignsPOMS:
                 msg = "This campaign has been submitted.  It cannot be deleted."
             else:
                 # Delete all dependency records for all campaign stages
-                dbhandle.query(CampaignDependency).filter(
+                ctx.db.query(CampaignDependency).filter(
                     or_(
                         CampaignDependency.provider.has(CampaignStage.campaign_id == campaign_id),
                         CampaignDependency.consumer.has(CampaignStage.campaign_id == campaign_id),
@@ -1425,10 +1389,10 @@ class CampaignsPOMS:
                 # Delete all campaign stages
                 campaign.stages.delete()
                 # Delete all campaign tag records
-                dbhandle.query(CampaignsTag).filter(CampaignsTag.campaign_id == campaign_id).delete()
+                ctx.db.query(CampaignsTag).filter(CampaignsTag.campaign_id == campaign_id).delete()
                 # Delete the campaign
-                dbhandle.delete(campaign)
-                dbhandle.commit()
+                ctx.db.delete(campaign)
+                ctx.db.commit()
                 msg = ("Campaign named %s with campaign_id %s " "and related CampagnStages were deleted.") % (
                     kwargs.get("del_campaign_name"),
                     campaign_id,
@@ -1438,9 +1402,9 @@ class CampaignsPOMS:
 
         data = {"authorized": []}
         q = (
-            dbhandle.query(Campaign)
+            ctx.db.query(Campaign)
             .options(joinedload(Campaign.experimenter_creator_obj))
-            .filter(Campaign.experiment == experiment)
+            .filter(Campaign.experiment == ctx.experiment)
             .order_by(Campaign.name)
         )
 
@@ -1450,8 +1414,8 @@ class CampaignsPOMS:
             data["view_inactive"] = None
             data["view_mine"] = experimenter.experimenter_id
             data["view_others"] = experimenter.experimenter_id
-            data["view_analysis"] = "view_analysis" if se_role in ("analysis", "superuser") else None
-            data["view_production"] = "view_production" if se_role in ("production", "superuser") else None
+            data["view_analysis"] = "view_analysis" if ctx.role in ("analysis", "superctx.username") else None
+            data["view_production"] = "view_production" if ctx.role in ("production", "superctx.username") else None
         else:
             data["view_active"] = kwargs.get("view_active", None)
             data["view_inactive"] = kwargs.get("view_inactive", None)
@@ -1486,7 +1450,7 @@ class CampaignsPOMS:
         if not csl:
             return csl, "", msg, data
         for c_s in csl:
-            if role == "superuser":
+            if self.poms_service.permissions.is_superuser(ctx):
                 data["authorized"].append(True)
             elif c_s.creator_role == "production" and role == "production":
                 data["authorized"].append(True)
@@ -1496,10 +1460,10 @@ class CampaignsPOMS:
                 data["authorized"].append(False)
 
         last_activity_l = (
-            dbhandle.query(func.max(Submission.updated))
+            ctx.db.query(func.max(Submission.updated))
             .join(CampaignStage, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
             .join(Campaign, CampaignStage.campaign_id == Campaign.campaign_id)
-            .filter(Campaign.experiment == experiment)
+            .filter(Campaign.experiment == ctx.experiment)
             .first()
         )
         last_activity = ""
@@ -1510,10 +1474,7 @@ class CampaignsPOMS:
 
     def show_campaign_stages(
         self,
-        dbhandle,
-        user,
-        experiment,
-        se_role,
+        ctx,
         campaign_ids=None,
         tmin=None,
         tmax=None,
@@ -1527,12 +1488,12 @@ class CampaignsPOMS:
         :rtype: object
         """
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(
-            tmin, tmax, tdays, "show_campaign_stages/%s/%s?" % (experiment, se_role)
+            tmin, tmax, tdays, "show_campaign_stages/%s/%s?" % (ctx.experiment, ctx.role)
         )
-        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
+        experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).first()
 
         csq = (
-            dbhandle.query(CampaignStage)
+            ctx.db.query(CampaignStage)
             .options(joinedload("experiment_obj"))
             .options(joinedload("campaign_obj"))
             .options(joinedload(CampaignStage.experimenter_holder_obj))
@@ -1541,8 +1502,8 @@ class CampaignsPOMS:
             .order_by(CampaignStage.experiment)
         )
 
-        if experiment:
-            csq = csq.filter(CampaignStage.experiment == experiment)
+        if ctx.experiment:
+            csq = csq.filter(CampaignStage.experiment == ctx.experiment)
 
         data = {}
         if kwargs.get("update_view", None) is None:
@@ -1551,8 +1512,8 @@ class CampaignsPOMS:
             data["view_inactive"] = None
             data["view_mine"] = experimenter.experimenter_id
             data["view_others"] = experimenter.experimenter_id
-            data["view_analysis"] = "view_analysis" if se_role in ("analysis", "superuser") else None
-            data["view_production"] = "view_production" if se_role in ("production", "superuser") else None
+            data["view_analysis"] = "view_analysis" if ctx.role in ("analysis", "superctx.username") else None
+            data["view_production"] = "view_production" if ctx.role in ("production", "superctx.username") else None
         else:
             data["view_active"] = kwargs.get("view_active", None)
             data["view_inactive"] = kwargs.get("view_inactive", None)
@@ -1603,7 +1564,7 @@ class CampaignsPOMS:
         # check for authorization
         data["authorized"] = []
         for c_s in campaign_stages:
-            if se_role != "analysis":
+            if ctx.role != "analysis":
                 data["authorized"].append(True)
             elif c_s.creator == experimenter.experimenter_id:
                 data["authorized"].append(True)
@@ -1611,19 +1572,19 @@ class CampaignsPOMS:
                 data["authorized"].append(False)
         return campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
 
-    def reset_campaign_split(self, dbhandle, campaign_stage_id):
+    def reset_campaign_split(self, ctx, campaign_stage_id):
         """
             reset a campaign_stages cs_last_split field so the sequence
             starts over
         """
         campaign_stage_id = int(campaign_stage_id)
 
-        c_s = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+        c_s = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
         c_s.cs_last_split = None
-        dbhandle.commit()
+        ctx.db.commit()
 
     # @pomscache.cache_on_arguments()
-    def campaign_stage_info(self, dbhandle, config_get, experiment, role, campaign_stage_id, tmin=None, tmax=None, tdays=None):
+    def campaign_stage_info(self, ctx, campaign_stage_id):
         """
            Give information related to a campaign stage for the campaign_stage_info page
         """
@@ -1631,22 +1592,22 @@ class CampaignsPOMS:
         campaign_stage_id = int(campaign_stage_id)
 
         campaign_stage_info = (
-            dbhandle.query(CampaignStage, Experimenter)
+            ctx.db.query(CampaignStage, Experimenter)
             .filter(CampaignStage.campaign_stage_id == campaign_stage_id, CampaignStage.creator == Experimenter.experimenter_id)
             .first()
         )
 
         # default to time window of campaign
-        if tmin is None and tdays is None:
-            tmin = campaign_stage_info.CampaignStage.created
-            tmax = datetime.now(utc)
+        if ctx.tmin is None and tdays is None:
+            ctx.tmin = campaign_stage_info.CampaignStage.created
+            ctx.tmax = datetime.now(utc)
 
         tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays = self.poms_service.utilsPOMS.handle_dates(
-            tmin, tmax, tdays, "campaign_stage_info/%s/%s?" % (experiment, role)
+            ctx, "campaign_stage_info/%s/%s?" % (ctx.experiment, ctx.role)
         )
 
         last_activity_l = (
-            dbhandle.query(func.max(Submission.updated)).filter(Submission.campaign_stage_id == campaign_stage_id).first()
+            ctx.db.query(func.max(Submission.updated)).filter(Submission.campaign_stage_id == campaign_stage_id).first()
         )
         logit.log("got last_activity_l %s" % repr(last_activity_l))
         if last_activity_l[0] and datetime.now(utc) - last_activity_l[0] > timedelta(days=7):
@@ -1656,7 +1617,7 @@ class CampaignsPOMS:
         logit.log("after: last_activity %s" % repr(last_activity))
 
         campaign_definition_info = (
-            dbhandle.query(JobType, Experimenter)
+            ctx.db.query(JobType, Experimenter)
             .filter(
                 JobType.job_type_id == campaign_stage_info.CampaignStage.job_type_id,
                 JobType.creator == Experimenter.experimenter_id,
@@ -1664,7 +1625,7 @@ class CampaignsPOMS:
             .first()
         )
         login_setup_info = (
-            dbhandle.query(LoginSetup, Experimenter)
+            ctx.db.query(LoginSetup, Experimenter)
             .filter(
                 LoginSetup.login_setup_id == campaign_stage_info.CampaignStage.login_setup_id,
                 LoginSetup.creator == Experimenter.experimenter_id,
@@ -1672,11 +1633,11 @@ class CampaignsPOMS:
             .first()
         )
         campaigns = (
-            dbhandle.query(Campaign).join(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).all()
+            ctx.db.query(Campaign).join(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).all()
         )
 
         launched_campaigns = (
-            dbhandle.query(CampaignStageSnapshot).filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id).all()
+            ctx.db.query(CampaignStageSnapshot).filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id).all()
         )
 
         #
@@ -1690,7 +1651,7 @@ class CampaignsPOMS:
         launch_flist = list(map(os.path.basename, launch_flist))
 
         recent_submission_list = (
-            dbhandle.query(Submission.submission_id, func.max(SubmissionHistory.status_id))
+            ctx.db.query(Submission.submission_id, func.max(SubmissionHistory.status_id))
             .filter(SubmissionHistory.submission_id == Submission.submission_id)
             .filter(Submission.campaign_stage_id == campaign_stage_id)
             .filter(Submission.created > datetime.now(utc) - timedelta(days=7))
@@ -1703,11 +1664,11 @@ class CampaignsPOMS:
             recent_submissions[sid] = status
 
         # put our campaign_stage id in the link
-        campaign_kibana_link_format = config_get("campaign_kibana_link_format")
+        campaign_kibana_link_format = ctx.config_get("campaign_kibana_link_format")
         logit.log("got format {}".format(campaign_kibana_link_format))
         kibana_link = campaign_kibana_link_format.format(campaign_stage_id)
 
-        dep_svg = self.campaign_deps_svg(dbhandle, config_get, campaign_stage_id=campaign_stage_id)
+        dep_svg = self.campaign_deps_svg(ctx.db, ctx.config_get, campaign_stage_id=campaign_stage_id)
 
         return (
             campaign_stage_info,
@@ -1732,25 +1693,20 @@ class CampaignsPOMS:
 
     def campaign_stage_submissions(
         self,
-        dbhandle,
-        experiment,
-        role,
+        ctx,
         campaign_name="",
         stage_name="",
         campaign_stage_id=None,
         campaign_id=None,
-        tmin=None,
-        tmax=None,
-        tdays=None,
     ):
         """
            Show submissions from a campaign stage
         """
-        data = {"tmin": tmin, "tmax": tmax, "tdays": tdays}
+        data = {"tmin": ctx.tmin, "tmax": ctx.tmax, "tdays": ctx.tdays}
         if campaign_name and campaign_id in (None, "None", ""):
             campaign_id = (
-                dbhandle.query(Campaign.campaign_id)
-                .filter(Campaign.name == campaign_name, Campaign.experiment == experiment)
+                ctx.db.query(Campaign.campaign_id)
+                .filter(Campaign.name == campaign_name, Campaign.experiment == ctx.experiment)
                 .scalar()
             )
             if not campaign_id:
@@ -1759,10 +1715,10 @@ class CampaignsPOMS:
 
         if stage_name not in (None, "None", "*", "") and campaign_stage_id in (None, "None", ""):
             campaign_stage_id = (
-                dbhandle.query(CampaignStage.campaign_stage_id)
+                ctx.db.query(CampaignStage.campaign_stage_id)
                 .filter(
                     CampaignStage.name == stage_name,
-                    CampaignStage.experiment == experiment,
+                    CampaignStage.experiment == ctx.experiment,
                     CampaignStage.campaign_id == campaign_id,
                 )
                 .scalar()
@@ -1776,7 +1732,7 @@ class CampaignsPOMS:
 
         if campaign_id not in (None, "None", ""):
             campaign_stage_rows = (
-                dbhandle.query(CampaignStage.campaign_stage_id).filter(CampaignStage.campaign_id == campaign_id).all()
+                ctx.db.query(CampaignStage.campaign_stage_id).filter(CampaignStage.campaign_id == campaign_id).all()
             )
             campaign_stage_ids = [row[0] for row in campaign_stage_rows]
 
@@ -1784,19 +1740,17 @@ class CampaignsPOMS:
             campaign_stage_ids = [campaign_stage_id]
 
         # if we're not given any time info, do from start of campaign stage
-        if not (tmin or tmax or tdays):
+        if not (ctx.tmin or ctx.tmax or ctx.tdays):
             logit.log("=== no time info, picking...")
-            crows = dbhandle.query(CampaignStage.created).filter(CampaignStage.campaign_stage_id.in_(campaign_stage_ids)).all()
-            tmin = crows[0][0].strftime("%Y-%m-%d %H:%M:%S")
-            tmax = datetime.now(utc).strftime("%Y-%m-%d %H:%M:%S")
-            logit.log("picking campaign date range %s .. %s" % (tmin, tmax))
+            crows = ctx.db.query(CampaignStage.created).filter(CampaignStage.campaign_stage_id.in_(campaign_stage_ids)).all()
+            ctx.tmin = crows[0][0].strftime("%Y-%m-%d %H:%M:%S")
+            ctx.tmax = datetime.now(utc).strftime("%Y-%m-%d %H:%M:%S")
+            logit.log("picking campaign date range %s .. %s" % (ctx.tmin, ctx.tmax))
 
         base_link = "campaign_stage_submissions/{}/{}?campaign_name={}&stage_name={}&campaign_stage_id={}&campaign_id={}&".format(
-            experiment, role, campaign_name, stage_name, campaign_stage_id, campaign_id
+            ctx.experiment, ctx.role, campaign_name, stage_name, campaign_stage_id, campaign_id
         )
-        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(
-            tmin, tmax, tdays, base_link
-        )
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(ctx,  base_link)
         data = {
             "tmin": tmin,
             "tmax": tmax,
@@ -1807,10 +1761,10 @@ class CampaignsPOMS:
         }
 
         subhist = aliased(SubmissionHistory)
-        subq = dbhandle.query(func.max(subhist.created)).filter(SubmissionHistory.submission_id == subhist.submission_id)
+        subq = ctx.db.query(func.max(subhist.created)).filter(SubmissionHistory.submission_id == subhist.submission_id)
 
         tuples = (
-            dbhandle.query(Submission, SubmissionHistory, SubmissionStatus)
+            ctx.db.query(Submission, SubmissionHistory, SubmissionStatus)
             .join("experimenter_creator_obj")
             .filter(
                 Submission.campaign_stage_id.in_(campaign_stage_ids),
@@ -1851,13 +1805,13 @@ class CampaignsPOMS:
             data["submissions"] = submissions
         return data
 
-    def session_status_history(self, dbhandle, submission_id):
+    def session_status_history(self, ctx, submission_id):
         """
            Return history rows
         """
         rows = []
         tuples = (
-            dbhandle.query(SubmissionHistory, SubmissionStatus)
+            ctx.db.query(SubmissionHistory, SubmissionStatus)
             .filter(SubmissionHistory.submission_id == submission_id)
             .filter(SubmissionStatus.status_id == SubmissionHistory.status_id)
             .order_by(SubmissionHistory.created)
@@ -1869,86 +1823,8 @@ class CampaignsPOMS:
             rows.append({"created": created, "status": status})
         return rows
 
-    def register_poms_campaign(
-        self,
-        dbhandle,
-        experiment,
-        campaign_name,
-        version,
-        user=None,
-        campaign_definition=None,
-        dataset="",
-        role="Production",
-        cr_role="production",
-        params=[],
-    ):
-        """
-            update or add a campaign by experiment and name...
-        """
-        changed = False
-        if dataset is None:
-            dataset = ""
-        if user is None:
-            user = 4
-        else:
-            u = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
-            if u:
-                user = u.experimenter_id
 
-        if campaign_definition not in (None, "None"):
-            c_d = dbhandle.query(JobType).filter(JobType.name == campaign_definition, JobType.experiment == experiment).first()
-        else:
-            c_d = dbhandle.query(JobType).filter(JobType.name.ilike(r"%generic%"), JobType.experiment == experiment).first()
-
-        ld = dbhandle.query(LoginSetup).filter(LoginSetup.name.ilike(r"%generic%"), LoginSetup.experiment == experiment).first()
-
-        logit.log("campaign_definition = {} ".format(c_d))
-
-        c_s = (
-            dbhandle.query(CampaignStage)
-            .filter(CampaignStage.experiment == experiment, CampaignStage.name == campaign_name)
-            .first()
-        )
-        if c_s:
-            changed = False
-        else:
-            c_s = CampaignStage(
-                experiment=experiment,
-                name=campaign_name,
-                creator=user,
-                created=datetime.now(utc),
-                software_version=version,
-                job_type_id=c_d.job_type_id,
-                login_setup_id=ld.login_setup_id,
-                vo_role=role,
-                dataset="",
-                creator_role=cr_role,
-                campaign_stage_type="regular",
-            )
-
-        if version:
-            c_s.software_verison = version
-            changed = True
-
-        if dataset:
-            c_s.dataset = dataset
-            changed = True
-
-        if user:
-            c_s.experimenter = user
-            changed = True
-
-        logit.log("register_campaign -- campaign is %s" % c_s.__dict__)
-
-        if changed:
-            c_s.updated = datetime.now(utc)
-            c_s.updator = user
-            dbhandle.add(c_s)
-            dbhandle.commit()
-
-        return c_s.campaign_stage_id
-
-    def get_dataset_for(self, dbhandle, samhandle, camp):
+    def get_dataset_for(self, ctx, camp):
         """
             use the split_type modules to get the next dataset for
             launch for a given campaign
@@ -1981,22 +1857,22 @@ class CampaignsPOMS:
         mod = importlib.import_module("poms.webservice.split_types." + modname)
         split_class = getattr(mod, modname)
 
-        splitter = split_class(camp, samhandle, dbhandle)
+        splitter = split_class(camp, ctx.sam, ctx.db)
 
         try:
             res = splitter.next()
         except StopIteration:
             raise AssertionError("No more splits in this campaign.")
 
-        dbhandle.commit()
+        ctx.db.commit()
         return res
 
-    def list_launch_file(self, dbhandle, campaign_stage_id, fname, login_setup_id=None):
+    def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None):
         """
             get launch output file and return the lines as a list
         """
         q = (
-            dbhandle.query(CampaignStage, Campaign)
+            ctx.db.query(CampaignStage, Campaign)
             .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
             .filter(CampaignStage.campaign_id == Campaign.campaign_id)
             .first()
@@ -2020,11 +1896,11 @@ class CampaignsPOMS:
             refresh = 0
         return lines, refresh, campaign_name, stage_name
 
-    def schedule_launch(self, dbhandle, campaign_stage_id):
+    def schedule_launch(self, ctx, campaign_stage_id):
         """
             return crontab info for cron launches for campaign
         """
-        c_s = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+        c_s = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
         my_crontab = CronTab(user=True)
         citer = my_crontab.find_comment("POMS_CAMPAIGN_ID={}".format(campaign_stage_id))
         # there should be only zero or one...
@@ -2041,7 +1917,7 @@ class CampaignsPOMS:
 
     def update_launch_schedule(
         self,
-        dbhandle,
+        ctx,
         campaign_stage_id,
         dowlist="",
         domlist="",
@@ -2051,14 +1927,13 @@ class CampaignsPOMS:
         submit="",
         minlist="",
         delete="",
-        user="",
     ):
         """
             callback for changing the launch schedule
         """
 
-        if user:
-            experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
+        if ctx.username:
+            experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).first()
 
         # deal with single item list silliness
         if isinstance(minlist, str):
@@ -2131,12 +2006,12 @@ class CampaignsPOMS:
 
         my_crontab.write()
 
-    def get_recovery_list_for_campaign_def(self, dbhandle, campaign_def):
+    def get_recovery_list_for_campaign_def(self, ctx, campaign_def):
         """
             return the recovery list for a given campaign_def
         """
         rlist = (
-            dbhandle.query(CampaignRecovery)
+            ctx.db.query(CampaignRecovery)
             .options(joinedload(CampaignRecovery.recovery_type))
             .filter(CampaignRecovery.job_type_id == campaign_def.job_type_id)
             .order_by(CampaignRecovery.recovery_order)
@@ -2150,28 +2025,28 @@ class CampaignsPOMS:
 
         return rlist
 
-    def make_stale_campaigns_inactive(self, dbhandle):
+    def make_stale_campaigns_inactive(self, ctx):
         """
             turn off active flag on campaigns without recent activity
         """
         # Get stages run in the last 7 days - active stage list
         lastweek = datetime.now(utc) - timedelta(days=7)
-        recent_sq = dbhandle.query(distinct(Submission.campaign_stage_id)).filter(Submission.created > lastweek)
+        recent_sq = ctx.db.query(distinct(Submission.campaign_stage_id)).filter(Submission.created > lastweek)
         # Get the campaign_id of the active stages - active campaign list
-        active_campaigns = dbhandle.query(distinct(CampaignStage.campaign_id)).filter(
+        active_campaigns = ctx.db.query(distinct(CampaignStage.campaign_id)).filter(
             CampaignStage.campaign_stage_id.in_(recent_sq)
         )
         # Turn off the active flag on stale campaigns.
         stale = (
-            dbhandle.query(Campaign)
+            ctx.db.query(Campaign)
             .filter(Campaign.active.is_(True), Campaign.campaign_id.notin_(active_campaigns))
             .update({"active": False}, synchronize_session=False)
         )
 
-        dbhandle.commit()
+        ctx.db.commit()
         return []
 
-    def split_type_javascript(self, dbhandle, samhandle, *args, **kwargs):
+    def split_type_javascript(self, ctx):
         class fake_campaign_stage:
             def __init__(self, dataset="", cs_split_type=""):
                 self.dataset = dataset
@@ -2207,7 +2082,7 @@ class CampaignsPOMS:
 
             mod = importlib.import_module("poms.webservice.split_types." + modname)
             split_class = getattr(mod, modname)
-            inst = split_class(fake_cs, samhandle, dbhandle)
+            inst = split_class(fake_cs, ctx.sam, ctx.db)
             poptxt = inst.edit_popup()
 
             if poptxt != "null":
@@ -2238,16 +2113,12 @@ class CampaignsPOMS:
         rlist.append(";")
         return "\n".join(rlist)
 
-    def save_campaign(self, dbhandle, user, *args, replace=False, pcl_call=0, **kwargs):
+    def save_campaign(self, ctx, replace=False, pcl_call=0, *args, **kwargs):
 
-        if args:
-            exp = args[0]
-            role = args[1] or "production"
-        else:
-            exp = kwargs["experiment"]
-            role = kwargs["role"]
+        exp = ctx.experiment
+        role = ctx.role
 
-        experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).first()
+        experimenter = ctx.get_experimenter()
         user_id = experimenter.experimenter_id
 
         data = kwargs.get("form", None)
@@ -2262,7 +2133,7 @@ class CampaignsPOMS:
         c_old_name = campaign.get("id").split(" ", 1)[1]
 
         # permissions check, deferred from top level...
-        self.poms_service.permissions.can_modify(dbhandle, user, exp, role, "Campaign", name=c_old_name, experiment=exp)
+        self.poms_service.permissions.can_modify(ctx, "Campaign", name=c_old_name, experiment=ctx.experiment)
 
         # Process job types and login setups first
         misc = everything["misc"]
@@ -2282,7 +2153,7 @@ class CampaignsPOMS:
 
                     job_type = JobType(
                         name=name,
-                        experiment=exp,
+                        experiment=ctx.experiment,
                         output_file_patterns=form.get("output_file_patterns"),
                         launch_script=form.get("launch_script"),
                         definition_parameters=definition_parameters,
@@ -2290,22 +2161,22 @@ class CampaignsPOMS:
                         created=datetime.now(utc),
                         creator_role=role,
                     )
-                    dbhandle.add(job_type)
+                    ctx.db.add(job_type)
                     try:
-                        dbhandle.commit()
+                        ctx.db.commit()
                         recoveries = form.get("recoveries")
                         if recoveries:
-                            self.fixup_recoveries(dbhandle, job_type.job_type_id, recoveries)
-                        dbhandle.commit()
+                            self.fixup_recoveries(ctx, job_type.job_type_id, recoveries)
+                        ctx.db.commit()
                     except IntegrityError:
                         message.append(f"Warning: JobType '{name}' already exists and will not change.")
                         logit.log(f"*** DB error: {message}")
-                        dbhandle.rollback()
+                        ctx.db.rollback()
 
                 elif eid.startswith("login_setup "):
                     login_setup = LoginSetup(
                         name=name,
-                        experiment=exp,
+                        experiment=ctx.experiment,
                         launch_host=form.get("host"),
                         launch_account=form.get("account"),
                         launch_setup=form.get("setup"),
@@ -2313,15 +2184,15 @@ class CampaignsPOMS:
                         created=datetime.now(utc),
                         creator_role=role,
                     )
-                    dbhandle.add(login_setup)
+                    ctx.db.add(login_setup)
                     try:
                         print(f"*** Creating: LoginSetup '{name}'.")
-                        dbhandle.flush()
-                        dbhandle.commit()
+                        ctx.db.flush()
+                        ctx.db.commit()
                     except IntegrityError:
                         message.append(f"Warning: LoginSetup '{name}' already exists and will not change.")
                         print(f"*** DB error: {message}")
-                        dbhandle.rollback()
+                        ctx.db.rollback()
 
         # Now process all stages
         stages = everything["stages"]
@@ -2333,7 +2204,7 @@ class CampaignsPOMS:
         defaults = campaign.get("form")
         position = campaign.get("position")
 
-        the_campaign = dbhandle.query(Campaign).filter(Campaign.name == c_old_name, Campaign.experiment == exp).scalar()
+        the_campaign = ctx.db.query(Campaign).filter(Campaign.name == c_old_name, Campaign.experiment == ctx.experiment).scalar()
         if the_campaign:
             # the_campaign.defaults = defaults    # Store the defaults unconditionally as they may be not stored yet
             the_campaign.defaults = {
@@ -2344,7 +2215,7 @@ class CampaignsPOMS:
                 the_campaign.name = c_new_name
 
             if pcl_call in ("1", "True", "t", "true") and replace not in ("1", "True", "t", "true"):
-                dbhandle.rollback()
+                ctx.db.rollback()
                 message = [f"Error: Campaign '{the_campaign.name}' already exists!"]
                 return {"status": "400 Bad Request", "message": message}
 
@@ -2352,13 +2223,13 @@ class CampaignsPOMS:
             the_campaign = Campaign()
             the_campaign.name = c_new_name
             the_campaign.defaults = {"defaults": defaults, "positions": position}
-            the_campaign.experiment = exp
+            the_campaign.experiment = ctx.experiment
             the_campaign.creator = user_id
             the_campaign.creator_role = role
-            dbhandle.add(the_campaign)
-        dbhandle.commit()
+            ctx.db.add(the_campaign)
+        ctx.db.commit()
 
-        old_stages = dbhandle.query(CampaignStage).filter(CampaignStage.campaign_obj.has(Campaign.name == c_new_name)).all()
+        old_stages = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_obj.has(Campaign.name == c_new_name)).all()
         old_stage_names = set([s.name for s in old_stages])
         logit.log("############## old_stage_names: {}".format(old_stage_names))
 
@@ -2369,17 +2240,17 @@ class CampaignsPOMS:
 
         deleted_stages = old_stage_names - new_stage_names
         if deleted_stages:
-            # (dbhandle.query(CampaignStage)                    # We DON'T delete the stages
+            # (ctx.db.query(CampaignStage)                    # We DON'T delete the stages
             #  .filter(CampaignStage.name.in_(deleted_stages))
             #  .delete(synchronize_session=False))
             cs_list = (
-                dbhandle.query(CampaignStage)
+                ctx.db.query(CampaignStage)
                 .filter(CampaignStage.name.in_(deleted_stages))
                 .filter(CampaignStage.campaign_id == the_campaign.campaign_id)
             )  # Get the stage list
             for c_s in cs_list:
                 c_s.campaign_id = None  # Detach the stage from campaign
-            dbhandle.query(CampaignDependency).filter(
+            ctx.db.query(CampaignDependency).filter(
                 or_(
                     CampaignDependency.provider.has(CampaignStage.name.in_(deleted_stages)),
                     CampaignDependency.consumer.has(CampaignStage.name.in_(deleted_stages)),
@@ -2391,7 +2262,7 @@ class CampaignsPOMS:
             ).delete(
                 synchronize_session=False
             )  # Delete the stage dependencies if any
-            dbhandle.commit()
+            ctx.db.commit()
 
         for stage in new_stages:
             old_name = stage.get("id")
@@ -2430,11 +2301,11 @@ class CampaignsPOMS:
             stage_type = form.pop("stage_type", "test")
 
             login_setup_id = (
-                dbhandle.query(LoginSetup.login_setup_id)
-                .filter(LoginSetup.experiment == exp)
+                ctx.db.query(LoginSetup.login_setup_id)
+                .filter(LoginSetup.experiment == ctx.experiment)
                 .filter(LoginSetup.name == login_setup)
                 .scalar()
-                or dbhandle.query(LoginSetup.login_setup_id)
+                or ctx.db.query(LoginSetup.login_setup_id)
                 .filter(LoginSetup.experiment == "samdev")
                 .filter(LoginSetup.name == login_setup)
                 .scalar()
@@ -2445,8 +2316,8 @@ class CampaignsPOMS:
                 return {"status": "400 Bad Request", "message": message}
 
             job_type_id = (
-                dbhandle.query(JobType.job_type_id).filter(JobType.experiment == exp).filter(JobType.name == job_type).scalar()
-                or dbhandle.query(JobType.job_type_id)
+                ctx.db.query(JobType.job_type_id).filter(JobType.experiment == ctx.experiment).filter(JobType.name == job_type).scalar()
+                or ctx.db.query(JobType.job_type_id)
                 .filter(JobType.experiment == "samdev")
                 .filter(JobType.name == job_type)
                 .scalar()
@@ -2462,7 +2333,7 @@ class CampaignsPOMS:
             obj = None
             if old_name in old_stage_names:
                 obj = (
-                    dbhandle.query(CampaignStage)  #
+                    ctx.db.query(CampaignStage)  #
                     .filter(CampaignStage.campaign_id == the_campaign.campaign_id)
                     .filter(CampaignStage.name == old_name)
                     .scalar()
@@ -2486,7 +2357,7 @@ class CampaignsPOMS:
                     obj.updater = user_id
                     obj.updated = datetime.now(utc)
 
-                    dbhandle.flush()
+                    ctx.db.flush()
             else:  # If this is a new stage then create and store it
                 logit.log("for_stage_loop: new campaign stage...")
                 c_s = CampaignStage(
@@ -2511,16 +2382,16 @@ class CampaignsPOMS:
                     creator_role=role,
                     campaign_stage_type=stage_type,
                 )
-                dbhandle.add(c_s)
-                dbhandle.flush()
+                ctx.db.add(c_s)
+                ctx.db.flush()
 
-        dbhandle.commit()
+        ctx.db.commit()
 
         logit.log("save_campaign: for stage loop: here2")
 
         # Now process all dependencies
         dependencies = everything["dependencies"]
-        dbhandle.query(CampaignDependency).filter(
+        ctx.db.query(CampaignDependency).filter(
             or_(
                 CampaignDependency.provider.has(CampaignStage.campaign_id == the_campaign.campaign_id),
                 CampaignDependency.consumer.has(CampaignStage.campaign_id == the_campaign.campaign_id),
@@ -2532,14 +2403,14 @@ class CampaignsPOMS:
             to_name = dependency["toId"]
             form = dependency.get("form")
             from_id = (
-                dbhandle.query(CampaignStage.campaign_stage_id)
+                ctx.db.query(CampaignStage.campaign_stage_id)
                 .filter(CampaignStage.campaign_id == the_campaign.campaign_id)
                 .filter(CampaignStage.experiment == exp)
                 .filter(CampaignStage.name == from_name)
                 .scalar()
             )
             to_id = (
-                dbhandle.query(CampaignStage.campaign_stage_id)
+                ctx.db.query(CampaignStage.campaign_stage_id)
                 .filter(CampaignStage.campaign_id == the_campaign.campaign_id)
                 .filter(CampaignStage.experiment == exp)
                 .filter(CampaignStage.name == to_name)
@@ -2550,9 +2421,9 @@ class CampaignsPOMS:
             dep = CampaignDependency(
                 provides_campaign_stage_id=to_id, needs_campaign_stage_id=from_id, file_patterns=file_pattern
             )
-            dbhandle.add(dep)
-            dbhandle.flush()
-        dbhandle.commit()
+            ctx.db.add(dep)
+            ctx.db.flush()
+        ctx.db.commit()
         logit.log("save_campaign: for stage loop: here3")
         print("+++++++++++++++ Campaign saved")
         return {
@@ -2562,44 +2433,42 @@ class CampaignsPOMS:
             "campaign_stage_ids": [(x.campaign_stage_id, x.name) for x in the_campaign.stages],
         }
 
-    def get_jobtype_id(self, dbhandle, user, experiment, role, name):
+    def get_jobtype_id(self, ctx, name):
         """
            lookup job type id for name in current experiment
         """
-        # experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).scalar()
+        # experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).scalar()
         # user_id = experimenter.experimenter_id
 
-        return dbhandle.query(JobType.job_type_id).filter(JobType.experiment == experiment, JobType.name == name).scalar()
+        return ctx.db.query(JobType.job_type_id).filter(JobType.experiment == cx.experiment, JobType.name == name).scalar()
 
-    def get_loginsetup_id(self, dbhandle, user, experiment, role, name):
+    def get_loginsetup_id(self, ctx, name):
         """
            lookup login setup id by name for current experiment
         """
-        # experimenter = dbhandle.query(Experimenter).filter(Experimenter.username == user).scalar()
-        # user_id = experimenter.experimenter_id
 
         return (
-            dbhandle.query(LoginSetup.login_setup_id)
-            .filter(LoginSetup.experiment == experiment, LoginSetup.name == name)
+            ctx.db.query(LoginSetup.login_setup_id)
+            .filter(LoginSetup.experiment == ctx.experiment, LoginSetup.name == name)
             .scalar()
         )
 
-    def mark_campaign_active(self, campaign_id, is_active, camp_l, dbhandle, user):
+    def mark_campaign_active(self, ctx, campaign_id, is_active, camp_l) :
         logit.log("camp_l={}; is_active='{}'".format(camp_l, is_active))
         auth_error = False
         campaign_ids = (campaign_id or camp_l).split(",")
         for cid in campaign_ids:
             auth = False
-            campaign = dbhandle.query(Campaign).filter(Campaign.campaign_id == cid).first()
+            campaign = ctx.db.query(Campaign).filter(Campaign.campaign_id == cid).first()
             if campaign:
-                if user.is_root():
+                if ctx.username.is_root():
                     auth = True
-                elif user.session_experiment == campaign.experiment:
-                    if user.is_superuser():
+                elif ctx.username.session_experiment == campaign.experiment:
+                    if ctx.username.is_superctx.username():
                         auth = True
-                    elif user.is_production() and campaign.creator_role == "production":
+                    elif ctx.username.is_production() and campaign.creator_role == "production":
                         auth = True
-                    elif user.session_role == campaign.creator_role and user.experimenter_id == campaign.creator:
+                    elif ctx.username.session_role == campaign.creator_role and ctx.username.experimenter_id == campaign.creator:
                         auth = True
                     else:
                         auth_error = True
@@ -2607,8 +2476,8 @@ class CampaignsPOMS:
                     auth_error = True
                 if auth:
                     campaign.active = is_active in ("True", "Active", "true", "1")
-                    dbhandle.add(campaign)
-                    dbhandle.commit()
+                    ctx.db.add(campaign)
+                    ctx.db.commit()
                 else:
                     auth_error = True
         return auth_error

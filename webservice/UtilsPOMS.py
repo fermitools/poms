@@ -16,7 +16,7 @@ class UtilsPOMS:
         self.poms_service = ps
 
     # this method was deleted from the main script
-    def handle_dates(self, tmin, tmax, tdays, baseurl):
+    def handle_dates(self, ctx, baseurl):
         """
         tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange = self.handle_dates(tmax, tdays, name)
         assuming tmin, tmax, are date strings or None, and tdays is
@@ -25,6 +25,9 @@ class UtilsPOMS:
         and a string describing the date range.  Use everywhere.
         """
 
+        tmin = ctx.tmin
+        tmax = ctx.tmax
+        tdays = ctx.tdays
         # if they set max and min (i.e. from calendar) set tdays from that.
         if not tmax in (None, "") and not tmin in (None, ""):
             if isinstance(tmin, str):
@@ -79,21 +82,21 @@ class UtilsPOMS:
         search_term = search_term.replace("*", "%")
         raise redirect("%s/search_campaigns?search_term=%s" % (self.poms_service.path, search_term))
 
-    def getSavedExperimentRole(self, dbhandle, username):
+    def getSavedExperimentRole(self, ctx):
         experiment, role = (
-            dbhandle.query(Experimenter.session_experiment, Experimenter.session_role)
-            .filter(Experimenter.username == username)
+            ctx.db.query(Experimenter.session_experiment, Experimenter.session_role)
+            .filter(Experimenter.username == ctx.username)
             .first()
         )
         return experiment, role
 
-    def update_session_experiment(self, db, user, experiment):
+    def update_session_experiment(self, ctx, experiment):
         fields = {"session_experiment": experiment}
-        db.query(Experimenter).filter(Experimenter.username == user).update(fields)
-        db.commit()
+        ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).update(fields)
+        ctx.db.commit()
 
-    def update_session_role(self, db, user, role):
+    def update_session_role(self, ctx, role):
 
-        db.query(Experimenter).filter(Experimenter.username == user).update({"session_role": role})
+        ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).update({"session_role": role})
 
-        db.commit()
+        ctx.db.commit()
