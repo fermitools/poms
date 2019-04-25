@@ -564,14 +564,14 @@ class TaskPOMS:
         logit.log("found list of submission files:(%s -> %s)" % (pattern, repr(flist)))
 
         submission_log_format = 0
-        if "{}/{}_{}_{}".format(dirname, ds, submission.experimenter_creator_objusername, submission.submission_id) in flist:
+        if "{}/{}_{}_{}".format(dirname, ds, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
             submission_log_format = 3
-        if "{}/{}_{}_{}".format(dirname, ds2, submission.experimenter_creator_objusername, submission.submission_id) in flist:
+        if "{}/{}_{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
             ds = ds2
             submission_log_format = 3
-        elif "{}/{}_{}".format(dirname, ds, submission.experimenter_creator_objusername) in flist:
+        elif "{}/{}_{}".format(dirname, ds, submission.experimenter_creator_obj.username) in flist:
             submission_log_format = 2
-        elif "{}/{}_{}".format(dirname, ds2, submission.experimenter_creator_objusername) in flist:
+        elif "{}/{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.username) in flist:
             ds = ds2
             submission_log_format = 2
         elif "{}/{}".format(dirname, ds) in flist:
