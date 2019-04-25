@@ -61,7 +61,7 @@ from . import (
 from .poms_model import CampaignStage, Submission, Experiment, LoginSetup, Base, Experimenter
 from .utc import utc
 
-from .ctx import Ctx
+from .Ctx import Ctx
 
 class JSONORMEncoder(json.JSONEncoder):
     # This will show up as an error in pylint.   Appears to be a bug in pylint, so its disabled:

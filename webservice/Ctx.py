@@ -1,3 +1,6 @@
+import cherrypy
+from .get_user import get_user
+
 
 # h2. Ctx "Context" class
 
