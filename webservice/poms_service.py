@@ -1051,7 +1051,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def update_submission(self, submission_id, jobsub_job_id, pct_complete=None, status=None, project=None, redirect=None):
-        ctx = Ctx(experiment=experiment, role=role)
+        ctx = Ctx()
         self.permissions.can_modify(ctx, "Submission", item_id=submission_id)
         res = self.taskPOMS.update_submission(ctx, submission_id, jobsub_job_id, status=status, project=project, pct_complete=pct_complete)
         if redirect:
