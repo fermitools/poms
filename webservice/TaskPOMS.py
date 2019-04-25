@@ -301,7 +301,7 @@ class TaskPOMS:
 
         for s in finish_up_submissions:
             res.append("marking submission %s located " % s)
-            self.update_submission_status(ctx.db, s, "Located")
+            self.update_submission_status(ctx, s, "Located")
 
         ctx.db.commit()
 
@@ -658,7 +658,7 @@ class TaskPOMS:
             status = "Completed"
 
         if status is not None:
-            self.update_submission_status(ctx.db, submission_id, status=status)
+            self.update_submission_status(ctx, submission_id, status=status)
 
         ctx.db.commit()
         return "Ok."

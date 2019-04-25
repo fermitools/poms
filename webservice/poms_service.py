@@ -293,7 +293,7 @@ class PomsService:
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def experiment_list(self):
-        ctx = Ctx(experiment=experiment, role=role)
+        ctx = Ctx()
         return list(map((lambda x: x[0]), ctx.db.query(Experiment.experiment).filter(Experiment.active.is_(True)).all()))
 
     # h4. experiment_membership
@@ -1392,7 +1392,7 @@ class PomsService:
     @logit.logstartstop
     def wrapup_tasks(self):
         ctx = Ctx(experiment=experiment, role=role)
-        if not self.permissions.is_superuser(ctx.db, ctx.username):
+        if not self.permissions.is_superuser(ctx):
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         cherrypy.response.headers['Content-Type'] = "text/plain"
         return "\n".join(self.taskPOMS.wrapup_tasks(ctx))
@@ -1430,7 +1430,7 @@ class PomsService:
         if parent_task_id is not None and parent_submission_id is None:
             parent_submission_id = parent_task_id
         self.permissions.can_modify(ctx, "Campaign", item_id=campaign_id)
-        submission_id = self.taskPOMS.get_task_id_for(ctx.db, campaign, user, experiment, command_executed, input_dataset, parent_submission_id, submission_id)
+        submission_id = self.taskPOMS.get_task_id_for(ctx, campaign_id, command_executed, input_dataset, parent_submission_id, submission_id)
         return "Task=%d" % submission_id
 
     # h4. campaign_task_files
