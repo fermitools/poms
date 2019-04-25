@@ -1,5 +1,6 @@
 import cherrypy
 from .get_user import get_user
+from .poms_model import Experimenter
 
 
 # h2. Ctx "Context" class

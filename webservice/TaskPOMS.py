@@ -373,8 +373,8 @@ class TaskPOMS:
         else:
             q = q.filter(CampaignStage.name.like("%%%s%%" % campaign))
 
-        if experiment:
-            q = q.filter(CampaignStage.experiment == experiment)
+        if ctx.experiment:
+            q = q.filter(CampaignStage.experiment == ctx.experiment)
 
         cs = q.first()
         if launch_time:
@@ -564,14 +564,14 @@ class TaskPOMS:
         logit.log("found list of submission files:(%s -> %s)" % (pattern, repr(flist)))
 
         submission_log_format = 0
-        if "{}/{}_{}_{}".format(dirname, ds, submission.experimenter_creator_obj.ctx.usernamename, submission.submission_id) in flist:
+        if "{}/{}_{}_{}".format(dirname, ds, submission.experimenter_creator_objusername, submission.submission_id) in flist:
             submission_log_format = 3
-        if "{}/{}_{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.ctx.usernamename, submission.submission_id) in flist:
+        if "{}/{}_{}_{}".format(dirname, ds2, submission.experimenter_creator_objusername, submission.submission_id) in flist:
             ds = ds2
             submission_log_format = 3
-        elif "{}/{}_{}".format(dirname, ds, submission.experimenter_creator_obj.ctx.usernamename) in flist:
+        elif "{}/{}_{}".format(dirname, ds, submission.experimenter_creator_objusername) in flist:
             submission_log_format = 2
-        elif "{}/{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.ctx.usernamename) in flist:
+        elif "{}/{}_{}".format(dirname, ds2, submission.experimenter_creator_objusername) in flist:
             ds = ds2
             submission_log_format = 2
         elif "{}/{}".format(dirname, ds) in flist:
@@ -1006,10 +1006,10 @@ class TaskPOMS:
         launch_time = datetime.now(utc)
         ds = launch_time.strftime("%Y%m%d_%H%M%S")
         e = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).first()
-        ctx.role = role
+        role = ctx.role
 
         # at the moment we're inconsistent about whether we pass
-        # launcher as a ctx.usernamename or experimenter_id or if its a string
+        # launcher as ausername or experimenter_id or if its a string
         # of the integer or  an integer... sigh
         if str(launcher)[0] in ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"):
             launcher_experimenter = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == int(launcher)).first()
@@ -1033,11 +1033,11 @@ class TaskPOMS:
             exp = experiment
             launch_script = """echo "Environment"; printenv; echo "jobsub is`which jobsub`;  echo "login_setup successful!"""
             outdir = "%s/private/logs/poms/launches/template_tests_%d" % (os.environ["HOME"], int(test_login_setup))
-            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.ctx.usernamename)
+            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenterusername)
             logit.log("trying to record launch in %s" % outfile)
         else:
             outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_stage_id)
-            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.ctx.usernamename)
+            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
             logit.log("trying to record launch in %s" % outfile)
 
             if str(campaign_stage_id)[0] in "0123456789":
@@ -1131,7 +1131,7 @@ class TaskPOMS:
             sandbox = "$HOME"
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
 
-        allheld = self.get_job_launches(ctx.db) == "hold"
+        allheld = self.get_job_launches(ctx) == "hold"
         csheld = bool(cs.hold_experimenter_id)
         proxyheld = ctx.role == "analysis" and not self.has_valid_proxy(proxyfile)
         if allheld or csheld or proxyheld:
@@ -1147,7 +1147,7 @@ class TaskPOMS:
                     "POMS: Queued job launch for %s:%s " % (cs.campaign_obj.name, cs.name),
                     "Due to an invalid proxy, we had to queue a job launch\n"
                     "Please upload a new proxy, and release queued jobs for this campaign",
-                    "%s@fnal.gov" % cs.experimenter_creator_obj.ctx.usernamename,
+                    "%s@fnal.gov" % cs.experimenter_creator_obj.username,
                 )
                 cs.hold_experimenter_id = cs.creator
                 cs.role_held_with = ctx.role
@@ -1265,7 +1265,7 @@ class TaskPOMS:
             'export POMS_CAMPAIGN_NAME="%s"' % ccname,
             "export POMS_PARENT_TASK_ID=%s" % (parent_submission_id if parent_submission_id else ""),
             "export POMS_TASK_ID=%s" % sid,
-            "export POMS_LAUNCHER=%s" % launcher_experimenter.ctx.usernamename,
+            "export POMS_LAUNCHER=%s" % launcher_experimenter.username,
             "export POMS_TEST=%s" % poms_test,
             "export POMS_TASK_DEFINITION_ID=%s" % cdid,
             "export JOBSUB_GROUP=%s" % group,

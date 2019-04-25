@@ -72,9 +72,9 @@ class CampaignsPOMS:
         action = kwargs.pop("action", None)
         logit.log("login_setup_edit: action is: %s , args %s" % (action, repr(kwargs)))
         pcl_call = int(kwargs.pop("pcl_call", 0))
-        pc_ctx.usernamename = kwargs.pop("pc_ctx.usernamename", None)
-        if isinstance(pc_ctx.usernamename, str):
-            pc_ctx.usernamename = pc_ctx.usernamename.strip()
+        pc_username = kwargs.pop("pc_username", None)
+        if isinstance(pc_username, str):
+            pc_username = pc_username.strip()
 
         ae_launch_name = kwargs.get("ae_launch_name", "")
         ae_launch_name = ae_launch_name.strip()
@@ -89,7 +89,7 @@ class CampaignsPOMS:
             raise PermissionError("You are not acting as the right experiment")
 
         if action == "delete":
-            self.poms_service.permissions.can_modify(ctx, "LoginSetup", name=ctx.usernamename, experiment=ctx.experiment)
+            self.poms_service.permissions.can_modify(ctx, "LoginSetup", name=username, experiment=ctx.experiment)
             name = ae_launch_name
             try:
                 ctx.db.query(LoginSetup).filter(
@@ -388,14 +388,7 @@ class CampaignsPOMS:
 
         if len(stages) == 1:
             return self.poms_service.taskPOMS.launch_jobs(
-                ctx.db,
-                ctx.config_get,
-                ctx.headers_get,
-                ctx.sam,
-                ctx.experiment,
-                role,
-                ctx.username,
-                ctx.config_get("base_uploads_dir"),
+                ctx,
                 stages[0][0],
                 launcher,
                 dataset_override,
@@ -1795,7 +1788,7 @@ class CampaignsPOMS:
                 "submission_id": tup.Submission.submission_id,
                 "jobsub_job_id": tup.Submission.jobsub_job_id,
                 "created": tup.Submission.created,
-                "creator": tup.Submission.experimenter_creator_obj.ctx.usernamename,
+                "creator": tup.Submission.experimenter_creator_obj.username,
                 "status": tup.SubmissionStatus.status,
                 "jobsub_cluster": full_jjid[: full_jjid.find("@")],
                 "jobsub_schedd": full_jjid[full_jjid.find("@") + 1 :],
