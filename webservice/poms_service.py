@@ -1422,7 +1422,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def get_submission_id_for(self, campaign, user=None, experiment=None, command_executed="", input_dataset="", parent_task_id=None, task_id=None, parent_submission_id=None, submission_id=None, campaign_id=None, test=None):
-        ctx = Ctx(experiment=experiment, role=role)
+        ctx = Ctx(experiment=experiment)
         if not campaign and campaign_id:
             campaign = campaign_id
         if task_id is not None and submission_id is None:
