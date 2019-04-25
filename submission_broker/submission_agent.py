@@ -52,7 +52,9 @@ class Agent:
 
 
     def __init__(self, poms_uri="http://127.0.0.1:8080/poms/",
-                 submission_uri='https://landscape.fnal.gov/lens/query'):
+                 submission_uri='https://landscape.fnal.gov/lens/query',
+                 submission_uri_dev='https://landscapeitb.fnal.gov/lens/query',
+                ):
 
         '''
             Setup webservice http session objects, uri's to reach things,
@@ -63,7 +65,10 @@ class Agent:
         self.psess = requests.Session()
         self.ssess = requests.Session()
         self.poms_uri = poms_uri
-        self.submission_uri = submission_uri
+        if os.environ.get('HOSTNAME','').find('pomsgpvm') == 0:
+            self.submission_uri = submission_uri
+        else:
+            self.submission_uri = submission_uri_dev
         # biggest time window we should ask LENS for
         self.maxtimedelta = 3600
         self.known = {}
