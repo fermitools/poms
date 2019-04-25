@@ -1391,7 +1391,7 @@ class PomsService:
     @cherrypy.expose
     @logit.logstartstop
     def wrapup_tasks(self):
-        ctx = Ctx(experiment=experiment, role=role)
+        ctx = Ctx()
         if not self.permissions.is_superuser(ctx):
             raise cherrypy.HTTPError(401, 'You are not authorized to access this resource')
         cherrypy.response.headers['Content-Type'] = "text/plain"
