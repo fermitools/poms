@@ -1297,6 +1297,7 @@ class PomsService:
             test=None,
             output_commands=None,
     ):
+        ctx = Ctx(experiment=experiment, role=role)
         if not campaign_stage_id and campaign_id:
             campaign_stage_id = campaign_id
         if not test_login_setup and test_launch_template:
