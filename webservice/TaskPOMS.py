@@ -769,7 +769,6 @@ class TaskPOMS:
 
                 self.launch_jobs(
                     ctx,
-                    s.experimenter_creator_obj.username,
                     cd.provides_campaign_stage_id,
                     s.creator,
                     dataset_override=dname,
@@ -803,7 +802,7 @@ class TaskPOMS:
                 )
             ]
         else:
-            rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(ctx.db, s.job_type_snapshot_obj)
+            rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(ctx, s.job_type_snapshot_obj)
 
         logit.log("recovery list %s" % rlist)
         if s.recovery_position is None:
