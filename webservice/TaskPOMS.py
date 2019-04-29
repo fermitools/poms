@@ -1180,7 +1180,10 @@ class TaskPOMS:
             dbhandle.commit()
             lcmd = ""
 
-            return lcmd, cs, campaign_stage_id, outdir, output
+            if output_commands:
+                return output
+            else:
+                return lcmd, cs, campaign_stage_id, outdir, output
 
         if dataset_override:
             dataset = dataset_override
