@@ -436,11 +436,7 @@ class CampaignsPOMS:
          recoveriy entries, add new ones.  It probably should
          check if they're actually different before doing this..
         """
-        (
-            ctx.db.query(CampaignRecovery)
-            .filter(CampaignRecovery.job_type_id == job_type_id)
-            .delete(synchronize_session=False)
-        )  #
+        (ctx.db.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == job_type_id).delete(synchronize_session=False))  #
         i = 0
         for rtn in json.loads(recoveries):
             rect = rtn[0]
@@ -475,7 +471,9 @@ class CampaignsPOMS:
                 cid = (
                     ctx.db.query(JobType)
                     .filter(
-                        JobType.experiment == ctx.experiment, JobType.name == name, JobType.creator == experimenter.experimenter_id
+                        JobType.experiment == ctx.experiment,
+                        JobType.name == name,
+                        JobType.creator == experimenter.experimenter_id,
                     )
                     .scalar()
                     .job_type_id
@@ -727,7 +725,9 @@ class CampaignsPOMS:
 
         if action == "delete":
             name = kwargs.get("ae_stage_name", kwargs.get("name", None))
-            self.poms_service.permissions.can_modify(ctx, "CampaignStage", name=name, campaign_id=campaign_id, experiment=ctx.experiment)
+            self.poms_service.permissions.can_modify(
+                ctx, "CampaignStage", name=name, campaign_id=campaign_id, experiment=ctx.experiment
+            )
             if isinstance(name, str):
                 name = name.strip()
             if pcl_call == 1:
@@ -959,9 +959,7 @@ class CampaignsPOMS:
                 logit.log(" ".join(exc.args))
                 ctx.db.rollback()
             except SQLAlchemyError as exc:
-                message = (
-                    "SQLAlchemyError: " "Please report this to the administrator." "Message: {}".format(" ".join(exc.args))
-                )
+                message = "SQLAlchemyError: " "Please report this to the administrator." "Message: {}".format(" ".join(exc.args))
                 logit.log(" ".join(exc.args))
                 ctx.db.rollback()
             else:
@@ -1323,9 +1321,7 @@ class CampaignsPOMS:
 
             for c_d in c_dl:
                 if c_d.needs_campaign_stage_id in c_ids and c_d.provides_campaign_stage_id in c_ids:
-                    pdot.stdin.write(
-                        "c_s{:d} -> c_s{:d};\n".format(c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id)
-                    )
+                    pdot.stdin.write("c_s{:d} -> c_s{:d};\n".format(c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
 
             pdot.stdin.write("}\n")
             pdot.stdin.close()
@@ -1465,16 +1461,7 @@ class CampaignsPOMS:
                 last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         return csl, last_activity, msg, data
 
-    def show_campaign_stages(
-        self,
-        ctx,
-        campaign_ids=None,
-        tmin=None,
-        tmax=None,
-        tdays=7,
-        campaign_name=None,
-        **kwargs,
-    ):
+    def show_campaign_stages(self, ctx, campaign_ids=None, tmin=None, tmax=None, tdays=7, campaign_name=None, **kwargs):
         """
             give campaign information about campaign_stages with activity
             in the time window for a given experiment
@@ -1625,9 +1612,7 @@ class CampaignsPOMS:
             )
             .first()
         )
-        campaigns = (
-            ctx.db.query(Campaign).join(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).all()
-        )
+        campaigns = ctx.db.query(Campaign).join(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).all()
 
         launched_campaigns = (
             ctx.db.query(CampaignStageSnapshot).filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id).all()
@@ -1684,14 +1669,7 @@ class CampaignsPOMS:
             recent_submissions,
         )
 
-    def campaign_stage_submissions(
-        self,
-        ctx,
-        campaign_name="",
-        stage_name="",
-        campaign_stage_id=None,
-        campaign_id=None,
-    ):
+    def campaign_stage_submissions(self, ctx, campaign_name="", stage_name="", campaign_stage_id=None, campaign_id=None):
         """
            Show submissions from a campaign stage
         """
@@ -1743,7 +1721,9 @@ class CampaignsPOMS:
         base_link = "campaign_stage_submissions/{}/{}?campaign_name={}&stage_name={}&campaign_stage_id={}&campaign_id={}&".format(
             ctx.experiment, ctx.role, campaign_name, stage_name, campaign_stage_id, campaign_id
         )
-        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(ctx,  base_link)
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(
+            ctx, base_link
+        )
         data = {
             "tmin": tmin,
             "tmax": tmax,
@@ -1815,7 +1795,6 @@ class CampaignsPOMS:
             status = row.SubmissionStatus.status
             rows.append({"created": created, "status": status})
         return rows
-
 
     def get_dataset_for(self, ctx, camp):
         """
@@ -1909,17 +1888,7 @@ class CampaignsPOMS:
         return c_s, job, launch_flist
 
     def update_launch_schedule(
-        self,
-        ctx,
-        campaign_stage_id,
-        dowlist="",
-        domlist="",
-        monthly="",
-        month="",
-        hourlist="",
-        submit="",
-        minlist="",
-        delete="",
+        self, ctx, campaign_stage_id, dowlist="", domlist="", monthly="", month="", hourlist="", submit="", minlist="", delete=""
     ):
         """
             callback for changing the launch schedule
@@ -2268,9 +2237,7 @@ class CampaignsPOMS:
             # form = {k: (form[k] or defaults[k]) for k in form}
             keys = set(defaults.keys()) | set(form.keys())
             form = {k: (form.get(k) or defaults.get(k)) for k in keys}
-            print(
-                "############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(old_name, new_name, clean, form, position)
-            )
+            print("############## i: '{}', l: '{}', c: '{}', f: '{}', p: '{}'".format(old_name, new_name, clean, form, position))
 
             active = form.pop("state", None) in ("True", "true", "1", "Active")
 
@@ -2309,7 +2276,10 @@ class CampaignsPOMS:
                 return {"status": "400 Bad Request", "message": message}
 
             job_type_id = (
-                ctx.db.query(JobType.job_type_id).filter(JobType.experiment == ctx.experiment).filter(JobType.name == job_type).scalar()
+                ctx.db.query(JobType.job_type_id)
+                .filter(JobType.experiment == ctx.experiment)
+                .filter(JobType.name == job_type)
+                .scalar()
                 or ctx.db.query(JobType.job_type_id)
                 .filter(JobType.experiment == "samdev")
                 .filter(JobType.name == job_type)
@@ -2446,7 +2416,7 @@ class CampaignsPOMS:
             .scalar()
         )
 
-    def mark_campaign_active(self, ctx, campaign_id, is_active, camp_l) :
+    def mark_campaign_active(self, ctx, campaign_id, is_active, camp_l):
         logit.log("camp_l={}; is_active='{}'".format(camp_l, is_active))
         auth_error = False
         campaign_ids = (campaign_id or camp_l).split(",")

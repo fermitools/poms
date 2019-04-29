@@ -101,14 +101,14 @@ class SATool(cherrypy.Tool):
         cherrypy.request.samweb_lite = self.samweb_lite
         try:
             # Disabiling pylint false positives
-            self.session.execute("SET SESSION lock_timeout = '360s';") #pylint: disable=E1101
-            self.session.execute("SET SESSION statement_timeout = '240s';") #pylint: disable=E1101
-            self.session.commit() #pylint: disable=E1101
+            self.session.execute("SET SESSION lock_timeout = '360s';")  # pylint: disable=E1101
+            self.session.execute("SET SESSION statement_timeout = '240s';")  # pylint: disable=E1101
+            self.session.commit()  # pylint: disable=E1101
         except sqlalchemy.exc.UnboundExecutionError:
             self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
-            self.session.execute("SET SESSION lock_timeout = '360s';") #pylint: disable=E1101
-            self.session.execute("SET SESSION statement_timeout = '240s';") #pylint: disable=E1101
-            self.session.commit() #pylint: disable=E1101
+            self.session.execute("SET SESSION lock_timeout = '360s';")  # pylint: disable=E1101
+            self.session.execute("SET SESSION statement_timeout = '240s';")  # pylint: disable=E1101
+            self.session.commit()  # pylint: disable=E1101
 
     def release_session(self):
         # flushing here deletes it too soon...

@@ -343,7 +343,6 @@ class samweb_lite:
         return count
 
     def count_files_list(self, experiment, dims_list):
-
         def getit(req, url):
             retries = 2
             r = req.get(url)

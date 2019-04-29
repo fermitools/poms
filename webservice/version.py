@@ -9,9 +9,7 @@ def get_version():
     version = "unknown"
     try:
         devnull = open("/dev/null", "w")
-        proc = subprocess.Popen(
-            ["git", "describe", "--tags", "--abbrev=0"], cwd=codedir, stdout=subprocess.PIPE, stderr=devnull
-        )
+        proc = subprocess.Popen(["git", "describe", "--tags", "--abbrev=0"], cwd=codedir, stdout=subprocess.PIPE, stderr=devnull)
         version = proc.stdout.read()
         devnull.close()
         proc.wait()

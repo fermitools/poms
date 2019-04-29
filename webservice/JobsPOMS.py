@@ -30,15 +30,7 @@ class JobsPOMS:
         cid = j.submission_obj.campaign_stage_snapshot_obj.campaign_stage_id
         ctx.sam.update_project_description(exp, projname, "POMS CampaignStage %s Submission %s" % (cid, sid))
 
-    def kill_jobs(
-        self,
-        campaign_id=None,
-        campaign_stage_id=None,
-        submission_id=None,
-        job_id=None,
-        confirm=None,
-        act="kill",
-    ):
+    def kill_jobs(self, campaign_id=None, campaign_stage_id=None, submission_id=None, job_id=None, confirm=None, act="kill"):
         """
             kill jobs from the campaign, stage, or particular submission
             we want to do this all with --constraint on the POMS4_XXX_ID
@@ -76,8 +68,7 @@ class JobsPOMS:
 
         shq = (
             ctx.db.query(
-                SubmissionHistory.submission_id.label("submission_id"),
-                func.max(SubmissionHistory.status_id).label("max_status"),
+                SubmissionHistory.submission_id.label("submission_id"), func.max(SubmissionHistory.status_id).label("max_status")
             )
             .filter(SubmissionHistory.submission_id == Submission.submission_id)
             .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
@@ -96,20 +87,27 @@ class JobsPOMS:
             jidbits = what
             sids = []
 
-        shq = dbhandle.query(SubmissionHistory.submission_id.label('submission_id'), func.max(SubmissionHistory.status_id).label('max_status')).filter(SubmissionHistory.submission_id == Submission.submission_id).filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4)).group_by(SubmissionHistory.submission_id.label('submission_id'))
+        shq = (
+            dbhandle.query(
+                SubmissionHistory.submission_id.label("submission_id"), func.max(SubmissionHistory.status_id).label("max_status")
+            )
+            .filter(SubmissionHistory.submission_id == Submission.submission_id)
+            .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
+            .group_by(SubmissionHistory.submission_id.label("submission_id"))
+        )
         sq = shq.subquery()
         logit.log("submission history query finds: %s" % repr([x for x in shq.all()]))
         jjidq = jjidq.join(sq, sq.c.submission_id == Submission.submission_id).filter(sq.c.max_status <= 4000)
         rows = jjidq.all()
-  
+
         if rows:
             jjids = [x[0] for x in rows]
             sids = [x[1] for x in rows]
-            jidbits = "--jobid=%s" % ','.join(jjids)
+            jidbits = "--jobid=%s" % ",".join(jjids)
         else:
             jidbits = what
             sids = []
-  
+
         if confirm is None:
             if jidbits != what:
                 what = "%s %s" % (what, jidbits)
@@ -135,7 +133,9 @@ class JobsPOMS:
                 raise SyntaxError("called with unknown action %s" % act)
 
             if ctx.role == "analysis":
-                sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx.config_get("base_uploads_dir"), username, ctx.experiment)
+                sandbox = self.poms_service.filesPOMS.get_launch_sandbox(
+                    ctx.config_get("base_uploads_dir"), username, ctx.experiment
+                )
                 proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (ctx.experiment, username)
             else:
                 sandbox = "$HOME"

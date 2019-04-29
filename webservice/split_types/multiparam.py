@@ -1,5 +1,6 @@
 import json
 
+
 class multiparam:
     """
        This split type assumes you have been given a list of lists of 
@@ -20,6 +21,7 @@ class multiparam:
         
         This split_tpe has a custom editor for the list-of-lists dataset value
     """
+
     def __init__(self, cs, samhandle, dbhandle):
         self.cs = cs
         self.list = json.loads(cs.dataset)
@@ -36,7 +38,7 @@ class multiparam:
             self.cs.cs_last_split = 0
         if self.cs.cs_last_split >= self.len():
             raise StopIteration
-        n = self.cs.cs_last_split 
+        n = self.cs.cs_last_split
         res = []
         i = 0
         for l1 in self.list:
@@ -44,15 +46,15 @@ class multiparam:
             n = n // self.dims[i]
             i = i + 1
 
-        return '_'.join(res)
+        return "_".join(res)
 
     def next(self):
         res = self.peek()
-        self.cs.cs_last_split = self.cs.cs_last_split+1
+        self.cs.cs_last_split = self.cs.cs_last_split + 1
         return res
 
     def prev(self):
-        self.cs.cs_last_split = self.cs.cs_last_split-1
+        self.cs.cs_last_split = self.cs.cs_last_split - 1
         res = self.peek()
         return res
 

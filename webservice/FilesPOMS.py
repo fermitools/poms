@@ -34,32 +34,32 @@ class FilesStatus:
         """ just hook it in """
         self.poms_service = ps
 
-    def campaign_task_files(self, ctx, campaign_stage_id=None, campaign_id=None, ):
-        '''
+    def campaign_task_files(self, ctx, campaign_stage_id=None, campaign_id=None):
+        """
             Report of file counts for campaign stage with links to details
-        '''
-        (tmin, tmax,
-         tmins, tmaxs,
-         nextlink, prevlink,
-         time_range_string, tdays
-        ) = self.poms_service.utilsPOMS.handle_dates(
+        """
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(
             ctx,
-            'campaign_task_files/%s/%s?campaign_stage_id=%s&campaign_id=%s&' % (ctx.experiment, ctx.role, campaign_stage_id, campaign_id))
+            "campaign_task_files/%s/%s?campaign_stage_id=%s&campaign_id=%s&"
+            % (ctx.experiment, ctx.role, campaign_stage_id, campaign_id),
+        )
 
         # inhale all the campaign related task info for the time window
         # in one fell swoop
 
-        q = (ctx.db.query(Submission) #
-             .options(joinedload(Submission.campaign_stage_snapshot_obj))
-             .filter(Submission.created >= tmin, Submission.created < tmax))
+        q = (
+            ctx.db.query(Submission)  #
+            .options(joinedload(Submission.campaign_stage_snapshot_obj))
+            .filter(Submission.created >= tmin, Submission.created < tmax)
+        )
 
-        if campaign_stage_id not in ['', None, 'None']:
+        if campaign_stage_id not in ["", None, "None"]:
             q = q.filter(Submission.campaign_stage_id == campaign_stage_id)
 
-        elif campaign_id not in ['', None, 'None']:
-            q = (q.join(CampaignStage,
-                        Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
-                 .filter(CampaignStage.campaign_id == campaign_id))
+        elif campaign_id not in ["", None, "None"]:
+            q = q.join(CampaignStage, Submission.campaign_stage_id == CampaignStage.campaign_stage_id).filter(
+                CampaignStage.campaign_id == campaign_id
+            )
         else:
             return {}, {}, [], tmins, tmaxs, prevlink, nextlink, tdays
 
@@ -102,10 +102,10 @@ class FilesStatus:
 
             allkiddecldims = basedims
             allkiddims = basedims
-            for pat in str(s.job_type_snapshot_obj.output_file_patterns).split(','):
-                if pat == 'None':
-                    pat = '%'
-                if pat.find(' ') > 0:
+            for pat in str(s.job_type_snapshot_obj.output_file_patterns).split(","):
+                if pat == "None":
+                    pat = "%"
+                if pat.find(" ") > 0:
                     dimbits = pat
                 else:
                     dimbits = "file_name like '%s'" % pat
@@ -125,7 +125,7 @@ class FilesStatus:
                 )
                 outputfiledims = "ischildof: ( %s ) and create_date > '%s' and  %s and version '%s'" % (
                     basedims,
-                    s.created.strftime('%Y-%m-%d %H:%M:%S'),
+                    s.created.strftime("%Y-%m-%d %H:%M:%S"),
                     dimbits,
                     s.campaign_stage_snapshot_obj.software_version,
                 )
@@ -142,19 +142,23 @@ class FilesStatus:
         all_kids_decl_list = ctx.sam.count_files_list(cs.experiment, all_kids_decl_needed)
         # all_kids_list = ctx.sam.count_files_list(cs.experiment, all_kids_needed)
 
-        columns = ["campign<br>stage",
-                   "submission<br>jobsub_jobid",
-                   "project",
-                   "date",
-                   "available<br>output",
-                   "submit-<br>ted",
-                   "deliv-<br>ered<br>SAM",
-                   "unknown<br>SAM",
-                   "con-<br>sumed", "failed", "skipped",
-                   "w/some kids<br>declared",
-                   "w/all kids<br>declared",
-                   "w/kids<br>located",
-                   "pending"]
+        columns = [
+            "campign<br>stage",
+            "submission<br>jobsub_jobid",
+            "project",
+            "date",
+            "available<br>output",
+            "submit-<br>ted",
+            "deliv-<br>ered<br>SAM",
+            "unknown<br>SAM",
+            "con-<br>sumed",
+            "failed",
+            "skipped",
+            "w/some kids<br>declared",
+            "w/all kids<br>declared",
+            "w/kids<br>located",
+            "pending",
+        ]
 
         listfiles = "../../show_dimension_files/%s/%s?dims=%%s" % (cs.experiment, ctx.role)
         datarows = deque()
@@ -163,8 +167,7 @@ class FilesStatus:
             logit.log("task %d" % s.submission_id)
             i = i + 1
             psummary = summary_list[i]
-            partpending = psummary.get(
-                'files_in_snapshot', 0) - some_kids_list[i]
+            partpending = psummary.get("files_in_snapshot", 0) - some_kids_list[i]
             # pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
             pending = partpending
 
@@ -173,9 +176,14 @@ class FilesStatus:
                 task_jobsub_job_id = "s%s" % s.submission_id
             datarows.append(
                 [
-                    [s.campaign_stage_obj.name, "../../campaign_stage_info/%s/%s?campaign_stage_id=%s" % (ctx.experiment, ctx.role, s.campaign_stage_id)],
-                    [task_jobsub_job_id.replace('@', '@<br>'),
-                     "../../submission_details/%s/%s/?submission_id=%s" % (ctx.experiment, ctx.role, s.submission_id)],
+                    [
+                        s.campaign_stage_obj.name,
+                        "../../campaign_stage_info/%s/%s?campaign_stage_id=%s" % (ctx.experiment, ctx.role, s.campaign_stage_id),
+                    ],
+                    [
+                        task_jobsub_job_id.replace("@", "@<br>"),
+                        "../../submission_details/%s/%s/?submission_id=%s" % (ctx.experiment, ctx.role, s.submission_id),
+                    ],
                     [
                         s.project,
                         "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s"
@@ -183,21 +191,21 @@ class FilesStatus:
                     ],
                     [s.created.strftime("%Y-%m-%d %H:%M"), None],
                     [output_list[i], listfiles % output_files[i]],
-                    [psummary.get('files_in_snapshot', 0), listfiles % base_dim_list[i]],
+                    [psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
                     [
                         "%d"
                         % (
-                            psummary.get('tot_consumed', 0)
-                            + psummary.get('tot_failed', 0)
-                            + psummary.get('tot_skipped', 0)
-                            + psummary.get('tot_delivered', 0)
+                            psummary.get("tot_consumed", 0)
+                            + psummary.get("tot_failed", 0)
+                            + psummary.get("tot_skipped", 0)
+                            + psummary.get("tot_delivered", 0)
                         ),
                         listfiles % base_dim_list[i] + " and consumed_status consumed,failed,skipped,delivered ",
                     ],
-                    ["%d" % psummary.get('tot_unknown', 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
-                    [psummary.get('tot_consumed', 0), listfiles % base_dim_list[i] + " and consumed_status consumed"],
-                    [psummary.get('tot_failed', 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
-                    [psummary.get('tot_skipped', 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
+                    ["%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
+                    [psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status consumed"],
+                    [psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
+                    [psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
                     [some_kids_decl_list[i], listfiles % some_kids_needed[i]],
                     [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
                     [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
@@ -217,7 +225,7 @@ class FilesStatus:
     @pomscache.cache_on_arguments()
     def get_pending_dict_for_campaigns(self, ctx, campaign_id_list):
         if isinstance(campaign_id_list, str):
-            campaign_id_list = [cid for cid in campaign_id_list.split(',') if cid]
+            campaign_id_list = [cid for cid in campaign_id_list.split(",") if cid]
         dl, cl = self.get_pending_for_campaigns(ctx, campaign_id_list)
         res = {cid: cs for cid, cs in zip(campaign_id_list, cl)}
         logit.log("get_pending_dict_for_campaigns returning: " + repr(res))
@@ -229,14 +237,15 @@ class FilesStatus:
 
         logit.log("in get_pending_for_campaigns, tmin %s tmax %s" % (ctx.tmin, ctx.tmax))
         if isinstance(campaign_id_list, str):
-            campaign_id_list = [cid for cid in campaign_id_list.split(',') if cid]
+            campaign_id_list = [cid for cid in campaign_id_list.split(",") if cid]
 
-        task_list = (ctx.db.query(Submission) #
-                     .options(joinedload(Submission.campaign_stage_snapshot_obj))
-                     .options(joinedload(Submission.job_type_snapshot_obj))
-                     .filter(Submission.campaign_stage_id.in_(campaign_id_list),
-                            Submission.created >= tmin, Submission.created < tmax)
-                     .all())
+        task_list = (
+            ctx.db.query(Submission)  #
+            .options(joinedload(Submission.campaign_stage_snapshot_obj))
+            .options(joinedload(Submission.job_type_snapshot_obj))
+            .filter(Submission.campaign_stage_id.in_(campaign_id_list), Submission.created >= tmin, Submission.created < tmax)
+            .all()
+        )
 
         # To prepare the list of task lists
         tll = defaultdict(lambda: [])
@@ -253,7 +262,7 @@ class FilesStatus:
 
     @staticmethod
     def get_pending_dims_for_task_lists(ctx, task_list_list):
-        reason = 'no_project_info'
+        reason = "no_project_info"
         now = datetime.now(utc)
         twodays = timedelta(days=2)
         dimlist = deque()
@@ -264,12 +273,12 @@ class FilesStatus:
             diml = ["("]
             for task in tl:
 
-                if task.project is None or task.status == 'Located':
-                    if task.status == 'Located':
-                        reason = 'all_located'
-                        fakename = 'located'
+                if task.project is None or task.status == "Located":
+                    if task.status == "Located":
+                        reason = "all_located"
+                        fakename = "located"
                     else:
-                        fakename = 'no_proj'
+                        fakename = "no_proj"
                     # no project/ old projects have no counts, so short-circuit
                     diml.append("(file_name __%s__ )" % fakename)
                     diml.append("union")
@@ -278,7 +287,7 @@ class FilesStatus:
                 diml.append("(snapshot_for_project_name %s" % task.project)
                 diml.append("minus ( snapshot_for_project_name %s and (" % task.project)
                 sep = ""
-                for pat in str(task.job_type_snapshot_obj.output_file_patterns).split(','):
+                for pat in str(task.job_type_snapshot_obj.output_file_patterns).split(","):
                     if pat == "None":
                         pat = "%"
                     diml.append(sep)
@@ -321,7 +330,7 @@ class FilesStatus:
         ckuser = ctx.username
         if checkuser is not None:
             ckuser = checkuser
-        flist = glob.glob(self.get_file_upload_path(ctx.config_get("base_uploads_dir"), ckuser, ctx.experiment, '*'))
+        flist = glob.glob(self.get_file_upload_path(ctx.config_get("base_uploads_dir"), ckuser, ctx.experiment, "*"))
         file_stat_list = []
         total = 0
         for fname in flist:
@@ -329,12 +338,12 @@ class FilesStatus:
             uploaded = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.localtime(statout.st_mtime))
             file_stat_list.append([os.path.basename(fname), statout.st_size, uploaded])
             total += statout.st_size
-        experimenters = (ctx.db.query(Experimenter, ExperimentsExperimenters) #
-                         .join(ExperimentsExperimenters.experimenter_obj)
-                         .filter(ExperimentsExperimenters.experiment == ctx.experiment)
-                        ).all()
+        experimenters = (
+            ctx.db.query(Experimenter, ExperimentsExperimenters)  #
+            .join(ExperimentsExperimenters.experimenter_obj)
+            .filter(ExperimentsExperimenters.experiment == ctx.experiment)
+        ).all()
         return file_stat_list, total, experimenters
-
 
     def upload_file(self, ctx, quota, filename):
         logit.log("upload_file: entry")
@@ -366,8 +375,7 @@ class FilesStatus:
             fstatlist, total, experimenters = self.file_uploads(ctx.config_get("base_uploads_dir"), experiment, username, ctx.db)
             if total > quota:
                 os.unlink(outf)
-                raise ValueError("Upload exeeds quota of %d kbi" % quota/1024)
-
+                raise ValueError("Upload exeeds quota of %d kbi" % quota / 1024)
 
     def remove_uploaded_files(self, ctx, filename, action=None):
         # if there's only one entry the web page will not send a list...
@@ -384,11 +392,11 @@ class FilesStatus:
 
     def get_launch_sandbox(self, ctx):
 
-        uploads = self.get_file_upload_path(ctx, '')
+        uploads = self.get_file_upload_path(ctx, "")
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
         sandbox = "%s/sandboxes/%s" % (ctx.config_get("base_uploads_dir"), str(uu))
         os.makedirs(sandbox, exist_ok=False)
-        upload_path = self.get_file_upload_path(ctx, '*')
+        upload_path = self.get_file_upload_path(ctx, "*")
         logit.log("get_launch_sandbox linking items from upload_path %s into %s" % (upload_path, sandbox))
         flist = glob.glob(upload_path)
         for f in flist:

@@ -1,10 +1,10 @@
-
 class draining:
     """
        This type just always returns the same dataset name forever
        assuming you have a draining/recursive definition that gives
        you the work remaining to be done.
     """
+
     def __init__(self, cs, samhandle, dbhandle):
         self.only = cs.dataset
 

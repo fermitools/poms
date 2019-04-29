@@ -335,7 +335,7 @@ class TaskPOMS:
             # the current task in the role of the submission
             # so launch actions get done as them.
 
-            if not self.launch_recovery_if_needed(ctx,submission, None):
+            if not self.launch_recovery_if_needed(ctx, submission, None):
                 self.launch_dependents_if_needed(ctx, submission)
 
         return res
@@ -386,7 +386,7 @@ class TaskPOMS:
 
             s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
             s.command_executed = command_executed
-            if ctx.username != 'poms':
+            if ctx.username != "poms":
                 s.creator = ctx.get_experimenter().experimenter_id
 
             s.updated = tim
@@ -675,14 +675,7 @@ class TaskPOMS:
                 cs.campaign_stage_id,
                 "campaign_stage_snapshot_obj",
             ],
-            [
-                JobType,
-                JobTypeSnapshot,
-                JobType.job_type_id,
-                JobTypeSnapshot.job_type_id,
-                cs.job_type_id,
-                "job_type_snapshot_obj",
-            ],
+            [JobType, JobTypeSnapshot, JobType.job_type_id, JobTypeSnapshot.job_type_id, cs.job_type_id, "job_type_snapshot_obj"],
             [
                 LoginSetup,
                 LoginSetupSnapshot,
@@ -767,13 +760,7 @@ class TaskPOMS:
 
                 logit.log("About to launch jobs, test_launch = %s" % test_launch)
 
-                self.launch_jobs(
-                    ctx,
-                    cd.provides_campaign_stage_id,
-                    s.creator,
-                    dataset_override=dname,
-                    test_launch=test_launch,
-                )
+                self.launch_jobs(ctx, cd.provides_campaign_stage_id, s.creator, dataset_override=dname, test_launch=test_launch)
         return 1
 
     def launch_recovery_if_needed(self, ctx, s, recovery_type_override=None):
@@ -1183,12 +1170,7 @@ class TaskPOMS:
             poms_test = "1"
 
         # allocate task to set ownership
-        sid = self.get_task_id_for(
-            ctx,
-            campaign_stage_id,
-            parent_submission_id=parent_submission_id,
-            launch_time=launch_time,
-        )
+        sid = self.get_task_id_for(ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time)
 
         if sid:
             outfile = "%s_%d" % (outfile, sid)
