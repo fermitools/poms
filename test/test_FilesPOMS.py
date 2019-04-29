@@ -2,6 +2,7 @@ import DBHandle
 from mock_Ctx import Ctx
 import datetime
 import time
+import io
 
 # from utc import utc
 import os
@@ -49,6 +50,11 @@ ctx = Ctx(sam=samhandle, experiment=experiment, db="None")
 dims = "fake dimension string"
 
 
+class mock_cherrypy_file:
+    def __init__(self, name="foo", contents=b"This is a test"):
+        self.filename=name
+        self.file = io.BytesIO(contents)
+
 def test_show_dimension_files():
 
     res = mps.filesPOMS.show_dimension_files(ctx, dims)
@@ -61,6 +67,21 @@ def test_show_dimension_files():
     ctx.sam.list_files.assert_called_with(experiment, dims, dbhandle="None")
     assert res.find("fake_list_files") >= 0
 
+
+def test_upload_file_and_upload_path():
+    fname = "foo"
+    testdata = b"test data\n"
+    mcf = mock_cherrypy_file(name=fname)
+    path = mps.filesPOMS.get_file_upload_path(Ctx(), fname)
+    try:
+        os.unlink(path)
+    except:
+        pass
+    res = mps.filesPOMS.upload_file(ctx, 1024, mcf)
+    assert(os.access(path,'r'))
+    with open(path,"r") as f:
+        assert(f.read() == testdata)
+     
 
 """
 Not implemented yet:
@@ -76,14 +97,9 @@ def test_get_pending_dims_for_task_lists():
 def test_get_pending_for_task_lists():
     res = mps.filesPOMS.get_pending_for_task_lists(ctx, task_list_list)
 
-def test_get_file_upload_path():
-    res = mps.filesPOMS.get_file_upload_path(ctx, filename)
 
 def test_file_uploads():
     res = mps.filesPOMS.file_uploads(ctx, checkuser=None)
-
-def test_upload_file():
-    res = mps.filesPOMS.upload_file(ctx, quota, filename)
 
 def test_remove_uploaded_files():
     res = mps.filesPOMS.remove_uploaded_files(ctx, filename, action=None)

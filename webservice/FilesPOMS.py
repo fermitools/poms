@@ -329,8 +329,11 @@ class FilesStatus:
     def file_uploads(self, ctx, checkuser=None):
         ckuser = ctx.username
         if checkuser is not None:
-            ckuser = checkuser
-        flist = glob.glob(self.get_file_upload_path(ctx.config_get("base_uploads_dir"), ckuser, ctx.experiment, "*"))
+            save = ctx.username
+            ctx.username = checkuser
+        flist = glob.glob(self.get_file_upload_path(ctx, "*"))
+        if checkuser is not None:
+            ctx.username = save
         file_stat_list = []
         total = 0
         for fname in flist:
@@ -359,7 +362,7 @@ class FilesStatus:
 
         for filename in filenames:
             logit.log("upload_file: filename: %s" % filename.filename)
-            outf = self.get_file_upload_path(ctx.config_get("base_uploads_dir"), username, ctx.experiment, filename.filename)
+            outf = self.get_file_upload_path(ctx, filename.filename)
             logit.log("upload_file: outf: %s" % outf)
             os.makedirs(os.path.dirname(outf), exist_ok=True)
             f = open(outf, "wb")
@@ -372,7 +375,7 @@ class FilesStatus:
                 size += len(data)
             f.close()
             logit.log("upload_file: closed")
-            fstatlist, total, experimenters = self.file_uploads(ctx.config_get("base_uploads_dir"), experiment, username, ctx.db)
+            fstatlist, total, experimenters = self.file_uploads(ctx)
             if total > quota:
                 os.unlink(outf)
                 raise ValueError("Upload exeeds quota of %d kbi" % quota / 1024)
