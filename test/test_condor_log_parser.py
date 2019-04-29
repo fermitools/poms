@@ -4,8 +4,9 @@ from mock_stubs import getconfig
 
 dbh = DBHandle.DBHandle()
 
-cert = getconfig('elasticsearch_cert'),
-key =  getconfig('elasticsearch_key'),
+cert = (getconfig("elasticsearch_cert"),)
+key = (getconfig("elasticsearch_key"),)
+
 
 def test_condor_log_parser():
     jobsub_job_id = "18771837.0@jobsub02.fnal.gov"

@@ -14,63 +14,74 @@ from mock_poms_service import mock_poms_service
 from mock_redirect import mock_redirect_exception
 import Mock_jobsub_rm
 import logging
-logger = logging.getLogger('cherrypy.error')
+
+logger = logging.getLogger("cherrypy.error")
 # when I get one...
 
 mps = mock_poms_service()
-mock_rm=Mock_jobsub_rm.Mock_jobsub_rm()
+mock_rm = Mock_jobsub_rm.Mock_jobsub_rm()
 
 rpstatus = "200"
 ########
-
 
 
 def test_kill_jobs():
     ##Calling the DB and SAM handles methods.
     dbhandle = DBHandle.DBHandle().get()
     samhandle = samweb_lite()
-    #mock_rm=Mock_jobsub_rm.Mock_jobsub_rm()
-    #Two submission_id for the same campaign
-    submission_id = mps.taskPOMS.get_task_id_for(dbhandle,user='mengel',experiment='samdev', campaign='14') #Provide a submission_id for the fake campaign
-    task_id2 = mps.taskPOMS.get_task_id_for(dbhandle,user='mengel',experiment='samdev', campaign='14') #Provide a submission_id for the second task
+    # mock_rm=Mock_jobsub_rm.Mock_jobsub_rm()
+    # Two submission_id for the same campaign
+    submission_id = mps.taskPOMS.get_task_id_for(
+        dbhandle, user="mengel", experiment="samdev", campaign="14"
+    )  # Provide a submission_id for the fake campaign
+    task_id2 = mps.taskPOMS.get_task_id_for(
+        dbhandle, user="mengel", experiment="samdev", campaign="14"
+    )  # Provide a submission_id for the second task
     jid_n = time.time()
 
-    jid1 = "%d.0@fakebatch1.fnal.gov" % jid_n  #1 Job in the first submission_id
-    mps.taskPOMS.update_submission(dbhandle, submission_id = submission_id, jobsub_job_id = jid1, status = 'Running')
-    jid3 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 2) #3Job in a new submission_id but same campaign
-    mps.taskPOMS.update_submission(dbhandle, submission_id = task_id2, jobsub_job_id = jid3,  status = 'Running')
+    jid1 = "%d.0@fakebatch1.fnal.gov" % jid_n  # 1 Job in the first submission_id
+    mps.taskPOMS.update_submission(dbhandle, submission_id=submission_id, jobsub_job_id=jid1, status="Running")
+    jid3 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 2)  # 3Job in a new submission_id but same campaign
+    mps.taskPOMS.update_submission(dbhandle, submission_id=task_id2, jobsub_job_id=jid3, status="Running")
 
-    #Control arguments
-    c_arg="-G fermilab --role Analysis --jobid "
-    c_output_killjob = jid1 #Control output
-    c_output_killTask = [jid1.replace('.0','')] #Control output #it is going to kill the task just killing the first job without .0, cluster.
-    c_output_killCampaign =[jid1.replace('.0',''),jid3.replace('.0','')] #Control output it is going to kill the CampaignStage just killing the first job without of each submission_id
+    # Control arguments
+    c_arg = "-G fermilab --role Analysis --jobid "
+    c_output_killjob = jid1  # Control output
+    c_output_killTask = [
+        jid1.replace(".0", "")
+    ]  # Control output #it is going to kill the task just killing the first job without .0, cluster.
+    c_output_killCampaign = [
+        jid1.replace(".0", ""),
+        jid3.replace(".0", ""),
+    ]  # Control output it is going to kill the CampaignStage just killing the first job without of each submission_id
 
+    # Calls to the rutine under test.
+    output_killTask, c_obje_T, c_idr_T, task_idr_T, job_idr_T = mps.jobsPOMS.kill_jobs(
+        dbhandle, camp_seshandle.get, submission_id=submission_id, confirm="yes", act="kill"
+    )  # all task
+    output_killCampaign, c_obje_C, c_idr_C, task_idr_C, job_idr_C = mps.jobsPOMS.kill_jobs(
+        dbhandle, camp_seshandle.get, campaign_stage_id="14", confirm="yes", act="kill"
+    )  # all campaign
 
-    #Calls to the rutine under test.
-    output_killTask, c_obje_T, c_idr_T, task_idr_T, job_idr_T = mps.jobsPOMS.kill_jobs(dbhandle, camp_seshandle.get, submission_id=submission_id, confirm = "yes", act="kill") #all task
-    output_killCampaign, c_obje_C, c_idr_C, task_idr_C, job_idr_C = mps.jobsPOMS.kill_jobs(dbhandle, camp_seshandle.get, campaign_stage_id='14', confirm = "yes", act="kill") #all campaign
-
-    #Check kill jobs in one task
+    # Check kill jobs in one task
 
     print("got output:", output_killTask)
-    assert(output_killTask.rfind('--constraint=POMS4_SUBMISSION') > 0)
-    assert(output_killTask.rfind('=%d'%submission_id) > 0)
+    assert output_killTask.rfind("--constraint=POMS4_SUBMISSION") > 0
+    assert output_killTask.rfind("=%d" % submission_id) > 0
 
     # we may have jobs besides the ones we just added in the task , just do ours..
 
-    #Check kill all jobs in one CampaignStage,  that also prof that the job market as completed is not killed.
+    # Check kill all jobs in one CampaignStage,  that also prof that the job market as completed is not killed.
     print("got output:", output_killCampaign)
-    assert(output_killCampaign.rfind('--constraint=POMS4_CAMPAIGN') > 0)
-    assert(output_killCampaign.rfind('=14') > 0)
+    assert output_killCampaign.rfind("--constraint=POMS4_CAMPAIGN") > 0
+    assert output_killCampaign.rfind("=14") > 0
 
     # there may be *other* jobs in this campaign than the ones we added in this test
 
-
-    #Closing the mock
+    # Closing the mock
     mock_rm.close()
 
-    '''
+    """
     Verbosity not necessary
     Checking variables, no necessary for the test.
     print "$$"*20
@@ -111,5 +122,4 @@ def test_kill_jobs():
     for x in job_obj_db:
         print x.jobsub_job_id
     print "#"*10
-    '''
-
+    """

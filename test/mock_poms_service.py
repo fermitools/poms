@@ -1,10 +1,9 @@
 import socket
 
-from poms.webservice import  CampaignsPOMS, DBadminPOMS, FilesPOMS, TablesPOMS, TagsPOMS, TaskPOMS, UtilsPOMS, JobsPOMS
+from poms.webservice import CampaignsPOMS, DBadminPOMS, FilesPOMS, TablesPOMS, TagsPOMS, TaskPOMS, UtilsPOMS, JobsPOMS
 
 
 class mock_poms_service(object):
-
     def __init__(self):
         self.path = "/xyzzy"
         self.hostname = socket.getfqdn()
