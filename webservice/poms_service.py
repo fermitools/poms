@@ -1150,7 +1150,8 @@ class PomsService:
 
         lcmd, cs, campaign_stage_id, outdir, outfile = vals
         if lcmd == "":
-            return "Launches held, job queued..."
+            cherrypy.response.headers['Content-Type'] = "text/plain"
+            return "Launches held, job queued...\n" + outfile
         else:
             raise cherrypy.HTTPRedirect(
                     "%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (self.path, campaign_stage_id, os.path.basename(outfile)))
@@ -1210,6 +1211,7 @@ class PomsService:
 
         lcmd, cs, campaign_stage_id, outdir, outfile = vals
         if lcmd == "":
+            cherrypy.response.headers['Content-Type'] = "text/plain"
             return outfile
         else:
             if test_login_setup:
