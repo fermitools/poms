@@ -288,12 +288,12 @@ json_field_editor.save = function(fid) {
     }
     id = fid.replace('edit_form_', '');
     dest = document.getElementById(id);
-    dest.value = JSON.stringify(res).replace(/([,])/g,'$1 ');      // To comply with Python json.dumps() format
+    dest.value = JSON.stringify(res).replace(/","/g,'", "');      // To comply with Python json.dumps() format
     /* also update xxx_text if there is one */
     console.log(["updating", id, dest, res]);
     dest = document.getElementById(id + '_text');
     if (dest) {
-        dest.value = JSON.stringify(res).replace(/([,])/g,'$1 ');  // To comply with Python json.dumps() format
+        dest.value = JSON.stringify(res).replace(/","/g,'", "');  // To comply with Python json.dumps() format
         console.log(["also updating", id+'_text', dest, res]);
     }
     json_field_editor.cancel(fid);
