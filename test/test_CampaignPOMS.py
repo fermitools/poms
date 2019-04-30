@@ -1,21 +1,23 @@
-
 from mock_Ctx import Ctx
 from mock_poms_service import mock_poms_service
 from poms.webservice.samweb_lite import samweb_lite
 
-samhandle=samweb_lite()
+samhandle = samweb_lite()
 fp = mock_poms_service()
+
 
 def test_get_campaign_id():
     ctx = Ctx(sam=samhandle)
     campaign_name = "mwm_test_9"
     res = fp.campaignsPOMS.get_campaign_id(ctx, campaign_name)
-    assert(res != None)
+    assert res != None
+
 
 def test_get_campaign_name():
     ctx = Ctx(sam=samhandle)
     campaign_id = 700
     res = fp.campaignsPOMS.get_campaign_name(ctx, campaign_id)
+
 
 """
 Not yet implemented
