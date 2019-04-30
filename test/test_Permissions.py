@@ -18,23 +18,23 @@ ctx = Ctx(db=dbhandle)
 
 
 def test_is_superuser():
-    ctx.username="mengel"
+    ctx.username = "mengel"
     assert p.is_superuser(ctx)
-    ctx.username="pbuitrag"
+    ctx.username = "pbuitrag"
     assert not p.is_superuser(ctx)
-    ctx.username="mengel"
+    ctx.username = "mengel"
 
 
 def item_role(t, id):
 
-    ctx.username="mengel"
+    ctx.username = "mengel"
     p.can_view(ctx, t, item_id=id)
 
     # these should raise PermissionError and not get to the assert
     # we pick on Paola 'cause shes not here anymore, but is still in
     # the database ;-)
     try:
-        ctx.username="pbuitrag"
+        ctx.username = "pbuitrag"
         p.can_view(ctx, t, item_id=id)
         assert False
     except PermissionError:
@@ -43,7 +43,7 @@ def item_role(t, id):
         raise
 
     try:
-        ctx.username="pbuitrag"
+        ctx.username = "pbuitrag"
         p.can_view(ctx, t, item_id=id)
         assert False
     except PermissionError:

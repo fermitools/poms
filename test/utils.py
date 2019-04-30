@@ -115,8 +115,6 @@ def get_base_url():
 def setUpPoms():
     print("************* SETTING UP POMS *************")
     try:
-        # proc = subprocess.Popen("cd ../ && source /fnal/ups/etc/setups.sh && setup -. poms && cd webservice/ && python service.py --no-wsgi",
-        #                         shell=True)
         f = open("webservice.out", "w")
         proc = subprocess.Popen(
             ["python", "../webservice/service.py", "--no-wsgi", "-cs", "../webservice/poms.ini"], stdout=f, stderr=f

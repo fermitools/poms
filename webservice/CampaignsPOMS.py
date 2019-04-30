@@ -1461,14 +1461,14 @@ class CampaignsPOMS:
                 last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         return csl, last_activity, msg, data
 
-    def show_campaign_stages(self, ctx, campaign_ids=None, tmin=None, tmax=None, tdays=7, campaign_name=None, **kwargs):
+    def show_campaign_stages(self, ctx, campaign_ids=None, campaign_name=None, **kwargs):
         """
             give campaign information about campaign_stages with activity
             in the time window for a given experiment
         :rtype: object
         """
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(
-            tmin, tmax, tdays, "show_campaign_stages/%s/%s?" % (ctx.experiment, ctx.role)
+            ctx, "show_campaign_stages/%s/%s?" % (ctx.experiment, ctx.role)
         )
         experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).first()
 
@@ -1714,9 +1714,10 @@ class CampaignsPOMS:
         if not (ctx.tmin or ctx.tmax or ctx.tdays):
             logit.log("=== no time info, picking...")
             crows = ctx.db.query(CampaignStage.created).filter(CampaignStage.campaign_stage_id.in_(campaign_stage_ids)).all()
-            ctx.tmin = crows[0][0].strftime("%Y-%m-%d %H:%M:%S")
-            ctx.tmax = datetime.now(utc).strftime("%Y-%m-%d %H:%M:%S")
-            logit.log("picking campaign date range %s .. %s" % (ctx.tmin, ctx.tmax))
+            if crows:
+                ctx.tmin = crows[0][0].strftime("%Y-%m-%d %H:%M:%S")
+                ctx.tmax = datetime.now(utc).strftime("%Y-%m-%d %H:%M:%S")
+                logit.log("picking campaign date range %s .. %s" % (ctx.tmin, ctx.tmax))
 
         base_link = "campaign_stage_submissions/{}/{}?campaign_name={}&stage_name={}&campaign_stage_id={}&campaign_id={}&".format(
             ctx.experiment, ctx.role, campaign_name, stage_name, campaign_stage_id, campaign_id

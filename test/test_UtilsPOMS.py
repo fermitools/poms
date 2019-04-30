@@ -16,6 +16,7 @@ from mock_redirect import mock_redirect_exception
 
 mp_service = mock_poms_service()
 
+
 @pytest.fixture(scope="session")
 def dbhandle():
     return DBHandle.DBHandle()
@@ -45,7 +46,7 @@ def test_handle_dates_2(utils_poms):
     now = datetime.datetime.now(utc)
     ctx = Ctx(tdays="7")
 
-    (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays) = utils_poms.handle_dates( ctx, baseurl="foo/")
+    (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays) = utils_poms.handle_dates(ctx, baseurl="foo/")
 
     assert tdays == 7
     assert tmax - tmin == datetime.timedelta(days=7)
@@ -57,7 +58,7 @@ def test_handle_dates_3(utils_poms):
     now = datetime.datetime.now(utc)
     ctx = Ctx(tdays="7")
 
-    (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays) = utils_poms.handle_dates( ctx, baseurl="foo/")
+    (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays) = utils_poms.handle_dates(ctx, baseurl="foo/")
 
     assert tmax - tmin == datetime.timedelta(days=7)
     assert now - tmax < datetime.timedelta(seconds=1)
@@ -99,9 +100,9 @@ def test_handle_dates_picker(utils_poms):
     # it was, so we need tmax and tmin to trump and recompute tdays...
 
     now = datetime.datetime.now(utc)
-    ctx =Ctx(tmax=str(now), tmin=str(now - datetime.timedelta(days=2)), tdays="4")
+    ctx = Ctx(tmax=str(now), tmin=str(now - datetime.timedelta(days=2)), tdays="4")
 
-    (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays) = utils_poms.handle_dates( ctx, baseurl="foo/")
+    (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays) = utils_poms.handle_dates(ctx, baseurl="foo/")
     print(trange)
     print(nextlink)
     print(prevlink)
