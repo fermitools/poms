@@ -114,6 +114,7 @@ class samweb_lite:
         if not experiment or not defname or defname == "None":
             return -1
 
+        res = None
         base = "https://samweb.fnal.gov:8483"
         url = "%s/sam/%s/api/definitions/name/%s/snapshot" % (base, experiment, defname)
 
@@ -136,7 +137,10 @@ class samweb_lite:
                 logit.log("ERROR", "Exception taking snapshot: %s" % e)
             time.sleep(1)
 
-        return res.text
+        if res:
+            return int(res.text)
+        else:
+            return -1
 
     def recovery_dimensions(self, experiment, projid, useprocess=0, dbhandle=None):
         if not experiment or not projid or projid == "None":

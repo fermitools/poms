@@ -9,6 +9,7 @@ from os.path import basename
 import os
 
 from mock_stubs import gethead, launch_seshandle, camp_seshandle, err_res, getconfig
+from mock_Ctx import Ctx
 
 sesshandle = camp_seshandle
 samhandle = samweb_lite()
@@ -50,6 +51,7 @@ config = utils.get_config()
 def make_split(ds, split, should_hit_end):
     def test_splits():
 
+        ctx = Ctx(db=dbhandle, sam=samhandle)
         myds = ds
         check_end = should_hit_end
         if should_hit_end == 2:
@@ -66,14 +68,14 @@ def make_split(ds, split, should_hit_end):
         cs.dataset = myds
         cs.cs_split_type = split
         dbhandle.commit()
-        mps.campaignsPOMS.reset_campaign_split(dbhandle, cs.campaign_stage_id)
+        mps.campaignsPOMS.reset_campaign_split(ctx, cs.campaign_stage_id)
         # logger.debug("testing %s on %s" % (split, ds))
         print("testing %s on %s" % (split, ds))
         hit_end = 0
         for i in range(1, 6):
             try:
-                res = mps.campaignsPOMS.get_dataset_for(dbhandle, samhandle, RuntimeError, cs)
-            except RuntimeError:
+                res = mps.campaignsPOMS.get_dataset_for(ctx, cs)
+            except AssertionError:
                 print("Hit end!")
                 hit_end = 1
                 break
