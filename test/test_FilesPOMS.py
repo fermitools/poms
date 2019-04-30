@@ -51,8 +51,9 @@ dims = "fake dimension string"
 
 class mock_cherrypy_file:
     def __init__(self, name="foo", contents=b"This is a test"):
-        self.filename=name
+        self.filename = name
         self.file = io.BytesIO(contents)
+
 
 def test_show_dimension_files():
 
@@ -85,9 +86,9 @@ def test_uploads():
     except:
         pass
     res = mps.filesPOMS.upload_file(ctx, 1024, mcf)
-    assert(os.access(path,os.R_OK))
-    with open(path,"rb") as f:
-        assert(f.read() == testdata)
+    assert os.access(path, os.R_OK)
+    with open(path, "rb") as f:
+        assert f.read() == testdata
     fl = mps.filesPOMS.file_uploads(ctx, checkuser=None)
     print(repr(fl))
     # fl should have an entry for our file of the right size
@@ -95,16 +96,16 @@ def test_uploads():
     for i in range(len(fl[0])):
         if fl[0][i][0] == fname:
             k = i
-    assert(fl[0][k][0]=='foo')
-    assert(fl[0][k][1]== len(testdata))
- 
+    assert fl[0][k][0] == "foo"
+    assert fl[0][k][1] == len(testdata)
+
     # clean up
     res = mps.filesPOMS.remove_uploaded_files(ctx, fname, action=None)
-    assert(not os.access(path,os.R_OK))
+    assert not os.access(path, os.R_OK)
+
 
 def test_get_launch_sandbox():
     ctx = Ctx()
     path = mps.filesPOMS.get_launch_sandbox(ctx)
-    print("got path:" , path)
-    assert(os.access(path,os.R_OK))
-    
+    print("got path:", path)
+    assert os.access(path, os.R_OK)
