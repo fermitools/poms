@@ -73,7 +73,7 @@ class Ctx:
         # functions take experiment and role, but we steal them out
         # of the url if they don't pass them in using pathv...
 
-        pathv = "/poms/samdev/production/op"
+        pathv = "/poms/samdev/production/op".split('/')
 
         self.db = db if db else DBHandle.DBHandle().get()
         self.config_get = config_get if config_get else utils.get_config().get

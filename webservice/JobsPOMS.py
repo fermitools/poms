@@ -30,7 +30,7 @@ class JobsPOMS:
         cid = j.submission_obj.campaign_stage_snapshot_obj.campaign_stage_id
         ctx.sam.update_project_description(exp, projname, "POMS CampaignStage %s Submission %s" % (cid, sid))
 
-    def kill_jobs(self, campaign_id=None, campaign_stage_id=None, submission_id=None, job_id=None, confirm=None, act="kill"):
+    def kill_jobs(self, ctx, campaign_id=None, campaign_stage_id=None, submission_id=None, job_id=None, confirm=None, act="kill"):
         """
             kill jobs from the campaign, stage, or particular submission
             we want to do this all with --constraint on the POMS4_XXX_ID
@@ -88,7 +88,7 @@ class JobsPOMS:
             sids = []
 
         shq = (
-            dbhandle.query(
+            ctx.db.query(
                 SubmissionHistory.submission_id.label("submission_id"), func.max(SubmissionHistory.status_id).label("max_status")
             )
             .filter(SubmissionHistory.submission_id == Submission.submission_id)
@@ -192,7 +192,7 @@ class JobsPOMS:
 
             if status_set:
                 for sid in sids:
-                    self.poms_service.taskPOMS.update_submission_status(ctx.db, sid, status_set)
+                    self.poms_service.taskPOMS.update_submission_status(ctx, sid, status_set)
             ctx.db.commit()
 
             return output, cs, campaign_stage_id, submission_id, job_id

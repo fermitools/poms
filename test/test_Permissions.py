@@ -1,6 +1,7 @@
 import DBHandle
 import poms.webservice.Permissions as Permissions
 from poms.webservice.poms_model import CampaignStage, Submission, Experimenter
+from mock_Ctx import Ctx
 
 p = Permissions.Permissions()
 dbh = DBHandle.DBHandle()
@@ -13,21 +14,28 @@ victim_cs = (
 )
 victim_sub = dbhandle.query(Submission).filter(Submission.campaign_stage_id == victim_cs.campaign_stage_id).first()
 
+ctx = Ctx(db=dbhandle)
+
 
 def test_is_superuser():
-    assert p.is_superuser(dbhandle, "mengel")
-    assert not p.is_superuser(dbhandle, "pbuitrag")
+    ctx.username="mengel"
+    assert p.is_superuser(ctx)
+    ctx.username="pbuitrag"
+    assert not p.is_superuser(ctx)
+    ctx.username="mengel"
 
 
 def item_role(t, id):
 
-    p.can_view(dbhandle, "mengel", "samdev", "superuser", t, item_id=id)
+    ctx.username="mengel"
+    p.can_view(ctx, t, item_id=id)
 
     # these should raise PermissionError and not get to the assert
     # we pick on Paola 'cause shes not here anymore, but is still in
     # the database ;-)
     try:
-        p.can_view(dbhandle, "pbuitrag", "nova", "production", t, item_id=id)
+        ctx.username="pbuitrag"
+        p.can_view(ctx, t, item_id=id)
         assert False
     except PermissionError:
         pass
@@ -35,7 +43,8 @@ def item_role(t, id):
         raise
 
     try:
-        p.can_view(dbhandle, "pbuitrag", "nova", "analysis", t, item_id=id)
+        ctx.username="pbuitrag"
+        p.can_view(ctx, t, item_id=id)
         assert False
     except PermissionError:
         pass

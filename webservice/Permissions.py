@@ -40,7 +40,7 @@ class Permissions:
             rows = (
                 ctx.db.query(ExperimentsExperimenters.role)  #
                 .join(Experimenter, Experimenter.experimenter_id == ExperimentsExperimenters.experimenter_id)
-                .filter(Experimenter.username == username, ExperimentsExperimenters.experiment == experiment)
+                .filter(Experimenter.username == ctx.username, ExperimentsExperimenters.experiment == ctx.experiment)
             ).all()
             if rows:
                 self.excache[key] = rows[0]
