@@ -35,7 +35,10 @@ class fakeconfig:
 
     def get(self, var, default=None):
         try:
-            return self.cf.get("global", var)
+            res = self.cf.get("global", var)
+            if res[0] == "'":
+                res = res[1:-1]
+            return res
         except:
             return default
 

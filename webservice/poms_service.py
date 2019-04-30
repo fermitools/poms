@@ -1075,16 +1075,6 @@ class PomsService:
             raise cherrypy.HTTPRedirect(ctx.headers_get("Referer"))
         return res
 
-    # h4. json_pending_for_campaigns
-
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def json_pending_for_campaigns(self, cl, tmin, tmax, uuid=None):
-        ctx = Ctx(tmin=tmin, tmax=tmax)
-        res = self.filesPOMS.get_pending_dict_for_campaigns(ctx, cl)
-        return res
-
     # h3. File upload management for Analysis users
     #
     # h4. file_uploads

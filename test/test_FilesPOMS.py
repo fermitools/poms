@@ -46,7 +46,6 @@ class fake_samweb_lite:
 
 samhandle = fake_samweb_lite()
 experiment = "samdev"
-ctx = Ctx(sam=samhandle, experiment=experiment, db="None")
 dims = "fake dimension string"
 
 
@@ -57,53 +56,55 @@ class mock_cherrypy_file:
 
 def test_show_dimension_files():
 
+    ctx = Ctx(sam=samhandle, experiment=experiment, db="None")
     res = mps.filesPOMS.show_dimension_files(ctx, dims)
     ctx.sam.list_files.assert_called_with(experiment, dims, dbhandle="None")
     assert res == "fake_list_files"
 
 
 def test_show_dimension_files():
+    ctx = Ctx(sam=samhandle, experiment=experiment, db="None")
     res = mps.filesPOMS.show_dimension_files(ctx, dims)
     ctx.sam.list_files.assert_called_with(experiment, dims, dbhandle="None")
     assert res.find("fake_list_files") >= 0
 
 
-def test_upload_file_and_upload_path():
+def test_uploads():
+    ctx = Ctx()
     fname = "foo"
     testdata = b"test data\n"
-    mcf = mock_cherrypy_file(name=fname)
-    path = mps.filesPOMS.get_file_upload_path(Ctx(), fname)
+    mcf = mock_cherrypy_file(name=fname, contents=testdata)
+    path = mps.filesPOMS.get_file_upload_path(ctx, fname)
+    # make sure the dir is there but not the file..
     try:
         os.unlink(path)
     except:
         pass
+    try:
+        os.makedirs(os.path.dirname(path))
+    except:
+        pass
     res = mps.filesPOMS.upload_file(ctx, 1024, mcf)
-    assert(os.access(path,'r'))
-    with open(path,"r") as f:
+    assert(os.access(path,os.R_OK))
+    with open(path,"rb") as f:
         assert(f.read() == testdata)
-     
-
-"""
-Not implemented yet:
-----
-def test_get_pending_dict_for_campaigns():
-    res = mps.filesPOMS.get_pending_dict_for_campaigns(ctx, campaign_id_list)
-def test_get_pending_for_campaigns():
-    res = mps.filesPOMS.get_pending_for_campaigns(ctx, campaign_id_list)
-
-def test_get_pending_dims_for_task_lists():
-    res = mps.filesPOMS.get_pending_dims_for_task_lists(ctx, task_list_list)
-
-def test_get_pending_for_task_lists():
-    res = mps.filesPOMS.get_pending_for_task_lists(ctx, task_list_list)
-
-
-def test_file_uploads():
-    res = mps.filesPOMS.file_uploads(ctx, checkuser=None)
-
-def test_remove_uploaded_files():
-    res = mps.filesPOMS.remove_uploaded_files(ctx, filename, action=None)
+    fl = mps.filesPOMS.file_uploads(ctx, checkuser=None)
+    print(repr(fl))
+    # fl should have an entry for our file of the right size
+    k = 0
+    for i in range(len(fl[0])):
+        if fl[0][i][0] == fname:
+            k = i
+    assert(fl[0][k][0]=='foo')
+    assert(fl[0][k][1]== len(testdata))
+ 
+    # clean up
+    res = mps.filesPOMS.remove_uploaded_files(ctx, fname, action=None)
+    assert(not os.access(path,os.R_OK))
 
 def test_get_launch_sandbox():
-    res = mps.filesPOMS.get_launch_sandbox(ctx)
-"""
+    ctx = Ctx()
+    path = mps.filesPOMS.get_launch_sandbox(ctx)
+    print("got path:" , path)
+    assert(os.access(path,os.R_OK))
+    
