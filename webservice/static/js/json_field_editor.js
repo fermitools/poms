@@ -321,6 +321,10 @@ json_field_editor.validate_percent_formats = function(form) {
    el = e.elements
    for(i = 0; i < el.length; i++) {
        e = el[i]
+       /* file patterns are not % replaced, and have % wildcards... */
+       if (e.id.indexOf("file_patterns") >= 0) {
+          continue;
+       }
        json_field_editor.validate_percent_ok(e);
        s = e.value
        if (! s ) { 
@@ -362,7 +366,7 @@ json_field_editor.validate_percent_error = function( e, msg ) {
     ** make the preceding label have a sub-label with class=error
     ** with our message
     */
-    msg = "Error in %(keyword)s format:<br>" + msg + "<br>"
+    msg = "Error in %(keyword)s format: " + msg + "<br>"
     e.classList.add('error')
     le = document.createElement("LABEL")
     le.style.minWidth = "14em";
