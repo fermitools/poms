@@ -2403,7 +2403,7 @@ class CampaignsPOMS:
         # experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).scalar()
         # user_id = experimenter.experimenter_id
 
-        return ctx.db.query(JobType.job_type_id).filter(JobType.experiment == cx.experiment, JobType.name == name).scalar()
+        return ctx.db.query(JobType.job_type_id).filter(JobType.experiment == ctx.experiment, JobType.name == name).scalar()
 
     def get_loginsetup_id(self, ctx, name):
         """

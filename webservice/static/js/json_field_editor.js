@@ -80,6 +80,9 @@ json_field_editor.recovery_save = function (fid) {
      * extract values from the form back in to destination input
      */
     var j, e, i, si, sid, did, se, de, saveid, savee, dest;
+    if (! json_field_editor.validate_percent_formats(fid)) {
+       return;
+    }
     j = [];
     for (i = 0; i < 10; i++) {
         si = i.toString();
@@ -186,11 +189,11 @@ json_field_editor.addrow = function (res, fid, i, k, v) {
         wsr = '';
     }
     res.push('<td><input id="' + fid + '_k_' + istr + '" value="' + k + '"></td>');
-    res.push('<td><input style="padding: auto; width: 2em;" type="checkbox" id="' + fid + '_ws_' + istr + '" ' + ws + ' value=" ">');
+    res.push('<td style="min-width: 5em;"><input style="padding: auto; width: 2em;" type="checkbox" id="' + fid + '_ws_' + istr + '" ' + ws + ' value=" ">');
     res.push('<input style="padding: auto; width: 2em;" type="checkbox" id="' + fid + '_wsr_' + istr + '" ' + wsr + ' value=" "></td>');
 
     res.push('<td><input id="' + fid + '_v_' + istr + '" value="' + v + '"></td>');
-    res.push('<td>');
+    res.push('<td style="min-width: 7em;">');
     res.push('<i onclick="json_field_editor.plus(\'' + fid + '\',' + istr + ')" class="blue icon dlink plus square"></i>');
     res.push('<i onclick="json_field_editor.minus(\'' + fid + '\',' + istr + ')" class="blue icon dlink minus square"></i>');
     res.push('<i onclick="json_field_editor.up(\'' + fid + '\',' + istr + ')" class="blue icon dlink arrow square up"></i>');
@@ -267,6 +270,9 @@ json_field_editor.save = function (fid) {
      */
     var e, ke, ve, res, id, dest, i, istr;
     var ws, wsr;
+    if (! json_field_editor.validate_percent_formats(fid)) {
+       return;
+    }
     e = document.getElementById(fid);
     var ce = document.getElementById(fid + '_count');
     console.log("before: count: " + ce.value);
@@ -307,4 +313,74 @@ json_field_editor.cancel = function (fid) {
      */
     var e = document.getElementById(fid);
     e.parentNode.removeChild(e);
+}
+
+json_field_editor.validate_percent_formats = function(form) {
+   var el,e,s,i,j,k,word;
+   e = document.getElementById(form);
+   el = e.elements
+   for(i = 0; i < el.length; i++) {
+       e = el[i]
+       json_field_editor.validate_percent_ok(e);
+       s = e.value
+       if (! s ) { 
+           continue;
+       }
+       k = s.indexOf('%');
+       while (k >= 0) {
+           if (s[k+1] == '%') {
+              /* %% is okay */
+              k = s.indexOf('%',k+2);
+              continue;
+           }
+           if (s[k+1] != '(') {
+               /* paren of %(word)s */
+               return json_field_editor.validate_percent_error(e, "missing '('");
+           }
+           l = s.indexOf(')',k);
+           if (l < 0) {
+               /* thesis of %(word)s */
+               return json_field_editor.validate_percent_error(e, "missing ')'");
+           }
+           if (s[l+1] != 's') {
+               /* s of %(word)s */
+               return json_field_editor.validate_percent_error(e, "missing 's'");
+           }
+           word = s.substring(k+2,l);
+           if (! (word in { "dataset": 1, "parameter": 1, "experiment": 1, "version": 1, "group": 1, "experimenter":1})) {
+               return json_field_editor.validate_percent_error(e, "unknown keyword '" + word + "'");
+           }
+           k = s.indexOf('%',k+1);
+       }
+   }
+   return true
+}
+
+json_field_editor.validate_percent_error = function( e, msg ) {
+    var le, ep;
+    /* mark the node with error class, 
+    ** make the preceding label have a sub-label with class=error
+    ** with our message
+    */
+    msg = "Error in %(keyword)s format:<br>" + msg + "<br>"
+    e.classList.add('error')
+    le = document.createElement("LABEL")
+    le.style.minWidth = "14em";
+    le.className = 'error'
+    le.innerHTML = msg
+    ep = e.parentNode
+    ep.insertBefore(le, ep.firstChild)
+    return false
+}
+
+json_field_editor.validate_percent_ok = function( e ) {
+    /* pretty much undo error stuff from above */
+    var ep;
+    e.classList.remove('error')
+    ep = e.parentNode
+    if (ep && ep.firstElementChild && ep.firstElementChild != undefined) {
+        if( ep.firstElementChild.className == 'error') {
+            ep.removeChild(ep.firstElementChild);
+        }
+    }
 }

@@ -1,4 +1,9 @@
 
+.error {
+   background-color: pink;
+   color: red;
+}
+
 .popup_form_json {
     display: block;
     background-color: white;

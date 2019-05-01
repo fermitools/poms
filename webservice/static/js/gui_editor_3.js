@@ -160,6 +160,10 @@ gui_editor.toggle_form = function (id) {
     const nhash = mwm_utils.hashCode(JSON.stringify(ff));
     const ohash = $(form).attr('data-hash');
 
+    if (!json_field_editor.validate_percent_formats(id)) {
+        return;
+    }
+
     if (nhash !== ohash)
         gui_editor.modified();
 
