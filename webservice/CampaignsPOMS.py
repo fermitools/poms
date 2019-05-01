@@ -1467,9 +1467,8 @@ class CampaignsPOMS:
             in the time window for a given experiment
         :rtype: object
         """
-        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(
-            ctx, "show_campaign_stages/%s/%s?" % (ctx.experiment, ctx.role)
-        )
+        base_link = "show_campaign_stages/%s/%s?" % (ctx.experiment, ctx.role) 
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates( ctx, base_link )
         experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).first()
 
         csq = (
