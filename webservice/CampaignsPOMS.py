@@ -1577,7 +1577,7 @@ class CampaignsPOMS:
         )
 
         # default to time window of campaign
-        if ctx.tmin is None and tdays is None:
+        if ctx.tmin is None and ctx.tdays is None:
             ctx.tmin = campaign_stage_info.CampaignStage.created
             ctx.tmax = datetime.now(utc)
 
@@ -1645,7 +1645,7 @@ class CampaignsPOMS:
         logit.log("got format {}".format(campaign_kibana_link_format))
         kibana_link = campaign_kibana_link_format.format(campaign_stage_id)
 
-        dep_svg = self.campaign_deps_svg(ctx.db, ctx.config_get, campaign_stage_id=campaign_stage_id)
+        dep_svg = self.campaign_deps_svg(ctx, campaign_stage_id=campaign_stage_id)
 
         return (
             campaign_stage_info,
