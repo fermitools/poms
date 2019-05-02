@@ -42,6 +42,17 @@ def test_campaign_add_del_name():
     res = fp.campaignsPOMS.get_campaign_id(ctx, campaign_name = name)
     assert(res == None)
     
+def test_campaign_deps_svg():
+    ctx = Ctx(sam=samhandle)
+    res = fp.campaignsPOMS.campaign_deps_svg(ctx, campaign_name='mwm_test_9')
+    print(res)
+    assert(res.find('<svg')>= 0)
+
+def test_campaign_deps_ini():
+    ctx = Ctx(sam=samhandle)
+    res = fp.campaignsPOMS.campaign_deps_ini(ctx, name='mwm_test_9')
+    print(res)
+    assert(res.find('[campaign]')>= 0)
 
 """
 Not yet implemented
@@ -72,13 +83,6 @@ def test_make_test_campaign_for():
     ctx = Ctx(sam=samhandle)
     res = fp.campaignsPOMS.make_test_campaign_for(ctx, campaign_def_id, campaign_def_name)
 
-def test_campaign_deps_ini():
-    ctx = Ctx(sam=samhandle)
-    res = fp.campaignsPOMS.campaign_deps_ini(ctx, name=None, stage_id=None, login_setup=None, job_type=None, full=None)
-
-def test_campaign_deps_svg():
-    ctx = Ctx(sam=samhandle)
-    res = fp.campaignsPOMS.campaign_deps_svg(ctx, campaign_name=None, campaign_stage_id=None)
 
 def test_show_campaigns():
     ctx = Ctx(sam=samhandle)
