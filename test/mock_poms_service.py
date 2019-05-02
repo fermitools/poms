@@ -1,6 +1,6 @@
 import socket
 
-from poms.webservice import CampaignsPOMS, DBadminPOMS, FilesPOMS, TablesPOMS, TagsPOMS, TaskPOMS, UtilsPOMS, JobsPOMS
+from poms.webservice import CampaignsPOMS, DBadminPOMS, FilesPOMS, TablesPOMS, TagsPOMS, TaskPOMS, UtilsPOMS, JobsPOMS, Permissions
 
 
 class mock_poms_service(object):
@@ -17,3 +17,4 @@ class mock_poms_service(object):
         self.tagsPOMS = TagsPOMS.TagsPOMS(self)
         self.taskPOMS = TaskPOMS.TaskPOMS(self)
         self.utilsPOMS = UtilsPOMS.UtilsPOMS(self)
+        self.permissions = Permissions.Permissions()

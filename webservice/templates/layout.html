@@ -199,7 +199,7 @@
   /* fix utctime fields to local time */
   $(document).ready( function() {
      var el, i, ds;
-     el = getElementsByClassName("utctime");
+     el = document.getElementsByClassName("utctime");
      for (i = 0 ; i< el.length; i++) {
          ds = (new Date(parseInt(el[i].getAttribute("time_t")) * 1000)).toLocaleString();
          el[i].innerHtml = ds

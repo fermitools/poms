@@ -327,7 +327,7 @@ class CampaignsPOMS:
                 vo_role="Production",
                 #
                 creator=experimenter.experimenter_id,
-                creator_role=role,
+                creator_role=ctx.role,
                 created=datetime.now(utc),
                 campaign_stage_type="regular",
             )
