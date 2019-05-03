@@ -2421,22 +2421,14 @@ class CampaignsPOMS:
         auth_error = False
         campaign_ids = (campaign_id or camp_l).split(",")
         for cid in campaign_ids:
-            auth = False
+
             campaign = ctx.db.query(Campaign).filter(Campaign.campaign_id == cid).first()
             if campaign:
-                if ctx.username.is_root():
+                try:
+                    self.poms_service.permissions.can_modify(ctx,"Campaign",item_id=cid)
                     auth = True
-                elif ctx.username.session_experiment == campaign.experiment:
-                    if ctx.username.is_superctx.username():
-                        auth = True
-                    elif ctx.username.is_production() and campaign.creator_role == "production":
-                        auth = True
-                    elif ctx.username.session_role == campaign.creator_role and ctx.username.experimenter_id == campaign.creator:
-                        auth = True
-                    else:
-                        auth_error = True
-                else:
-                    auth_error = True
+                except:
+                    auth = False
                 if auth:
                     campaign.active = is_active in ("True", "Active", "true", "1")
                     ctx.db.add(campaign)
