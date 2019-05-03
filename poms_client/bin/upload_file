@@ -25,6 +25,7 @@ try:
         proxyfile = "/tmp/x509up_voms_%s_%s_%s" % (options.experiment, options.poms_role.capitalize(),os.environ.get('GRID_USER',os.environ.get('USER','unknown')) )
         if os.environ.get('X509_USER_PROXY', None):
              os.system("cp $X509_USER_PROXY %s" % proxyfile)
+             os.system("cigetcert -n -s fifebatch.fnal.gov")
         else:
              try:
                  os.unlink(proxyfile)
@@ -38,7 +39,8 @@ try:
              os.system("cp %s %s" % (ipf, proxyfile))
         args.append(proxyfile)
         os.system("chmod 400 %s" % proxyfile)
-        os.system('myproxy-store -c %s -y %s -s myproxy.fnal.gov -xZ "/DC=org/DC=opensciencegrid/O=Open Science Grid/OU=Services/CN=fifebatch.fnal.gov" -t 24 -l "`openssl x509 -in %s -noout -subject | cut -d " " -f 2-`"' % (proxyfile, proxyfile,proxyfile))
+        os.system("cigetcert -v -n -s fifebatch.fnal.gov")
+        #os.system('myproxy-store -c %s -y %s -s myproxy.fnal.gov -xZ "/DC=org/DC=incommon/C=US/ST=IL/L=Batavia/O=Fermi Research Alliance/OU=Fermilab/CN=fifebatch.fnal.gov" -t 24 -l "`openssl x509 -in %s -noout -subject | cut -d " " -f 2-`"' % (proxyfile, proxyfile,proxyfile))
              
 except:
     logging.exception(sys.argv[0] + ": while getting proxy:")
