@@ -418,8 +418,11 @@ class TaskPOMS:
         ctx.db.commit()
         return s.submission_id
 
-    def update_submission_status(self, ctx, submission_id, status):
+    def update_submission_status(self, ctx, submission_id, status, when = None):
         self.init_statuses(ctx)
+
+        if when == None:
+            when = datetime.now(utc)
 
         # always lock the submission first to prevent races
 
@@ -468,7 +471,7 @@ class TaskPOMS:
         sh = SubmissionHistory()
         sh.submission_id = submission_id
         sh.status_id = status_id
-        sh.created = datetime.now(utc)
+        sh.created = when
         ctx.db.add(sh)
 
         if status_id >= self.status_Completed:
@@ -503,8 +506,28 @@ class TaskPOMS:
         failed_sids = [x[0] for x in newtups]
 
         res = []
-        for submission_id in failed_sids:
-            res.append("updating %s" % submission_id)
+        for submission in  ctx.db.query(Submission).filter(Submission.submission_id.in_(failed_sids)).all():
+            # sometimes jobs complete quickly, and we do not see them go by..
+            # so if we got a jobsub_job_id, check for a job log to find
+            # out what happened
+            if submisison.jobsub_job_id:
+                job_data = get_joblogs(ctx.db, jobsub_data[0], cert, key, experiment, role)
+                if job_data:
+                    res.append("found job log for %s!" % submission_id)
+                    if job_data.get('idle',None) and job_data['idle'].get(jobsub_job_id,None):
+                        self.update_submission_status(ctx.db, submission_id, status="Idle", when = job_data['idle'][submission.jobsub_job_id]);
+                        res.append("submission %s Idle at" % (submission_id, job_data['idle'][submission.jobsub_job_id])
+
+                    if job_data.get('running',None) and job_data['running'].get(jobsub_job_id,None):
+                        self.update_submission_status(ctx.db, submission_id, status="Running", when = job_data['running'][submission.jobsub_job_id]);
+                        res.append("submission %s Running at" % (submission_id, job_data['idle'][submission.jobsub_job_id])
+          
+                    if len(job_data['completed']) == len(job_data['idle']):
+                        self.update_submission_status(ctx.db, submission_id, status="Completed");
+                        res.append("submission %s Completed")
+
+                    continue;
+            res.append("failing launch for %s" % submission_id)
             self.update_submission_status(ctx.db, submission_id, status="LaunchFailed")
         ctx.db.commit()
         return "\n".join(res)
