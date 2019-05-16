@@ -47,16 +47,16 @@ class jobsub_fetcher:
 
         url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/" % (fifebatch, group, user, jobsubjobid)
 
-        log("trying url:" + url)
+        log("DEBUG", "trying url:" + url)
 
         r = None
         try:
             r = self.sess.get(url, cert=(self.cert, self.key), verify=False, headers={"Accept": "text/html"})
-            log("headers:" + repr(r.request.headers))
-            log("headers:" + repr(r.headers))
+            log("DEBUG", "headers:" + repr(r.request.headers))
+            log("DEBUG","headers:" + repr(r.headers))
             sys.stdout.flush()
             for line in r.text.split("\n"):
-                log("got line: " + line)
+                log("DEBUG","got line: " + line)
                 # strip campaigns...
                 line = re.sub("<[^>]*>", "", line)
                 fields = line.strip().split()
@@ -65,10 +65,10 @@ class jobsub_fetcher:
                     fields[0] = ""
                     fields[2] = fields[1]
                     fields.append(fname)
-                    log("got fields: " + repr(fields))
+                    log("DEBUG","got fields: " + repr(fields))
                     res.append(fields)
         except BaseException:
-            log(traceback.format_exc())
+            log("INFO",traceback.format_exc())
         finally:
             if r:
                 r.close()
@@ -99,21 +99,20 @@ class jobsub_fetcher:
 
         url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/%s/" % (fifebatch, group, user, jobsubjobid, filename)
 
-        log("trying url:" + url)
+        log("DEBUG", "trying url:" + url)
 
         try:
-            r = self.sess.get(url, cert=(self.cert, self.key), stream=True, verify=False, headers={"Accept": "text/plain"})
+            r = self.sess.get(url, cert=(self.cert, self.key), stream=True, verify=False , headers={"Accept": "text/html"})
 
-            log("headers:" + repr(r.request.headers))
-            log("headers:" + repr(r.headers))
+            log("DEBUG", "headers:" + repr(r.request.headers))
+            log("DEBUG", "headers:" + repr(r.headers))
+
 
             sys.stdout.flush()
-            res = deque()
-            for line in r.text.split("\n"):
-                log("got line: " + line)
-                res.append(line.rstrip("\n"))
+            log("DEBUG", "r.text: '%s'" % r.text)
+            return r.text.replace('<pre>','\n').split('\n')
         except BaseException:
-            log(traceback.format_exc())
+            log("INFO",traceback.format_exc())
         finally:
             if r:
                 r.close()

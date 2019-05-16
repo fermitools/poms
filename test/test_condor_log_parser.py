@@ -1,15 +1,22 @@
 import DBHandle
 from poms.webservice.condor_log_parser import get_joblogs
-from mock_stubs import getconfig
+from utils import get_config
+import logging
+logger = logging.getLogger("cherrypy.error")
 
 dbh = DBHandle.DBHandle()
 
-cert = (getconfig("elasticsearch_cert"),)
-key = (getconfig("elasticsearch_key"),)
+config = get_config()
+cert = eval(config.get("elasticsearch_cert"))
+key = eval(config.get("elasticsearch_key"))
 
 
 def test_condor_log_parser():
-    jobsub_job_id = "18771837.0@jobsub02.fnal.gov"
+    jobsub_job_id = "18723634.0@jobsub02.fnal.gov"
     experiment = "samdev"
     role = "Analysis"
-    get_joblogs(dbh.get(), jobsub_job_id, cert, key, experiment, role)
+    print( "cert: %s, key %s" % (cert, key))
+    res = get_joblogs(dbh.get(), jobsub_job_id, cert, key, experiment, role)
+    print( "res: %s" % repr(res) )
+    print( "n_idle %d, n_running %d, n_completed %d" % (len(res['idle']), len(res['running']), len(res['completed'])))
+    assert(False)

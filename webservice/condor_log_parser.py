@@ -16,24 +16,28 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
     """
         get the condor joblog for a given job
     """
+
+    res = None
     log("INFO", "entering get_joblogs")
     if jobsub_job_id is None:
-        return
+        return None
     fetcher = jobsub_fetcher.jobsub_fetcher(cert, key)
     log("DEBUG", "checking index")
-    task = dbhandle.query(Submission.submission_id).filter(Submission.jobsub_job_id == jobsub_job_id).first()
+    submission = dbhandle.query(Submission).filter(Submission.jobsub_job_id == jobsub_job_id).first()
 
-    if task is None:
+    if submission is None:
         submission_id = 14
         username = "mengel"
     else:
-        submission_id = task.submission_id
-        username = task.experimenter_owner_obj.username
+        submission_id = submission.submission_id
+        username = submission.experimenter_creator_obj.username
 
     files = fetcher.index(jobsub_job_id, experiment, role, True, user=username)
 
     if files is None:
-        return
+        return None
+
+    log("DEBUG", "files: %s" % repr(files))
 
     for row in files:
         if row[5].endswith(".log") and not row[5].endswith(".dagman.log"):
@@ -42,9 +46,11 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
             # the individual job.logs in it.
             log("DEBUG", "checking file %s " % row[5])
             lines = fetcher.contents(row[5], jobsub_job_id, experiment, role, user=username)
-            parse_condor_log(dbhandle, lines, jobsub_job_id[jobsub_job_id.find("@") + 1 :], submission_id)
-            break
+            res = parse_condor_log(dbhandle, lines, jobsub_job_id[jobsub_job_id.find("@") + 1 :], submission_id)
+    
     del fetcher
+
+    return res
 
 
 def fix_jobid(clust_proc, batchhost):
@@ -89,21 +95,28 @@ def parse_date(date_time_str):
 
 def parse_condor_log(dbhandle, lines, batchhost, submission_id):
     """ read a condor log looking for start/end info """
+    log("DEBUG", "entering parse_condor_log")
     in_termination = 0
+    itimes = {}
     stimes = {}
+    etimes = {}
     job_sites = {}
     execute_hosts = {}
     job_exit = None
     jobsub_job_id = None
+    res = {}
     for line in lines:
-        if line[:5] == "001 (":
-            log("DEBUG", "start record start: %s" % line)
+        if line[:2] == "00" and line[3:5]==" (":
             ppos = line.find(")")
             jobsub_job_id = fix_jobid(line[5:ppos], batchhost)
-            stimes[jobsub_job_id] = parse_date(line[ppos + 2 : ppos + 16])
+
+        if line[:5] == "000 (":
+            log("DEBUG", "submitted record start: %s" % line)
+            itimes[jobsub_job_id] = parse_date(line[ppos + 2 : ppos + 16])
+
         if line[:5] == "001 (":
-            log("DEBUG", "job classad record start: %s" % line)
-            jobsub_job_id = fix_jobid(line[5:ppos], batchhost)
+            log("DEBUG", "start record start: %s" % line)
+            stimes[jobsub_job_id] = parse_date(line[ppos + 2 : ppos + 16])
 
         if line[:10] == "JOB_Site =":
             job_sites[jobsub_job_id] = line[11:-1]
@@ -113,20 +126,15 @@ def parse_condor_log(dbhandle, lines, batchhost, submission_id):
 
         if line[:5] == "005 (":
             log("DEBUG", "term record start: %s" % line)
-            ppos = line.find(")")
             in_termination = 1
             finish_time = parse_date(line[ppos + 2 : ppos + 16])
-            jobsub_job_id = fix_jobid(line[5:ppos], batchhost)
+            etimes[jobsub_job_id] = finish_time
             remote_cpu = None
             disk_used = None
             memory_used = None
             continue
         if line[:3] == "..." and in_termination:
             log("DEBUG", "term record end %s" % line)
-            submission = (
-                dbhandle.query(Submission).with_for_update(read=True).filter(Submission.jobsub_job_id == jobsub_job_id).first()
-            )
-
             in_termination = 0
             continue
         if in_termination:
@@ -142,9 +150,9 @@ def parse_condor_log(dbhandle, lines, batchhost, submission_id):
             if line.find("Memory (KB)") > 0:
                 memory_used = line.split()[3]
             log(
-                "INFO",
+                "DEBUG",
                 "condor_log_parser: remote_cpu %s "
                 "disk_used %s memory_used %s job_exit %s" % (remote_cpu, disk_used, memory_used, job_exit),
             )
 
-    dbhandle.commit()
+    return {'idle': itimes, 'running': stimes, 'completed': etimes }
