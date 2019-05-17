@@ -361,7 +361,7 @@ class TaskPOMS:
         # try to extract the project name from the launch command...
         #
         project = None
-        for projre in ("-e SAM_PROJECT=([^ ]*)", "-e SAM_PROJECT_NAME=([^ ]*)", "--sam_project ([^ ]*)"):
+        for projre in ("-e SAM_PROJECT=([^ ]*)", "-e SAM_PROJECT_NAME=([^ ]*)", "--sam_project ([^ ]*)", "--project_name=([^ ]*)"):
             m = re.search(projre, command_executed)
             if m:
                 project = m.group(1)
