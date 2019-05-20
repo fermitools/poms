@@ -132,9 +132,7 @@ Kick to Located  <i class="ui forward icon  grey"></i>&nbsp;
 {%endif%}
 <br>
 
-{%if history[-1].status_id >= 7000 or history[-1].status_id == 2000 %}
 Re-Launch Submission on dataset {{dataset}} <a href="{{pomspath}}/launch_jobs/{{experiment}}/{{role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}"><button>Relaunch</button></a> <br>
-{%endif%}
 
 {%if history[-1].status_id >= 7000 %}
 Launch Recovery for Submission
