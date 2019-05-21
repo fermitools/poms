@@ -33,7 +33,7 @@ Note that we also subsume the cherrypy.expose and logit.startstop decorators.
 """
 
 
-def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html", redirect=None):
+def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html", redirect=None, u=[]):
     def decorator(func):
         def method(self, **kwargs):
             # make context with any params in the list
@@ -65,6 +65,13 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
             kwargs["ctx"] = ctx
             values = func(**kwargs)
 
+            # unpack values into dictionary
+            if u:
+                vdict = {}
+                for i in range(len(u)):
+                    vdict[u[i]] = values[i]
+                values = vdict
+
             if kwargs.get("fmt", "") == "json" or rtype == "json":
                 cherrypy.response.headers["Content-Type"] = "application/json"
                 return json.dumps(values, cls=JSONORMEncoder).encode("utf-8")
@@ -73,7 +80,7 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
                 kwargs["hostname"] = self.hostname
                 raise cherrypy.HTTPRedirect(redirect % kwargs)
             elif t:
-                data["help_page"] = help_page
+                values["help_page"] = help_page
                 return jinja_env.get_template(t).render(**values)
             else:
                 cherrypy.response.headers["Content-Type"] = "text/plain"
