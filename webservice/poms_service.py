@@ -259,58 +259,36 @@ class PomsService:
 
     # h4. campaign_deps
 
-    @cherrypy.expose
-    @logit.logstartstop
-    def campaign_deps(self, experiment, role, campaign_name=None, campaign_stage_id=None, tag=None, camp_id=None):
-        ctx = Ctx(experiment=experiment, role=role)
-
-        self.permissions.can_view(ctx, "Campaign", name=campaign_name or tag, experiment=experiment)
-        template = self.jinja_env.get_template("campaign_deps.html")
-        svgdata = self.campaignsPOMS.campaign_deps_svg(
-            ctx, campaign_name=campaign_name or tag, campaign_stage_id=campaign_stage_id or camp_id
-        )
-        return template.render(tag=tag, svgdata=svgdata, help_page="CampaignDepsHelp")
+    @poms_method(
+        p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], t="campaign_deps.html", help_page="CampaignDepsHelp"
+    )
+    def campaign_deps(self, **kwargs):
+        return {"svgdata": self.campaignsPOMS.campaign_deps_svg(**kwargs)}
 
     # h4. job_type_rm
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
+    @poms_method(rtype="json")
     def job_type_rm(self, **kwargs):
-        ctx = Ctx(experiment=experiment, role=role)
-        data = self.campaignsPOMS.job_type_edit(ctx, action="delete", **kwargs)
-        return data
+        return self.campaignsPOMS.job_type_edit(action="delete", **kwargs)
 
     # h4. job_type_edit
 
-    # h4. job_type_edit
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def job_type_edit(self, experiment, role, **kwargs):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.permissions.can_modify(ctx, "LoginSetup", name=kwargs.get("ae_launch_name", None), experiment=experiment)
-        data = self.campaignsPOMS.job_type_edit(ctx, **kwargs)
-
+    @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="job_type_edit.html")
+    def job_type_edit(self, **kwargs):
+        res = {"data": self.campaignsPOMS.job_type_edit(ctx, **kwargs), "jquery_ui": False}
         if kwargs.get("test_template"):
             test_campaign = self.campaignsPOMS.make_test_campaign_for(
-                ctx, kwargs.get("ae_campaign_definition_id"), kwargs.get("ae_definition_name")
+                kwargs["ctx"], kwargs.get("ae_campaign_definition_id"), kwargs.get("ae_definition_name")
             )
             raise cherrypy.HTTPRedirect(
                 "%s/%s/%s/campaign_stage_edit?jump_to_campaign=%d&extra_edit_flag=launch_test_job"
                 % (self.path, experiment, role, test_campaign)
             )
-
-        template = self.jinja_env.get_template("job_type_edit.html")
-        # mvi, using new POMS doc
-        return template.render(jquery_ui=False, experiment=experiment, role=role, data=data, help_page="POMS_User_Documentation")
+        return res
 
     # h4. make_test_campaign_for
 
-    @cherrypy.expose
-    @logit.logstartstop
-    def make_test_campaign_for(self, experiment, role, campaign_def_id, campaign_def_name):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.permissions.can_modify(ctx, "JobType", name=campaign_def_name, experiment=experiment)
+    @poms_method(p=[{"p": "can_modify", "t": "JobType", "name": "campaign_def_name", "experiment": "experiment"}])
+    def make_test_campaign_for(self, **kwargs):
         cid = self.campaignsPOMS.make_test_campaign_for(
             ctx.db, ctx.username, experiment, role, campaign_def_id, campaign_def_name
         )
@@ -319,250 +297,135 @@ class PomsService:
             % (self.path, experiment, role, cid)
         )
 
-    @cherrypy.expose
     # h4. get_campaign_id
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def get_campaign_id(self, experiment, campaign_name):
-        ctx = Ctx(experiment=experiment)
-        cid = self.campaignsPOMS.get_campaign_id(ctx, campaign_name)
-        return cid
 
-    @cherrypy.expose
+    @poms_method(rtype="json")
+    def get_campaign_id(self, **kwargs):
+        return self.campaignsPOMS.get_campaign_id(ctx, campaign_name)
+
     # h4. get_campaign_name
-    # @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def get_campaign_name(self, experiment, campaign_id):
-        ctx = Ctx(experiment=experiment)
-        name = self.campaignsPOMS.get_campaign_name(ctx, campaign_id)
-        return name
 
-    @cherrypy.expose
+    @poms_method()
+    def get_campaign_name(self, **kwargs):
+        return self.campaignsPOMS.get_campaign_name(**kwargs)
+
     # h4. get_campaign_stage_name
-    # @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def get_campaign_stage_name(self, experiment, campaign_stage_id):
-        ctx = Ctx(experiment=experiment)
-        name = self.campaignsPOMS.get_campaign_stage_name(ctx, campaign_stage_id)
-        return name
+
+    @poms_method()
+    def get_campaign_stage_name(self, **kwargs):
+        return self.campaignsPOMS.get_campaign_stage_name(**kwargs)
 
     # h4. campaign_add_name
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def campaign_add_name(self, experiment, role, **kwargs):
-        ctx = Ctx(experiment=experiment, role=role)
-        data = self.campaignsPOMS.campaign_add_name(ctx, **kwargs)
-        return data
+    @poms_method()
+    def campaign_add_name(self, **kwargs):
+        return self.campaignsPOMS.campaign_add_name(**kwargs)
 
     # h4. campaign_stage_edit
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def campaign_stage_edit(self, experiment, role, **kwargs):
-        ctx = Ctx(experiment=experiment, role=role)
-        """
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        self.permissions.can_modify(ctx, "CampaignStage", item_id=kwargs.get("campaign_stage_id", None))
-
-        data = self.campaignsPOMS.campaign_stage_edit(ctx, **kwargs)
-
-        template = self.jinja_env.get_template("campaign_stage_edit.html")
-
-        if kwargs.get("pcl_call", "0") == "1":
-            if data["message"]:
-                raise cherrypy.HTTPError(400, data["message"])
+    @poms_method(
+        p=[{"p": "can_modify", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
+        help_page="POMS_User_Documentation",
+        t="campaign_stage_edit.html",
+    )
+    def campaign_stage_edit(self, **kwargs):
+        data = self.campaignsPOMS.campaign_stage_edit(**kwargs)
+        if kwargs.get("pcl_call", "0") == "1" and data["message"]:
+            raise cherrypy.HTTPError(400, data["message"])
 
         if kwargs.get("launch_test_job", None) and kwargs.get("ae_campaign_id", None):
             raise cherrypy.HTTPRedirect(
                 "%s/%s/%s/launch_jobs?campaign_stage_id=%s" % (self.path, experiment, role, kwargs.get("ae_campaign_id"))
             )
 
-        # mvi point to new POMS doc
-        return template.render(
-            data=data,
-            help_page="POMS_User_Documentation",
-            experiment=experiment,
-            role=role,
-            jquery_ui=False,
-            extra_edit_flag=kwargs.get("extra_edit_flag", None),
-            jump_to_campaign=kwargs.get("jump_to_campaign", None),
-        )
+        return {"data": data, "jquery_ui": False}
 
     # h4. gui_wf_edit
 
-    @cherrypy.expose
-    @logit.logstartstop
+    @poms_method(
+        p=[{"p": "can_modify", "t": "Campaign", "name": "campaign", "experiment": "experiment"}],
+        t="gui_wf_edit.html",
+        help_page="GUI_Workflow_Editor_User_Guide",
+    )
     def gui_wf_edit(self, experiment, role, *args, **kwargs):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.permissions.can_modify(ctx, "Campaign", name=kwargs.get("campaign", None), experiment=experiment)
-        template = self.jinja_env.get_template("gui_wf_edit.html")
-        return template.render(
-            help_page="GUI_Workflow_Editor_User_Guide", experiment=experiment, role=role, campaign=kwargs.get("campaign")
-        )
+        return {}
 
     # h4. sample_workflows
 
-    @cherrypy.expose
-    @logit.logstartstop
-    def sample_workflows(self, experiment, role):
-        ctx = Ctx(experiment=experiment, role=role)
-
-        #
-        # black magic stolen from _setup_mimetypes() in
-        # http://docs.cherrypy.org/en/latest/_modules/cherrypy/lib/static.html
-        #
+    @poms_method(t="sample_workflows.html", help_page="Sample Workflows")
+    def sample_workflows(self, **kwargs):
         import mimetypes
 
         mimetypes.types_map[".ini"] = "text/plain"
 
-        sl = [
-            x.replace(os.environ["POMS_DIR"] + "/webservice/static/", "")
-            for x in glob.glob(os.environ["POMS_DIR"] + "/webservice/static/samples/*")
-        ]
-        logit.log("from %s think we got sl of %s" % (os.environ["POMS_DIR"], ",".join(sl)))
-        template = self.jinja_env.get_template("sample_workflows.html")
-        return template.render(help_page="Sample Workflows", sl=sl)
+        return {
+            "sl": [
+                x.replace(os.environ["POMS_DIR"] + "/webservice/static/", "")
+                for x in glob.glob(os.environ["POMS_DIR"] + "/webservice/static/samples/*")
+            ]
+        }
 
     # h4. campaign_list_json
 
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def campaign_list_json(self, *args, **kwargs):
-        ctx = Ctx()
-        data = self.campaignsPOMS.campaign_list(ctx)
-        return data
+    @poms_method(rtype=json)
+    def campaign_list_json(self, **kwargs):
+        return self.campaignsPOMS.campaign_list(ctx)
 
     # h4. campaign_stage_edit_query
 
-    @cherrypy.expose
-    @error_rewrite
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def campaign_stage_edit_query(self, experiment, role, **kwargs):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.permissions.can_view(ctx, "LaunchSetup", item_id=kwargs.get("ae_launch_id", None))
-        self.permissions.can_view(ctx, "JobType", item_id=kwargs.get("ae_campaign_definition_id", None))
-        data = self.campaignsPOMS.campaign_stage_edit_query(ctx, **kwargs)
-        return data
+    @poms_method(
+        rtype=json,
+        p=[
+            {"p": "can_view", "t": "LaunchSetup", "item_id": "ae_launch_id"},
+            {"p": "can_view", "t": "JobType", "item_id": "ae_campaign_definition_id"},
+        ],
+    )
+    def campaign_stage_edit_query(self, **kwargs):
+        return self.campaignsPOMS.campaign_stage_edit_query(**kwargs)
 
     # h4. show_campaigns
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def show_campaigns(self, experiment, role, **kwargs):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.permissions.can_view(ctx, "Experiment", item_id=experiment)
 
-        tl, last_activity, msg, data = self.campaignsPOMS.show_campaigns(ctx, **kwargs)
-
-        template = self.jinja_env.get_template("show_campaigns.html")
-        # mvi point to new POMS doc
-
-        values = {
-            "tl": tl,
-            "last_activity": last_activity,
-            "experiment": experiment,
-            "role": role,
-            "msg": msg,
-            "data": data,
-            "help_page": "POMS_User_Documentation",
-        }
-        #    'help_page': "ShowCampaignTagsHelp",
-
-        if kwargs.get("fmt", "") == "json":
-            cherrypy.response.headers["Content-Type"] = "application/json"
-            return json.dumps(values, cls=JSONORMEncoder).encode("utf-8")
-        else:
-            return template.render(**values)
+    @poms_method(
+        p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}],
+        t="show_campaigns.html",
+        u=["tl", "last_activity", "msg", "data"],
+    )
+    def show_campaigns(self, **kwargs):
+        return self.campaignsPOMS.show_campaigns(**kwargs)
 
     # h4. show_campaign_stages
 
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def show_campaign_stages(
-        self,
-        experiment,
-        role,
-        tmin=None,
-        tmax=None,
-        tdays=7,
-        active=True,
-        campaign_name=None,
-        holder=None,
-        role_held_with=None,
-        se_role=None,
-        cl=None,
-        **kwargs,
-    ):
-        ctx = Ctx(experiment=experiment, role=role, tmin=tmin, tmax=tmax, tdays=tdays)
-        (
-            campaign_stages,
-            tmin,
-            tmax,
-            tmins,
-            tmaxs,
-            tdays,
-            nextlink,
-            prevlink,
-            time_range_string,
-            data,
-        ) = self.campaignsPOMS.show_campaign_stages(
-            ctx,
-            active=active,
-            campaign_name=campaign_name,
-            holder=holder,
-            role_held_with=role_held_with,
-            campaign_ids=cl,
-            **kwargs,
-        )
-
-        if cl is None:
-            template = self.jinja_env.get_template("show_campaign_stages.html")
+    @poms_method(
+        u=[
+            "campaign_stages",
+            "tmin",
+            "tmax",
+            "tmins",
+            "tmaxs",
+            "tdays",
+            "nextlink",
+            "prevlink",
+            "time_range_string",
+            "data",
+            "template",
+            "limit_experiment",
+            "key",
+        ]
+    )
+    def show_campaign_stages(self, **kwargs):
+        if kwargs.get("campaign_ids", None) is None:
+            template = "show_campaign_stages.html"
         else:
-            template = self.jinja_env.get_template("show_campaign_stages_stats.html")
-
-        # mvi point to new POMS doc
-        values = {
-            "experiment": experiment,
-            "role": role,
-            "limit_experiment": experiment,
-            "campaign_stages": campaign_stages,
-            "tmins": tmins,
-            "tmaxs": tmaxs,
-            "tmin": str(tmin)[:16],
-            "tmax": str(tmax)[:16],
-            "tdays": tdays,
-            "next": nextlink,
-            "prev": prevlink,
-            "do_refresh": 1200,
-            "data": data,
-            "time_range_string": time_range_string,
-            "key": "",
-            "help_page": "POMS_UserDocumentation",
-            "dbg": kwargs,
-        }
-
-        if kwargs.get("fmt", "") == "json":
-            cherrypy.response.headers["Content-Type"] = "application/json"
-            return json.dumps(values, cls=JSONORMEncoder).encode("utf-8")
-        else:
-            return template.render(**values)
+            template = "show_campaign_stages_stats.html"
+        return self.campaignsPOMS.show_campaign_stages(**kwargs) + (template, kwargs["ctx"].experiment, "")
 
     # h4. reset_campaign_split
 
-    @cherrypy.expose
-    @logit.logstartstop
-    def reset_campaign_split(self, experiment, role, campaign_stage_id):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.permissions.can_modify(ctx, "CampaignStage", item_id=campaign_stage_id)
-        self.campaignsPOMS.reset_campaign_split(ctx, campaign_stage_id)
-        raise cherrypy.HTTPRedirect("campaign_stage_info/%s/%s?campaign_stage_id=%s" % (experiment, role, campaign_stage_id))
+    @poms_method(
+        p=[{"p": "can_modify", "t": "CampaignStage", "item_id": "campaign_stage"}],
+        redirect="%(poms_path)s/campaign_stage_info/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s",
+        rtype="redirect",
+    )
+    def reset_campaign_split(self, **kwargs):
+        return self.campaignsPOMS.reset_campaign_split(**kwargs)
 
     # h4. campaign_stage_datasets
     @cherrypy.expose
@@ -930,7 +793,7 @@ class PomsService:
     @cherrypy.tools.json_out()
     @logit.logstartstop
     def running_submissions(self, campaign_id_list):
-        ctx = Ctx(experiment=experiment, role=role)
+        ctx = Ctx()
         cl = list(map(int, campaign_id_list.split(",")))
         return self.taskPOMS.running_submissions(ctx, cl)
 

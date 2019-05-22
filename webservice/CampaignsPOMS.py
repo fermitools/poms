@@ -1553,7 +1553,7 @@ class CampaignsPOMS:
                 data["authorized"].append(False)
         return campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
 
-    def reset_campaign_split(self, ctx, campaign_stage_id):
+    def reset_campaign_split(self, ctx, campaign_stage_id, **kwargs):
         """
             reset a campaign_stages cs_last_split field so the sequence
             starts over

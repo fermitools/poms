@@ -118,7 +118,7 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
             ctx = Ctx(**cargs)
             # clean context args out of kwargs
             for k in cargs:
-                if k in kwargs:
+                if k in kwargs and not k in ("experiment", "role"):
                     del kwargs[k]
 
             # make permission checks
@@ -170,8 +170,8 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
             elif rtype == "ini":
                 cherrypy.response.headers["Content-Type"] = "text/ini"
                 return values
-            elif t:
-                templ = t
+            elif t or isinstance(values, dict) and values.get("template", None):
+                templ = t or values["template"]
                 if confirm and kwargs.get("confirm", None) == None:
                     templ = templ.replace(".html", "_confirm.html")
                 values["help_page"] = help_page
