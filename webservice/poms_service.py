@@ -36,6 +36,7 @@ import jinja2.exceptions
 import sqlalchemy.exc
 from sqlalchemy.inspection import inspect
 from .get_user import get_user
+from .make_method import poms_method
 
 # we import our logic modules, so we can attach an instance each to
 # our overall poms_service class.
@@ -202,6 +203,18 @@ class PomsService:
         # are configured.
         self.tablesPOMS = TablesPOMS.TablesPOMS(self)
 
+    @poms_method(
+        p=[
+            {"p": "can_do", "t": "Submission", "item_id": "submission_id"},
+            {"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"},
+            {"p": "can_do", "t": "Campaign", "item_id": "campaign_id"},
+        ],
+        u=["output", "s", "campaign_stage_id", "submission_id", "job_id"],
+        t="kill_jobs.html",
+        confirm=True
+    )
+    def new_kill_jobs(self, **kwargs):
+        return self.jobsPOMS.kill_jobs(**kwargs)
     #
     # h2. web methods
     #

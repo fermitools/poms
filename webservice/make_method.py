@@ -1,3 +1,21 @@
+import cherrypy
+from jinja2 import Environment, PackageLoader
+import jinja2.exceptions
+from .Ctx import Ctx
+
+from . import (
+    CampaignsPOMS,
+    DBadminPOMS,
+    FilesPOMS,
+    JobsPOMS,
+    TablesPOMS,
+    TagsPOMS,
+    TaskPOMS,
+    UtilsPOMS,
+    Permissions,
+    logit,
+    version,
+)
 """
 This is a stab at a decorator that will do most of the repeated things in poms_service.py  
 
@@ -29,41 +47,45 @@ It then
   - calls the underlying method
   - formats the result either with jinja template, or as json, or does redirect
 
-Note that we also subsume the cherrypy.expose and logit.startstop decorators.
+Note that we also subsume the cherrypy.expose and logit.logstartstop decorators.
 """
 
 
-def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html", redirect=None, u=[]):
+def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html", redirect=None, u=[], confirm=None):
     def decorator(func):
-        def method(self, **kwargs):
+        def method(self, *args, **kwargs):
+            for i in range(len(args)):
+                kwargs[["experiment","role","user"][i]] = args[i]
             # make context with any params in the list
             cargs = {k: kwargs.get(k, None) for k in ("experiment", "role", "tmin", "tmax", "tdays")}
             ctx = Ctx(**cargs)
             # clean context args out of kwargs
-            for k, v in cargs:
-                del kwargs[k]
+            for k in cargs:
+                if k in kwargs:
+                    del kwargs[k]
 
             # make permission checks
-            for p in plist:
+            for perm in p:
                 pargs = {"ctx": ctx}
-                for k in p:
+                for k in perm:
                     if k == "t":
-                        pargs[k] = p[k]
+                        pargs[k] = perm[k]
                     elif k == "p":
-                        pmethod = p[k]
+                        pmethod = perm[k]
                     else:
-                        pargs[k] = kwargs[p[k]]
+                        pargs[k] = kwargs.get(perm[k],None)
+                logit.log("pmethod: %s( %s )" % (pmethod,repr(pargs)))
                 if pmethod == "is_superuser":
-                    self.perms.is_superuser(**pargs)
+                    self.permissions.is_superuser(**pargs)
                 elif pmethod == "can_modify":
-                    self.perms.can_modify(**pargs)
+                    self.permissions.can_modify(**pargs)
                 elif pmethod == "can_do":
-                    self.perms.can_do(**pargs)
+                    self.permissions.can_do(**pargs)
                 else:
-                    self.perms.can_view(**pargs)
+                    self.permissions.can_view(**pargs)
 
             kwargs["ctx"] = ctx
-            values = func(**kwargs)
+            values = func(self, **kwargs)
 
             # unpack values into dictionary
             if u:
@@ -71,6 +93,13 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
                 for i in range(len(u)):
                     vdict[u[i]] = values[i]
                 values = vdict
+
+            uvdict = {}
+            uvdict.update(kwargs)
+            uvdict.update(values)
+            values = uvdict
+
+            logit.log("after call: values = %s" % repr(values))
 
             if kwargs.get("fmt", "") == "json" or rtype == "json":
                 cherrypy.response.headers["Content-Type"] = "application/json"
@@ -80,15 +109,33 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
                 kwargs["hostname"] = self.hostname
                 raise cherrypy.HTTPRedirect(redirect % kwargs)
             elif t:
+                templ = t
+                if confirm and kwargs.get("confirm", None) == None:
+                    templ = templ.replace(".html", "_confirm.html")
                 values["help_page"] = help_page
-                return jinja_env.get_template(t).render(**values)
+                return self.jinja_env.get_template(templ).render(**values)
             else:
                 cherrypy.response.headers["Content-Type"] = "text/plain"
                 return values
 
-        return cherrypy.expose(logit.startstop(method))
+        return cherrypy.expose(logit.logstartstop(method))
 
     return decorator
+
+
+class demo:
+    @poms_method(
+        p=[
+            {"p": "can_do", "t": "Submission", "item_id": "submission_id"},
+            {"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"},
+            {"p": "can_do", "t": "Campaign", "item_id": "campaign_id"},
+        ],
+        u=["output", "s", "campaign_stage_id", "submission_id", "job_id"],
+        t="kill_jobs.html",
+        confirm=True
+    )
+    def kill_jobs(self, **kwargs):
+        return self.taskPOMS.kill_jobs(**kwargs)
 
     @poms_method()
     def headers(self):
@@ -98,6 +145,6 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
     def sign_out(self):
         pass
 
-    @poms_method(templ="index.html")
+    @poms_method(t="index.html")
     def index(self):
         pass

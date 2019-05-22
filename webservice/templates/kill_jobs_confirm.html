@@ -13,7 +13,9 @@ Confirm {{act}} request {%include 'help_button.html'%}
 
 {%block subheader%}
 {%endblock%}
-
+{%if output is defined and not what is defined %}
+{%set what = output %}
+{%endif%}
 
 
 {%block content %}

@@ -510,17 +510,17 @@ class TaskPOMS:
             # sometimes jobs complete quickly, and we do not see them go by..
             # so if we got a jobsub_job_id, check for a job log to find
             # out what happened
-            if submisison.jobsub_job_id:
+            if submission.jobsub_job_id:
                 job_data = get_joblogs(ctx.db, jobsub_data[0], cert, key, experiment, role)
                 if job_data:
                     res.append("found job log for %s!" % submission_id)
                     if job_data.get('idle',None) and job_data['idle'].get(jobsub_job_id,None):
                         self.update_submission_status(ctx.db, submission_id, status="Idle", when = job_data['idle'][submission.jobsub_job_id]);
-                        res.append("submission %s Idle at" % (submission_id, job_data['idle'][submission.jobsub_job_id])
+                        res.append("submission %s Idle at" % (submission_id, job_data['idle'][submission.jobsub_job_id]))
 
-                    if job_data.get('running',None) and job_data['running'].get(jobsub_job_id,None):
+                    if job_data.get('running',None) and job_data['running'].get(submission.jobsub_job_id,None):
                         self.update_submission_status(ctx.db, submission_id, status="Running", when = job_data['running'][submission.jobsub_job_id]);
-                        res.append("submission %s Running at" % (submission_id, job_data['idle'][submission.jobsub_job_id])
+                        res.append("submission %s Running at" % (submission_id, job_data['idle'][submission.jobsub_job_id]))
           
                     if len(job_data['completed']) == len(job_data['idle']):
                         self.update_submission_status(ctx.db, submission_id, status="Completed");
