@@ -36,7 +36,7 @@ import jinja2.exceptions
 import sqlalchemy.exc
 from sqlalchemy.inspection import inspect
 from .get_user import get_user
-from .make_method import poms_method
+from .poms_method import poms_method
 
 # we import our logic modules, so we can attach an instance each to
 # our overall poms_service class.
@@ -203,18 +203,6 @@ class PomsService:
         # are configured.
         self.tablesPOMS = TablesPOMS.TablesPOMS(self)
 
-    @poms_method(
-        p=[
-            {"p": "can_do", "t": "Submission", "item_id": "submission_id"},
-            {"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"},
-            {"p": "can_do", "t": "Campaign", "item_id": "campaign_id"},
-        ],
-        u=["output", "s", "campaign_stage_id", "submission_id", "job_id"],
-        t="kill_jobs.html",
-        confirm=True
-    )
-    def new_kill_jobs(self, **kwargs):
-        return self.jobsPOMS.kill_jobs(**kwargs)
     #
     # h2. web methods
     #
@@ -1149,64 +1137,18 @@ class PomsService:
     #
     # h4. kill_jobs
 
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def kill_jobs(
-        self,
-        experiment,
-        role,
-        campaign_id=None,
-        campaign_stage_id=None,
-        submission_id=None,
-        task_id=None,
-        job_id=None,
-        confirm=None,
-        act="kill",
-    ):
-        ctx = Ctx(experiment=experiment, role=role)
-
-        # backward compatibility...
-        if task_id is not None and submission_id is None:
-            submission_id = task_id
-
-        self.permissions.can_do(ctx, "Submission", item_id=submission_id)
-        self.permissions.can_do(ctx, "CampaignStage", item_id=campaign_stage_id)
-        self.permissions.can_do(ctx, "Campaign", item_id=campaign_id)
-
-        if confirm is None:
-            what, s, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(
-                ctx, campaign_id, campaign_stage_id, submission_id, job_id, confirm, act
-            )
-            template = self.jinja_env.get_template("kill_jobs_confirm.html")
-            return template.render(
-                what=what,
-                experiment=experiment,
-                role=role,
-                task=s,
-                campaign_stage_id=campaign_stage_id,
-                submission_id=submission_id,
-                job_id=job_id,
-                act=act,
-                help_page="KilledJobsHelp",
-            )
-
-        else:
-            output, cs, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(
-                ctx, campaign_id, campaign_stage_id, submission_id, job_id, confirm, act
-            )
-            template = self.jinja_env.get_template("kill_jobs.html")
-            return template.render(
-                output=output,
-                experiment=experiment,
-                role=role,
-                cs=cs,
-                campaign_stage_id=campaign_stage_id,
-                submission_id=submission_id,
-                job_id=job_id,
-                act=act,
-                help_page="KilledJobsHelp",
-            )
+    @poms_method(
+        p=[
+            {"p": "can_do", "t": "Submission", "item_id": "submission_id"},
+            {"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"},
+            {"p": "can_do", "t": "Campaign", "item_id": "campaign_id"},
+        ],
+        u=["output", "s", "campaign_stage_id", "submission_id", "job_id"],
+        t="kill_jobs.html",
+        confirm=True
+    )
+    def kill_jobs(self, **kwargs):
+        return self.jobsPOMS.kill_jobs(**kwargs)
 
     # h4. set_job_launches
 
