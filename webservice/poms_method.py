@@ -1,7 +1,10 @@
 import cherrypy
+import json
 from jinja2 import Environment, PackageLoader
 import jinja2.exceptions
 from .Ctx import Ctx
+import sqlalchemy.exc
+import logging
 
 from . import (
     CampaignsPOMS,
@@ -16,46 +19,100 @@ from . import (
     logit,
     version,
 )
-"""
-This is a stab at a decorator that will do most of the repeated things in poms_service.py  
 
-To use it we need to
 
-a) make it work :-)
+def error_rewrite(f):
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except PermissionError as e:
+            logging.exception("rewriting:")
+            raise cherrypy.HTTPError(401, repr(e))
+        except TypeError as e:
+            logging.exception("rewriting:")
+            raise cherrypy.HTTPError(400, repr(e))
+        except KeyError as e:
+            logging.exception("rewriting:")
+            raise cherrypy.HTTPError(400, "Missing form field: %s" % repr(e))
+        except sqlalchemy.exc.DataError as e:
+            logging.exception("rewriting:")
+            raise cherrypy.HTTPError(400, "Invalid argument: %s" % repr(e))
+        except ValueError as e:
+            logging.exception("rewriting:")
+            raise cherrypy.HTTPError(400, "Invalid argument: %s" % repr(e))
+        except jinja2.exceptions.UndefinedError as e:
+            logging.exception("rewriting:")
+            raise cherrypy.HTTPError(400, "Missing arguments")
+        except:
+            raise
 
-b) fix our business methods to return dictionaries (nearly) ready to hand 
-   straight to the template.render call
+    return wrapper
 
-c) then it's just:
-   ---------------
-     @poms_method(p=[{"p":"can_view","t":"Campaign", "item_id":"campaign_id"}], 
-                  t="show_campaign_stages.html"
-     ) 
-     def show_campaign_stages(**kwargs): return self.campaignPOMS.show_campaign_stages(**kwargs)
-   ------------------
-   for most of our methods.  
 
-The parameters are:
-  p = our permissions checks, which can be a list, and refer to kwargs.
-  t = jinja template filename
-  help_page = name of help page in wiki
-  rtype = return type: "html", "json", or "redirect"
-  redirect = where to redirect to -- % formatted against dict = kwargs + poms_path, etc.
-It then
-  - automatically pulls out args that go into Ctx() block
-  - picks out the plist stuff and calls permission checks
-  - calls the underlying method
-  - formats the result either with jinja template, or as json, or does redirect
+class JSONORMEncoder(json.JSONEncoder):
+    # This will show up as an error in pylint.   Appears to be a bug in pylint, so its disabled:
+    #    pylint #89092 @property.setter raises an E0202 when attribute is set
+    def default(self, obj):  # pylint: disable=E0202
 
-Note that we also subsume the cherrypy.expose and logit.logstartstop decorators.
-"""
+        if obj == datetime:
+            return "datetime"
+
+        if isinstance(obj, Base):
+            # smash ORM objects into dictionaries
+            res = {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.column_attrs}
+            # first put in relationship keys, but not loaded
+            res.update({c.key: None for c in inspect(obj).mapper.relationships})
+            # load specific relationships that won't cause cycles
+            res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if "experimenter" in c.key})
+            res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if "snapshot_obj" in c.key})
+            res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if c.key == "campaign_stage_obj"})
+            # Limit to the name only for campaign_obj to prevent circular reference error
+            res.update(
+                {c.key: {"name": getattr(obj, c.key).name} for c in inspect(obj).mapper.relationships if c.key == "campaign_obj"}
+            )
+            res.update({c.key: list(getattr(obj, c.key)) for c in inspect(obj).mapper.relationships if c.key == "stages"})
+
+            return res
+
+        if isinstance(obj, datetime.datetime):
+            return obj.strftime("%Y-%m-%dT%H:%M:%S")
+
+        return super(JSONORMEncoder, self).default(obj)
 
 
 def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html", redirect=None, u=[], confirm=None):
+    """
+    This is a decorator that will do most of the repeated things in poms_service.py  
+    use as:
+       ---------------
+         @poms_method(p=[{"p":"can_view","t":"Campaign", "item_id":"campaign_id"}], 
+                      t="show_campaign_stages.html"
+         ) 
+         def show_campaign_stages(**kwargs): 
+              return self.campaignPOMS.show_campaign_stages(**kwargs)
+       ------------------
+       for most of our methods.  
+
+    The parameters are:
+      p = our permissions checks, which can be a list, and refer to kwargs.
+      t = jinja template filename
+      help_page = name of help page in wiki
+      rtype = return type: "html", "json", or "redirect"
+      redirect = where to redirect to -- % formatted against dict = kwargs + poms_path, etc.
+      confirm = True to convert template.html to template_confirm.html if there is no confirm parameter.
+    It then
+      - automatically pulls out args that go into Ctx() block
+      - picks out the plist stuff and calls permission checks
+      - calls the underlying method
+      - formats the result either with jinja template, or as json, or does redirect
+
+    Note that we also subsume the cherrypy.expose and logit.logstartstop decorators.
+    """
+
     def decorator(func):
         def method(self, *args, **kwargs):
             for i in range(len(args)):
-                kwargs[["experiment","role","user"][i]] = args[i]
+                kwargs[["experiment", "role", "user"][i]] = args[i]
             # make context with any params in the list
             cargs = {k: kwargs.get(k, None) for k in ("experiment", "role", "tmin", "tmax", "tdays")}
             ctx = Ctx(**cargs)
@@ -73,8 +130,8 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
                     elif k == "p":
                         pmethod = perm[k]
                     else:
-                        pargs[k] = kwargs.get(perm[k],None)
-                logit.log("pmethod: %s( %s )" % (pmethod,repr(pargs)))
+                        pargs[k] = kwargs.get(perm[k], None)
+                logit.log("pmethod: %s( %s )" % (pmethod, repr(pargs)))
                 if pmethod == "is_superuser":
                     self.permissions.is_superuser(**pargs)
                 elif pmethod == "can_modify":
@@ -94,10 +151,12 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
                     vdict[u[i]] = values[i]
                 values = vdict
 
-            uvdict = {}
-            uvdict.update(kwargs)
-            uvdict.update(values)
-            values = uvdict
+            if isinstance(values, dict):
+                # merge in kwargs..
+                uvdict = {}
+                uvdict.update(kwargs)
+                uvdict.update(values)
+                values = uvdict
 
             logit.log("after call: values = %s" % repr(values))
 
@@ -108,6 +167,9 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
                 kwargs["poms_path"] = self.path
                 kwargs["hostname"] = self.hostname
                 raise cherrypy.HTTPRedirect(redirect % kwargs)
+            elif rtype == "ini":
+                cherrypy.response.headers["Content-Type"] = "text/ini"
+                return values
             elif t:
                 templ = t
                 if confirm and kwargs.get("confirm", None) == None:
@@ -118,7 +180,7 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
                 cherrypy.response.headers["Content-Type"] = "text/plain"
                 return values
 
-        return cherrypy.expose(logit.logstartstop(method))
+        return cherrypy.expose(logit.logstartstop(error_rewrite(method)))
 
     return decorator
 
@@ -132,7 +194,7 @@ class demo:
         ],
         u=["output", "s", "campaign_stage_id", "submission_id", "job_id"],
         t="kill_jobs.html",
-        confirm=True
+        confirm=True,
     )
     def kill_jobs(self, **kwargs):
         return self.taskPOMS.kill_jobs(**kwargs)

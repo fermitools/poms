@@ -1467,8 +1467,10 @@ class CampaignsPOMS:
             in the time window for a given experiment
         :rtype: object
         """
-        base_link = "show_campaign_stages/%s/%s?" % (ctx.experiment, ctx.role) 
-        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates( ctx, base_link )
+        base_link = "show_campaign_stages/%s/%s?" % (ctx.experiment, ctx.role)
+        (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(
+            ctx, base_link
+        )
         experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).first()
 
         csq = (
@@ -2425,7 +2427,7 @@ class CampaignsPOMS:
             campaign = ctx.db.query(Campaign).filter(Campaign.campaign_id == cid).first()
             if campaign:
                 try:
-                    self.poms_service.permissions.can_modify(ctx,"Campaign",item_id=cid)
+                    self.poms_service.permissions.can_modify(ctx, "Campaign", item_id=cid)
                     auth = True
                 except:
                     auth = False

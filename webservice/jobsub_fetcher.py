@@ -53,10 +53,10 @@ class jobsub_fetcher:
         try:
             r = self.sess.get(url, cert=(self.cert, self.key), verify=False, headers={"Accept": "text/html"})
             log("DEBUG", "headers:" + repr(r.request.headers))
-            log("DEBUG","headers:" + repr(r.headers))
+            log("DEBUG", "headers:" + repr(r.headers))
             sys.stdout.flush()
             for line in r.text.split("\n"):
-                log("DEBUG","got line: " + line)
+                log("DEBUG", "got line: " + line)
                 # strip campaigns...
                 line = re.sub("<[^>]*>", "", line)
                 fields = line.strip().split()
@@ -65,10 +65,10 @@ class jobsub_fetcher:
                     fields[0] = ""
                     fields[2] = fields[1]
                     fields.append(fname)
-                    log("DEBUG","got fields: " + repr(fields))
+                    log("DEBUG", "got fields: " + repr(fields))
                     res.append(fields)
         except BaseException:
-            log("INFO",traceback.format_exc())
+            log("INFO", traceback.format_exc())
         finally:
             if r:
                 r.close()
@@ -102,17 +102,16 @@ class jobsub_fetcher:
         log("DEBUG", "trying url:" + url)
 
         try:
-            r = self.sess.get(url, cert=(self.cert, self.key), stream=True, verify=False , headers={"Accept": "text/html"})
+            r = self.sess.get(url, cert=(self.cert, self.key), stream=True, verify=False, headers={"Accept": "text/html"})
 
             log("DEBUG", "headers:" + repr(r.request.headers))
             log("DEBUG", "headers:" + repr(r.headers))
 
-
             sys.stdout.flush()
             log("DEBUG", "r.text: '%s'" % r.text)
-            return r.text.replace('<pre>','\n').split('\n')
+            return r.text.replace("<pre>", "\n").split("\n")
         except BaseException:
-            log("INFO",traceback.format_exc())
+            log("INFO", traceback.format_exc())
         finally:
             if r:
                 r.close()

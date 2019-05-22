@@ -77,10 +77,10 @@ class UtilsPOMS:
 
         return (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays)
 
-    def quick_search(self, redirect, search_term):
+    def quick_search(self, ctx, search_term):
         search_term = search_term.strip()
         search_term = search_term.replace("*", "%")
-        raise redirect("%s/search_campaigns?search_term=%s" % (self.poms_service.path, search_term))
+        raise ctx.HTTPRedirect("%s/search_campaigns?search_term=%s" % (self.poms_service.path, search_term))
 
     def getSavedExperimentRole(self, ctx):
         experiment, role = (
@@ -90,13 +90,13 @@ class UtilsPOMS:
         )
         return experiment, role
 
-    def update_session_experiment(self, ctx, experiment):
-        fields = {"session_experiment": experiment}
+    def update_session_experiment(self, ctx, session_experiment):
+        fields = {"session_experiment": session_experiment}
         ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).update(fields)
         ctx.db.commit()
 
-    def update_session_role(self, ctx, role):
+    def update_session_role(self, ctx, session_role):
 
-        ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).update({"session_role": role})
+        ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).update({"session_role": session_role})
 
         ctx.db.commit()

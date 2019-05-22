@@ -118,7 +118,7 @@ class samweb_lite:
         base = "https://samweb.fnal.gov:8483"
         url = "%s/sam/%s/api/definitions/name/%s/snapshot" % (base, experiment, defname)
         retries = 3
-        for i in range(retries+1):
+        for i in range(retries + 1):
             logit.log("take_snapshot try %d" % i)
             try:
                 with requests.Session() as sess:
@@ -398,7 +398,7 @@ class samweb_lite:
         logit.log("INFO", "create_definition: calling: %s with %s " % (url, pdict))
         text = None
         retries = 3
-        for i in range(retries+1):
+        for i in range(retries + 1):
             logit.log("create_defintition try %d" % i)
             try:
                 with requests.Session() as sess:
@@ -419,7 +419,7 @@ class samweb_lite:
             except Exception as e:
                 logit.log("ERROR", "Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
                 if i == retries:
-                   raise
+                    raise
 
             time.sleep(5)
 

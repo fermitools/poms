@@ -47,7 +47,7 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
             log("DEBUG", "checking file %s " % row[5])
             lines = fetcher.contents(row[5], jobsub_job_id, experiment, role, user=username)
             res = parse_condor_log(dbhandle, lines, jobsub_job_id[jobsub_job_id.find("@") + 1 :], submission_id)
-    
+
     del fetcher
 
     return res
@@ -106,7 +106,7 @@ def parse_condor_log(dbhandle, lines, batchhost, submission_id):
     jobsub_job_id = None
     res = {}
     for line in lines:
-        if line[:2] == "00" and line[3:5]==" (":
+        if line[:2] == "00" and line[3:5] == " (":
             ppos = line.find(")")
             jobsub_job_id = fix_jobid(line[5:ppos], batchhost)
 
@@ -155,4 +155,4 @@ def parse_condor_log(dbhandle, lines, batchhost, submission_id):
                 "disk_used %s memory_used %s job_exit %s" % (remote_cpu, disk_used, memory_used, job_exit),
             )
 
-    return {'idle': itimes, 'running': stimes, 'completed': etimes }
+    return {"idle": itimes, "running": stimes, "completed": etimes}

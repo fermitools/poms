@@ -36,7 +36,7 @@ import jinja2.exceptions
 import sqlalchemy.exc
 from sqlalchemy.inspection import inspect
 from .get_user import get_user
-from .poms_method import poms_method
+from .poms_method import poms_method, error_rewrite
 
 # we import our logic modules, so we can attach an instance each to
 # our overall poms_service class.
@@ -64,38 +64,6 @@ from .utc import utc
 
 from .Ctx import Ctx
 
-
-class JSONORMEncoder(json.JSONEncoder):
-    # This will show up as an error in pylint.   Appears to be a bug in pylint, so its disabled:
-    #    pylint #89092 @property.setter raises an E0202 when attribute is set
-    def default(self, obj):  # pylint: disable=E0202
-
-        if obj == datetime:
-            return "datetime"
-
-        if isinstance(obj, Base):
-            # smash ORM objects into dictionaries
-            res = {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.column_attrs}
-            # first put in relationship keys, but not loaded
-            res.update({c.key: None for c in inspect(obj).mapper.relationships})
-            # load specific relationships that won't cause cycles
-            res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if "experimenter" in c.key})
-            res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if "snapshot_obj" in c.key})
-            res.update({c.key: getattr(obj, c.key) for c in inspect(obj).mapper.relationships if c.key == "campaign_stage_obj"})
-            # Limit to the name only for campaign_obj to prevent circular reference error
-            res.update(
-                {c.key: {"name": getattr(obj, c.key).name} for c in inspect(obj).mapper.relationships if c.key == "campaign_obj"}
-            )
-            res.update({c.key: list(getattr(obj, c.key)) for c in inspect(obj).mapper.relationships if c.key == "stages"})
-
-            return res
-
-        if isinstance(obj, datetime.datetime):
-            return obj.strftime("%Y-%m-%dT%H:%M:%S")
-
-        return super(JSONORMEncoder, self).default(obj)
-
-
 #
 # h3. Error handling
 #
@@ -116,39 +84,6 @@ def error_response():
     cherrypy.response.headers["content-type"] = "text/html"
     cherrypy.response.body = body.encode()
     logit.log(dump)
-
-
-#
-# h2. decorator to rewrite common errors for a better error page
-#
-
-
-def error_rewrite(f):
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except PermissionError as e:
-            logging.exception("rewriting:")
-            raise cherrypy.HTTPError(401, repr(e))
-        except TypeError as e:
-            logging.exception("rewriting:")
-            raise cherrypy.HTTPError(400, repr(e))
-        except KeyError as e:
-            logging.exception("rewriting:")
-            raise cherrypy.HTTPError(400, "Missing form field: %s" % repr(e))
-        except sqlalchemy.exc.DataError as e:
-            logging.exception("rewriting:")
-            raise cherrypy.HTTPError(400, "Invalid argument: %s" % repr(e))
-        except ValueError as e:
-            logging.exception("rewriting:")
-            raise cherrypy.HTTPError(400, "Invalid argument: %s" % repr(e))
-        except jinja2.exceptions.UndefinedError as e:
-            logging.exception("rewriting:")
-            raise cherrypy.HTTPError(400, "Missing arguments")
-        except:
-            raise
-
-    return wrapper
 
 
 #
@@ -212,179 +147,115 @@ class PomsService:
     #
     # h4. headers
 
-    @cherrypy.expose
-    @logit.logstartstop
-    def headers(self):
+    @poms_method()
+    def headers(self, **kwargs):
         return repr(cherrypy.request.headers)
 
     # h4. sign_out
-    @cherrypy.expose
-    @logit.logstartstop
-    def sign_out(self):
-        cherrypy.lib.sessions.expire()
-        log_out_url = "https://" + self.hostname + "/Shibboleth.sso/Logout"
-        raise cherrypy.HTTPRedirect(log_out_url)
+    @poms_method(rtype="redirect", redirect="https://%(hostname)s/Shibboleth.sso/Logout")
+    def sign_out(self, **kwargs):
+        pass
 
     # h4. index
-    @cherrypy.expose
-    @logit.logstartstop
-    def index(self, experiment=None, role=None):
-        ctx = Ctx(experiment=experiment, role=role)
-
-        if experiment is None or role is None:
-            experiment, role = self.utilsPOMS.getSavedExperimentRole(ctx)
+    @poms_method(t="index.html", help_page="DashboardHelp")
+    def index(self, **kwargs):
+        if len(cherrypy.request.path_info.split("/")) < 3:
+            experiment, role = self.utilsPOMS.getSavedExperimentRole(kwargs["ctx"])
             raise cherrypy.HTTPRedirect("%s/index/%s/%s" % (self.path, experiment, role))
-
-        template = self.jinja_env.get_template("index.html")
-        return template.render(
-            services="",
-            experiment=experiment,
-            role=role,
-            version=self.version,
-            launches=self.taskPOMS.get_job_launches(ctx),
-            do_refresh=1200,
-            help_page="DashboardHelp",
-        )
+        return {"version": self.version, "launches": self.taskPOMS.get_job_launches(kwargs["ctx"])}
 
     ####################
     # UtilsPOMS
 
     # h4. quick_search
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def quick_search(self, experiment, role, search_term):
-        ctx = Ctx(experiment=experiment, role=role)
-        return self.utilsPOMS.quick_search(cherrypy.HTTPRedirect, search_term)
+    @poms_method()
+    def quick_search(self, **kwargs):
+        return self.utilsPOMS.quick_search(cherrypy.HTTPRedirect, **kwargs)
 
     # h4. update_session_experiment
-    @cherrypy.expose
-    @logit.logstartstop
-    def update_session_experiment(self, experiment, role, session_experiment):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.utilsPOMS.update_session_experiment(ctx, session_experiment)
-
+    @poms_method()
+    def update_session_experiment(self, **kwargs):
+        self.utilsPOMS.update_session_experiment(**kwargs)
         raise cherrypy.HTTPRedirect(
-            ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, experiment, role)).replace(experiment, session_experiment)
+            kwargs["ctx"]
+            .headers_get("Referer", "%s/index/%s/%s" % (self.path, kwargs["ctx"].experiment, kwargs["ctx"].role))
+            .replace(kwargs["ctx"].experiment, kwargs["session_experiment"])
         )
 
     # h4. update_session_role
-    @cherrypy.expose
-    @logit.logstartstop
-    def update_session_role(self, experiment, role, session_role):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.utilsPOMS.update_session_role(ctx, session_role)
-
+    @poms_method()
+    def update_session_role(self, **kwargs):
+        self.utilsPOMS.update_session_role(**kwargs)
         raise cherrypy.HTTPRedirect(
-            ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, experiment, role)).replace(role, session_role)
+            kwargs["ctx"]
+            .headers_get("Referer", "%s/index/%s/%s" % (self.path, kwargs["ctx"].experiment, kwargs["ctx"].role))
+            .replace(kwargs["ctx"].role, kwargs["session_role"])
         )
 
     #####
     # DBadminPOMS
     # h4. raw_tables
 
-    @cherrypy.expose
-    @logit.logstartstop
+    @poms_method(p=[{"p": "is_superuser"}], t="raw_tables.html", help_page="RawTablesHelp")
     def raw_tables(self):
-        ctx = Ctx(experiment=experiment, role=role)
-        if not self.permissions.is_superuser(ctx.db, ctx.username):
-            raise cherrypy.HTTPError(401, "You are not authorized to access this resource")
-        template = self.jinja_env.get_template("raw_tables.html")
-        return template.render(tlist=list(self.tablesPOMS.admin_map.keys()), help_page="RawTablesHelp")
+        return {"tlist": list(self.tablesPOMS.admin_map.keys())}
 
     #
     # h4. experiment_list
     #
     # list of experiments we support for submission agent, etc to use.
     #
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def experiment_list(self):
-        ctx = Ctx()
-        return list(map((lambda x: x[0]), ctx.db.query(Experiment.experiment).filter(Experiment.active.is_(True)).all()))
+    @poms_method(rtype="json")
+    def experiment_list(self, **kwargs):
+        return list(
+            map((lambda x: x[0]), kwargs["ctx"].db.query(Experiment.experiment).filter(Experiment.active.is_(True)).all())
+        )
 
     # h4. experiment_membership
 
-    @cherrypy.expose
-    @logit.logstartstop
-    def experiment_membership(self, experiment, role, *args, **kwargs):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.permissions.can_view(ctx, "Experiment", item_id=experiment)
-        data = self.dbadminPOMS.experiment_membership(ctx)
-        template = self.jinja_env.get_template("experiment_membership.html")
-        return template.render(data=data, help_page="MembershipHelp")
+    @poms_method(
+        p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}],
+        help_page="MembershipHelp",
+        t="experiment_membership.html",
+    )
+    def experiment_membership(self, **kwargs):
+        return {"data": self.dbadminPOMS.experiment_membership(**kwargs)}
 
     # -----------------------------------------
     #################################
     # CampaignsPOMS
 
     # h4. launch_template_edit
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def launch_template_edit(self, *args, **kwargs):
-        ctx = Ctx(experiment=experiment, role=role)
-        # v3_2_0 backward compatibility
-        return self.login_setup_edit(*args, **kwargs)
+    @poms_method()
+    def launch_template_edit(self, **kwargs):
+        return self.login_setup_edit(**kwargs)
 
     # h4. login_setup_rm
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
+    @poms_method(rtype="json")
     def login_setup_rm(self, **kwargs):
-        ctx = Ctx(experiment=experiment, role=role)
-        data = self.campaignsPOMS.login_setup_edit(ctx, action="delete", **kwargs)
-        return data
+        # note: login_setup_edit checks for delete permission...
+        kwargs["action"] = "delete"
+        return self.campaignsPOMS.login_setup_edit(**kwargs)
 
     # h4. login_setup_edit
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def login_setup_edit(self, experiment, role, **kwargs):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.permissions.can_modify(ctx, "LoginSetup", name=kwargs.get("ae_launch_name", None), experiment=experiment)
-        data = self.campaignsPOMS.login_setup_edit(ctx, **kwargs)
-
+    @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="login_setup_edit.html")
+    def login_setup_edit(self, **kwargs):
+        res = {"data": self.campaignsPOMS.login_setup_edit(**kwargs)}
         if kwargs.get("test_template"):
             raise cherrypy.HTTPRedirect(
                 "%s/launch_jobs/%s/%s?campaign_stage_id=None&test_login_setup=%s"
                 % (self.path, experiment, role, data["login_setup_id"])
             )
-
-        template = self.jinja_env.get_template("login_setup_edit.html")
-        return template.render(data=data, experiment=experiment, role=role, jquery_ui=False, help_page="POMS_User_Documentation")
+        return res
 
     # h4. campaign_deps_ini
 
-    @cherrypy.expose
-    @logit.logstartstop
-    def campaign_deps_ini(
-        self,
-        experiment,
-        role,
-        tag=None,
-        camp_id=None,
-        login_setup=None,
-        campaign_definition=None,
-        launch_template=None,
-        name=None,
-        stage_id=None,
-        job_type=None,
-        full=None,
-    ):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.permissions.can_view(ctx, "Campaign", item_id=stage_id or camp_id)
-        res = self.campaignsPOMS.campaign_deps_ini(
-            ctx,
-            name=name or tag,
-            stage_id=stage_id or camp_id,
-            login_setup=login_setup or launch_template,
-            job_type=job_type or campaign_definition,
-            full=full,
-        )
-        cherrypy.response.headers["Content-Type"] = "text/ini"
-        return res
+    @poms_method(
+        p=[{"p": "can_view", "t": "Campaign", "item_id": "camp_id"}, {"p": "can_view", "t": "Campaign", "item_id": "stage_id"}],
+        rtype="ini",
+    )
+    def campaign_deps_ini(self, **kwargs):
+        return self.campaignsPOMS.campaign_deps_ini(**kwargs)
 
     # h4. campaign_deps
 
@@ -1145,7 +1016,7 @@ class PomsService:
         ],
         u=["output", "s", "campaign_stage_id", "submission_id", "job_id"],
         t="kill_jobs.html",
-        confirm=True
+        confirm=True,
     )
     def kill_jobs(self, **kwargs):
         return self.jobsPOMS.kill_jobs(**kwargs)
