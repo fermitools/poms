@@ -76,6 +76,7 @@ class Agent:
         self.known['project'] = {}
         self.known['pct'] = {}
         self.known['maxjobs'] = {}
+        self.known['poms_task_id'] = {}
         self.submission_headers = {
             'Accept-Encoding': 'gzip, deflate, br',
             'Content-Type': 'application/json',
@@ -84,8 +85,9 @@ class Agent:
             'DNT': '1',
             'Origin': 'https://landscape.fnal.gov'
         }
+        # last_seen[group] is set of poms task ids seen last time
+        self.last_seen = {}  
         self.timeouts = (30,10)
-
 
 
         htr = self.psess.get("http://127.0.0.1:8080/poms/experiment_list")
@@ -340,6 +342,7 @@ class Agent:
             #
             # now update our known status if available
             #
+            self.known['poms_task_id'][entry['pomsTaskID']] = entry['id']
             if entry['pomsTaskID'] not in self.known['status'] or report_status:
                 self.known['status'][entry['pomsTaskID']] = entry['done']
 
@@ -348,6 +351,14 @@ class Agent:
 
             if entry['pomsTaskID'] not in self.known['pct'] or report_pct_complete:
                 self.known['pct'][entry['pomsTaskID']] = report_pct_complete
+
+        if self.last_seen.get('experment',None):
+            missing = seen - self.last_seen[group]
+            # submissions we used to see, but don't anymore...
+            for id in missing:
+                self.update_submission(id, jobsub_job_id=known['jobsub_job_id'][id],status="Completed")
+
+        self.last_seen[group] = seen
 
     def poll(self, since = ''):
         '''
