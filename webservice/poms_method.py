@@ -1,10 +1,12 @@
-import cherrypy
-import json
-from jinja2 import Environment, PackageLoader
-import jinja2.exceptions
 from .Ctx import Ctx
-import sqlalchemy.exc
+from .poms_model import CampaignStage, Submission, Experiment, LoginSetup, Base, Experimenter
+from jinja2 import Environment, PackageLoader
+import cherrypy
+import datetime
+import jinja2.exceptions
+import json
 import logging
+import sqlalchemy.exc
 
 from . import (
     CampaignsPOMS,
@@ -80,7 +82,9 @@ class JSONORMEncoder(json.JSONEncoder):
         return super(JSONORMEncoder, self).default(obj)
 
 
-def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html", redirect=None, u=[], confirm=None):
+def poms_method(
+    p=[], t=None, help_page="POMS_User_Documentation", rtype="html", redirect=None, u=[], confirm=None, call_args=None
+):
     """
     This is a decorator that will do most of the repeated things in poms_service.py  
     use as:
@@ -111,8 +115,9 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
 
     def decorator(func):
         def method(self, *args, **kwargs):
-            for i in range(len(args)):
-                kwargs[["experiment", "role", "user"][i]] = args[i]
+            if not call_args:
+                for i in range(len(args)):
+                    kwargs[["experiment", "role", "user"][i]] = args[i]
             # make context with any params in the list
             cargs = {k: kwargs.get(k, None) for k in ("experiment", "role", "tmin", "tmax", "tdays")}
             ctx = Ctx(**cargs)
@@ -142,7 +147,10 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
                     self.permissions.can_view(**pargs)
 
             kwargs["ctx"] = ctx
-            values = func(self, **kwargs)
+            if call_args:
+                values = func(self, *args)
+            else:
+                values = func(self, **kwargs)
 
             # unpack values into dictionary
             if u:
@@ -160,8 +168,13 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
 
             logit.log("after call: values = %s" % repr(values))
 
+            # stop Chrome from offering to translate half our pages..
+            cherrypy.response.headers["Content-Language"] = "en"
+
             if kwargs.get("fmt", "") == "json" or rtype == "json":
                 cherrypy.response.headers["Content-Type"] = "application/json"
+                if isinstance(values, dict) and "ctx" in values:
+                    del values["ctx"]
                 return json.dumps(values, cls=JSONORMEncoder).encode("utf-8")
             elif rtype == "redirect":
                 kwargs["poms_path"] = self.path
@@ -175,7 +188,11 @@ def poms_method(p=[], t=None, help_page="POMS_User_Documentation", rtype="html",
                 if confirm and kwargs.get("confirm", None) == None:
                     templ = templ.replace(".html", "_confirm.html")
                 values["help_page"] = help_page
+                values["datetime"] = datetime
                 return self.jinja_env.get_template(templ).render(**values)
+            elif rtype == "html":
+                cherrypy.response.headers["Content-Type"] = "text/html"
+                return values
             else:
                 cherrypy.response.headers["Content-Type"] = "text/plain"
                 return values

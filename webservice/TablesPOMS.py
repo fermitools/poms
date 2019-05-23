@@ -22,13 +22,13 @@ class TablesPOMS:
         self.poms_service = ps
         self.make_admin_map()
 
-    def list_generic(self, ctx, classname):
-        l = self.make_list_for(ctx.db, self.admin_map[classname], self.pk_map[classname])
+    def list_generic(self, ctx, classname, **kwargs):
+        l = self.make_list_for(ctx, self.admin_map[classname], self.pk_map[classname])
         return l
 
-    def edit_screen_generic(self, classname, id=None):
+    def edit_screen_generic(self, ctx, classname, id=None):
         return self.poms_service.edit_screen_for(
-            classname, self.admin_map[classname], "update_generic", self.pk_map[classname], id, {}
+            ctx, classname, self.admin_map[classname], "update_generic", self.pk_map[classname], id, {}
         )
 
     def update_generic(self, ctx, classname, *args, **kwargs):

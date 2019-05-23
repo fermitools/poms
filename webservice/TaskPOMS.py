@@ -94,7 +94,7 @@ class TaskPOMS:
         self.init_status_done = True
 
     def campaign_stage_datasets(self, ctx):
-        self.init_statuses(ctx.db)
+        self.init_statuses(ctx)
         running = (
             ctx.db.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id))
             .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
@@ -541,7 +541,7 @@ class TaskPOMS:
         ctx.db.commit()
         return "\n".join(res)
 
-    def submission_details(self, ctx, submission_id):
+    def submission_details(self, ctx, submission_id, **kwargs):
         submission = (
             ctx.db.query(Submission)
             .options(joinedload(Submission.campaign_stage_snapshot_obj))
