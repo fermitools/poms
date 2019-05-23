@@ -571,77 +571,51 @@ class PomsService:
 
     # h4. force_locate_submission
 
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def force_locate_submission(self, experiment, role, submission_id):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.permissions.can_view(ctx, "Submission", item_id=submission_id)
-        return self.taskPOMS.force_locate_submission(ctx, submission_id)
+    @poms_method(p=[{"p": "can_view", "t": "Submission", "item_id": "submission_id"}])
+    def force_locate_submission(self, **kwargs):
+        return self.taskPOMS.force_locate_submission(kwargs["ctx"], kwargs["submission_id"])
 
     # h4. mark_failed_submissions
-    @cherrypy.expose
-    @logit.logstartstop
-    def mark_failed_submissions(self):
-        ctx = Ctx(experiment=experiment, role=role)
-        return self.taskPOMS.mark_failed_submissions(ctx.db)
+    @poms_method(p=[{"p": "is_superuser"}])
+    def mark_failed_submissions(self, **kwargs):
+        return self.taskPOMS.mark_failed_submissions(**kwargs["ctx"].db)
 
     # h4. running_submissions
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
-    def running_submissions(self, campaign_id_list):
-        ctx = Ctx()
-        cl = list(map(int, campaign_id_list.split(",")))
-        return self.taskPOMS.running_submissions(ctx, cl)
+    @poms_method()
+    def running_submissions(self, **kwargs):
+        cl = list(map(int, kwargs["campaign_id_list"].split(",")))
+        return self.taskPOMS.running_submissions(kwargs["ctx"], cl)
 
     # h4. update_submission
-    @cherrypy.expose
-    @logit.logstartstop
-    def update_submission(self, submission_id, jobsub_job_id, pct_complete=None, status=None, project=None, redirect=None):
-        ctx = Ctx()
-        self.permissions.can_modify(ctx, "Submission", item_id=submission_id)
-        res = self.taskPOMS.update_submission(
-            ctx, submission_id, jobsub_job_id, status=status, project=project, pct_complete=pct_complete
-        )
-        if redirect:
-            raise cherrypy.HTTPRedirect(ctx.headers_get("Referer"))
+    @poms_method(p=[{"p": "can_modify", "t": "Submission", "item_id": "submission_id"}])
+    def update_submission(self, **kwargs):
+        res = self.taskPOMS.update_submission(**kwargs)
+        if kwargs["redirect"]:
+            raise cherrypy.HTTPRedirect(kwargs["ctx"].headers_get("Referer"))
         return res
 
     # h3. File upload management for Analysis users
     #
     # h4. file_uploads
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def file_uploads(self, experiment, role, checkuser=None):
-        ctx = Ctx(experiment=experiment, role=role)
-        if role == "production":
+    @poms_method(
+        p=[{"p": "can_view", "t": "Experimenter", "name": "username"}],
+        u=["file_stat_list", "total", "experimenters", "quota"],
+        t="file_uploads.html",
+    )
+    def file_uploads(self, **kwargs):
+        if kwargs["ctx"].role == "production":
             raise cherrypy.HTTPRedirect(self.path + "/index")
-        self.permissions.can_view(ctx, "Experimenter", item_id=ctx.username)
-        quota = ctx.config_get("base_uploads_quota", 10_485_760)
-        file_stat_list, total, experimenters = self.filesPOMS.file_uploads(ctx, checkuser)
-        template = self.jinja_env.get_template("file_uploads.html")
-        return template.render(
-            experiment=experiment,
-            role=role,
-            experimenters=experimenters,
-            file_stat_list=file_stat_list,
-            total=total,
-            quota=quota,
-            time=time,
-            checkuser=checkuser,
-        )
+        return self.filesPOMS.file_uploads(kwargs["ctx"], kwargs.get("checkuser", None))
 
-    # h4. file_uploads
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @logit.logstartstop
+    # h4. file_uploads_json
+    @poms_method(
+        rtype="json",
+        p=[{"p": "can_view", "t": "Experimenter", "name": "username"}],
+        u=["file_stat_list", "total", "experimenters", "quota"],
+        t="file_uploads.html",
+    )
     def file_uploads_json(self, experiment, role, checkuser=None):
-        ctx = Ctx(experiment=experiment, role=role)
-        quota = ctx.config_get("base_uploads_quota", 10_485_760)
-        file_stat_list, total, experimenters = self.filesPOMS.file_uploads(ctx, checkuser)
-        return {"file_stat_list": file_stat_list, "total": total, "quota": quota}
+        return self.filesPOMS.file_uploads(ctx, checkuser)
 
     # h4. upload_file
     @cherrypy.expose
@@ -660,7 +634,7 @@ class PomsService:
     def remove_uploaded_files(self, experiment, role, experimenter, filename, action, redirect=1):
         ctx = Ctx(experiment=experiment, role=role)
         self.permissions.can_modify(ctx, "Experimenter", item_id=experimenter)
-        res = self.filesPOMS.remove_uploaded_files(ctx.config_get("base_uploads_dir"), experiment, ctx.username, filename, action)
+        res = self.filesPOMS.remove_uploaded_files(ctx, filename, action)
         if int(redirect) == 1:
             raise cherrypy.HTTPRedirect("%s/file_uploads/%s/%s/%s" % (self.path, experiment, role, experimenter))
         return res

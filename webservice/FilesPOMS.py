@@ -245,7 +245,8 @@ class FilesStatus:
             .join(ExperimentsExperimenters.experimenter_obj)
             .filter(ExperimentsExperimenters.experiment == ctx.experiment)
         ).all()
-        return file_stat_list, total, experimenters
+        quota = ctx.config_get("base_uploads_quota", 10485760)
+        return file_stat_list, total, experimenters, quota
 
     def upload_file(self, ctx, quota, filename):
         logit.log("upload_file: entry")
@@ -274,7 +275,7 @@ class FilesStatus:
                 size += len(data)
             f.close()
             logit.log("upload_file: closed")
-            fstatlist, total, experimenters = self.file_uploads(ctx)
+            fstatlist, total, experimenters, q = self.file_uploads(ctx)
             if total > quota:
                 os.unlink(outf)
                 raise ValueError("Upload exeeds quota of %d kbi" % quota / 1024)

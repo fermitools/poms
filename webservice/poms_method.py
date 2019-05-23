@@ -2,11 +2,14 @@ from .Ctx import Ctx
 from .poms_model import CampaignStage, Submission, Experiment, LoginSetup, Base, Experimenter
 from jinja2 import Environment, PackageLoader
 import cherrypy
-import datetime
 import jinja2.exceptions
 import json
 import logging
 import sqlalchemy.exc
+
+# mostly so we can pass them to page templates...
+import datetime
+import time
 
 from . import (
     CampaignsPOMS,
@@ -188,7 +191,9 @@ def poms_method(
                 if confirm and kwargs.get("confirm", None) == None:
                     templ = templ.replace(".html", "_confirm.html")
                 values["help_page"] = help_page
+                # a few templates want to format times, etc.
                 values["datetime"] = datetime
+                values["time"] = time
                 return self.jinja_env.get_template(templ).render(**values)
             elif rtype == "html":
                 cherrypy.response.headers["Content-Type"] = "text/html"
