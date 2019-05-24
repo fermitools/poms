@@ -365,7 +365,7 @@ class Agent:
             if entry["pomsTaskID"] not in self.known["pct"] or report_pct_complete:
                 self.known["pct"][entry["pomsTaskID"]] = report_pct_complete
 
-        LOGIT.debug("thispass: %s\nlast_seen: %s" % (repr(thispass), repr(last_seen.get(group,None))))
+        LOGIT.debug("thispass: %s\nlast_seen: %s" % (repr(thispass), repr(self.last_seen.get(group,None))))
 
         if self.last_seen.get(group, None):
             missing = thispass - self.last_seen[group]
@@ -378,7 +378,8 @@ class Agent:
                     continue
 
                 LOGIT.info("reporting no longer seen submission id %s completed." % id)
-                self.update_submission(id, jobsub_job_id=known["jobsub_job_id"][id], status="Completed")
+                self.update_submission(id, jobsub_job_id=self.known["jobsub_job_id"][id], status="Completed")
+                self.known["status"][id] = "Completed"
 
         self.last_seen[group] = thispass
 
