@@ -274,7 +274,7 @@ class PomsService:
 
     @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="job_type_edit.html")
     def job_type_edit(self, **kwargs):
-        res = {"data": self.campaignsPOMS.job_type_edit(ctx, **kwargs), "jquery_ui": False}
+        res = {"data": self.campaignsPOMS.job_type_edit(**kwargs), "jquery_ui": False}
         if kwargs.get("test_template"):
             test_campaign = self.campaignsPOMS.make_test_campaign_for(
                 kwargs["ctx"], kwargs.get("ae_campaign_definition_id"), kwargs.get("ae_definition_name")

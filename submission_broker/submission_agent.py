@@ -365,8 +365,10 @@ class Agent:
             if entry["pomsTaskID"] not in self.known["pct"] or report_pct_complete:
                 self.known["pct"][entry["pomsTaskID"]] = report_pct_complete
 
-        if self.last_seen.get("experment", None):
-            missing = this_pass - self.last_seen[group]
+        LOGIT.debug("thispass: %s\nlast_seen: %s" % (repr(thispass), repr(last_seen.get(group,None))))
+
+        if self.last_seen.get(group, None):
+            missing = thispass - self.last_seen[group]
             # submissions we used to see, but don't anymore...
             for id in missing:
 
@@ -378,7 +380,7 @@ class Agent:
                 LOGIT.info("reporting no longer seen submission id %s completed." % id)
                 self.update_submission(id, jobsub_job_id=known["jobsub_job_id"][id], status="Completed")
 
-        self.last_seen[group] = this_pass
+        self.last_seen[group] = thispass
 
     def poll(self, since=""):
         """
