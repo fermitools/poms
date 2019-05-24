@@ -138,7 +138,8 @@ def poms_method(
                     elif k == "p":
                         pmethod = perm[k]
                     else:
-                        pargs[k] = kwargs.get(perm[k], None)
+                        # look for permission values in kwargs or ctx...
+                        pargs[k] = kwargs.get(perm[k], ctx.__dict__.get(perm[k], None))
                 logit.log("pmethod: %s( %s )" % (pmethod, repr(pargs)))
                 if pmethod == "is_superuser":
                     self.permissions.is_superuser(**pargs)

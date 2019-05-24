@@ -590,7 +590,7 @@ class PomsService:
     @poms_method(p=[{"p": "can_modify", "t": "Submission", "item_id": "submission_id"}])
     def update_submission(self, **kwargs):
         res = self.taskPOMS.update_submission(**kwargs)
-        if kwargs.get("redirect",None):
+        if kwargs.get("redirect", None):
             raise cherrypy.HTTPRedirect(kwargs["ctx"].headers_get("Referer"))
         return res
 
@@ -598,7 +598,7 @@ class PomsService:
     #
     # h4. file_uploads
     @poms_method(
-        p=[{"p": "can_view", "t": "Experimenter", "name": "username"}],
+        p=[{"p": "can_view", "t": "Experimenter", "item_id": "username"}],
         u=["file_stat_list", "total", "experimenters", "quota"],
         t="file_uploads.html",
     )
@@ -610,7 +610,7 @@ class PomsService:
     # h4. file_uploads_json
     @poms_method(
         rtype="json",
-        p=[{"p": "can_view", "t": "Experimenter", "name": "username"}],
+        p=[{"p": "can_view", "t": "Experimenter", "item_id": "username"}],
         u=["file_stat_list", "total", "experimenters", "quota"],
         t="file_uploads.html",
     )
@@ -618,24 +618,21 @@ class PomsService:
         return self.filesPOMS.file_uploads(ctx, checkuser)
 
     # h4. upload_file
-    @cherrypy.expose
-    # @error_rewrite
-    @logit.logstartstop
-    def upload_file(self, experiment, role, filename, username=None, **kwargs):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.permissions.can_modify(ctx, "Experimenter", item_id=username)
-        self.filesPOMS.upload_file(ctx, quota=ctx.config_get("base_uploads_quota"), filename=filename)
-        raise cherrypy.HTTPRedirect("%s/file_uploads/%s/%s/%s" % (self.path, experiment, role, username))
+    @poms_method(
+        p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
+        rtype="redirect",
+        redirect="%(pomspath)s/file_uploads/%(experiment)s/%(role)s/%(username)s",
+    )
+    def upload_file(self, **kwargs):
+        return self.filesPOMS.upload_file(
+            kwargs["ctx"], quota=kwargs["ctx"].config_get("base_uploads_quota"), filename=kwargs["filename"]
+        )
 
     # h4. remove_uploaded_files
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def remove_uploaded_files(self, experiment, role, experimenter, filename, action, redirect=1):
-        ctx = Ctx(experiment=experiment, role=role)
-        self.permissions.can_modify(ctx, "Experimenter", item_id=experimenter)
+    @poms_method(p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}])
+    def remove_uploaded_files(self, **kwargs):
         res = self.filesPOMS.remove_uploaded_files(ctx, filename, action)
-        if int(redirect) == 1:
+        if int(kwargs.get("redirect", "1")) == 1:
             raise cherrypy.HTTPRedirect("%s/file_uploads/%s/%s/%s" % (self.path, experiment, role, experimenter))
         return res
 
@@ -658,74 +655,42 @@ class PomsService:
 
     # h4. set_job_launches
 
-    @cherrypy.expose
-    @logit.logstartstop
-    def set_job_launches(self, experiment, role, hold):
-        ctx = Ctx(experiment=experiment, role=role)
-        if not self.permissions.is_superuser(ctx.db, ctx.username):
-            raise cherrypy.HTTPError(401, "You are not authorized to access this resource")
-        self.taskPOMS.set_job_launches(ctx.db, experiment, role, ctx.username, hold)
-        raise cherrypy.HTTPRedirect(self.path + "/index/%s/%s" % experiment, role)
+    @poms_method(p=[{"p", "is_superuser"}], rtype="redirect", redirect="%(pomspath)s/index/%(experiment)s/%(role)s")
+    def set_job_launches(self, **kwarg):
+        return self.taskPOMS.set_job_launches(ctx.db, experiment, role, ctx.username, hold)
 
     # h4. launch_queued_job
 
-    @cherrypy.expose
-    @logit.logstartstop
-    def launch_queued_job(self):
-        ctx = Ctx(experiment=experiment, role=role)
-        return self.taskPOMS.launch_queued_job(ctx)
+    @poms_method(p=[{"p", "is_superuser"}])
+    def launch_queued_job(self, **kwargs):
+        return self.taskPOMS.launch_queued_job(kwargs["ctx"])
 
     # h4. launch_campaign
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def launch_campaign(
-        self,
-        experiment,
-        role,
-        campaign_id=None,
-        dataset_override=None,
-        parent_submission_id=None,
-        parent_task_id=None,
-        test_login_setup=None,
-        launcher=None,
-        test_launch=False,
-        output_commands=None,
-    ):
-        ctx = Ctx(experiment=experiment, role=role)
-        if ctx.username != "poms" or launcher == "":
-            launch_user = ctx.username
+    @poms_method(
+        p=[{"p": "can_do", "t": "Campaign", "item_id": "campaign_id"}], u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"]
+    )
+    def launch_campaign(self, **kwargs):
+        if kwargs["ctx"].username != "poms" or kwargs.get("launcher", "") == "":
+            launch_user = kwargs["ctx"].username
         else:
-            launch_user = launcher
+            launch_user = kwargs.get("launcher", "")
 
-        logit.log("calling launch_campaign with campaign_id='%s'" % campaign_id)
-        self.permissions.can_do(ctx, "Campaign", item_id=campaign_id)
+        res = self.campaignsPOMS.launch_campaign(**kwargs)
 
-        vals = self.campaignsPOMS.launch_campaign(
-            ctx, campaign_id, launch_user, test_launch=test_launch, output_commands=output_commands
-        )
-
-        logit.log("Got vals: %s" % repr(vals))
-
-        if output_commands:
+        if kwargs.get("output_commands", ""):
             cherrypy.response.headers["Content-Type"] = "text/plain"
-            return vals
-
-        lcmd, cs, campaign_stage_id, outdir, outfile = vals
-        if lcmd == "":
+            return res
+        if res[0] == "":
             return "Launches held, job queued..."
         else:
             raise cherrypy.HTTPRedirect(
-                "%s/list_launch_file/%s/%s?campaign_stage_id=%s&fname=%s"
+                "%s/campaign_stage_info/%s/%s?campaign_stage_id=%s&filename=%s"
                 % (self.path, experiment, role, campaign_stage_id, os.path.basename(outfile))
             )
+        return res
 
     # h4. test_split_type_editors
 
-    # h4. launch_jobs
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
     def launch_jobs(
         self,
         experiment,
