@@ -371,7 +371,7 @@ class Agent:
         LOGIT.debug("thispass: %s\nlast_seen: %s" % (repr(thispass), repr(self.last_seen.get(group,None))))
 
         if self.last_seen.get(group, None):
-            missing = thispass - self.last_seen[group]
+            missing = self.last_seen[group] - thispass
             # submissions we used to see, but don't anymore...
             for id in missing:
 
