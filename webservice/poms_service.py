@@ -590,7 +590,7 @@ class PomsService:
     @poms_method(p=[{"p": "can_modify", "t": "Submission", "item_id": "submission_id"}])
     def update_submission(self, **kwargs):
         res = self.taskPOMS.update_submission(**kwargs)
-        if kwargs["redirect"]:
+        if kwargs.get("redirect",None):
             raise cherrypy.HTTPRedirect(kwargs["ctx"].headers_get("Referer"))
         return res
 
