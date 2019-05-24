@@ -1565,7 +1565,7 @@ class CampaignsPOMS:
         ctx.db.commit()
 
     # @pomscache.cache_on_arguments()
-    def campaign_stage_info(self, ctx, campaign_stage_id):
+    def campaign_stage_info(self, ctx, campaign_stage_id, **kwargs):
         """
            Give information related to a campaign stage for the campaign_stage_info page
         """
@@ -1670,7 +1670,9 @@ class CampaignsPOMS:
             recent_submissions,
         )
 
-    def campaign_stage_submissions(self, ctx, campaign_name="", stage_name="", campaign_stage_id=None, campaign_id=None):
+    def campaign_stage_submissions(
+        self, ctx, campaign_name="", stage_name="", campaign_stage_id=None, campaign_id=None, **kwargs
+    ):
         """
            Show submissions from a campaign stage
         """
@@ -1780,7 +1782,7 @@ class CampaignsPOMS:
             data["submissions"] = submissions
         return data
 
-    def session_status_history(self, ctx, submission_id):
+    def session_status_history(self, ctx, submission_id, **kwargs):
         """
            Return history rows
         """
@@ -1841,7 +1843,7 @@ class CampaignsPOMS:
         ctx.db.commit()
         return res
 
-    def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None):
+    def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None, **kwargs):
         """
             get launch output file and return the lines as a list
         """
@@ -1870,7 +1872,7 @@ class CampaignsPOMS:
             refresh = 0
         return lines, refresh, campaign_name, stage_name
 
-    def schedule_launch(self, ctx, campaign_stage_id):
+    def schedule_launch(self, ctx, campaign_stage_id, **kwargs):
         """
             return crontab info for cron launches for campaign
         """
@@ -1889,15 +1891,39 @@ class CampaignsPOMS:
         launch_flist = list(map(os.path.basename, launch_flist))
         return c_s, job, launch_flist
 
+    def mark_campaign_hold(self, ctx, campaign_ids, is_hold, **kwargs):
+        session_experimenter = ctx.get_experimenter()
+        for campaign in ctx.db.query(Campaign).filter(Campaign.campaign_id.in_(campaign_ids)).all():
+            if is_hold in ("Hold", "Queue"):
+                campaign.hold_experimenter_id = sessionExperimenter.experimenter_id
+                campaign.role_held_with = role
+            elif is_hold == "Release":
+                campaign.hold_experimenter_id = None
+                campaign.role_held_with = None
+            else:
+                raise ctx.HTTPError(400, "The action is not supported. You can only Hold/Queue or Release.")
+            ctx.db.add(campaign)
+        ctx.db.commit()
+
     def update_launch_schedule(
-        self, ctx, campaign_stage_id, dowlist="", domlist="", monthly="", month="", hourlist="", submit="", minlist="", delete=""
+        self,
+        ctx,
+        campaign_stage_id,
+        dowlist="",
+        domlist="",
+        monthly="",
+        month="",
+        hourlist="",
+        submit="",
+        minlist="",
+        delete="",
+        **kwargs,
     ):
         """
             callback for changing the launch schedule
         """
 
-        if ctx.username:
-            experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).first()
+        experimenter = ctx.get_experimenter()
 
         # deal with single item list silliness
         if isinstance(minlist, str):

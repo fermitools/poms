@@ -90,12 +90,12 @@ class UtilsPOMS:
         )
         return experiment, role
 
-    def update_session_experiment(self, ctx, session_experiment):
+    def update_session_experiment(self, ctx, session_experiment, **kwargs):
         fields = {"session_experiment": session_experiment}
         ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).update(fields)
         ctx.db.commit()
 
-    def update_session_role(self, ctx, session_role):
+    def update_session_role(self, ctx, session_role, **kwargs):
 
         ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).update({"session_role": session_role})
 
