@@ -82,6 +82,7 @@ class Agent:
         self.known["pct"] = {}
         self.known["maxjobs"] = {}
         self.known["poms_task_id"] = {}
+        self.known["jobsub_job_id"] = {}
         self.submission_headers = {
             "Accept-Encoding": "gzip, deflate, br",
             "Content-Type": "application/json",
@@ -314,6 +315,8 @@ class Agent:
                 report_status_flag = True
 
             report_status = get_status(entry)
+
+            self.known["jobsub_job_id"][entry["pomsTaskID"]] = entry[id]
 
             ntot = int(entry["running"]) + int(entry["idle"]) + int(entry["held"])
             if ntot >= self.known["maxjobs"].get(entry["pomsTaskID"], 0):
