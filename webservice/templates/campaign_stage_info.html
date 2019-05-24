@@ -107,7 +107,7 @@ all the time...
                   Launch Campaign Stage Jobs Now
                 </button>
                 &nbsp; &nbsp;
-                <a href="{{pomspath}}/launch_jobs/{{experiment}}/{{role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
+                <a href="{{pomspath}}/launch_jobs_commands/{{experiment}}/{{role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
                    and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                 (<i class="external text icon"></i>commands)
@@ -122,7 +122,7 @@ all the time...
                   Launch Campaign Stage Test Jobs Now
                 </button>
                 &nbsp; &nbsp;
-                <a href="{{pomspath}}/launch_jobs/{{experiment}}/{{role}}?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
+                <a href="{{pomspath}}/launch_jobs_commands/{{experiment}}/{{role}}?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
                    and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                 (<i class="external text icon"></i>commands)
