@@ -80,33 +80,17 @@ class JobsPOMS:
         rows = jjidq.all()
 
         if rows:
-            jjids = [x[0] for x in rows if x != None]
-            sids = [x[1] for x in rows if x != None]
+            jjids = [x[0] for x in rows if x[0] != None]
+            sids = [x[1] for x in rows if x[1] != None]
+        else:
+            jjids = []
+            sids = []
+
+        if  jjids and jjids[0][0]:
             jidbits = "--jobid=%s" % ",".join(jjids)
         else:
             jidbits = what
-            sids = []
 
-        shq = (
-            ctx.db.query(
-                SubmissionHistory.submission_id.label("submission_id"), func.max(SubmissionHistory.status_id).label("max_status")
-            )
-            .filter(SubmissionHistory.submission_id == Submission.submission_id)
-            .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
-            .group_by(SubmissionHistory.submission_id.label("submission_id"))
-        )
-        sq = shq.subquery()
-        logit.log("submission history query finds: %s" % repr([x for x in shq.all()]))
-        jjidq = jjidq.join(sq, sq.c.submission_id == Submission.submission_id).filter(sq.c.max_status <= 4000)
-        rows = jjidq.all()
-
-        if rows:
-            jjids = [x[0] for x in rows]
-            sids = [x[1] for x in rows]
-            jidbits = "--jobid=%s" % ",".join(jjids)
-        else:
-            jidbits = what
-            sids = []
 
         if confirm is None:
             if jidbits != what:
@@ -152,7 +136,7 @@ class JobsPOMS:
                 "source /grid/fermiapp/products/common/etc/setups;setup poms_client -g poms31 -z /grid/fermiapp/products/common/db;"
                 + launch_setup
             )
-            launchsetup = (
+            launch_setup = (
                 "cp $X509_USER_PROXY /tmp/proxy$$ && export X509_USER_PROXY=/tmp/proxy$$  && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY;"
                 if ctx.role == "analysis"
                 else ""
@@ -162,7 +146,7 @@ class JobsPOMS:
                 exec 2>&1
                 export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s
                 kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true
-                ssh %s@%s '%s; set -x; jobsub_%s -G %s --role %s %s ;  jobsub_%s -G %s --role %s %s ; '
+                ssh %s@%s 'set -x; %s; set -x; jobsub_%s -G %s --role %s %s ;  jobsub_%s -G %s --role %s %s ; '
             """ % (
                 group,
                 lts.launch_account,
