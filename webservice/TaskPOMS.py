@@ -351,7 +351,6 @@ class TaskPOMS:
         parent_submission_id=None,
         submission_id=None,
         launch_time=None,
-        **kwargs
     ):
         logit.log(
             "get_task_id_for(ctx.username='%s',experiment='%s',command_executed='%s',input_dataset='%s',parent_submission_id='%s',submission_id='%s'"
@@ -542,7 +541,7 @@ class TaskPOMS:
         ctx.db.commit()
         return "\n".join(res)
 
-    def submission_details(self, ctx, submission_id, **kwargs):
+    def submission_details(self, ctx, submission_id):
         submission = (
             ctx.db.query(Submission)
             .options(joinedload(Submission.campaign_stage_snapshot_obj))
@@ -1019,7 +1018,6 @@ class TaskPOMS:
         test_login_setup=None,
         test_launch=False,
         output_commands=False,
-        **kwargs
     ):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id))

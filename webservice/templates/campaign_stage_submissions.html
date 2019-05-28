@@ -62,22 +62,22 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
             <td>{{rec.campaign_stage_name}}</td>
             <td>{{rec.submission_id}}</td>
             <td>
-                <a href="{{pomspath}}/submission_details/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}" target='_blank'>
+                <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" target='_blank'>
                     {{rec.jobsub_job_id}}
                 </a>
             </td>
             <td>
             {% if rec.status in ('New', 'Idle', 'Running', 'Held') %}
-                <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=hold" title="Hold"><i class="ui pause icon"></i></a>&nbsp;
-                <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=release" title="Release"><i class="ui play icon"></i></a>&nbsp;
-                <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=kill" title="Kill"><i class="ui trash icon"></i></a>
+                <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}&act=hold" title="Hold"><i class="ui pause icon"></i></a>&nbsp;
+                <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}&act=release" title="Release"><i class="ui play icon"></i></a>&nbsp;
+                <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}&act=kill" title="Kill"><i class="ui trash icon"></i></a>
                 <i class="ui forward icon  grey"></i>&nbsp;
                 <i class="ui checkmark icon  grey"></i>&nbsp;
             {% elif rec.status == 'Completed' %}
                 <i class="ui pause icon grey"></i>&nbsp;
                 <i class="ui play icon grey"></i>&nbsp;
                 <i class="ui trash icon grey"></i>&nbsp;
-                <a href="{{pomspath}}/force_locate_submission/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}" title="Skip ahead to Located"><i class="ui forward icon"></i></a>
+                <a href="{{pomspath}}/force_locate_submission/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" title="Skip ahead to Located"><i class="ui forward icon"></i></a>
                 <i class="ui checkmark icon  grey"></i>&nbsp;
             {% elif rec.status == 'Awaiting Approval' %}
                 <i class="ui pause icon grey"></i>&nbsp;

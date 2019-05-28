@@ -387,6 +387,7 @@ class PomsService:
         p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}],
         t="show_campaigns.html",
         u=["tl", "last_activity", "msg", "data"],
+        need_er = True
     )
     def show_campaigns(self, **kwargs):
         return self.campaignsPOMS.show_campaigns(**kwargs)
@@ -408,7 +409,8 @@ class PomsService:
             "template",
             "limit_experiment",
             "key",
-        ]
+        ],
+        need_er = True
     )
     def show_campaign_stages(self, **kwargs):
         if kwargs.get("campaign_ids", None) is None:
@@ -467,7 +469,7 @@ class PomsService:
             "recent_submissions",
         ],
         help_page="POMS_UserDocumentation",
-        t="campaign_stage_info.html",
+        t="campaign_stage_info.html"
     )
     def campaign_stage_info(self, **kwargs):
         return self.campaignsPOMS.campaign_stage_info(**kwargs)

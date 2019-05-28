@@ -30,7 +30,7 @@ class JobsPOMS:
         cid = j.submission_obj.campaign_stage_snapshot_obj.campaign_stage_id
         ctx.sam.update_project_description(exp, projname, "POMS CampaignStage %s Submission %s" % (cid, sid))
 
-    def kill_jobs(self, ctx, campaign_id=None, campaign_stage_id=None, submission_id=None, job_id=None, confirm=None, act="kill", **kwargs):
+    def kill_jobs(self, ctx, campaign_id=None, campaign_stage_id=None, submission_id=None, job_id=None, confirm=None, act="kill"):
         """
             kill jobs from the campaign, stage, or particular submission
             we want to do this all with --constraint on the POMS4_XXX_ID

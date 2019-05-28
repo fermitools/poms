@@ -86,7 +86,7 @@ class JSONORMEncoder(json.JSONEncoder):
 
 
 def poms_method(
-    p=[], t=None, help_page="POMS_User_Documentation", rtype="html", redirect=None, u=[], confirm=None, call_args=None
+    p=[], t=None, help_page="POMS_User_Documentation", rtype="html", redirect=None, u=[], confirm=None, call_args=None, need_er=None
 ):
     """
     This is a decorator that will do most of the repeated things in poms_service.py  
@@ -126,7 +126,7 @@ def poms_method(
             ctx = Ctx(**cargs)
             # clean context args out of kwargs
             for k in cargs:
-                if k in kwargs and not k in ("experiment", "role"):
+                if k in kwargs and not (need_er and k in ("experiment", "role")):
                     del kwargs[k]
 
             # make permission checks

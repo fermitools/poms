@@ -363,7 +363,6 @@ class CampaignsPOMS:
         test_login_setup=None,
         test_launch=False,
         output_commands=False,
-        **kwargs
     ):
         """
             Find the starting stage in a campaign, and launch it with
@@ -1078,7 +1077,7 @@ class CampaignsPOMS:
             data["definition"] = definition
         return json.dumps(data)
 
-    def campaign_deps_ini(self, ctx, name=None, stage_id=None, login_setup=None, job_type=None, full=None, **kwargs):
+    def campaign_deps_ini(self, ctx, name=None, stage_id=None, login_setup=None, job_type=None, full=None):
         """
             Generate ini-format dump of campaign and dependencies
         """
@@ -1554,7 +1553,7 @@ class CampaignsPOMS:
                 data["authorized"].append(False)
         return campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
 
-    def reset_campaign_split(self, ctx, campaign_stage_id, **kwargs):
+    def reset_campaign_split(self, ctx, campaign_stage_id):
         """
             reset a campaign_stages cs_last_split field so the sequence
             starts over
@@ -1566,7 +1565,7 @@ class CampaignsPOMS:
         ctx.db.commit()
 
     # @pomscache.cache_on_arguments()
-    def campaign_stage_info(self, ctx, campaign_stage_id, **kwargs):
+    def campaign_stage_info(self, ctx, campaign_stage_id):
         """
            Give information related to a campaign stage for the campaign_stage_info page
         """
@@ -1672,8 +1671,7 @@ class CampaignsPOMS:
         )
 
     def campaign_stage_submissions(
-        self, ctx, campaign_name="", stage_name="", campaign_stage_id=None, campaign_id=None, **kwargs
-    ):
+        self, ctx, campaign_name="", stage_name="", campaign_stage_id=None, campaign_id=None):
         """
            Show submissions from a campaign stage
         """
@@ -1783,7 +1781,7 @@ class CampaignsPOMS:
             data["submissions"] = submissions
         return data
 
-    def session_status_history(self, ctx, submission_id, **kwargs):
+    def session_status_history(self, ctx, submission_id):
         """
            Return history rows
         """
@@ -1844,7 +1842,7 @@ class CampaignsPOMS:
         ctx.db.commit()
         return res
 
-    def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None, **kwargs):
+    def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None):
         """
             get launch output file and return the lines as a list
         """
@@ -1873,7 +1871,7 @@ class CampaignsPOMS:
             refresh = 0
         return lines, refresh, campaign_name, stage_name
 
-    def schedule_launch(self, ctx, campaign_stage_id, **kwargs):
+    def schedule_launch(self, ctx, campaign_stage_id):
         """
             return crontab info for cron launches for campaign
         """
@@ -1892,7 +1890,7 @@ class CampaignsPOMS:
         launch_flist = list(map(os.path.basename, launch_flist))
         return c_s, job, launch_flist
 
-    def mark_campaign_hold(self, ctx, campaign_ids, is_hold, **kwargs):
+    def mark_campaign_hold(self, ctx, campaign_ids, is_hold):
         session_experimenter = ctx.get_experimenter()
         for campaign in ctx.db.query(Campaign).filter(Campaign.campaign_id.in_(campaign_ids)).all():
             if is_hold in ("Hold", "Queue"):
@@ -1918,7 +1916,6 @@ class CampaignsPOMS:
         submit="",
         minlist="",
         delete="",
-        **kwargs,
     ):
         """
             callback for changing the launch schedule
