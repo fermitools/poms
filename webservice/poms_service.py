@@ -526,7 +526,7 @@ class PomsService:
         self.campaignsPOMS.mark_campaign_active(**kwargs)
 
     # h4. mark_campaign_hold
-    @poms_method(rtype="redirect", redirect="%(pomspath)s/show_campaign_stages/%(experiment)s/%(role)s")
+    @poms_method(rtype="redirect", redirect="%(poms_path)s/show_campaign_stages/%(experiment)s/%(role)s")
     def mark_campaign_hold(self, **kwargs):
         kwargs["campaign_ids"] = [int(x) for x in kwargs["ids2HR"].split(",")]
         for cid in kwargs["campaign_ids"]:
@@ -581,7 +581,7 @@ class PomsService:
         return self.taskPOMS.mark_failed_submissions(**kwargs["ctx"].db)
 
     # h4. running_submissions
-    @poms_method()
+    @poms_method(rtype='json')
     def running_submissions(self, **kwargs):
         cl = list(map(int, kwargs["campaign_id_list"].split(",")))
         return self.taskPOMS.running_submissions(kwargs["ctx"], cl)
@@ -621,7 +621,7 @@ class PomsService:
     @poms_method(
         p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
         rtype="redirect",
-        redirect="%(pomspath)s/file_uploads/%(experiment)s/%(role)s/%(username)s",
+        redirect="%(poms_path)s/file_uploads/%(experiment)s/%(role)s/%(username)s",
     )
     def upload_file(self, **kwargs):
         return self.filesPOMS.upload_file(
@@ -655,7 +655,7 @@ class PomsService:
 
     # h4. set_job_launches
 
-    @poms_method(p=[{"p", "is_superuser"}], rtype="redirect", redirect="%(pomspath)s/index/%(experiment)s/%(role)s")
+    @poms_method(p=[{"p", "is_superuser"}], rtype="redirect", redirect="%(poms_path)s/index/%(experiment)s/%(role)s")
     def set_job_launches(self, **kwarg):
         return self.taskPOMS.set_job_launches(ctx.db, experiment, role, ctx.username, hold)
 
@@ -667,7 +667,10 @@ class PomsService:
 
     # h4. launch_campaign
     @poms_method(
-        p=[{"p": "can_do", "t": "Campaign", "item_id": "campaign_id"}], u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"]
+        p=[{"p": "can_do", "t": "Campaign", "item_id": "campaign_id"}], 
+        u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
+        rtype="redirect",
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s/list_launch_file?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
     )
     def launch_campaign(self, **kwargs):
         if kwargs["ctx"].username != "poms" or kwargs.get("launcher", "") == "":
@@ -675,19 +678,7 @@ class PomsService:
         else:
             launch_user = kwargs.get("launcher", "")
 
-        res = self.campaignsPOMS.launch_campaign(**kwargs)
-
-        if kwargs.get("output_commands", ""):
-            cherrypy.response.headers["Content-Type"] = "text/plain"
-            return res
-        if res[0] == "":
-            return "Launches held, job queued..."
-        else:
-            raise cherrypy.HTTPRedirect(
-                "%s/campaign_stage_info/%s/%s?campaign_stage_id=%s&filename=%s"
-                % (self.path, experiment, role, campaign_stage_id, os.path.basename(outfile))
-            )
-        return res
+        return self.campaignsPOMS.launch_campaign(**kwargs)
 
     # h4. test_split_type_editors
 
@@ -695,7 +686,7 @@ class PomsService:
         p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
         u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
         rtype="redirect",
-        redirect="%(pomspath)s/list_launch_file/%(experiment)s/%(role)s/list_launch_file?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s/list_launch_file?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
     )
     def launch_jobs(self, **kwargs):
         return self.taskPOMS.launch_jobs(**kwargs)
@@ -708,7 +699,7 @@ class PomsService:
         p=[{"p": "can_do", "t": "LoginSetup", "item_id": "test_login_setup"}],
         u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
         rtype="redirect",
-        redirect="%(pomspath)s/list_launch_file/%(experiment)s/%(role)s/list_launch_file?login_setup_id=%(test_login_setup)s&fname=%(outfile)s",
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s/list_launch_file?login_setup_id=%(test_login_setup)s&fname=%(outfile)s",
     )
     def launch_login_setup(self, **kwargs):
         return self.taskPOMS.launch_jobs(**kwargs)
@@ -824,7 +815,7 @@ class PomsService:
         return self.tagsPOMS.auto_complete_tags_search(kwargs["ctx"], kwargs["q"])
 
     # h4. split_type_javascript
-    @poms_method(rtype="json")
+    @poms_method(rtype="rawjavascript")
     def split_type_javascript(self, **kwargs):
         return self.campaignsPOMS.split_type_javascript(kwargs["ctx"])
 
@@ -846,15 +837,15 @@ class PomsService:
     # h4. loginsetup_list
     @poms_method(rtype="json")
     def loginsetup_list(self, **kwargs):
-        if kwargs["full"]:
+        if kwargs.get("full",None):
             data = (
-                ctx.db.query(LoginSetup.name, LoginSetup.launch_host, LoginSetup.launch_account, LoginSetup.launch_setup)
-                .filter(LoginSetup.experiment == kwargs["exp"])
+                kwargs['ctx'].db.query(LoginSetup.name, LoginSetup.launch_host, LoginSetup.launch_account, LoginSetup.launch_setup)
+                .filter(LoginSetup.experiment == kwargs['ctx'].experiment)
                 .order_by(LoginSetup.name)
                 .all()
             )
         else:
-            data = ctx.db.query(LoginSetup.name).filter(LoginSetup.experiment == kwargs["exp"]).order_by(LoginSetup.name).all()
+            data = kwargs['ctx'].db.query(LoginSetup.name).filter(LoginSetup.experiment == kwargs['ctx'].experiment).order_by(LoginSetup.name).all()
 
         return [r._asdict() for r in data]
 

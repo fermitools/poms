@@ -180,10 +180,13 @@ def poms_method(
                 if isinstance(values, dict) and "ctx" in values:
                     del values["ctx"]
                 return json.dumps(values, cls=JSONORMEncoder).encode("utf-8")
+            elif rtype == "rawjavascript":
+                cherrypy.response.headers["Content-Type"] = "text/javascript"
+                return values
             elif rtype == "redirect":
-                kwargs["poms_path"] = self.path
-                kwargs["hostname"] = self.hostname
-                raise cherrypy.HTTPRedirect(redirect % kwargs)
+                values["poms_path"] = self.path
+                values["hostname"] = self.hostname
+                raise cherrypy.HTTPRedirect(redirect % values)
             elif rtype == "ini":
                 cherrypy.response.headers["Content-Type"] = "text/ini"
                 return values

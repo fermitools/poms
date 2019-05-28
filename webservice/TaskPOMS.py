@@ -351,6 +351,7 @@ class TaskPOMS:
         parent_submission_id=None,
         submission_id=None,
         launch_time=None,
+        **kwargs
     ):
         logit.log(
             "get_task_id_for(ctx.username='%s',experiment='%s',command_executed='%s',input_dataset='%s',parent_submission_id='%s',submission_id='%s'"
@@ -1011,16 +1012,20 @@ class TaskPOMS:
         self,
         ctx,
         campaign_stage_id,
-        launcher,
+        launcher = None,
         dataset_override=None,
         parent_submission_id=None,
         param_overrides=None,
         test_login_setup=None,
         test_launch=False,
         output_commands=False,
+        **kwargs
     ):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id))
+
+        if launcher == None:
+            launcher = ctx.username
 
         launch_time = datetime.now(utc)
         ds = launch_time.strftime("%Y%m%d_%H%M%S")
@@ -1183,7 +1188,7 @@ class TaskPOMS:
             ctx.db.commit()
             lcmd = ""
 
-            return lcmd, cs, campaign_stage_id, outdir, output
+            return lcmd, cs, campaign_stage_id, outdir, os.path.basename(output)
 
         if dataset_override:
             dataset = dataset_override
@@ -1346,4 +1351,4 @@ class TaskPOMS:
         dn.close()
         pp.wait()
 
-        return lcmd, cs, campaign_stage_id, outdir, outfile
+        return lcmd, cs, campaign_stage_id, outdir, os.path.basename(outfile)

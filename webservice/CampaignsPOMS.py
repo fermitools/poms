@@ -370,9 +370,6 @@ class CampaignsPOMS:
             launch_jobs(campaign_stage_id=...)
         """
 
-        if launcher=None:
-            launcher = ctx.username
-
         # subquery to count dependencies
         q = (
             text(
@@ -1081,7 +1078,7 @@ class CampaignsPOMS:
             data["definition"] = definition
         return json.dumps(data)
 
-    def campaign_deps_ini(self, ctx, name=None, stage_id=None, login_setup=None, job_type=None, full=None):
+    def campaign_deps_ini(self, ctx, name=None, stage_id=None, login_setup=None, job_type=None, full=None, **kwargs):
         """
             Generate ini-format dump of campaign and dependencies
         """
