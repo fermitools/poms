@@ -85,7 +85,7 @@ class CampaignsPOMS:
             .first()
         )
 
-        if ls and not experiment == ls.experiment:
+        if ls and not ctx.experiment == ls.experiment:
             raise PermissionError("You are not acting as the right experiment")
 
         if action == "delete":
@@ -356,18 +356,22 @@ class CampaignsPOMS:
         self,
         ctx,
         campaign_id,
-        launcher,
+        launcher=None,
         dataset_override=None,
         parent_submission_id=None,
         param_overrides=None,
         test_login_setup=None,
         test_launch=False,
         output_commands=False,
+        **kwargs
     ):
         """
             Find the starting stage in a campaign, and launch it with
             launch_jobs(campaign_stage_id=...)
         """
+
+        if launcher=None:
+            launcher = ctx.username
 
         # subquery to count dependencies
         q = (
