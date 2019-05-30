@@ -534,9 +534,10 @@ class PomsService:
     @poms_method(rtype="redirect", redirect="%(poms_path)s/show_campaign_stages/%(experiment)s/%(role)s")
     def mark_campaign_hold(self, **kwargs):
         kwargs["campaign_ids"] = [int(x) for x in kwargs["ids2HR"].split(",")]
+        del kwargs["ids2HR"]
         for cid in kwargs["campaign_ids"]:
             self.permissions.can_modify(kwargs["ctx"], t="Campaign", item_id=cid)
-        return self.campaignsPOMS.mark_campaign_old(**kwargs)
+        return self.campaignsPOMS.mark_campaign_hold(**kwargs)
 
     # h4. make_stale_campaigns_inactive
 
@@ -627,6 +628,7 @@ class PomsService:
         p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
         rtype="redirect",
         redirect="%(poms_path)s/file_uploads/%(experiment)s/%(role)s/%(username)s",
+        need_er = True
     )
     def upload_file(self, **kwargs):
         return self.filesPOMS.upload_file(
@@ -691,7 +693,7 @@ class PomsService:
         p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
         u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
         rtype="redirect",
-        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s/list_launch_file?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
     )
     def launch_jobs(self, **kwargs):
         return self.taskPOMS.launch_jobs(**kwargs)

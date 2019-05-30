@@ -120,7 +120,9 @@ def poms_method(
         def method(self, *args, **kwargs):
             if not call_args:
                 for i in range(len(args)):
-                    kwargs[["experiment", "role", "user"][i]] = args[i]
+                    if i > 1:
+                        break
+                    kwargs[["experiment", "role"][i]] = args[i]
             # make context with any params in the list
             cargs = {k: kwargs.get(k, None) for k in ("experiment", "role", "tmin", "tmax", "tdays")}
             ctx = Ctx(**cargs)
