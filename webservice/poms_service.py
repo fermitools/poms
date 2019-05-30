@@ -706,7 +706,7 @@ class PomsService:
         p=[{"p": "can_do", "t": "LoginSetup", "item_id": "test_login_setup"}],
         u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
         rtype="redirect",
-        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s/list_launch_file?login_setup_id=%(test_login_setup)s&fname=%(outfile)s",
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?login_setup_id=%(test_login_setup)s&fname=%(outfile)s",
     )
     def launch_login_setup(self, **kwargs):
         return self.taskPOMS.launch_jobs(**kwargs)
