@@ -1159,10 +1159,13 @@ class TaskPOMS:
         if allheld or csheld or proxyheld:
 
             if allheld:
+                errnum = 423
                 output = "Job launches currently held.... queuing this request"
             if csheld:
+                errnum = 423
                 output = "Campaign stage %s launches currently held.... queuing this request" % cs.name
             if proxyheld:
+                errnum = 407
                 output = "Proxy: %s not valid .... queuing this request" % os.path.basename(proxyfile)
                 m = Mail()
                 m.send(
@@ -1186,7 +1189,7 @@ class TaskPOMS:
             ctx.db.commit()
             lcmd = ""
 
-            return lcmd, cs, campaign_stage_id, outdir, os.path.basename(output)
+            raise ctx.HTTPError(errnum,output)
 
         if dataset_override:
             dataset = dataset_override
