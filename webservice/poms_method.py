@@ -184,9 +184,16 @@ def poms_method(
                 cherrypy.response.headers["Content-Type"] = "text/javascript"
                 return values
             elif rtype == "redirect":
-                values["poms_path"] = self.path
-                values["hostname"] = self.hostname
-                raise cherrypy.HTTPRedirect(redirect % values)
+                if isinstance(values, dict):
+                    redict = values
+                else:
+                    redict = kwargs
+                redict["poms_path"] = self.path
+                redict["hostname"] = self.hostname
+                redict["experiment"] = ctx.experiment
+                redict["role"] = ctx.role
+                redict["username"] = ctx.username
+                raise cherrypy.HTTPRedirect(redirect % redict)
             elif rtype == "ini":
                 cherrypy.response.headers["Content-Type"] = "text/ini"
                 return values

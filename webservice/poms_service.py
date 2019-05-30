@@ -344,6 +344,7 @@ class PomsService:
         p=[{"p": "can_modify", "t": "Campaign", "name": "campaign", "experiment": "experiment"}],
         t="gui_wf_edit.html",
         help_page="GUI_Workflow_Editor_User_Guide",
+        need_er = True
     )
     def gui_wf_edit(self, experiment, role, *args, **kwargs):
         return {}

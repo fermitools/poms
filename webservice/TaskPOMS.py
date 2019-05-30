@@ -1147,7 +1147,7 @@ class TaskPOMS:
         experimenter_login = ctx.username
 
         if ctx.role == "analysis":
-            sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx.config_get("base_uploads_dir"), experimenter_login, exp)
+            sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
         else:
             sandbox = "$HOME"
@@ -1181,7 +1181,7 @@ class TaskPOMS:
             hl.dataset = dataset_override
             hl.parent_submission_id = parent_submission_id
             hl.param_overrides = param_overrides
-            hl.launcher = launcher
+            hl.launcher = launcher_experimenter.experimenter_id
             ctx.db.add(hl)
             ctx.db.commit()
             lcmd = ""
