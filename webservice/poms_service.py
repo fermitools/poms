@@ -105,6 +105,8 @@ class PomsService:
         "error_page.401": "%s/%s" % (tdir, "unauthorized_user.html"),
         "error_page.404": "%s/%s" % (tdir, "page_not_found.html"),
         "error_page.429": "%s/%s" % (tdir, "too_many.html"),
+        "error_page.407": "%s/%s" % (tdir, "lauch_held.html"),
+        "error_page.423": "%s/%s" % (tdir, "lauch_held.html"),
     }
 
     # h3. Module init

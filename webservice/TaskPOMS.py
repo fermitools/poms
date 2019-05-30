@@ -1158,14 +1158,12 @@ class TaskPOMS:
         proxyheld = ctx.role == "analysis" and not self.has_valid_proxy(proxyfile)
         if allheld or csheld or proxyheld:
 
+            errnum = 423
             if allheld:
-                errnum = 423
                 output = "Job launches currently held.... queuing this request"
             if csheld:
-                errnum = 423
                 output = "Campaign stage %s launches currently held.... queuing this request" % cs.name
             if proxyheld:
-                errnum = 407
                 output = "Proxy: %s not valid .... queuing this request" % os.path.basename(proxyfile)
                 m = Mail()
                 m.send(
