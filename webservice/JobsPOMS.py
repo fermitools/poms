@@ -176,7 +176,7 @@ class JobsPOMS:
 
             if status_set:
                 for sid in sids:
-                    self.poms_service.taskPOMS.update_submission_status(ctx, sid, status_set)
+                    self.poms_service.submissionsPOMS.update_submission_status(ctx, sid, status_set)
             ctx.db.commit()
 
             return output, cs, campaign_stage_id, submission_id, job_id

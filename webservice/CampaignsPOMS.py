@@ -175,7 +175,7 @@ class CampaignsPOMS:
         logit.log("launch_campaign: got stages %s" % repr(stages))
 
         if len(stages) == 1:
-            return self.poms_service.taskPOMS.launch_jobs(
+            return self.poms_service.submissionsPOMS.launch_jobs(
                 ctx,
                 stages[0][0],
                 launcher,

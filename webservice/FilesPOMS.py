@@ -20,7 +20,7 @@ import time
 from sqlalchemy.orm import joinedload
 
 from . import logit
-from .poms_model import Submission, CampaignStage, Experimenter, ExperimentsExperimenters
+from .poms_model import Submission, CampaignStage, Experimenter, ExperimentsExperimenters, Campaign
 from .utc import utc
 from .pomscache import pomscache
 

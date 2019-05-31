@@ -232,7 +232,7 @@ class demo:
         confirm=True,
     )
     def kill_jobs(self, **kwargs):
-        return self.taskPOMS.kill_jobs(**kwargs)
+        return self.submissionsPOMS.kill_jobs(**kwargs)
 
     @poms_method()
     def headers(self):
