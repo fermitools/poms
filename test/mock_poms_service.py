@@ -1,6 +1,18 @@
 import socket
 
-from poms.webservice import CampaignsPOMS, DBadminPOMS, FilesPOMS, TablesPOMS, TagsPOMS, MiscPOMS, StagesPOMS, SubmissionsPOMS, UtilsPOMS, JobsPOMS, Permissions
+from poms.webservice import (
+    CampaignsPOMS,
+    DBadminPOMS,
+    FilesPOMS,
+    TablesPOMS,
+    TagsPOMS,
+    MiscPOMS,
+    StagesPOMS,
+    SubmissionsPOMS,
+    UtilsPOMS,
+    JobsPOMS,
+    Permissions,
+)
 
 
 class mock_poms_service(object):

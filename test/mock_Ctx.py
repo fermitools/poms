@@ -88,7 +88,7 @@ class Ctx:
         self.tmax = tmax
         self.tdays = tdays
         self.experimenter_cache = None
-        #print("Ctx.__init__(): self:", repr(self.__dict__))
+        # print("Ctx.__init__(): self:", repr(self.__dict__))
 
     def get_experimenter(self):
         if not self.experimenter_cache:

@@ -82,7 +82,9 @@ class job_updater:
             else:
                 sub_status = "Idle"
 
-        self.mps.submissionsPOMS.update_submission(dbh, submission_id, min_jobsub_job_id, ccount / total, sub_status, task_project)
+        self.mps.submissionsPOMS.update_submission(
+            dbh, submission_id, min_jobsub_job_id, ccount / total, sub_status, task_project
+        )
 
 
 rpstatus = "200 Ok."

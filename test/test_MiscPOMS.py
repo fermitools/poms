@@ -14,10 +14,11 @@ def test_get_jobtype_id():
     ctx = Ctx(sam=samhandle)
     res = fp.miscPOMS.get_jobtype_id(ctx, "fakesim")
     print(res)
-    assert(res != None)
+    assert res != None
+
 
 def test_get_loginsetup_id():
     ctx = Ctx(sam=samhandle)
     res = fp.miscPOMS.get_loginsetup_id(ctx, "samdev-o-rama")
     print(res)
-    assert(res != None)
+    assert res != None
