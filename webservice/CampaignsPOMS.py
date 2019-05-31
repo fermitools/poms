@@ -1754,6 +1754,28 @@ class CampaignsPOMS:
             .filter(SubmissionHistory.created == subq)
             .order_by(SubmissionHistory.submission_id.desc())
         ).all()
+
+        # figure dependency depth
+        depends = {}
+        depth = {}
+        sids = []
+        for tup in tuples:
+            sid = tup.Submission.submission_id
+            pd = tup.Submissions.submission_params.get('dataset','')
+            sids.append(sid)
+            m = re.match(pd, '_poms_depends_(.*)':
+            if m:
+                depends[sid] = int(m.group(1))
+            else:
+                depends[sid] = None
+            depth[sid] = 0
+        sids.reverse()
+        sids.sort()
+        for sid in sids:
+            if depends[sid]:
+               depth[sid] = depth[depends[sid]] + 1
+        data["depth"] = depth
+
         submissions = []
         for tup in tuples:
             jjid = tup.Submission.jobsub_job_id
