@@ -75,7 +75,7 @@ def popen_read_with_timeout(cmd, totaltime=30):
     return output
 
 
-class TaskPOMS:
+class SubmissionsPOMS:
     def __init__(self, ps):
         self.poms_service = ps
         # keep some status vales around so we don't have to look them up...
@@ -92,6 +92,70 @@ class TaskPOMS:
         self.status_Removed = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Removed").first()[0]
         self.status_New = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()[0]
         self.init_status_done = True
+
+    def get_recoveries(self, ctx, cid):
+        """
+        Build the recoveries dict for job_types cids
+        """
+        recs = (
+            ctx.db.query(CampaignRecovery)
+            .filter(CampaignRecovery.job_type_id == cid)
+            .order_by(CampaignRecovery.job_type_id, CampaignRecovery.recovery_order)
+            .all()
+        )
+
+        logit.log("get_recoveries(%d) got %d items" % (cid, len(recs)))
+        rec_list = []
+        for rec in recs:
+            logit.log("get_recoveries(%d) -- rec %s" % (cid, repr(rec)))
+            if isinstance(rec.param_overrides, str):
+                logit.log("get_recoveries(%d) -- saw string param_overrides" % cid)
+                if rec.param_overrides in ("", "{}", "[]"):
+                    rec.param_overrides = []
+                rec_vals = [rec.recovery_type.name, json.loads(rec.param_overrides)]
+            else:
+                rec_vals = [rec.recovery_type.name, rec.param_overrides]
+
+            rec_list.append(rec_vals)
+
+        logit.log("get_recoveries(%d) returning %s" % (cid, repr(rec_list)))
+        return rec_list
+
+    def session_status_history(self, ctx, submission_id):
+        """
+           Return history rows
+        """
+        rows = []
+        tuples = (
+            ctx.db.query(SubmissionHistory, SubmissionStatus)
+            .filter(SubmissionHistory.submission_id == submission_id)
+            .filter(SubmissionStatus.status_id == SubmissionHistory.status_id)
+            .order_by(SubmissionHistory.created)
+        ).all()
+        for row in tuples:
+            submission_id = row.SubmissionHistory.submission_id
+            created = row.SubmissionHistory.created.strftime("%Y-%m-%d %H:%M:%S")
+            status = row.SubmissionStatus.status
+            rows.append({"created": created, "status": status})
+        return rows
+
+    def fixup_recoveries(self, ctx, job_type_id, recoveries):
+        """
+         fixup_recoveries -- factored out so we can use it
+            from either edit endpoint.
+         Given a JSON dump of the recoveries, clean out old
+         recoveriy entries, add new ones.  It probably should
+         check if they're actually different before doing this..
+        """
+        (ctx.db.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == job_type_id).delete(synchronize_session=False))  #
+        i = 0
+        for rtn in json.loads(recoveries):
+            rect = rtn[0]
+            recpar = rtn[1]
+            rt = ctx.db.query(RecoveryType).filter(RecoveryType.name == rect).first()
+            cr = CampaignRecovery(job_type_id=job_type_id, recovery_order=i, recovery_type=rt, param_overrides=recpar)
+            i = i + 1
+            ctx.db.add(cr)
 
     def campaign_stage_datasets(self, ctx):
         self.init_statuses(ctx)
@@ -414,7 +478,7 @@ class TaskPOMS:
         if parent_submission_id is not None and parent_submission_id != "None":
             s.recovery_tasks_parent = int(parent_submission_id)
 
-        self.snapshot_parts(ctx, s, s.campaign_stage_id)
+        self.poms_service.miscPOMS.snapshot_parts(ctx, s, s.campaign_stage_id)
 
         ctx.db.add(s)
         ctx.db.flush()
@@ -699,43 +763,6 @@ class TaskPOMS:
         ctx.db.commit()
         return "Ok."
 
-    def snapshot_parts(self, ctx, s, campaign_stage_id):
-
-        cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
-        for table, snaptable, field, sfield, sid, tfield in [
-            [
-                CampaignStage,
-                CampaignStageSnapshot,
-                CampaignStage.campaign_stage_id,
-                CampaignStageSnapshot.campaign_stage_id,
-                cs.campaign_stage_id,
-                "campaign_stage_snapshot_obj",
-            ],
-            [JobType, JobTypeSnapshot, JobType.job_type_id, JobTypeSnapshot.job_type_id, cs.job_type_id, "job_type_snapshot_obj"],
-            [
-                LoginSetup,
-                LoginSetupSnapshot,
-                LoginSetup.login_setup_id,
-                LoginSetupSnapshot.login_setup_id,
-                cs.login_setup_id,
-                "login_setup_snapshot_obj",
-            ],
-        ]:
-
-            i = ctx.db.query(func.max(snaptable.updated)).filter(sfield == sid).first()
-            j = ctx.db.query(table).filter(field == sid).first()
-            if i[0] is None or j is None or j.updated is None or i[0] < j.updated:
-                newsnap = snaptable()
-                columns = j._sa_instance_state.class_.__table__.columns
-                for fieldname in list(columns.keys()):
-                    setattr(newsnap, fieldname, getattr(j, fieldname))
-                ctx.db.add(newsnap)
-            else:
-                newsnap = ctx.db.query(snaptable).filter(snaptable.updated == i[0]).first()
-            setattr(s, tfield, newsnap)
-        ctx.db.add(s)
-        ctx.db.commit()
-
     def launch_dependents_if_needed(self, ctx, s):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
 
@@ -825,7 +852,7 @@ class TaskPOMS:
                 )
             ]
         else:
-            rlist = self.poms_service.campaignsPOMS.get_recovery_list_for_campaign_def(ctx, s.job_type_snapshot_obj)
+            rlist = self.poms_service.miscPOMS.get_recovery_list_for_campaign_def(ctx, s.job_type_snapshot_obj)
 
         logit.log("recovery list %s" % rlist)
         if s.recovery_position is None:
