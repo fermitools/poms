@@ -31,6 +31,7 @@ from .poms_model import (
     CampaignStage,
     CampaignsTag,
     JobType,
+    JobTypeSnapshot,
     CampaignDependency,
     CampaignRecovery,
     CampaignStageSnapshot,
