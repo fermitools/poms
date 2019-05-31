@@ -677,7 +677,7 @@ class PomsService:
         p=[{"p": "can_do", "t": "Campaign", "item_id": "campaign_id"}], 
         u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
         rtype="redirect",
-        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s/list_launch_file?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
     )
     def launch_campaign(self, **kwargs):
         if kwargs["ctx"].username != "poms" or kwargs.get("launcher", "") == "":

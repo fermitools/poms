@@ -351,7 +351,8 @@ class TaskPOMS:
         parent_submission_id=None,
         submission_id=None,
         launch_time=None,
-        task_id=None
+        task_id=None,
+        user=None
     ):
         if submission_id == None and task_id != None:
             submission_id = task_id
