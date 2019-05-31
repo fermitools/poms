@@ -525,13 +525,13 @@ class TaskPOMS:
                     res.append("found job log for %s!" % submission_id)
                     if job_data.get("idle", None) and job_data["idle"].get(jobsub_job_id, None):
                         self.update_submission_status(
-                            ctx.db, submission_id, status="Idle", when=job_data["idle"][submission.jobsub_job_id]
+                            ctx, submission_id, status="Idle", when=job_data["idle"][submission.jobsub_job_id]
                         )
                         res.append("submission %s Idle at" % (submission_id, job_data["idle"][submission.jobsub_job_id]))
 
                     if job_data.get("running", None) and job_data["running"].get(submission.jobsub_job_id, None):
                         self.update_submission_status(
-                            ctx.db, submission_id, status="Running", when=job_data["running"][submission.jobsub_job_id]
+                            ctx, submission_id, status="Running", when=job_data["running"][submission.jobsub_job_id]
                         )
                         res.append("submission %s Running at" % (submission_id, job_data["idle"][submission.jobsub_job_id]))
 
@@ -540,8 +540,8 @@ class TaskPOMS:
                         res.append("submission %s Completed")
 
                     continue
-            res.append("failing launch for %s" % submission_id)
-            self.update_submission_status(ctx.db, submission_id, status="LaunchFailed")
+            res.append("failing launch for %s" % submission.submission_id)
+            self.update_submission_status(ctx, submission.submission_id, status="LaunchFailed")
         ctx.db.commit()
         return "\n".join(res)
 

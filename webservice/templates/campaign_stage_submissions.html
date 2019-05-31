@@ -26,6 +26,12 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
 {%endblock%}
 
 {%block content%}
+<!-- 
+data.depends:
+{{data.depends}}
+data.depth:
+{{data.depth}}
+-->
 <script>
  function confirm_call(msg, url) {
          var r = confirm(msg);
@@ -59,7 +65,7 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
         <tbody>
         {% for rec in data.submissions %}
         <tr>
-            <td>{{"&nbsp;"*data.depth[rec.submission_id]}}{{rec.campaign_stage_name}}</td>
+            <td>{{"&nbsp;"*(2*data.depth[rec.submission_id])}}{{rec.campaign_stage_name}}</td>
             <td>{{rec.submission_id}}</td>
             <td>
                 <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" target='_blank'>

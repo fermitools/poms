@@ -17,6 +17,7 @@ import time
 import traceback
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta
+import re
 
 import cherrypy
 from crontab import CronTab
@@ -1761,9 +1762,9 @@ class CampaignsPOMS:
         sids = []
         for tup in tuples:
             sid = tup.Submission.submission_id
-            pd = tup.Submissions.submission_params.get('dataset','')
+            pd = tup.Submission.submission_params.get('dataset','')
             sids.append(sid)
-            m = re.match(pd, '_poms_depends_(.*)':
+            m = re.match(r'poms_depends_(.*)_[0-9]',pd)
             if m:
                 depends[sid] = int(m.group(1))
             else:
@@ -1774,6 +1775,7 @@ class CampaignsPOMS:
         for sid in sids:
             if depends[sid]:
                depth[sid] = depth[depends[sid]] + 1
+        data["depends"] = depends
         data["depth"] = depth
 
         submissions = []

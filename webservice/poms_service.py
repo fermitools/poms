@@ -584,7 +584,7 @@ class PomsService:
     # h4. mark_failed_submissions
     @poms_method(p=[{"p": "is_superuser"}])
     def mark_failed_submissions(self, **kwargs):
-        return self.taskPOMS.mark_failed_submissions(**kwargs["ctx"].db)
+        return self.taskPOMS.mark_failed_submissions(kwargs["ctx"])
 
     # h4. running_submissions
     @poms_method(rtype='json')
