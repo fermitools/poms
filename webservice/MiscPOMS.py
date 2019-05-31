@@ -38,6 +38,7 @@ from .poms_model import (
     Experiment,
     Experimenter,
     LoginSetup,
+    LoginSetupSnapshot,
     RecoveryType,
     Submission,
     SubmissionHistory,

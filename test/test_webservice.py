@@ -78,13 +78,13 @@ def test_campaign_stage_submissions(client):
 
 
 def test_campaign_deps_ini(client):
-    client.get("campaign_deps_ini/samdev/production?tag=fake_demo1")
+    client.get("campaign_deps_ini/samdev/production?name=fake_demo1")
     print("got: %s" % client.text)
     assert client.code == 200
 
 
 def test_campaign_deps(client):
-    client.get("campaign_deps/samdev/production?tag=fake_demo1")
+    client.get("campaign_deps/samdev/production?campaign_name=fake_demo1")
     print("got: %s" % client.text)
     assert client.code == 200
 

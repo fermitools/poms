@@ -631,7 +631,7 @@ class StagesPOMS:
         logit.log("got format {}".format(campaign_kibana_link_format))
         kibana_link = campaign_kibana_link_format.format(campaign_stage_id)
 
-        dep_svg = self.campaign_deps_svg(ctx, campaign_stage_id=campaign_stage_id)
+        dep_svg = self.poms_service.campaignsPOMS.campaign_deps_svg(ctx, campaign_stage_id=campaign_stage_id)
 
         return (
             campaign_stage_info,
@@ -756,7 +756,7 @@ class StagesPOMS:
         sids.reverse()
         sids.sort()
         for sid in sids:
-            if depends[sid]:
+            if depends[sid] and depends[sid] in depth:
                depth[sid] = depth[depends[sid]] + 1
         data["depends"] = depends
         data["depth"] = depth

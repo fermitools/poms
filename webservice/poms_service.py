@@ -46,7 +46,7 @@ from . import (
     DBadminPOMS,
     FilesPOMS,
     JobsPOMS,
-    MiscPoms,
+    MiscPOMS,
     StagesPOMS,
     SubmissionsPOMS,
     TablesPOMS,
@@ -246,7 +246,7 @@ class PomsService:
     # h4. login_setup_edit
     @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="login_setup_edit.html")
     def login_setup_edit(self, **kwargs):
-        res = {"data": self.campaignsPOMS.login_setup_edit(**kwargs)}
+        res = {"data": self.miscPOMS.login_setup_edit(**kwargs)}
         if kwargs.get("test_template"):
             raise cherrypy.HTTPRedirect(
                 "%s/launch_jobs/%s/%s?campaign_stage_id=None&test_login_setup=%s"
@@ -319,7 +319,7 @@ class PomsService:
 
     @poms_method()
     def get_campaign_stage_name(self, **kwargs):
-        return self.stagePOMS.get_campaign_stage_name(**kwargs)
+        return self.stagesPOMS.get_campaign_stage_name(**kwargs)
 
     # h4. campaign_add_name
     @poms_method()
@@ -333,7 +333,7 @@ class PomsService:
         t="campaign_stage_edit.html",
     )
     def campaign_stage_edit(self, **kwargs):
-        data = self.stagePOMS.campaign_stage_edit(**kwargs)
+        data = self.stagesPOMS.campaign_stage_edit(**kwargs)
         if kwargs.get("pcl_call", "0") == "1" and data["message"]:
             raise cherrypy.HTTPError(400, data["message"])
 
@@ -374,7 +374,7 @@ class PomsService:
 
     @poms_method(rtype="json")
     def campaign_list_json(self, **kwargs):
-        return self.campaignsPOMS.campaign_list(ctx)
+        return self.campaignsPOMS.campaign_list(kwargs['ctx'])
 
     # h4. campaign_stage_edit_query
 
@@ -386,7 +386,7 @@ class PomsService:
         ],
     )
     def campaign_stage_edit_query(self, **kwargs):
-        return self.stagePOMS.campaign_stage_edit_query(**kwargs)
+        return self.stagesPOMS.campaign_stage_edit_query(**kwargs)
 
     # h4. show_campaigns
 
@@ -424,7 +424,7 @@ class PomsService:
             template = "show_campaign_stages.html"
         else:
             template = "show_campaign_stages_stats.html"
-        return self.stagePOMS.show_campaign_stages(**kwargs) + (template, kwargs["ctx"].experiment, "")
+        return self.stagesPOMS.show_campaign_stages(**kwargs) + (template, kwargs["ctx"].experiment, "")
 
     # h4. reset_campaign_split
 
@@ -434,7 +434,7 @@ class PomsService:
         rtype="redirect",
     )
     def reset_campaign_split(self, **kwargs):
-        return self.stagePOMS.reset_campaign_split(**kwargs)
+        return self.stagesPOMS.reset_campaign_split(**kwargs)
 
     # h4. campaign_stage_datasets
     @poms_method(rtype="json")
@@ -479,7 +479,7 @@ class PomsService:
         t="campaign_stage_info.html"
     )
     def campaign_stage_info(self, **kwargs):
-        return self.stagePOMS.campaign_stage_info(**kwargs)
+        return self.stagesPOMS.campaign_stage_info(**kwargs)
 
     #   h4. campaign_stage_submissions
     @poms_method(
@@ -490,7 +490,7 @@ class PomsService:
         t="campaign_stage_submissions.html",
     )
     def campaign_stage_submissions(self, **kwargs):
-        return {"data": self.stagePOMS.campaign_stage_submissions(**kwargs)}
+        return {"data": self.stagesPOMS.campaign_stage_submissions(**kwargs)}
 
     #   h4. session_status_history
     @poms_method(rtype="json")
@@ -516,7 +516,7 @@ class PomsService:
         help_page="ScheduleLaunchHelp",
     )
     def schedule_launch(self, **kwargs):
-        return self.stagePOMS.schedule_launch(**kwargs)
+        return self.stagesPOMS.schedule_launch(**kwargs)
 
     # h4. update_launch_schedule
 
@@ -526,7 +526,7 @@ class PomsService:
         redirect="%(poms_path)s/schedule_launch/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s",
     )
     def update_launch_schedule(self, **kwargs):
-        self.stagePOMS.update_launch_schedule(**kwargs)
+        self.stagesPOMS.update_launch_schedule(**kwargs)
 
     # h4. mark_campaign_active
 
