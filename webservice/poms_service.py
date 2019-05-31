@@ -46,9 +46,11 @@ from . import (
     DBadminPOMS,
     FilesPOMS,
     JobsPOMS,
+    MiscPoms,
+    StagesPOMS,
+    SubmissionsPOMS,
     TablesPOMS,
     TagsPOMS,
-    TaskPOMS,
     UtilsPOMS,
     Permissions,
     logit,
@@ -128,7 +130,9 @@ class PomsService:
         self.dbadminPOMS = DBadminPOMS.DBadminPOMS()
         self.campaignsPOMS = CampaignsPOMS.CampaignsPOMS(self)
         self.jobsPOMS = JobsPOMS.JobsPOMS(self)
-        self.taskPOMS = TaskPOMS.TaskPOMS(self)
+        self.miscPOMS = MiscPOMS.MiscPOMS(self)
+        self.stagesPOMS = StagesPOMS.StagesPOMS(self)
+        self.submissionsPOMS = SubmissionsPOMS.SubmissionsPOMS(self)
         self.utilsPOMS = UtilsPOMS.UtilsPOMS(self)
         self.tagsPOMS = TagsPOMS.TagsPOMS(self)
         self.filesPOMS = FilesPOMS.FilesStatus(self)
@@ -164,7 +168,7 @@ class PomsService:
         if len(cherrypy.request.path_info.split("/")) < 3:
             experiment, role = self.utilsPOMS.getSavedExperimentRole(kwargs["ctx"])
             raise cherrypy.HTTPRedirect("%s/index/%s/%s" % (self.path, experiment, role))
-        return {"version": self.version, "launches": self.taskPOMS.get_job_launches(kwargs["ctx"])}
+        return {"version": self.version, "launches": self.submissionsPOMS.get_job_launches(kwargs["ctx"])}
 
     ####################
     # UtilsPOMS
@@ -237,7 +241,7 @@ class PomsService:
     def login_setup_rm(self, **kwargs):
         # note: login_setup_edit checks for delete permission...
         kwargs["action"] = "delete"
-        return self.campaignsPOMS.login_setup_edit(**kwargs)
+        return self.miscPOMS.login_setup_edit(**kwargs)
 
     # h4. login_setup_edit
     @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="login_setup_edit.html")
@@ -276,7 +280,7 @@ class PomsService:
 
     @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="job_type_edit.html")
     def job_type_edit(self, **kwargs):
-        res = {"data": self.campaignsPOMS.job_type_edit(**kwargs), "jquery_ui": False}
+        res = {"data": self.miscPOMS.job_type_edit(**kwargs), "jquery_ui": False}
         if kwargs.get("test_template"):
             test_campaign = self.campaignsPOMS.make_test_campaign_for(
                 kwargs["ctx"], kwargs.get("ae_campaign_definition_id"), kwargs.get("ae_definition_name")
@@ -315,7 +319,7 @@ class PomsService:
 
     @poms_method()
     def get_campaign_stage_name(self, **kwargs):
-        return self.campaignsPOMS.get_campaign_stage_name(**kwargs)
+        return self.stagePOMS.get_campaign_stage_name(**kwargs)
 
     # h4. campaign_add_name
     @poms_method()
@@ -329,7 +333,7 @@ class PomsService:
         t="campaign_stage_edit.html",
     )
     def campaign_stage_edit(self, **kwargs):
-        data = self.campaignsPOMS.campaign_stage_edit(**kwargs)
+        data = self.stagePOMS.campaign_stage_edit(**kwargs)
         if kwargs.get("pcl_call", "0") == "1" and data["message"]:
             raise cherrypy.HTTPError(400, data["message"])
 
@@ -382,7 +386,7 @@ class PomsService:
         ],
     )
     def campaign_stage_edit_query(self, **kwargs):
-        return self.campaignsPOMS.campaign_stage_edit_query(**kwargs)
+        return self.stagePOMS.campaign_stage_edit_query(**kwargs)
 
     # h4. show_campaigns
 
@@ -420,7 +424,7 @@ class PomsService:
             template = "show_campaign_stages.html"
         else:
             template = "show_campaign_stages_stats.html"
-        return self.campaignsPOMS.show_campaign_stages(**kwargs) + (template, kwargs["ctx"].experiment, "")
+        return self.stagePOMS.show_campaign_stages(**kwargs) + (template, kwargs["ctx"].experiment, "")
 
     # h4. reset_campaign_split
 
@@ -430,12 +434,12 @@ class PomsService:
         rtype="redirect",
     )
     def reset_campaign_split(self, **kwargs):
-        return self.campaignsPOMS.reset_campaign_split(**kwargs)
+        return self.stagePOMS.reset_campaign_split(**kwargs)
 
     # h4. campaign_stage_datasets
     @poms_method(rtype="json")
     def campaign_stage_datasets(self, **kwargs):
-        return self.taskPOMS.campaign_stage_datasets(kwargs["ctx"])
+        return self.submissionsPOMS.campaign_stage_datasets(kwargs["ctx"])
 
     # h4. submission_details
     @poms_method(
@@ -445,7 +449,7 @@ class PomsService:
         help_page="SubmissionDetailsHelp",
     )
     def submission_details(self, **kwargs):
-        return self.taskPOMS.submission_details(**kwargs)
+        return self.submissionsPOMS.submission_details(**kwargs)
 
     # h4. campaign_stage_info
 
@@ -475,7 +479,7 @@ class PomsService:
         t="campaign_stage_info.html"
     )
     def campaign_stage_info(self, **kwargs):
-        return self.campaignsPOMS.campaign_stage_info(**kwargs)
+        return self.stagePOMS.campaign_stage_info(**kwargs)
 
     #   h4. campaign_stage_submissions
     @poms_method(
@@ -486,12 +490,12 @@ class PomsService:
         t="campaign_stage_submissions.html",
     )
     def campaign_stage_submissions(self, **kwargs):
-        return {"data": self.campaignsPOMS.campaign_stage_submissions(**kwargs)}
+        return {"data": self.stagePOMS.campaign_stage_submissions(**kwargs)}
 
     #   h4. session_status_history
     @poms_method(rtype="json")
     def session_status_history(self, **kwargs):
-        return self.campaignsPOMS.session_status_history(**kwargs)
+        return self.submissionsPOMS.session_status_history(**kwargs)
 
     # h4. list_launch_file
     @poms_method(
@@ -501,7 +505,7 @@ class PomsService:
         help_page="LaunchedJobsHelp",
     )
     def list_launch_file(self, **kwargs):
-        return self.campaignsPOMS.list_launch_file(**kwargs)
+        return self.filesPOMS.list_launch_file(**kwargs)
 
     # h4. schedule_launch
 
@@ -512,7 +516,7 @@ class PomsService:
         help_page="ScheduleLaunchHelp",
     )
     def schedule_launch(self, **kwargs):
-        return self.campaignsPOMS.schedule_launch(**kwargs)
+        return self.stagePOMS.schedule_launch(**kwargs)
 
     # h4. update_launch_schedule
 
@@ -522,7 +526,7 @@ class PomsService:
         redirect="%(poms_path)s/schedule_launch/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s",
     )
     def update_launch_schedule(self, **kwargs):
-        self.campaignsPOMS.update_launch_schedule(**kwargs)
+        self.stagePOMS.update_launch_schedule(**kwargs)
 
     # h4. mark_campaign_active
 
@@ -537,7 +541,7 @@ class PomsService:
         del kwargs["ids2HR"]
         for cid in kwargs["campaign_ids"]:
             self.permissions.can_modify(kwargs["ctx"], t="Campaign", item_id=cid)
-        return self.campaignsPOMS.mark_campaign_hold(**kwargs)
+        return self.stagesPOMS.mark_campaign_hold(**kwargs)
 
     # h4. make_stale_campaigns_inactive
 
@@ -579,23 +583,23 @@ class PomsService:
 
     @poms_method(p=[{"p": "can_view", "t": "Submission", "item_id": "submission_id"}])
     def force_locate_submission(self, **kwargs):
-        return self.taskPOMS.force_locate_submission(kwargs["ctx"], kwargs["submission_id"])
+        return self.submissionsPOMS.force_locate_submission(kwargs["ctx"], kwargs["submission_id"])
 
     # h4. mark_failed_submissions
     @poms_method(p=[{"p": "is_superuser"}])
     def mark_failed_submissions(self, **kwargs):
-        return self.taskPOMS.mark_failed_submissions(kwargs["ctx"])
+        return self.submissionsPOMS.mark_failed_submissions(kwargs["ctx"])
 
     # h4. running_submissions
     @poms_method(rtype='json')
     def running_submissions(self, **kwargs):
         cl = list(map(int, kwargs["campaign_id_list"].split(",")))
-        return self.taskPOMS.running_submissions(kwargs["ctx"], cl)
+        return self.submissionsPOMS.running_submissions(kwargs["ctx"], cl)
 
     # h4. update_submission
     @poms_method(p=[{"p": "can_modify", "t": "Submission", "item_id": "submission_id"}])
     def update_submission(self, **kwargs):
-        res = self.taskPOMS.update_submission(**kwargs)
+        res = self.submissionsPOMS.update_submission(**kwargs)
         if kwargs.get("redirect", None):
             raise cherrypy.HTTPRedirect(kwargs["ctx"].headers_get("Referer"))
         return res
@@ -664,13 +668,13 @@ class PomsService:
 
     @poms_method(p=[{"p", "is_superuser"}], rtype="redirect", redirect="%(poms_path)s/index/%(experiment)s/%(role)s")
     def set_job_launches(self, **kwarg):
-        return self.taskPOMS.set_job_launches(ctx.db, experiment, role, ctx.username, hold)
+        return self.submissionsPOMS.set_job_launches(ctx.db, experiment, role, ctx.username, hold)
 
     # h4. launch_queued_job
 
     @poms_method(p=[{"p", "is_superuser"}])
     def launch_queued_job(self, **kwargs):
-        return self.taskPOMS.launch_queued_job(kwargs["ctx"])
+        return self.submissionsPOMS.launch_queued_job(kwargs["ctx"])
 
     # h4. launch_campaign
     @poms_method(
@@ -696,11 +700,11 @@ class PomsService:
         redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
     )
     def launch_jobs(self, **kwargs):
-        return self.taskPOMS.launch_jobs(**kwargs)
+        return self.submissionsPOMS.launch_jobs(**kwargs)
 
     @poms_method(p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}])
     def launch_jobs_commands(self, **kwargs):
-        return self.taskPOMS.launch_jobs(**kwargs)[0]
+        return self.submissionsPOMS.launch_jobs(**kwargs)[0]
 
     @poms_method(
         p=[{"p": "can_do", "t": "LoginSetup", "item_id": "test_login_setup"}],
@@ -709,7 +713,7 @@ class PomsService:
         redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?login_setup_id=%(test_login_setup)s&fname=%(outfile)s",
     )
     def launch_login_setup(self, **kwargs):
-        return self.taskPOMS.launch_jobs(**kwargs)
+        return self.submissionsPOMS.launch_jobs(**kwargs)
 
     # h4. launch_recovery_for
 
@@ -722,7 +726,7 @@ class PomsService:
         s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).first()
         stime = datetime.datetime.now(utc)
 
-        res = self.taskPOMS.launch_recovery_if_needed(
+        res = self.submissionsPOMS.launch_recovery_if_needed(
             ctx.db, ctx.sam, ctx.config_get, ctx.experiment, ctx.role, ctx.username, ctx.HTTPError, s, kwargs["recovery_type"]
         )
 
@@ -751,13 +755,13 @@ class PomsService:
 
     # ----------------------
     ########################
-    # TaskPOMS
+    # SubmissionsPOMS
 
     # h4. wrapup_tasks
 
     @poms_method(p=[{"p": "is_superuser"}], rtype='text')
     def wrapup_tasks(self, **kwargs):
-        return "\n".join(self.taskPOMS.wrapup_tasks(kwargs["ctx"]))
+        return "\n".join(self.submissionsPOMS.wrapup_tasks(kwargs["ctx"]))
 
     # h4. get_task_id_for
 
@@ -769,7 +773,7 @@ class PomsService:
     # h4. get_submission_id_for
     @poms_method(p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}])
     def get_submission_id_for(self, **kwargs):
-        return "Task=%d" % self.taskPOMS.get_task_id_for(**kwargs)
+        return "Task=%d" % self.submissionsPOMS.get_task_id_for(**kwargs)
 
     # h4. campaign_task_files
     @poms_method(
@@ -824,7 +828,7 @@ class PomsService:
     # h4. split_type_javascript
     @poms_method(rtype="rawjavascript")
     def split_type_javascript(self, **kwargs):
-        return self.campaignsPOMS.split_type_javascript(kwargs["ctx"])
+        return self.miscPOMS.split_type_javascript(kwargs["ctx"])
 
     # h4. save_campaign
     @poms_method(rtype="json")
@@ -834,12 +838,12 @@ class PomsService:
     # h4. get_jobtype_id
     @poms_method(rtype="json")
     def get_jobtype_id(self, **kwargs):
-        return self.campaignsPOMS.get_jobtype_id(kwargs["ctx"], kwargs["name"])
+        return self.miscPOMS.get_jobtype_id(kwargs["ctx"], kwargs["name"])
 
     # h4. get_loginsetup_id
     @poms_method(rtype="json")
     def get_loginsetup_id(self, **kwargs):
-        return self.campaignsPOMS.get_loginsetup_id(kwargs["ctx"], kwargs["name"])
+        return self.miscPOMS.get_loginsetup_id(kwargs["ctx"], kwargs["name"])
 
     # h4. loginsetup_list
     @poms_method(rtype="json")

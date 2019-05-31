@@ -309,3 +309,33 @@ class FilesStatus:
         for f in flist:
             os.link(f, "%s/%s" % (sandbox, os.path.basename(f)))
         return sandbox
+
+    def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None):
+        """
+            get launch output file and return the lines as a list
+        """
+        q = (
+            ctx.db.query(CampaignStage, Campaign)
+            .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
+            .filter(CampaignStage.campaign_id == Campaign.campaign_id)
+            .first()
+        )
+        campaign_name = q.Campaign.name
+        stage_name = q.CampaignStage.name
+        if login_setup_id:
+            dirname = "{}/private/logs/poms/launches/template_tests_{}".format(os.environ["HOME"], login_setup_id)
+        else:
+            dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], campaign_stage_id)
+        lf = open("{}/{}".format(dirname, fname), "r", encoding="utf-8", errors="replace")
+        sb = os.fstat(lf.fileno())
+        lines = lf.readlines()
+        lf.close()
+        # if file is recent set refresh to watch it
+        if (time.time() - sb[8]) < 5:
+            refresh = 3
+        elif (time.time() - sb[8]) < 30:
+            refresh = 10
+        else:
+            refresh = 0
+        return lines, refresh, campaign_name, stage_name
+

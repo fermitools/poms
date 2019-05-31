@@ -18,7 +18,7 @@ from . import (
     JobsPOMS,
     TablesPOMS,
     TagsPOMS,
-    TaskPOMS,
+    SubmissionsPOMS,
     UtilsPOMS,
     Permissions,
     logit,

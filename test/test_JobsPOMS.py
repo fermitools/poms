@@ -32,18 +32,18 @@ def test_kill_jobs():
 
     # Two submission_id for the same campaign
     # Provide a submission_id for the fake campaign
-    submission_id = mps.taskPOMS.get_task_id_for(ctx, campaign="14")
+    submission_id = mps.submissionsPOMS.get_task_id_for(ctx, campaign="14")
     # Provide a submission_id for the second task
-    task_id2 = mps.taskPOMS.get_task_id_for(ctx, campaign="14")
+    task_id2 = mps.submissionsPOMS.get_task_id_for(ctx, campaign="14")
     jid_n = time.time()
 
     # 1 Job in the first submission_id
     jid1 = "%d.0@fakebatch1.fnal.gov" % jid_n
-    mps.taskPOMS.update_submission(ctx, submission_id=submission_id, jobsub_job_id=jid1, status="Running")
+    mps.submissionsPOMS.update_submission(ctx, submission_id=submission_id, jobsub_job_id=jid1, status="Running")
 
     # 3Job in a new submission_id but same campaign
     jid3 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 2)
-    mps.taskPOMS.update_submission(ctx, submission_id=task_id2, jobsub_job_id=jid3, status="Running")
+    mps.submissionsPOMS.update_submission(ctx, submission_id=task_id2, jobsub_job_id=jid3, status="Running")
 
     # Control arguments
     c_arg = "-G fermilab --role Analysis --jobid "

@@ -46,7 +46,7 @@ from .pomscache import pomscache_10
 from .utc import utc
 
 
-class CampaignsPOMS:
+class StagesPOMS:
     """
        Business logic for CampaignStage related items
     """

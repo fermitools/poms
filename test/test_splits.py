@@ -68,13 +68,13 @@ def make_split(ds, split, should_hit_end):
         cs.dataset = myds
         cs.cs_split_type = split
         dbhandle.commit()
-        mps.campaignsPOMS.reset_campaign_split(ctx, cs.campaign_stage_id)
+        mps.stagesPOMS.reset_campaign_split(ctx, cs.campaign_stage_id)
         # logger.debug("testing %s on %s" % (split, ds))
         print("testing %s on %s" % (split, ds))
         hit_end = 0
         for i in range(1, 6):
             try:
-                res = mps.campaignsPOMS.get_dataset_for(ctx, cs)
+                res = mps.stagesPOMS.get_dataset_for(ctx, cs)
             except AssertionError:
                 print("Hit end!")
                 hit_end = 1

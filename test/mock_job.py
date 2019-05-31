@@ -82,7 +82,7 @@ class job_updater:
             else:
                 sub_status = "Idle"
 
-        self.mps.taskPOMS.update_submission(dbh, submission_id, min_jobsub_job_id, ccount / total, sub_status, task_project)
+        self.mps.submissionsPOMS.update_submission(dbh, submission_id, min_jobsub_job_id, ccount / total, sub_status, task_project)
 
 
 rpstatus = "200 Ok."
@@ -110,7 +110,7 @@ class mock_job:
 
         mps = mock_poms_service.mock_poms_service()
         dbh = DBHandle.DBHandle()
-        submission_id = mps.taskPOMS.get_task_id_for(
+        submission_id = mps.submissionsPOMS.get_task_id_for(
             dbh.get(), campaign_stage_id, experiment="samdev", command_executed="fake_task"
         )
 

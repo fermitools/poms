@@ -98,7 +98,7 @@ class TablesPOMS:
         ctx.db.add(found)
         ctx.db.commit()
         if classname == "Submission":
-            self.poms_service.snapshot_parts(found.campaign_stage_id)
+            self.poms_service.miscPOMS.snapshot_parts(found.campaign_stage_id)
         return "%s=%s" % (classname, getattr(found, primkey))
 
     def edit_screen_for(self, ctx, classname, eclass, update_call, primkey, primval, valmap):
