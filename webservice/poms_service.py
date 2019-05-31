@@ -755,7 +755,7 @@ class PomsService:
 
     # h4. wrapup_tasks
 
-    @poms_method(p=[{"p", "is_superuser"}])
+    @poms_method(p=[{"p": "is_superuser"}])
     def wrapup_tasks(self, **kwargs):
         return "\n".join(self.taskPOMS.wrapup_tasks(kwargs["ctx"]))
 
