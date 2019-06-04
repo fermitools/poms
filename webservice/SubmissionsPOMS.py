@@ -569,9 +569,7 @@ class SubmissionsPOMS:
             pos = dataset.find(" ")
             dataset = dataset[:pos]
         elif submission and submission.project:
-            details = ctx.sam.fetch_info(submission.campaign_stage_snapshot_obj.experiment, submission.project, ctx.db)
-            logit.log("got details = %s" % repr(details))
-            dataset = details.get("dataset_def_name", None)
+            dataset = sam_specifics(ctx).get_dataset_from_project(submission)
         else:
             dataset = None
 
@@ -724,22 +722,8 @@ class SubmissionsPOMS:
                 )
             else:
                 i = i + 1
-                if cd.file_patterns.find(" ") > 0:
-                    # it is a dimension fragment, not just a file pattern
-                    dim_bits = cd.file_patterns
-                else:
-                    dim_bits = "file_name like '%s'" % cd.file_patterns
-                cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
-                dims = "ischildof: (snapshot_for_project_name %s) and version %s and create_date > '%s' and %s" % (
-                    s.project,
-                    s.campaign_stage_snapshot_obj.software_version,
-                    cdate,
-                    dim_bits,
-                )
+                dname = sam_specifics(ctx).dependency_definition(s, cd)
 
-                dname = "poms_depends_%d_%d" % (s.submission_id, i)
-
-                ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, dname, dims)
                 if s.submission_params and s.submission_params.get("test", False):
                     test_launch = s.submission_params.get("test", False)
                 else:
@@ -787,70 +771,13 @@ class SubmissionsPOMS:
 
             rtype = rlist[s.recovery_position].recovery_type
 
-            # uncomment when we get db fields:
-            param_overrides = rlist[s.recovery_position].param_overrides
-            if rtype.name == "consumed_status":
-                # not using ctx.sam.recovery_dimensions here becuase it
-                # doesn't do what I want on ended incomplete projects, etc.
-                # so not a good choice for our default option.
-                recovery_dims = "project_name %s minus (project_name %s and consumed_status consumed)" % (s.project, s.project)
-            elif rtype.name == "proj_status":
-                recovery_dims = ctx.sam.recovery_dimensions(
-                    s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=ctx.db
-                )
-            elif rtype.name == "pending_files":
-                recovery_dims = "snapshot_for_project_name %s minus ( " % s.project
-                if s.job_type_snapshot_obj.output_file_patterns:
-                    oftypelist = s.job_type_snapshot_obj.output_file_patterns.split(",")
-                else:
-                    oftypelist = ["%"]
+            nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype,param_overrides)
 
-                sep = ""
-                cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
-                for oft in oftypelist:
-                    if oft.find(" ") > 0:
-                        # it is a dimension not a file_name pattern
-                        dim_bits = oft
-                    else:
-                        dim_bits = "file_name like %s" % oft
-
-                    recovery_dims += "%s isparentof: ( version %s and %s and create_date > '%s' ) " % (
-                        sep,
-                        s.campaign_stage_snapshot_obj.software_version,
-                        dim_bits,
-                        cdate,
-                    )
-                    sep = "and"
-                recovery_dims += ")"
-            else:
-                # default to consumed status(?)
-                recovery_dims = "project_name %s minus (project_name %s and consumed_status consumed)" % (s.project, s.project)
-
-            try:
-                logit.log("counting files dims %s" % recovery_dims)
-                nfiles = ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, recovery_dims, dbhandle=ctx.db)
-            except BaseException:
-                # if we can's count it, just assume there may be a few for
-                # now...
-                nfiles = 1
-
-            s.recovery_position = s.recovery_position + 1
-            ctx.db.add(s)
-            ctx.db.commit()
-
-            logit.log("recovery files count %d" % nfiles)
             if nfiles > 0:
-                rname = "poms_recover_%d_%d" % (s.submission_id, s.recovery_position)
-
-                logit.log(
-                    "launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s"
-                    % (s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
-                )
-
-                ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
 
                 launch_user = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).first()
                 ctx.username = launch_user.username
+                ctx.experimenter_cache = launch_user
                 ctx.role = s.campaign_stage_obj.creator_role
                 ctx.experiment = s.campaign_stage_obj.experiment
 
@@ -942,6 +869,7 @@ class SubmissionsPOMS:
             ctx.experiment = cs.experiment
             ctx.role = cs.creator_role
             ctx.username = launch_user.username
+            ctx.experimenter_cache = launch_user
 
             self.launch_jobs(
                 ctx,

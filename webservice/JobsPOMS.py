@@ -13,6 +13,7 @@ from sqlalchemy import func
 from .poms_model import Submission, SubmissionHistory, CampaignStage, JobType
 from .utc import utc
 from . import logit
+from .SAMSpecifics import sam_specifics
 
 
 class JobsPOMS:
@@ -28,7 +29,7 @@ class JobsPOMS:
         sid = j.submission_obj.submission_id
         exp = j.submission_obj.campaign_stage_snapshot_obj.experiment
         cid = j.submission_obj.campaign_stage_snapshot_obj.campaign_stage_id
-        ctx.sam.update_project_description(exp, projname, "POMS CampaignStage %s Submission %s" % (cid, sid))
+        sam_specifics(ctx).update_project_description(projname, "POMS CampaignStage %s Submission %s" % (cid, sid))
 
     def kill_jobs(self, ctx, campaign_id=None, campaign_stage_id=None, submission_id=None, job_id=None, confirm=None, act="kill"):
         """

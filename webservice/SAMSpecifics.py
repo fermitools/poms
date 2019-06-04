@@ -1,4 +1,174 @@
 
+class sam_specifics:
+    ''' All code that needs to change if we replace SAM'''
+
+    def __init__(self, ctx):
+        self.ctx = ctx
+
+    def list_files(self, dims):
+        return self.ctx.sam.list_files(ctx.experiment, dims, dbhandle=ctx.db)
+
+    def update_project_description(self, projname, s):
+        return self.ctx.sam.update_project_description(ctx.experiment, projname, s)
+    def get_dataset_from_project(self, submission):
+        details = self.ctx.sam.fetch_info(submission.campaign_stage_snapshot_obj.experiment, submission.project, self.ctx.db)
+        logit.log("got details = %s" % repr(details))
+        dataset = details.get("dataset_def_name", None)
+        return dataset
+
+    def create_recovery_dataset(self, s, rtype, param_overrides):
+
+        param_overrides = rlist[s.recovery_position].param_overrides
+        if rtype.name == "consumed_status":
+            # not using ctx.sam.recovery_dimensions here becuase it
+            # doesn't do what I want on ended incomplete projects, etc.
+            # so not a good choice for our default option.
+            recovery_dims = "project_name %s minus (project_name %s and consumed_status consumed)" % (s.project, s.project)
+        elif rtype.name == "proj_status":
+            recovery_dims = ctx.sam.recovery_dimensions(
+                s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=ctx.db
+            )
+        elif rtype.name == "pending_files":
+            recovery_dims = "snapshot_for_project_name %s minus ( " % s.project
+            if s.job_type_snapshot_obj.output_file_patterns:
+                oftypelist = s.job_type_snapshot_obj.output_file_patterns.split(",")
+            else:
+                oftypelist = ["%"]
+
+            sep = ""
+            cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
+            for oft in oftypelist:
+                if oft.find(" ") > 0:
+                    # it is a dimension not a file_name pattern
+                    dim_bits = oft
+                else:
+                    dim_bits = "file_name like %s" % oft
+
+                recovery_dims += "%s isparentof: ( version %s and %s and create_date > '%s' ) " % (
+                    sep,
+                    s.campaign_stage_snapshot_obj.software_version,
+                    dim_bits,
+                    cdate,
+                )
+                sep = "and"
+            recovery_dims += ")"
+        else:
+            # default to consumed status(?)
+            recovery_dims = "project_name %s minus (project_name %s and consumed_status consumed)" % (s.project, s.project)
+
+        try:
+            logit.log("counting files dims %s" % recovery_dims)
+            nfiles = ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, recovery_dims, dbhandle=ctx.db)
+        except BaseException:
+            # if we can's count it, just assume there may be a few for
+            # now...
+            nfiles = 1
+
+        s.recovery_position = s.recovery_position + 1
+        ctx.db.add(s)
+        ctx.db.commit()
+
+        logit.log("recovery files count %d" % nfiles)
+        if nfiles > 0:
+            rname = "poms_recover_%d_%d" % (s.submission_id, s.recovery_position)
+
+            logit.log(
+                "launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s"
+                % (s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
+            )
+
+            ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
+
+        return nfiles, rname
+
+    def dependency_definition(self,s,cd)
+        if cd.file_patterns.find(" ") > 0:
+            # it is a dimension fragment, not just a file pattern
+            dim_bits = cd.file_patterns
+        else:
+            dim_bits = "file_name like '%s'" % cd.file_patterns
+        cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
+        dims = "ischildof: (snapshot_for_project_name %s) and version %s and create_date > '%s' and %s" % (
+            s.project,
+            s.campaign_stage_snapshot_obj.software_version,
+            cdate,
+            dim_bits,
+        )
+
+        dname = "poms_depends_%d_%d" % (s.submission_id, i)
+
+        self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, dname, dims)
+        return dname
+
+    def get_file_stats_for_submissions(self, submission_list):
+        #
+        # fetch needed data in tandem
+        # -- first build lists of stuff to fetch
+        #
+        base_dim_list = deque()
+        summary_needed = deque()
+        some_kids_needed = deque()
+        some_kids_decl_needed = deque()
+        all_kids_needed = deque()
+        all_kids_decl_needed = deque()
+        output_files = deque()
+        # finished_flying_needed = deque()
+        for s in submission_list:
+            summary_needed.append(s)
+            basedims = "snapshot_for_project_name %s " % s.project
+            base_dim_list.append(basedims)
+
+            somekiddims = "%s and isparentof: (version %s)" % (basedims, s.campaign_stage_snapshot_obj.software_version)
+            some_kids_needed.append(somekiddims)
+
+            somekidsdecldims = "%s and isparentof: (version %s with availability anylocation )" % (
+                basedims,
+                s.campaign_stage_snapshot_obj.software_version,
+            )
+            some_kids_decl_needed.append(somekidsdecldims)
+
+            allkiddecldims = basedims
+            allkiddims = basedims
+            for pat in str(s.job_type_snapshot_obj.output_file_patterns).split(","):
+                if pat == "None":
+                    pat = "%"
+                if pat.find(" ") > 0:
+                    dimbits = pat
+                else:
+                    dimbits = "file_name like '%s'" % pat
+
+                allkiddims = "%s and isparentof: ( %s and version '%s' ) " % (
+                    allkiddims,
+                    dimbits,
+                    s.campaign_stage_snapshot_obj.software_version,
+                )
+                cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
+                allkiddecldims = (
+                    "%s and isparentof: "
+                    "( %s and version '%s' "
+                    "and create_date > '%s' "
+                    "with availability anylocation ) "
+                    % (allkiddecldims, dimbits, s.campaign_stage_snapshot_obj.software_version, cdate)
+                )
+                outputfiledims = "ischildof: ( %s ) and create_date > '%s' and  %s and version '%s'" % (
+                    basedims,
+                    s.created.strftime("%Y-%m-%d %H:%M:%S"),
+                    dimbits,
+                    s.campaign_stage_snapshot_obj.software_version,
+                )
+            all_kids_needed.append(allkiddims)
+            all_kids_decl_needed.append(allkiddecldims)
+            output_files.append(outputfiledims)
+        #
+        # -- now call parallel fetches for items
+        # ctx.sam = cherrypy.request.samweb_lite ####IMPORTANT
+        summary_list = ctx.sam.fetch_info_list(summary_needed, dbhandle=ctx.db)
+        output_list = ctx.sam.count_files_list(cs.experiment, output_files)
+        some_kids_list = ctx.sam.count_files_list(cs.experiment, some_kids_needed)
+        some_kids_decl_list = ctx.sam.count_files_list(cs.experiment, some_kids_decl_needed)
+        all_kids_decl_list = ctx.sam.count_files_list(cs.experiment, all_kids_decl_needed)
+        return summary_list, output_list, some_kids_list, some_kids_decl_list, all_kids_decl_list 
+
 class sam_project_checker:
     def __init__(self, ctx):
         self.n_project = 0

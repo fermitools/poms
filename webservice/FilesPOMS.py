@@ -23,6 +23,7 @@ from . import logit
 from .poms_model import Submission, CampaignStage, Experimenter, ExperimentsExperimenters, Campaign
 from .utc import utc
 from .pomscache import pomscache
+from .SamSpecifics import sam_specifics
 
 
 class FilesStatus:
@@ -78,73 +79,7 @@ class FilesStatus:
                 cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
             else:
                 raise KeyError("need campaign_stage_id or campaign_id")
-        #
-        # fetch needed data in tandem
-        # -- first build lists of stuff to fetch
-        #
-        base_dim_list = deque()
-        summary_needed = deque()
-        some_kids_needed = deque()
-        some_kids_decl_needed = deque()
-        all_kids_needed = deque()
-        all_kids_decl_needed = deque()
-        output_files = deque()
-        # finished_flying_needed = deque()
-        for s in tl:
-            summary_needed.append(s)
-            basedims = "snapshot_for_project_name %s " % s.project
-            base_dim_list.append(basedims)
-
-            somekiddims = "%s and isparentof: (version %s)" % (basedims, s.campaign_stage_snapshot_obj.software_version)
-            some_kids_needed.append(somekiddims)
-
-            somekidsdecldims = "%s and isparentof: (version %s with availability anylocation )" % (
-                basedims,
-                s.campaign_stage_snapshot_obj.software_version,
-            )
-            some_kids_decl_needed.append(somekidsdecldims)
-
-            allkiddecldims = basedims
-            allkiddims = basedims
-            for pat in str(s.job_type_snapshot_obj.output_file_patterns).split(","):
-                if pat == "None":
-                    pat = "%"
-                if pat.find(" ") > 0:
-                    dimbits = pat
-                else:
-                    dimbits = "file_name like '%s'" % pat
-
-                allkiddims = "%s and isparentof: ( %s and version '%s' ) " % (
-                    allkiddims,
-                    dimbits,
-                    s.campaign_stage_snapshot_obj.software_version,
-                )
-                cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
-                allkiddecldims = (
-                    "%s and isparentof: "
-                    "( %s and version '%s' "
-                    "and create_date > '%s' "
-                    "with availability anylocation ) "
-                    % (allkiddecldims, dimbits, s.campaign_stage_snapshot_obj.software_version, cdate)
-                )
-                outputfiledims = "ischildof: ( %s ) and create_date > '%s' and  %s and version '%s'" % (
-                    basedims,
-                    s.created.strftime("%Y-%m-%d %H:%M:%S"),
-                    dimbits,
-                    s.campaign_stage_snapshot_obj.software_version,
-                )
-            all_kids_needed.append(allkiddims)
-            all_kids_decl_needed.append(allkiddecldims)
-            output_files.append(outputfiledims)
-        #
-        # -- now call parallel fetches for items
-        # ctx.sam = cherrypy.request.samweb_lite ####IMPORTANT
-        summary_list = ctx.sam.fetch_info_list(summary_needed, dbhandle=ctx.db)
-        output_list = ctx.sam.count_files_list(cs.experiment, output_files)
-        some_kids_list = ctx.sam.count_files_list(cs.experiment, some_kids_needed)
-        some_kids_decl_list = ctx.sam.count_files_list(cs.experiment, some_kids_decl_needed)
-        all_kids_decl_list = ctx.sam.count_files_list(cs.experiment, all_kids_decl_needed)
-        # all_kids_list = ctx.sam.count_files_list(cs.experiment, all_kids_needed)
+        summary_list, output_list, some_kids_list, some_kids_decl_list, all_kids_decl_list = sam_specifics(ctx).get_file_stats_for_submissions(tl)
 
         columns = [
             "campign<br>stage",
@@ -221,7 +156,7 @@ class FilesStatus:
     def show_dimension_files(self, ctx, dims):
 
         try:
-            flist = ctx.sam.list_files(ctx.experiment, dims, dbhandle=ctx.db)
+            flist = sam_specifics(ctx).list_files(dims)
         except ValueError:
             flist = deque()
         return flist
