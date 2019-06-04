@@ -38,6 +38,7 @@ from .poms_model import (
     SubmissionStatus,
 )
 from .utc import utc
+from .SAMSpecifics import sam_project_checker
 
 
 # from exceptions import KeyError
@@ -195,51 +196,66 @@ class SubmissionsPOMS:
 
         return res
 
+    def get_submissions_with_status(self, ctx, status_id, recheck_sids):
+        self.init_statuses(ctx)
+        query = (
+            ctx.db.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label("maxstat"))
+            .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
+            .group_by(SubmissionHistory.submission_id)
+            .having(func.max(SubmissionHistory.status_id) == status_id)
+        )
+        if recheck_sids:
+            query = query.filter(SubmissionHistory.submission_id.in_(recheck_sids))
+
+        cpairs = query.all()
+        completed_sids = [x[0] for x in cpairs]
+
+        return completed_sids
+
+    def get_file_patterns(self,s):
+        plist = []
+
+        # try to get the file pattern list, either from the
+        # dependencies that lead to this campaign_stage,
+        # or from the job type
+
+        for dcd in (
+            self.ctx.db.query(CampaignDependency)
+            .filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id)
+            .all()
+        ):
+            if dcd.file_patterns:
+                plist.extend(dcd.file_patterns.split(","))
+            else:
+                plist.append("%")
+
+        if not plist:
+            plist = str(s.job_type_snapshot_obj.output_file_patterns).split(",")
+
+        logit.log("got file pattern list: %s" % repr(plist))
+        return plist
+
     def wrapup_tasks(self, ctx):
         # this function call another function that is not in this module, it
         # use a poms_service object passed as an argument at the init.
 
-        self.init_statuses(ctx)
         now = datetime.now(utc)
         res = ["wrapping up:"]
 
-        lookup_submission_list = deque()
-        lookup_dims_list = deque()
-        lookup_exp_list = deque()
+        self.checker = sam_project_checker(ctx)
+
         finish_up_submissions = deque()
         mark_located = deque()
-        #
-        # move launch stuff etc, to one place, so we can keep the table rows
 
-        cpairs = (
-            ctx.db.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label("maxstat"))
-            .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
-            .group_by(SubmissionHistory.submission_id)
-            .having(func.max(SubmissionHistory.status_id) == self.status_Completed)
-            .all()
-        )
-
-        completed_sids = [x[0] for x in cpairs]
-
-        logit.log("wrapup_tasks: completed sids 1: %s" % repr(completed_sids))
-
-        # lock them all before updating...
+        # get completed jobs, lock them, double check
+        completed_sids = self.get_submissions_with_status(ctx, self.status_Completed)
         ll = ctx.db.query(Submission).filter(Submission.submission_id.in_(completed_sids)).with_for_update(read=True).all()
-        # now find the ones that are still completed now that we have the lock
-        cpairs = (
-            ctx.db.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label("maxstat"))
-            .filter(SubmissionHistory.submission_id.in_(completed_sids))
-            .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
-            .group_by(SubmissionHistory.submission_id)
-            .having(func.max(SubmissionHistory.status_id) == self.status_Completed)
-            .all()
-        )
-
-        completed_sids = [x[0] for x in cpairs]
-        logit.log("wrapup_tasks: completed sids 2: %s" % repr(completed_sids))
+        completed_sids = self.get_submissions_with_status(ctx, self.status_Completed, completed_sids)
 
         res.append("Completed submissions_ids: %s" % repr(list(completed_sids)))
 
+        # now get the ones with completion_type "complete":
+        # and put them in the finish_up_submissions list
         for s in (
             ctx.db.query(Submission)
             .join(
@@ -251,6 +267,8 @@ class SubmissionsPOMS:
             res.append("completion type completed: %s" % s.submission_id)
             finish_up_submissions.append(s.submission_id)
 
+        # now get the ones with completion_type "located":
+        # and decide if they go on the finish_up_submissions list...
         n_project = 0
         for s in (
             ctx.db.query(Submission)
@@ -265,108 +283,21 @@ class SubmissionsPOMS:
             # after two days, call it on time...
             if now - s.updated > timedelta(days=2):
                 finish_up_submissions.append(s.submission_id)
-
             elif s.project:
-                # submission had a sam project, add to the list to look
-                # up in sam
-                n_project = n_project + 1
-                basedims = "snapshot_for_project_name %s " % s.project
-                allkiddims = basedims
-                plist = []
-
-                # try to get the file pattern list, either from the
-                # dependencies that lead to this campaign_stage,
-                # or from the job type
-
-                for dcd in (
-                    ctx.db.query(CampaignDependency)
-                    .filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id)
-                    .all()
-                ):
-                    if dcd.file_patterns:
-                        plist.extend(dcd.file_patterns.split(","))
-                    else:
-                        plist.append("%")
-
-                if not plist:
-                    plist = str(s.job_type_snapshot_obj.output_file_patterns).split(",")
-
-                logit.log("got file pattern list: %s" % repr(plist))
-
-                for pat in plist:
-                    if pat == "None":
-                        pat = "%"
-
-                    if pat.find(" ") > 0:
-                        allkiddims = (
-                            "%s and isparentof: ( %s and version '%s' and create_date > '%s'  with availability physical ) "
-                            % (
-                                allkiddims,
-                                pat,
-                                s.campaign_stage_snapshot_obj.software_version,
-                                s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                            )
-                        )
-                    else:
-                        allkiddims = (
-                            "%s and isparentof: ( file_name '%s' and version '%s' and create_date > '%s' with availability physical ) "
-                            % (
-                                allkiddims,
-                                pat,
-                                s.campaign_stage_snapshot_obj.software_version,
-                                s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                            )
-                        )
-
-                lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
-                lookup_submission_list.append(s)
-                lookup_dims_list.append(allkiddims)
+                self.checker.add_project_submission(s)
             else:
-                # it's located but there's no project, so they are
-                # defining the poms_depends_%(submission_id)s_1 dataset..
-                allkiddims = "defname:poms_depends_%s_1" % s.submission_id
-                lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
-                lookup_submission_list.append(s)
-                lookup_dims_list.append(allkiddims)
+                self.checker.add_non_project_submission(s)
 
-        ctx.db.commit()
-
-        summary_list = ctx.sam.fetch_info_list(lookup_submission_list, dbhandle=ctx.db)
-        count_list = ctx.sam.count_files_list(lookup_exp_list, lookup_dims_list)
-        thresholds = deque()
-        logit.log("wrapup_tasks: summary_list: %s" % repr(summary_list))  # Check if that is working
-        res.append("wrapup_tasks: summary_list: %s" % repr(summary_list))
-
-        res.append("count_list: %s" % count_list)
-        res.append("thresholds: %s" % thresholds)
-        res.append("lookup_dims_list: %s" % lookup_dims_list)
-
-        for i in range(len(summary_list)):
-            submission = lookup_submission_list[i]
-            cfrac = submission.campaign_stage_snapshot_obj.completion_pct / 100.0
-            if submission.project:
-                threshold = summary_list[i].get("tot_consumed", 0) * cfrac
-            else:
-                # no project, so guess based on number of jobs in submit
-                # command?
-                p1 = submission.command_executed.find("-N")
-                p2 = submission.command_executed.find(" ", p1 + 3)
-                try:
-                    threshold = int(submission.command_executed[p1 + 3 : p2]) * cfrac
-                except BaseException:
-                    threshold = 0
-
-            thresholds.append(threshold)
-            val = float(count_list[i])
-            res.append("submission %s val %f threshold %f " % (submission, val, threshold))
-            if val >= threshold and threshold > 0:
-                res.append("adding submission %s " % submission)
-                finish_up_submissions.append(submission.submission_id)
+        finish_up_submissions = self.checker.check_added_submissions(finish_up_submissions)
 
         for s in finish_up_submissions:
             res.append("marking submission %s located " % s)
             self.update_submission_status(ctx, s, "Located")
 
+        #
+        # now commit having marked things located, to release database 
+        # locks.
+        #
         ctx.db.commit()
 
         #
@@ -375,11 +306,6 @@ class SubmissionsPOMS:
         # launch any recovery jobs or jobs depending on us.
         # this way we don's keep the rows locked all day
         #
-        # logit.log("Starting need_joblogs loops, len %d" % len(finish_up_submissions))
-        # if len(need_joblogs) == 0:
-        #    njtl = []
-        # else:
-        #    njtl = ctx.db.query(Submission).filter(Submission.submission_id.in_(need_joblogs)).all()
 
         res.append("finish_up_submissions: %s " % repr(finish_up_submissions))
 
@@ -392,13 +318,11 @@ class SubmissionsPOMS:
 
         for submission in futl:
             # get logs for job for final cpu values, etc.
-            logit.log("Starting finish_up_submissions items for submission %s" % submission.submission_id)
-            res.append("Starting finish_up_submissions items for submission %s" % submission.submission_id)
+            msg = "Starting finish_up_submissions items for submission %s" % submission.submission_id
+            logit.log(msg)
+            res.append(msg)
 
-            # override session experimenter to be the owner of
-            # the current task in the role of the submission
-            # so launch actions get done as them.
-
+            # take care of any recovery or dependency launches
             if not self.launch_recovery_if_needed(ctx, submission, None):
                 self.launch_dependents_if_needed(ctx, submission)
 
