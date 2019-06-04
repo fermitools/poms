@@ -366,6 +366,7 @@ class CampaignsPOMS:
                 res.append("login_setup=%s" % c_s.login_setup_obj.name)
             if c_s.job_type_obj.name != defaults.get("job_type"):
                 res.append("job_type=%s" % c_s.job_type_obj.name)
+            res.append("merge_overrides=%s" % c_s.merge_overrides)
             jts.add(c_s.job_type_obj)
             lts.add(c_s.login_setup_obj)
             res.append("")
@@ -405,16 +406,19 @@ class CampaignsPOMS:
 
     def campaign_deps_svg(self, ctx, campaign_name=None, campaign_stage_id=None):
         """
-            return campaign dependencies as an SVG graph
-            uses "dot" to generate the drawing
+            this used to use "dot" to generate an svg diagram, now
+            we use vis.js Network in javascript.
         """
         if campaign_name is not None:
+            campaign = ctx.db.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == ctx.experiment).first()
+
             csl = (
                 ctx.db.query(CampaignStage)
-                .join(Campaign)
-                .filter(Campaign.name == campaign_name, CampaignStage.campaign_id == Campaign.campaign_id)
+                .filter(CampaignStage.campaign_id == campaign.campaign_id)
                 .all()
             )
+        else:
+            campaign = None
 
         if campaign_stage_id is not None:
             cidl1 = (
@@ -438,46 +442,34 @@ class CampaignsPOMS:
 
         logit.log(logit.INFO, "campaign_deps: c_ids=%s" % repr(c_ids))
 
-        try:
-            pdot = subprocess.Popen(
-                "tee /tmp/dotstuff | dot -Tsvg",
-                shell=True,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                universal_newlines=True,
-            )
-            pdot.stdin.write('digraph "{} Dependencies" {{\n'.format(campaign_name))
-            pdot.stdin.write("node [shape=box, style=rounded, " "color=lightgrey, fontcolor=black]\n" 'rankdir = "LR";\n')
-            baseurl = "{}/campaign_stage_info?campaign_stage_id=".format(ctx.config_get("pomspath"))
+        res = []
+        res.append('<div id="dependencies"></div>')
+        res.append('<script type="text/javascript">')
 
-            for c_s in csl:
-                tot = (
-                    ctx.db.query(func.count(Submission.submission_id))
-                    .filter(Submission.campaign_stage_id == c_s.campaign_stage_id)
-                    .one()
-                )[0]
-                logit.log(logit.INFO, "campaign_deps: tot=%s" % repr(tot))
-                pdot.stdin.write(
-                    ('c_s{:d} [URL="{}{:d}",label="{}\\n' 'Submissions {:d}",color={}];\n').format(
-                        c_s.campaign_stage_id, baseurl, c_s.campaign_stage_id, c_s.name, tot, "black"
-                    )
-                )
+        res.append('var nodes = new vis.DataSet([')
 
-            c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
+        for c_s in csl:
+            if campaign and campaign.defaults and campaign.defaults.get('positions',{}).get(c_s.name,None):
+                pos = campaign.defaults['positions'][c_s.name]
+                res.append('  {id: %d, label: "%s", x: %d, y: %d},' % (c_s.campaign_stage_id, c_s.name, pos['x'], pos['y'] ))
+            else:
+                res.append('  {id: %d, label: "%s"},' % (c_s.campaign_stage_id, c_s.name))
+        res.append(']);')
 
-            for c_d in c_dl:
-                if c_d.needs_campaign_stage_id in c_ids and c_d.provides_campaign_stage_id in c_ids:
-                    pdot.stdin.write("c_s{:d} -> c_s{:d};\n".format(c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
+        res.append('var edges = new vis.DataSet([')
 
-            pdot.stdin.write("}\n")
-            pdot.stdin.close()
-            ptext = pdot.stdout.read()
-            pdot.wait()
-        except BaseException:
-            ptext = ""
-            raise
-        # return bytes(ptext, encoding="utf-8")
-        return ptext
+        c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
+
+        for c_d in c_dl:
+            res.append('  {from: %d, to: %d},' % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
+
+        res.append(']);')
+        res.append('var container = document.getElementById("dependencies");')
+        res.append('var data = {nodes: nodes, edges: edges};')
+        res.append('var options = {};')
+        res.append('var network = new vis.Network(container, data, options);')
+        res.append('</script>')
+        return '\n'.join(res)
 
     def show_campaigns(self, ctx, **kwargs):
         """
