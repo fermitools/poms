@@ -1,3 +1,4 @@
+from . import logit
 
 class sam_specifics:
     ''' 
@@ -248,20 +249,20 @@ class sam_project_checker:
         self.lookup_submission_list.append(s)
         self.lookup_dims_list.append(allkiddims)
 
-    def check_added_submissions(self, finish_up_submissions):
+    def check_added_submissions(self, finish_up_submissions, res):
 
-        summary_list = self.ctx.sam.fetch_info_list(lookup_submission_list, dbhandle=ctx.db)
-        count_list = self.ctx.sam.count_files_list(lookup_exp_list, lookup_dims_list)
+        summary_list = self.ctx.sam.fetch_info_list(self.lookup_submission_list, dbhandle=self.ctx.db)
+        count_list = self.ctx.sam.count_files_list(self.lookup_exp_list, self.lookup_dims_list)
         thresholds = []
         logit.log("wrapup_tasks: summary_list: %s" % repr(summary_list))  # Check if that is working
         res.append("wrapup_tasks: summary_list: %s" % repr(summary_list))
 
         res.append("count_list: %s" % count_list)
         res.append("thresholds: %s" % thresholds)
-        res.append("lookup_dims_list: %s" % lookup_dims_list)
+        res.append("lookup_dims_list: %s" % self.lookup_dims_list)
 
         for i in range(len(summary_list)):
-            submission = lookup_submission_list[i]
+            submission = self.lookup_submission_list[i]
             cfrac = submission.campaign_stage_snapshot_obj.completion_pct / 100.0
             if submission.project:
                 threshold = summary_list[i].get("tot_consumed", 0) * cfrac
@@ -283,4 +284,4 @@ class sam_project_checker:
                 finish_up_submissions.append(submission.submission_id)
 
 
-        return finish_up_submissions
+        return finish_up_submissions, res

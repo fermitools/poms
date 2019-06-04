@@ -196,7 +196,7 @@ class SubmissionsPOMS:
 
         return res
 
-    def get_submissions_with_status(self, ctx, status_id, recheck_sids):
+    def get_submissions_with_status(self, ctx, status_id, recheck_sids = None):
         self.init_statuses(ctx)
         query = (
             ctx.db.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label("maxstat"))
@@ -288,7 +288,7 @@ class SubmissionsPOMS:
             else:
                 self.checker.add_non_project_submission(s)
 
-        finish_up_submissions = self.checker.check_added_submissions(finish_up_submissions)
+        finish_up_submissions, res = self.checker.check_added_submissions(finish_up_submissions, res)
 
         for s in finish_up_submissions:
             res.append("marking submission %s located " % s)
