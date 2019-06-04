@@ -330,6 +330,7 @@ class CampaignsPOMS:
                     res.append("completion_pct=%s" % defaults.get("completion_pct"))
                     res.append("param_overrides=%s" % (defaults.get("param_overrides") or "[]"))
                     res.append("test_param_overrides=%s" % (defaults.get("test_param_overrides") or "[]"))
+                    res.append("merge_overrides=%s" % (defaults.get("merge_overrides") or "False"))
                     res.append("login_setup=%s" % (defaults.get("login_setup") or "generic"))
                     res.append("job_type=%s" % (defaults.get("job_type") or "generic"))
                     res.append("")
@@ -796,6 +797,7 @@ class CampaignsPOMS:
             print("################ login_setup: '{}'".format(login_setup))
             param_overrides = form.pop("param_overrides", None) or "[]"
             print("################ param_overrides: '{}'".format(param_overrides))
+            merge_overrides = form.pop("merge_overrides", False)
             if param_overrides:
                 param_overrides = json.loads(param_overrides)
             software_version = form.pop("software_version")
@@ -857,6 +859,7 @@ class CampaignsPOMS:
                     obj.job_type_id = job_type_id
                     obj.login_setup_id = login_setup_id
                     obj.param_overrides = param_overrides
+                    obj.merge_overrides = merge_overrides
                     obj.software_version = software_version
                     obj.test_param_overrides = test_param_overrides
                     obj.vo_role = vo_role
@@ -881,6 +884,7 @@ class CampaignsPOMS:
                     job_type_id=job_type_id,
                     login_setup_id=login_setup_id,
                     param_overrides=param_overrides,
+                    merge_overrides=merge_overrides,
                     software_version=software_version,
                     test_param_overrides=test_param_overrides,
                     vo_role=vo_role,

@@ -1006,6 +1006,13 @@ class SubmissionsPOMS:
             cdid = cs.job_type_id
             definition_parameters = cd.definition_parameters
 
+            # handle merge_overrides behavior -- if set, start
+            # with campaign default overrides.
+            if cs.merge_overrides:
+                c_param_overrides = cs.campaign_obj.defaults.get("defaults",{}).get("param_overrides",[])   
+            else:
+                c_param_overrides = []
+
             c_param_overrides = cs.param_overrides
 
             # if it is a test launch, add in the test param overrides
@@ -1178,6 +1185,8 @@ class SubmissionsPOMS:
                 params = OrderedDict(definition_parameters)
         else:
             params = OrderedDict([])
+
+           
 
         if c_param_overrides is not None and c_param_overrides != "":
             if isinstance(c_param_overrides, str):
