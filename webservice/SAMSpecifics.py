@@ -1,6 +1,9 @@
 
 class sam_specifics:
-    ''' All code that needs to change if we replace SAM'''
+    ''' 
+        All code that needs to change if we replace SAM
+        ... except for samweb_lite.py
+    '''
 
     def __init__(self, ctx):
         self.ctx = ctx
@@ -161,7 +164,7 @@ class sam_specifics:
             output_files.append(outputfiledims)
         #
         # -- now call parallel fetches for items
-        # ctx.sam = cherrypy.request.samweb_lite ####IMPORTANT
+        #
         summary_list = ctx.sam.fetch_info_list(summary_needed, dbhandle=ctx.db)
         output_list = ctx.sam.count_files_list(cs.experiment, output_files)
         some_kids_list = ctx.sam.count_files_list(cs.experiment, some_kids_needed)
