@@ -23,7 +23,7 @@ from . import logit
 from .poms_model import Submission, CampaignStage, Experimenter, ExperimentsExperimenters, Campaign
 from .utc import utc
 from .pomscache import pomscache
-from .SamSpecifics import sam_specifics
+from .SAMSpecifics import sam_specifics
 
 
 class FilesStatus:
@@ -79,7 +79,7 @@ class FilesStatus:
                 cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
             else:
                 raise KeyError("need campaign_stage_id or campaign_id")
-        summary_list, output_list, some_kids_list, some_kids_decl_list, all_kids_decl_list = sam_specifics(ctx).get_file_stats_for_submissions(tl)
+        summary_list, some_kids_decl_needed, some_kids_needed, base_dim_list, output_files, output_list, all_kids_decl_needed, some_kids_list, some_kids_decl_list, all_kids_decl_list = sam_specifics(ctx).get_file_stats_for_submissions(tl,cs)
 
         columns = [
             "campign<br>stage",

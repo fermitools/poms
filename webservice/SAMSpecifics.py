@@ -9,10 +9,10 @@ class sam_specifics:
         self.ctx = ctx
 
     def list_files(self, dims):
-        return self.ctx.sam.list_files(ctx.experiment, dims, dbhandle=ctx.db)
+        return self.ctx.sam.list_files(self.ctx.experiment, dims, dbhandle=self.ctx.db)
 
     def update_project_description(self, projname, s):
-        return self.ctx.sam.update_project_description(ctx.experiment, projname, s)
+        return self.ctx.sam.update_project_description(self.ctx.experiment, projname, s)
     def get_dataset_from_project(self, submission):
         details = self.ctx.sam.fetch_info(submission.campaign_stage_snapshot_obj.experiment, submission.project, self.ctx.db)
         logit.log("got details = %s" % repr(details))
@@ -28,7 +28,7 @@ class sam_specifics:
             # so not a good choice for our default option.
             recovery_dims = "project_name %s minus (project_name %s and consumed_status consumed)" % (s.project, s.project)
         elif rtype.name == "proj_status":
-            recovery_dims = ctx.sam.recovery_dimensions(
+            recovery_dims = self.ctx.sam.recovery_dimensions(
                 s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=ctx.db
             )
         elif rtype.name == "pending_files":
@@ -61,15 +61,15 @@ class sam_specifics:
 
         try:
             logit.log("counting files dims %s" % recovery_dims)
-            nfiles = ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, recovery_dims, dbhandle=ctx.db)
+            nfiles = self.ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, recovery_dims, dbhandle=ctx.db)
         except BaseException:
             # if we can's count it, just assume there may be a few for
             # now...
             nfiles = 1
 
         s.recovery_position = s.recovery_position + 1
-        ctx.db.add(s)
-        ctx.db.commit()
+        self.ctx.db.add(s)
+        self.ctx.db.commit()
 
         logit.log("recovery files count %d" % nfiles)
         if nfiles > 0:
@@ -80,11 +80,11 @@ class sam_specifics:
                 % (s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
             )
 
-            ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
+            self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
 
         return nfiles, rname
 
-    def dependency_definition(self,s,cd)
+    def dependency_definition(self,s,cd):
         if cd.file_patterns.find(" ") > 0:
             # it is a dimension fragment, not just a file pattern
             dim_bits = cd.file_patterns
@@ -103,19 +103,19 @@ class sam_specifics:
         self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, dname, dims)
         return dname
 
-    def get_file_stats_for_submissions(self, submission_list):
+    def get_file_stats_for_submissions(self, submission_list, cs):
         #
         # fetch needed data in tandem
         # -- first build lists of stuff to fetch
         #
-        base_dim_list = deque()
-        summary_needed = deque()
-        some_kids_needed = deque()
-        some_kids_decl_needed = deque()
-        all_kids_needed = deque()
-        all_kids_decl_needed = deque()
-        output_files = deque()
-        # finished_flying_needed = deque()
+        base_dim_list = []
+        summary_needed = []
+        some_kids_needed = []
+        some_kids_decl_needed = []
+        all_kids_needed = []
+        all_kids_decl_needed = []
+        output_files = []
+        # finished_flying_needed = []
         for s in submission_list:
             summary_needed.append(s)
             basedims = "snapshot_for_project_name %s " % s.project
@@ -165,12 +165,12 @@ class sam_specifics:
         #
         # -- now call parallel fetches for items
         #
-        summary_list = ctx.sam.fetch_info_list(summary_needed, dbhandle=ctx.db)
-        output_list = ctx.sam.count_files_list(cs.experiment, output_files)
-        some_kids_list = ctx.sam.count_files_list(cs.experiment, some_kids_needed)
-        some_kids_decl_list = ctx.sam.count_files_list(cs.experiment, some_kids_decl_needed)
-        all_kids_decl_list = ctx.sam.count_files_list(cs.experiment, all_kids_decl_needed)
-        return summary_list, output_list, some_kids_list, some_kids_decl_list, all_kids_decl_list 
+        summary_list = self.ctx.sam.fetch_info_list(summary_needed, dbhandle=self.ctx.db)
+        output_list = self.ctx.sam.count_files_list(cs.experiment, output_files)
+        some_kids_list = self.ctx.sam.count_files_list(cs.experiment, some_kids_needed)
+        some_kids_decl_list = self.ctx.sam.count_files_list(cs.experiment, some_kids_decl_needed)
+        all_kids_decl_list = self.ctx.sam.count_files_list(cs.experiment, all_kids_decl_needed)
+        return summary_list, some_kids_decl_needed, some_kids_needed, base_dim_list, output_files, output_list, all_kids_decl_needed, some_kids_list, some_kids_decl_list, all_kids_decl_list
 
 class sam_project_checker:
     def __init__(self, ctx):
@@ -252,7 +252,7 @@ class sam_project_checker:
 
         summary_list = self.ctx.sam.fetch_info_list(lookup_submission_list, dbhandle=ctx.db)
         count_list = self.ctx.sam.count_files_list(lookup_exp_list, lookup_dims_list)
-        thresholds = deque()
+        thresholds = []
         logit.log("wrapup_tasks: summary_list: %s" % repr(summary_list))  # Check if that is working
         res.append("wrapup_tasks: summary_list: %s" % repr(summary_list))
 
