@@ -1,10 +1,11 @@
 from . import logit
 
+
 class sam_specifics:
-    ''' 
+    """ 
         All code that needs to change if we replace SAM
         ... except for samweb_lite.py
-    '''
+    """
 
     def __init__(self, ctx):
         self.ctx = ctx
@@ -14,6 +15,7 @@ class sam_specifics:
 
     def update_project_description(self, projname, s):
         return self.ctx.sam.update_project_description(self.ctx.experiment, projname, s)
+
     def get_dataset_from_project(self, submission):
         details = self.ctx.sam.fetch_info(submission.campaign_stage_snapshot_obj.experiment, submission.project, self.ctx.db)
         logit.log("got details = %s" % repr(details))
@@ -85,7 +87,7 @@ class sam_specifics:
 
         return nfiles, rname
 
-    def dependency_definition(self,s,cd):
+    def dependency_definition(self, s, cd):
         if cd.file_patterns.find(" ") > 0:
             # it is a dimension fragment, not just a file pattern
             dim_bits = cd.file_patterns
@@ -171,7 +173,19 @@ class sam_specifics:
         some_kids_list = self.ctx.sam.count_files_list(cs.experiment, some_kids_needed)
         some_kids_decl_list = self.ctx.sam.count_files_list(cs.experiment, some_kids_decl_needed)
         all_kids_decl_list = self.ctx.sam.count_files_list(cs.experiment, all_kids_decl_needed)
-        return summary_list, some_kids_decl_needed, some_kids_needed, base_dim_list, output_files, output_list, all_kids_decl_needed, some_kids_list, some_kids_decl_list, all_kids_decl_list
+        return (
+            summary_list,
+            some_kids_decl_needed,
+            some_kids_needed,
+            base_dim_list,
+            output_files,
+            output_list,
+            all_kids_decl_needed,
+            some_kids_list,
+            some_kids_decl_list,
+            all_kids_decl_list,
+        )
+
 
 class sam_project_checker:
     def __init__(self, ctx):
@@ -181,7 +195,7 @@ class sam_project_checker:
         self.lookup_dims_list = []
         self.ctx = ctx
 
-    def get_file_patterns(self,s):
+    def get_file_patterns(self, s):
         plist = []
 
         # try to get the file pattern list, either from the
@@ -205,7 +219,7 @@ class sam_project_checker:
         return plist
 
     def add_project_submission(self, submission):
-    
+
         self.n_project = n_project + 1
 
         basedims = "snapshot_for_project_name %s " % s.project
@@ -217,24 +231,16 @@ class sam_project_checker:
                 pat = "%"
 
             if pat.find(" ") > 0:
-                allkiddims = (
-                    "%s and isparentof: ( %s and version '%s' and create_date > '%s'  with availability physical ) "
-                    % (
-                        allkiddims,
-                        pat,
-                        s.campaign_stage_snapshot_obj.software_version,
-                        s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                    )
+                allkiddims = "%s and isparentof: ( %s and version '%s' and create_date > '%s'  with availability physical ) " % (
+                    allkiddims,
+                    pat,
+                    s.campaign_stage_snapshot_obj.software_version,
+                    s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
                 )
             else:
                 allkiddims = (
                     "%s and isparentof: ( file_name '%s' and version '%s' and create_date > '%s' with availability physical ) "
-                    % (
-                        allkiddims,
-                        pat,
-                        s.campaign_stage_snapshot_obj.software_version,
-                        s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                    )
+                    % (allkiddims, pat, s.campaign_stage_snapshot_obj.software_version, s.created.strftime("%Y-%m-%dT%H:%M:%S%z"))
                 )
 
         self.lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
@@ -282,6 +288,5 @@ class sam_project_checker:
             if val >= threshold and threshold > 0:
                 res.append("adding submission %s " % submission)
                 finish_up_submissions.append(submission.submission_id)
-
 
         return finish_up_submissions, res

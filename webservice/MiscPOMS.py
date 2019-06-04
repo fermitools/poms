@@ -622,4 +622,3 @@ class MiscPOMS:
             setattr(s, tfield, newsnap)
         ctx.db.add(s)
         ctx.db.commit()
-

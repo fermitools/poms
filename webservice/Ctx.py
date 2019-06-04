@@ -41,8 +41,10 @@ class Ctx:
         self.config_get = config_get if config_get else cherrypy.config.get
         self.headers_get = headers_get if headers_get else cherrypy.request.headers.get
         self.sam = sam if sam else cherrypy.request.samweb_lite
-        self.experiment = experiment if experiment else pathv[2] if len(pathv) >= 4 else cherrypy.request.params.get('experiment',None)
-        self.role = role if role else pathv[3] if len(pathv) >= 4 else cherrypy.request.params.get('role',None)
+        self.experiment = (
+            experiment if experiment else pathv[2] if len(pathv) >= 4 else cherrypy.request.params.get("experiment", None)
+        )
+        self.role = role if role else pathv[3] if len(pathv) >= 4 else cherrypy.request.params.get("role", None)
         self.username = username if username else get_user()
         self.HTTPError = cherrypy.HTTPError
         self.HTTPRedirect = cherrypy.HTTPRedirect
@@ -59,9 +61,9 @@ class Ctx:
     def __repr__(self):
         res = ["<Ctx:"]
         for k in self.__dict__:
-            if k in ("db", "config_get","headers_get","sam","HTTPError","HTTPRedirect"):
-                 res.append("'%s': '...'," % k)
+            if k in ("db", "config_get", "headers_get", "sam", "HTTPError", "HTTPRedirect"):
+                res.append("'%s': '...'," % k)
             else:
-                res.append("'%s': '%s'"% (k, self.__dict__[k]))
+                res.append("'%s': '%s'" % (k, self.__dict__[k]))
         res.append(">")
         return " ".join(res)

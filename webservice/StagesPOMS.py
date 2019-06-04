@@ -654,8 +654,7 @@ class StagesPOMS:
             recent_submissions,
         )
 
-    def campaign_stage_submissions(
-        self, ctx, campaign_name="", stage_name="", campaign_stage_id=None, campaign_id=None):
+    def campaign_stage_submissions(self, ctx, campaign_name="", stage_name="", campaign_stage_id=None, campaign_id=None):
         """
            Show submissions from a campaign stage
         """
@@ -745,9 +744,9 @@ class StagesPOMS:
         sids = []
         for tup in tuples:
             sid = tup.Submission.submission_id
-            pd = tup.Submission.submission_params.get('dataset','')
+            pd = tup.Submission.submission_params.get("dataset", "")
             sids.append(sid)
-            m = re.match(r'poms_depends_(.*)_[0-9]',pd)
+            m = re.match(r"poms_depends_(.*)_[0-9]", pd)
             if m:
                 depends[sid] = int(m.group(1))
             else:
@@ -757,7 +756,7 @@ class StagesPOMS:
         sids.sort()
         for sid in sids:
             if depends[sid] and depends[sid] in depth:
-               depth[sid] = depth[depends[sid]] + 1
+                depth[sid] = depth[depends[sid]] + 1
         data["depends"] = depends
         data["depth"] = depth
 
@@ -865,17 +864,7 @@ class StagesPOMS:
         ctx.db.commit()
 
     def update_launch_schedule(
-        self,
-        ctx,
-        campaign_stage_id,
-        dowlist="",
-        domlist="",
-        monthly="",
-        month="",
-        hourlist="",
-        submit="",
-        minlist="",
-        delete="",
+        self, ctx, campaign_stage_id, dowlist="", domlist="", monthly="", month="", hourlist="", submit="", minlist="", delete=""
     ):
         """
             callback for changing the launch schedule
@@ -953,4 +942,3 @@ class StagesPOMS:
             job.enable()
 
         my_crontab.write()
-

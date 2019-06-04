@@ -196,7 +196,7 @@ class SubmissionsPOMS:
 
         return res
 
-    def get_submissions_with_status(self, ctx, status_id, recheck_sids = None):
+    def get_submissions_with_status(self, ctx, status_id, recheck_sids=None):
         self.init_statuses(ctx)
         query = (
             ctx.db.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label("maxstat"))
@@ -212,7 +212,7 @@ class SubmissionsPOMS:
 
         return completed_sids
 
-    def get_file_patterns(self,s):
+    def get_file_patterns(self, s):
         plist = []
 
         # try to get the file pattern list, either from the
@@ -295,7 +295,7 @@ class SubmissionsPOMS:
             self.update_submission_status(ctx, s, "Located")
 
         #
-        # now commit having marked things located, to release database 
+        # now commit having marked things located, to release database
         # locks.
         #
         ctx.db.commit()
@@ -340,7 +340,7 @@ class SubmissionsPOMS:
         submission_id=None,
         launch_time=None,
         task_id=None,
-        user=None
+        user=None,
     ):
         if submission_id == None and task_id != None:
             submission_id = task_id
@@ -771,7 +771,7 @@ class SubmissionsPOMS:
 
             rtype = rlist[s.recovery_position].recovery_type
 
-            nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype,param_overrides)
+            nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, param_overrides)
 
             if nfiles > 0:
 
@@ -894,7 +894,7 @@ class SubmissionsPOMS:
         self,
         ctx,
         campaign_stage_id,
-        launcher = None,
+        launcher=None,
         dataset_override=None,
         parent_submission_id=None,
         param_overrides=None,
@@ -1070,7 +1070,7 @@ class SubmissionsPOMS:
             ctx.db.commit()
             lcmd = ""
 
-            raise ctx.HTTPError(errnum,output)
+            raise ctx.HTTPError(errnum, output)
 
         if dataset_override:
             dataset = dataset_override

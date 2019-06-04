@@ -86,7 +86,15 @@ class JSONORMEncoder(json.JSONEncoder):
 
 
 def poms_method(
-    p=[], t=None, help_page="POMS_User_Documentation", rtype="html", redirect=None, u=[], confirm=None, call_args=None, need_er=None
+    p=[],
+    t=None,
+    help_page="POMS_User_Documentation",
+    rtype="html",
+    redirect=None,
+    u=[],
+    confirm=None,
+    call_args=None,
+    need_er=None,
 ):
     """
     This is a decorator that will do most of the repeated things in poms_service.py  
@@ -122,7 +130,7 @@ def poms_method(
                 for i in range(len(args)):
                     if i > 2:
                         break
-                    kwargs[["experiment", "role","user"][i]] = args[i]
+                    kwargs[["experiment", "role", "user"][i]] = args[i]
             # make context with any params in the list
             cargs = {k: kwargs.get(k, None) for k in ("experiment", "role", "tmin", "tmax", "tdays")}
             ctx = Ctx(**cargs)

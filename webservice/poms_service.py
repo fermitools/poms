@@ -350,7 +350,7 @@ class PomsService:
         p=[{"p": "can_modify", "t": "Campaign", "name": "campaign", "experiment": "experiment"}],
         t="gui_wf_edit.html",
         help_page="GUI_Workflow_Editor_User_Guide",
-        need_er = True
+        need_er=True,
     )
     def gui_wf_edit(self, experiment, role, *args, **kwargs):
         return {}
@@ -374,7 +374,7 @@ class PomsService:
 
     @poms_method(rtype="json")
     def campaign_list_json(self, **kwargs):
-        return self.campaignsPOMS.campaign_list(kwargs['ctx'])
+        return self.campaignsPOMS.campaign_list(kwargs["ctx"])
 
     # h4. campaign_stage_edit_query
 
@@ -394,7 +394,7 @@ class PomsService:
         p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}],
         t="show_campaigns.html",
         u=["tl", "last_activity", "msg", "data"],
-        need_er = True
+        need_er=True,
     )
     def show_campaigns(self, **kwargs):
         return self.campaignsPOMS.show_campaigns(**kwargs)
@@ -417,7 +417,7 @@ class PomsService:
             "limit_experiment",
             "key",
         ],
-        need_er = True
+        need_er=True,
     )
     def show_campaign_stages(self, **kwargs):
         if kwargs.get("campaign_ids", None) is None:
@@ -476,7 +476,7 @@ class PomsService:
             "recent_submissions",
         ],
         help_page="POMS_UserDocumentation",
-        t="campaign_stage_info.html"
+        t="campaign_stage_info.html",
     )
     def campaign_stage_info(self, **kwargs):
         return self.stagesPOMS.campaign_stage_info(**kwargs)
@@ -591,7 +591,7 @@ class PomsService:
         return self.submissionsPOMS.mark_failed_submissions(kwargs["ctx"])
 
     # h4. running_submissions
-    @poms_method(rtype='json')
+    @poms_method(rtype="json")
     def running_submissions(self, **kwargs):
         cl = list(map(int, kwargs["campaign_id_list"].split(",")))
         return self.submissionsPOMS.running_submissions(kwargs["ctx"], cl)
@@ -632,7 +632,7 @@ class PomsService:
         p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
         rtype="redirect",
         redirect="%(poms_path)s/file_uploads/%(experiment)s/%(role)s/%(username)s",
-        need_er = True
+        need_er=True,
     )
     def upload_file(self, **kwargs):
         return self.filesPOMS.upload_file(
@@ -678,7 +678,7 @@ class PomsService:
 
     # h4. launch_campaign
     @poms_method(
-        p=[{"p": "can_do", "t": "Campaign", "item_id": "campaign_id"}], 
+        p=[{"p": "can_do", "t": "Campaign", "item_id": "campaign_id"}],
         u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
         rtype="redirect",
         redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
@@ -759,7 +759,7 @@ class PomsService:
 
     # h4. wrapup_tasks
 
-    @poms_method(p=[{"p": "is_superuser"}], rtype='text')
+    @poms_method(p=[{"p": "is_superuser"}], rtype="text")
     def wrapup_tasks(self, **kwargs):
         return "\n".join(self.submissionsPOMS.wrapup_tasks(kwargs["ctx"]))
 
@@ -848,15 +848,22 @@ class PomsService:
     # h4. loginsetup_list
     @poms_method(rtype="json")
     def loginsetup_list(self, **kwargs):
-        if kwargs.get("full",None):
+        if kwargs.get("full", None):
             data = (
-                kwargs['ctx'].db.query(LoginSetup.name, LoginSetup.launch_host, LoginSetup.launch_account, LoginSetup.launch_setup)
-                .filter(LoginSetup.experiment == kwargs['ctx'].experiment)
+                kwargs["ctx"]
+                .db.query(LoginSetup.name, LoginSetup.launch_host, LoginSetup.launch_account, LoginSetup.launch_setup)
+                .filter(LoginSetup.experiment == kwargs["ctx"].experiment)
                 .order_by(LoginSetup.name)
                 .all()
             )
         else:
-            data = kwargs['ctx'].db.query(LoginSetup.name).filter(LoginSetup.experiment == kwargs['ctx'].experiment).order_by(LoginSetup.name).all()
+            data = (
+                kwargs["ctx"]
+                .db.query(LoginSetup.name)
+                .filter(LoginSetup.experiment == kwargs["ctx"].experiment)
+                .order_by(LoginSetup.name)
+                .all()
+            )
 
         return [r._asdict() for r in data]
 

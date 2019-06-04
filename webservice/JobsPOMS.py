@@ -87,11 +87,10 @@ class JobsPOMS:
             jjids = []
             sids = []
 
-        if  jjids and jjids[0][0]:
+        if jjids and jjids[0][0]:
             jidbits = "--jobid=%s" % ",".join(jjids)
         else:
             jidbits = what
-
 
         if confirm is None:
             if jidbits != what:
