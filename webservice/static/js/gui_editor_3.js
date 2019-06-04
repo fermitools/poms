@@ -2023,6 +2023,8 @@ gui_editor.prototype.new_stage = function (name, label) {
         'test_param_overrides': null,
         'login_setup': null,
         'job_type': null,
+        'merge_overrides': null,
+        'stage_type': null
     };
     x = 500;
     y = 150;

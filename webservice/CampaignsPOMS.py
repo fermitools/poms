@@ -333,6 +333,7 @@ class CampaignsPOMS:
                     res.append("merge_overrides=%s" % (defaults.get("merge_overrides") or "False"))
                     res.append("login_setup=%s" % (defaults.get("login_setup") or "generic"))
                     res.append("job_type=%s" % (defaults.get("job_type") or "generic"))
+                    res.append("stage_type=%s" % (defaults.get("stage_type") or "regular"))
                     res.append("")
                 else:
                     defaults = {}
@@ -805,7 +806,7 @@ class CampaignsPOMS:
             test_param_overrides = json.loads(test_param_overrides) if test_param_overrides else None
             vo_role = form.pop("vo_role")
 
-            stage_type = form.pop("stage_type", "test")
+            stage_type = form.pop("stage_type", "regular")
 
             login_setup_id = (
                 ctx.db.query(LoginSetup.login_setup_id)
@@ -859,7 +860,7 @@ class CampaignsPOMS:
                     obj.job_type_id = job_type_id
                     obj.login_setup_id = login_setup_id
                     obj.param_overrides = param_overrides
-                    obj.merge_overrides = merge_overrides
+                    obj.merge_overrides = merge_overrides in (True,'True','true')
                     obj.software_version = software_version
                     obj.test_param_overrides = test_param_overrides
                     obj.vo_role = vo_role
@@ -884,7 +885,7 @@ class CampaignsPOMS:
                     job_type_id=job_type_id,
                     login_setup_id=login_setup_id,
                     param_overrides=param_overrides,
-                    merge_overrides=merge_overrides,
+                    merge_overrides=merge_overrides in (True,'True','true'),
                     software_version=software_version,
                     test_param_overrides=test_param_overrides,
                     vo_role=vo_role,
