@@ -192,7 +192,7 @@ class CampaignsPOMS:
         """
             Build a test_campaign for a given campaign definition
         """
-        experimenter_id = ctx.db.query(Experimenter.experimenter_id).filter(Experimenter.username == ctx.username).first()
+        experimenter_id = ctx.get_experimenter()
 
         c_s = (
             ctx.db.query(CampaignStage)
@@ -415,6 +415,9 @@ class CampaignsPOMS:
         if campaign_name is not None:
             campaign = ctx.db.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == ctx.experiment).first()
 
+            if not campaign:
+                raise KeyError("Cannot find Campaign with name %s"%campaign_name)
+
             csl = (
                 ctx.db.query(CampaignStage)
                 .filter(CampaignStage.campaign_id == campaign.campaign_id)
@@ -478,7 +481,7 @@ class CampaignsPOMS:
         """
             Return data for campaigns table for current experiment, etc.
         """
-        experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).first()
+        experimenter = ctx.get_experimenter()
         action = kwargs.get("action", None)
         msg = "OK"
         if action == "delete":

@@ -106,7 +106,7 @@ class StagesPOMS:
                         CampaignStage.experiment == ctx.experiment,
                         CampaignStage.campaign_id == campaign_id,
                     )
-                    .first()
+                    .one()
                     .campaign_stage_id
                     if name
                     else None
@@ -184,13 +184,13 @@ class StagesPOMS:
                     ctx.db.query(LoginSetup)
                     .filter(LoginSetup.experiment == ctx.experiment)
                     .filter(LoginSetup.name == launch_name)
-                    .first()
+                    .one()
                     .login_setup_id
                 )
                 job_type_id = (
                     ctx.db.query(JobType)
                     .filter(JobType.name == campaign_definition_name, JobType.experiment == ctx.experiment)
-                    .first()
+                    .one()
                     .job_type_id
                 )
                 if action == "edit":
@@ -201,7 +201,7 @@ class StagesPOMS:
                             CampaignStage.experiment == ctx.experiment,
                             CampaignStage.campaign_id == campaign_id,
                         )
-                        .first()
+                        .one()
                     )
                     if c_s:
                         campaign_stage_id = c_s.campaign_stage_id
@@ -429,7 +429,7 @@ class StagesPOMS:
 
         if ae_launch_id:
             template = {}
-            temp = ctx.db.query(LoginSetup).filter(LoginSetup.login_setup_id == ae_launch_id).first()
+            temp = ctx.db.query(LoginSetup).filter(LoginSetup.login_setup_id == ae_launch_id).one()
             template["launch_host"] = temp.launch_host
             template["launch_account"] = temp.launch_account
             template["launch_setup"] = temp.launch_setup
@@ -437,7 +437,7 @@ class StagesPOMS:
 
         if ae_campaign_definition_id:
             definition = {}
-            cdef = ctx.db.query(JobType).filter(JobType.job_type_id == ae_campaign_definition_id).first()
+            cdef = ctx.db.query(JobType).filter(JobType.job_type_id == ae_campaign_definition_id).one()
             definition["input_files_per_job"] = cdef.input_files_per_job
             definition["output_files_per_job"] = cdef.output_files_per_job
             definition["launch_script"] = cdef.launch_script
@@ -455,7 +455,7 @@ class StagesPOMS:
         (tmin, tmax, tmins, tmaxs, nextlink, prevlink, time_range_string, tdays) = self.poms_service.utilsPOMS.handle_dates(
             ctx, base_link
         )
-        experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).first()
+        experimenter = ctx.get_experimenter()
 
         csq = (
             ctx.db.query(CampaignStage)
@@ -544,7 +544,7 @@ class StagesPOMS:
         """
         campaign_stage_id = int(campaign_stage_id)
 
-        c_s = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+        c_s = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
         c_s.cs_last_split = None
         ctx.db.commit()
 

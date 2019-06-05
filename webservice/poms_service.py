@@ -723,7 +723,7 @@ class PomsService:
         # we don't actually get the logfile, etc back from
         # launch_recovery_if_needed, so guess what it will be:
         ctx = kwargs["ctx"]
-        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).first()
+        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
         stime = datetime.datetime.now(utc)
 
         res = self.submissionsPOMS.launch_recovery_if_needed(
