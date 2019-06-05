@@ -413,16 +413,14 @@ class CampaignsPOMS:
             we use vis.js Network in javascript.
         """
         if campaign_name is not None:
-            campaign = ctx.db.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == ctx.experiment).first()
+            campaign = (
+                ctx.db.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == ctx.experiment).first()
+            )
 
             if not campaign:
-                raise KeyError("Cannot find Campaign with name %s"%campaign_name)
+                raise KeyError("Cannot find Campaign with name %s" % campaign_name)
 
-            csl = (
-                ctx.db.query(CampaignStage)
-                .filter(CampaignStage.campaign_id == campaign.campaign_id)
-                .all()
-            )
+            csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign.campaign_id).all()
 
             csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign.campaign_id).all()
         else:

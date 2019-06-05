@@ -26,7 +26,7 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
     submission = dbhandle.query(Submission).filter(Submission.jobsub_job_id == jobsub_job_id).first()
 
     if submission is None:
-        raise KeyError("submission with jobsub_job_id %s not found"%jobsub_job_id)
+        raise KeyError("submission with jobsub_job_id %s not found" % jobsub_job_id)
     else:
         submission_id = submission.submission_id
         username = submission.experimenter_creator_obj.username

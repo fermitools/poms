@@ -255,7 +255,12 @@ class sam_project_checker:
             else:
                 allkiddims = (
                     "%s and isparentof: ( file_name '%s' and version '%s' and create_date > '%s' with availability physical ) "
-                    % (allkiddims, pat, submission.campaign_stage_snapshot_obj.software_version, submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"))
+                    % (
+                        allkiddims,
+                        pat,
+                        submission.campaign_stage_snapshot_obj.software_version,
+                        submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                    )
                 )
 
         self.lookup_exp_list.append(submission.campaign_stage_snapshot_obj.experiment)
