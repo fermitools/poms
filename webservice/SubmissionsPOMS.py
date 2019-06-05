@@ -1149,6 +1149,7 @@ class SubmissionsPOMS:
                 "group": group,
                 "experimenter": experimenter_login,
             },
+            "echo == process_id: $$ ==",
             "export UPLOADS='%s'" % sandbox,
             #
             # This bit is a little tricky.  We want to do as little of our
