@@ -38,7 +38,7 @@ from .poms_model import (
     SubmissionStatus,
 )
 from .utc import utc
-from .SAMSpecifics import sam_project_checker
+from .SAMSpecifics import sam_project_checker, sam_specifics
 
 
 # from exceptions import KeyError

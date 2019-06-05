@@ -1,4 +1,5 @@
 from . import logit
+from .poms_model import CampaignDependency
 
 
 class sam_specifics:
@@ -234,11 +235,11 @@ class sam_project_checker:
 
     def add_project_submission(self, submission):
 
-        self.n_project = n_project + 1
+        self.n_project = self.n_project + 1
 
-        basedims = "snapshot_for_project_name %s " % s.project
+        basedims = "snapshot_for_project_name %s " % submission.project
         allkiddims = basedims
-        plist = self.get_file_patterns(s)
+        plist = self.get_file_patterns(submission)
 
         for pat in plist:
             if pat == "None":
@@ -248,25 +249,25 @@ class sam_project_checker:
                 allkiddims = "%s and isparentof: ( %s and version '%s' and create_date > '%s'  with availability physical ) " % (
                     allkiddims,
                     pat,
-                    s.campaign_stage_snapshot_obj.software_version,
-                    s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                    submission.campaign_stage_snapshot_obj.software_version,
+                    submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
                 )
             else:
                 allkiddims = (
                     "%s and isparentof: ( file_name '%s' and version '%s' and create_date > '%s' with availability physical ) "
-                    % (allkiddims, pat, s.campaign_stage_snapshot_obj.software_version, s.created.strftime("%Y-%m-%dT%H:%M:%S%z"))
+                    % (allkiddims, pat, submission.campaign_stage_snapshot_obj.software_version, submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"))
                 )
 
-        self.lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
-        self.lookup_submission_list.append(s)
+        self.lookup_exp_list.append(submission.campaign_stage_snapshot_obj.experiment)
+        self.lookup_submission_list.append(submission)
         self.lookup_dims_list.append(allkiddims)
 
     def add_non_project_submission(self, submission):
         # it's located but there's no project, so assume they are
         # defining the poms_depends_%(submission_id)s_1 dataset..
-        allkiddims = "defname:poms_depends_%s_1" % s.submission_id
-        self.lookup_exp_list.append(s.campaign_stage_snapshot_obj.experiment)
-        self.lookup_submission_list.append(s)
+        allkiddims = "defname:poms_depends_%s_1" % submission.submision_id
+        self.lookup_exp_list.append(submission.campaign_stage_snapshot_obj.experiment)
+        self.lookup_submission_list.append(submission)
         self.lookup_dims_list.append(allkiddims)
 
     def check_added_submissions(self, finish_up_submissions, res):
