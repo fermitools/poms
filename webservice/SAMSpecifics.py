@@ -91,10 +91,10 @@ class sam_specifics:
 
         dname = "poms_depends_%d_%d" % (s.submission_id, i)
 
-        if s.campaign_stage_obj.campaign_stage_type in ('approval','datatransfer'):
-            return s.submission_params.get('dataset',dname)
+        if s.campaign_stage_obj.campaign_stage_type in ("approval", "datatransfer"):
+            return s.submission_params.get("dataset", dname)
 
-        if s.campaign_stage_obj.campaign_stage_type == 'generator':
+        if s.campaign_stage_obj.campaign_stage_type == "generator":
             # if we're a generator, the previous stage should have declared it
             return dname
 
@@ -111,11 +111,10 @@ class sam_specifics:
             dim_bits,
         )
 
-
         self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, dname, dims)
         return dname
 
-    def get_file_stats_for_submissions(self, submission_list, cs):
+    def get_file_stats_for_submissions(self, submission_list, experiment, just_output=False):
         #
         # fetch needed data in tandem
         # -- first build lists of stuff to fetch
@@ -177,11 +176,17 @@ class sam_specifics:
         #
         # -- now call parallel fetches for items
         #
-        summary_list = self.ctx.sam.fetch_info_list(summary_needed, dbhandle=self.ctx.db)
-        output_list = self.ctx.sam.count_files_list(cs.experiment, output_files)
-        some_kids_list = self.ctx.sam.count_files_list(cs.experiment, some_kids_needed)
-        some_kids_decl_list = self.ctx.sam.count_files_list(cs.experiment, some_kids_decl_needed)
-        all_kids_decl_list = self.ctx.sam.count_files_list(cs.experiment, all_kids_decl_needed)
+        output_list = self.ctx.sam.count_files_list(experiment, output_files)
+        if just_output:
+            summary_list = None
+            some_kids_list = None
+            some_kids_decl_list = None
+            all_kids_decl_list = None
+        else:
+            summary_list = self.ctx.sam.fetch_info_list(summary_needed, dbhandle=self.ctx.db)
+            some_kids_list = self.ctx.sam.count_files_list(experiment, some_kids_needed)
+            some_kids_decl_list = self.ctx.sam.count_files_list(experiment, some_kids_decl_needed)
+            all_kids_decl_list = self.ctx.sam.count_files_list(experiment, all_kids_decl_needed)
         return (
             summary_list,
             some_kids_decl_needed,

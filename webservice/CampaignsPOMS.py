@@ -413,13 +413,11 @@ class CampaignsPOMS:
             we use vis.js Network in javascript.
         """
         if campaign_name is not None:
-            campaign = ctx.db.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == ctx.experiment).first()
-
-            csl = (
-                ctx.db.query(CampaignStage)
-                .filter(CampaignStage.campaign_id == campaign.campaign_id)
-                .all()
+            campaign = (
+                ctx.db.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == ctx.experiment).first()
             )
+
+            csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign.campaign_id).all()
         else:
             campaign = None
 
@@ -449,30 +447,30 @@ class CampaignsPOMS:
         res.append('<div id="dependencies"></div>')
         res.append('<script type="text/javascript">')
 
-        res.append('var nodes = new vis.DataSet([')
+        res.append("var nodes = new vis.DataSet([")
 
         for c_s in csl:
-            if campaign and campaign.defaults and campaign.defaults.get('positions',{}).get(c_s.name,None):
-                pos = campaign.defaults['positions'][c_s.name]
-                res.append('  {id: %d, label: "%s", x: %d, y: %d},' % (c_s.campaign_stage_id, c_s.name, pos['x'], pos['y'] ))
+            if campaign and campaign.defaults and campaign.defaults.get("positions", {}).get(c_s.name, None):
+                pos = campaign.defaults["positions"][c_s.name]
+                res.append('  {id: %d, label: "%s", x: %d, y: %d},' % (c_s.campaign_stage_id, c_s.name, pos["x"], pos["y"]))
             else:
                 res.append('  {id: %d, label: "%s"},' % (c_s.campaign_stage_id, c_s.name))
-        res.append(']);')
+        res.append("]);")
 
-        res.append('var edges = new vis.DataSet([')
+        res.append("var edges = new vis.DataSet([")
 
         c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
 
         for c_d in c_dl:
-            res.append('  {from: %d, to: %d},' % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
+            res.append("  {from: %d, to: %d}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
 
-        res.append(']);')
+        res.append("]);")
         res.append('var container = document.getElementById("dependencies");')
-        res.append('var data = {nodes: nodes, edges: edges};')
-        res.append('var options = {};')
-        res.append('var network = new vis.Network(container, data, options);')
-        res.append('</script>')
-        return '\n'.join(res)
+        res.append("var data = {nodes: nodes, edges: edges};")
+        res.append("var options = {};")
+        res.append("var network = new vis.Network(container, data, options);")
+        res.append("</script>")
+        return "\n".join(res)
 
     def show_campaigns(self, ctx, **kwargs):
         """
@@ -861,7 +859,7 @@ class CampaignsPOMS:
                     obj.job_type_id = job_type_id
                     obj.login_setup_id = login_setup_id
                     obj.param_overrides = param_overrides
-                    obj.merge_overrides = merge_overrides in (True,'True','true')
+                    obj.merge_overrides = merge_overrides in (True, "True", "true")
                     obj.software_version = software_version
                     obj.test_param_overrides = test_param_overrides
                     obj.vo_role = vo_role
@@ -886,7 +884,7 @@ class CampaignsPOMS:
                     job_type_id=job_type_id,
                     login_setup_id=login_setup_id,
                     param_overrides=param_overrides,
-                    merge_overrides=merge_overrides in (True,'True','true'),
+                    merge_overrides=merge_overrides in (True, "True", "true"),
                     software_version=software_version,
                     test_param_overrides=test_param_overrides,
                     vo_role=vo_role,

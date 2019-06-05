@@ -56,6 +56,7 @@ data.depth:
                 <th>Stage Name</th>
                 <th>Submission Id</th>
                 <th>Jobsub Id</th>
+                <th>Availble Output</th>
                 <th>Commands</th>
                 <th>Status (History/Current)</th>
                 <th>Submitted</th>
@@ -71,6 +72,11 @@ data.depth:
                 <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" target='_blank'>
                     {{rec.jobsub_job_id}}
                 </a>
+            </td>
+            <td>
+               <a href="{{pomspath}}/show_dimension_files/{{session_experiment}}/{{session_role}}?dims={{rec.output_dims}}">
+               {{rec.available_output}}
+               </a>
             </td>
             <td>
             {% if rec.status in ('New', 'Idle', 'Running', 'Held') %}

@@ -79,11 +79,18 @@ class FilesStatus:
                 cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
             else:
                 raise KeyError("need campaign_stage_id or campaign_id")
-        summary_list, some_kids_decl_needed, some_kids_needed, base_dim_list, output_files, output_list, all_kids_decl_needed, some_kids_list, some_kids_decl_list, all_kids_decl_list = sam_specifics(
-            ctx
-        ).get_file_stats_for_submissions(
-            tl, cs
-        )
+        (
+            summary_list,
+            some_kids_decl_needed,
+            some_kids_needed,
+            base_dim_list,
+            output_files,
+            output_list,
+            all_kids_decl_needed,
+            some_kids_list,
+            some_kids_decl_list,
+            all_kids_decl_list,
+        ) = sam_specifics(ctx).get_file_stats_for_submissions(tl, cs.experiment)
 
         columns = [
             "campign<br>stage",

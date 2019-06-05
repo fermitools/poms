@@ -969,18 +969,20 @@ class SubmissionsPOMS:
             if not cs:
                 raise KeyError("CampaignStage id %s not found" % campaign_stage_id)
 
-            if cs.campaign_stage_type == 'approval':
-               # special case for approval -- don't need to really launch...
-               sid = self.get_task_id_for(ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time)
-               self.update_submission_status(ctx, sid,'Awaiting Approval')
-               outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_stage_id)
-               outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
-               lcmd = "await_approval"
-               logit.log("trying to record launch in %s" % outfile)
-               f = open(outfile,'w')
-               f.write("Set submission_id %s to status 'Awaiting Approval'" % sid)
-               f.close()
-               return lcmd, cs, campaign_stage_id, outdir, os.path.basename(outfile)
+            if cs.campaign_stage_type == "approval":
+                # special case for approval -- don't need to really launch...
+                sid = self.get_task_id_for(
+                    ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time
+                )
+                self.update_submission_status(ctx, sid, "Awaiting Approval")
+                outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_stage_id)
+                outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
+                lcmd = "await_approval"
+                logit.log("trying to record launch in %s" % outfile)
+                f = open(outfile, "w")
+                f.write("Set submission_id %s to status 'Awaiting Approval'" % sid)
+                f.close()
+                return lcmd, cs, campaign_stage_id, outdir, os.path.basename(outfile)
 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
@@ -1028,7 +1030,7 @@ class SubmissionsPOMS:
             # handle merge_overrides behavior -- if set, start
             # with campaign default overrides.
             if cs.merge_overrides:
-                c_param_overrides = cs.campaign_obj.defaults.get("defaults",{}).get("param_overrides",[])   
+                c_param_overrides = cs.campaign_obj.defaults.get("defaults", {}).get("param_overrides", [])
             else:
                 c_param_overrides = []
 
@@ -1204,8 +1206,6 @@ class SubmissionsPOMS:
                 params = OrderedDict(definition_parameters)
         else:
             params = OrderedDict([])
-
-           
 
         if c_param_overrides is not None and c_param_overrides != "":
             if isinstance(c_param_overrides, str):

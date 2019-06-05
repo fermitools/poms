@@ -44,6 +44,7 @@ from .poms_model import (
 )
 from .pomscache import pomscache_10
 from .utc import utc
+from .SAMSpecifics import sam_specifics
 
 
 class StagesPOMS:
@@ -742,10 +743,12 @@ class StagesPOMS:
         depends = {}
         depth = {}
         sids = []
+        slist = []
         for tup in tuples:
             sid = tup.Submission.submission_id
             pd = tup.Submission.submission_params.get("dataset", "")
             sids.append(sid)
+            slist.append(tup.Submission)
             m = re.match(r"poms_depends_(.*)_[0-9]", pd)
             if m:
                 depends[sid] = int(m.group(1))
@@ -760,7 +763,21 @@ class StagesPOMS:
         data["depends"] = depends
         data["depth"] = depth
 
+        (
+            summary_list,
+            some_kids_decl_needed,
+            some_kids_needed,
+            base_dim_list,
+            output_files,
+            output_list,
+            all_kids_decl_needed,
+            some_kids_list,
+            some_kids_decl_list,
+            all_kids_decl_list,
+        ) = sam_specifics(ctx).get_file_stats_for_submissions(slist, ctx.experiment, just_output=True)
+
         submissions = []
+        i = 0
         for tup in tuples:
             jjid = tup.Submission.jobsub_job_id
             full_jjid = jjid
@@ -782,9 +799,12 @@ class StagesPOMS:
                 "jobsub_cluster": full_jjid[: full_jjid.find("@")],
                 "jobsub_schedd": full_jjid[full_jjid.find("@") + 1 :],
                 "campaign_stage_name": tup.Submission.campaign_stage_obj.name,
+                "available_output": output_list[i],
+                "output_dims": output_files[i],
             }
             submissions.append(row)
             data["submissions"] = submissions
+            i = i + 1
         return data
 
     def get_dataset_for(self, ctx, camp):
