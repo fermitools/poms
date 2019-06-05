@@ -508,27 +508,33 @@ class SubmissionsPOMS:
             # so if we got a jobsub_job_id, check for a job log to find
             # out what happened
             if submission.jobsub_job_id:
+                logit.log("checking for log for %s:" % submission.jobsub_job_id)
                 job_data = get_joblogs(ctx.db, jobsub_data[0], cert, key, experiment, role)
                 if job_data:
                     res.append("found job log for %s!" % submission_id)
+                    logit.log("found job log for %s!" % submission_id)
                     if job_data.get("idle", None) and job_data["idle"].get(jobsub_job_id, None):
                         self.update_submission_status(
                             ctx, submission_id, status="Idle", when=job_data["idle"][submission.jobsub_job_id]
                         )
                         res.append("submission %s Idle at" % (submission_id, job_data["idle"][submission.jobsub_job_id]))
+                        logit.log("submission %s Idle at" % (submission_id, job_data["idle"][submission.jobsub_job_id]))
 
                     if job_data.get("running", None) and job_data["running"].get(submission.jobsub_job_id, None):
                         self.update_submission_status(
                             ctx, submission_id, status="Running", when=job_data["running"][submission.jobsub_job_id]
                         )
                         res.append("submission %s Running at" % (submission_id, job_data["idle"][submission.jobsub_job_id]))
+                        logit.log("submission %s Running at" % (submission_id, job_data["idle"][submission.jobsub_job_id]))
 
                     if len(job_data["completed"]) == len(job_data["idle"]):
                         self.update_submission_status(ctx.db, submission_id, status="Completed")
                         res.append("submission %s Completed")
+                        logit.log("submission %s Completed")
 
                     continue
             res.append("failing launch for %s" % submission.submission_id)
+            logit.log("failing launch for %s" % submission.submission_id)
             self.update_submission_status(ctx, submission.submission_id, status="LaunchFailed")
         ctx.db.commit()
         return "\n".join(res)
