@@ -910,7 +910,7 @@ class SubmissionsPOMS:
 
         launch_time = datetime.now(utc)
         ds = launch_time.strftime("%Y%m%d_%H%M%S")
-        e = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).first()
+        e = ctx.get_experimenter()
         role = ctx.role
 
         # at the moment we're inconsistent about whether we pass
@@ -935,7 +935,7 @@ class SubmissionsPOMS:
             vers = "v0_0"
             dataset = "-"
             definition_parameters = []
-            exp = experiment
+            exp = ctx.experiment
             launch_script = """echo "Environment"; printenv; echo "jobsub is`which jobsub`;  echo "login_setup successful!"""
             outdir = "%s/private/logs/poms/launches/template_tests_%d" % (os.environ["HOME"], int(test_login_setup))
             outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenterusername)
@@ -949,7 +949,7 @@ class SubmissionsPOMS:
                 cq = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id)
             else:
                 cq = ctx.db.query(CampaignStage).filter(
-                    CampaignStage.name == campaign_stage_id, CampaignStage.experiment == experiment
+                    CampaignStage.name == campaign_stage_id, CampaignStage.experiment == ctx.experiment
                 )
 
             cs = cq.options(
@@ -962,6 +962,19 @@ class SubmissionsPOMS:
 
             if not cs:
                 raise KeyError("CampaignStage id %s not found" % campaign_stage_id)
+
+            if cs.campaign_stage_type == 'approval':
+               # special case for approval -- don't need to really launch...
+               sid = self.get_task_id_for(ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time)
+               self.update_submission_status(ctx, sid,'Awaiting Approval')
+               outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_stage_id)
+               outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
+               lcmd = "await_approval"
+               logit.log("trying to record launch in %s" % outfile)
+               f = open(outfile,'w')
+               f.write("Set submission_id %s to status 'Awaiting Approval'" % sid)
+               f.close()
+               return lcmd, cs, campaign_stage_id, outdir, os.path.basename(outfile)
 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj

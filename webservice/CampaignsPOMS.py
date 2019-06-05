@@ -369,6 +369,7 @@ class CampaignsPOMS:
             if c_s.job_type_obj.name != defaults.get("job_type"):
                 res.append("job_type=%s" % c_s.job_type_obj.name)
             res.append("merge_overrides=%s" % c_s.merge_overrides)
+            res.append("stage_type=%s" % c_s.campaign_stage_type)
             jts.add(c_s.job_type_obj)
             lts.add(c_s.login_setup_obj)
             res.append("")
@@ -798,9 +799,9 @@ class CampaignsPOMS:
             print("################ login_setup: '{}'".format(login_setup))
             param_overrides = form.pop("param_overrides", None) or "[]"
             print("################ param_overrides: '{}'".format(param_overrides))
-            merge_overrides = form.pop("merge_overrides", False)
             if param_overrides:
                 param_overrides = json.loads(param_overrides)
+            merge_overrides = form.pop("merge_overrides", False)
             software_version = form.pop("software_version")
             test_param_overrides = form.pop("test_param_overrides", None)
             test_param_overrides = json.loads(test_param_overrides) if test_param_overrides else None

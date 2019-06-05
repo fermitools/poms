@@ -87,7 +87,17 @@ class sam_specifics:
 
         return nfiles, rname
 
-    def dependency_definition(self, s, cd):
+    def dependency_definition(self, s, cd, i):
+
+        dname = "poms_depends_%d_%d" % (s.submission_id, i)
+
+        if s.campaign_stage_obj.campaign_stage_type in ('approval','datatransfer'):
+            return s.submission_params.get('dataset',dname)
+
+        if s.campaign_stage_obj.campaign_stage_type == 'generator':
+            # if we're a generator, the previous stage should have declared it
+            return dname
+
         if cd.file_patterns.find(" ") > 0:
             # it is a dimension fragment, not just a file pattern
             dim_bits = cd.file_patterns
@@ -101,7 +111,6 @@ class sam_specifics:
             dim_bits,
         )
 
-        dname = "poms_depends_%d_%d" % (s.submission_id, i)
 
         self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, dname, dims)
         return dname
