@@ -51,7 +51,11 @@ def error_rewrite(f):
         except jinja2.exceptions.UndefinedError as e:
             logging.exception("rewriting:")
             raise cherrypy.HTTPError(400, "Missing arguments")
-        except:
+        except cherrypy.HTTPRedirect as e:
+            raise
+        except cherrypy.HTTPError as e:
+            raise
+        except Exception as e:
             raise cherrypy.HTTPError(400, "Unknown error %s" % repr(e))
 
     return wrapper
