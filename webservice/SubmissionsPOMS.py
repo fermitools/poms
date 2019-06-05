@@ -373,7 +373,7 @@ class SubmissionsPOMS:
         if ctx.experiment:
             q = q.filter(CampaignStage.experiment == ctx.experiment)
 
-        cs = q.first()
+        cs = q.one()
         if launch_time:
             tim = launch_time
         else:
@@ -546,7 +546,7 @@ class SubmissionsPOMS:
             .options(joinedload(Submission.login_setup_snapshot_obj))
             .options(joinedload(Submission.job_type_snapshot_obj))
             .filter(Submission.submission_id == submission_id)
-            .first()
+            .one()
         )
         history = (
             ctx.db.query(SubmissionHistory)
@@ -654,8 +654,8 @@ class SubmissionsPOMS:
         # this doesn't actually mark it located, rather it bumps
         # the timestamp backwards so it will look timed out...
 
-        e = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).first()
-        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).first()
+        e = ctx.get_experimenter()
+        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
         cs = s.campaign_stage_obj
         s.updated = s.updated - timedelta(days=2)
         ctx.db.add(s)
@@ -664,7 +664,7 @@ class SubmissionsPOMS:
 
     def update_submission(self, ctx, submission_id, jobsub_job_id, pct_complete=None, status=None, project=None):
 
-        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).first()
+        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).one()
         if not s:
             return "Unknown."
 
@@ -710,7 +710,7 @@ class SubmissionsPOMS:
             .all()
         )
 
-        launch_user = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).first()
+        launch_user = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).one()
         ctx.username = launch_user.username
         ctx.role = s.campaign_stage_obj.creator_role
         ctx.experiment = s.campaign_stage_obj.experiment
@@ -781,7 +781,7 @@ class SubmissionsPOMS:
 
             if nfiles > 0:
 
-                launch_user = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).first()
+                launch_user = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).one()
                 ctx.username = launch_user.username
                 ctx.experimenter_cache = launch_user
                 ctx.role = s.campaign_stage_obj.creator_role
@@ -807,7 +807,7 @@ class SubmissionsPOMS:
         if hold not in ["hold", "allowed"]:
             return
         # keep held launches in campaign stage w/ campaign_stage_id == 0
-        c = ctx.db.query(CampaignStage).with_for_update().filter(CampaignStage.campaign_stage_id == 0).first()
+        c = ctx.db.query(CampaignStage).with_for_update().filter(CampaignStage.campaign_stage_id == 0).one()
         if hold == "hold":
             c.hold_experimenter_id = experimenter.experimenter_id
             c.role_held_wtih = role
@@ -857,7 +857,7 @@ class SubmissionsPOMS:
             dataset = hl.dataset
             parent_submission_id = hl.parent_submission_id
             param_overrides = hl.param_overrides
-            launch_user = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == hl.launcher).first()
+            launch_user = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == hl.launcher).one()
             if not launch_user:
                 logit.log("bogus experimenter_id : %s aborting held launch" % hl.launcher)
 
@@ -923,9 +923,9 @@ class SubmissionsPOMS:
         # launcher as ausername or experimenter_id or if its a string
         # of the integer or  an integer... sigh
         if str(launcher)[0] in ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"):
-            launcher_experimenter = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == int(launcher)).first()
+            launcher_experimenter = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == int(launcher)).one()
         else:
-            launcher_experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == launcher).first()
+            launcher_experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == launcher).one()
 
         if test_login_setup:
             lt = ctx.db.query(LoginSetup).filter(LoginSetup.login_setup_id == test_login_setup).first()

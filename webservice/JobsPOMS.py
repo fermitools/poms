@@ -51,18 +51,18 @@ class JobsPOMS:
 
         if campaign_id:
             what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
-            cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).first()
+            cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).one()
             csids = ctx.db.query(CampaignStage.campaign_stage_id).filter(CampaignStage.campaign_id == campaign_id).first()
             csids = list(csids)
             jjidq = jjidq.filter(Submission.campaign_stage_id.in_(csids))
 
         if campaign_stage_id:
             what = "--constraint=POMS4_CAMPAIGN_STAGE_ID==%s" % campaign_stage_id
-            cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+            cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
             jjidq = jjidq.filter(Submission.campaign_stage_id == campaign_stage_id)
 
         if submission_id:
-            s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).first()  #
+            s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()  #
             what = "--constraint=POMS4_SUBMISSION_ID==%s" % s.submission_id
             cs = s.campaign_stage_obj
             jjidq = jjidq.filter(Submission.submission_id == submission_id)

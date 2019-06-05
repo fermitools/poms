@@ -326,7 +326,7 @@ class MiscPOMS:
                     experimenter_id = 0
 
                 if action == "edit":
-                    job_type_id = ctx.db.query(JobType).filter(JobType.name == name).first().job_type_id  # Check here!
+                    job_type_id = ctx.db.query(JobType).filter(JobType.name == name).one().job_type_id  # Check here!
                 else:
                     pass
                 input_files_per_job = kwargs.pop("ae_input_files_per_job", 0)
@@ -588,7 +588,7 @@ class MiscPOMS:
 
     def snapshot_parts(self, ctx, s, campaign_stage_id):
 
-        cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+        cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
         for table, snaptable, field, sfield, sid, tfield in [
             [
                 CampaignStage,

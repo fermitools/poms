@@ -39,6 +39,9 @@ def error_rewrite(f):
         except KeyError as e:
             logging.exception("rewriting:")
             raise cherrypy.HTTPError(400, "Missing form field: %s" % repr(e))
+        except AttributeError as e:
+            logging.exception("rewriting:")
+            raise cherrypy.HTTPError(400, "Not found item: %s" % repr(e))
         except sqlalchemy.exc.DataError as e:
             logging.exception("rewriting:")
             raise cherrypy.HTTPError(400, "Invalid argument: %s" % repr(e))
@@ -49,7 +52,7 @@ def error_rewrite(f):
             logging.exception("rewriting:")
             raise cherrypy.HTTPError(400, "Missing arguments")
         except:
-            raise
+            raise cherrypy.HTTPError(400, "Unknown error %s" % repr(e))
 
     return wrapper
 
