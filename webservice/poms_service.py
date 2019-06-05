@@ -716,36 +716,14 @@ class PomsService:
         return self.submissionsPOMS.launch_jobs(**kwargs)
 
     # h4. launch_recovery_for
-
-    # this has too much code for this layer, it should get refactored.
-    @poms_method(p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}])
-    def launch_recovery_for(**kwargs):
-        # we don't actually get the logfile, etc back from
-        # launch_recovery_if_needed, so guess what it will be:
-        ctx = kwargs["ctx"]
-        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
-        stime = datetime.datetime.now(utc)
-
-        res = self.submissionsPOMS.launch_recovery_if_needed(
-            ctx.db, ctx.sam, ctx.config_get, ctx.experiment, ctx.role, ctx.username, ctx.HTTPError, s, kwargs["recovery_type"]
-        )
-
-        if res:
-            new = (
-                ctx.db.query(Submission)
-                .filter(Submission.recovery_tasks_parent == submission_id, Submission.created >= stime)
-                .first()
-            )
-            ds = new.created.astimezone(utc).strftime("%Y%m%d_%H%M%S")
-            launcher_experimenter = new.experimenter_creator_obj
-            outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_stage_id)
-            outfile = "%s/%s_%s_%s" % (outdir, ds, launcher_experimenter.username, new.submission_id)
-            raise cherrypy.HTTPRedirect(
-                "%s/list_launch_file/%s/%s?campaign_stage_id=%s&fname=%s"
-                % (self.path, experiment, role, campaign_stage_id, os.path.basename(outfile))
-            )
-        else:
-            return "No recovery needed, launch skipped."
+    @poms_method(
+        p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}]),
+        rtype="redirect",
+        redirect="%(pomspath)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
+        u = ['outfile'],
+    )
+    def launch_recovery_for(self, **kwargs):
+        return self.submissionsPOMS.launch_recovery_for(**kwargs)
 
     # h4. jobtype_list
     @poms_method(rtype="json")

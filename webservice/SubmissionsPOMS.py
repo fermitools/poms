@@ -801,6 +801,35 @@ class SubmissionsPOMS:
 
         return 0
 
+    
+    def launch_recovery_for(self,*kwargs):
+        ctx = kwargs["ctx"]
+        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
+        stime = datetime.datetime.now(utc)
+
+        res = self.submissionsPOMS.launch_recovery_if_needed(
+            ctx.db, ctx.sam, ctx.config_get, ctx.experiment, ctx.role, ctx.username, ctx.HTTPError, s, kwargs["recovery_type"]
+        )
+
+        if res:
+            new = (
+                ctx.db.query(Submission)
+                .filter(Submission.recovery_tasks_parent == submission_id, Submission.created >= stime)
+                .first()
+            )
+            ds = new.created.astimezone(utc).strftime("%Y%m%d_%H%M%S")
+            # we don't actually get the logfile, etc back from
+            # launch_recovery_if_needed, so guess what it will be:
+            launcher_experimenter = new.experimenter_creator_obj
+            outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_stage_id)
+            outfile = "%s/%s_%s_%s" % (outdir, ds, launcher_experimenter.username, new.submission_id)
+            return os.path.basename(outfile)
+        else:
+            raise AssertionError("No recovery needed, launch skipped.")
+
+
+
+
     def set_job_launches(self, ctx, hold):
 
         experimenter = ctx.get_experimenter()
