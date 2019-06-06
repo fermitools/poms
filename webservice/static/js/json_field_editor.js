@@ -322,7 +322,7 @@ json_field_editor.validate_percent_formats = function(form) {
    for(i = 0; i < el.length; i++) {
        e = el[i]
        /* file patterns are not % replaced, and have % wildcards... */
-       if (e.id.indexOf("file_patterns") >= 0) {
+       if (e.id.indexOf("file_pattern") >= 0) {
           continue;
        }
        json_field_editor.validate_percent_ok(e);
