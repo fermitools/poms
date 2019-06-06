@@ -914,8 +914,8 @@ class SubmissionsPOMS:
         res = []
         if pid and not finished:
              cmd = "ssh %s@%s 'kill -9 -%s'" % (
-                 submission.login_setup_snashot_obj.launch_account,
-                 submission.login_setup_snashot_obj.launch_host,
+                 submission.login_setup_snapshot_obj.launch_account,
+                 submission.login_setup_snapshot_obj.launch_host,
                  pid
              )
              with os.popen(cmd,"r") as f:
