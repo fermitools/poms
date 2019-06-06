@@ -496,6 +496,14 @@ class PomsService:
     @poms_method(rtype="json")
     def session_status_history(self, **kwargs):
         return self.submissionsPOMS.session_status_history(**kwargs)
+ 
+    #   h4. abort_launch
+    @poms_method(
+        p=[{"p": "can_do", "t": "Submission", "item_id": "submission_id"}],
+        rtype='text'
+    )
+    def abort_launch(self):
+        return self.submissionsPOMS.abort_launch(**kwargs)
 
     # h4. list_launch_file
     @poms_method(
@@ -845,6 +853,7 @@ class PomsService:
 
         return [r._asdict() for r in data]
 
+    # h4. ini_to_campaign
     @poms_method(rtype="json")
     def ini_to_campaign(self, ctx, upload=None, **kwargs):
         # Note: permission check deferred to save_campaign

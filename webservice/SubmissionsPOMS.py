@@ -817,18 +817,10 @@ class SubmissionsPOMS:
                 .filter(Submission.recovery_tasks_parent == submission_id, Submission.created >= stime)
                 .first()
             )
-            ds = new.created.astimezone(utc).strftime("%Y%m%d_%H%M%S")
-            # we don't actually get the logfile, etc back from
-            # launch_recovery_if_needed, so guess what it will be:
-            launcher_experimenter = new.experimenter_creator_obj
-            outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_stage_id)
-            outfile = "%s/%s_%s_%s" % (outdir, ds, launcher_experimenter.username, new.submission_id)
-            return os.path.basename(outfile)
+            outdir, outfile, outfullpath = self.get_output_dir_file(ctx,new.created, ctx.username, new.campaign_stage_id)
+            return outfile
         else:
             raise AssertionError("No recovery needed, launch skipped.")
-
-
-
 
     def set_job_launches(self, ctx, hold):
 
@@ -925,6 +917,54 @@ class SubmissionsPOMS:
         logit.log("system(voms-proxy-info... returns %d" % res)
         return os.WIFEXITED(res) and os.WEXITSTATUS(res) == 0
 
+    def get_output_dir_file(self, ctx, launch_time, username, campaign_stage_id = None, test_login_setup = None):
+        ds = launch_time.astimezone(utc).strftime("%Y%m%d_%H%M%S")
+        if test_login_setup:
+            subdir = "template_tests_%d" % test_login_setup
+        else:
+            subdir = "campagin_%s" % campaign_stage_id 
+
+        outdir = "%s/private/logs/poms/launches/%s" % (os.environ["HOME"],subdir)
+        outfile = "%s_%s" % (ds, launcher_experimenter.username)
+        outfullpath = "%s/%s" % (outdir, outfile)
+        return outdir, outfile, outfullpath
+
+    def abort_launch(self,ctx, submission_id):
+        '''
+            look in our output file to find if we have a pid and/or
+            a completion message; then if we have the former and not
+            the latter, ssh over and kill it.
+        '''
+        submission = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
+        outdir, outfile, outfullpath = get_output_dir_file(ctx, submission.created, submission.experimenter_creator_obj.username, submission.campaign_stage_id)
+        re1 = re.compile('== process_id: ([0-9]+) ==')
+        re2 = re.compile('== completed: ([0-9]+) ==')
+        pid = None
+        finished = False
+        with open(outfullpath, 'r') as f:
+            for line in f:
+                m = re1.search(line):
+                if m:
+                    pid = m.group(1)
+                m = re2.search(line):
+                if m:
+                    finished = True
+
+        res = []
+        if pid and not finished:
+             cmd = "ssh %s@%s 'kill -9 -%s'" % (
+                 submission.login_setup_snashot_obj.launch_account,
+                 submission.login_setup_snashot_obj.launch_host,
+                 pid
+             )
+             with os.popen(cmd,"r") as f:
+                 for line in f:
+                     res.append(line)
+        else:
+             res.append("unable to abort launch")
+
+        return '\n'.join(res)     
+        
     def launch_jobs(
         self,
         ctx,
@@ -972,13 +1012,11 @@ class SubmissionsPOMS:
             definition_parameters = []
             exp = ctx.experiment
             launch_script = """echo "Environment"; printenv; echo "jobsub is`which jobsub`;  echo "login_setup successful!"""
-            outdir = "%s/private/logs/poms/launches/template_tests_%d" % (os.environ["HOME"], int(test_login_setup))
-            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenterusername)
-            logit.log("trying to record launch in %s" % outfile)
+
+
+            outdir, outfile, outfullpath = self.get_output_dir_file(ctx, launch_time, ctx.username, test_login_setup=test_login_setup)
         else:
-            outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_stage_id)
-            outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
-            logit.log("trying to record launch in %s" % outfile)
+            outdir, outfile, outfullpath = self.get_output_dir_file(ctx, launch_time, ctx.username, campaign_stage_id=campaign_stage_id)
 
             if str(campaign_stage_id)[0] in "0123456789":
                 cq = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id)
@@ -1004,14 +1042,13 @@ class SubmissionsPOMS:
                     ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time
                 )
                 self.update_submission_status(ctx, sid, "Awaiting Approval")
-                outdir = "%s/private/logs/poms/launches/campaign_%s" % (os.environ["HOME"], campaign_stage_id)
-                outfile = "%s/%s_%s" % (outdir, ds, launcher_experimenter.username)
+                outdir, outfile, outfullpath = self.get_output_dir_file(ctx, launch_time, ctx.username, campaign_stage_id)
                 lcmd = "await_approval"
                 logit.log("trying to record launch in %s" % outfile)
                 f = open(outfile, "w")
                 f.write("Set submission_id %s to status 'Awaiting Approval'" % sid)
                 f.close()
-                return lcmd, cs, campaign_stage_id, outdir, os.path.basename(outfile)
+                return lcmd, cs, campaign_stage_id, outdir, outfile
 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
@@ -1270,6 +1307,7 @@ class SubmissionsPOMS:
             cmdl.append("/bin/bash -i")
         else:
             cmdl.append(lcmd)
+        cmdl.append("echo == completed: $$ ==")
         cmdl.append("exit")
         cmdl.append("' &")
         cmd = "\n".join(cmdl)
@@ -1281,10 +1319,11 @@ class SubmissionsPOMS:
             cmd = cmd[:-2]
             return cmd
 
+        logit.log("trying to record launch in %s" % outfullpath)
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
         dn = open("/dev/null", "r")
-        lf = open(outfile, "w")
+        lf = open(outfullpath, "w")
         logit.log("actually starting launch ssh")
         pp = subprocess.Popen(cmd, shell=True, stdin=dn, stdout=lf, stderr=lf, close_fds=True)
         lf.close()
