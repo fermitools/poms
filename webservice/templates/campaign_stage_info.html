@@ -50,6 +50,15 @@ all the time...
     </script>
   </div>
 
+  <script>
+   function confirm_call(msg, url) {
+       var r = confirm(msg);
+       if ( r ) {
+           location.assign(url)
+       }
+   }
+  </script>
+
   <div class="ui horizontal segments">
     <div class="ui segment raised">
          <h3>Reports/Status</h3>
@@ -93,14 +102,6 @@ all the time...
                </div>
 
               <div class=item>
-                <script>
-                 function confirm_call(msg, url) {
-                     var r = confirm(msg);
-                     if ( r ) {
-                         location.assign(url)
-                     }
-                 }
-                </script>
                 <button onclick="confirm_call('Are you sure you want to submit jobs?','{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}')" {{"disabled" if (session_role=="analysis"
                    and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
@@ -294,25 +295,25 @@ all the time...
           {%if submission_id != 0 %}
           <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}"><span class="ui label green">info</span></a>
           {%if recent_submissions[submission_id]|default(9999) == 2000 %}
-            <button onclick="confirm_call('Are you sure you want to abort this launch?','{{pomspath}}/abort_launch/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}')"> </button>
+            <button class="mini ui button" onclick="confirm_call('Are you sure you want to abort this launch?','{{pomspath}}/abort_launch/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}')"> <i class="external fire extinguisher icon" data-content="abort Submission" data-variation="basic"> </i></button>
           {%endif%}
           {%if recent_submissions[submission_id]|default(9999) < 7000 and recent_submissions[submission_id]|default(9999) != 2000 %}
     
-              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=hold" title="Hold"><i class="ui pause icon"></i></a>&nbsp;
-              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=release" title="Release"><i class="ui play icon"></i></a>&nbsp;
-              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=kill" title="Kill"><i class="ui trash icon"></i></a>
-               <i class="ui forward icon  grey"></i>&nbsp;
+              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=hold" title="Hold"><button class="mini ui button"> <i class="ui pause icon"></i></button></a>&nbsp;
+              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=release" title="Release"><button class="mini ui button"><i class="ui play icon"></i></button></a>&nbsp;
+              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=kill" title="Kill"><button class=mini ui button"><i class="ui trash icon"></i></button></a>
+               <button class="mini ui button"><i class="ui forward icon  grey"></i></button>&nbsp;
                     
           {%elif recent_submissions[submission_id]|default(9999) == 7000 %}
-               <i class="ui pause icon grey"></i>&nbsp;
-               <i class="ui play icon grey"></i>&nbsp;
-               <i class="ui trash icon grey"></i>&nbsp;
-                    <a href="{{pomspath}}/force_locate_submission/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}" title="Skip ahead to Located"><i class="ui forward icon"></i></a>
+               <button class="mini ui button"><i class="ui pause icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui play icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui trash icon grey"></i></button>&nbsp;
+                    <a href="{{pomspath}}/force_locate_submission/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}" title="Skip ahead to Located"><button class="mini ui button"><i class="ui forward icon"></i></button></a>
           {%else%}
-               <i class="ui pause icon grey"></i>&nbsp;
-               <i class="ui play icon grey"></i>&nbsp;
-               <i class="ui trash icon grey"></i>&nbsp;
-               <i class="ui forward icon  grey"></i>&nbsp;
+               <button class="mini ui button"><i class="ui pause icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui play icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui trash icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui forward icon  grey"></i></button>&nbsp;
           {%endif%}
           {%endif%}
       {%endif%}

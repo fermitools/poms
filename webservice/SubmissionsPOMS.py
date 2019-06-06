@@ -664,7 +664,7 @@ class SubmissionsPOMS:
 
     def update_submission(self, ctx, submission_id, jobsub_job_id, pct_complete=None, status=None, project=None):
 
-        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).one()
+        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).first()
         if not s:
             return "Unknown."
 
