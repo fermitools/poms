@@ -16,6 +16,14 @@ Launch Jobs Results
 <div class="ui center aligned tertiary text container segment">
         Results of Output of submit command
 </div>
+  <script>
+   function confirm_call(msg, url) {
+       var r = confirm(msg);
+       if ( r ) {
+           location.assign(url)
+       }
+   }
+  </script>
 
 <div class="ui raised padded text container segment">
     <button class="mini ui button" onclick="confirm_call('Are you sure you want to abort this launch?','{{pomspath}}/abort_launch/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}')"> <i class="external fire extinguisher icon" data-content="abort Submission" data-variation="basic"> </i> Abort Launch</button>
