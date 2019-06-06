@@ -56,6 +56,7 @@ def error_rewrite(f):
         except cherrypy.HTTPError as e:
             raise
         except Exception as e:
+            logging.exception("rewriting:")
             raise cherrypy.HTTPError(400, "Unknown error %s" % repr(e))
 
     return wrapper

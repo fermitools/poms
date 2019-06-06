@@ -925,7 +925,7 @@ class SubmissionsPOMS:
             subdir = "campagin_%s" % campaign_stage_id 
 
         outdir = "%s/private/logs/poms/launches/%s" % (os.environ["HOME"],subdir)
-        outfile = "%s_%s" % (ds, launcher_experimenter.username)
+        outfile = "%s_%s" % (ds, username)
         outfullpath = "%s/%s" % (outdir, outfile)
         return outdir, outfile, outfullpath
 
@@ -943,10 +943,10 @@ class SubmissionsPOMS:
         finished = False
         with open(outfullpath, 'r') as f:
             for line in f:
-                m = re1.search(line):
+                m = re1.search(line)
                 if m:
                     pid = m.group(1)
-                m = re2.search(line):
+                m = re2.search(line)
                 if m:
                     finished = True
 
