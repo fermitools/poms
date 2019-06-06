@@ -296,6 +296,8 @@ all the time...
           <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}"><span class="ui label green">info</span></a>
           {%if recent_submissions[submission_id]|default(9999) == 2000 %}
             <button class="mini ui button" onclick="confirm_call('Are you sure you want to abort this launch?','{{pomspath}}/abort_launch/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}')"> <i class="external fire extinguisher icon" data-content="abort Submission" data-variation="basic"> </i></button>
+           {%else%}
+             <button class="mini ui button"><i class="ui fire extinguisher icon grey"></i></button>&nbsp;
           {%endif%}
           {%if recent_submissions[submission_id]|default(9999) < 7000 and recent_submissions[submission_id]|default(9999) != 2000 %}
     
