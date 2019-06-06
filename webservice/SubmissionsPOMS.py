@@ -94,34 +94,6 @@ class SubmissionsPOMS:
         self.status_New = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()[0]
         self.init_status_done = True
 
-    def get_recoveries(self, ctx, cid):
-        """
-        Build the recoveries dict for job_types cids
-        """
-        recs = (
-            ctx.db.query(CampaignRecovery)
-            .filter(CampaignRecovery.job_type_id == cid)
-            .order_by(CampaignRecovery.job_type_id, CampaignRecovery.recovery_order)
-            .all()
-        )
-
-        logit.log("get_recoveries(%d) got %d items" % (cid, len(recs)))
-        rec_list = []
-        for rec in recs:
-            logit.log("get_recoveries(%d) -- rec %s" % (cid, repr(rec)))
-            if isinstance(rec.param_overrides, str):
-                logit.log("get_recoveries(%d) -- saw string param_overrides" % cid)
-                if rec.param_overrides in ("", "{}", "[]"):
-                    rec.param_overrides = []
-                rec_vals = [rec.recovery_type.name, json.loads(rec.param_overrides)]
-            else:
-                rec_vals = [rec.recovery_type.name, rec.param_overrides]
-
-            rec_list.append(rec_vals)
-
-        logit.log("get_recoveries(%d) returning %s" % (cid, repr(rec_list)))
-        return rec_list
-
     def session_status_history(self, ctx, submission_id):
         """
            Return history rows
@@ -139,24 +111,6 @@ class SubmissionsPOMS:
             status = row.SubmissionStatus.status
             rows.append({"created": created, "status": status})
         return rows
-
-    def fixup_recoveries(self, ctx, job_type_id, recoveries):
-        """
-         fixup_recoveries -- factored out so we can use it
-            from either edit endpoint.
-         Given a JSON dump of the recoveries, clean out old
-         recoveriy entries, add new ones.  It probably should
-         check if they're actually different before doing this..
-        """
-        (ctx.db.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == job_type_id).delete(synchronize_session=False))  #
-        i = 0
-        for rtn in json.loads(recoveries):
-            rect = rtn[0]
-            recpar = rtn[1]
-            rt = ctx.db.query(RecoveryType).filter(RecoveryType.name == rect).first()
-            cr = CampaignRecovery(job_type_id=job_type_id, recovery_order=i, recovery_type=rt, param_overrides=recpar)
-            i = i + 1
-            ctx.db.add(cr)
 
     def campaign_stage_datasets(self, ctx):
         self.init_statuses(ctx)
@@ -929,7 +883,7 @@ class SubmissionsPOMS:
         outfile = "%s_%s" % (ds, username)
 
         if submission_id:
-            outfile = "%s_%d" % (outfile, submission_id)
+            outfile = "%s_%s" % (outfile, submission_id)
 
         outfullpath = "%s/%s" % (outdir, outfile)
 
@@ -942,11 +896,17 @@ class SubmissionsPOMS:
             the latter, ssh over and kill it.
         """
         submission = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
+<<<<<<< HEAD
         outdir, outfile, outfullpath = get_output_dir_file(
             ctx, submission.created, submission.experimenter_creator_obj.username, submission.campaign_stage_id, submission_id
         )
         re1 = re.compile("== process_id: ([0-9]+) ==")
         re2 = re.compile("== completed: ([0-9]+) ==")
+=======
+        outdir, outfile, outfullpath = self.get_output_dir_file(ctx, submission.created, submission.experimenter_creator_obj.username, submission.campaign_stage_id, submission_id)
+        re1 = re.compile('== process_id: ([0-9]+) ==')
+        re2 = re.compile('== completed: ([0-9]+) ==')
+>>>>>>> a3ef832b707ca97f093cf6c0d2708ecf48dd3cb8
         pid = None
         finished = False
         with open(outfullpath, "r") as f:

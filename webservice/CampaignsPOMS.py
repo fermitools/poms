@@ -388,7 +388,7 @@ class CampaignsPOMS:
             res.append("launch_script=%s" % j_t.launch_script)
             res.append("parameters=%s" % json.dumps(j_t.definition_parameters))
             res.append("output_file_patterns=%s" % j_t.output_file_patterns)
-            res.append("recoveries = %s" % json.dumps(self.poms_service.submissionsPOMS.get_recoveries(ctx, j_t.job_type_id)))
+            res.append("recoveries = %s" % json.dumps(self.poms_service.miscPOMS.get_recoveries(ctx, j_t.job_type_id)))
             res.append("")
 
         # still need dependencies
@@ -679,7 +679,7 @@ class CampaignsPOMS:
                         ctx.db.commit()
                         recoveries = form.get("recoveries")
                         if recoveries:
-                            self.poms_service.submissionsPOMS.fixup_recoveries(ctx, job_type.job_type_id, recoveries)
+                            self.poms_service.miscPOMS.fixup_recoveries(ctx, job_type.job_type_id, recoveries)
                         ctx.db.commit()
                     except IntegrityError:
                         message.append(f"Warning: JobType '{name}' already exists and will not change.")
