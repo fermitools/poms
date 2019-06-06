@@ -668,4 +668,3 @@ class MiscPOMS:
             cr = CampaignRecovery(job_type_id=job_type_id, recovery_order=i, recovery_type=rt, param_overrides=recpar)
             i = i + 1
             ctx.db.add(cr)
-

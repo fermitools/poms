@@ -896,17 +896,11 @@ class SubmissionsPOMS:
             the latter, ssh over and kill it.
         """
         submission = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
-<<<<<<< HEAD
         outdir, outfile, outfullpath = get_output_dir_file(
             ctx, submission.created, submission.experimenter_creator_obj.username, submission.campaign_stage_id, submission_id
         )
         re1 = re.compile("== process_id: ([0-9]+) ==")
         re2 = re.compile("== completed: ([0-9]+) ==")
-=======
-        outdir, outfile, outfullpath = self.get_output_dir_file(ctx, submission.created, submission.experimenter_creator_obj.username, submission.campaign_stage_id, submission_id)
-        re1 = re.compile('== process_id: ([0-9]+) ==')
-        re2 = re.compile('== completed: ([0-9]+) ==')
->>>>>>> a3ef832b707ca97f093cf6c0d2708ecf48dd3cb8
         pid = None
         finished = False
         with open(outfullpath, "r") as f:

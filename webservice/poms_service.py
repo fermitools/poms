@@ -498,16 +498,8 @@ class PomsService:
         return self.submissionsPOMS.session_status_history(**kwargs)
 
     #   h4. abort_launch
-<<<<<<< HEAD
     @poms_method(p=[{"p": "can_do", "t": "Submission", "item_id": "submission_id"}], rtype="text")
-    def abort_launch(self):
-=======
-    @poms_method(
-        p=[{"p": "can_do", "t": "Submission", "item_id": "submission_id"}],
-        rtype='text'
-    )
-    def abort_launch(self,**kwargs):
->>>>>>> a3ef832b707ca97f093cf6c0d2708ecf48dd3cb8
+    def abort_launch(self, **kwargs):
         return self.submissionsPOMS.abort_launch(**kwargs)
 
     # h4. list_launch_file
