@@ -1016,8 +1016,6 @@ class SubmissionsPOMS:
 
             outdir, outfile, outfullpath = self.get_output_dir_file(ctx, launch_time, ctx.username, test_login_setup=test_login_setup)
         else:
-            outdir, outfile, outfullpath = self.get_output_dir_file(ctx, launch_time, ctx.username, campaign_stage_id=campaign_stage_id)
-
             if str(campaign_stage_id)[0] in "0123456789":
                 cq = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id)
             else:
@@ -1029,7 +1027,9 @@ class SubmissionsPOMS:
                 joinedload(CampaignStage.campaign_obj),
                 joinedload(CampaignStage.login_setup_obj),
                 joinedload(CampaignStage.job_type_obj),
-            ).first()
+            ).one()
+
+            outdir, outfile, outfullpath = self.get_output_dir_file(ctx, launch_time, ctx.username, campaign_stage_id=cs.campaign_stage_id)
 
             ctx.role = cs.creator_role
 
@@ -1044,8 +1044,8 @@ class SubmissionsPOMS:
                 self.update_submission_status(ctx, sid, "Awaiting Approval")
                 outdir, outfile, outfullpath = self.get_output_dir_file(ctx, launch_time, ctx.username, campaign_stage_id)
                 lcmd = "await_approval"
-                logit.log("trying to record launch in %s" % outfile)
-                f = open(outfile, "w")
+                logit.log("trying to record launch in %s" % outfullpath)
+                f = open(outfullpath, "w")
                 f.write("Set submission_id %s to status 'Awaiting Approval'" % sid)
                 f.close()
                 return lcmd, cs, campaign_stage_id, outdir, outfile
@@ -1320,6 +1320,7 @@ class SubmissionsPOMS:
             return cmd
 
         logit.log("trying to record launch in %s" % outfullpath)
+
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
         dn = open("/dev/null", "r")
