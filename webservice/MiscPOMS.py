@@ -622,3 +622,50 @@ class MiscPOMS:
             setattr(s, tfield, newsnap)
         ctx.db.add(s)
         ctx.db.commit()
+
+    def get_recoveries(self, ctx, cid):
+        """
+        Build the recoveries dict for job_types cids
+        """
+        recs = (
+            ctx.db.query(CampaignRecovery)
+            .filter(CampaignRecovery.job_type_id == cid)
+            .order_by(CampaignRecovery.job_type_id, CampaignRecovery.recovery_order)
+            .all()
+        )
+
+        logit.log("get_recoveries(%d) got %d items" % (cid, len(recs)))
+        rec_list = []
+        for rec in recs:
+            logit.log("get_recoveries(%d) -- rec %s" % (cid, repr(rec)))
+            if isinstance(rec.param_overrides, str):
+                logit.log("get_recoveries(%d) -- saw string param_overrides" % cid)
+                if rec.param_overrides in ("", "{}", "[]"):
+                    rec.param_overrides = []
+                rec_vals = [rec.recovery_type.name, json.loads(rec.param_overrides)]
+            else:
+                rec_vals = [rec.recovery_type.name, rec.param_overrides]
+
+            rec_list.append(rec_vals)
+
+        logit.log("get_recoveries(%d) returning %s" % (cid, repr(rec_list)))
+        return rec_list
+
+    def fixup_recoveries(self, ctx, job_type_id, recoveries):
+        """
+         fixup_recoveries -- factored out so we can use it
+            from either edit endpoint.
+         Given a JSON dump of the recoveries, clean out old
+         recoveriy entries, add new ones.  It probably should
+         check if they're actually different before doing this..
+        """
+        (ctx.db.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == job_type_id).delete(synchronize_session=False))  #
+        i = 0
+        for rtn in json.loads(recoveries):
+            rect = rtn[0]
+            recpar = rtn[1]
+            rt = ctx.db.query(RecoveryType).filter(RecoveryType.name == rect).first()
+            cr = CampaignRecovery(job_type_id=job_type_id, recovery_order=i, recovery_type=rt, param_overrides=recpar)
+            i = i + 1
+            ctx.db.add(cr)
+

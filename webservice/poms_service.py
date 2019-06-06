@@ -502,7 +502,7 @@ class PomsService:
         p=[{"p": "can_do", "t": "Submission", "item_id": "submission_id"}],
         rtype='text'
     )
-    def abort_launch(self):
+    def abort_launch(self,**kwargs):
         return self.submissionsPOMS.abort_launch(**kwargs)
 
     # h4. list_launch_file

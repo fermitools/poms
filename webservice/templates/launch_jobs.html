@@ -13,6 +13,11 @@ Launch Jobs Results
 {%endblock%}
 
 {%block content %}
+{%if fname|length > 22 %}
+{%set submission_id = fname.split('_')[3]|default('0')|int %}
+{%else%}
+{%set submission_id = 0%}
+{%endif%}
 <div class="ui center aligned tertiary text container segment">
         Results of Output of submit command
 </div>
