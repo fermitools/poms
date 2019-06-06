@@ -496,12 +496,9 @@ class PomsService:
     @poms_method(rtype="json")
     def session_status_history(self, **kwargs):
         return self.submissionsPOMS.session_status_history(**kwargs)
- 
+
     #   h4. abort_launch
-    @poms_method(
-        p=[{"p": "can_do", "t": "Submission", "item_id": "submission_id"}],
-        rtype='text'
-    )
+    @poms_method(p=[{"p": "can_do", "t": "Submission", "item_id": "submission_id"}], rtype="text")
     def abort_launch(self):
         return self.submissionsPOMS.abort_launch(**kwargs)
 
@@ -728,7 +725,7 @@ class PomsService:
         p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
         rtype="redirect",
         redirect="%(pomspath)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
-        u = ['outfile'],
+        u=["outfile"],
     )
     def launch_recovery_for(self, **kwargs):
         return self.submissionsPOMS.launch_recovery_for(**kwargs)

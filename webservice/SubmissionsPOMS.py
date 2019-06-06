@@ -801,8 +801,7 @@ class SubmissionsPOMS:
 
         return 0
 
-    
-    def launch_recovery_for(self,*kwargs):
+    def launch_recovery_for(self, *kwargs):
         ctx = kwargs["ctx"]
         s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
         stime = datetime.datetime.now(utc)
@@ -817,7 +816,7 @@ class SubmissionsPOMS:
                 .filter(Submission.recovery_tasks_parent == submission_id, Submission.created >= stime)
                 .first()
             )
-            outdir, outfile, outfullpath = self.get_output_dir_file(ctx,new.created, ctx.username, new.campaign_stage_id)
+            outdir, outfile, outfullpath = self.get_output_dir_file(ctx, new.created, ctx.username, new.campaign_stage_id)
             return outfile
         else:
             raise AssertionError("No recovery needed, launch skipped.")
@@ -917,16 +916,16 @@ class SubmissionsPOMS:
         logit.log("system(voms-proxy-info... returns %d" % res)
         return os.WIFEXITED(res) and os.WEXITSTATUS(res) == 0
 
-    def get_output_dir_file(self, ctx, launch_time, username, campaign_stage_id = None, submission_id=None, test_login_setup=None):
+    def get_output_dir_file(self, ctx, launch_time, username, campaign_stage_id=None, submission_id=None, test_login_setup=None):
         ds = launch_time.astimezone(utc).strftime("%Y%m%d_%H%M%S")
 
         if test_login_setup:
             subdir = "template_tests_%d" % test_login_setup
         else:
-            subdir = "campaign_%s" % campaign_stage_id 
-            assert(submission_id)
+            subdir = "campaign_%s" % campaign_stage_id
+            assert submission_id
 
-        outdir = "%s/private/logs/poms/launches/%s" % (os.environ["HOME"],subdir)
+        outdir = "%s/private/logs/poms/launches/%s" % (os.environ["HOME"], subdir)
         outfile = "%s_%s" % (ds, username)
 
         if submission_id:
@@ -936,19 +935,21 @@ class SubmissionsPOMS:
 
         return outdir, outfile, outfullpath
 
-    def abort_launch(self,ctx, submission_id):
-        '''
+    def abort_launch(self, ctx, submission_id):
+        """
             look in our output file to find if we have a pid and/or
             a completion message; then if we have the former and not
             the latter, ssh over and kill it.
-        '''
+        """
         submission = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
-        outdir, outfile, outfullpath = get_output_dir_file(ctx, submission.created, submission.experimenter_creator_obj.username, submission.campaign_stage_id, submission_id)
-        re1 = re.compile('== process_id: ([0-9]+) ==')
-        re2 = re.compile('== completed: ([0-9]+) ==')
+        outdir, outfile, outfullpath = get_output_dir_file(
+            ctx, submission.created, submission.experimenter_creator_obj.username, submission.campaign_stage_id, submission_id
+        )
+        re1 = re.compile("== process_id: ([0-9]+) ==")
+        re2 = re.compile("== completed: ([0-9]+) ==")
         pid = None
         finished = False
-        with open(outfullpath, 'r') as f:
+        with open(outfullpath, "r") as f:
             for line in f:
                 m = re1.search(line)
                 if m:
@@ -959,19 +960,19 @@ class SubmissionsPOMS:
 
         res = []
         if pid and not finished:
-             cmd = "ssh %s@%s 'kill -9 -%s'" % (
-                 submission.login_setup_snashot_obj.launch_account,
-                 submission.login_setup_snashot_obj.launch_host,
-                 pid
-             )
-             with os.popen(cmd,"r") as f:
-                 for line in f:
-                     res.append(line)
+            cmd = "ssh %s@%s 'kill -9 -%s'" % (
+                submission.login_setup_snashot_obj.launch_account,
+                submission.login_setup_snashot_obj.launch_host,
+                pid,
+            )
+            with os.popen(cmd, "r") as f:
+                for line in f:
+                    res.append(line)
         else:
-             res.append("unable to abort launch")
+            res.append("unable to abort launch")
 
-        return '\n'.join(res)     
-        
+        return "\n".join(res)
+
     def launch_jobs(
         self,
         ctx,
@@ -1033,8 +1034,6 @@ class SubmissionsPOMS:
                 joinedload(CampaignStage.login_setup_obj),
                 joinedload(CampaignStage.job_type_obj),
             ).one()
-
-
 
             ctx.role = cs.creator_role
 
@@ -1192,7 +1191,6 @@ class SubmissionsPOMS:
         # allocate task to set ownership
         sid = self.get_task_id_for(ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time)
 
-
         #
         # keep some bookkeeping flags
         #
@@ -1324,7 +1322,14 @@ class SubmissionsPOMS:
             cmd = cmd[:-2]
             return cmd
 
-        outdir, outfile, outfullpath = self.get_output_dir_file(ctx, launch_time, ctx.username, campaign_stage_id=cs.campaign_stage_id, submission_id=sid, test_login_setup=test_login_setup)
+        outdir, outfile, outfullpath = self.get_output_dir_file(
+            ctx,
+            launch_time,
+            ctx.username,
+            campaign_stage_id=cs.campaign_stage_id,
+            submission_id=sid,
+            test_login_setup=test_login_setup,
+        )
 
         logit.log("trying to record launch in %s" % outfullpath)
 
