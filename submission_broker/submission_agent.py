@@ -94,6 +94,7 @@ class Agent:
         # last_seen[group] is set of poms task ids seen last time
         self.last_seen = {}
         self.timeouts = (30, 10)
+        self.strikes = {}
 
         htr = self.psess.get("http://127.0.0.1:8080/poms/experiment_list")
         self.elist = htr.json()
@@ -308,6 +309,8 @@ class Agent:
                 continue
 
             thispass.add(entry.get("pomsTaskID"))
+            # if we see it, reset our strikes count
+            self.strikes[entry.get("pomsTaskID")] = 0
 
             if entry["done"] == self.known["status"].get(entry["pomsTaskID"], None):
                 report_status_flag = False
@@ -374,6 +377,13 @@ class Agent:
             missing = self.last_seen[group] - thispass
             # submissions we used to see, but don't anymore...
             for id in missing:
+
+                if self.strikes.get(id,0) < 3:
+                   # must have 3 strikes in a row
+                   self.strikes[id] = self.strikes.get(id,0) + 1
+                   # put it  thispass so we get here next time
+                   thispass.add(id)
+                   continue
 
                 # if our last status was Completed, this is expected,
                 # just go on
