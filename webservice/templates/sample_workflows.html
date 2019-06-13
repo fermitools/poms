@@ -29,7 +29,7 @@ Campaign Samples{%include 'help_button.html'%}
             </tr>
         </thead>
         <tbody>
-        {% for sample in sl %}
+        {% for sample in sl|sort %}
             <tr>
                 <td>{{sample}}</td>
                 <td>
