@@ -42,7 +42,6 @@ from .poms_model import (
     SubmissionHistory,
     SubmissionStatus,
 )
-from .pomscache import pomscache_10
 from .utc import utc
 from .SAMSpecifics import sam_specifics
 
@@ -549,7 +548,6 @@ class StagesPOMS:
         c_s.cs_last_split = None
         ctx.db.commit()
 
-    # @pomscache.cache_on_arguments()
     def campaign_stage_info(self, ctx, campaign_stage_id):
         """
            Give information related to a campaign stage for the campaign_stage_info page
