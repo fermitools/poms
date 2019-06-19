@@ -44,7 +44,6 @@ from .poms_model import (
     SubmissionHistory,
     SubmissionStatus,
 )
-from .pomscache import pomscache_10
 from .utc import utc
 
 
