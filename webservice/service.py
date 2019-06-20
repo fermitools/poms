@@ -105,6 +105,11 @@ class SATool(cherrypy.Tool):
             self.session.execute("SET SESSION statement_timeout = '240s';")  # pylint: disable=E1101
             self.session.commit()  # pylint: disable=E1101
         except sqlalchemy.exc.UnboundExecutionError:
+            # restart database connection
+            cherrypy.engine.stop()
+            cherrypy.engine.start()
+            cherrypy.engine.publish("bind", self.session)
+            cherrypy.request.db = self.session
             self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
             self.session.execute("SET SESSION lock_timeout = '360s';")  # pylint: disable=E1101
             self.session.execute("SET SESSION statement_timeout = '240s';")  # pylint: disable=E1101
