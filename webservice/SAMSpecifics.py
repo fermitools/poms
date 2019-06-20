@@ -90,7 +90,13 @@ class sam_specifics:
 
     def dependency_definition(self, s, cd, i):
 
-        dname = "poms_depends_%d_%d" % (s.submission_id, i)
+        # definitions for analysis users have to have the username in them
+        # so they can define them in the job, we have to follow the same
+        # rule here...
+        if s.campaign_stage_obj.creator_role == 'analysis':
+            dname = "poms_%s_depends_%d_%d" % (s.campaign_stage_obj.experimenter_creator_obj.username, s.submission_id, i)
+        else:
+            dname = "poms_depends_%d_%d" % (s.submission_id, i)
 
         if s.campaign_stage_obj.campaign_stage_type in ("approval", "datatransfer"):
             return s.submission_params.get("dataset", dname)
@@ -270,7 +276,10 @@ class sam_project_checker:
     def add_non_project_submission(self, submission):
         # it's located but there's no project, so assume they are
         # defining the poms_depends_%(submission_id)s_1 dataset..
-        allkiddims = "defname:poms_depends_%s_1" % submission.submision_id
+        if submission.campaign_stage_obj.creator_role == 'analysis':
+            allkiddims = "defname:poms_%s_depends_%s_1" % (submission.campaign_stage_obj.experimenter_creator_obj.username, submission.submision_id)
+        else:
+            allkiddims = "defname:poms_depends_%s_1" % submission.submision_id
         self.lookup_exp_list.append(submission.campaign_stage_snapshot_obj.experiment)
         self.lookup_submission_list.append(submission)
         self.lookup_dims_list.append(allkiddims)
