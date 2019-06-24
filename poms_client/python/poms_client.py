@@ -531,14 +531,14 @@ global_role = None
 global_experiment = None
 
 def update_session_experiment(experiment, test_client=False):
-    logging.debug("in update_session_experiment test_client = " + repr(test_client))
+    logging.debug("in update_session_experiment test_client = %s experiment %s " % (repr(test_client), experiment))
     global global_experiment
     global_experiment = experiment
     return True
 
 
 def update_session_role(role, test_client=False):
-    logging.debug("in update_session_role test_client = " + repr(test_client))
+    logging.debug("in update_session_role test_client = %s role %s" %(repr(test_client), role))
     global global_role
     global_role = role
     return True
@@ -642,10 +642,12 @@ def make_poms_call(**kwargs):
     if kwargs.get("test", None):
         del kwargs["test"]
 
-    if "experiment" not in kwargs:
+    if "experiment" not in kwargs or not kwargs["experiment"]:
+        logging.debug("adding experiment %s" % global_experiment)
         kwargs["experiment"] = global_experiment
 
-    if "role" not in kwargs:
+    if "role" not in kwargs or not kwargs["role"]:
+        logging.debug("adding role %s" % global_role)
         kwargs["role"] = global_role
 
     test_client = kwargs.get("test_client", None)
