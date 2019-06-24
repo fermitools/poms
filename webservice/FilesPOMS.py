@@ -229,7 +229,7 @@ class FilesStatus:
                 os.unlink(outf)
                 raise ValueError("Upload exeeds quota of %d kbi" % quota / 1024)
 
-    def remove_uploaded_files(self, ctx, filename, action=None):
+    def remove_uploaded_files(self, ctx, filename, action=None, user=None):
         # if there's only one entry the web page will not send a list...
         if isinstance(filename, str):
             filename = [filename]

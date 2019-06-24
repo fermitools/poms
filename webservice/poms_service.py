@@ -650,7 +650,7 @@ class PomsService:
         redirect="%(poms_path)s/file_uploads/%(experiment)s/%(role)s/%(username)s"
     )
     def remove_uploaded_files(self, **kwargs):
-        return = self.filesPOMS.remove_uploaded_files(**kwargs)
+        return self.filesPOMS.remove_uploaded_files(**kwargs)
 
     # h3. Job actions
     #
