@@ -6,6 +6,7 @@ import jinja2.exceptions
 import json
 import logging
 import sqlalchemy.exc
+from sqlalchemy.inspection import inspect
 
 # mostly so we can pass them to page templates...
 import datetime
