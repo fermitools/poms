@@ -58,7 +58,8 @@ class Agent:
         self,
         poms_uri="http://127.0.0.1:8080/poms/",
         submission_uri="https://landscape.fnal.gov/lens/query",
-        submission_uri_dev="https://landscapeitb.fnal.gov/lens/query",
+        submission_uri_dev="https://landscape.fnal.gov/lens/query",
+        #submission_uri_dev="https://landscapeitb.fnal.gov/lens/query",
     ):
 
         """
@@ -93,7 +94,7 @@ class Agent:
         }
         # last_seen[group] is set of poms task ids seen last time
         self.last_seen = {}
-        self.timeouts = (30, 10)
+        self.timeouts = (90, 90)
         self.strikes = {}
 
         htr = self.psess.get("http://127.0.0.1:8080/poms/experiment_list")

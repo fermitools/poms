@@ -418,7 +418,8 @@ class samweb_lite:
                     break
             except Exception as e:
                 logit.log("ERROR", "Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
-                if i == retries:
+                # don't bother retrying 409 errors, means its already defined..
+                if i == retries or e.args[0:3]=='409':
                     raise
 
             time.sleep(5)

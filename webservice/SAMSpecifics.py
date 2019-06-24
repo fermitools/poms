@@ -118,7 +118,10 @@ class sam_specifics:
             dim_bits,
         )
 
-        self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, dname, dims)
+        try:
+            self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, dname, dims)
+        except:
+            logit.log("ignoring definition error")
         return dname
 
     def get_file_stats_for_submissions(self, submission_list, experiment, just_output=False):
@@ -277,9 +280,9 @@ class sam_project_checker:
         # it's located but there's no project, so assume they are
         # defining the poms_depends_%(submission_id)s_1 dataset..
         if submission.campaign_stage_obj.creator_role == 'analysis':
-            allkiddims = "defname:poms_%s_depends_%s_1" % (submission.campaign_stage_obj.experimenter_creator_obj.username, submission.submision_id)
+            allkiddims = "defname:poms_%s_depends_%s_1" % (submission.campaign_stage_obj.experimenter_creator_obj.username, submission.submission_id)
         else:
-            allkiddims = "defname:poms_depends_%s_1" % submission.submision_id
+            allkiddims = "defname:poms_depends_%s_1" % submission.submission_id
         self.lookup_exp_list.append(submission.campaign_stage_snapshot_obj.experiment)
         self.lookup_submission_list.append(submission)
         self.lookup_dims_list.append(allkiddims)
