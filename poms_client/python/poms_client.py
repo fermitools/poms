@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import datetime
 import json
 import logging
 import os
@@ -587,6 +588,41 @@ def getconfig(kwargs):
     _foundconfig = config
     return config
 
+def base_path(test_client,config):
+
+    if test_client:
+        if test_client == "int":
+            base = config.get('url', 'base_int_ssl')
+        else:
+            base = config.get('url', 'base_dev_ssl')
+
+        logging.debug("base = " + base)
+    else:
+        #base=config['url']['base_prod']
+        base = config.get('url', 'base_prod')
+    return base
+
+def check_stale_proxy(options ):
+    cert = auth_cert()
+    rs.cert = (cert, cert)
+    rs.verify = False
+    try:
+        url = "%s/file_uploads/%s/analysis/%s?fmt=json" % (
+              base_path(options.test, getconfig({})), options.experiment, os.environ['USER'])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            c = rs.get(url)
+        d = c.json()
+        for f in d.get("file_stat_list",[]):
+             if f[0][:12]=="x509up_voms_":
+                 pdate=datetime.datetime.strptime(f[2], "%Y-%m-%dT%H:%M:%SZ")
+                 if options.verbose:
+                      logging.info("proxy on POMS has date %s" % pdate)
+                 return datetime.datetime.now() - pdate < datetime.timedelta(days=3)
+    except Exception as e:
+        logging.exception("Failed getting uploaded certificate date from POMS")
+    # if we don't find it or something went wrong, its stale :-)
+    return True
 
 def make_poms_call(**kwargs):
 
@@ -618,16 +654,7 @@ def make_poms_call(**kwargs):
 
     logging.debug("in make_poms_call test_client = " + repr(test_client))
 
-    if test_client:
-        if test_client == "int":
-            base = config.get('url', 'base_int_ssl')
-        else:
-            base = config.get('url', 'base_dev_ssl')
-
-        logging.debug("base = " + base)
-    else:
-        #base=config['url']['base_prod']
-        base = config.get('url', 'base_prod')
+    base = base_path(test_client, config)
 
     for k in list(kwargs.keys()):
         if kwargs[k] is None:

@@ -645,12 +645,12 @@ class PomsService:
         )
 
     # h4. remove_uploaded_files
-    @poms_method(p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}])
+    @poms_method(p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
+        rtype="redirect",
+        redirect="%(poms_path)s/file_uploads/%(experiment)s/%(role)s/%(username)s"
+    )
     def remove_uploaded_files(self, **kwargs):
-        res = self.filesPOMS.remove_uploaded_files(ctx, filename, action)
-        if int(kwargs.get("redirect", "1")) == 1:
-            raise cherrypy.HTTPRedirect("%s/file_uploads/%s/%s/%s" % (self.path, experiment, role, experimenter))
-        return res
+        return = self.filesPOMS.remove_uploaded_files(**kwargs)
 
     # h3. Job actions
     #
