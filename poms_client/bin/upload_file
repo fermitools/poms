@@ -18,6 +18,12 @@ parser.add_option('--refresh', action='store_true', help='upload proxy only if s
 
 (options, args ) = parser.parse_args()
 
+if options.refresh:
+    # run refresh in background, so as not to slow down logins
+    # should we also write errors on a /tmp file or something?
+    if os.fork():
+         sys.exit(0)
+
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 

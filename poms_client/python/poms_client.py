@@ -629,8 +629,8 @@ def check_stale_proxy(options ):
                  pdate=datetime.datetime.strptime(f[2], "%Y-%m-%dT%H:%M:%SZ")
                  
                  if options.verbose:
-                      logging.info("proxy on POMS has date %s" % pdate)
-                      logging.info("current time %s" % datetime.datetime.utcnow().isoformat())
+                      logging.info("proxy on POMS has date %sZ" % pdate)
+                      logging.info("current time %sZ" % datetime.datetime.utcnow().isoformat())
                  return datetime.datetime.utcnow() - pdate > datetime.timedelta(days=3)
     except Exception as e:
         logging.exception("Failed getting uploaded certificate date from POMS")
