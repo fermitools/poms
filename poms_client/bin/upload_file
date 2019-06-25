@@ -18,6 +18,12 @@ parser.add_option('--refresh', action='store_true', help='upload proxy only if s
 
 (options, args ) = parser.parse_args()
 
+if options.refresh:
+    # run refresh in background, so as not to slow down logins
+    # should we also write errors on a /tmp file or something?
+    if os.fork():
+         sys.exit(0)
+
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 
@@ -25,10 +31,13 @@ try:
 
     if options.proxy:
 
-        if options.refresh and not poms_client.check_stale_proxy(options):
-             if options.verbose:
-                  logging.info("POMS proxy less than 3 days old.. leaving it alone.")
-             sys.exit(0)
+        if options.refresh:
+             if not poms_client.check_stale_proxy(options):
+                 if options.verbose:
+                      logging.info("POMS proxy less than 3 days old.. leaving it alone.")
+                 sys.exit(0)
+             else:
+                 logging.info("POMS proxy stale, continuing..")
 
         proxyfile = "/tmp/x509up_voms_%s_%s_%s" % (options.experiment, options.poms_role.capitalize(),os.environ.get('GRID_USER',os.environ.get('USER','unknown')) )
         if os.environ.get('X509_USER_PROXY', None):
