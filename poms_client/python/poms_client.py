@@ -9,6 +9,17 @@ import warnings
 
 import requests
 
+ZERO = datetime.timedelta(0)
+class UTC(datetime.tzinfo):
+    """UTC"""
+    def utcoffset(self, dt):
+        return ZERO
+    def tzname(self, dt):
+        return "UTC"
+    def dst(self, dt):
+        return ZERO
+utc = UTC()
+
 try:
     import configparser as ConfigParser
 except:
@@ -616,9 +627,11 @@ def check_stale_proxy(options ):
         for f in d.get("file_stat_list",[]):
              if f[0][:12]=="x509up_voms_":
                  pdate=datetime.datetime.strptime(f[2], "%Y-%m-%dT%H:%M:%SZ")
+                 
                  if options.verbose:
                       logging.info("proxy on POMS has date %s" % pdate)
-                 return datetime.datetime.now() - pdate < datetime.timedelta(days=3)
+                      logging.info("current time %s" % datetime.datetime.utcnow().isoformat())
+                 return datetime.datetime.utcnow() - pdate > datetime.timedelta(days=3)
     except Exception as e:
         logging.exception("Failed getting uploaded certificate date from POMS")
     # if we don't find it or something went wrong, its stale :-)
