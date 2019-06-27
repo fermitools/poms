@@ -523,6 +523,11 @@ class SubmissionsPOMS:
         #
         if submission and submission.submission_params and submission.submission_params.get("dataset"):
             dataset = submission.submission_params.get("dataset")
+        elif submission and submission.command_executed.find("--dataset_definition") > 0:
+            pos = submission.command_executed.find("--dataset_definition")
+            dataset = submission.command_executed[pos + 21 :]
+            pos = dataset.find(" ")
+            dataset = dataset[:pos]
         elif submission and submission.command_executed.find("--dataset") > 0:
             pos = submission.command_executed.find("--dataset")
             dataset = submission.command_executed[pos + 10 :]
