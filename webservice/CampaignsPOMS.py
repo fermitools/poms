@@ -473,7 +473,12 @@ class CampaignsPOMS:
         res.append("var data = {nodes: nodes, edges: edges};")
         res.append("var options = {manipulation: { enabled: false }};")
         res.append("var network = new vis.Network(container, data, options);")
-        res.append("network.on('click', function(params) { alert('got: ' + params) })"
+        res.append("var dests=[")
+        for c_s in csl:
+            res.append("  'https://%s/campaign_stage_info/%s/%s?campaign_id=%s'," % (
+                self.poms_service.path, ctx.experiment, ctx.role,  c_s.campaign_stage_id))
+        res.append("];")
+        res.append("network.on('click', function(params) { if (!params or !params['node']{ return; } ;  alert('got: node' +JSON.stringify(params['node'][0])); alert(' should go to: ' + dests[params['node'][0]])})")
         res.append("</script>")
         return "\n".join(res)
 
