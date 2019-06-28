@@ -471,8 +471,9 @@ class CampaignsPOMS:
         res.append("]);")
         res.append('var container = document.getElementById("dependencies");')
         res.append("var data = {nodes: nodes, edges: edges};")
-        res.append("var options = {};")
+        res.append("var options = {manipulation: { enabled: false }};")
         res.append("var network = new vis.Network(container, data, options);")
+        res.append("network.on('click', function(params) { alert('got: ' + params) })"
         res.append("</script>")
         return "\n".join(res)
 
