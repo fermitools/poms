@@ -72,25 +72,25 @@ def test_login_setup_edit(client):
 
 
 def test_campaign_stage_submissions(client):
-    client.get("campaign_stage_submissions/samdev/production?campaign_name=fake_demo1&stage_name=*&campaign_id=1")
+    client.get("campaign_stage_submissions/samdev/production?campaign_name=fake demo v1.0  w/chars&stage_name=*&campaign_id=1")
     print("got: %s" % client.text)
     assert client.code == 200
 
 
 def test_campaign_deps_ini(client):
-    client.get("campaign_deps_ini/samdev/production?name=fake_demo1")
+    client.get("campaign_deps_ini/samdev/production?name=fake demo v1.0  w/chars")
     print("got: %s" % client.text)
     assert client.code == 200
 
 
 def test_campaign_deps(client):
-    client.get("campaign_deps/samdev/production?campaign_name=fake_demo1")
+    client.get("campaign_deps/samdev/production?campaign_name=fake demo v1.0  w/chars")
     print("got: %s" % client.text)
     assert client.code == 200
 
 
 def test_gui_edit(client):
-    client.get("gui_wf_edit/samdev/production?campaign=fake_demo1")
+    client.get("gui_wf_edit/samdev/production?campaign=fake demo v1.0  w/chars")
     print("got: %s" % client.text)
     assert client.code == 200
 

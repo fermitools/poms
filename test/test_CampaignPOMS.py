@@ -47,7 +47,7 @@ def test_campaign_deps_svg():
     ctx = Ctx(sam=samhandle)
     res = fp.campaignsPOMS.campaign_deps_svg(ctx, campaign_name="mwm_test_9")
     print(res)
-    assert res.find("<svg") >= 0
+    assert res.find("vis.DataSet") >= 0
 
 
 def test_campaign_deps_ini():
@@ -118,10 +118,6 @@ def test_schedule_launch():
 def test_update_launch_schedule():
     res = fp.campaignsPOMS.update_launch_schedule(...)
     pass
-
-def test_get_recovery_list_for_campaign_def():
-    ctx = Ctx(sam=samhandle)
-    res = fp.campaignsPOMS.get_recovery_list_for_campaign_def(ctx, campaign_def)
 
 def test_make_stale_campaigns_inactive():
     ctx = Ctx(sam=samhandle)
