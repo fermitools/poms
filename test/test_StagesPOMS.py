@@ -17,7 +17,6 @@ def test_get_campaign_stage_name():
     assert res == " mwm_test_9"
 
 
-
 def test_show_campaign_stages():
     ctx = Ctx(sam=samhandle)
     res = fp.stagesPOMS.show_campaign_stages(ctx)

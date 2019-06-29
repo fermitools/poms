@@ -19,6 +19,9 @@ def test_condor_log_parser():
     print("cert: %s, key %s" % (cert, key))
     res = get_joblogs(dbh.get(), jobsub_job_id, cert, key, experiment, role)
     print("res: %s" % repr(res))
-    if isinstance(res,dict):
-        print("n_idle %d, n_running %d, n_completed %d" % (len(resget("idle",[])), len(res.get("running",[])), len(res.get("completed",[]))))
+    if isinstance(res, dict):
+        print(
+            "n_idle %d, n_running %d, n_completed %d"
+            % (len(resget("idle", [])), len(res.get("running", [])), len(res.get("completed", [])))
+        )
     # assert(False)

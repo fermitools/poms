@@ -10,7 +10,9 @@ test_campaign_stage_id = 33
 test_campaign_name = "mwm_test_9"
 
 import DBHandle
+
 dbhandle = DBHandle.DBHandle().get()
+
 
 def test_get_jobtype_id():
     ctx = Ctx(sam=samhandle)
@@ -25,10 +27,12 @@ def test_get_loginsetup_id():
     print(res)
     assert res != None
 
+
 def test_get_recovery_list_for_campaign_def():
     ctx = Ctx(sam=samhandle)
     campaign_def = dbhandle.query(JobType).filter(JobType.job_type_id == 20).first()
     res = fp.miscPOMS.get_recovery_list_for_campaign_def(ctx, campaign_def)
+
 
 def test_get_recoveries():
     ctx = Ctx(sam=samhandle)
@@ -36,5 +40,3 @@ def test_get_recoveries():
     res = fp.miscPOMS.get_recoveries(ctx, cid)
     print(res)
     print(isinstance(res, list))
-
-

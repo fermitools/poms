@@ -645,9 +645,10 @@ class PomsService:
         )
 
     # h4. remove_uploaded_files
-    @poms_method(p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
+    @poms_method(
+        p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
         rtype="redirect",
-        redirect="%(poms_path)s/file_uploads/%(experiment)s/%(role)s/%(username)s"
+        redirect="%(poms_path)s/file_uploads/%(experiment)s/%(role)s/%(username)s",
     )
     def remove_uploaded_files(self, **kwargs):
         return self.filesPOMS.remove_uploaded_files(**kwargs)
