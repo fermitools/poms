@@ -17,14 +17,6 @@ def test_get_campaign_stage_name():
     assert res == " mwm_test_9"
 
 
-def test_get_recoveries():
-    ctx = Ctx(sam=samhandle)
-    cid = test_campaign_stage_id
-    res = fp.submissionsPOMS.get_recoveries(ctx, cid)
-    print(res)
-    print(isinstance(res, list))
-
-
 def test_show_campaign_stages():
     ctx = Ctx(sam=samhandle)
     res = fp.stagesPOMS.show_campaign_stages(ctx)

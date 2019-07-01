@@ -475,10 +475,14 @@ class CampaignsPOMS:
         res.append("var network = new vis.Network(container, data, options);")
         res.append("var dests=[")
         for c_s in csl:
-            res.append("  '%s/campaign_stage_info/%s/%s?campaign_stage_id=%s'," % (
-                self.poms_service.path, ctx.experiment, ctx.role,  c_s.campaign_stage_id))
+            res.append(
+                "  '%s/campaign_stage_info/%s/%s?campaign_stage_id=%s',"
+                % (self.poms_service.path, ctx.experiment, ctx.role, c_s.campaign_stage_id)
+            )
         res.append("];")
-        res.append("network.on('click', function(params) { if (!params || !params['nodes']){ return; } ; document.location = dests[params['nodes'][0]];})")
+        res.append(
+            "network.on('click', function(params) { if (!params || !params['nodes']){ return; } ; document.location = dests[params['nodes'][0]];})"
+        )
         res.append("</script>")
         return "\n".join(res)
 

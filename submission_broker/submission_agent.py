@@ -59,7 +59,7 @@ class Agent:
         poms_uri="http://127.0.0.1:8080/poms/",
         submission_uri="https://landscape.fnal.gov/lens/query",
         submission_uri_dev="https://landscape.fnal.gov/lens/query",
-        #submission_uri_dev="https://landscapeitb.fnal.gov/lens/query",
+        # submission_uri_dev="https://landscapeitb.fnal.gov/lens/query",
     ):
 
         """
@@ -372,19 +372,19 @@ class Agent:
             if entry["pomsTaskID"] not in self.known["pct"] or report_pct_complete:
                 self.known["pct"][entry["pomsTaskID"]] = report_pct_complete
 
-        LOGIT.debug("thispass: %s\nlast_seen: %s" % (repr(thispass), repr(self.last_seen.get(group,None))))
+        LOGIT.debug("thispass: %s\nlast_seen: %s" % (repr(thispass), repr(self.last_seen.get(group, None))))
 
         if self.last_seen.get(group, None):
             missing = self.last_seen[group] - thispass
             # submissions we used to see, but don't anymore...
             for id in missing:
 
-                if self.strikes.get(id,0) < 3:
-                   # must have 3 strikes in a row
-                   self.strikes[id] = self.strikes.get(id,0) + 1
-                   # put it  thispass so we get here next time
-                   thispass.add(id)
-                   continue
+                if self.strikes.get(id, 0) < 3:
+                    # must have 3 strikes in a row
+                    self.strikes[id] = self.strikes.get(id, 0) + 1
+                    # put it  thispass so we get here next time
+                    thispass.add(id)
+                    continue
 
                 # if our last status was Completed, this is expected,
                 # just go on
