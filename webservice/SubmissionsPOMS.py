@@ -1159,9 +1159,9 @@ class SubmissionsPOMS:
         if test_launch:
             pdict["test"] = 1
 
-        if test_launch or dataset_override:
-            ctx.db.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict})
-            ctx.db.commit()
+      
+        ctx.db.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict})
+        ctx.db.commit()
 
         cmdl = [
             "exec 2>&1",
