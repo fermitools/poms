@@ -13,6 +13,7 @@ import jinja2.exceptions
 # h3. std python
 import json
 import logging
+
 # mostly so we can pass them to page templates...
 import datetime
 import time
@@ -38,6 +39,7 @@ from . import (
 # for users; want to redo this to pass the short  message and the
 # stack trace, and have the error page templates show part of message
 # and unfold it if requested...
+
 
 def error_rewrite(f):
     def wrapper(*args, **kwargs):
@@ -74,9 +76,11 @@ def error_rewrite(f):
 
     return wrapper
 
+
 # h2. JSONORMEncoder -- a json encoder class that also expands sqlalchemy
 # ORM objects, so we can just take whatever dictionaries we would send to
 # the jinja template expander and return it as JSON.
+
 
 class JSONORMEncoder(json.JSONEncoder):
     # This will show up as an error in pylint.   Appears to be a bug in pylint, so its disabled:
@@ -108,7 +112,9 @@ class JSONORMEncoder(json.JSONEncoder):
 
         return super(JSONORMEncoder, self).default(obj)
 
+
 # h2. The actual poms_method decorator, the docstring covers the parameters
+
 
 def poms_method(
     p=[],

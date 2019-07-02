@@ -179,8 +179,9 @@ class PomsService:
     # h4. quick_search
     @poms_method()
     def quick_search(self, **kwargs):
-        return self.utilsPOMS.quick_search(cherrypy.HTTPRedirect, **kwargs) 
-# see &l=webservice/UtilsPOMS.py#quick_search&
+        return self.utilsPOMS.quick_search(cherrypy.HTTPRedirect, **kwargs)
+
+    # see &l=webservice/UtilsPOMS.py#quick_search&
 
     # h4. update_session_experiment
     @poms_method()
@@ -245,8 +246,9 @@ class PomsService:
     def login_setup_rm(self, **kwargs):
         # note: login_setup_edit checks for delete permission...
         kwargs["action"] = "delete"
-        return self.miscPOMS.login_setup_edit(**kwargs) 
-# see &l=webservice/MiscPOMS.py#login_setup_edit&
+        return self.miscPOMS.login_setup_edit(**kwargs)
+
+    # see &l=webservice/MiscPOMS.py#login_setup_edit&
 
     # h4. login_setup_edit
     @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="login_setup_edit.html")
@@ -266,8 +268,9 @@ class PomsService:
         rtype="ini",
     )
     def campaign_deps_ini(self, **kwargs):
-        return self.campaignsPOMS.campaign_deps_ini(**kwargs) 
-# see &l=webservice/CampaignsPOMS.py#campaign_deps_ini&
+        return self.campaignsPOMS.campaign_deps_ini(**kwargs)
+
+    # see &l=webservice/CampaignsPOMS.py#campaign_deps_ini&
 
     # h4. campaign_deps
 
@@ -280,8 +283,9 @@ class PomsService:
     # h4. job_type_rm
     @poms_method(rtype="json")
     def job_type_rm(self, **kwargs):
-        return self.campaignsPOMS.job_type_edit(action="delete", **kwargs) 
-# see &l=webservice/CampaignsPOMS.py#job_type_edit&
+        return self.campaignsPOMS.job_type_edit(action="delete", **kwargs)
+
+    # see &l=webservice/CampaignsPOMS.py#job_type_edit&
 
     # h4. job_type_edit
 
@@ -314,28 +318,32 @@ class PomsService:
 
     @poms_method(rtype="json")
     def get_campaign_id(self, **kwargs):
-        return self.campaignsPOMS.get_campaign_id(**kwargs) 
-# see &l=webservice/CampaignsPOMS.py#get_campaign_id&
+        return self.campaignsPOMS.get_campaign_id(**kwargs)
+
+    # see &l=webservice/CampaignsPOMS.py#get_campaign_id&
 
     # h4. get_campaign_name
 
     @poms_method()
     def get_campaign_name(self, **kwargs):
-        return self.campaignsPOMS.get_campaign_name(**kwargs) 
-# see &l=webservice/CampaignsPOMS.py#get_campaign_name&
+        return self.campaignsPOMS.get_campaign_name(**kwargs)
+
+    # see &l=webservice/CampaignsPOMS.py#get_campaign_name&
 
     # h4. get_campaign_stage_name
 
     @poms_method()
     def get_campaign_stage_name(self, **kwargs):
-        return self.stagesPOMS.get_campaign_stage_name(**kwargs) 
-# see &l=webservice/StagesPOMS.py#get_campaign_stage_name&
+        return self.stagesPOMS.get_campaign_stage_name(**kwargs)
+
+    # see &l=webservice/StagesPOMS.py#get_campaign_stage_name&
 
     # h4. campaign_add_name
     @poms_method()
     def campaign_add_name(self, **kwargs):
-        return self.campaignsPOMS.campaign_add_name(**kwargs) 
-# see &l=webservice/CampaignsPOMS.py#campaign_add_name&
+        return self.campaignsPOMS.campaign_add_name(**kwargs)
+
+    # see &l=webservice/CampaignsPOMS.py#campaign_add_name&
 
     # h4. campaign_stage_edit
     @poms_method(
@@ -385,8 +393,9 @@ class PomsService:
 
     @poms_method(rtype="json")
     def campaign_list_json(self, **kwargs):
-        return self.campaignsPOMS.campaign_list(kwargs["ctx"]) 
-# see &l=webservice/CampaignsPOMS.py#campaign_list&
+        return self.campaignsPOMS.campaign_list(kwargs["ctx"])
+
+    # see &l=webservice/CampaignsPOMS.py#campaign_list&
 
     # h4. campaign_stage_edit_query
 
@@ -398,8 +407,9 @@ class PomsService:
         ],
     )
     def campaign_stage_edit_query(self, **kwargs):
-        return self.stagesPOMS.campaign_stage_edit_query(**kwargs) 
-# see &l=webservice/StagesPOMS.py#campaign_stage_edit_query&
+        return self.stagesPOMS.campaign_stage_edit_query(**kwargs)
+
+    # see &l=webservice/StagesPOMS.py#campaign_stage_edit_query&
 
     # h4. show_campaigns
 
@@ -410,8 +420,9 @@ class PomsService:
         need_er=True,
     )
     def show_campaigns(self, **kwargs):
-        return self.campaignsPOMS.show_campaigns(**kwargs) 
-# see &l=webservice/CampaignsPOMS.py#show_campaigns&
+        return self.campaignsPOMS.show_campaigns(**kwargs)
+
+    # see &l=webservice/CampaignsPOMS.py#show_campaigns&
 
     # h4. show_campaign_stages
 
@@ -438,8 +449,9 @@ class PomsService:
             template = "show_campaign_stages.html"
         else:
             template = "show_campaign_stages_stats.html"
-        return self.stagesPOMS.show_campaign_stages(**kwargs) + (template, kwargs["ctx"].experiment, "") 
-# see &l=webservice/StagesPOMS.py#show_campaign_stages&
+        return self.stagesPOMS.show_campaign_stages(**kwargs) + (template, kwargs["ctx"].experiment, "")
+
+    # see &l=webservice/StagesPOMS.py#show_campaign_stages&
 
     # h4. reset_campaign_split
 
@@ -449,14 +461,16 @@ class PomsService:
         rtype="redirect",
     )
     def reset_campaign_split(self, **kwargs):
-        return self.stagesPOMS.reset_campaign_split(**kwargs) 
-# see &l=webservice/StagesPOMS.py#reset_campaign_split&
+        return self.stagesPOMS.reset_campaign_split(**kwargs)
+
+    # see &l=webservice/StagesPOMS.py#reset_campaign_split&
 
     # h4. campaign_stage_datasets
     @poms_method(rtype="json")
     def campaign_stage_datasets(self, **kwargs):
-        return self.submissionsPOMS.campaign_stage_datasets(kwargs["ctx"]) 
-# see &l=webservice/SubmissionsPOMS.py#campaign_stage_datasets&
+        return self.submissionsPOMS.campaign_stage_datasets(kwargs["ctx"])
+
+    # see &l=webservice/SubmissionsPOMS.py#campaign_stage_datasets&
 
     # h4. submission_details
     @poms_method(
@@ -466,8 +480,9 @@ class PomsService:
         help_page="SubmissionDetailsHelp",
     )
     def submission_details(self, **kwargs):
-        return self.submissionsPOMS.submission_details(**kwargs) 
-# see &l=webservice/SubmissionsPOMS.py#submission_details&
+        return self.submissionsPOMS.submission_details(**kwargs)
+
+    # see &l=webservice/SubmissionsPOMS.py#submission_details&
 
     # h4. campaign_stage_info
 
@@ -497,8 +512,9 @@ class PomsService:
         t="campaign_stage_info.html",
     )
     def campaign_stage_info(self, **kwargs):
-        return self.stagesPOMS.campaign_stage_info(**kwargs) 
-# see &l=webservice/StagesPOMS.py#campaign_stage_info&
+        return self.stagesPOMS.campaign_stage_info(**kwargs)
+
+    # see &l=webservice/StagesPOMS.py#campaign_stage_info&
 
     #   h4. campaign_stage_submissions
     @poms_method(
@@ -514,14 +530,16 @@ class PomsService:
     #   h4. session_status_history
     @poms_method(rtype="json")
     def session_status_history(self, **kwargs):
-        return self.submissionsPOMS.session_status_history(**kwargs) 
-# see &l=webservice/SubmissionsPOMS.py#session_status_history&
+        return self.submissionsPOMS.session_status_history(**kwargs)
+
+    # see &l=webservice/SubmissionsPOMS.py#session_status_history&
 
     #   h4. abort_launch
     @poms_method(p=[{"p": "can_do", "t": "Submission", "item_id": "submission_id"}], rtype="text")
     def abort_launch(self, **kwargs):
-        return self.submissionsPOMS.abort_launch(**kwargs) 
-# see &l=webservice/SubmissionsPOMS.py#abort_launch&
+        return self.submissionsPOMS.abort_launch(**kwargs)
+
+    # see &l=webservice/SubmissionsPOMS.py#abort_launch&
 
     # h4. list_launch_file
     @poms_method(
@@ -531,8 +549,9 @@ class PomsService:
         help_page="LaunchedJobsHelp",
     )
     def list_launch_file(self, **kwargs):
-        return self.filesPOMS.list_launch_file(**kwargs) 
-# see &l=webservice/FilesPOMS.py#list_launch_file&
+        return self.filesPOMS.list_launch_file(**kwargs)
+
+    # see &l=webservice/FilesPOMS.py#list_launch_file&
 
     # h4. schedule_launch
 
@@ -543,8 +562,9 @@ class PomsService:
         help_page="ScheduleLaunchHelp",
     )
     def schedule_launch(self, **kwargs):
-        return self.stagesPOMS.schedule_launch(**kwargs) 
-# see &l=webservice/StagesPOMS.py#schedule_launch&
+        return self.stagesPOMS.schedule_launch(**kwargs)
+
+    # see &l=webservice/StagesPOMS.py#schedule_launch&
 
     # h4. update_launch_schedule
 
@@ -569,8 +589,9 @@ class PomsService:
         del kwargs["ids2HR"]
         for cid in kwargs["campaign_ids"]:
             self.permissions.can_modify(kwargs["ctx"], t="Campaign", item_id=cid)
-        return self.stagesPOMS.mark_campaign_hold(**kwargs) 
-# see &l=webservice/StagesPOMS.py#mark_campaign_hold&
+        return self.stagesPOMS.mark_campaign_hold(**kwargs)
+
+    # see &l=webservice/StagesPOMS.py#mark_campaign_hold&
 
     # h4. make_stale_campaigns_inactive
 
@@ -591,14 +612,16 @@ class PomsService:
 
     @poms_method(p=[{"p": "is_superuser"}])
     def edit_screen_generic(self, **kwargs):
-        return self.tablesPOMS.edit_screen_generic(**kwargs) 
-# see &l=webservice/TablesPOMS.py#edit_screen_generic&
+        return self.tablesPOMS.edit_screen_generic(**kwargs)
+
+    # see &l=webservice/TablesPOMS.py#edit_screen_generic&
 
     # h4. update_generic
     @poms_method(p=[{"p": "is_superuser"}], rtype="html")
     def update_generic(self, **kwargs):
-        return self.tablesPOMS.update_generic(**kwargs) 
-# see &l=webservice/TablesPOMS.py#update_generic&
+        return self.tablesPOMS.update_generic(**kwargs)
+
+    # see &l=webservice/TablesPOMS.py#update_generic&
 
     # h4. edit_screen_for
     # this is a little odd, it gets called sideways
@@ -614,21 +637,24 @@ class PomsService:
 
     @poms_method(p=[{"p": "can_view", "t": "Submission", "item_id": "submission_id"}])
     def force_locate_submission(self, **kwargs):
-        return self.submissionsPOMS.force_locate_submission(kwargs["ctx"], kwargs["submission_id"]) 
-# see &l=webservice/SubmissionsPOMS.py#force_locate_submission&
+        return self.submissionsPOMS.force_locate_submission(kwargs["ctx"], kwargs["submission_id"])
+
+    # see &l=webservice/SubmissionsPOMS.py#force_locate_submission&
 
     # h4. mark_failed_submissions
     @poms_method(p=[{"p": "is_superuser"}])
     def mark_failed_submissions(self, **kwargs):
-        return self.submissionsPOMS.mark_failed_submissions(kwargs["ctx"]) 
-# see &l=webservice/SubmissionsPOMS.py#mark_failed_submissions&
+        return self.submissionsPOMS.mark_failed_submissions(kwargs["ctx"])
+
+    # see &l=webservice/SubmissionsPOMS.py#mark_failed_submissions&
 
     # h4. running_submissions
     @poms_method(rtype="json")
     def running_submissions(self, **kwargs):
         cl = list(map(int, kwargs["campaign_id_list"].split(",")))
-        return self.submissionsPOMS.running_submissions(kwargs["ctx"], cl) 
-# see &l=webservice/SubmissionsPOMS.py#running_submissions&
+        return self.submissionsPOMS.running_submissions(kwargs["ctx"], cl)
+
+    # see &l=webservice/SubmissionsPOMS.py#running_submissions&
 
     # h4. update_submission
     @poms_method(p=[{"p": "can_modify", "t": "Submission", "item_id": "submission_id"}])
@@ -649,8 +675,9 @@ class PomsService:
     def file_uploads(self, **kwargs):
         if kwargs["ctx"].role == "production":
             raise cherrypy.HTTPRedirect(self.path + "/index")
-        return self.filesPOMS.file_uploads(kwargs["ctx"], kwargs.get("checkuser", None)) 
-# see &l=webservice/FilesPOMS.py#file_uploads&
+        return self.filesPOMS.file_uploads(kwargs["ctx"], kwargs.get("checkuser", None))
+
+    # see &l=webservice/FilesPOMS.py#file_uploads&
 
     # h4. file_uploads_json
     @poms_method(
@@ -660,8 +687,9 @@ class PomsService:
         t="file_uploads.html",
     )
     def file_uploads_json(self, experiment, role, checkuser=None):
-        return self.filesPOMS.file_uploads(ctx, checkuser) 
-# see &l=webservice/FilesPOMS.py#file_uploads&
+        return self.filesPOMS.file_uploads(ctx, checkuser)
+
+    # see &l=webservice/FilesPOMS.py#file_uploads&
 
     # h4. upload_file
     @poms_method(
@@ -671,9 +699,11 @@ class PomsService:
         need_er=True,
     )
     def upload_file(self, **kwargs):
-        return self.filesPOMS.upload_file( 
-# see &l=webservice/FilesPOMS.py#upload_file&
-            kwargs["ctx"], quota=kwargs["ctx"].config_get("base_uploads_quota"), filename=kwargs["filename"]
+        return self.filesPOMS.upload_file(
+            # see &l=webservice/FilesPOMS.py#upload_file&
+            kwargs["ctx"],
+            quota=kwargs["ctx"].config_get("base_uploads_quota"),
+            filename=kwargs["filename"],
         )
 
     # h4. remove_uploaded_files
@@ -683,8 +713,9 @@ class PomsService:
         redirect="%(poms_path)s/file_uploads/%(experiment)s/%(role)s/%(username)s",
     )
     def remove_uploaded_files(self, **kwargs):
-        return self.filesPOMS.remove_uploaded_files(**kwargs) 
-# see &l=webservice/FilesPOMS.py#remove_uploaded_files&
+        return self.filesPOMS.remove_uploaded_files(**kwargs)
+
+    # see &l=webservice/FilesPOMS.py#remove_uploaded_files&
 
     # h3. Job actions
     #
@@ -701,22 +732,25 @@ class PomsService:
         confirm=True,
     )
     def kill_jobs(self, **kwargs):
-        return self.jobsPOMS.kill_jobs(**kwargs) 
-# see &l=webservice/JobsPOMS.py#kill_jobs&
+        return self.jobsPOMS.kill_jobs(**kwargs)
+
+    # see &l=webservice/JobsPOMS.py#kill_jobs&
 
     # h4. set_job_launches
 
     @poms_method(p=[{"p", "is_superuser"}], rtype="redirect", redirect="%(poms_path)s/index/%(experiment)s/%(role)s")
     def set_job_launches(self, **kwarg):
-        return self.submissionsPOMS.set_job_launches(ctx.db, experiment, role, ctx.username, hold) 
-# see &l=webservice/SubmissionsPOMS.py#set_job_launches&
+        return self.submissionsPOMS.set_job_launches(ctx.db, experiment, role, ctx.username, hold)
+
+    # see &l=webservice/SubmissionsPOMS.py#set_job_launches&
 
     # h4. launch_queued_job
 
     @poms_method(p=[{"p", "is_superuser"}])
     def launch_queued_job(self, **kwargs):
-        return self.submissionsPOMS.launch_queued_job(kwargs["ctx"]) 
-# see &l=webservice/SubmissionsPOMS.py#launch_queued_job&
+        return self.submissionsPOMS.launch_queued_job(kwargs["ctx"])
+
+    # see &l=webservice/SubmissionsPOMS.py#launch_queued_job&
 
     # h4. launch_campaign
     @poms_method(
@@ -731,8 +765,9 @@ class PomsService:
         else:
             launch_user = kwargs.get("launcher", "")
 
-        return self.campaignsPOMS.launch_campaign(**kwargs) 
-# see &l=webservice/CampaignsPOMS.py#launch_campaign&
+        return self.campaignsPOMS.launch_campaign(**kwargs)
+
+    # see &l=webservice/CampaignsPOMS.py#launch_campaign&
 
     # h4. test_split_type_editors
 
@@ -743,13 +778,15 @@ class PomsService:
         redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
     )
     def launch_jobs(self, **kwargs):
-        return self.submissionsPOMS.launch_jobs(**kwargs) 
-# see &l=webservice/SubmissionsPOMS.py#launch_jobs&
+        return self.submissionsPOMS.launch_jobs(**kwargs)
+
+    # see &l=webservice/SubmissionsPOMS.py#launch_jobs&
 
     @poms_method(p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}])
     def launch_jobs_commands(self, **kwargs):
-        return self.submissionsPOMS.launch_jobs(**kwargs)[0] 
-# see &l=webservice/SubmissionsPOMS.py#launch_jobs&
+        return self.submissionsPOMS.launch_jobs(**kwargs)[0]
+
+    # see &l=webservice/SubmissionsPOMS.py#launch_jobs&
 
     @poms_method(
         p=[{"p": "can_do", "t": "LoginSetup", "item_id": "test_login_setup"}],
@@ -758,8 +795,9 @@ class PomsService:
         redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?login_setup_id=%(test_login_setup)s&fname=%(outfile)s",
     )
     def launch_login_setup(self, **kwargs):
-        return self.submissionsPOMS.launch_jobs(**kwargs) 
-# see &l=webservice/SubmissionsPOMS.py#launch_jobs&
+        return self.submissionsPOMS.launch_jobs(**kwargs)
+
+    # see &l=webservice/SubmissionsPOMS.py#launch_jobs&
 
     # h4. launch_recovery_for
     @poms_method(
@@ -769,8 +807,9 @@ class PomsService:
         u=["outfile"],
     )
     def launch_recovery_for(self, **kwargs):
-        return self.submissionsPOMS.launch_recovery_for(**kwargs) 
-# see &l=webservice/SubmissionsPOMS.py#launch_recovery_for&
+        return self.submissionsPOMS.launch_recovery_for(**kwargs)
+
+    # see &l=webservice/SubmissionsPOMS.py#launch_recovery_for&
 
     # h4. jobtype_list
     @poms_method(rtype="json")
@@ -808,8 +847,9 @@ class PomsService:
         help_page="CampaignTaskFilesHelp",
     )
     def campaign_task_files(self, **kwargs):
-        return self.filesPOMS.campaign_task_files(**kwargs) 
-# see &l=webservice/FilesPOMS.py#campaign_task_files&
+        return self.filesPOMS.campaign_task_files(**kwargs)
+
+    # see &l=webservice/FilesPOMS.py#campaign_task_files&
 
     # h4. show_dimension_files
 
@@ -820,15 +860,17 @@ class PomsService:
     # h4. link_tags
     @poms_method(p=[{"p": "can_modify", "t": "Campaign", "item_id": "campaign_id"}])
     def link_tags(self, **kwargs):
-        return self.tagsPOMS.link_tags(**kwargs) 
-# see &l=webservice/TagsPOMS.py#link_tags&
+        return self.tagsPOMS.link_tags(**kwargs)
+
+    # see &l=webservice/TagsPOMS.py#link_tags&
 
     # h4. delete_campaigns_tags
 
     @poms_method(rtype="json", p=[{"p": "can_modify", "t": "Campaign", "item_id": "campaign_id"}])
     def delete_campaigns_tags(self, **kwargs):
-        return self.tagsPOMS.delete_campaigns_tags(**kwargs) 
-# see &l=webservice/TagsPOMS.py#delete_campaigns_tags&
+        return self.tagsPOMS.delete_campaigns_tags(**kwargs)
+
+    # see &l=webservice/TagsPOMS.py#delete_campaigns_tags&
 
     # h4. search_tags
     @poms_method(t="search_tags.html", help_page="SearchTagsHelp")
@@ -845,39 +887,45 @@ class PomsService:
 
     @poms_method()
     def search_all_tags(self, **kwargs):
-        return self.tagsPOMS.search_all_tags(kwargs["ctx"], kwargs["cl"]) 
-# see &l=webservice/TagsPOMS.py#search_all_tags&
+        return self.tagsPOMS.search_all_tags(kwargs["ctx"], kwargs["cl"])
+
+    # see &l=webservice/TagsPOMS.py#search_all_tags&
 
     # h4. auto_complete_tags_search
 
     @poms_method(rtype="json")
     def auto_complete_tags_search(self, **kwargs):
-        return self.tagsPOMS.auto_complete_tags_search(kwargs["ctx"], kwargs["q"]) 
-# see &l=webservice/TagsPOMS.py#auto_complete_tags_search&
+        return self.tagsPOMS.auto_complete_tags_search(kwargs["ctx"], kwargs["q"])
+
+    # see &l=webservice/TagsPOMS.py#auto_complete_tags_search&
 
     # h4. split_type_javascript
     @poms_method(rtype="rawjavascript")
     def split_type_javascript(self, **kwargs):
-        return self.miscPOMS.split_type_javascript(kwargs["ctx"]) 
-# see &l=webservice/MiscPOMS.py#split_type_javascript&
+        return self.miscPOMS.split_type_javascript(kwargs["ctx"])
+
+    # see &l=webservice/MiscPOMS.py#split_type_javascript&
 
     # h4. save_campaign
     @poms_method(rtype="json")
     def save_campaign(self, *args, **kwargs):
-        return self.campaignsPOMS.save_campaign(*args, **kwargs) 
-# see &l=webservice/CampaignsPOMS.py#save_campaign&
+        return self.campaignsPOMS.save_campaign(*args, **kwargs)
+
+    # see &l=webservice/CampaignsPOMS.py#save_campaign&
 
     # h4. get_jobtype_id
     @poms_method(rtype="json")
     def get_jobtype_id(self, **kwargs):
-        return self.miscPOMS.get_jobtype_id(kwargs["ctx"], kwargs["name"]) 
-# see &l=webservice/MiscPOMS.py#get_jobtype_id&
+        return self.miscPOMS.get_jobtype_id(kwargs["ctx"], kwargs["name"])
+
+    # see &l=webservice/MiscPOMS.py#get_jobtype_id&
 
     # h4. get_loginsetup_id
     @poms_method(rtype="json")
     def get_loginsetup_id(self, **kwargs):
-        return self.miscPOMS.get_loginsetup_id(kwargs["ctx"], kwargs["name"]) 
-# see &l=webservice/MiscPOMS.py#get_loginsetup_id&
+        return self.miscPOMS.get_loginsetup_id(kwargs["ctx"], kwargs["name"])
+
+    # see &l=webservice/MiscPOMS.py#get_loginsetup_id&
 
     # h4. loginsetup_list
     @poms_method(rtype="json")
