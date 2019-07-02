@@ -35,6 +35,8 @@ class sam_specifics:
             recovery_dims = self.ctx.sam.recovery_dimensions(
                 s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=ctx.db
             )
+        elif rtype.name == "delivered_not_consumed":
+            recovery_dims = "project_name %s and consumed_status skipped,unknown,delivered,transferred,unconsumed,cancelled"
         elif rtype.name == "pending_files":
             recovery_dims = "snapshot_for_project_name %s minus ( " % s.project
             if s.job_type_snapshot_obj.output_file_patterns:
