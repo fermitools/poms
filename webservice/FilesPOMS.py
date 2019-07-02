@@ -30,10 +30,12 @@ class FilesStatus:
         File related routines
     """
 
+    # h3. __init__
     def __init__(self, ps):
         """ just hook it in """
         self.poms_service = ps
 
+    # h3. campaign_task_files
     def campaign_task_files(self, ctx, campaign_stage_id=None, campaign_id=None):
         """
             Report of file counts for campaign stage with links to details
@@ -165,6 +167,7 @@ class FilesStatus:
             )
         return cs, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
 
+    # h3. show_dimension_files
     def show_dimension_files(self, ctx, dims):
 
         try:
@@ -173,9 +176,11 @@ class FilesStatus:
             flist = deque()
         return flist
 
+    # h3. get_file_upload_path
     def get_file_upload_path(self, ctx, filename):
         return "%s/uploads/%s/%s/%s" % (ctx.config_get("base_uploads_dir"), ctx.experiment, ctx.username, filename)
 
+    # h3. file_uploads
     def file_uploads(self, ctx, checkuser=None):
         ckuser = ctx.username
         if checkuser is not None:
@@ -199,6 +204,7 @@ class FilesStatus:
         quota = ctx.config_get("base_uploads_quota", 10485760)
         return file_stat_list, total, experimenters, quota
 
+    # h3. upload_file
     def upload_file(self, ctx, quota, filename):
         logit.log("upload_file: entry")
 
@@ -231,6 +237,7 @@ class FilesStatus:
                 os.unlink(outf)
                 raise ValueError("Upload exeeds quota of %d kbi" % quota / 1024)
 
+    # h3. remove_uploaded_files
     def remove_uploaded_files(self, ctx, filename, action=None, user=None):
         # if there's only one entry the web page will not send a list...
         if isinstance(filename, str):
@@ -244,6 +251,7 @@ class FilesStatus:
                 pass
         return "Ok."
 
+    # h3. get_launch_sandbox
     def get_launch_sandbox(self, ctx):
 
         uploads = self.get_file_upload_path(ctx, "")
@@ -257,6 +265,7 @@ class FilesStatus:
             os.link(f, "%s/%s" % (sandbox, os.path.basename(f)))
         return sandbox
 
+    # h3. list_launch_file
     def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None):
         """
             get launch output file and return the lines as a list

@@ -50,12 +50,14 @@ class CampaignsPOMS:
        Business logic for CampaignStage related items
     """
 
+    # h3. __init__
     def __init__(self, ps):
         """
             initialize ourself with a reference back to the overall poms_service
         """
         self.poms_service = ps
 
+    # h3. get_campaign_id
     def get_campaign_id(self, ctx, campaign_name):
         """
             return the campaign id for a campaign name in our experiment
@@ -63,6 +65,7 @@ class CampaignsPOMS:
         camp = ctx.db.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == ctx.experiment).scalar()
         return camp.campaign_id if camp else None
 
+    # h3. get_campaign_name
     def get_campaign_name(self, ctx, campaign_id):
         """
             return the campaign name for a campaign id in our experiment
@@ -70,6 +73,7 @@ class CampaignsPOMS:
         camp = ctx.db.query(Campaign).filter(Campaign.campaign_id == campaign_id, Campaign.experiment == ctx.experiment).scalar()
         return camp.name if camp else None
 
+    # h3. campaign_add_name
     def campaign_add_name(self, ctx, **kwargs):
         """
             Add a new campaign name.
@@ -131,6 +135,7 @@ class CampaignsPOMS:
             ctx.db.commit()
         return json.dumps(data)
 
+    # h3. campaign_list
     def campaign_list(self, ctx):
         """
             Return list of all campaign_stage_id s and names. --
@@ -139,6 +144,7 @@ class CampaignsPOMS:
         data = ctx.db.query(CampaignStage.campaign_stage_id, CampaignStage.name, CampaignStage.experiment).all()
         return [r._asdict() for r in data]
 
+    # h3. launch_campaign
     def launch_campaign(
         self,
         ctx,
@@ -187,6 +193,7 @@ class CampaignsPOMS:
             )
         raise AssertionError("Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
 
+    # h3. make_test_campaign_for
     def make_test_campaign_for(self, ctx, campaign_def_id, campaign_def_name):
         """
             Build a test_campaign for a given campaign definition
@@ -222,6 +229,7 @@ class CampaignsPOMS:
             )
         return c_s.campaign_stage_id
 
+    # h3. campaign_deps_ini
     def campaign_deps_ini(self, ctx, name=None, stage_id=None, login_setup=None, job_type=None, full=None):
         """
             Generate ini-format dump of campaign and dependencies
@@ -406,6 +414,7 @@ class CampaignsPOMS:
 
         return "\n".join(res)
 
+    # h3. campaign_deps_svg
     def campaign_deps_svg(self, ctx, campaign_name=None, campaign_stage_id=None):
         """
             this used to use "dot" to generate an svg diagram, now
@@ -486,6 +495,7 @@ class CampaignsPOMS:
         res.append("</script>")
         return "\n".join(res)
 
+    # h3. show_campaigns
     def show_campaigns(self, ctx, **kwargs):
         """
             Return data for campaigns table for current experiment, etc.
@@ -614,6 +624,7 @@ class CampaignsPOMS:
                 last_activity = last_activity_l[0].strftime("%Y-%m-%d %H:%M:%S")
         return csl, last_activity, msg, data
 
+    # h3. make_stale_campaigns_inactive
     def make_stale_campaigns_inactive(self, ctx):
         """
             turn off active flag on campaigns without recent activity
@@ -635,6 +646,7 @@ class CampaignsPOMS:
         ctx.db.commit()
         return []
 
+    # h3. save_campaign
     def save_campaign(self, ctx, replace=False, pcl_call=0, *args, **kwargs):
 
         exp = ctx.experiment
@@ -959,6 +971,7 @@ class CampaignsPOMS:
             "campaign_stage_ids": [(x.campaign_stage_id, x.name) for x in the_campaign.stages],
         }
 
+    # h3. mark_campaign_active
     def mark_campaign_active(self, ctx, campaign_id, is_active, camp_l):
         logit.log("camp_l={}; is_active='{}'".format(camp_l, is_active))
         auth_error = False

@@ -18,23 +18,28 @@ from .utc import utc
 
 
 class TablesPOMS:
+    # h3. __init__
     def __init__(self, ps):
         self.poms_service = ps
         self.make_admin_map()
 
+    # h3. list_generic
     def list_generic(self, ctx, classname, **kwargs):
         l = self.make_list_for(ctx, self.admin_map[classname], self.pk_map[classname])
         return l
 
+    # h3. edit_screen_generic
     def edit_screen_generic(self, ctx, classname, id=None):
         return self.poms_service.edit_screen_for(
             ctx, classname, self.admin_map[classname], "update_generic", self.pk_map[classname], id, {}
         )
 
+    # h3. update_generic
     def update_generic(self, ctx, classname, *args, **kwargs):
         return self.update_for(ctx, classname, self.admin_map[classname], self.pk_map[classname], *args, **kwargs)
 
     # this method was deleded from the main script
+    # h3. update_for
     def update_for(self, ctx, classname, eclass, primkey, *args, **kwargs):
         found = None
         kval = None
@@ -101,6 +106,7 @@ class TablesPOMS:
             self.poms_service.miscPOMS.snapshot_parts(found.campaign_stage_id)
         return "%s=%s" % (classname, getattr(found, primkey))
 
+    # h3. edit_screen_for
     def edit_screen_for(self, ctx, classname, eclass, update_call, primkey, primval, valmap):
 
         found = None
@@ -134,12 +140,14 @@ class TablesPOMS:
         return screendata
 
     # this function was eliminated from the main class.
+    # h3. make_list_for
     def make_list_for(self, ctx, eclass, primkey):
         res = deque()
         for i in ctx.db.query(eclass).order_by(primkey).all():
             res.append({"key": getattr(i, primkey, ""), "value": getattr(i, "name", getattr(i, "username", "unknown"))})
         return res
 
+    # h3. make_admin_map
     def make_admin_map(self):  # This method was deleted from the main script.
         """
             make self.admin_map a map of strings to model class names
