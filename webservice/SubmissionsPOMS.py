@@ -1005,6 +1005,7 @@ class SubmissionsPOMS:
                     ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time
                 )
                 self.update_submission_status(ctx, sid, "Awaiting Approval")
+                ctx.db.commit()
                 outdir, outfile, outfullpath = self.get_output_dir_file(ctx, launch_time, ctx.username, campaign_stage_id, sid)
                 lcmd = "await_approval"
                 logit.log("trying to record launch in %s" % outfullpath)
