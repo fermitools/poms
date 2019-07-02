@@ -1,11 +1,14 @@
 # h2. Module webservice.poms_service
 #
 # This module attaches all the webservice methods to
-# the cherrypy instance, via the mount call in source:webservice/service.py
+# the cherrypy instance, via the mount call in &l=webservice/service.py&
 # the methods call out to one of the POMS logic modules, and
 # generally either use jinja2 templates to render the results, or
 # use the cherrypy @cherrypy.tools.json_out() decorator to
 # yeild the result in JSON.
+#
+# Most of the calls use the @poms_method(...) decorator defined in
+# &l=webservice/poms_method.py&
 #
 # h2. Administrivia
 #
