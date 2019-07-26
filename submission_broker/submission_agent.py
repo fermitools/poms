@@ -379,6 +379,18 @@ class Agent:
             # submissions we used to see, but don't anymore...
             for id in missing:
 
+                #
+                # see if we can look up the individual submission
+                # if so, it isn't really gone, it just hasn't had an
+                # event lately...
+                #
+                if self.known.["jobsub_job_id"].get(id):
+                    entry = self.get_individual_submission(self.known["jobsub_job_id"][id])
+                    if entry and not entry["done"]:
+                        thispass.add(id)
+                        self.strikes[id] = 0
+                        continue
+
                 if self.strikes.get(id, 0) < 3:
                     # must have 3 strikes in a row
                     self.strikes[id] = self.strikes.get(id, 0) + 1
