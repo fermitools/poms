@@ -12,10 +12,12 @@ from .poms_model import Experimenter
 
 
 class UtilsPOMS:
+    # h3. __init__
     def __init__(self, ps):
         self.poms_service = ps
 
     # this method was deleted from the main script
+    # h3. handle_dates
     def handle_dates(self, ctx, baseurl):
         """
         tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange = self.handle_dates(tmax, tdays, name)
@@ -77,11 +79,13 @@ class UtilsPOMS:
 
         return (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays)
 
+    # h3. quick_search
     def quick_search(self, ctx, search_term):
         search_term = search_term.strip()
         search_term = search_term.replace("*", "%")
         raise ctx.HTTPRedirect("%s/search_campaigns?search_term=%s" % (self.poms_service.path, search_term))
 
+    # h3. get
     def getSavedExperimentRole(self, ctx):
         experiment, role = (
             ctx.db.query(Experimenter.session_experiment, Experimenter.session_role)
@@ -90,11 +94,13 @@ class UtilsPOMS:
         )
         return experiment, role
 
+    # h3. update_session_experiment
     def update_session_experiment(self, ctx, session_experiment, **kwargs):
         fields = {"session_experiment": session_experiment}
         ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).update(fields)
         ctx.db.commit()
 
+    # h3. update_session_role
     def update_session_role(self, ctx, session_role, **kwargs):
 
         ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).update({"session_role": session_role})

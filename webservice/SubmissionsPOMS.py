@@ -47,6 +47,7 @@ from .SAMSpecifics import sam_project_checker, sam_specifics
 #
 # utility function for running commands that don's run forever...
 #
+# h3. popen_read_with_timeout
 def popen_read_with_timeout(cmd, totaltime=30):
 
     origtime = totaltime
@@ -77,6 +78,7 @@ def popen_read_with_timeout(cmd, totaltime=30):
 
 
 class SubmissionsPOMS:
+    # h3. __init__
     def __init__(self, ps):
         self.poms_service = ps
         # keep some status vales around so we don't have to look them up...
@@ -85,6 +87,7 @@ class SubmissionsPOMS:
         self.status_Completed = None
         self.status_New = None
 
+    # h3. init_statuses
     def init_statuses(self, ctx):
         if self.init_status_done:
             return
@@ -94,6 +97,7 @@ class SubmissionsPOMS:
         self.status_New = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()[0]
         self.init_status_done = True
 
+    # h3. session_status_history
     def session_status_history(self, ctx, submission_id):
         """
            Return history rows
@@ -112,6 +116,7 @@ class SubmissionsPOMS:
             rows.append({"created": created, "status": status})
         return rows
 
+    # h3. campaign_stage_datasets
     def campaign_stage_datasets(self, ctx):
         self.init_statuses(ctx)
         running = (
@@ -150,6 +155,7 @@ class SubmissionsPOMS:
 
         return res
 
+    # h3. get_submissions_with_status
     def get_submissions_with_status(self, ctx, status_id, recheck_sids=None):
         self.init_statuses(ctx)
         query = (
@@ -166,6 +172,7 @@ class SubmissionsPOMS:
 
         return completed_sids
 
+    # h3. get_file_patterns
     def get_file_patterns(self, s):
         plist = []
 
@@ -189,6 +196,7 @@ class SubmissionsPOMS:
         logit.log("got file pattern list: %s" % repr(plist))
         return plist
 
+    # h3. wrapup_tasks
     def wrapup_tasks(self, ctx):
         # this function call another function that is not in this module, it
         # use a poms_service object passed as an argument at the init.
@@ -284,6 +292,7 @@ class SubmissionsPOMS:
 
     ###
 
+    # h3. get_task_id_for
     def get_task_id_for(
         self,
         ctx,
@@ -369,6 +378,7 @@ class SubmissionsPOMS:
         ctx.db.commit()
         return s.submission_id
 
+    # h3. update_submission_status
     def update_submission_status(self, ctx, submission_id, status, when=None):
         self.init_statuses(ctx)
 
@@ -429,6 +439,7 @@ class SubmissionsPOMS:
             s.updated = sh.created
             ctx.db.add(s)
 
+    # h3. mark_failed_submissions
     def mark_failed_submissions(self, ctx):
         """
             find all the recent submissions that are still "New" but more
@@ -493,6 +504,7 @@ class SubmissionsPOMS:
         ctx.db.commit()
         return "\n".join(res)
 
+    # h3. submission_details
     def submission_details(self, ctx, submission_id):
         submission = (
             ctx.db.query(Submission)
@@ -569,6 +581,7 @@ class SubmissionsPOMS:
 
         return submission, history, dataset, rmap, smap, ds, submission_log_format
 
+    # h3. running_submissions
     def running_submissions(self, ctx, campaign_id_list, status_list=["New", "Idle", "Running"]):
 
         cl = campaign_id_list
@@ -609,6 +622,7 @@ class SubmissionsPOMS:
 
         return res
 
+    # h3. force_locate_submission
     def force_locate_submission(self, ctx, submission_id):
         # this doesn't actually mark it located, rather it bumps
         # the timestamp backwards so it will look timed out...
@@ -621,6 +635,7 @@ class SubmissionsPOMS:
         ctx.db.commit()
         return "Ok."
 
+    # h3. update_submission
     def update_submission(self, ctx, submission_id, jobsub_job_id, pct_complete=None, status=None, project=None):
 
         s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).first()
@@ -650,6 +665,7 @@ class SubmissionsPOMS:
         ctx.db.commit()
         return "Ok."
 
+    # h3. launch_dependents_if_needed
     def launch_dependents_if_needed(self, ctx, s):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
 
@@ -699,6 +715,7 @@ class SubmissionsPOMS:
                 self.launch_jobs(ctx, cd.provides_campaign_stage_id, s.creator, dataset_override=dname, test_launch=test_launch)
         return 1
 
+    # h3. launch_recovery_if_needed
     def launch_recovery_if_needed(self, ctx, s, recovery_type_override=None):
         logit.log("Entering launch_recovery_if_needed(%s)" % s.submission_id)
         if not ctx.config_get("poms.launch_recovery_jobs", False):
@@ -760,6 +777,7 @@ class SubmissionsPOMS:
 
         return 0
 
+    # h3. launch_recovery_for
     def launch_recovery_for(self, *kwargs):
         ctx = kwargs["ctx"]
         s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
@@ -780,6 +798,7 @@ class SubmissionsPOMS:
         else:
             raise AssertionError("No recovery needed, launch skipped.")
 
+    # h3. set_job_launches
     def set_job_launches(self, ctx, hold):
 
         experimenter = ctx.get_experimenter()
@@ -797,6 +816,7 @@ class SubmissionsPOMS:
         ctx.db.commit()
         return
 
+    # h3. get_job_launches
     def get_job_launches(self, ctx):
         # keep held launches in campaign stage w/ campaign_stage_id == 0
         c = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == 0).first()
@@ -825,6 +845,7 @@ class SubmissionsPOMS:
 
         return "hold" if c.hold_experimenter_id else "allowed"
 
+    # h3. launch_queued_job
     def launch_queued_job(self, ctx):
         if self.get_job_launches(ctx) == "hold":
             return "Held."
@@ -869,12 +890,14 @@ class SubmissionsPOMS:
         else:
             return "None."
 
+    # h3. has_valid_proxy
     def has_valid_proxy(self, proxyfile):
         logit.log("Checking proxy: %s" % proxyfile)
         res = os.system("voms-proxy-info -exists -valid 0:10 -file %s" % proxyfile)
         logit.log("system(voms-proxy-info... returns %d" % res)
         return os.WIFEXITED(res) and os.WEXITSTATUS(res) == 0
 
+    # h3. get_output_dir_file
     def get_output_dir_file(self, ctx, launch_time, username, campaign_stage_id=None, submission_id=None, test_login_setup=None):
         ds = launch_time.astimezone(utc).strftime("%Y%m%d_%H%M%S")
 
@@ -894,6 +917,7 @@ class SubmissionsPOMS:
 
         return outdir, outfile, outfullpath
 
+    # h3. abort_launch
     def abort_launch(self, ctx, submission_id):
         """
             look in our output file to find if we have a pid and/or
@@ -932,6 +956,7 @@ class SubmissionsPOMS:
 
         return "\n".join(res)
 
+    # h3. launch_jobs
     def launch_jobs(
         self,
         ctx,

@@ -13,9 +13,11 @@ from .poms_model import CampaignStage, Campaign, Tag, CampaignsTag
 
 
 class TagsPOMS:
+    # h3. __init__
     def __init__(self, ps):
         self.poms_service = ps
 
+    # h3. link_tags
     def link_tags(self, ctx, campaign_id, tag_name):
         tag = ctx.db.query(Tag).filter(Tag.tag_name == tag_name, Tag.experiment == ctx.experiment).first()
 
@@ -39,6 +41,7 @@ class TagsPOMS:
         response = {"campaign_id": campaign_id, "tag_id": tag.tag_id, "tag_name": tag.tag_name, "msg": msg}
         return response
 
+    # h3. search_campaigns
     def search_campaigns(self, ctx, search_term):
         query = (
             ctx.db.query(Campaign, CampaignStage)  #
@@ -52,12 +55,14 @@ class TagsPOMS:
         results = query.all()
         return results
 
+    # h3. search_tags
     def search_tags(self, ctx, tag_name):
         q = ctx.db.query(Tag).filter(Tag.tag_name.like(tag_name), Tag.experiment == ctx.experiment).order_by(Tag.tag_name)
         tags = q.all()
         results = [(tag, [c for c in tag.campaigns.order_by(Campaign.name).all()]) for tag in tags]
         return results
 
+    # h3. delete_tag_entirely
     def delete_tag_entirely(self, ctx, ses_get, tag_id):
         tag = ctx.db.query(Tag).filter(Tag.tag_id == tag_id).first()
         if ses_get("experimenter").is_authorized(tag.experiment):
@@ -69,6 +74,7 @@ class TagsPOMS:
             response = {"msg": "You are not authorized to delete tags."}
         return response
 
+    # h3. delete_campaigns_tags
     def delete_campaigns_tags(self, ctx, campaign_id, tag_id, delete_unused_tag=False):
         response = {"msg": "OK"}
         campaign_ids = str(campaign_id).split(",")
@@ -85,6 +91,7 @@ class TagsPOMS:
         ctx.db.commit()
         return response
 
+    # h3. search_all_tags
     def search_all_tags(self, ctx, cl):
         cids = cl.split(",")  # Campaign IDs list
         result = (ctx.db.query(Tag).filter(Tag.campaigns.any(Campaign.campaign_id.in_(cids))).order_by(Tag.tag_name)).all()  #
@@ -94,6 +101,7 @@ class TagsPOMS:
         response = {"result": retval, "msg": "OK"}
         return response
 
+    # h3. auto_complete_tags_search
     def auto_complete_tags_search(self, ctx, q):
         q.replace("*", "%")  # So the unix folks are happy
         response = {}

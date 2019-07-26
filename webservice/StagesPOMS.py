@@ -51,12 +51,14 @@ class StagesPOMS:
        Business logic for CampaignStage related items
     """
 
+    # h3. __init__
     def __init__(self, ps):
         """
             initialize ourself with a reference back to the overall poms_service
         """
         self.poms_service = ps
 
+    # h3. get_campaign_stage_name
     def get_campaign_stage_name(self, ctx, campaign_stage_id):
         """
             return the campaign stage name for a stage id in our experiment
@@ -68,6 +70,7 @@ class StagesPOMS:
         )
         return stage.name if stage else None
 
+    # h3. campaign_stage_edit
     def campaign_stage_edit(self, ctx, **kwargs):
         """
             callback for campaign stage edit screens to update campaign record
@@ -418,6 +421,7 @@ class StagesPOMS:
         data["message"] = message
         return data
 
+    # h3. campaign_stage_edit_query
     def campaign_stage_edit_query(self, ctx, **kwargs):
         """
             return data for a specific stage
@@ -445,6 +449,7 @@ class StagesPOMS:
             data["definition"] = definition
         return json.dumps(data)
 
+    # h3. show_campaign_stages
     def show_campaign_stages(self, ctx, campaign_ids=None, campaign_name=None, **kwargs):
         """
             give campaign information about campaign_stages with activity
@@ -537,6 +542,7 @@ class StagesPOMS:
                 data["authorized"].append(False)
         return campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
 
+    # h3. reset_campaign_split
     def reset_campaign_split(self, ctx, campaign_stage_id):
         """
             reset a campaign_stages cs_last_split field so the sequence
@@ -548,6 +554,7 @@ class StagesPOMS:
         c_s.cs_last_split = None
         ctx.db.commit()
 
+    # h3. campaign_stage_info
     def campaign_stage_info(self, ctx, campaign_stage_id):
         """
            Give information related to a campaign stage for the campaign_stage_info page
@@ -653,6 +660,7 @@ class StagesPOMS:
             recent_submissions,
         )
 
+    # h3. campaign_stage_submissions
     def campaign_stage_submissions(self, ctx, campaign_name="", stage_name="", campaign_stage_id=None, campaign_id=None):
         """
            Show submissions from a campaign stage
@@ -805,6 +813,7 @@ class StagesPOMS:
             i = i + 1
         return data
 
+    # h3. get_dataset_for
     def get_dataset_for(self, ctx, camp):
         """
             use the split_type modules to get the next dataset for
@@ -848,6 +857,7 @@ class StagesPOMS:
         ctx.db.commit()
         return res
 
+    # h3. schedule_launch
     def schedule_launch(self, ctx, campaign_stage_id):
         """
             return crontab info for cron launches for campaign
@@ -867,6 +877,7 @@ class StagesPOMS:
         launch_flist = list(map(os.path.basename, launch_flist))
         return c_s, job, launch_flist
 
+    # h3. mark_campaign_hold
     def mark_campaign_hold(self, ctx, campaign_ids, is_hold):
         session_experimenter = ctx.get_experimenter()
         for campaign in ctx.db.query(Campaign).filter(Campaign.campaign_id.in_(campaign_ids)).all():
@@ -881,6 +892,7 @@ class StagesPOMS:
             ctx.db.add(campaign)
         ctx.db.commit()
 
+    # h3. update_launch_schedule
     def update_launch_schedule(
         self, ctx, campaign_stage_id, dowlist="", domlist="", monthly="", month="", hourlist="", submit="", minlist="", delete=""
     ):

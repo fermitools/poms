@@ -52,12 +52,14 @@ class MiscPOMS:
        Business logic for CampaignStage related items
     """
 
+    # h3. __init__
     def __init__(self, ps):
         """
             initialize ourself with a reference back to the overall poms_service
         """
         self.poms_service = ps
 
+    # h3. login_setup_edit
     def login_setup_edit(self, ctx, **kwargs):
         """
             callback to actually change launch templates from edit screen
@@ -260,6 +262,7 @@ class MiscPOMS:
         data["message"] = message
         return data
 
+    # h3. job_type_edit
     def job_type_edit(self, ctx, **kwargs):
         """
             callback from edit screen/client.
@@ -479,6 +482,7 @@ class MiscPOMS:
         data["message"] = message
         return data
 
+    # h3. get_jobtype_id
     def get_jobtype_id(self, ctx, name):
         """
            lookup job type id for name in current experiment
@@ -488,6 +492,7 @@ class MiscPOMS:
 
         return ctx.db.query(JobType.job_type_id).filter(JobType.experiment == ctx.experiment, JobType.name == name).scalar()
 
+    # h3. get_loginsetup_id
     def get_loginsetup_id(self, ctx, name):
         """
            lookup login setup id by name for current experiment
@@ -499,8 +504,10 @@ class MiscPOMS:
             .scalar()
         )
 
+    # h3. split_type_javascript
     def split_type_javascript(self, ctx):
         class fake_campaign_stage:
+            # h3. __init__
             def __init__(self, dataset="", cs_split_type=""):
                 self.dataset = dataset
                 self.cs_split_type = cs_split_type
@@ -566,6 +573,7 @@ class MiscPOMS:
         rlist.append(";")
         return "\n".join(rlist)
 
+    # h3. get_recovery_list_for_campaign_def
     def get_recovery_list_for_campaign_def(self, ctx, campaign_def):
         """
             return the recovery list for a given campaign_def
@@ -585,6 +593,7 @@ class MiscPOMS:
 
         return rlist
 
+    # h3. snapshot_parts
     def snapshot_parts(self, ctx, s, campaign_stage_id):
 
         cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
@@ -622,6 +631,7 @@ class MiscPOMS:
         ctx.db.add(s)
         ctx.db.commit()
 
+    # h3. get_recoveries
     def get_recoveries(self, ctx, cid):
         """
         Build the recoveries dict for job_types cids
@@ -650,6 +660,7 @@ class MiscPOMS:
         logit.log("get_recoveries(%d) returning %s" % (cid, repr(rec_list)))
         return rec_list
 
+    # h3. fixup_recoveries
     def fixup_recoveries(self, ctx, job_type_id, recoveries):
         """
          fixup_recoveries -- factored out so we can use it

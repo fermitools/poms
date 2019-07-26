@@ -20,10 +20,12 @@ class JobsPOMS:
 
     pending_files_offset = 0
 
+    # h3. __init__
     def __init__(self, poms_service):
         self.poms_service = poms_service
         self.junkre = re.compile(r".*fcl|log.*|.*\.log$|ana_hist\.root$|.*\.sh$|.*\.tar$|.*\.json$|[-_0-9]*$")
 
+    # h3. update_
     def update_SAM_project(self, ctx, j, projname):
         logit.log("Entering update_SAM_project(%s)" % projname)
         sid = j.submission_obj.submission_id
@@ -31,6 +33,7 @@ class JobsPOMS:
         cid = j.submission_obj.campaign_stage_snapshot_obj.campaign_stage_id
         sam_specifics(ctx).update_project_description(projname, "POMS CampaignStage %s Submission %s" % (cid, sid))
 
+    # h3. kill_jobs
     def kill_jobs(self, ctx, campaign_id=None, campaign_stage_id=None, submission_id=None, job_id=None, confirm=None, act="kill"):
         """
             kill jobs from the campaign, stage, or particular submission
@@ -181,6 +184,7 @@ class JobsPOMS:
 
             return output, cs, campaign_stage_id, submission_id, job_id
 
+    # h3. jobtype_list
     def jobtype_list(self, ctx, name=None, full=None):
         """
             Return list of all jobtypes for the experiment.

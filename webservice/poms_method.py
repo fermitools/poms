@@ -1,17 +1,26 @@
-from .Ctx import Ctx
-from .poms_model import CampaignStage, Submission, Experiment, LoginSetup, Base, Experimenter
-from jinja2 import Environment, PackageLoader
+"""
+poms_method.py -- poms_method decorator , error rewriter, json encoder
+"""
+# h2. Imports
+
+# h3. externals
 import cherrypy
-import jinja2.exceptions
-import json
-import logging
 import sqlalchemy.exc
 from sqlalchemy.inspection import inspect
+from jinja2 import Environment, PackageLoader
+import jinja2.exceptions
+
+# h3. std python
+import json
+import logging
 
 # mostly so we can pass them to page templates...
 import datetime
 import time
 
+# h3. locals
+from .Ctx import Ctx
+from .poms_model import CampaignStage, Submission, Experiment, LoginSetup, Base, Experimenter
 from . import (
     CampaignsPOMS,
     DBadminPOMS,
@@ -25,6 +34,11 @@ from . import (
     logit,
     version,
 )
+
+# h2. Error rewrite -- catch assorted errors, and make a short message
+# for users; want to redo this to pass the short  message and the
+# stack trace, and have the error page templates show part of message
+# and unfold it if requested...
 
 
 def error_rewrite(f):
@@ -63,6 +77,11 @@ def error_rewrite(f):
     return wrapper
 
 
+# h2. JSONORMEncoder -- a json encoder class that also expands sqlalchemy
+# ORM objects, so we can just take whatever dictionaries we would send to
+# the jinja template expander and return it as JSON.
+
+
 class JSONORMEncoder(json.JSONEncoder):
     # This will show up as an error in pylint.   Appears to be a bug in pylint, so its disabled:
     #    pylint #89092 @property.setter raises an E0202 when attribute is set
@@ -92,6 +111,9 @@ class JSONORMEncoder(json.JSONEncoder):
             return obj.strftime("%Y-%m-%dT%H:%M:%S")
 
         return super(JSONORMEncoder, self).default(obj)
+
+
+# h2. The actual poms_method decorator, the docstring covers the parameters
 
 
 def poms_method(
