@@ -88,7 +88,7 @@ class sam_specifics:
 
         return nfiles, rname
 
-    def dependency_definition(self, s, cd, i):
+    def dependency_definition(self, s, jobtype, i):
 
         # definitions for analysis users have to have the username in them
         # so they can define them in the job, we have to follow the same
@@ -98,23 +98,28 @@ class sam_specifics:
         else:
             dname = "poms_depends_%d_%d" % (s.submission_id, i)
 
-        if s.campaign_stage_obj.campaign_stage_type in ("approval", "datatransfer"):
-            return s.submission_params.get("dataset", dname)
-
         if s.campaign_stage_obj.campaign_stage_type == "generator":
             # if we're a generator, the previous stage should have declared it
             return dname
 
-        if cd.file_patterns.find(" ") > 0:
+        if jobtype.file_patterns.find(" ") > 0:
             # it is a dimension fragment, not just a file pattern
-            dim_bits = cd.file_patterns
+            dim_bits = jobtype.file_patterns
         else:
-            dim_bits = "file_name like '%s'" % cd.file_patterns
+            dim_bits = "file_name like '%s'" % jobtype.file_patterns
         cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
-        dims = "ischildof: (snapshot_for_project_name %s) and version %s and create_date > '%s' and %s" % (
-            s.project,
-            s.campaign_stage_snapshot_obj.software_version,
-            cdate,
+
+        if s.campaign_stage_obj.campaign_stage_type in ("approval", "datatransfer"):
+            basedims = 'defname:%s' %  s.submission_params.get("dataset", dname)
+        else:
+            basedims =  "ischildof: (snapshot_for_project_name %s) and version %s and create_date > '%s'" % (
+                s.project,
+                s.campaign_stage_snapshot_obj.software_version,
+                cdate,
+            )
+
+        dims = "%s and %s" % (
+            basedims,
             dim_bits,
         )
 
