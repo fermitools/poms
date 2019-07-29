@@ -968,6 +968,7 @@ class SubmissionsPOMS:
         test_login_setup=None,
         test_launch=False,
         output_commands=False,
+        parent=None
     ):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id))
@@ -1024,21 +1025,6 @@ class SubmissionsPOMS:
             if not cs:
                 raise KeyError("CampaignStage id %s not found" % campaign_stage_id)
 
-            if cs.campaign_stage_type == "approval":
-                # special case for approval -- don't need to really launch...
-                sid = self.get_task_id_for(
-                    ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time
-                )
-                self.update_submission_status(ctx, sid, "Awaiting Approval")
-                outdir, outfile, outfullpath = self.get_output_dir_file(ctx, launch_time, ctx.username, campaign_stage_id, sid)
-                lcmd = "await_approval"
-                logit.log("trying to record launch in %s" % outfullpath)
-                if not os.path.isdir(outdir):
-                    os.makedirs(outdir)
-                f = open(outfullpath, "w")
-                f.write("Set submission_id %s to status 'Awaiting Approval'" % sid)
-                f.close()
-                return lcmd, cs, campaign_stage_id, outdir, outfile
 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
@@ -1183,10 +1169,27 @@ class SubmissionsPOMS:
             pdict["dataset"] = dataset
         if test_launch:
             pdict["test"] = 1
+        if parent:
+            pdict["parent"] = parent
+      
+        ctx.db.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict})
 
-        if test_launch or dataset_override:
-            ctx.db.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict})
+        if cs.campaign_stage_type == "approval":
+            # special case for approval -- don't need to really launch...
+            self.update_submission_status(ctx, sid, "Awaiting Approval")
             ctx.db.commit()
+
+            outdir, outfile, outfullpath = self.get_output_dir_file(ctx, launch_time, ctx.username, campaign_stage_id, sid)
+            lcmd = "await_approval"
+            logit.log("trying to record launch in %s" % outfullpath)
+            if not os.path.isdir(outdir):
+                os.makedirs(outdir)
+            f = open(outfullpath, "w")
+            f.write("Set submission_id %s to status 'Awaiting Approval'" % sid)
+            f.close()
+            return lcmd, cs, campaign_stage_id, outdir, outfile
+
+        ctx.db.commit()
 
         cmdl = [
             "exec 2>&1",

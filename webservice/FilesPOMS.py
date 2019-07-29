@@ -141,7 +141,7 @@ class FilesStatus:
                         "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s"
                         % (cs.experiment, cs.experiment, s.project),
                     ],
-                    [s.launch_params and s.launch_params.get("dataset", "-") or "-"],
+                    [  s.submission_params and s.submission_params.get('dataset','-') or '-' ],
                     [s.created.strftime("%Y-%m-%d %H:%M"), None],
                     [output_list[i], listfiles % output_files[i]],
                     [psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],

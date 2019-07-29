@@ -94,11 +94,11 @@ data.depth:
             {% elif rec.status == 'Awaiting Approval' %}
                 <i class="ui pause icon grey"></i>&nbsp;
                 <i class="ui play icon grey"></i>&nbsp;
-                <a onclick="confirm_call('Are you sure you want to UnApprove ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Removed&redirect=1')" title="UnApprove">
+                <a onclick="confirm_call('Are you sure you want to UnApprove ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Removed')" title="UnApprove">
                 <i class="ui trash icon blue"></i>
                 </a>
                 <i class="ui forward icon  grey"></i>&nbsp;
-                <a onclick="confirm_call('Are you sure you want to approve ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed&redirect=1')" title="Approve">
+                <a onclick="confirm_call('Are you sure you want to approve ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed')" title="Approve">
                 <i class="ui checkmark icon blue"></i>
                 </a>
             {% else %}
