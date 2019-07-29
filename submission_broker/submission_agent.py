@@ -170,7 +170,7 @@ class Agent:
             headers=self.submission_headers,
         )
         ddict = postresult.json()
-        LOGIT.info("submission %s data: %s", jobsubjobid, repr(ddict))
+        LOGIT.info("individual submission %s data: %s", jobsubjobid, repr(ddict))
         postresult.close()
 
         if ddict.get("errors", None) != None:
