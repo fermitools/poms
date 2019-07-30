@@ -100,14 +100,20 @@ class SATool(cherrypy.Tool):
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
         try:
-            self.session.execute("SET SESSION lock_timeout = '360s';")
-            self.session.execute("SET SESSION statement_timeout = '240s';")
-            self.session.commit()
+            # Disabiling pylint false positives
+            self.session.execute("SET SESSION lock_timeout = '360s';")  # pylint: disable=E1101
+            self.session.execute("SET SESSION statement_timeout = '240s';")  # pylint: disable=E1101
+            self.session.commit()  # pylint: disable=E1101
         except sqlalchemy.exc.UnboundExecutionError:
+            # restart database connection
+            cherrypy.engine.stop()
+            cherrypy.engine.start()
+            cherrypy.engine.publish("bind", self.session)
+            cherrypy.request.db = self.session
             self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
-            self.session.execute("SET SESSION lock_timeout = '360s';")
-            self.session.execute("SET SESSION statement_timeout = '240s';")
-            self.session.commit()
+            self.session.execute("SET SESSION lock_timeout = '360s';")  # pylint: disable=E1101
+            self.session.execute("SET SESSION statement_timeout = '240s';")  # pylint: disable=E1101
+            self.session.commit()  # pylint: disable=E1101
 
     def release_session(self):
         # flushing here deletes it too soon...
@@ -139,18 +145,6 @@ class SessionTool(cherrypy.Tool):
         pass
 
 
-#
-# non ORM class to cache an experiment
-#
-class SessionExperiment:
-    def __init__(self, exp):
-        self.experiment = exp.experiment
-        self.name = exp.name
-        self.logbook = exp.logbook
-        self.snow_url = exp.snow_url
-        self.restricted = exp.restricted
-
-
 def urlencode_filter(s):
     if isinstance(s, Markup):
         s = s.unescape()
@@ -161,6 +155,11 @@ def urlencode_filter(s):
 
 def augment_params():
     e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == get_user()).first()
+    if not e:
+        raise cherrypy.HTTPError(
+            401, "POMS account does not exist for %s.  To be added you must registered in FERRY." % get_user()
+        )
+
     roles = ["analysis", "production", "superuser"]
     exps = {}
     e2e = None
@@ -240,7 +239,8 @@ def parse_command_line():
 
 
 # if __name__ == '__main__':
-if True:
+run_it = True
+if run_it:
 
     configfile = "poms.ini"
     parser, args = parse_command_line()

@@ -5,13 +5,11 @@ from . import logit
 
 
 def get_version():
-    codedir = os.path.abspath(os.getcwd())
+    codedir = os.environ["POMS_DIR"]
     version = "unknown"
     try:
         devnull = open("/dev/null", "w")
-        proc = subprocess.Popen(
-            ["git", "describe", "--tags", "--abbrev=0"], cwd=codedir, stdout=subprocess.PIPE, stderr=devnull
-        )
+        proc = subprocess.Popen(["git", "describe", "--tags", "--abbrev=0"], cwd=codedir, stdout=subprocess.PIPE, stderr=devnull)
         version = proc.stdout.read()
         devnull.close()
         proc.wait()

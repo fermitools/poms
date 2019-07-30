@@ -14,7 +14,15 @@ parser.add_option('--dev', action='store_const', const='dev', dest='test', metav
 parser.add_option('--int', action='store_const', const='int', dest='test', metavar='', help='use the int/integration instance of POMS')
 parser.add_option('--verbose', action='store_true', help="be verbose", default = None)
 parser.add_option('--proxy', action='store_true', help='upload a proxy', default=None)
+parser.add_option('--refresh', action='store_true', help='upload proxy only if stale', default=None)
+
 (options, args ) = parser.parse_args()
+
+if options.refresh:
+    # run refresh in background, so as not to slow down logins
+    # should we also write errors on a /tmp file or something?
+    if os.fork():
+         sys.exit(0)
 
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
@@ -22,9 +30,19 @@ if options.verbose:
 try:
 
     if options.proxy:
+
+        if options.refresh:
+             if not poms_client.check_stale_proxy(options):
+                 if options.verbose:
+                      logging.info("POMS proxy less than 3 days old.. leaving it alone.")
+                 sys.exit(0)
+             else:
+                 logging.info("POMS proxy stale, continuing..")
+
         proxyfile = "/tmp/x509up_voms_%s_%s_%s" % (options.experiment, options.poms_role.capitalize(),os.environ.get('GRID_USER',os.environ.get('USER','unknown')) )
         if os.environ.get('X509_USER_PROXY', None):
              os.system("cp $X509_USER_PROXY %s" % proxyfile)
+             os.system("cigetcert -n -s fifebatch.fnal.gov")
         else:
              try:
                  os.unlink(proxyfile)
@@ -38,21 +56,26 @@ try:
              os.system("cp %s %s" % (ipf, proxyfile))
         args.append(proxyfile)
         os.system("chmod 400 %s" % proxyfile)
-        os.system('myproxy-store -c %s -y %s -s myproxy.fnal.gov -xZ "/DC=org/DC=opensciencegrid/O=Open Science Grid/OU=Services/CN=fifebatch.fnal.gov" -t 24 -l "`openssl x509 -in %s -noout -subject | cut -d " " -f 2-`"' % (proxyfile, proxyfile,proxyfile))
-             
+        os.system("cigetcert -v -n -s fifebatch.fnal.gov")
+        #os.system('myproxy-store -c %s -y %s -s myproxy.fnal.gov -xZ "/DC=org/DC=incommon/C=US/ST=IL/L=Batavia/O=Fermi Research Alliance/OU=Fermilab/CN=fifebatch.fnal.gov" -t 24 -l "`openssl x509 -in %s -noout -subject | cut -d " " -f 2-`"' % (proxyfile, proxyfile,proxyfile))
+except SystemExit:
+    pass
 except:
     logging.exception(sys.argv[0] + ": while getting proxy:")
-    os.exit(1)
+    sys.exit(1)
 
 try:
     poms_client.update_session_experiment(options.experiment, test_client=options.test)
     poms_client.update_session_role(options.poms_role, test_client=options.test)
+
 
     for f in args:
          logging.debug("uploading: %s " % f)
          poms_client.upload_file(f, test=options.test)
          print("uploaded: %s to POMS server" % f) 
 
+except SystemExit:
+    pass
 except:
     logging.exception(sys.argv[0])
     sys.exit(1)

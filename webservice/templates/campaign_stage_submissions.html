@@ -26,6 +26,21 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
 {%endblock%}
 
 {%block content%}
+<!-- 
+data.depends:
+{{data.depends}}
+data.depth:
+{{data.depth}}
+-->
+<script>
+ function confirm_call(msg, url) {
+         var r = confirm(msg);
+     if ( r ) {
+         location.assign(url)
+     }
+ }
+</script>
+
 <script>
  function confirm_call(msg, url) {
          var r = confirm(msg);
@@ -38,11 +53,10 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
     <table class="ui sortable celled table">
         <thead>
             <tr>
-                {%if data.stage_name=='*' %}
                 <th>Stage Name</th>
-                {%endif%}
                 <th>Submission Id</th>
                 <th>Jobsub Id</th>
+                <th>Availble Output</th>
                 <th>Commands</th>
                 <th>Status (History/Current)</th>
                 <th>Submitted</th>
@@ -52,36 +66,39 @@ Campaign Stage:&nbsp;&nbsp; {{data.stage_name}}
         <tbody>
         {% for rec in data.submissions %}
         <tr>
-            {%if data.stage_name=='*' %}
-            <td>{{rec.campaign_stage_name}}</td>
-            {%endif%}
+            <td>{{"&nbsp;"*(2*data.depth[rec.submission_id])}}{{rec.campaign_stage_name}}</td>
             <td>{{rec.submission_id}}</td>
             <td>
-                <a href="{{pomspath}}/submission_details/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}" target='_blank'>
+                <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" target='_blank'>
                     {{rec.jobsub_job_id}}
                 </a>
             </td>
             <td>
+               <a href="{{pomspath}}/show_dimension_files/{{session_experiment}}/{{session_role}}?dims={{rec.output_dims}}">
+               {{rec.available_output}}
+               </a>
+            </td>
+            <td>
             {% if rec.status in ('New', 'Idle', 'Running', 'Held') %}
-                <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=hold" title="Hold"><i class="ui pause icon"></i></a>&nbsp;
-                <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=release" title="Release"><i class="ui play icon"></i></a>&nbsp;
-                <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}&act=kill" title="Kill"><i class="ui trash icon"></i></a>
+                <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}&act=hold" title="Hold"><i class="ui pause icon"></i></a>&nbsp;
+                <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}&act=release" title="Release"><i class="ui play icon"></i></a>&nbsp;
+                <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}&act=kill" title="Kill"><i class="ui trash icon"></i></a>
                 <i class="ui forward icon  grey"></i>&nbsp;
                 <i class="ui checkmark icon  grey"></i>&nbsp;
             {% elif rec.status == 'Completed' %}
                 <i class="ui pause icon grey"></i>&nbsp;
                 <i class="ui play icon grey"></i>&nbsp;
                 <i class="ui trash icon grey"></i>&nbsp;
-                <a href="{{pomspath}}/force_locate_submission/{{experiment}}/{{role}}?submission_id={{rec.submission_id}}" title="Skip ahead to Located"><i class="ui forward icon"></i></a>
+                <a href="{{pomspath}}/force_locate_submission/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" title="Skip ahead to Located"><i class="ui forward icon"></i></a>
                 <i class="ui checkmark icon  grey"></i>&nbsp;
             {% elif rec.status == 'Awaiting Approval' %}
                 <i class="ui pause icon grey"></i>&nbsp;
                 <i class="ui play icon grey"></i>&nbsp;
-                <a onclick="confirm_call('Are you sure you want to UnApprove ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Removed&redirect=1')" title="UnApprove">
+                <a onclick="confirm_call('Are you sure you want to UnApprove ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Removed')" title="UnApprove">
                 <i class="ui trash icon blue"></i>
                 </a>
                 <i class="ui forward icon  grey"></i>&nbsp;
-                <a onclick="confirm_call('Are you sure you want to approve ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed&redirect=1')" title="Approve">
+                <a onclick="confirm_call('Are you sure you want to approve ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed')" title="Approve">
                 <i class="ui checkmark icon blue"></i>
                 </a>
             {% else %}

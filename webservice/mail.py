@@ -10,7 +10,7 @@ class Mail:
         self.server, self.sender, self.debug = self.__get_smtp_info()
 
     def __get_smtp_info(self):
-        logit.log("Mail: in %s" % os.getcwd())
+        logit.log("Mail: in %s" % os.environ["POMS_DIR"])
         config = configparser.ConfigParser()
         config.read("../webservice/poms.ini")
         server = config.get("smtp", "server").strip('"')

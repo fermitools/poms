@@ -13,7 +13,9 @@ Confirm {{act}} request {%include 'help_button.html'%}
 
 {%block subheader%}
 {%endblock%}
-
+{%if output is defined and not what is defined %}
+{%set what = output %}
+{%endif%}
 
 
 {%block content %}
@@ -29,11 +31,11 @@ Confirm {{act}} request {%include 'help_button.html'%}
     ? <br>
   <a href=
      {% if campaign_id %}
-     "{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?confirm=y&campaign_id={{campaign_id}}&act={{act}}"
+     "{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?confirm=y&campaign_id={{campaign_id}}&act={{act}}"
      {% elif campaign_stage_id %}
-     "{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?confirm=y&campaign_stage_id={{campaign_stage_id}}&act={{act}}"
+     "{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?confirm=y&campaign_stage_id={{campaign_stage_id}}&act={{act}}"
      {% elif submission_id %}
-       "{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?confirm=y&submission_id={{submission_id}}&act={{act}}"
+       "{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?confirm=y&submission_id={{submission_id}}&act={{act}}"
      {% endif %}
    >
       <button class="ui button">

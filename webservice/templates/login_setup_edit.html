@@ -27,10 +27,6 @@
 
 {%block content%}
 
-{% macro show_hint(anchor, hint) %}
-    {# {% include 'help_button.html' %} task #21477 #}
-{% endmacro %}
-
 
 <form id="login_setup_form" class="ui form" action="login_setup_edit" method="POST">
 
@@ -120,7 +116,7 @@
 <div class="ui modal" id="template_add_edit_modal">
   <i class="close icon"></i>
   <h3 class="block header"><span id="template_header">
-    Login/Setup Editor </span> {% include 'help_button.html' %}
+    Login/Setup Editor </span> {{ show_hint('#Compose-a-loginsetup-script', 'Edit template') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
@@ -176,7 +172,7 @@ $('#template_add_edit_form')
     fields: {
       ae_launch_name      : {rules: [{type: 'empty',prompt: 'field cannot be blank'}]},
       ae_launch_host      : {rules: [{type: 'regExp',
-                                      value: /{{session_experiment|replace('samdev','.*')}}|pomsint|pomsgpvm01|fermicloud045/i,
+                                      value: /{{session_experiment|replace('samdev','.*')}}|fermicloudmwm02|pomsgpvm01|fermicloud045/i,
                                       prompt: 'Please enter a hostname with {{session_experiment}} in it'
                                       },
                                      {type: 'empty', prompt: 'Host cannot be blank'}]},

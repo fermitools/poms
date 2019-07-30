@@ -3,8 +3,8 @@
 /* utility function bundle */
 
 function mwm_utils() {
-   /* constructor does nothing... */
-   return;
+    /* constructor does nothing... */
+    return;
 }
 
 /* static functions for use elsewhere */
@@ -12,7 +12,9 @@ function mwm_utils() {
 /* get url search parameters (i.e after "?" on url) */
 mwm_utils.getSearchParams = function () {
     var p = {};
-    location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (s, k, v) { p[k] = v });
+    location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (s, k, v) {
+        p[k] = v
+    });
     return p;
 }
 
@@ -54,29 +56,32 @@ mwm_utils.dict_keys = function (d) {
 
 /* return string without leading/traling blanks */
 mwm_utils.trim_blanks = function (s) {
-/*     var i, j;
-    i = 0;
-    if (s === undefined) {
-        return '';
-    }
-    j = s.length;
-    while (s[i] == ' ') {
-        i++;
-    }
-    while (s[j - 1] == ' ') {
-        j--;
-    }
-    return s.slice(i, j);
- */
+    /*     var i, j;
+        i = 0;
+        if (s === undefined) {
+            return '';
+        }
+        j = s.length;
+        while (s[i] == ' ') {
+            i++;
+        }
+        while (s[j - 1] == ' ') {
+            j--;
+        }
+        return s.slice(i, j);
+     */
     return (typeof s === 'undefined' ? '' : s.trim());
 }
 
 mwm_utils.formFields = function (el) {
-    return $(el).find('input,select').toArray().map(x => [x.name, x.value]).reduce((a, v) => ({...a, [v[0]]: v[1]}), {});
+    return $(el).find('input,select').toArray().map(x => [x.name, x.value]).reduce((a, v) => ({
+        ...a,
+        [v[0]]: v[1]
+    }), {});
 }
 
 mwm_utils.hashCode = function (str) {
-    return str.split('').reduce((prevHash, currVal) => (((prevHash << 5) - prevHash) + currVal.charCodeAt(0))|0, 0).toString(16);
+    return str.split('').reduce((prevHash, currVal) => (((prevHash << 5) - prevHash) + currVal.charCodeAt(0)) | 0, 0).toString(16);
 };
 
 /* gui editor itself
@@ -113,11 +118,11 @@ function gui_editor(toptag) {
 
 /* static vars */
 
-    gui_editor.body = document.body;
-    gui_editor.network = null;
+gui_editor.body = document.body;
+gui_editor.network = null;
 
 /* aforementioned instance list */
-    // gui_editor.instance_list = [];
+// gui_editor.instance_list = [];
 
 /* static methods */
 
@@ -149,11 +154,15 @@ gui_editor.redraw_all_deps = function () {
 }
 
 /* make form visible/invisible, save on invis */
-gui_editor.toggle_form = function(id) {
+gui_editor.toggle_form = function (id) {
     const form = document.getElementById(id);
     const ff = mwm_utils.formFields(form);
     const nhash = mwm_utils.hashCode(JSON.stringify(ff));
     const ohash = $(form).attr('data-hash');
+
+    if (!json_field_editor.validate_percent_formats(id)) {
+        return;
+    }
 
     if (nhash !== ohash)
         gui_editor.modified();
@@ -162,24 +171,31 @@ gui_editor.toggle_form = function(id) {
         // Closing the form
         if (form.parentNode && form.parentNode.gui_box) {
             form.parentNode.gui_box.save_values();
-            if (!id.includes('dependency')) {                   // For any component excluding dependencies
+            if (!id.includes('dependency')) { // For any component excluding dependencies
                 // var nm = id.split(' ')[1];                      // Extract component name
-                var nm = id.replace(/.*? /, '');                      // Extract component name
+                var nm = id.replace(/.*? /, ''); // Extract component name
                 const m = id.match(/campaign |job_type |login_setup /);
-                const nname = m ? `${m[0]}${nm}` : nm;          // build node name
+                const nname = m ? `${m[0]}${nm}` : nm; // build node name
                 if (gui_editor.network.body.data.nodes.get(nname)) {
-                    gui_editor.network.body.data.nodes.update({id: nname, label: form.name.value, group: form.job_type.value});        // update label
+                    gui_editor.network.body.data.nodes.update({
+                        id: nname,
+                        label: form.name.value,
+                        group: form.job_type.value
+                    }); // update label
                 } else if (gui_editor.aux_network.body.data.nodes.get(nname)) {
-                    gui_editor.aux_network.body.data.nodes.update({id: nname, label: form.name.value});    // update label
+                    gui_editor.aux_network.body.data.nodes.update({
+                        id: nname,
+                        label: form.name.value
+                    }); // update label
                 }
             }
         }
-        form.style.display = 'none';        // Hide the form
+        form.style.display = 'none'; // Hide the form
     } else if (form) {
-        form.style.display = 'block';       // Show the form
+        form.style.display = 'block'; // Show the form
     }
     // Do extra work to use updated/created elements
-    if (id.includes('job_type') && nhash !== ohash) {   // This is job_type and it has been modified
+    if (id.includes('job_type') && nhash !== ohash) { // This is job_type and it has been modified
         let name = form.name.value;
         let username;
         new wf_uploader().get_headers(
@@ -188,7 +204,9 @@ gui_editor.toggle_form = function(id) {
                 username = headers['X-Shib-Userid'] || 'mengel';
             }
         ).then(
-            new wf_uploader().make_poms_call('get_jobtype_id', {name: `${name}`}).then(
+            new wf_uploader().make_poms_call('get_jobtype_id', {
+                name: `${name}`
+            }).then(
                 (data) => {
                     if (data) {
                         swal(`The JobType '${name}' does exist.\nPlease use a new name!`);
@@ -204,16 +222,16 @@ gui_editor.toggle_form = function(id) {
                     };
                     return name;
                 }).then(
-                    (flag) => {
-                        if (!flag) return;
-                        const $tbody = $("#jt_table");                  // Find containing table
-                        $tbody.attr('data-name', name);                 // Store new name from the form
-                        $tbody.empty();                                 // Clean it up
-                        const nodeIdx = gui_editor.network.body.nodeIndices;
-                        for (const node of nodeIdx) {
-                            const popupName = node.startsWith('campaign ') ?  `fields_${node}` : `fields_campaign_stage ${node}`;
-                            const popupValue = $(`[id='${popupName}']`).find("[name='job_type']")[0].value;
-                            $tbody.append(`<tr>
+                (flag) => {
+                    if (!flag) return;
+                    const $tbody = $("#jt_table"); // Find containing table
+                    $tbody.attr('data-name', name); // Store new name from the form
+                    $tbody.empty(); // Clean it up
+                    const nodeIdx = gui_editor.network.body.nodeIndices;
+                    for (const node of nodeIdx) {
+                        const popupName = node.startsWith('campaign ') ? `fields_${node}` : `fields_campaign_stage ${node}`;
+                        const popupValue = $(`[id='${popupName}']`).find("[name='job_type']")[0].value;
+                        $tbody.append(`<tr>
                                             <td>${node}</td>
                                             <td>${popupValue || 'default'}</td>
                                             <td class="field">
@@ -222,11 +240,11 @@ gui_editor.toggle_form = function(id) {
                                                 </div>
                                             </td>
                                             </tr>`)
-                        }
-                        $('#jt_update_hdr').text(`New name will be '${name}'.`);
-                        $('#jt_update').modal('show');
                     }
-                )
+                    $('#jt_update_hdr').text(`New name will be '${name}'.`);
+                    $('#jt_update').modal('show');
+                }
+            )
         );
     } else if (id.includes('login_setup') && nhash !== ohash) {
         let name = form.name.value;
@@ -237,7 +255,9 @@ gui_editor.toggle_form = function(id) {
                 username = headers['X-Shib-Userid'] || 'mengel';
             }
         ).then(
-            new wf_uploader().make_poms_call('get_loginsetup_id', {name: `${name}`}).then(
+            new wf_uploader().make_poms_call('get_loginsetup_id', {
+                name: `${name}`
+            }).then(
                 (data) => {
                     if (data) {
                         swal(`The LoginSetup '${name}' does exist.\nPlease use a new name!`);
@@ -245,16 +265,16 @@ gui_editor.toggle_form = function(id) {
                     };
                     return name;
                 }).then(
-                    (flag) => {
-                        if (!flag) return;
-                        const $tbody = $("#ls_table");                  // Find containing table
-                        $tbody.attr('data-name', name);                 // Store new name from the form
-                        $tbody.empty();                                 // Clean it up
-                        const nodeIdx = gui_editor.network.body.nodeIndices;
-                        for (const node of nodeIdx) {
-                            const popupName = node.startsWith('campaign ') ?  `fields_${node}` : `fields_campaign_stage ${node}`;
-                            const pupupValue = $(`[id='${popupName}']`).find("[name='login_setup']")[0].value;
-                            $tbody.append(`<tr>
+                (flag) => {
+                    if (!flag) return;
+                    const $tbody = $("#ls_table"); // Find containing table
+                    $tbody.attr('data-name', name); // Store new name from the form
+                    $tbody.empty(); // Clean it up
+                    const nodeIdx = gui_editor.network.body.nodeIndices;
+                    for (const node of nodeIdx) {
+                        const popupName = node.startsWith('campaign ') ? `fields_${node}` : `fields_campaign_stage ${node}`;
+                        const pupupValue = $(`[id='${popupName}']`).find("[name='login_setup']")[0].value;
+                        $tbody.append(`<tr>
                                             <td>${node}</td>
                                             <td>${pupupValue || 'default'}</td>
                                             <td class="field">
@@ -263,11 +283,11 @@ gui_editor.toggle_form = function(id) {
                                                 </div>
                                             </td>
                                             </tr>`)
-                        }
-                        $('#ls_update_hdr').text(`New name will be '${name}'.`);
-                        $('#ls_update').modal('show');
                     }
-                )
+                    $('#ls_update_hdr').text(`New name will be '${name}'.`);
+                    $('#ls_update').modal('show');
+                }
+            )
         );
     }
 }
@@ -338,7 +358,7 @@ gui_editor.drop_handler = function (ev) {
  * dragover_handler:
  * apparently one needs this so dragging works.. cargo cult
  */
-gui_editor.dragover_handler = function(ev) {
+gui_editor.dragover_handler = function (ev) {
     ev = ev || window.event;
     ev.preventDefault();
 }
@@ -348,7 +368,7 @@ gui_editor.dragover_handler = function(ev) {
  * add to the actual DOM object to find our generic_box object
  * and passes the message on to it -- after a confirm
  */
-gui_editor.delete_me = function(id) {
+gui_editor.delete_me = function (id) {
     console.log("trying to delete: " + id);
     var err;
     var e = document.getElementById(id);
@@ -358,10 +378,10 @@ gui_editor.delete_me = function(id) {
     try {
         if (window.confirm("Are you sure you want to delete " + id + "?")) {
             e.gui_box.delete_me();
-        }  else {
-           console.log("declined..");
+        } else {
+            console.log("declined..");
         }
-    } catch(err) {
+    } catch (err) {
         console.log(err);
     }
     return "ok";
@@ -415,8 +435,10 @@ gui_editor.prototype.exportNetwork = function () {
         const hval = mwm_utils.hashCode(JSON.stringify(ff));
         const oval = $(el).attr('data-hash');
         //
-        const get_label = (nid) => gui_editor.network.body.data.nodes.get(nid).label;                   // Get node label by its ID
-        const obj_from_entries = arr => Object.assign({}, ...Array.from(arr, ([k, v]) => ({[k]: v}) ));     // Build the object from array of [key, value] entries
+        const get_label = (nid) => gui_editor.network.body.data.nodes.get(nid).label; // Get node label by its ID
+        const obj_from_entries = arr => Object.assign({}, ...Array.from(arr, ([k, v]) => ({
+            [k]: v
+        }))); // Build the object from array of [key, value] entries
         // Node postions
         const pp = gui_editor.network.getPositions();
         // Modified positions with labels instead of IDs
@@ -442,26 +464,29 @@ gui_editor.prototype.exportNetwork = function () {
     // nodes.forEach(addConnections);
 
     var edges = Object.entries(gui_editor.network.body.edges)
-                        .map(e => {
-                                    const ename = `fields_${e[0]}`;
-                                    const el = document.getElementById(ename);
-                                    //VP~ const ff = $(el).find('input').toArray().map(x => [x.name, x.value]).reduce((a, v) => ({...a, [v[0]]: v[1]}), {});
-                                    const ff = mwm_utils.formFields(el);
-                                    const hval = mwm_utils.hashCode(JSON.stringify(ff));
-                                    const oval = $(el).attr('data-hash');
-                                    return {
-                                        id: e[0],
-                                        //fromId:e[1].fromId,
-                                        //toId:e[1].toId,
-                                        fromId:e[1].from.options.label,
-                                        toId:e[1].to.options.label,
-                                        clean: hval === oval ? true : false,
-                                        form: ff
-                                    }
-                            }
-                        );
+        .map(e => {
+            const ename = `fields_${e[0]}`;
+            const el = document.getElementById(ename);
+            //VP~ const ff = $(el).find('input').toArray().map(x => [x.name, x.value]).reduce((a, v) => ({...a, [v[0]]: v[1]}), {});
+            const ff = mwm_utils.formFields(el);
+            const hval = mwm_utils.hashCode(JSON.stringify(ff));
+            const oval = $(el).attr('data-hash');
+            return {
+                id: e[0],
+                //fromId:e[1].fromId,
+                //toId:e[1].toId,
+                fromId: e[1].from.options.label,
+                toId: e[1].to.options.label,
+                clean: hval === oval ? true : false,
+                form: ff
+            }
+        });
     // pretty print node data
-    var exportValue = JSON.stringify({stages: nodes, dependencies: edges, misc: aux}, undefined, 2);
+    var exportValue = JSON.stringify({
+        stages: nodes,
+        dependencies: edges,
+        misc: aux
+    }, undefined, 2);
     /*
     function addConnections(elem, index) {
         // elem.connections = network.getConnectedNodes(elem.id);
@@ -474,56 +499,58 @@ gui_editor.prototype.exportNetwork = function () {
     const experiment = this.state['campaign']['experiment'];
     const role = this.state['campaign']['poms_role'];
     const wfu = new wf_uploader();
-    return wfu.make_poms_call(`save_campaign/${experiment}/${role}`, {form: exportValue});     // Send to the server
+    return wfu.make_poms_call(`save_campaign/${experiment}/${role}`, {
+        form: exportValue
+    }); // Send to the server
 }
 
-gui_editor.update_jobtypes = function() {
-    const $jt = $("#jt_table");                 // Find the table with checkboxes
-    const nname = $jt.attr('data-name');        // Get a new job_type name
+gui_editor.update_jobtypes = function () {
+    const $jt = $("#jt_table"); // Find the table with checkboxes
+    const nname = $jt.attr('data-name'); // Get a new job_type name
     const cboxes = $jt.find("input[type='checkbox']").toArray();
     console.log('name: ', nname)
-    for (const cb of cboxes) {                  // Walk over checkboxes
+    for (const cb of cboxes) { // Walk over checkboxes
         console.log('id: ', cb.id, 'cb: ', cb.checked);
-        if (cb.checked) {                       // If it is checked
-            const node = cb.id.slice(5);        // Get node name
-            const popupName = node.startsWith('campaign ') ? `fields_${node}` : `fields_campaign_stage ${node}`;    // Create a form name
-            $(`[id='${popupName}']`).find("[name='job_type']").append(`<option selected>${nname}</option>`);                   // Add new selection
+        if (cb.checked) { // If it is checked
+            const node = cb.id.slice(5); // Get node name
+            const popupName = node.startsWith('campaign ') ? `fields_${node}` : `fields_campaign_stage ${node}`; // Create a form name
+            $(`[id='${popupName}']`).find("[name='job_type']").append(`<option selected>${nname}</option>`); // Add new selection
         }
     }
 }
 
-gui_editor.update_loginsetups = function() {
-    const $jt = $("#ls_table");                 // Find the table with checkboxes
-    const nname = $jt.attr('data-name');        // Get a new job_type name
+gui_editor.update_loginsetups = function () {
+    const $jt = $("#ls_table"); // Find the table with checkboxes
+    const nname = $jt.attr('data-name'); // Get a new job_type name
     const cboxes = $jt.find("input[type='checkbox']").toArray();
     console.log('name: ', nname)
-    for (const cb of cboxes) {                  // Walk over checkboxes
+    for (const cb of cboxes) { // Walk over checkboxes
         console.log('id: ', cb.id, 'cb: ', cb.checked);
-        if (cb.checked) {                       // If it is checked
-            const node = cb.id.slice(5);        // Get node name
-            const popupName = node.startsWith('campaign ') ? `fields_${node}` : `fields_campaign_stage ${node}`;    // Create a form name
-            $(`[id='${popupName}']`).find("[name='login_setup']").append(`<option selected>${nname}</option>`);                   // Add new selection
+        if (cb.checked) { // If it is checked
+            const node = cb.id.slice(5); // Get node name
+            const popupName = node.startsWith('campaign ') ? `fields_${node}` : `fields_campaign_stage ${node}`; // Create a form name
+            $(`[id='${popupName}']`).find("[name='login_setup']").append(`<option selected>${nname}</option>`); // Add new selection
         }
     }
 }
 
 /* instance methods */
 
-gui_editor.prototype.extras = function() {
+gui_editor.prototype.extras = function () {
     var k, stages, before, lsjt;
     for (k in this.state) {
         console.log("extras: checking", k)
-        if (k.substr(0,12) == 'login_setup ') {
+        if (k.substr(0, 12) == 'login_setup ') {
             lsjt = k.substr(12)
-            console.log("extras: login_setup ", lsjt )
+            console.log("extras: login_setup ", lsjt)
             this.loginsetups.push(lsjt);
         }
-        if (k.substr(0,9) == 'job_type ') {
+        if (k.substr(0, 9) == 'job_type ') {
             lsjt = k.substr(9)
-            console.log("extras: job_type ", lsjt )
+            console.log("extras: job_type ", lsjt)
             this.jobtypes.push(lsjt);
         }
-   }
+    }
 }
 
 /* rename stages for a workflow clone */
@@ -549,13 +576,13 @@ gui_editor.prototype.clone_rename = function (from, to, experiment, role) {
         console.log("fixing: " + before);
         // after = gui_editor.new_name(before, from, to);
         // this.rename_entity('campaign_stage ' + before, 'campaign_stage ' + after);
-        after = before;     // Keep the stage names the same
+        after = before; // Keep the stage names the same
         new_stages.push(after);
     }
     // this.state['campaign']['campaign_stage_list'] = new_stages.join(' ');
     this.state['campaign']['campaign_stage_list'] = new_stages.join(',');
     if (this.state.node_positions && this.state.node_positions.nxy0) {
-        this.state.node_positions.nxy0 = this.state.node_positions.nxy0.replace(from, to);      // Fix the campaign name in positions
+        this.state.node_positions.nxy0 = this.state.node_positions.nxy0.replace(from, to); // Fix the campaign name in positions
     }
 }
 
@@ -623,14 +650,14 @@ gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment,
 
     this.make_poms_call(`jobtype_list/${experiment}/${role}`)
         .then(prep_jobtype_list)
-        .then( _ => this.make_poms_call(`loginsetup_list/${experiment}/${role}`))
+        .then(_ => this.make_poms_call(`loginsetup_list/${experiment}/${role}`))
         .then(prep_loginsetup_list)
         .then(
             _ => {
                 this.state = JSON.parse(this.ini2json(ini_dump));
                 this.extras();
                 this.clone_rename(from, to, experiment, role);
-                console.log("Cloned State:\n", this.state);    // DEBUG
+                console.log("Cloned State:\n", this.state); // DEBUG
                 this.defaultify_state();
                 this.draw_state();
                 gui_editor.smudge_setups_jobtypes();
@@ -641,21 +668,21 @@ gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment,
 
 gui_editor.smudge_setups_jobtypes = function () {
     /*
- *      * change the hash on all the popups for login_setup/job_type
- *           * so that we think they're changed, and try to save them later
- *                */
+     *      * change the hash on all the popups for login_setup/job_type
+     *           * so that we think they're changed, and try to save them later
+     *                */
     var el, e, id, i, name;
     console.log("smudge_setups_jobtypes: starting");
     el = document.getElementsByClassName("popup_form");
     console.log("el:", el);
-    for (i = 0 ; i < el.length; i++) {
+    for (i = 0; i < el.length; i++) {
         id = el[i].id;
         e = el[i]
-        if ( id.match(/fields_/)) {
-            console.log("trying to mark " , id , " dirty...");
+        if (id.match(/fields_/)) {
+            console.log("trying to mark ", id, " dirty...");
             console.log("before: ", e.attributes['data-hash'])
-            e.setAttribute('data-hash','1')
-            e.setAttribute('data-clean','0')
+            e.setAttribute('data-hash', '1')
+            e.setAttribute('data-clean', '0')
             if (e.parentNode && e.parentNode.gui_box) {
                 e.parentNode.gui_box.save_values();
             }
@@ -688,7 +715,7 @@ gui_editor.prototype.set_state = function (ini_dump, experiment, role) {
 
     this.make_poms_call(`jobtype_list/${experiment}/${role}`)
         .then(prep_jobtype_list)
-        .then( _ => this.make_poms_call(`loginsetup_list/${experiment}/${role}`))
+        .then(_ => this.make_poms_call(`loginsetup_list/${experiment}/${role}`))
         .then(prep_loginsetup_list)
         .then(
             _ => {
@@ -700,10 +727,10 @@ gui_editor.prototype.set_state = function (ini_dump, experiment, role) {
                         text: this.state.message,
                         //footer: '<a href>Why do I have this issue?</a>'
                         footer: 'Hint: check your experiment selection'
-                      });
+                    });
                     return;
                 }
-                console.log("State:\n", this.state);    // DEBUG
+                console.log("State:\n", this.state); // DEBUG
                 this.extras();
                 this.defaultify_state();
                 this.draw_state();
@@ -711,10 +738,13 @@ gui_editor.prototype.set_state = function (ini_dump, experiment, role) {
         );
 }
 
-gui_editor.prototype.defaultify_state = function() {
+gui_editor.prototype.defaultify_state = function () {
     var st, k, j, max, maxslot;
     if (true && this.state.campaign_defaults) {
-        this.mode = { name: this.state.campaign.name, ...this.state.campaign_defaults };
+        this.mode = {
+            name: this.state.campaign.name,
+            ...this.state.campaign_defaults
+        };
     } else {
         st = {};
         this.mode = {}
@@ -744,14 +774,14 @@ gui_editor.prototype.defaultify_state = function() {
             }
             this.mode[j] = maxslot;
         }
-        this.mode.name = this.state.campaign.name;  // 'Name' is special case - store the campaign name!
+        this.mode.name = this.state.campaign.name; // 'Name' is special case - store the campaign name!
     }
     /* now null out whatever is the default */
     for (k in this.state) {
         if (k.startsWith('campaign_stage')) {
             // for (j in this.state[k]) {       // VP Try to merge defaults with the state
             for (j in this.mode) {
-            // for (j in this.state.campaign_defaults) {
+                // for (j in this.state.campaign_defaults) {
                 if (j === 'name')
                     continue;
                 if (!this.state[k][j] || (this.state[k][j] == this.mode[j])) {
@@ -764,7 +794,10 @@ gui_editor.prototype.defaultify_state = function() {
 
 gui_editor.prototype.undefaultify_state = function () {
     var k, j;
-    const this_mode = $(`[id='fields_campaign ${this.mode.name}']`).serializeArray().reduce((a,e) => ({...a, [e.name]: e.value}));
+    const this_mode = $(`[id='fields_campaign ${this.mode.name}']`).serializeArray().reduce((a, e) => ({
+        ...a,
+        [e.name]: e.value
+    }));
     for (k in this.state) {
         if (k.indexOf('campaign_stage') == 0) {
             for (j in this.state[k]) {
@@ -818,7 +851,9 @@ gui_editor.prototype.delete_key_if_empty = function (k, box) {
         stage = k.slice(15);
         // sl = this.state['campaign']['campaign_stage_list'].split(/  */);
         sl = this.state['campaign']['campaign_stage_list'].split(/,+/);
-        sl = sl.filter(function (x) { return x != stage && x != ''; })
+        sl = sl.filter(function (x) {
+            return x != stage && x != '';
+        })
         // this.state['campaign']['campaign_stage_list'] = sl.join(' ')
         this.state['campaign']['campaign_stage_list'] = sl.join(',')
     }
@@ -848,53 +883,53 @@ gui_editor.prototype.ini2json = function (s) {
         return `{"message": "${s}"}`;
     }
 
-   var res = [];
-   var lines = s.split('\n');
-   var l, k_v, k, v, i;
-   for (i = 0 ; i < lines.length; i++) {
-      if (lines[i] === undefined)
-          break;
-      l = mwm_utils.trim_blanks(lines[i]);
+    var res = [];
+    var lines = s.split('\n');
+    var l, k_v, k, v, i;
+    for (i = 0; i < lines.length; i++) {
+        if (lines[i] === undefined)
+            break;
+        l = mwm_utils.trim_blanks(lines[i]);
 
-      // skip blank lines and comments
-      if (l.length == 0)
-          continue;
-      if (l[0] == '#') {                                    // Comment line
-          continue;
-      } else if (l[0] == '[' &&  l[l.length-1]  == ']') {   // Section
-          const s = l.slice(1, -1);
-          // const sn = s.split(' ')[1];   // Section name
-          this.un_trailing_comma(res);
-          res.push('},');
-          res.push('"' + s + '": {');
-          const ix = s.indexOf(' ');
-          if (ix > 0) {
-            const sn = s.slice(ix + 1);                     // Section name
-            res.push(`"name": "${sn}",`);                   // Add section name as a value
-          }
-      } else {                                              // Section body
-          l = mwm_utils.trim_blanks(l);
-          // l = l.replace(/%%/g,'%'); no longer doubling percent signs
-          k_v = l.match(/([^ =:]*) *[=:] *(.*)/);
-          console.log(k_v);
-          k_v.shift();
-          k = k_v.shift();
-          v = k_v.join('=').replace(/\\/g, '\\\\').replace(/"/g,'\\"');
-          if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
-              continue;
-          }
-          res.push('"' + k + '": "' + v + '",');
-      }
-   }
+        // skip blank lines and comments
+        if (l.length == 0)
+            continue;
+        if (l[0] == '#') { // Comment line
+            continue;
+        } else if (l[0] == '[' && l[l.length - 1] == ']') { // Section
+            const s = l.slice(1, -1);
+            // const sn = s.split(' ')[1];   // Section name
+            this.un_trailing_comma(res);
+            res.push('},');
+            res.push('"' + s + '": {');
+            const ix = s.indexOf(' ');
+            if (ix > 0) {
+                const sn = s.slice(ix + 1); // Section name
+                res.push(`"name": "${sn}",`); // Add section name as a value
+            }
+        } else { // Section body
+            l = mwm_utils.trim_blanks(l);
+            // l = l.replace(/%%/g,'%'); no longer doubling percent signs
+            k_v = l.match(/([^ =:]*) *[=:] *(.*)/);
+            console.log(k_v);
+            k_v.shift();
+            k = k_v.shift();
+            v = k_v.join('=').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+            if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
+                continue;
+            }
+            res.push('"' + k + '": "' + v + '",');
+        }
+    }
 
     // fix leading line wart
     res[0] = '{';
 
-   this.un_trailing_comma(res);
-   res.push('}');
-   res.push('}');
-   console.log("ini2json result: ", res.join("\n"))
-   return res.join('\n');
+    this.un_trailing_comma(res);
+    res.push('}');
+    res.push('}');
+    console.log("ini2json result: ", res.join("\n"))
+    return res.join('\n');
 }
 
 /*
@@ -946,8 +981,7 @@ gui_editor.prototype.checkdep = function (s1, s2) {
     }
     if (deps['campaign_stage_1'] == s2) {
         return 1;
-    }
-    else  {
+    } else {
         return this.checkdep(s1, deps['campaign_stage_1']);
     }
     //
@@ -984,7 +1018,7 @@ gui_editor.prototype.getdepth = function (s1, cnt) {
     if (deps['campaign_stage_1'] == s1) {
         return cnt;
     }
-    return this.getdepth(deps['campaign_stage_1'], cnt+1);
+    return this.getdepth(deps['campaign_stage_1'], cnt + 1);
 }
 
 /*
@@ -1011,8 +1045,8 @@ gui_editor.prototype.draw_state = function () {
     launchtemplist = [];
 
     for (k in this.state) {
-        const p = k.split(' ')[0];          // Prefix
-        const n = k.slice(p.length + 1);    // Name
+        const p = k.split(' ')[0]; // Prefix
+        const n = k.slice(p.length + 1); // Name
         if (p === 'campaign_stage') {
             stagelist.push(n);
         } else if (p === 'job_type') {
@@ -1039,13 +1073,13 @@ gui_editor.prototype.draw_state = function () {
 
     y = y + 2 * labely;
 
-   /* wimpy layout, assumes tsorted list -- build
-    * dependency chains left to right, move other
-    * nodes down to next row.
-    * probably *ought* to check who the thing
-    * actually does depend on and move it one column
-    * right of that, but close enough for a first pass
-    */
+    /* wimpy layout, assumes tsorted list -- build
+     * dependency chains left to right, move other
+     * nodes down to next row.
+     * probably *ought* to check who the thing
+     * actually does depend on and move it one column
+     * right of that, but close enough for a first pass
+     */
 
     var first = true;
     for (i in stagelist) {
@@ -1053,11 +1087,10 @@ gui_editor.prototype.draw_state = function () {
 
         if (!first) {
             //if (this.checkdep(stagelist[i], prevstage)) {
-                //x = x + gridx * this.getdepth(stagelist[i], 0);
+            //x = x + gridx * this.getdepth(stagelist[i], 0);
             if (this.getdepth(stagelist[i], 0) != this.getdepth(prevstage, 0)) {
                 x = gridx * this.getdepth(stagelist[i], 0);
-            }
-            else {
+            } else {
                 //x = gridx * this.getdepth(stagelist[i], 0);
                 y = y + gridy;
             }
@@ -1117,39 +1150,43 @@ gui_editor.prototype.draw_state = function () {
      */
     let setup_nodes = launchtemplist.map(x => ({
         id: `login_setup ${x}`,
-        label: x, group: x,
+        label: x,
+        group: x,
         // title: "Double click to open",
         shape: 'ellipse',
         // color: '#22efcc'
     }));
 
-    let jtype_nodes = this.jobtypelist.map(x => ({id: `job_type ${x}`, label: x, group: x}));
+    let jtype_nodes = this.jobtypelist.map(x => ({
+        id: `job_type ${x}`,
+        label: x,
+        group: x
+    }));
 
     gui_editor.aux_network = new vis.Network(document.getElementById('myjobtypes'), {
-            nodes: [...setup_nodes, ...jtype_nodes],
-            edges: []
-        }, {
-            autoResize: true,
-            physics: true,
-            nodes: {
-                shadow: true,
-                shape: 'box'
-            },
-            layout: {
-                improvedLayout: true,
-                hierarchical: {
-                    enabled: true,
-                    levelSeparation: 150,
-                    nodeSpacing: 50,
-                    parentCentralization: true,
-                    blockShifting: true,
-                    edgeMinimization: true,
-                    direction: "UD",
-                    sortMethod: "directed"
-                }
+        nodes: [...setup_nodes, ...jtype_nodes],
+        edges: []
+    }, {
+        autoResize: true,
+        physics: true,
+        nodes: {
+            shadow: true,
+            shape: 'box'
+        },
+        layout: {
+            improvedLayout: true,
+            hierarchical: {
+                enabled: true,
+                levelSeparation: 150,
+                nodeSpacing: 50,
+                parentCentralization: true,
+                blockShifting: true,
+                edgeMinimization: true,
+                direction: "UD",
+                sortMethod: "directed"
             }
         }
-    );
+    });
 
     gui_editor.aux_network.on("doubleClick", function (params) {
         if (params.nodes[0] !== undefined) {
@@ -1177,20 +1214,28 @@ gui_editor.prototype.draw_state = function () {
     // let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.split(' ')[1]);
     let node_labels = Object.keys(this.state).filter(x => x.startsWith("campaign_stage ")).map(x => x.replace(/.*? /, ''));
     let node_list = node_labels.map(x => ({
-        id: x, label: x,
+        id: x,
+        label: x,
         level: this.getdepth(x, 1),
         group: this.state[`campaign_stage ${x}`].job_type || (this.state.campaign_defaults ? this.state.campaign_defaults.job_type : 0)
     }));
     //VP~ this.nodes = new vis.DataSet([{id: 'Default Values', label: this.state.campaign.name,
-    this.nodes = new vis.DataSet([{id: `campaign ${this.state.campaign.name}`,
-                                   label: this.state.campaign.name,
-                                //    title: "Double click to open",
-                                   level: 1,
-                                   group: (this.state.campaign_defaults ? this.state.campaign_defaults.job_type : 0),
-                                   shape: 'ellipse', // color: '#dddddd',
-                                   fixed: false, size: 50}, ...node_list]);
+    this.nodes = new vis.DataSet([{
+        id: `campaign ${this.state.campaign.name}`,
+        label: this.state.campaign.name,
+        //    title: "Double click to open",
+        level: 1,
+        group: (this.state.campaign_defaults ? this.state.campaign_defaults.job_type : 0),
+        shape: 'ellipse', // color: '#dddddd',
+        fixed: false,
+        size: 50
+    }, ...node_list]);
 
-    let edge_list = this.depboxes.map(x => ({id: x.box.id, from: x.stage1, to: x.stage2}));
+    let edge_list = this.depboxes.map(x => ({
+        id: x.box.id,
+        from: x.stage1,
+        to: x.stage2
+    }));
     let edges = new vis.DataSet(edge_list);
 
     const node_positions = this.state.node_positions;
@@ -1201,21 +1246,21 @@ gui_editor.prototype.draw_state = function () {
     };
     var locales = {
         en: {
-          edit: 'Edit',
-          del: 'Delete selected',
-          back: 'Back',
-          addNode: 'Add Stage',
-          addEdge: 'Add Dependency',
-          editNode: 'Edit Stage',
-          editEdge: 'Edit Dependency',
-          addDescription: 'Click in an empty space to place a new node.',
-          edgeDescription: 'Click on a node and drag the edge to another node to connect them.',
-          editEdgeDescription: 'Click on the control points and drag them to a node to connect to it.',
-          createEdgeError: 'Cannot link edges to a cluster.',
-          deleteClusterError: 'Clusters cannot be deleted.',
-          editClusterError: 'Clusters cannot be edited.'
+            edit: 'Edit',
+            del: 'Delete selected',
+            back: 'Back',
+            addNode: 'Add Stage',
+            addEdge: 'Add Dependency',
+            editNode: 'Edit Stage',
+            editEdge: 'Edit Dependency',
+            addDescription: 'Click in an empty space to place a new node.',
+            edgeDescription: 'Click on a node and drag the edge to another node to connect them.',
+            editEdgeDescription: 'Click on the control points and drag them to a node to connect to it.',
+            createEdgeError: 'Cannot link edges to a cluster.',
+            deleteClusterError: 'Clusters cannot be deleted.',
+            editClusterError: 'Clusters cannot be edited.'
         }
-      };
+    };
 
     const options = {
         groups: gui_editor.aux_network.groups.groups,
@@ -1242,13 +1287,15 @@ gui_editor.prototype.draw_state = function () {
         },
         edges: {
             smooth: {
-                type: "horizontal",     // The best
+                type: "horizontal", // The best
                 // type: "cubicBezier",
                 // forceDirection: "horizontal",
                 roundness: 0.9
             },
             width: 2,
-            arrows: {to : true},
+            arrows: {
+                to: true
+            },
             shadow: true
         },
         manipulation: {
@@ -1257,7 +1304,7 @@ gui_editor.prototype.draw_state = function () {
                 // filling in the popup DOM elements
                 document.getElementById('node-operation').innerHTML = "Add Stage";
                 $('#node-label').val('');
-                $('#node-label').attr('placeholder','name');
+                $('#node-label').attr('placeholder', 'name');
                 editNode(data, clearNodePopUp, callback);
             },
             // editNode: function (data, callback) {
@@ -1276,7 +1323,7 @@ gui_editor.prototype.draw_state = function () {
                 console.log("Main: ", l1);
                 l1.forEach(x => delete this.state[x]);
                 // Delete referred dependencies
-                const l2 = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).filter(x => this.state[x].campaign_stage_1==node_id);
+                const l2 = Object.keys(this.state).filter(x => x.startsWith("dependencies ")).filter(x => this.state[x].campaign_stage_1 == node_id);
                 console.log("Then: ", l2);
                 l2.forEach(x => delete this.state[x]);
                 // Update stage list in state
@@ -1292,7 +1339,7 @@ gui_editor.prototype.draw_state = function () {
                         title: 'Dependencies from/to campaign are not yet allowed.',
                         showConfirmButton: false,
                         timer: 1500
-                      })
+                    })
                     callback(null);
                     return;
                 }
@@ -1331,13 +1378,23 @@ gui_editor.prototype.draw_state = function () {
             const [n, x, y] = JSON.parse(node_positions[pp]);
             // Fix the issue with campaign renaming. Code cleanup is needed.
             const nn = n.startsWith("campaign") ? `campaign ${this.state.campaign.name}` : n;
-            this.nodes.update({id: nn, x: x, y: y});
+            this.nodes.update({
+                id: nn,
+                x: x,
+                y: y
+            });
         }
     };
     // setTimeout(()=>{
-        // gui_editor.network.setOptions({layout: {hierarchical: {enabled: false, direction: "LR"}}});
-        gui_editor.network.setOptions({layout: {hierarchical: false}});
-        gui_editor.network.setOptions({physics: false});
+    // gui_editor.network.setOptions({layout: {hierarchical: {enabled: false, direction: "LR"}}});
+    gui_editor.network.setOptions({
+        layout: {
+            hierarchical: false
+        }
+    });
+    gui_editor.network.setOptions({
+        physics: false
+    });
     // }, 1000);
 
     const getLabel = e => this.nodes.get(e).label;
@@ -1383,7 +1440,7 @@ gui_editor.prototype.draw_state = function () {
         if (params.nodes[0] !== undefined) {
             document.getElementById('node-operation').innerHTML = "Add Stage";
             $('#node-label').val('');
-            $('#node-label').attr('placeholder','name | name*N | *N')
+            $('#node-label').attr('placeholder', 'name | name*N | *N')
             editNode(params, clearNodePopUp, addNewNode);
         }
     });
@@ -1418,11 +1475,11 @@ gui_editor.prototype.draw_state = function () {
     };
     */
     const clone_form = (src, tgt) => {
-        const $src_fields = $(`[id='fields_campaign_stage ${src}']`).find("input,select");  // Cloned form fields
-        const $tgt_elem = $(`[id='fields_campaign_stage ${tgt}']`);                         // Target form element
+        const $src_fields = $(`[id='fields_campaign_stage ${src}']`).find("input,select"); // Cloned form fields
+        const $tgt_elem = $(`[id='fields_campaign_stage ${tgt}']`); // Target form element
         for (const sf of $src_fields) {
             if (sf.name !== 'name')
-                $tgt_elem.find(`[name='${sf.name}']`)[0].value = sf.value;                  // Replace field value with cloned one
+                $tgt_elem.find(`[name='${sf.name}']`)[0].value = sf.value; // Replace field value with cloned one
         }
     };
 
@@ -1437,33 +1494,37 @@ gui_editor.prototype.draw_state = function () {
         if (label.includes('*')) {
             const nn = label.split('*');
             for (let i = 0; i < nn[1]; i++) {
-                data.label = nn[0] === '' ? `${parentId}_${i}` : `${nn[0]}_${i}`;       // Is it clone or dependant?
-                if (data.label.startsWith(parentId)) {      // This is clone
+                data.label = nn[0] === '' ? `${parentId}_${i}` : `${nn[0]}_${i}`; // Is it clone or dependant?
+                if (data.label.startsWith(parentId)) { // This is clone
                     data.single = true;
                 }
-                if (pary) {             // There is a parent node
-                    if (nn[0] !== '')   // This is dependant
-                        data.y = pary + 30 - 60*nn[1]/2 + 60*i;
-                    else {              // This is clone
-                        data.y = pary + 30 + 30*i;
+                if (pary) { // There is a parent node
+                    if (nn[0] !== '') // This is dependant
+                        data.y = pary + 30 - 60 * nn[1] / 2 + 60 * i;
+                    else { // This is clone
+                        data.y = pary + 30 + 30 * i;
                     }
                 }
                 const reply = callback(data);
                 const tgt = reply[1];
                 // Now handle our stuff
                 this.new_stage(tgt, data.label);
-                if (reply[2]) {         // If this is a dependant
+                if (reply[2]) { // If this is a dependant
                     this.add_dependency(...reply);
-                } else {                // This is a clone of the stage
+                } else { // This is a clone of the stage
                     // this.state[`campaign_stage ${tgt}`] = {...this.state[`campaign_stage ${parentId}`]};        // Clone the stage state
                     this.state[`campaign_stage ${tgt}`] = JSON.parse(JSON.stringify(this.state[`campaign_stage ${parentId}`]));
-                    this.state[`campaign_stage ${tgt}`].name = data.label;                                      // Restore name
-                    clone_form(parentId, tgt);                         // Clone the popup form
+                    this.state[`campaign_stage ${tgt}`].name = data.label; // Restore name
+                    clone_form(parentId, tgt); // Clone the popup form
                 }
                 // Update group
-                this.nodes.update({id: tgt, label: data.label, group: this.state[`campaign_stage ${tgt}`].job_type || this.state["campaign_defaults"].job_type});
+                this.nodes.update({
+                    id: tgt,
+                    label: data.label,
+                    group: this.state[`campaign_stage ${tgt}`].job_type || this.state["campaign_defaults"].job_type
+                });
             }
-        } else {        // Single dependant
+        } else { // Single dependant
             data.label = label;
             if (pary)
                 data.y = pary;
@@ -1478,7 +1539,11 @@ gui_editor.prototype.draw_state = function () {
                 this.add_dependency(...reply);
             }
             // Update group
-            this.nodes.update({id: tgt, label: data.label, group: this.state[`campaign_stage ${tgt}`].job_type || this.state["campaign_defaults"].job_type});
+            this.nodes.update({
+                id: tgt,
+                label: data.label,
+                group: this.state[`campaign_stage ${tgt}`].job_type || this.state["campaign_defaults"].job_type
+            });
         }
     }
 
@@ -1500,7 +1565,10 @@ gui_editor.prototype.draw_state = function () {
             data.from = data.from.id;
         //data.label = document.getElementById('edge-label').value;
         //clearEdgePopUp();
-        const eid = edges.add({from: data.from, to: data.to})[0];
+        const eid = edges.add({
+            from: data.from,
+            to: data.to
+        })[0];
         data.id = this.add_dependency(data.from, data.to, eid);
         //VP~ callback(data);
         callback(null);
@@ -1523,14 +1591,17 @@ gui_editor.prototype.draw_state = function () {
         //VP~ const eid = this.add_dependency(parentId, newId);
         //VP~ const nid = this.nodes.add({id: newId, label: params.label,
         const nid = this.nodes.add({
-                                    label: params.label,
-                                    level: this.nodes.get(parentId).level ? this.nodes.get(parentId).level + 1 : 1,
-                                    x: gui_editor.network.getPositions()[parentId].x + (params.single ? 0 : 150),
-                                    y: params.y
-                                })[0];
+            label: params.label,
+            level: this.nodes.get(parentId).level ? this.nodes.get(parentId).level + 1 : 1,
+            x: gui_editor.network.getPositions()[parentId].x + (params.single ? 0 : 150),
+            y: params.y
+        })[0];
         //VP~ edges.add({id: eid, from: parentId, to: newId});
         if (!params.single)
-            var eid = edges.add({from: parentId, to: nid})[0];
+            var eid = edges.add({
+                from: parentId,
+                to: nid
+            })[0];
         //VP~ this.add_dependency(parentId, nid);
         return [parentId, nid, eid || null];
     }
@@ -1547,7 +1618,7 @@ gui_editor.prototype.redraw_deps = function () {
     }
 }
 
-gui_editor.prototype.jobtype_select = function(sval, eid, placeholder) {
+gui_editor.prototype.jobtype_select = function (sval, eid, placeholder) {
     /*
         <select name="carlist" form="carform">
             <option value="volvo">Volvo</option>
@@ -1556,48 +1627,48 @@ gui_editor.prototype.jobtype_select = function(sval, eid, placeholder) {
             <option value="audi">Audi</option>
         </select>
      */
-        let res = this.jobtypes.reduce(
-            function (acc, val) {
-                const sel = (val == sval) ? ' selected' : '';
-                return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
-            }, eid.startsWith("_inpcampaign_stage") ?
-                `<option value="" placeholder="${placeholder}" style="color: #777; background-color: lightcyan;" selected>${placeholder} (default)</option>\n` : "");
-            // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
-        return `<select id="${eid}" name="job_type" required>\n${res}</select>\n`;
-    }
+    let res = this.jobtypes.reduce(
+        function (acc, val) {
+            const sel = (val == sval) ? ' selected' : '';
+            return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
+        }, eid.startsWith("_inpcampaign_stage") ?
+        `<option value="" placeholder="${placeholder}" style="color: #777; background-color: lightcyan;" selected>${placeholder} (default)</option>\n` : "");
+    // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+    return `<select id="${eid}" name="job_type" required>\n${res}</select>\n`;
+}
 
-gui_editor.prototype.loginsetup_select = function(sval, eid, placeholder) {
-        let res = this.loginsetups.reduce(
-            function (acc, val) {
-                const sel = (val == sval) ? ' selected' : '';
-                return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
-            }, eid.startsWith("_inpcampaign_stage") ?
-                `<option value="" placeholder="${placeholder}" style="color: #777; background-color: lightcyan;" selected>${placeholder} (default)</option>\n` : "");
-            // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
-        return `<select id="${eid}" name="login_setup" required>\n${res}</select>\n`;
-    }
+gui_editor.prototype.loginsetup_select = function (sval, eid, placeholder) {
+    let res = this.loginsetups.reduce(
+        function (acc, val) {
+            const sel = (val == sval) ? ' selected' : '';
+            return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
+        }, eid.startsWith("_inpcampaign_stage") ?
+        `<option value="" placeholder="${placeholder}" style="color: #777; background-color: lightcyan;" selected>${placeholder} (default)</option>\n` : "");
+    // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+    return `<select id="${eid}" name="login_setup" required>\n${res}</select>\n`;
+}
 
-    gui_editor.prototype.completion_type_select = function(sval, eid, placeholder) {
-        let res = ["complete", "located"].reduce(
-            function (acc, val) {
-                const sel = (val == sval) ? ' selected' : '';
-                return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
-            }, eid.startsWith("_inpcampaign_stage") ?
-                `<option value="" placeholder="${placeholder}" style="color: #777; background-color: lightcyan;" selected>${placeholder} (default)</option>\n` : "");
-            // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
-        return `<select id="${eid}" name="completion_type" required>\n${res}</select>\n`;
-    }
+gui_editor.prototype.completion_type_select = function (sval, eid, placeholder) {
+    let res = ["complete", "located"].reduce(
+        function (acc, val) {
+            const sel = (val == sval) ? ' selected' : '';
+            return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
+        }, eid.startsWith("_inpcampaign_stage") ?
+        `<option value="" placeholder="${placeholder}" style="color: #777; background-color: lightcyan;" selected>${placeholder} (default)</option>\n` : "");
+    // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+    return `<select id="${eid}" name="completion_type" required>\n${res}</select>\n`;
+}
 
-    gui_editor.prototype.state_select = function(sval, eid, placeholder) {
-        let res = ["active", "inactive"].reduce(
-            function (acc, val) {
-                const sel = (val == sval) ? ' selected' : '';
-                return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
-            }, eid.startsWith("_inpcampaign_stage") ?
-                `<option value="" placeholder="${placeholder}" style="color: #777; background-color: lightcyan;" selected>${placeholder} (default)</option>\n` : "");
-            // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
-        return `<select id="${eid}" name="state" required>\n${res}</select>\n`;
-    }
+gui_editor.prototype.state_select = function (sval, eid, placeholder) {
+    let res = ["active", "inactive"].reduce(
+        function (acc, val) {
+            const sel = (val == sval) ? ' selected' : '';
+            return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
+        }, eid.startsWith("_inpcampaign_stage") ?
+        `<option value="" placeholder="${placeholder}" style="color: #777; background-color: lightcyan;" selected>${placeholder} (default)</option>\n` : "");
+    // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+    return `<select id="${eid}" name="state" required>\n${res}</select>\n`;
+}
 
 /*
  * make a div with a label in it on the overall screen
@@ -1606,7 +1677,7 @@ gui_editor.prototype.loginsetup_select = function(sval, eid, placeholder) {
  */
 function label_box(text, top, x, y) {
     var box = document.createElement("DIV");
-    box.style.position='absolute'
+    box.style.position = 'absolute'
     box.style.left = x.toString() + "px";
     box.style.top = y.toString() + "px";
     box.innerHTML = "<h2>" + text + "</h2>";
@@ -1637,16 +1708,18 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     this.box.className = "box";
     this.box.id = name;
     //if (name.length - name.indexOf(' ') > 20) {
-        //this.box.style.width = "185px";
+    //this.box.style.width = "185px";
     //} else {
-        //this.box.style.width = "120px";
+    //this.box.style.width = "120px";
     //}
     const w = Math.max(...(name.split(' ').map(v => v.length))) * 8;
     this.box.style.width = Math.max(w, 128) + "px";
 
     this.box.style.left = x.toString() + "px";
     this.box.style.top = y.toString() + "px";
-    this.box.addEventListener("click", function () { gui_editor.toggle_box_selected(name) });
+    this.box.addEventListener("click", function () {
+        gui_editor.toggle_box_selected(name)
+    });
     this.popup_parent = document.createElement("DIV");
     this.popup_parent.gui_box = this;
     this.popup_parent.className = "popup_parent";
@@ -1667,8 +1740,8 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     res.push('</h3>');
     for (const k of klist) {
         // k = klist[i];
-        const ro = (k.includes("param")||k=="recoveries"||k=="cs_split_type"||((k=="host"||k=="account")&&this.gui.state['campaign']['poms_role']=="analysis")) ? "disabled" : "";
-        if (k.startsWith('campaign_stage'))      // Hack to hide this from dependency form
+        const ro = (k.includes("param") || k == "recoveries" || k == "cs_split_type" || ((k == "host" || k == "account") && this.gui.state['campaign']['poms_role'] == "analysis")) ? "disabled" : "";
+        if (k.startsWith('campaign_stage')) // Hack to hide this from dependency form
             continue;
         if (vdict[k] == null) {
             val = "";
@@ -1682,14 +1755,11 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         res.push(`<label>${k}</label>`);
         if (k.includes("job_type")) {
             res.push(this.gui.jobtype_select(val, `${this.get_input_tag(k)}`, placeholder));
-        }
-        else if (k.includes("login_setup")) {
+        } else if (k.includes("login_setup")) {
             res.push(this.gui.loginsetup_select(val, `${this.get_input_tag(k)}`, placeholder));
-        }
-        else if (k.includes("completion_type")) {
+        } else if (k.includes("completion_type")) {
             res.push(this.gui.completion_type_select(val, `${this.get_input_tag(k)}`, placeholder));
-        }
-        else if (k.includes("state")) {
+        } else if (k.includes("state")) {
             res.push(this.gui.state_select(val, `${this.get_input_tag(k)}`, placeholder));
         } else {
             res.push(`<input id="${this.get_input_tag(k)}" name="${k}" value="${this.escape_quotes(val)}" placeholder="${this.escape_quotes(placeholder)}" ${ro}>`);
@@ -1766,7 +1836,7 @@ generic_box.prototype.delete_me = function () {
  * pulled out to share input tag name figuring between
  * generate and save code...
  */
-generic_box.prototype.get_input_tag = function(k) {
+generic_box.prototype.get_input_tag = function (k) {
 
     return "_inp" + this.box.id + '_' + k;
 }
@@ -1782,7 +1852,7 @@ generic_box.prototype.save_values = function () {
         if (e != null) {
             this.dict[k] = e.value ? e.value : null;
         } else {
-            console.log('unable to find input ' + inp_id);      // FIXME: inp_id is not set
+            console.log('unable to find input ' + inp_id); // FIXME: inp_id is not set
         }
     }
 }
@@ -1791,12 +1861,12 @@ generic_box.prototype.save_values = function () {
  * convert quotes to &quot; for <input value="xxx'> values
  * should be a  astatic method...
  */
-generic_box.prototype.escape_quotes = function(s) {
-   if (s != undefined) {
-       return s.replace(/"/g,'&quot;');
-   } else {
-       return s;
-   }
+generic_box.prototype.escape_quotes = function (s) {
+    if (s != undefined) {
+        return s.replace(/"/g, '&quot;');
+    } else {
+        return s;
+    }
 }
 
 
@@ -1807,7 +1877,7 @@ generic_box.prototype.escape_quotes = function(s) {
 function misc_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box = generic_box; /* superclass init */
     this.generic_box(name, vdict, klist, top, x, y, gui);
-    this.box.innerHTML = `${name}<br> <button type="button" onclick="gui_editor.toggle_form('fields_${name}')" id="wake_fields_${name}"><span class="wakefields"></span></button>` ;
+    this.box.innerHTML = `${name}<br> <button type="button" onclick="gui_editor.toggle_form('fields_${name}')" id="wake_fields_${name}"><span class="wakefields"></span></button>`;
 }
 misc_box.prototype = new generic_box();
 
@@ -1819,7 +1889,7 @@ function stage_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box(name, vdict, klist, top, x, y, gui);
     this.box.draggable = true;
     this.box.addEventListener("dragstart", gui_editor.drag_handler);
-    this.box.innerHTML = `${name}<br> <button type="button" onclick="gui_editor.toggle_form('fields_${name}')" id="wake_fields_${name}"><span class="wakefields"></span></button>` ;
+    this.box.innerHTML = `${name}<br> <button type="button" onclick="gui_editor.toggle_form('fields_${name}')" id="wake_fields_${name}"><span class="wakefields"></span></button>`;
 }
 stage_box.prototype = new generic_box();
 
@@ -1829,7 +1899,7 @@ stage_box.prototype = new generic_box();
  */
 function dependency_box(name, vdict, klist, top, x, y, gui) {
     this.generic_box = generic_box;
-    this.generic_box(name, vdict, klist, top, x, y, gui) /* superclass init */;
+    this.generic_box(name, vdict, klist, top, x, y, gui) /* superclass init */ ;
     this.stage1 = mwm_utils.trim_blanks(this.dict[this.klist[0]]);
     this.stage2 = mwm_utils.trim_blanks(name.slice(13, -2)); /* has a _1 or _2 on the end AND a 'campaign_stage ' on the front */
     /* this.box.id = 'dep_' + this.stage1 + '_' + this.stage2 */
@@ -1904,12 +1974,12 @@ dependency_box.prototype.set_bounds = function () {
 
     var uphill = (y2 >= y1);
 
-   /* make relative to bounding rectangle */
-   ulx = ulx - br.left;
-   uly = uly - br.top;
-   lrx = lrx - br.left;
-   lry = lry - br.top;
-   midx = midx - br.left;
+    /* make relative to bounding rectangle */
+    ulx = ulx - br.left;
+    uly = uly - br.top;
+    lrx = lrx - br.left;
+    lry = lry - br.top;
+    midx = midx - br.left;
 
     this.box.style.top = uly.toString() + "px";
     this.box.style.left = ulx.toString() + "px";
@@ -1953,6 +2023,8 @@ gui_editor.prototype.new_stage = function (name, label) {
         'test_param_overrides': null,
         'login_setup': null,
         'job_type': null,
+        'merge_overrides': null,
+        'stage_type': null
     };
     x = 500;
     y = 150;
@@ -1960,7 +2032,7 @@ gui_editor.prototype.new_stage = function (name, label) {
     this.stageboxes.push(b);
 }
 
-gui_editor.prototype.new_dependency = function() {
+gui_editor.prototype.new_dependency = function () {
     var elist1, elist, k1, istr, db, s1, s2, i;
     elist1 = this.div.getElementsByClassName('selected');
     elist = [];
@@ -2002,7 +2074,7 @@ gui_editor.prototype.new_dependency = function() {
 }
 
 
-gui_editor.prototype.add_dependency = function(frm, to, id) {
+gui_editor.prototype.add_dependency = function (frm, to, id) {
     let dep_name = id;
     //VP~ let dep_name = 'dependencies ' + to;
     if (dep_name in this.state) {
@@ -2016,9 +2088,9 @@ gui_editor.prototype.add_dependency = function(frm, to, id) {
     this.state[dep_name]['file_pattern_' + istr] = '%%';
     //VP~ const db = new dependency_box(`${dep_name}_${istr}`,
     const db = new dependency_box(dep_name,
-                                  this.state[dep_name],
-                                  [`campaign_stage_${istr}`, `file_pattern_${istr}`],
-                                  this.div, 0, 0, this);
+        this.state[dep_name],
+        [`campaign_stage_${istr}`, `file_pattern_${istr}`],
+        this.div, 0, 0, this);
     this.depboxes.push(db);
     return db.box.id;
 }
@@ -2037,7 +2109,7 @@ gui_editor.prototype.save_state = function () {
                 showConfirmButton: false,
                 timer: 1500
             });
-            setTimeout( () => {
+            setTimeout(() => {
                 const args = mwm_utils.getSearchParams();
                 const base = mwm_utils.getBaseURL();
                 console.log(["args:", args, "base:", base]);
@@ -2059,7 +2131,7 @@ function wf_uploader() {
     this.cfg = null;
 }
 
-wf_uploader.prototype.upload = function(state, cfg_stages, completed) {
+wf_uploader.prototype.upload = function (state, cfg_stages, completed) {
     this.cfg = state;
     var thisx = this;
     this.get_headers(function (headers) {
@@ -2109,7 +2181,7 @@ wf_uploader.prototype.upload = function(state, cfg_stages, completed) {
     });
 }
 
-wf_uploader.prototype.upload2 = function(state, cfg_stages, completed) {
+wf_uploader.prototype.upload2 = function (state, cfg_stages, completed) {
     let p = Promise.resolve();
     for (const i in cfg_stages) {
         const s = cfg_stages[i];
@@ -2126,22 +2198,28 @@ wf_uploader.prototype.upload2 = function(state, cfg_stages, completed) {
 }
 
 
-wf_uploader.prototype.tag_em = function(name, cfg_stages, completed) {   // FIXME: Might not needed as is.
+wf_uploader.prototype.tag_em = function (name, cfg_stages, completed) { // FIXME: Might not needed as is.
     var thisx = this;
     /* have to re-fetch the list, if we added any campaigns... */
     console.log("tag_em calling get_campaign_list")
     this.get_campaign_list(function () {
         console.log(["have campaign_id_map", thisx.cname_id_map, "stages:", cfg_stages]);
         var cim = thisx.cname_id_map;
-        var cids = cfg_stages.map(function (x) { return (x in cim) ? cim[x].toString() : x });
+        var cids = cfg_stages.map(function (x) {
+            return (x in cim) ? cim[x].toString() : x
+        });
         console.log(["have campaign_list", thisx.cname_id_map]);
 
-        var args = { 'campaign_name': name, 'campaign_stage_id': cids.join(','), 'experiment': thisx.cfg['campaign']['experiment'] };
+        var args = {
+            'campaign_name': name,
+            'campaign_stage_id': cids.join(','),
+            'experiment': thisx.cfg['campaign']['experiment']
+        };
         thisx.make_poms_call('link_tags', args, completed);
     });
 }
 
-wf_uploader.prototype.upload_jobtype = function(jt) {
+wf_uploader.prototype.upload_jobtype = function (jt) {
     var field_map, k, d, args;
     if (!(('job_type ' + jt) in this.cfg)) {
         return;
@@ -2166,14 +2244,14 @@ wf_uploader.prototype.upload_jobtype = function(jt) {
             args[k] = d[k];
         }
     }
-     /* there are separate add/update calls; just do both, if it
-      * exists already, the first will fail..
-      */
+    /* there are separate add/update calls; just do both, if it
+     * exists already, the first will fail..
+     */
     var thisx = this;
-    this.make_poms_call('job_type_edit', args, function() {
+    this.make_poms_call('job_type_edit', args, function () {
         args['action'] = 'edit';
         thisx.make_poms_call('job_type_edit', args, null);
-   });
+    });
 }
 
 wf_uploader.prototype.upload_login_setup = function (l) {
@@ -2209,7 +2287,7 @@ wf_uploader.prototype.upload_login_setup = function (l) {
     });
 }
 
-wf_uploader.prototype.upload_stage = function(stage_name) {
+wf_uploader.prototype.upload_stage = function (stage_name) {
     var i, dst, deps, d, args, k, pat;
     const depname = `dependencies ${stage_name}`;
     const field_map = {
@@ -2223,7 +2301,10 @@ wf_uploader.prototype.upload_stage = function(stage_name) {
         'completion_type': 'ae_completion_type',
         'completion_pct': 'ae_completion_pct',
     };
-    deps = { "file_patterns": [], "campaign_stages": [] }
+    deps = {
+        "file_patterns": [],
+        "campaign_stages": []
+    }
     /* Disable dependencies building to decouple saving the stages from saving the dependencies */
     for (i = 0; i < 10; i++) {
         if ((depname in this.cfg) && (`campaign_stage_${i}`) in this.cfg[depname]) {
@@ -2255,7 +2336,7 @@ wf_uploader.prototype.upload_stage = function(stage_name) {
 }
 
 
-wf_uploader.prototype.upload_dependency = function(dependency) {
+wf_uploader.prototype.upload_dependency = function (dependency) {
     const link = dependency.slice(1);
 
     const args = {
@@ -2271,7 +2352,7 @@ wf_uploader.prototype.upload_dependency = function(dependency) {
 }
 
 
-wf_uploader.prototype.get_campaign_list = function(completed) {
+wf_uploader.prototype.get_campaign_list = function (completed) {
     var x, res, i, triple;
     var thisx = this;
     return this.make_poms_call('campaign_list_json', {}, function (x) {
@@ -2292,7 +2373,9 @@ wf_uploader.prototype.get_campaign_list = function(completed) {
 }
 
 wf_uploader.prototype.update_session_role = function (role) {
-    return this.make_poms_call('update_session_role', { 'session_role': role });
+    return this.make_poms_call('update_session_role', {
+        'session_role': role
+    });
 }
 
 wf_uploader.prototype.get_headers = function (after) {
@@ -2311,8 +2394,7 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
             delete args[k];
         }
     }
-    return $.ajax(
-        {
+    return $.ajax({
             // url: base + '/' + name,
             url: base + name,
             data: args,
@@ -2354,4 +2436,3 @@ wf_uploader.prototype.make_poms_call = function (name, args, completed) {
                 }
             });
 }
-

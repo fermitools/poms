@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import datetime
 import json
 import logging
 import os
@@ -7,6 +8,17 @@ import sys
 import warnings
 
 import requests
+
+ZERO = datetime.timedelta(0)
+class UTC(datetime.tzinfo):
+    """UTC"""
+    def utcoffset(self, dt):
+        return ZERO
+    def tzname(self, dt):
+        return "UTC"
+    def dst(self, dt):
+        return ZERO
+utc = UTC()
 
 try:
     import configparser as ConfigParser
@@ -19,9 +31,9 @@ rs = requests.Session()
 def show_campaigns(test=None, **kwargs):
     # experiment=None, configfile=None, view_active=None, view_inactive=None,
     #                view_mine=None, view_others=None, view_production=None, update_view=None):
-    '''
+    """
     Return data about campaigns for the current experiment.
-    '''
+    """
 
     data, status = make_poms_call(
         method='show_campaigns',
@@ -43,9 +55,9 @@ def show_campaigns(test=None, **kwargs):
 def show_campaign_stages(campaign_name=None, test=None, **kwargs):
                         #  experiment=None, configfile=None,
                         #  view_active=None, view_mine=None, view_others=None, view_production=None, update_view=None):
-    '''
+    """
     Return campaign stages for campaign for the current experiment.
-    '''
+    """
     data, status = make_poms_call(
         method='show_campaign_stages',
         fmt='json',
@@ -132,7 +144,6 @@ def upload_file(file_name, test=None, experiment=None, configfile=None):
         test_client=test,
         experiment=experiment,
         configfile=configfile)
-
     return status == 303
 
 
@@ -211,22 +222,25 @@ def register_poms_campaign(campaign_name, user=None, experiment=None, version=No
     data = data.replace('Campaign=', '')
     return int(data)
 
+def get_task_id_for(campaign, user=None, command_executed=None, input_dataset=None, parent_task_id=None, task_id=None, test=None, experiment=None, configfile=None):
 
-def get_task_id_for(campaign, user=None, command_executed=None, input_dataset=None, parent_task_id=None,
-                    task_id=None, test=None, experiment=None, configfile=None):
+    logging.warning("Notice: poms_client.get_task_id_for() is deprecated, use get_submission_id")
+    return get_submission_id_for(campaign, user, command_executed, input_dataset, parent_task_id, task_id, test, experiment, configfile)
+
+def get_submission_id_for(campaign_stage_id, user=None, command_executed=None, input_dataset=None, parent_submission_id=None, submission_id=None, test=None, experiment=None, configfile=None):
     '''
     get a submission id for a submission / or register the command
         executed for an existing submission.  Returns "Task=<submission_id>"
     '''
-    logging.debug("in get task_id_for test = " + repr(test))
+    logging.debug("in get_submission_id_for test = " + repr(test))
     data, status = make_poms_call(
-        method='get_task_id_for',
-        campaign=campaign,
+        method='get_submission_id_for',
+        campaign_stage_id=campaign_stage_id,
         user=user,
         command_executed=command_executed,
         input_dataset=input_dataset,
-        parent_task_id=parent_task_id,
-        task_id=task_id,
+        parent_submission_id=parent_submission_id,
+        submission_id=submission_id,
         test=test,
         configfile=configfile)
     data = data.replace('Task=', '')
@@ -311,7 +325,7 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
     else:
         ae_launch_setup = launch_setup
 
-    #pc_email = pc_email #no useing pc_username
+    # pc_email = pc_email # no useing pc_username
 
     if experiment is None or pc_username is None:
         logging.error(" You should provide an experiment name and email")
@@ -391,6 +405,12 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
 
 def campaign_definition_edit(output_file_patterns, launch_script, def_parameter=None, pc_username=None,
                              action=None, name=None, experiment=None, recoveries=None, test_client=False, configfile=None):
+    logging.warning("Notice: poms_client.campaign_definition_edit() is deprecated, use job_type_edit")
+    return job_type_edit(output_file_patterns, launch_script, def_parameter, pc_username,
+                             action, name, experiment, recoveries, test_client, configfile)
+
+def job_type_edit(output_file_patterns, launch_script, def_parameter=None, pc_username=None,
+                             action=None, name=None, experiment=None, recoveries=None, test_client=False, configfile=None):
     # You can not modify the recovery_type from the poms_client (future feature)
     logging.debug("in get launch_jobs test_client = " + repr(test_client))
     method = "campaign_definition_edit"
@@ -425,12 +445,13 @@ def campaign_definition_edit(output_file_patterns, launch_script, def_parameter=
                                        ae_output_file_patterns=ae_output_file_patterns,
                                        ae_launch_script=ae_launch_script,
                                        ae_definition_parameters=ae_definition_parameters,
-                                       ae_definition_recovery = ae_definition_recovery,
+                                       ae_definition_recovery=ae_definition_recovery,
                                        test_client=test_client,
                                        configfile=configfile)
     return "status_code", status_code
 
     #return data['message']
+
 
 def campaign_edit(**kwargs):
     print("campaign_edit has been replaced by campaign_stage_edit")
@@ -521,16 +542,18 @@ global_role = None
 global_experiment = None
 
 def update_session_experiment(experiment, test_client=False):
-    logging.debug("in update_session_experiment test_client = " + repr(test_client))
+    logging.debug("in update_session_experiment test_client = %s experiment %s " % (repr(test_client), experiment))
     global global_experiment
     global_experiment = experiment
     return True
 
+
 def update_session_role(role, test_client=False):
-    logging.debug("in update_session_role test_client = " + repr(test_client))
+    logging.debug("in update_session_role test_client = %s role %s" %(repr(test_client), role))
     global global_role
     global_role = role
     return True
+
 
 def auth_cert():
     # rs.cert = '/tmp/x509up_u`id -u`'
@@ -576,6 +599,43 @@ def getconfig(kwargs):
     _foundconfig = config
     return config
 
+def base_path(test_client,config):
+
+    if test_client:
+        if test_client == "int":
+            base = config.get('url', 'base_int_ssl')
+        else:
+            base = config.get('url', 'base_dev_ssl')
+
+        logging.debug("base = " + base)
+    else:
+        #base=config['url']['base_prod']
+        base = config.get('url', 'base_prod')
+    return base
+
+def check_stale_proxy(options ):
+    cert = auth_cert()
+    rs.cert = (cert, cert)
+    rs.verify = False
+    try:
+        url = "%s/file_uploads/%s/analysis/%s?fmt=json" % (
+              base_path(options.test, getconfig({})), options.experiment, os.environ['USER'])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            c = rs.get(url)
+        d = c.json()
+        for f in d.get("file_stat_list",[]):
+             if f[0][:12]=="x509up_voms_":
+                 pdate=datetime.datetime.strptime(f[2], "%Y-%m-%dT%H:%M:%SZ")
+                 
+                 if options.verbose:
+                      logging.info("proxy on POMS has date %sZ" % pdate)
+                      logging.info("current time %sZ" % datetime.datetime.utcnow().isoformat())
+                 return datetime.datetime.utcnow() - pdate > datetime.timedelta(days=3)
+    except Exception as e:
+        logging.exception("Failed getting uploaded certificate date from POMS")
+    # if we don't find it or something went wrong, its stale :-)
+    return True
 
 def make_poms_call(**kwargs):
 
@@ -595,10 +655,12 @@ def make_poms_call(**kwargs):
     if kwargs.get("test", None):
         del kwargs["test"]
 
-    if "experiment" not in kwargs:
+    if "experiment" not in kwargs or not kwargs["experiment"]:
+        logging.debug("adding experiment %s" % global_experiment)
         kwargs["experiment"] = global_experiment
 
-    if "role" not in kwargs:
+    if "role" not in kwargs or not kwargs["role"]:
+        logging.debug("adding role %s" % global_role)
         kwargs["role"] = global_role
 
     test_client = kwargs.get("test_client", None)
@@ -607,16 +669,7 @@ def make_poms_call(**kwargs):
 
     logging.debug("in make_poms_call test_client = " + repr(test_client))
 
-    if test_client:
-        if test_client == "int":
-            base = config.get('url', 'base_int_ssl')
-        else:
-            base = config.get('url', 'base_dev_ssl')
-
-        logging.debug("base = " + base)
-    else:
-        #base=config['url']['base_prod']
-        base = config.get('url', 'base_prod')
+    base = base_path(test_client, config)
 
     for k in list(kwargs.keys()):
         if kwargs[k] is None:
