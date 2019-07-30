@@ -58,6 +58,22 @@ class StagesPOMS:
         """
         self.poms_service = ps
 
+    # h3. get_campaign_stage_id
+    def get_campaign_stage_id(self, ctx, campaign_name, campaign_stage_name):
+        """
+            return the campaign stage id for a stage name in our experiment/campaign
+        """
+        stage = (
+            ctx.db.query(CampaignStage)
+            .filter(
+                CampaignStage.name == campaign_stage_name,
+                CampaignStage.campaign_obj.has(Campaign.name == campaign_name),
+                CampaignStage.experiment == ctx.experiment,
+            )
+            .scalar()
+        )
+        return stage.campaign_stage_id if stage else None
+
     # h3. get_campaign_stage_name
     def get_campaign_stage_name(self, ctx, campaign_stage_id):
         """

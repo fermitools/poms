@@ -189,6 +189,20 @@ def get_campaign_name(experiment, campaign_id, test=None, configfile=None):
     return data
 
 
+def get_campaign_stage_id(experiment, campaign_name, campaign_stage_name, test=None, configfile=None):
+    '''
+    Get a campaign stage id by name. Returns stage id
+    '''
+    data, status = make_poms_call(
+        method='get_campaign_stage_id',
+        experiment=experiment,
+        campaign_name=campaign_name,
+        campaign_stage_name=campaign_stage_name,
+        test=test,
+        configfile=configfile)
+    return int(data)
+
+
 def get_campaign_stage_name(experiment, campaign_stage_id, test=None, configfile=None):
     '''
     Get a campaign stage name by id. Returns stage name
@@ -627,7 +641,7 @@ def check_stale_proxy(options ):
         for f in d.get("file_stat_list",[]):
              if f[0][:12]=="x509up_voms_":
                  pdate=datetime.datetime.strptime(f[2], "%Y-%m-%dT%H:%M:%SZ")
-                 
+
                  if options.verbose:
                       logging.info("proxy on POMS has date %sZ" % pdate)
                       logging.info("current time %sZ" % datetime.datetime.utcnow().isoformat())

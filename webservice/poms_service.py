@@ -330,6 +330,14 @@ class PomsService:
 
     # see &l=webservice/CampaignsPOMS.py#get_campaign_name&
 
+    # h4. get_campaign_stage_id
+
+    @poms_method(rtype="json")
+    def get_campaign_stage_id(self, **kwargs):
+        return self.stagesPOMS.get_campaign_stage_id(**kwargs)
+
+    # see &l=webservice/StagesPOMS.py#get_campaign_stage_id&
+
     # h4. get_campaign_stage_name
 
     @poms_method()
