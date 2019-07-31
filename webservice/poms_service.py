@@ -346,7 +346,16 @@ class PomsService:
 
     # see &l=webservice/StagesPOMS.py#get_campaign_stage_name&
 
+    # h4. update_stage_param_overrides
+
+    @poms_method()
+    def update_stage_param_overrides(self, **kwargs):
+        return self.stagesPOMS.update_stage_param_overrides(**kwargs)
+
+    # see &l=webservice/StagesPOMS.py#update_stage_param_overrides&
+
     # h4. campaign_add_name
+
     @poms_method()
     def campaign_add_name(self, **kwargs):
         return self.campaignsPOMS.campaign_add_name(**kwargs)
