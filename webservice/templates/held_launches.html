@@ -21,7 +21,7 @@ Held Launches
     <form action="held_launches_delete">
     <input type="hidden" name="experiment" value="{{session_experiment}}">
     <input type="hidden" name="role" value="{{session_role}}">
-    <table>
+    <table class="ui celled table raised">
     <thead>
     <tr>
        <td>_</td>
@@ -38,9 +38,9 @@ Held Launches
         <td>{{hj.campaign_stage_id}}</td>
         <td>{{hj.dataset }}</td>
       </tr>
+    {% endfor %}
     </tbody>
     </table>
     <input type="submit" name="delete" value="Delete Checked">
     </form>
-    {% endfor %}
 {%endblock%}
