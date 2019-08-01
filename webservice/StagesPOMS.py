@@ -2,12 +2,13 @@
 """
 This module contain the methods that allow to create campaign_stages, definitions and templates.
 List of methods:
-login_setup_edit, job_type_edit, campaign_stage_edit, campaign_stage_edit_query.
+campaign_stage_edit, campaign_stage_edit_query.
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in
 poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
 Date: April 28th, 2017. (changes for the POMS_client)
 """
 
+import ast
 import glob
 import importlib
 import json
@@ -57,6 +58,22 @@ class StagesPOMS:
             initialize ourself with a reference back to the overall poms_service
         """
         self.poms_service = ps
+
+    # h3. get_campaign_stage_id
+    def get_campaign_stage_id(self, ctx, campaign_name, campaign_stage_name):
+        """
+            return the campaign stage id for a stage name in our experiment/campaign
+        """
+        stage = (
+            ctx.db.query(CampaignStage)
+            .filter(
+                CampaignStage.name == campaign_stage_name,
+                CampaignStage.campaign_obj.has(Campaign.name == campaign_name),
+                CampaignStage.experiment == ctx.experiment,
+            )
+            .scalar()
+        )
+        return stage.campaign_stage_id if stage else None
 
     # h3. get_campaign_stage_name
     def get_campaign_stage_name(self, ctx, campaign_stage_id):
@@ -448,6 +465,38 @@ class StagesPOMS:
             definition["definition_parameters"] = cdef.definition_parameters
             data["definition"] = definition
         return json.dumps(data)
+
+    # h3. update_stage_param_overrides
+    def update_stage_param_overrides(self, ctx, campaign_name, campaign_stage_name, param_overrides):
+        """
+        """
+        print("****** reached update_stage_param_overrides")
+        print(f"****** param_overrides: '{param_overrides}'")
+        stage = (
+            ctx.db.query(CampaignStage)
+            .filter(
+                CampaignStage.name == campaign_stage_name,
+                CampaignStage.campaign_obj.has(Campaign.name == campaign_name),
+                CampaignStage.experiment == ctx.experiment,
+            )
+            .scalar()
+        )
+        if not stage:
+            return None
+        # Process param_overrides
+        param_overrides = OrderedDict(ast.literal_eval(param_overrides))
+        po = stage.param_overrides
+        for p in po:
+            print(f"------ p: {p}")
+        opo = OrderedDict(po)
+        for k in param_overrides:               # For all new k/v pairs
+            if param_overrides[k]:
+                opo[k] = param_overrides[k]     # Update or add new value
+            else:
+                opo.pop(k, None)                # Remove k/v if new v is empty
+        stage.param_overrides = list(opo.items())   # Update the record
+        ctx.db.commit()                         # Update DB
+        return str(list(opo.items())) if stage else None
 
     # h3. show_campaign_stages
     def show_campaign_stages(self, ctx, campaign_ids=None, campaign_name=None, **kwargs):

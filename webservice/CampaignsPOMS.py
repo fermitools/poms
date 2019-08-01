@@ -2,7 +2,7 @@
 """
 This module contain the methods that allow to create campaign_stages, definitions and templates.
 List of methods:
-login_setup_edit, job_type_edit, campaign_stage_edit, campaign_stage_edit_query.
+
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in
 poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
 Date: April 28th, 2017. (changes for the POMS_client)

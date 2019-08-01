@@ -73,7 +73,7 @@ def show_campaign_stages(campaign_name=None, test=None, **kwargs):
     )
     return status in (200, 201), json.loads(data)
 
-def update_submission(submission_id,status, test=None,configfile=None, **kwargs ):
+def update_submission(submission_id, status, test=None, configfile=None, **kwargs):
     data, status = make_poms_call(
         method = 'update_submission',
         submission_id = submission_id,
@@ -189,6 +189,20 @@ def get_campaign_name(experiment, campaign_id, test=None, configfile=None):
     return data
 
 
+def get_campaign_stage_id(experiment, campaign_name, campaign_stage_name, test=None, configfile=None):
+    '''
+    Get a campaign stage id by name. Returns stage id
+    '''
+    data, status = make_poms_call(
+        method='get_campaign_stage_id',
+        experiment=experiment,
+        campaign_name=campaign_name,
+        campaign_stage_name=campaign_stage_name,
+        test=test,
+        configfile=configfile)
+    return int(data)
+
+
 def get_campaign_stage_name(experiment, campaign_stage_id, test=None, configfile=None):
     '''
     Get a campaign stage name by id. Returns stage name
@@ -197,6 +211,19 @@ def get_campaign_stage_name(experiment, campaign_stage_id, test=None, configfile
         method='get_campaign_stage_name',
         experiment=experiment,
         campaign_stage_id=campaign_stage_id,
+        test=test,
+        configfile=configfile)
+    return data
+
+def update_stage_param_overrides(experiment, campaign_name, campaign_stage_name, param, test=None, configfile=None):
+    """
+    """
+    data, status = make_poms_call(
+        method="update_stage_param_overrides",
+        experiment=experiment,
+        campaign_name=campaign_name,
+        campaign_stage_name=campaign_stage_name,
+        param_overrides=param,
         test=test,
         configfile=configfile)
     return data
@@ -599,7 +626,7 @@ def getconfig(kwargs):
     _foundconfig = config
     return config
 
-def base_path(test_client,config):
+def base_path(test_client, config):
 
     if test_client:
         if test_client == "int":
@@ -613,7 +640,7 @@ def base_path(test_client,config):
         base = config.get('url', 'base_prod')
     return base
 
-def check_stale_proxy(options ):
+def check_stale_proxy(options):
     cert = auth_cert()
     rs.cert = (cert, cert)
     rs.verify = False
@@ -624,14 +651,14 @@ def check_stale_proxy(options ):
             warnings.simplefilter("ignore")
             c = rs.get(url)
         d = c.json()
-        for f in d.get("file_stat_list",[]):
-             if f[0][:12]=="x509up_voms_":
-                 pdate=datetime.datetime.strptime(f[2], "%Y-%m-%dT%H:%M:%SZ")
-                 
-                 if options.verbose:
-                      logging.info("proxy on POMS has date %sZ" % pdate)
-                      logging.info("current time %sZ" % datetime.datetime.utcnow().isoformat())
-                 return datetime.datetime.utcnow() - pdate > datetime.timedelta(days=3)
+        for f in d.get("file_stat_list", []):
+            if f[0][:12] == "x509up_voms_":
+                pdate = datetime.datetime.strptime(f[2], "%Y-%m-%dT%H:%M:%SZ")
+
+                if options.verbose:
+                    logging.info("proxy on POMS has date %sZ" % pdate)
+                    logging.info("current time %sZ" % datetime.datetime.utcnow().isoformat())
+                return datetime.datetime.utcnow() - pdate > datetime.timedelta(days=3)
     except Exception as e:
         logging.exception("Failed getting uploaded certificate date from POMS")
     # if we don't find it or something went wrong, its stale :-)

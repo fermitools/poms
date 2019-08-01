@@ -330,6 +330,14 @@ class PomsService:
 
     # see &l=webservice/CampaignsPOMS.py#get_campaign_name&
 
+    # h4. get_campaign_stage_id
+
+    @poms_method(rtype="json")
+    def get_campaign_stage_id(self, **kwargs):
+        return self.stagesPOMS.get_campaign_stage_id(**kwargs)
+
+    # see &l=webservice/StagesPOMS.py#get_campaign_stage_id&
+
     # h4. get_campaign_stage_name
 
     @poms_method()
@@ -338,7 +346,16 @@ class PomsService:
 
     # see &l=webservice/StagesPOMS.py#get_campaign_stage_name&
 
+    # h4. update_stage_param_overrides
+
+    @poms_method()
+    def update_stage_param_overrides(self, **kwargs):
+        return self.stagesPOMS.update_stage_param_overrides(**kwargs)
+
+    # see &l=webservice/StagesPOMS.py#update_stage_param_overrides&
+
     # h4. campaign_add_name
+
     @poms_method()
     def campaign_add_name(self, **kwargs):
         return self.campaignsPOMS.campaign_add_name(**kwargs)
