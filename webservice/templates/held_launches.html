@@ -18,15 +18,29 @@ Held Launches
 
 
 {%block content%}
-
+    <form action="held_launches_delete">
+    <input type="hidden" name="experiment" value="{{session_experiment}}">
+    <input type="hidden" name="role" value="{{session_role}}">
+    <table>
+    <thead>
+    <tr>
+       <td>_</td>
+       <td>Created</td>
+       <td>StageId</td>
+       <td>Dataset</td>
+    </tr>
+    </head>
+    <tbody>
     {% for hj in hjl %}
-        {{hj.campaign_stage_id}}
-        {{hj.primary_key}}
-        {{hj.created }}
-        {{hj.parent_submission_id }}
-        {{hj.dataset }}
-        {{hj.param_overrides }}
-        {{hj.launcher }}
-
+      <tr>
+        <td> <input type='checkbox' name="createds" value="{{hj.created}}"></td>
+        <td>{{hj.created}} </td>
+        <td>{{hj.campaign_stage_id}}</td>
+        <td>{{hj.dataset }}</td>
+      </tr>
+    </tbody>
+    </table>
+    <input type="submit" name="delete" value="Delete Checked">
+    </form>
     {% endfor %}
 {%endblock%}
