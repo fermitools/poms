@@ -1,0 +1,32 @@
+{%extends "layout.html"%}
+
+{%block title%}
+POMS: Held launches for user
+ {% if first_name is defined %}
+     <i class="user icon" style="margin-left: 1em"></i>
+     {{first_name}}
+     {{last_name}}
+ {% endif %}
+
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+Held Launches
+</h1>
+{%endblock%}
+
+
+{%block content%}
+
+    {% for hj in hjl %}
+        {{hj.campaign_stage_id}}
+        {{hj.primary_key}}
+        {{hj.created }}
+        {{hj.parent_submission_id }}
+        {{hj.dataset }}
+        {{hj.param_overrides }}
+        {{hj.launcher }}
+
+    {% endfor %}
+{%endblock%}

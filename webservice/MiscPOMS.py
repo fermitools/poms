@@ -37,6 +37,7 @@ from .poms_model import (
     CampaignStageSnapshot,
     Experiment,
     Experimenter,
+    HeldLaunch,
     LoginSetup,
     LoginSetupSnapshot,
     RecoveryType,
@@ -678,3 +679,17 @@ class MiscPOMS:
             cr = CampaignRecovery(job_type_id=job_type_id, recovery_order=i, recovery_type=rt, param_overrides=recpar)
             i = i + 1
             ctx.db.add(cr)
+
+    # h3. held_launches
+    def held_launches(self, ctx):
+        eid = ctx.get_experimenter().experimenter_id
+        hjl = ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher==eid).all()
+        return {'hjl': hjl}
+
+    # h3. held_launches_remove
+    def held_launches_remove(self, ctx, createds):
+        eid = ctx.get_experimenter().experimenter_id
+        if isinstance(createds,str):
+            createds = [createds]
+        ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher==eid,HeldLaunch.created.in_(createds)).delete()
+        ctx.db.commit()
