@@ -1,0 +1,46 @@
+{%extends "layout.html"%}
+
+{%block title%}
+POMS: Held launches for user
+ {% if first_name is defined %}
+     <i class="user icon" style="margin-left: 1em"></i>
+     {{first_name}}
+     {{last_name}}
+ {% endif %}
+
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+Held Launches
+</h1>
+{%endblock%}
+
+
+{%block content%}
+    <form action="held_launches_delete">
+    <input type="hidden" name="experiment" value="{{session_experiment}}">
+    <input type="hidden" name="role" value="{{session_role}}">
+    <table class="ui celled table raised">
+    <thead>
+    <tr>
+       <td>_</td>
+       <td>Created</td>
+       <td>StageId</td>
+       <td>Dataset</td>
+    </tr>
+    </head>
+    <tbody>
+    {% for hj in hjl %}
+      <tr>
+        <td> <input type='checkbox' name="createds" value="{{hj.created}}"></td>
+        <td>{{hj.created}} </td>
+        <td>{{hj.campaign_stage_id}}</td>
+        <td>{{hj.dataset }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+    </table>
+    <input type="submit" name="delete" value="Delete Checked">
+    </form>
+{%endblock%}

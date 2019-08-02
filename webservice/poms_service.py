@@ -1030,3 +1030,15 @@ class PomsService:
         data = self.campaignsPOMS.save_campaign(ctx.db, ctx.username, form=json.dumps(campaign_d), **kwargs)
 
         return data
+
+    @poms_method(t="held_launches.html", help_page="HeldLaunchesHelp")
+    def held_launches(self, **kwargs):
+        return self.miscPOMS.held_launches(**kwargs)
+
+    @poms_method(
+        redirect="%(poms_path)s/held_launches/%(experiment)s/%(role)s",
+        rtype="redirect",
+    )
+    def held_launches_remove(self, **kwargs):
+        return self.miscPOMS.held_launches_remove(**kwargs)
+
