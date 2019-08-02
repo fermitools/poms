@@ -25,6 +25,9 @@ class sam_specifics:
 
     def create_recovery_dataset(self, s, rtype, param_overrides):
 
+        isparentof = "isparentof: " * s.campaign_stage_obj.output_ancestor_depth
+        isclose = ")" * s.campaign_stage_obj.output_ancestor_depth
+
         param_overrides = rlist[s.recovery_position].param_overrides
         if rtype.name == "consumed_status":
             # not using ctx.sam.recovery_dimensions here becuase it
@@ -53,11 +56,13 @@ class sam_specifics:
                 else:
                     dim_bits = "file_name like %s" % oft
 
-                recovery_dims += "%s isparentof: ( version %s and %s and create_date > '%s' ) " % (
+                recovery_dims += "%s %s version %s and %s and create_date > '%s' %s " % (
                     sep,
+                    isparentof,
                     s.campaign_stage_snapshot_obj.software_version,
                     dim_bits,
                     cdate,
+                    isclose,
                 )
                 sep = "and"
             recovery_dims += ")"
@@ -100,8 +105,9 @@ class sam_specifics:
         else:
             dname = "poms_depends_%d_%d" % (s.submission_id, i)
 
-        isparentof = "isparentof: " * s.campaign_stage_obj.output_ancestor_depth
-        ischildof = "ischildof: " * s.campaign_stage_obj.output_ancestor_depth
+        isparentof = "isparentof:( " * s.campaign_stage_obj.output_ancestor_depth
+        ischildof = "ischildof:( " * s.campaign_stage_obj.output_ancestor_depth
+        isclose = ")" * s.campaign_stage_obj.output_ancestor_depth
 
         if s.campaign_stage_obj.campaign_stage_type == "generator":
             # if we're a generator, the previous stage should have declared it
@@ -117,9 +123,10 @@ class sam_specifics:
         if s.campaign_stage_obj.campaign_stage_type in ("approval", "datatransfer"):
             basedims = 'defname:%s' %  s.submission_params.get("dataset", dname)
         else:
-            basedims =  "%s (snapshot_for_project_name %s) and version %s and create_date > '%s'" % (
+            basedims =  "%s snapshot_for_project_name %s %s and version %s and create_date > '%s'" % (
                 ischildof,
                 s.project,
+                isclose,
                 s.campaign_stage_snapshot_obj.software_version,
                 cdate,
             )
@@ -155,13 +162,15 @@ class sam_specifics:
 
             isparentof = "isparentof: " * s.campaign_stage_obj.output_ancestor_depth
             ischildof = "ischildof: " * s.campaign_stage_obj.output_ancestor_depth
+            isclose = ")" * s.campaign_stage_obj.output_ancestor_depth
 
-            somekiddims = "%s and %s isparentof: (version %s)" % (basedims, isparentof, s.campaign_stage_snapshot_obj.software_version)
+            somekiddims = "%s and %s version %s %s" % (basedims, isparentof, s.campaign_stage_snapshot_obj.software_version, isclose)
             some_kids_needed.append(somekiddims)
 
-            somekidsdecldims = "%s and %s (version %s with availability anylocation )" % (
+            somekidsdecldims = "%s and %s version %s with availability anylocation %s" % (
                 basedims,
                 isparentof,
+                isclose,
                 s.campaign_stage_snapshot_obj.software_version,
             )
             some_kids_decl_needed.append(somekidsdecldims)
@@ -176,23 +185,25 @@ class sam_specifics:
                 else:
                     dimbits = "file_name like '%s'" % pat
 
-                allkiddims = "%s and %s ( %s and version '%s' ) " % (
+                allkiddims = "%s and %s %s and version '%s' %s" % (
                     allkiddims,
                     isparentof,
                     dimbits,
                     s.campaign_stage_snapshot_obj.software_version,
+                    isclose
                 )
                 cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
                 allkiddecldims = (
                     "%s and %s "
-                    "( %s and version '%s' "
+                    "%s and version '%s' "
                     "and create_date > '%s' "
-                    "with availability anylocation ) "
-                    % (allkiddecldims, isparentof, dimbits, s.campaign_stage_snapshot_obj.software_version, cdate)
+                    "with availability anylocation %s "
+                    % (allkiddecldims, isparentof, dimbits, s.campaign_stage_snapshot_obj.software_version, cdate, isclose)
                 )
-                outputfiledims = "%s ( %s ) and create_date > '%s' and  %s and version '%s'" % (
+                outputfiledims = "%s  %s %s and create_date > '%s' and  %s and version '%s'" % (
                     ischildof,
                     basedims,
+                    isclose,
                     s.created.strftime("%Y-%m-%d %H:%M:%S"),
                     dimbits,
                     s.campaign_stage_snapshot_obj.software_version,
@@ -264,6 +275,7 @@ class sam_project_checker:
         self.n_project = self.n_project + 1
 
         isparentof = "isparentof: " * submission.campaign_stage_obj.output_ancestor_depth
+        isclose = ")" * submission.campaign_stage_obj.output_ancestor_depth
 
         basedims = "snapshot_for_project_name %s " % submission.project
         allkiddims = basedims
@@ -274,22 +286,24 @@ class sam_project_checker:
                 pat = "%"
 
             if pat.find(" ") > 0:
-                allkiddims = "%s and %s ( %s and version '%s' and create_date > '%s'  with availability physical ) " % (
+                allkiddims = "%s and %s %s and version '%s' and create_date > '%s'  with availability physical %s " % (
                     allkiddims,
                     isparentof,
                     pat,
                     submission.campaign_stage_snapshot_obj.software_version,
                     submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                    isclose
                 )
             else:
                 allkiddims = (
-                    "%s and %s ( file_name '%s' and version '%s' and create_date > '%s' with availability physical ) "
+                    "%s and %s file_name '%s' and version '%s' and create_date > '%s' with availability physical %s "
                     % (
                         allkiddims,
                         isparentof,
                         pat,
                         submission.campaign_stage_snapshot_obj.software_version,
                         submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                        isclose,
                     )
                 )
 
