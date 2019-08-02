@@ -109,6 +109,65 @@ json_field_editor.recovery_save = function (fid) {
     json_field_editor.cancel(fid);
 }
 
+json_field_editor.dictstart = function (id) {
+    var e, r, v, res, i, j, fid, istr, k, e_text;
+    var hang_onto;
+    e = document.getElementById(id);
+    e_text = document.getElementById(id + '_text');
+    if (e_text) {
+        r = e_text.getBoundingClientRect();
+        hang_onto = e_text.parentNode;
+    } else {
+        r = e.getBoundingClientRect();
+        hang_onto = e.parentNode;
+    }
+    v = e.value || e.placeholder;
+    if ('' == v || '[]' == v || '{}' == v) {
+        j = {}
+    } else {
+        j = JSON.parse(v);
+    }
+    count = 0
+    for( k in j ) {
+        count = count + 1
+    }
+    
+    fid = 'edit_form_' + id;
+    res = [];
+    res.push('<input type="hidden" id="' + fid + '_count" value="' + count.toString() + '">');
+    res.push('<h3 style="margin-top: 0">Keyword Editor</h3>');
+    res.push('<table style="border-spacing: 5px; border-collapse: separate; borer: 1px solid gray;">');
+    res.push('<thead>');
+    res.push('<tr>');
+    res.push('<td>Key <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Key"><i class="icon help circle link"></i></a></td>');
+    res.push('<td>Value <a htarget="_blank" ref="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Value"><i class="icon help circle link"></i></a></td>');
+    res.push('<td>&nbsp;</td>');
+    res.push('</tr>');
+    res.push('</thead>');
+    res.push('<tbody id="' + fid + '_tbody">');
+    i = 0
+    for (k in j) {
+        v = j[k]
+        res.push('<tr>');
+        json_field_editor.addrow(res, fid, i, k, v,false);
+        res.push('</tr>');
+        i = i + 1
+    }
+    res.push('</tbody>');
+    res.push('</table>');
+    res.push('&nbsp;&nbsp;&nbsp;');
+    res.push(`<button type="button" class="ui button deny red" onclick="json_field_editor.cancel('${fid}')">Cancel</button>`);
+    res.push(`<button type="button" class="ui button approve teal" onclick="json_field_editor.dictsave('${fid}')">Accept</button>`);
+    var myform = document.createElement("FORM");
+    myform.className = "popup_form_json";
+    myform.style.top = r.bottom;
+    myform.style.right = r.right;
+    myform.style.position = 'absolute';
+    myform.id = fid;
+    myform.innerHTML += res.join('\n');
+    // hang_onto.style.position = 'relative';
+    hang_onto.appendChild(myform);
+}
 json_field_editor.start = function (id) {
     var e, r, v, res, i, j, fid, istr, k, e_text;
     var hang_onto;
@@ -147,7 +206,7 @@ json_field_editor.start = function (id) {
         k = j[i][0];
         v = j[i][1];
         res.push('<tr>');
-        json_field_editor.addrow(res, fid, i, k, v);
+        json_field_editor.addrow(res, fid, i, k, v,true);
         res.push('</tr>');
     }
     res.push('</tbody>');
@@ -170,38 +229,42 @@ json_field_editor.start = function (id) {
  * add a row to the popup editor.  This is factored out so
  * the plus-button callback can share it..
  */
-json_field_editor.addrow = function (res, fid, i, k, v) {
+json_field_editor.addrow = function (res, fid, i, k, v,blanks) {
     var istr = i.toString(),
         ws, wsr;
-    if (k[k.length - 1] == ' ') {
-        while (k[k.length - 1] == ' ') {
-            k = k.slice(0, -1);
+    if (blanks) {
+        if (k[k.length - 1] == ' ') {
+            while (k[k.length - 1] == ' ') {
+                k = k.slice(0, -1);
+            }
+            ws = 'checked="true"';
+        } else {
+            ws = '';
         }
-        ws = 'checked="true"';
-    } else {
-        ws = '';
-    }
-    if (v[0] == ' ') {
-        while (v[0] == ' ') {
-            v = v.slice(1);
+        if (v[0] == ' ') {
+            while (v[0] == ' ') {
+                v = v.slice(1);
+            }
+            wsr = 'checked="true"'
+        } else {
+            wsr = '';
         }
-        wsr = 'checked="true"'
-    } else {
-        wsr = '';
     }
     res.push('<td><input id="' + fid + '_k_' + istr + '" value="' + k + '"></td>');
-    res.push('<td style="min-width: 5em;"><input style="padding: auto; width: 2em;" type="checkbox" id="' + fid + '_ws_' + istr + '" ' + ws + ' value=" ">');
-    res.push('<input style="padding: auto; width: 2em;" type="checkbox" id="' + fid + '_wsr_' + istr + '" ' + wsr + ' value=" "></td>');
+    if (blanks) {
+        res.push('<td style="min-width: 5em;"><input style="padding: auto; width: 2em;" type="checkbox" id="' + fid + '_ws_' + istr + '" ' + ws + ' value=" ">');
+        res.push('<input style="padding: auto; width: 2em;" type="checkbox" id="' + fid + '_wsr_' + istr + '" ' + wsr + ' value=" "></td>');
+    }
 
     res.push('<td><input id="' + fid + '_v_' + istr + '" value="' + v + '"></td>');
     res.push('<td style="min-width: 7em;">');
-    res.push('<i onclick="json_field_editor.plus(\'' + fid + '\',' + istr + ')" class="blue icon dlink plus square"></i>');
+    res.push('<i onclick="json_field_editor.plus(\'' + fid + '\',' + istr + ', ' + blanks.toString() + ')" class="blue icon dlink plus square"></i>');
     res.push('<i onclick="json_field_editor.minus(\'' + fid + '\',' + istr + ')" class="blue icon dlink minus square"></i>');
     res.push('<i onclick="json_field_editor.up(\'' + fid + '\',' + istr + ')" class="blue icon dlink arrow square up"></i>');
     res.push('<i onclick="json_field_editor.down(\'' + fid + '\',' + istr + ')" class="blue icon dlink arrow square down"></i>');
 }
 
-json_field_editor.renumber = function (fid, c) {
+json_field_editor.renumber = function (fid, c, blanks) {
     var i;
     var res;
     var tb = document.getElementById(fid + '_tbody');
@@ -209,19 +272,27 @@ json_field_editor.renumber = function (fid, c) {
         istr = i.toString();
         tr = tb.children[i];
         tr.children[0].children[0].id = fid + "_k_" + istr;
-        tr.children[1].children[0].id = fid + "_ws_" + istr;
-        tr.children[1].children[1].id = fid + "_wsr_" + istr;
-        tr.children[2].children[0].id = fid + "_v_" + istr;
+        if (blanks) {
+            tr.children[1].children[0].id = fid + "_ws_" + istr;
+            tr.children[1].children[1].id = fid + "_wsr_" + istr;
+            tr.children[2].children[0].id = fid + "_v_" + istr;
+        } else {
+            tr.children[1].children[0].id = fid + "_v_" + istr;
+        }
         res = [];
-        res.push('<i onclick="json_field_editor.plus(\'' + fid + '\',' + istr + ')" class="blue icon dlink plus square"></i>');
+        res.push('<i onclick="json_field_editor.plus(\'' + fid + '\',' + istr + ', ' + blanks.toString() + ')" class="blue icon dlink plus square"></i>');
         res.push('<i onclick="json_field_editor.minus(\'' + fid + '\',' + istr + ')" class="blue icon dlink minus square"></i>');
         res.push('<i onclick="json_field_editor.up(\'' + fid + '\',' + istr + ')" class="blue icon dlink arrow square up"></i>');
         res.push('<i onclick="json_field_editor.down(\'' + fid + '\',' + istr + ')" class="blue icon dlink arrow square down"></i>');
-        tr.children[3].innerHTML = res.join("\n");
+        if (blanks) {
+            tr.children[3].innerHTML = res.join("\n");
+        } else {
+            tr.children[2].innerHTML = res.join("\n");
+        }
     }
 }
 
-json_field_editor.plus = function (fid, i) {
+json_field_editor.plus = function (fid, i, blanks) {
     var res = [];
     var tb = document.getElementById(fid + '_tbody');
     var tr = document.createElement('TR');
@@ -229,14 +300,14 @@ json_field_editor.plus = function (fid, i) {
     console.log("before: count: " + ce.value);
     var c = parseInt(ce.value);
 
-    json_field_editor.addrow(res, fid, c, "", "");
+    json_field_editor.addrow(res, fid, c, "", "", blanks);
     tr.innerHTML = res.join("\n");
 
     ce.value = (c + 1).toString();
     console.log("after: count: " + ce.value);
 
     tb.insertBefore(tr, tb.children[i]);
-    json_field_editor.renumber(fid, c + 1);
+    json_field_editor.renumber(fid, c + 1, blanks);
 }
 
 json_field_editor.minus = function (fid, i) {
@@ -263,6 +334,46 @@ json_field_editor.down = function (fid, i) {
     tb.removeChild(tr);
     tb.insertBefore(tr, tb.children[i + 1]);
     json_field_editor.renumber(fid, c);
+}
+
+json_field_editor.dictsave = function (fid) {
+    /*
+     * extract values from the form back in to destination input
+     */
+    var e, ke, ve, res, id, dest, i, istr;
+    var ws, wsr;
+    if (! json_field_editor.validate_percent_formats(fid)) {
+       return;
+    }
+    e = document.getElementById(fid);
+    var ce = document.getElementById(fid + '_count');
+    console.log("before: count: " + ce.value);
+    var c = parseInt(ce.value);
+
+    res = {};
+    console.log(["count", c]);
+    for (i = 0; i < c; i++) {
+        istr = i.toString();
+        ke = document.getElementById(fid + '_k_' + istr);
+        ve = document.getElementById(fid + '_v_' + istr);
+        if (ke != null && ve != null) {
+            res[ke.value] = ve.value
+            console.log(["adding", ke.value, ve.value]);
+        } else {
+            console.log(['cannot find:', fid + 'k' + istr, fid + 'v' + istr]);
+        }
+    }
+    id = fid.replace('edit_form_', '');
+    dest = document.getElementById(id);
+    dest.value = JSON.stringify(res).replace(/([,])/g, '$1 '); // To comply with Python json.dumps() format
+    /* also update xxx_text if there is one */
+    console.log(["updating", id, dest, res]);
+    dest = document.getElementById(id + '_text');
+    if (dest) {
+        dest.value = JSON.stringify(res).replace(/([,])/g, '$1 '); // To comply with Python json.dumps() format
+        console.log(["also updating", id + '_text', dest, res]);
+    }
+    json_field_editor.cancel(fid);
 }
 
 json_field_editor.save = function (fid) {

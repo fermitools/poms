@@ -741,6 +741,7 @@ class CampaignsPOMS:
         campaign_clean = campaign.get("clean")
         defaults = campaign.get("form")
         campaign_keywords = json.loads(defaults.get("campaign_keywords"))
+        logit.log("saw campaign_keywords: %s" % repr(campaign_keywords))
         del defaults["campaign_keywords"]
         position = campaign.get("position")
 
@@ -755,11 +756,7 @@ class CampaignsPOMS:
                 the_campaign.name = c_new_name
 
             the_campaign.campaign_keywords = campaign_keywords
-
-            if pcl_call in ("1", "True", "t", "true") and replace not in ("1", "True", "t", "true"):
-                ctx.db.rollback()
-                message = [f"Error: Campaign '{the_campaign.name}' already exists!"]
-                return {"status": "400 Bad Request", "message": message}
+            ctx.db.add(the_campaign)
 
         else:  # we do not have a campaign in the db for this experiment so create the campaign and then do the linking
             the_campaign = Campaign()

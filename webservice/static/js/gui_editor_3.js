@@ -1741,7 +1741,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     res.push('</h3>');
     for (const k of klist) {
         // k = klist[i];
-        const ro = (k.includes("param") || k == "recoveries" || k == "cs_split_type" || ((k == "host" || k == "account") && this.gui.state['campaign']['poms_role'] == "analysis")) ? "disabled" : "";
+        const ro = (k.includes("param") || k.includes("keywords") || k == "recoveries" || k == "cs_split_type" || ((k == "host" || k == "account") && this.gui.state['campaign']['poms_role'] == "analysis")) ? "disabled" : "";
         if (k.startsWith('campaign_stage')) // Hack to hide this from dependency form
             continue;
         if (vdict[k] == null) {
@@ -1765,9 +1765,8 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         } else {
             res.push(`<input id="${this.get_input_tag(k)}" name="${k}" value="${this.escape_quotes(val)}" placeholder="${this.escape_quotes(placeholder)}" ${ro}>`);
         }
-        if (k.includes('param')) {
-            // res.push(`<button type="button" onclick="json_field_editor.start('${this.get_input_tag(k)}')">Edit</button>`);
-            res.push(`<button type="button" onclick="json_field_editor.start(this.previousElementSibling.id)">Edit</button>`);
+        if (k.includes('param') || k.includes('keywords')) {
+            res.push(`<button type="button" onclick="json_field_editor.dictstart(this.previousElementSibling.id)">Edit</button>`);
         }
         if (k == 'dataset_or_split_data') {
             res.push(`<button type="button" class="split_type_picker_custom_edit" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
