@@ -229,7 +229,7 @@ json_field_editor.start = function (id) {
  * add a row to the popup editor.  This is factored out so
  * the plus-button callback can share it..
  */
-json_field_editor.addrow = function (res, fid, i, k, v,blanks) {
+json_field_editor.addrow = function (res, fid, i, k, v, blanks) {
     var istr = i.toString(),
         ws, wsr;
     if (blanks) {
@@ -463,7 +463,7 @@ json_field_editor.validate_percent_formats = function(form) {
                return json_field_editor.validate_percent_error(e, "missing 's'");
            }
            word = s.substring(k+2,l);
-           if (! (word in { "dataset": 1, "parameter": 1, "experiment": 1, "version": 1, "group": 1, "experimenter":1})) {
+           if (! (word in { "dataset": 1, "parameter": 1, "experiment": 1, "version": 1, "group": 1, "experimenter":1}) && !(typeof document.extra_keywords !== "undefined" && word in document.extra_keywords)) {
                return json_field_editor.validate_percent_error(e, "unknown keyword '" + word + "'");
            }
            k = s.indexOf('%',k+1);

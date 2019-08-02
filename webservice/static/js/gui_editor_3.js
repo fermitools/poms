@@ -740,6 +740,8 @@ gui_editor.prototype.set_state = function (ini_dump, experiment, role) {
 
 gui_editor.prototype.defaultify_state = function () {
     var st, k, j, max, maxslot;
+    /* stash keywords for error checks elsewhere */
+    document.extra_keywords = JSON.parse(this.state.campaign.campaign_keywords)
     if (true && this.state.campaign_defaults) {
         this.mode = {
             name: this.state.campaign.name,
@@ -1765,7 +1767,9 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         } else {
             res.push(`<input id="${this.get_input_tag(k)}" name="${k}" value="${this.escape_quotes(val)}" placeholder="${this.escape_quotes(placeholder)}" ${ro}>`);
         }
-        if (k.includes('param') || k.includes('keywords')) {
+        if (k.includes('param')) {
+            res.push(`<button type="button" onclick="json_field_editor.start(this.previousElementSibling.id)">Edit</button>`);
+        } else if ( k.includes('keywords')) {
             res.push(`<button type="button" onclick="json_field_editor.dictstart(this.previousElementSibling.id)">Edit</button>`);
         }
         if (k == 'dataset_or_split_data') {
