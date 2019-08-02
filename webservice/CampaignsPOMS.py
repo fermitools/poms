@@ -604,7 +604,7 @@ class CampaignsPOMS:
         for c_s in csl:
             if self.poms_service.permissions.is_superuser(ctx):
                 data["authorized"].append(True)
-            elif c_s.creator_role == "production" and role == "production":
+            elif c_s.creator_role == "production" and ctx.role == "production":
                 data["authorized"].append(True)
             elif c_s.creator_role == ctx.role and c_s.creator == experimenter.experimenter_id:
                 data["authorized"].append(True)
