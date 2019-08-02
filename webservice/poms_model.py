@@ -41,6 +41,7 @@ class Campaign(Base):
     creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
     campaign_type = Column(Text, nullable=True)
+    campaign_keywords = Column(JSON)
 
     tags = relationship(Tag, secondary="campaigns_tags", lazy="dynamic")
     stages = relationship("CampaignStage", back_populates="campaign_obj", lazy="dynamic")
@@ -83,6 +84,7 @@ class CampaignStage(Base):
     role_held_with = Column(Text, nullable=True)
     campaign_stage_type = Column(Text, nullable=False)
     merge_overrides = Column(Boolean, nullable=True)
+    output_ancestor_depth = Column(Integer, server_default="1")
 
     campaign_id = Column(ForeignKey("campaigns.campaign_id"), nullable=True, index=True)
 

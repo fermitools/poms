@@ -313,6 +313,7 @@ class CampaignsPOMS:
             res.append("poms_role=%s" % the_campaign.creator_role)
             res.append("name=%s" % the_campaign.name)
             res.append("state=%s" % ("Active" if the_campaign.active else "Inactive"))
+            res.append("campaign_keywords=%s" % json.dumps(campaign.campaign_keywords))
 
             res.append("campaign_stage_list=%s" % ",".join(map(cnames.get, cidl)))
             res.append("")
@@ -341,6 +342,7 @@ class CampaignsPOMS:
                     res.append("login_setup=%s" % (defaults.get("login_setup") or "generic"))
                     res.append("job_type=%s" % (defaults.get("job_type") or "generic"))
                     res.append("stage_type=%s" % (defaults.get("stage_type") or "regular"))
+                    res.append("output_ancestor_depth=%s" % (defaults.get("output_ancestor_depth") or "1"))
                     res.append("")
                 else:
                     defaults = {}
@@ -359,6 +361,8 @@ class CampaignsPOMS:
                 res.append("vo_role=%s" % c_s.vo_role)
             if c_s.software_version != defaults.get("software_version"):
                 res.append("software_version=%s" % c_s.software_version)
+            if c_s.output_ancestor_depth != defaults.get("output_ancestor_depth"):
+                res.append("output_ancestor_depth=%s" % c_s.output_ancestor_depth)
             if c_s.dataset != defaults.get("dataset_or_split_data"):
                 res.append("dataset_or_split_data=%s" % c_s.dataset)
             if c_s.cs_split_type != defaults.get("cs_split_type"):
@@ -734,6 +738,7 @@ class CampaignsPOMS:
         campaign = [s for s in stages if s.get("id").startswith("campaign ")][0]
         c_old_name = campaign.get("id").split(" ", 1)[1]
         c_new_name = campaign.get("label")
+        campaign_keywords = campaign.get("campaign_keywords")
         campaign_clean = campaign.get("clean")
         defaults = campaign.get("form")
         position = campaign.get("position")
@@ -748,6 +753,8 @@ class CampaignsPOMS:
             if c_new_name != c_old_name:
                 the_campaign.name = c_new_name
 
+            the_campaign.campaign_keywords = campaign_keywords
+
             if pcl_call in ("1", "True", "t", "true") and replace not in ("1", "True", "t", "true"):
                 ctx.db.rollback()
                 message = [f"Error: Campaign '{the_campaign.name}' already exists!"]
@@ -760,6 +767,7 @@ class CampaignsPOMS:
             the_campaign.experiment = ctx.experiment
             the_campaign.creator = user_id
             the_campaign.creator_role = role
+            the_campaign.campaign_keywords = campaign_keywords
             ctx.db.add(the_campaign)
         ctx.db.commit()
 
@@ -829,6 +837,9 @@ class CampaignsPOMS:
             software_version = form.pop("software_version")
             test_param_overrides = form.pop("test_param_overrides", None)
             test_param_overrides = json.loads(test_param_overrides) if test_param_overrides else None
+            output_ancestor_depth = form.pop("output_ancestor_depth", None)
+            output_ancestor_depth = json.loads(output_ancestor_depth) if output_ancestor_depth else None
+            
             vo_role = form.pop("vo_role")
 
             stage_type = form.pop("stage_type", "regular")
@@ -888,6 +899,7 @@ class CampaignsPOMS:
                     obj.merge_overrides = merge_overrides in (True, "True", "true")
                     obj.software_version = software_version
                     obj.test_param_overrides = test_param_overrides
+                    obj.output_ancestor_depth = output_ancestor_depth
                     obj.vo_role = vo_role
                     obj.campaign_stage_type = stage_type
                     obj.active = active
@@ -913,6 +925,7 @@ class CampaignsPOMS:
                     merge_overrides=merge_overrides in (True, "True", "true"),
                     software_version=software_version,
                     test_param_overrides=test_param_overrides,
+                    output_ancestor_depth=output_ancestor_depth,
                     vo_role=vo_role,
                     #
                     creator=user_id,
