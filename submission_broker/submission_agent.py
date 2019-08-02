@@ -384,7 +384,7 @@ class Agent:
                 # if so, it isn't really gone, it just hasn't had an
                 # event lately...
                 #
-                if self.known.["jobsub_job_id"].get(id):
+                if self.known["jobsub_job_id"].get(id):
                     entry = self.get_individual_submission(self.known["jobsub_job_id"][id])
                     if entry and not entry["done"]:
                         thispass.add(id)

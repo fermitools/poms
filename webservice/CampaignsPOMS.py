@@ -606,7 +606,7 @@ class CampaignsPOMS:
                 data["authorized"].append(True)
             elif c_s.creator_role == "production" and role == "production":
                 data["authorized"].append(True)
-            elif c_s.creator_role == role and c_s.creator == experimenter.experimenter_id:
+            elif c_s.creator_role == ctx.role and c_s.creator == experimenter.experimenter_id:
                 data["authorized"].append(True)
             else:
                 data["authorized"].append(False)
