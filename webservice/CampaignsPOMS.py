@@ -313,7 +313,7 @@ class CampaignsPOMS:
             res.append("poms_role=%s" % the_campaign.creator_role)
             res.append("name=%s" % the_campaign.name)
             res.append("state=%s" % ("Active" if the_campaign.active else "Inactive"))
-            res.append("campaign_keywords=%s" % json.dumps(campaign.campaign_keywords))
+            res.append("campaign_keywords=%s" % (json.dumps(the_campaign.campaign_keywords) if the_campaign.campaign_keywords else "{}"))
 
             res.append("campaign_stage_list=%s" % ",".join(map(cnames.get, cidl)))
             res.append("")
@@ -738,9 +738,10 @@ class CampaignsPOMS:
         campaign = [s for s in stages if s.get("id").startswith("campaign ")][0]
         c_old_name = campaign.get("id").split(" ", 1)[1]
         c_new_name = campaign.get("label")
-        campaign_keywords = campaign.get("campaign_keywords")
         campaign_clean = campaign.get("clean")
         defaults = campaign.get("form")
+        campaign_keywords = json.loads(defaults.get("campaign_keywords"))
+        del defaults["campaign_keywords"]
         position = campaign.get("position")
 
         the_campaign = ctx.db.query(Campaign).filter(Campaign.name == c_old_name, Campaign.experiment == ctx.experiment).scalar()

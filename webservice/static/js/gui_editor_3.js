@@ -743,6 +743,7 @@ gui_editor.prototype.defaultify_state = function () {
     if (true && this.state.campaign_defaults) {
         this.mode = {
             name: this.state.campaign.name,
+            campaign_keywords: this.state.campaign.campaign_keywords,
             ...this.state.campaign_defaults
         };
     } else {

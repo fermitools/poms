@@ -1283,14 +1283,17 @@ class SubmissionsPOMS:
                 params.update(param_overrides)
 
         lcmd = launch_script + " " + " ".join((x[0] + x[1]) for x in list(params.items()))
-        lcmd = lcmd % {
+        formatdict = cs.campaign_obj.campaign_keywords if cs.campaign_obj.campaign_keywords else {}
+        formatdict.update({
             "dataset": dataset,
             "parameter": dataset,
             "version": vers,
             "group": group,
             "experimenter": experimenter_login,
             "experiment": exp,
-        }
+        })
+
+        lcmd = lcmd % formatdict
         lcmd = lcmd.replace("'", """'"'"'""")
         if output_commands:
             cmdl.append('echo "\n=========\nrun the following to launch the job:\n%s"' % lcmd)
