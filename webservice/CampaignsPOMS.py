@@ -313,7 +313,9 @@ class CampaignsPOMS:
             res.append("poms_role=%s" % the_campaign.creator_role)
             res.append("name=%s" % the_campaign.name)
             res.append("state=%s" % ("Active" if the_campaign.active else "Inactive"))
-            res.append("campaign_keywords=%s" % (json.dumps(the_campaign.campaign_keywords) if the_campaign.campaign_keywords else "{}"))
+            res.append(
+                "campaign_keywords=%s" % (json.dumps(the_campaign.campaign_keywords) if the_campaign.campaign_keywords else "{}")
+            )
 
             res.append("campaign_stage_list=%s" % ",".join(map(cnames.get, cidl)))
             res.append("")
@@ -361,7 +363,7 @@ class CampaignsPOMS:
                 res.append("vo_role=%s" % c_s.vo_role)
             if c_s.software_version != defaults.get("software_version"):
                 res.append("software_version=%s" % c_s.software_version)
-            if c_s.output_ancestor_depth != defaults.get("output_ancestor_depth",1):
+            if c_s.output_ancestor_depth != defaults.get("output_ancestor_depth", 1):
                 res.append("output_ancestor_depth=%s" % c_s.output_ancestor_depth)
             if c_s.dataset != defaults.get("dataset_or_split_data"):
                 res.append("dataset_or_split_data=%s" % c_s.dataset)
@@ -743,7 +745,7 @@ class CampaignsPOMS:
         c_new_name = campaign.get("label")
         campaign_clean = campaign.get("clean")
         defaults = campaign.get("form")
-        campaign_keywords = json.loads(defaults.get("campaign_keywords","{}"))
+        campaign_keywords = json.loads(defaults.get("campaign_keywords", "{}"))
         logit.log("saw campaign_keywords: %s" % repr(campaign_keywords))
         if "campaign_keywords" in defaults:
             del defaults["campaign_keywords"]
@@ -840,7 +842,7 @@ class CampaignsPOMS:
             test_param_overrides = form.pop("test_param_overrides", None)
             test_param_overrides = json.loads(test_param_overrides) if test_param_overrides else None
             output_ancestor_depth = form.pop("output_ancestor_depth", 1)
-            
+
             vo_role = form.pop("vo_role")
 
             stage_type = form.pop("stage_type", "regular")

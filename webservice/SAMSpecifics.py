@@ -121,9 +121,9 @@ class sam_specifics:
         cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
 
         if s.campaign_stage_obj.campaign_stage_type in ("approval", "datatransfer"):
-            basedims = 'defname:%s' %  s.submission_params.get("dataset", dname)
+            basedims = "defname:%s" % s.submission_params.get("dataset", dname)
         else:
-            basedims =  "%s snapshot_for_project_name %s %s and version %s and create_date > '%s'" % (
+            basedims = "%s snapshot_for_project_name %s %s and version %s and create_date > '%s'" % (
                 ischildof,
                 s.project,
                 isclose,
@@ -131,10 +131,7 @@ class sam_specifics:
                 cdate,
             )
 
-        dims = "%s and %s" % (
-            basedims,
-            dim_bits,
-        )
+        dims = "%s and %s" % (basedims, dim_bits)
 
         try:
             self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, dname, dims)
@@ -164,7 +161,12 @@ class sam_specifics:
             ischildof = "ischildof: " * s.campaign_stage_obj.output_ancestor_depth
             isclose = ")" * s.campaign_stage_obj.output_ancestor_depth
 
-            somekiddims = "%s and %s version %s %s" % (basedims, isparentof, s.campaign_stage_snapshot_obj.software_version, isclose)
+            somekiddims = "%s and %s version %s %s" % (
+                basedims,
+                isparentof,
+                s.campaign_stage_snapshot_obj.software_version,
+                isclose,
+            )
             some_kids_needed.append(somekiddims)
 
             somekidsdecldims = "%s and %s version %s with availability anylocation %s" % (
@@ -190,7 +192,7 @@ class sam_specifics:
                     isparentof,
                     dimbits,
                     s.campaign_stage_snapshot_obj.software_version,
-                    isclose
+                    isclose,
                 )
                 cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
                 allkiddecldims = (
@@ -292,19 +294,16 @@ class sam_project_checker:
                     pat,
                     submission.campaign_stage_snapshot_obj.software_version,
                     submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                    isclose
+                    isclose,
                 )
             else:
-                allkiddims = (
-                    "%s and %s file_name '%s' and version '%s' and create_date > '%s' with availability physical %s "
-                    % (
-                        allkiddims,
-                        isparentof,
-                        pat,
-                        submission.campaign_stage_snapshot_obj.software_version,
-                        submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                        isclose,
-                    )
+                allkiddims = "%s and %s file_name '%s' and version '%s' and create_date > '%s' with availability physical %s " % (
+                    allkiddims,
+                    isparentof,
+                    pat,
+                    submission.campaign_stage_snapshot_obj.software_version,
+                    submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                    isclose,
                 )
 
         self.lookup_exp_list.append(submission.campaign_stage_snapshot_obj.experiment)

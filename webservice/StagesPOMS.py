@@ -489,13 +489,13 @@ class StagesPOMS:
         for p in po:
             print(f"------ p: {p}")
         opo = OrderedDict(po)
-        for k in param_overrides:               # For all new k/v pairs
+        for k in param_overrides:  # For all new k/v pairs
             if param_overrides[k]:
-                opo[k] = param_overrides[k]     # Update or add new value
+                opo[k] = param_overrides[k]  # Update or add new value
             else:
-                opo.pop(k, None)                # Remove k/v if new v is empty
-        stage.param_overrides = list(opo.items())   # Update the record
-        ctx.db.commit()                         # Update DB
+                opo.pop(k, None)  # Remove k/v if new v is empty
+        stage.param_overrides = list(opo.items())  # Update the record
+        ctx.db.commit()  # Update DB
         return str(list(opo.items())) if stage else None
 
     # h3. show_campaign_stages

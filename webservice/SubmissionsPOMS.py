@@ -968,7 +968,7 @@ class SubmissionsPOMS:
         test_login_setup=None,
         test_launch=False,
         output_commands=False,
-        parent=None
+        parent=None,
     ):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id))
@@ -1024,7 +1024,6 @@ class SubmissionsPOMS:
 
             if not cs:
                 raise KeyError("CampaignStage id %s not found" % campaign_stage_id)
-
 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
@@ -1171,7 +1170,7 @@ class SubmissionsPOMS:
             pdict["test"] = 1
         if parent:
             pdict["parent"] = parent
-      
+
         ctx.db.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict})
 
         if cs.campaign_stage_type == "approval":
@@ -1284,14 +1283,16 @@ class SubmissionsPOMS:
 
         lcmd = launch_script + " " + " ".join((x[0] + x[1]) for x in list(params.items()))
         formatdict = cs.campaign_obj.campaign_keywords if cs.campaign_obj.campaign_keywords else {}
-        formatdict.update({
-            "dataset": dataset,
-            "parameter": dataset,
-            "version": vers,
-            "group": group,
-            "experimenter": experimenter_login,
-            "experiment": exp,
-        })
+        formatdict.update(
+            {
+                "dataset": dataset,
+                "parameter": dataset,
+                "version": vers,
+                "group": group,
+                "experimenter": experimenter_login,
+                "experiment": exp,
+            }
+        )
 
         lcmd = lcmd % formatdict
         lcmd = lcmd.replace("'", """'"'"'""")

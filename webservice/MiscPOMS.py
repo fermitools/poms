@@ -683,13 +683,13 @@ class MiscPOMS:
     # h3. held_launches
     def held_launches(self, ctx):
         eid = ctx.get_experimenter().experimenter_id
-        hjl = ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher==eid).all()
-        return {'hjl': hjl}
+        hjl = ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher == eid).all()
+        return {"hjl": hjl}
 
     # h3. held_launches_remove
     def held_launches_remove(self, ctx, createds):
         eid = ctx.get_experimenter().experimenter_id
-        if isinstance(createds,str):
+        if isinstance(createds, str):
             createds = [createds]
-        ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher==eid,HeldLaunch.created.in_(createds)).delete()
+        ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher == eid, HeldLaunch.created.in_(createds)).delete()
         ctx.db.commit()

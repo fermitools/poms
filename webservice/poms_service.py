@@ -1032,10 +1032,6 @@ class PomsService:
     def held_launches(self, **kwargs):
         return self.miscPOMS.held_launches(**kwargs)
 
-    @poms_method(
-        redirect="%(poms_path)s/held_launches/%(experiment)s/%(role)s",
-        rtype="redirect",
-    )
+    @poms_method(redirect="%(poms_path)s/held_launches/%(experiment)s/%(role)s", rtype="redirect")
     def held_launches_remove(self, **kwargs):
         return self.miscPOMS.held_launches_remove(**kwargs)
-

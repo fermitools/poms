@@ -20,11 +20,7 @@ class limitn:
 
     def peek(self):
         new = self.cs.dataset + "_limit%d" % (self.n)
-        self.samhandle.create_definition(
-            self.cs.experiment,
-            new,
-            "defname: %s with limit %d" % (self.cs.dataset, self.n)
-        )
+        self.samhandle.create_definition(self.cs.experiment, new, "defname: %s with limit %d" % (self.cs.dataset, self.n))
         if self.samhandle.count_files(self.cs.job_type_obj.experiment, "defname:" + new) == 0:
             raise StopIteration
 
