@@ -361,7 +361,7 @@ class CampaignsPOMS:
                 res.append("vo_role=%s" % c_s.vo_role)
             if c_s.software_version != defaults.get("software_version"):
                 res.append("software_version=%s" % c_s.software_version)
-            if c_s.output_ancestor_depth != defaults.get("output_ancestor_depth"):
+            if c_s.output_ancestor_depth != defaults.get("output_ancestor_depth",1):
                 res.append("output_ancestor_depth=%s" % c_s.output_ancestor_depth)
             if c_s.dataset != defaults.get("dataset_or_split_data"):
                 res.append("dataset_or_split_data=%s" % c_s.dataset)
@@ -835,8 +835,7 @@ class CampaignsPOMS:
             software_version = form.pop("software_version")
             test_param_overrides = form.pop("test_param_overrides", None)
             test_param_overrides = json.loads(test_param_overrides) if test_param_overrides else None
-            output_ancestor_depth = form.pop("output_ancestor_depth", None)
-            output_ancestor_depth = json.loads(output_ancestor_depth) if output_ancestor_depth else None
+            output_ancestor_depth = form.pop("output_ancestor_depth", 1)
             
             vo_role = form.pop("vo_role")
 
