@@ -110,6 +110,9 @@ class JSONORMEncoder(json.JSONEncoder):
         if isinstance(obj, datetime.datetime):
             return obj.strftime("%Y-%m-%dT%H:%M:%S")
 
+        if isinstance(obj, cherrypy._cpreqbody.Part):
+            return "<uploaded_file_data>"
+
         return super(JSONORMEncoder, self).default(obj)
 
 

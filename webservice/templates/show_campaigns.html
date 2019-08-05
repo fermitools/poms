@@ -55,7 +55,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
 
 <!-- <span id="span-upload" class="tiny ui teal button" {{ 'disabled' if (session_role=='superuser') }}> </span> -->
 
-<form id="ini_upload_form" class="tiny ui buttons" method="POST" enctype="multipart/form-data" action="ini_to_campaign">
+<form id="ini_upload_form" class="tiny ui buttons" method="POST" enctype="multipart/form-data" action="{{pomspath}}/ini_to_campaign/{{session_experiment}}/{{session_role}}">
     <label for="hidden-new-file" class="tiny ui teal button">
         Pick .ini file
         <input type="file" name="upload" id="hidden-new-file" style="display: none">

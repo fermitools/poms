@@ -975,10 +975,7 @@ class PomsService:
         if not upload.file:
             return "Pick the file first!"
 
-        print("upload='{}', kwargs={}".format(upload, kwargs))
-        print("fn: {}, ct: {}, {}".format(upload.filename, upload.content_type, upload.file))
         data = upload.file.read().decode("utf-8")
-        # print("{}".format(data))
 
         p = ConfigParser(interpolation=None)
         try:
@@ -1027,7 +1024,7 @@ class PomsService:
             sn = name.split(" ", 1)[1]
             campaign_d["misc"].append({"id": name, "label": sn, "clean": False, "form": section})
         # Save the campaign
-        data = self.campaignsPOMS.save_campaign(ctx.db, ctx.username, form=json.dumps(campaign_d), **kwargs)
+        data = self.campaignsPOMS.save_campaign(ctx, form=json.dumps(campaign_d), **kwargs)
 
         return data
 

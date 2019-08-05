@@ -671,7 +671,10 @@ class CampaignsPOMS:
         c_old_name = campaign.get("id").split(" ", 1)[1]
 
         # permissions check, deferred from top level...
-        self.poms_service.permissions.can_modify(ctx, "Campaign", name=c_old_name, experiment=ctx.experiment)
+        # but only if there actually *is* an old name, if its a new campaign
+        # we skip it...
+        if c_old_name:
+            self.poms_service.permissions.can_modify(ctx, "Campaign", name=c_old_name, experiment=ctx.experiment)
 
         # Process job types and login setups first
         misc = everything["misc"]
@@ -740,9 +743,10 @@ class CampaignsPOMS:
         c_new_name = campaign.get("label")
         campaign_clean = campaign.get("clean")
         defaults = campaign.get("form")
-        campaign_keywords = json.loads(defaults.get("campaign_keywords"))
+        campaign_keywords = json.loads(defaults.get("campaign_keywords","{}"))
         logit.log("saw campaign_keywords: %s" % repr(campaign_keywords))
-        del defaults["campaign_keywords"]
+        if "campaign_keywords" in defaults:
+            del defaults["campaign_keywords"]
         position = campaign.get("position")
 
         the_campaign = ctx.db.query(Campaign).filter(Campaign.name == c_old_name, Campaign.experiment == ctx.experiment).scalar()
