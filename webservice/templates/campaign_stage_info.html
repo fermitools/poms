@@ -68,23 +68,13 @@ all the time...
                  <a href="https://landscape.fnal.gov/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{CampaignStage.experiment|replace('samdev','fermilab')}}" target='_blank'>Production Shifter Page (Landscape)</a>
               </div>
               <div class=item>
-                 <i class="external icon"></i>
-                 <a href="https://fifemon.fnal.gov/monitor/d/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}" target='_blank'>POMS Campaign Stage(landscape)</a>
-              </div>
-              <div class=item>
                <a href="https://fifemon.fnal.gov/monitor/d/X49EUj3iz/poms-stage?orgId=1&from=now-30d&to=now&var-stage={{CampaignStage.campaign_stage_id}}&var-stage_name={{CampaignStage.name}}" target='_blank'>
                    <i class="external bar chart icon" data-content="Campaign Stats"></i>Campaign Stage Stats (Landscape)
                </a>
               </div>
               <div class=item>
-               <a href="https://fifemon.fnal.gov/monitor/d/000000213/poms-tasks?orgId=1&var-Experiment={{CampaignStage.experiment|replace('samdev','fermilab')}}&var-Campaign={{CampaignStage.campaign_stage_id}}&from=now-7d&to=now" target='_blank'>
-                   <i class="external bar chart icon" data-content="Submissions"></i>Submissions (Landscape)
-               </a>
-              </div>
-
-              <div class=item>
               <a href="{{pomspath}}/campaign_stage_submissions/{{session_experiment}}/{{session_role}}?campaign_name={{CampaignStage.campaign_obj.name}}&stage_name={{CampaignStage.name}}&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tdays=7&tmax={{last_activity}}">
-                <i class="external submissions icon" data-content="Campaign Stage Submissins (1wk)" data-variation="basic"></i>Campaign Stage Submissions (1wk)
+                <i class="table icon" data-content="Campaign Stage Submissins (1wk)" data-variation="basic"></i>Campaign Stage Submissions (1wk)
               </a>
               </div>
               <div class=item>
