@@ -174,7 +174,7 @@ class Permissions:
         if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
             raise PermissionError("Must be role %s to change this" % role)
 
-        if ctx.role == "analysis" and owner != ctx.username:
+        if ctx.role == "analysis" and owner and owner != ctx.username:
             raise PermissionError("Must be user %s to change this" % owner)
 
     def can_do(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None):
@@ -201,5 +201,5 @@ class Permissions:
         if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
             raise PermissionError("Must be role %s to do this" % role)
 
-        if role and ctx.role == "analysis" and owner != ctx.username:
+        if role and ctx.role == "analysis" and owner and owner != ctx.username:
             raise PermissionError("Must be user %s to do this" % owner)
