@@ -918,7 +918,7 @@ gui_editor.prototype.ini2json = function (s) {
             l = mwm_utils.trim_blanks(l);
             // l = l.replace(/%%/g,'%'); no longer doubling percent signs
             k_v = l.match(/([^ =:]*) *[=:] *(.*)/);
-            console.log(['line:',l,'k_v:', k_]);
+            console.log(['line:',l,'k_v:', k_v]);
             if (k_v != null) {
                 k_v.shift();
                 k = k_v.shift();

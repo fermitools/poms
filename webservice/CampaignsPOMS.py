@@ -612,7 +612,7 @@ class CampaignsPOMS:
                 data["authorized"].append(True)
             elif c_s.creator_role == "production" and ctx.role == "production":
                 data["authorized"].append(True)
-            elif c_s.creator_role == ctx.role and c_s.creator == experimenter.experimenter_id:
+            elif c_s.creator_role == 'analysis' and c_s.creator_role == ctx.role and c_s.creator == experimenter.experimenter_id:
                 data["authorized"].append(True)
             else:
                 data["authorized"].append(False)
@@ -671,12 +671,11 @@ class CampaignsPOMS:
         stages = everything["stages"]
         campaign = [s for s in stages if s.get("id").startswith("campaign ")][0]
         c_old_name = campaign.get("id").split(" ", 1)[1]
+        c_new_name = campaign.get("label")
 
         # permissions check, deferred from top level...
-        # but only if there actually *is* an old name, if its a new campaign
-        # we skip it...
-        if c_old_name:
-            self.poms_service.permissions.can_modify(ctx, "Campaign", name=c_old_name, experiment=ctx.experiment)
+        self.poms_service.permissions.can_modify(ctx, "Campaign", name=c_old_name, experiment=ctx.experiment)
+        self.poms_service.permissions.can_modify(ctx, "Campaign", name=c_new_name, experiment=ctx.experiment)
 
         # Process job types and login setups first
         misc = everything["misc"]
@@ -738,11 +737,6 @@ class CampaignsPOMS:
                         ctx.db.rollback()
 
         # Now process all stages
-        stages = everything["stages"]
-        logit.log("############## stages: {}".format([s.get("id") for s in stages]))
-        campaign = [s for s in stages if s.get("id").startswith("campaign ")][0]
-        c_old_name = campaign.get("id").split(" ", 1)[1]
-        c_new_name = campaign.get("label")
         campaign_clean = campaign.get("clean")
         defaults = campaign.get("form")
         campaign_keywords_json = defaults.get("campaign_keywords", "")
