@@ -151,14 +151,14 @@ class MiscPOMS:
                         raise cherrypy.HTTPError(status=401, message="You are not authorized to add launch template.")
                     exists = (
                         ctx.db.query(LoginSetup)
-                        .filter(LoginSetup.experiment == experiment)
+                        .filter(LoginSetup.experiment == ctx.experiment)
                         .filter(LoginSetup.name == ae_launch_name)
                     ).first()
                     if exists:
                         message = "A login setup named %s already exists." % ae_launch_name
                     else:
                         template = LoginSetup(
-                            experiment=experiment,
+                            experiment=ctx.experiment,
                             name=ae_launch_name,
                             launch_host=ae_launch_host,
                             launch_account=ae_launch_account,

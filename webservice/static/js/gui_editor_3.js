@@ -741,7 +741,11 @@ gui_editor.prototype.set_state = function (ini_dump, experiment, role) {
 gui_editor.prototype.defaultify_state = function () {
     var st, k, j, max, maxslot;
     /* stash keywords for error checks elsewhere */
-    document.extra_keywords = JSON.parse(this.state.campaign.campaign_keywords)
+    if (this.state.campaign.campaign_keywords != undefined) {
+        document.extra_keywords = JSON.parse(this.state.campaign.campaign_keywords)
+    } else {
+        document.extra_keywords = {}
+    }
     if (true && this.state.campaign_defaults) {
         this.mode = {
             name: this.state.campaign.name,
@@ -1749,7 +1753,11 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         if (vdict[k] == null) {
             val = "";
             //VP~ placeholder = "default";
-            placeholder = (this.gui.mode[k]).toString();
+            if (this.gui.mode[k] != undefined) {
+                placeholder = (this.gui.mode[k]).toString();
+            } else {
+                placeholder = ''
+            }
         } else {
             val = vdict[k];
             //VP~ placeholder = "default";
