@@ -918,14 +918,16 @@ gui_editor.prototype.ini2json = function (s) {
             l = mwm_utils.trim_blanks(l);
             // l = l.replace(/%%/g,'%'); no longer doubling percent signs
             k_v = l.match(/([^ =:]*) *[=:] *(.*)/);
-            console.log(k_v);
-            k_v.shift();
-            k = k_v.shift();
-            v = k_v.join('=').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-            if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
-                continue;
+            console.log(['line:',l,'k_v:', k_]);
+            if (k_v != null) {
+                k_v.shift();
+                k = k_v.shift();
+                v = k_v.join('=').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+                if (k == "" || k[0] == " " || k[0] == "\n" || k[0] == '}') {
+                    continue;
+                }
+                res.push('"' + k + '": "' + v + '",');
             }
-            res.push('"' + k + '": "' + v + '",');
         }
     }
 

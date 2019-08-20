@@ -745,7 +745,10 @@ class CampaignsPOMS:
         c_new_name = campaign.get("label")
         campaign_clean = campaign.get("clean")
         defaults = campaign.get("form")
-        campaign_keywords = json.loads(defaults.get("campaign_keywords", "{}"))
+        campaign_keywords_json = defaults.get("campaign_keywords", "")
+        if not campaign_keywords_json:
+            campaign_keywords_json = "{}"
+        campaign_keywords = json.loads(campaign_keywords_json)
         logit.log("saw campaign_keywords: %s" % repr(campaign_keywords))
         if "campaign_keywords" in defaults:
             del defaults["campaign_keywords"]

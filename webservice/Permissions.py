@@ -75,7 +75,7 @@ class Permissions:
             if name:
                 q = q.filter(Submission.jobsub_job_id == name)
         elif t == "CampaignStage":
-            q = ctx.db.query(CampaignStage.experiment, Experimenter.username, CampaignStage.creator, CampaignStage.creator_role).join( #
+            q = ctx.db.query(CampaignStage.experiment, Experimenter.username, CampaignStage.creator_role).join( #
                   Experimenter, CampaignStage.creator == Experimenter.experimenter_id
             )
             if item_id:
