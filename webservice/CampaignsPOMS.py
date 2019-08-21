@@ -671,12 +671,11 @@ class CampaignsPOMS:
         stages = everything["stages"]
         campaign = [s for s in stages if s.get("id").startswith("campaign ")][0]
         c_old_name = campaign.get("id").split(" ", 1)[1]
-
+        c_new_name = campaign.get("label")
         # permissions check, deferred from top level...
-        # but only if there actually *is* an old name, if its a new campaign
-        # we skip it...
-        if c_old_name:
-            self.poms_service.permissions.can_modify(ctx, "Campaign", name=c_old_name, experiment=ctx.experiment)
+        self.poms_service.permissions.can_view(ctx, "Campaign", name=c_old_name, experiment=ctx.experiment)
+        self.poms_service.permissions.can_modify(ctx, "Campaign", name=c_new_name, experiment=ctx.experiment)
+
 
         # Process job types and login setups first
         misc = everything["misc"]
@@ -740,9 +739,6 @@ class CampaignsPOMS:
         # Now process all stages
         stages = everything["stages"]
         logit.log("############## stages: {}".format([s.get("id") for s in stages]))
-        campaign = [s for s in stages if s.get("id").startswith("campaign ")][0]
-        c_old_name = campaign.get("id").split(" ", 1)[1]
-        c_new_name = campaign.get("label")
         campaign_clean = campaign.get("clean")
         defaults = campaign.get("form")
         campaign_keywords_json = defaults.get("campaign_keywords", "")
