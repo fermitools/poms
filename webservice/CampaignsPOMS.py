@@ -674,7 +674,7 @@ class CampaignsPOMS:
         c_new_name = campaign.get("label")
 
         # permissions check, deferred from top level...
-        self.poms_service.permissions.can_modify(ctx, "Campaign", name=c_old_name, experiment=ctx.experiment)
+        self.poms_service.permissions.can_view(ctx, "Campaign", name=c_old_name, experiment=ctx.experiment)
         self.poms_service.permissions.can_modify(ctx, "Campaign", name=c_new_name, experiment=ctx.experiment)
 
         # Process job types and login setups first
