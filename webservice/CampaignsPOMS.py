@@ -607,16 +607,16 @@ class CampaignsPOMS:
 
         if not csl:
             return csl, "", msg, data
-        for c_s in csl:
-            if self.poms_service.permissions.is_superuser(ctx):
-                data["authorized"].append(True)
-            elif c_s.creator_role == "production" and ctx.role == "production":
-                data["authorized"].append(True)
-            elif c_s.creator_role == 'analysis' and c_s.creator_role == ctx.role and c_s.creator == experimenter.experimenter_id:
-                data["authorized"].append(True)
-            else:
-                data["authorized"].append(False)
 
+        for c_s in csl:
+            # permissions module raises exceptions when not authorized, 
+            # so we have to use a try: block to decide if we're authorized 
+            try:
+                self.poms_service.permissions.can_modify(ctx,"Campaign", item_id=c_s.campaign_id)
+                data["authorized"].append(True)
+            except:
+                data["authorized"].append(False)
+         
         last_activity_l = (
             ctx.db.query(func.max(Submission.updated))
             .join(CampaignStage, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
