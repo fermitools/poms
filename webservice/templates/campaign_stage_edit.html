@@ -75,7 +75,7 @@ Campaign Stages
       {% for row in data.campaign_stages %}
       <tr>
         <td class="collapsing">
-          {% if data.authorized[loop.index-1]==True %}
+          {% if data.authorized[loop.index0]==True %}
           <i class="large edit link blue icon"  onclick="edit_campaign({{loop.index}});"></i>
           <!-- <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i> -->
           <i class="large trash link blue icon" onclick="delete_campaign('{{row.CampaignStage.name}}',{{row.CampaignStage.campaign_stage_id}});"></i>
@@ -89,7 +89,7 @@ Campaign Stages
 
         </script>
         {% endif %}
-        <td id="c_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
+        <td id="c_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index0]}}</td>
         <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.CampaignStage.job_type_id}}</td>
         <td id="c_launch_id_{{loop.index}}" style="display:none">{{row.CampaignStage.login_setup_id}}</td>
         <td id="c_campaign_name_{{loop.index}}">{{row.Campaign.name}}</td>

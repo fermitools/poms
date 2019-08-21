@@ -51,7 +51,7 @@
       {% for row in data.templates %}
       <tr>
         <td class="collapsing">
-          {% if data.authorized[loop.index-1]==True %}
+          {% if data.authorized[loop.index0]==True %}
           <i class="large edit link blue icon"  onclick="edit_template({{loop.index}});"></i>
           <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
           <i class="large trash link blue icon" onclick="delete_template('{{row.LoginSetup.name}}'); "></i>
@@ -62,7 +62,7 @@
 
           {% endif %}
         </td>
-        <td id="ldf_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
+        <td id="ldf_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index0]}}</td>
         <td id="ldf_launch_id_{{loop.index}}" style="display:none;">{{row.LoginSetup.login_setup_id}}</td>
         <td id="ldf_name_{{loop.index}}">{{row.LoginSetup.name}}</td>
         <td id="ldf_launch_host_{{loop.index}}">{{row.LoginSetup.launch_host}}</td>
