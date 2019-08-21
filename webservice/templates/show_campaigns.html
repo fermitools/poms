@@ -128,11 +128,17 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                     </a>
                 </td>
                 <td>
+                    {%if data.authorized[loop.index0] %}
                     <a href="{{pomspath}}/gui_wf_edit/{{experiment}}/{{role}}?campaign={{s.name|urlencode}}">
-                        <button {{ 'class="ui disabled button"' if (data.authorized[loop.index] == false) }}>
+                        <button class="ui button">
                             <i class="edit icon"></i>
                         </button>
                     </a>
+                    {%else%}
+                        <button class="ui button disabled">
+                            <i class="edit icon"></i>
+                        </button>
+                    {%endif%}
                 </td>
                 <td>
                     <button type="button" onclick="clone_template('{{s.name}}');">
@@ -152,9 +158,15 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                     {% endfor %}
                 </td>
                 <td>
-                    <button {{ 'class="ui disabled button"' if (data.authorized[loop.index] == false) }}>
-                        <i class="trash blue icon" onclick="delete_campaign('{{s.name}}', '{{s.campaign_id}}');"></i>
+                    {%if data.authorized[loop.index0] %}
+                    <button class="ui button" onclick="delete_campaign('{{s.name}}', '{{s.campaign_id}}');">
+                        <i class="trash blue icon"></i>
                     </button>
+                    {%else%}
+                        <button class="ui button disabled">
+                            <i class="trash icon"></i>
+                        </button>
+                    {%endif%}
                 </td>
                 <td>
                     {{s.experimenter_creator_obj.username}}

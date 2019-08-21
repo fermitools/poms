@@ -558,7 +558,7 @@ class CampaignsPOMS:
             if kwargs.get("pcl_call") in ("1", "t", "True", "true"):
                 return None, "", msg, None
 
-        data = {"authorized": []}
+        data = {}
         q = (
             ctx.db.query(Campaign)
             .options(joinedload(Campaign.experimenter_creator_obj))
@@ -608,6 +608,7 @@ class CampaignsPOMS:
         if not csl:
             return csl, "", msg, data
 
+        data["authorized"]= []
         for c_s in csl:
             # permissions module raises exceptions when not authorized, 
             # so we have to use a try: block to decide if we're authorized 

@@ -95,7 +95,7 @@ class Permissions:
                 q = q.filter(Campaign.campaign_id == item_id)
             if name:
                 k = "c:%s_%s" % (experiment, name)
-                q = q.filter(Campaign.name == item_id, Campaign.experiment == experiment)
+                q = q.filter(Campaign.name == name, Campaign.experiment == experiment)
         elif t == "LoginSetup":
             q = ctx.db.query(LoginSetup.experiment, Experimenter.username, LoginSetup.creator_role).join(Experimenter, LoginSetup.creator == Experimenter.experimenter_id)
             if item_id:
@@ -146,9 +146,11 @@ class Permissions:
         exp, owner, role = self.get_exp_owner_role(
             ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id
         )
-        logit.log("can_view: cur: %s, %s, %s; item: %s, %s, %s" % (ctx.username, ctx.experiment, ctx.role, owner, exp, role))
+        logit.log("can_view: %s: cur: %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role))
         if exp and exp != ctx.experiment:
+            logit.log("can_view: resp: fail")
             raise PermissionError("Must be acting as experiment %s to see this" % exp)
+        logit.log("can_view: resp: ok")
 
     def can_modify(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None):
         if self.is_superuser(ctx):
@@ -159,7 +161,9 @@ class Permissions:
         # special case for experimenter check
         if t == "Experimenter":
             if item_id != ctx.username:
+                logit.log("can_view: resp: fail")
                 raise PermissionError("Only user %s can change this" % item_id)
+            logit.log("can_view: resp: ok")
             return
 
         exp, owner, role = self.get_exp_owner_role(
@@ -174,14 +178,18 @@ class Permissions:
 
         self.check_experiment_role(ctx)
 
-        logit.log("can_modify: cur: %s, %s, %s; item: %s, %s, %s" % (ctx.username, ctx.experiment, ctx.role, owner, exp, role))
+        logit.log("can_modify: %s cur: %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role))
         if exp and exp != ctx.experiment:
+            logit.log("can_modify: resp: fail")
             raise PermissionError("Must be acting as experiment %s to change this" % exp)
         if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
+            logit.log("can_modify: resp: fail")
             raise PermissionError("Must be role %s to change this" % role)
 
         if ctx.role == "analysis" and owner and owner != ctx.username:
+            logit.log("can_modify: resp: fail")
             raise PermissionError("Must be user %s to change this" % owner)
+        logit.log("can_modify: resp: ok")
 
     def can_do(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None):
         if self.is_superuser(ctx):
@@ -192,7 +200,7 @@ class Permissions:
         # special case for experimenter
         if t == "Experimenter":
             if item_id != ctx.username:
-                raise PermissionError("Only user %s can view this" % item_id)
+                raise PermissionError("Only user %s can do this" % item_id)
             return
 
         self.check_experiment_role(ctx)
@@ -201,11 +209,16 @@ class Permissions:
             ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id
         )
 
-        logit.log("can_do: cur: %s, %s, %s; item: %s, %s, %s" % (ctx.username, ctx.experiment, ctx.role, owner, exp, role))
+        logit.log("can_do: %s cur:  %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role))
         if exp and exp != ctx.experiment:
+            logit.log("can_do: resp: fail")
             raise PermissionError("Must be acting as experiment %s to do this" % exp)
         if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
+            logit.log("can_do: resp: fail")
             raise PermissionError("Must be role %s to do this" % role)
 
         if role and ctx.role == "analysis" and owner and owner != ctx.username:
+            logit.log("can_do: resp: fail")
             raise PermissionError("Must be user %s to do this" % owner)
+
+        logit.log("can_do: resp: ok")
