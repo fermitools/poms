@@ -28,10 +28,11 @@
 {%block content%}
 
 
-<form id="login_setup_form" class="ui form" action="login_setup_edit" method="POST">
+<form id="login_setup_form" class="ui form" action="{{pomspath}}/login_setup_edit/{{session_experiment}}/{{session_role}}" method="POST">
 
   {% if data.curr_experiment is defined %}
 
+  {% set has_active=True %}
   {% set data = data|default({}) %}
   {%include "view_picker.html" %}
 

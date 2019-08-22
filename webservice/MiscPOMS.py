@@ -241,13 +241,12 @@ class MiscPOMS:
             elif data["view_others"]:
                 q = q.filter(LoginSetup.creator != data["view_others"])
 
-            # LoginSetups don't have an active field(yet?)
             if data["view_active"] and data["view_inactive"]:
                 pass
             elif data["view_active"]:
-                pass
-            elif data["view_others"]:
-                pass
+                q = q.filter(LoginSetup.active.is_(True))
+            elif data["view_inactive"]:
+                q = q.filter(LoginSetup.active.is_(False))
 
             data["templates"] = q.all()
 
@@ -457,9 +456,9 @@ class MiscPOMS:
             if data["view_active"] and data["view_inactive"]:
                 pass
             elif data["view_active"]:
-                pass
-            elif data["view_others"]:
-                pass
+                q = q.filter(JobType.active.is_(True))
+            elif data["view_inactive"]:
+                q = q.filter(JobType.active.is_(False))
 
             data["definitions"] = q.all()
             cids = []

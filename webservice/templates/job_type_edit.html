@@ -32,6 +32,7 @@ JobTypes {{ show_hint('#Compose-a-job-type', 'Job Type') }}
 
 <form id="campaign_definition_form" class="ui form" action="{{pomspath}}/job_type_edit/{{session_experiment}}/{{session_role}}" method="POST">
 
+  {% set has_active=True %}
   {% set data = data|default({}) %}
   {%include "view_picker.html" %}
 

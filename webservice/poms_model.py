@@ -159,6 +159,7 @@ class LoginSetup(Base):
     updater = Column(ForeignKey("experimenters.experimenter_id"), index=True)
     updated = Column(DateTime(True))
     creator_role = Column(Text, nullable=False)
+    active = Column(Boolean)
 
     experiment_obj = relationship("Experiment")
     experimenter_creator_obj = relationship("Experimenter", primaryjoin="LoginSetup.creator == Experimenter.experimenter_id")
@@ -181,6 +182,7 @@ class JobType(Base):
     updater = Column(ForeignKey("experimenters.experimenter_id"), index=True)
     updated = Column(DateTime(True))
     creator_role = Column(Text, nullable=False)
+    active = Column(Boolean)
 
     experiment_obj = relationship("Experiment")
     experimenter_creator_obj = relationship("Experimenter", primaryjoin="JobType.creator == Experimenter.experimenter_id")
