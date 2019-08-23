@@ -276,7 +276,7 @@ class sam_project_checker:
 
         self.n_project = self.n_project + 1
 
-        isparentof = "isparentof: " * submission.campaign_stage_obj.output_ancestor_depth
+        isparentof = "isparentof:(" * submission.campaign_stage_obj.output_ancestor_depth
         isclose = ")" * submission.campaign_stage_obj.output_ancestor_depth
 
         basedims = "snapshot_for_project_name %s " % submission.project
