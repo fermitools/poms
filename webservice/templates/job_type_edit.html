@@ -32,6 +32,7 @@ JobTypes {{ show_hint('#Compose-a-job-type', 'Job Type') }}
 
 <form id="campaign_definition_form" class="ui form" action="{{pomspath}}/job_type_edit/{{session_experiment}}/{{session_role}}" method="POST">
 
+  {% set has_active=True %}
   {% set data = data|default({}) %}
   {%include "view_picker.html" %}
 
@@ -55,7 +56,7 @@ JobTypes {{ show_hint('#Compose-a-job-type', 'Job Type') }}
     {% for row in data.definitions %}
       <tr>
 	    <td class="collapsing">
-      {% if data.authorized[loop.index-1]==True %}
+      {% if data.authorized[loop.index0]==True %}
 	      <i class="large edit link blue icon"  onclick="edit_definition({{loop.index}});"></i>
 	      <i class="large copy icon link blue icon" onclick="edit_definition({{loop.index}},'CLONE');"></i>
 	      <i class="large trash link blue icon" onclick="delete_definition('{{row.JobType.name}}','{{row.JobType.job_type_id}}');"></i>
@@ -65,7 +66,7 @@ JobTypes {{ show_hint('#Compose-a-job-type', 'Job Type') }}
 	      <i class="disabled large trash link blue icon"></i>
 	    {% endif %}
 	    </td>
-      <td id="cdf_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
+      <td id="cdf_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index0]}}</td>
 	    <td id="cdf_id_{{loop.index}}" style="display:none;">{{row.JobType.job_type_id}}</td>
 	    <td id="cdf_name_{{loop.index}}">{{row.JobType.name}}</td>
 	    <td id="cdf_input_{{loop.index}}">{{row.JobType.input_files_per_job}}</td>
