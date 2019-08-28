@@ -27,9 +27,17 @@ Submission Details {%include 'help_button.html'%}
 {%block content%}
 <script>
  function confirm_call(msg, url) {
-         var r = confirm(msg);
+     var r = confirm(msg);
      if ( r ) {
          location.assign(url)
+     }
+ }
+ function confirm_validate(msg) {
+     var r = confirm(msg);
+     if ( r ) {
+         return true;
+     } else {
+         return false;
      }
  }
 </script>
@@ -144,7 +152,7 @@ Re-Launch Submission on dataset {{dataset}} <button onclick="confirm_call('Are y
 
 {%if history[-1].status_id >= 7000 %}
 Launch Recovery for Submission
-<form style="display: inline-block;" action="{{pomspath}}/launch_recovery_for/{{session_experiment}}/{{session_role}}">
+<form style="display: inline-block;" action="{{pomspath}}/launch_recovery_for/{{session_experiment}}/{{session_role}}" onsubmit="return confirm_validate('Are you sure you want to launch jobs now?')">
 <select name="recovery_type">
 {% for r in recoverymap %}
 <option value="{{recoverymap[r][0]}}" >{{r}} </option>
