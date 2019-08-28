@@ -25,6 +25,14 @@ Submission Details {%include 'help_button.html'%}
 </style>
 {%endblock%}
 {%block content%}
+<script>
+ function confirm_call(msg, url) {
+         var r = confirm(msg);
+     if ( r ) {
+         location.assign(url)
+     }
+ }
+</script>
 <h3>
 Submission #{{submission.submission_id}}<br>
 jobsub_job_Id: {{submission.jobsub_job_id}} <br>
@@ -132,11 +140,11 @@ Kick to Located  <i class="ui forward icon  grey"></i>&nbsp;
 {%endif%}
 <br>
 
-Re-Launch Submission on dataset {{dataset}} <a href="{{pomspath}}/launch_jobs/{{experiment}}/{{role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}"><button>Relaunch</button></a> <br>
+Re-Launch Submission on dataset {{dataset}} <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}')">Relaunch</button><br>
 
 {%if history[-1].status_id >= 7000 %}
 Launch Recovery for Submission
-<form style="display: inline-block;" action="{{pomspath}}/launch_recovery_for/{{experiment}}/{{role}}">
+<form style="display: inline-block;" action="{{pomspath}}/launch_recovery_for/{{session_experiment}}/{{session_role}}">
 <select name="recovery_type">
 {% for r in recoverymap %}
 <option value="{{recoverymap[r][0]}}" >{{r}} </option>
