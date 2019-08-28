@@ -95,6 +95,7 @@ class SubmissionsPOMS:
         self.status_Completed = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Completed").first()[0]
         self.status_Removed = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Removed").first()[0]
         self.status_New = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()[0]
+        self.status_Failed = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Failed").first()[0]
         self.init_status_done = True
 
     # h3. session_status_history
@@ -256,7 +257,7 @@ class SubmissionsPOMS:
             res.append("marking submission %s located " % s)
             self.update_submission_status(ctx, s, "Located")
 
-        #
+       #
         # now commit having marked things located, to release database
         # locks.
         #
@@ -414,11 +415,11 @@ class SubmissionsPOMS:
             % (submission_id, status_id, lasthist.status_id, lasthist.created)
         )
 
-        # don't roll back Located or Removed (final states)
-        # note that we *don't* have LaunchFailed here, as we *could*
-        # have a launch that took a Really Long Time, and we might have
-        # falsely concluded that the launch failed...
-        if lasthist and lasthist.status_id in (self.status_Located, self.status_Removed):
+        # don't roll back Located, Failed, or Removed (final states)
+        # note that we *intentionally don't* have LaunchFailed here, as we 
+        # *could*  have a launch that took a Really Long Time, and we might 
+        # have falsely concluded that the launch failed...
+        if lasthist and lasthist.status_id in (self.status_Located, self.status_Removed, self.status_Failed):
             return
 
         # don't roll back Completed
