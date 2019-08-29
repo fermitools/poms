@@ -130,7 +130,7 @@
 	      <select class="ui dropdown" name="current_role" id="current_role" style="margin-left: 1em;">
                       {% if allowed_roles is defined %}
 		      {% for role in allowed_roles[session_experiment] %}
-		      <option value="{{role}}" {{ 'selected="selected"' if (session_role == role) }}>{{role}}</option>
+		      <option value="{{session_role}}" {{ 'selected="selected"' if (session_role == role) }}>{{session_role}}</option>
 		      {% endfor %}
                       {% endif %}
 	      </select>
