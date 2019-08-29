@@ -119,6 +119,7 @@ class sam_specifics:
         else:
             dim_bits = "file_name like '%s'" % jobtype.file_patterns
         cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
+        ndate = s.updated.strftime("%Y-%m-%dT%H:%M:%S%z")
 
         if s.campaign_stage_obj.campaign_stage_type in ("approval", "datatransfer"):
             basedims = "defname:%s" % s.submission_params.get("dataset", dname)
@@ -130,6 +131,12 @@ class sam_specifics:
                 s.campaign_stage_snapshot_obj.software_version,
                 cdate,
             )
+            # if we have an updated time past our creation, use it for the
+            # time window -- this makes our dependency definition basically 
+            # frozen after we run, so it doesn't collect later similar projects
+            # output.
+            if ndate != cdate:
+                basedims ="%s and create_date <= '%s'" % (basedims, ndate)
 
         dims = "%s and %s" % (basedims, dim_bits)
 
