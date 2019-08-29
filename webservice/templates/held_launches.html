@@ -18,15 +18,21 @@ Held Launches
 
 
 {%block content%}
-    <form action="held_launches_delete">
+    <form action="{{pomspath}}/held_launches_remove">
     <input type="hidden" name="experiment" value="{{session_experiment}}">
     <input type="hidden" name="role" value="{{session_role}}">
     <table class="ui celled table raised">
     <thead>
     <tr>
+        <td colspan="2"></td>
+        <td colspan="2">CampaignStage</td>
+        <td></td>
+    </tr>
+    <tr>
        <td>_</td>
        <td>Created</td>
-       <td>StageId</td>
+       <td>Id</td>
+       <td>Name</td>
        <td>Dataset</td>
     </tr>
     </head>
@@ -36,6 +42,7 @@ Held Launches
         <td> <input type='checkbox' name="createds" value="{{hj.created}}"></td>
         <td>{{hj.created}} </td>
         <td>{{hj.campaign_stage_id}}</td>
+        <td>{{hj.campaign_stage_obj.name}}</td>
         <td>{{hj.dataset }}</td>
       </tr>
     {% endfor %}

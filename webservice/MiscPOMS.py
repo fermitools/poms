@@ -681,14 +681,25 @@ class MiscPOMS:
 
     # h3. held_launches
     def held_launches(self, ctx):
-        eid = ctx.get_experimenter().experimenter_id
-        hjl = ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher == eid).all()
+        
+        if ctx.role == 'analysis':
+            # analysis users see their own held jobs
+            eid = ctx.get_experimenter().experimenter_id
+            hjl = ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher == eid).all()
+        if ctx.role == 'production':
+            # production users see their experiment production
+            hjl = ctx.db.query(HeldLaunch).join(CampaignStage,HeldLaunch.campaign_stage_id == CampaignStage.campaign_stage_id).filter(CampaignStage.experiment == ctx.experiment,CampaignStage.creator_role == ctx.role).all()
+
+        if ctx.role == 'superuser':
+            # superusers see all their experiment's jobs
+            hjl = ctx.db.query(HeldLaunch).join(CampaignStage,HeldLaunch.campaign_stage_id == CampaignStage.campaign_stage_id).filter(CampaignStage.experiment == ctx.experiment).all()
+
         return {"hjl": hjl}
 
     # h3. held_launches_remove
-    def held_launches_remove(self, ctx, createds):
+    def held_launches_remove(self, ctx, createds, delete):
         eid = ctx.get_experimenter().experimenter_id
         if isinstance(createds, str):
             createds = [createds]
-        ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher == eid, HeldLaunch.created.in_(createds)).delete()
+        ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher == eid, HeldLaunch.created.in_(createds)).delete(synchronize_session=False)
         ctx.db.commit()
