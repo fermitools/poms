@@ -294,24 +294,17 @@ class sam_project_checker:
             if pat == "None":
                 pat = "%"
 
-            if pat.find(" ") > 0:
-                allkiddims = "%s and %s %s and version '%s' and create_date > '%s'  with availability physical %s " % (
-                    allkiddims,
-                    isparentof,
-                    pat,
-                    submission.campaign_stage_snapshot_obj.software_version,
-                    submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                    isclose,
-                )
-            else:
-                allkiddims = "%s and %s file_name '%s' and version '%s' and create_date > '%s' with availability physical %s " % (
-                    allkiddims,
-                    isparentof,
-                    pat,
-                    submission.campaign_stage_snapshot_obj.software_version,
-                    submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                    isclose,
-                )
+            if pat.find(" ") < 0:
+               pat = "file_name %s" % pat
+
+            allkiddims = "%s and %s %s and version '%s' and create_date > '%s'  with availability physical %s " % (
+                allkiddims,
+                isparentof,
+                pat,
+                submission.campaign_stage_snapshot_obj.software_version,
+                submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                isclose,
+            )
 
         self.lookup_exp_list.append(submission.campaign_stage_snapshot_obj.experiment)
         self.lookup_submission_list.append(submission)
